@@ -83,8 +83,11 @@ export const settings = async (
   if (values.isTwoFactorEnabled !== undefined) updateData.isTwoFactorEnabled = values.isTwoFactorEnabled;
 
   // Profile fields
-  if (values.phone !== undefined) updateData.phone = values.phone;
-  if (values.image !== undefined) updateData.image = values.image;
+  if (values.phone !== undefined) updateData.phone = values.phone || null;
+  if (values.image !== undefined) updateData.image = values.image || null;
+  if (values.bio !== undefined) updateData.bio = values.bio || null;
+  if (values.location !== undefined) updateData.location = values.location || null;
+  if (values.website !== undefined) updateData.website = values.website || null;
   if (values.learningStyle !== undefined) updateData.learningStyle = values.learningStyle;
 
   // Update user in database

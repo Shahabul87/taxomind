@@ -11,7 +11,7 @@ const SettingsPage = async () => {
     redirect("/login");
   }
 
-  // Fetch complete user data from database
+  // Fetch complete user data from database including profile links
   const dbUser = await db.user.findUnique({
     where: { id: user.id },
     select: {
@@ -20,6 +20,9 @@ const SettingsPage = async () => {
       email: true,
       image: true,
       phone: true,
+      bio: true,
+      location: true,
+      website: true,
       isTwoFactorEnabled: true,
       totpEnabled: true,
       totpVerified: true,
@@ -36,6 +39,15 @@ const SettingsPage = async () => {
       lastLoginIp: true,
       isAccountLocked: true,
       emailVerified: true,
+      profileLinks: {
+        select: {
+          id: true,
+          platform: true,
+          url: true,
+          position: true,
+        },
+        orderBy: { position: 'asc' },
+      },
     },
   });
 
@@ -50,6 +62,9 @@ const SettingsPage = async () => {
     email: dbUser.email,
     image: dbUser.image,
     phone: dbUser.phone,
+    bio: dbUser.bio,
+    location: dbUser.location,
+    website: dbUser.website,
     isOAuth: user.isOAuth || false,
     isTwoFactorEnabled: dbUser.isTwoFactorEnabled,
     totpEnabled: dbUser.totpEnabled,
@@ -67,6 +82,7 @@ const SettingsPage = async () => {
     lastLoginIp: dbUser.lastLoginIp,
     isAccountLocked: dbUser.isAccountLocked,
     emailVerified: dbUser.emailVerified,
+    profileLinks: dbUser.profileLinks,
   };
 
   // Convert user data for SmartHeader and SmartSidebar

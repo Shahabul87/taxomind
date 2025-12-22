@@ -44,6 +44,20 @@ const phoneValidation = z.string()
   .max(15, { message: "Phone number must be at most 15 digits" })
   .regex(/^\+?[1-9]\d{1,14}$/, { message: "Invalid phone number format" });
 
+// URL validation with optional protocol
+const urlValidation = z.string()
+  .refine((val) => {
+    if (!val) return true;
+    try {
+      // Allow URLs with or without protocol
+      const urlToTest = val.startsWith('http') ? val : `https://${val}`;
+      new URL(urlToTest);
+      return true;
+    } catch {
+      return false;
+    }
+  }, { message: "Invalid URL format" });
+
 // Extended Settings Schema for Enterprise Features
 // NOTE: Users don't have roles - Admin auth is completely separate (AdminAccount model)
 // Use isTeacher flag to distinguish teachers from regular users
@@ -58,8 +72,11 @@ export const SettingsSchema = z.object({
   isTwoFactorEnabled: z.optional(z.boolean()),
 
   // Profile Fields
-  phone: z.optional(phoneValidation),
-  image: z.optional(z.string().url()),
+  phone: z.optional(phoneValidation.or(z.literal(""))),
+  image: z.optional(z.string().url().or(z.literal(""))),
+  bio: z.optional(z.string().max(500, { message: "Bio must be 500 characters or less" })),
+  location: z.optional(z.string().max(100, { message: "Location must be 100 characters or less" })),
+  website: z.optional(urlValidation.or(z.literal(""))),
   learningStyle: z.optional(z.enum(["VISUAL", "AUDITORY", "KINESTHETIC", "READING_WRITING"])),
 
   // Notification Preferences

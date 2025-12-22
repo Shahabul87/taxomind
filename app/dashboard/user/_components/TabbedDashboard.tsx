@@ -3,17 +3,41 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User } from "next-auth";
+import dynamic from "next/dynamic";
 
-// Import the original sidebar for now
-import { HomeSidebar } from "@/components/ui/home-sidebar";
+// Tab Loading Skeleton
+const TabLoadingSkeleton = () => (
+  <div className="p-6 space-y-4 animate-pulse">
+    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-1/3" />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="h-32 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+      ))}
+    </div>
+    <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+  </div>
+);
 
-// Import existing smart dashboard components
+// Lazy-loaded tab components for better code splitting
+const OverviewTab = dynamic(
+  () => import('./tabs/OverviewTab').then(mod => ({ default: mod.OverviewTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
 
-// Import new tab components
-import { OverviewTab } from './tabs/OverviewTab';
-import { LearningTab } from './tabs/LearningTab';
-import { AnalyticsTab } from './tabs/AnalyticsTab';
-import { AchievementsTab } from './tabs/AchievementsTab';
+const LearningTab = dynamic(
+  () => import('./tabs/LearningTab').then(mod => ({ default: mod.LearningTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
+
+const AnalyticsTab = dynamic(
+  () => import('./tabs/AnalyticsTab').then(mod => ({ default: mod.AnalyticsTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
+
+const AchievementsTab = dynamic(
+  () => import('./tabs/AchievementsTab').then(mod => ({ default: mod.AchievementsTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
 
 interface TabbedDashboardProps {
   user: User;

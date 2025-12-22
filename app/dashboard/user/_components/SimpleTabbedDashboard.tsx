@@ -3,18 +3,38 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User } from "next-auth";
-import { 
-  LayoutDashboard, BookOpen, Award
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { LayoutDashboard, BookOpen, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
 
-// Import tab components  
-import { OverviewTab } from './tabs/OverviewTab';
-import { LearningTab } from './tabs/LearningTab';
-import { AchievementsTab } from './tabs/AchievementsTab';
+// Tab Loading Skeleton
+const TabLoadingSkeleton = () => (
+  <div className="p-6 space-y-4 animate-pulse">
+    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-lg w-1/3" />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="h-32 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+      ))}
+    </div>
+    <div className="h-64 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+  </div>
+);
+
+// Lazy-loaded tab components
+const OverviewTab = dynamic(
+  () => import('./tabs/OverviewTab').then(mod => ({ default: mod.OverviewTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
+
+const LearningTab = dynamic(
+  () => import('./tabs/LearningTab').then(mod => ({ default: mod.LearningTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
+
+const AchievementsTab = dynamic(
+  () => import('./tabs/AchievementsTab').then(mod => ({ default: mod.AchievementsTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
 
 interface SimpleTabbedDashboardProps {
   user: User;

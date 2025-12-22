@@ -27,6 +27,7 @@ model User {
   phone                                   String?
   bio                                     String?
   location                                String?
+  website                                 String?
   createdAt                               DateTime                             @default(now())
   isAccountLocked                         Boolean                              @default(false)
   lockReason                              String?
@@ -285,6 +286,13 @@ model User {
   dashboardNotes             DashboardNote[]            @relation("UserNotes")
   googleCalendarConnection   GoogleCalendarConnection?  @relation("UserGoogleCalendar")
   dashboardPreferences       DashboardPreferences?      @relation("UserDashboardPreferences")
+
+  // Exam & Evaluation System Relations (added December 2024)
+  cognitiveSkillProgress     CognitiveSkillProgress[]
+  spacedRepetitionSchedules  SpacedRepetitionSchedule[]
+  studyGuides                StudyGuide[]
+  learningActivityLogs       LearningActivityLog[]
+  progressInterventions      ProgressIntervention[]
 }
 
 model Account {

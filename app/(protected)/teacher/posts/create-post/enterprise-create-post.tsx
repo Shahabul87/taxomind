@@ -4,48 +4,87 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CreateBlogInputSection } from "./create-blog-input";
 import {
-  FilePlus2,
-  ShieldCheck,
+  FileText,
   Save,
-  XCircle,
-  CheckCircle2,
-  NotebookPen,
-  ListChecks,
-  Rocket,
+  X,
+  Check,
   ChevronRight,
   Sparkles,
-  Clock,
-  AlertCircle,
+  ArrowLeft,
+  Circle,
+  CheckCircle2,
+  Lock,
+  Lightbulb,
+  Target,
+  AlertTriangle,
 } from "lucide-react";
 
-const steps = [
-  { label: "Title & Categories", icon: NotebookPen, active: true, done: false },
-  { label: "Content (Coming Soon)", icon: ListChecks, active: false, done: false },
-  { label: "Review & Publish", icon: Rocket, active: false, done: false },
-];
+/**
+ * Enterprise Create Post - Editorial Design System
+ *
+ * Design Philosophy:
+ * - Clean, magazine-inspired typography
+ * - Restrained color palette with purposeful accents
+ * - Generous whitespace for visual breathing room
+ * - Subtle animations that enhance, not distract
+ * - Professional confidence without visual clutter
+ */
+
+interface StepConfig {
+  id: number;
+  label: string;
+  description: string;
+  icon: React.ElementType;
+  status: "complete" | "current" | "locked";
+}
 
 export default function EnterpriseCreatePost() {
   const [isValid, setIsValid] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Step configuration
+  const steps: StepConfig[] = useMemo(() => [
+    {
+      id: 1,
+      label: "Title & Categories",
+      description: "Define your post",
+      icon: FileText,
+      status: isValid ? "complete" : "current",
+    },
+    {
+      id: 2,
+      label: "Content",
+      description: "Write your story",
+      icon: Sparkles,
+      status: "locked",
+    },
+    {
+      id: 3,
+      label: "Review & Publish",
+      description: "Final review",
+      icon: Target,
+      status: "locked",
+    },
+  ], [isValid]);
+
+  const currentStep = steps.find(s => s.status === "current") || steps[0];
+  const completedSteps = steps.filter(s => s.status === "complete").length;
+  const progress = Math.round((completedSteps / steps.length) * 100);
 
   const handleSaveDraft = useCallback(() => {
     window.dispatchEvent(new Event("save-create-post-draft"));
+    setLastSaved(new Date());
   }, []);
 
   const handleClearDraft = useCallback(() => {
-    window.dispatchEvent(new Event("clear-create-post-draft"));
+    if (window.confirm("Clear all content? This cannot be undone.")) {
+      window.dispatchEvent(new Event("clear-create-post-draft"));
+    }
   }, []);
-
-  const progress = useMemo(() => {
-    const total = steps.length;
-    const completed = isValid ? 1 : 0;
-    const pct = Math.round((completed / total) * 100);
-    return { total, completed, pct };
-  }, [isValid]);
 
   // Listen for validity and submitting events from the form
   useEffect(() => {
@@ -57,311 +96,299 @@ export default function EnterpriseCreatePost() {
       const detail = (e as CustomEvent).detail as { submitting?: boolean };
       if (typeof detail?.submitting === "boolean") setIsSubmitting(detail.submitting);
     };
+    const onDraftSaved = () => setLastSaved(new Date());
+
     window.addEventListener("create-post-validity", onValidity);
     window.addEventListener("create-post-submitting", onSubmitting);
+    window.addEventListener("draft-saved", onDraftSaved);
+
     return () => {
       window.removeEventListener("create-post-validity", onValidity);
       window.removeEventListener("create-post-submitting", onSubmitting);
+      window.removeEventListener("draft-saved", onDraftSaved);
     };
   }, []);
 
   const triggerSubmit = useCallback(() => {
-    try {
-      (document.getElementById("create-post-submit") as HTMLButtonElement | null)?.click();
-    } catch {}
+    const submitBtn = document.getElementById("create-post-submit") as HTMLButtonElement | null;
+    if (submitBtn) submitBtn.click();
   }, []);
 
   return (
-    <div className="w-full min-h-screen px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 md:py-6 max-w-7xl mx-auto">
-      {/* Mobile Stepper - Only visible on mobile */}
-      <div className="lg:hidden mb-3 sm:mb-4">
-        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-xl border border-slate-200/60 dark:border-slate-700/60 p-3 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            {steps.map((step, idx) => (
-              <div key={idx} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
-                  <div
-                    className={cn(
-                      "w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                      step.active
-                        ? "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-400 shadow-md shadow-blue-500/30"
-                        : step.done
-                        ? "bg-emerald-500 border-emerald-400 shadow-sm"
-                        : "bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600"
-                    )}
-                  >
-                    {step.done ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                    ) : (
-                      <step.icon className={cn(
-                        "w-3.5 h-3.5 sm:w-4 sm:h-4",
-                        step.active ? "text-white" : "text-slate-400 dark:text-slate-500"
-                      )} />
-                    )}
-                  </div>
-                  <span className={cn(
-                    "text-[10px] sm:text-xs mt-1.5 text-center font-medium",
-                    step.active ? "text-slate-900 dark:text-white" : "text-slate-400 dark:text-slate-500"
-                  )}>
-                    Step {idx + 1}
-                  </span>
-                </div>
-                {idx < steps.length - 1 && (
-                  <div className="flex-1 h-0.5 mx-1 sm:mx-2 bg-slate-200 dark:bg-slate-700 relative overflow-hidden">
-                    <div
-                      className={cn(
-                        "absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500",
-                        step.done ? "w-full" : "w-0"
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+      {/* Subtle background texture */}
+      <div className="fixed inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxyZWN0IHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgZmlsbD0ibm9uZSIvPgo8Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxIiBmaWxsPSJyZ2JhKDAsIDAsIDAsIDAuMDMpIi8+Cjwvc3ZnPg==')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxyZWN0IHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgZmlsbD0ibm9uZSIvPgo8Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwgMjU1LCAyNTUsIDAuMDMpIi8+Cjwvc3ZnPg==')] pointer-events-none" />
 
-      {/* Compact Mobile Header */}
-      <div className="mb-3 sm:mb-4 md:mb-6">
-        {/* Breadcrumb & Title */}
-        <div className="mb-3">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
-            <Link href="/teacher/posts/all-posts" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-              Posts
-            </Link>
-            <ChevronRight className="w-3 h-3" />
-            <span className="text-slate-700 dark:text-slate-300">Create</span>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/40 to-indigo-500/40 blur-lg rounded-lg" />
-              <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl border border-blue-200/80 dark:border-blue-800/60 flex items-center justify-center bg-gradient-to-br from-white to-blue-50/50 dark:from-slate-900 dark:to-blue-950/30 shadow-lg">
-                <FilePlus2 className="w-4.5 h-4.5 sm:w-5.5 sm:h-5.5 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-28">
+        {/* Header */}
+        <header className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+          {/* Back Navigation */}
+          <Link
+            href="/teacher/posts/all-posts"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors mb-6 group"
+          >
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <span>Back to Posts</span>
+          </Link>
+
+          {/* Title Section */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-3xl sm:text-4xl font-serif font-semibold text-slate-900 dark:text-white tracking-tight">
                 Create New Post
               </h1>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                Build engaging content for your audience
+              <p className="text-base text-slate-500 dark:text-slate-400">
+                Craft compelling content that engages your audience
               </p>
             </div>
-          </div>
-        </div>
 
-        {/* Status & Actions Bar */}
-        <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-xl sm:rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-sm overflow-hidden">
-          {/* Top section - Status badges and actions */}
-          <div className="p-3 sm:p-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              {/* Status indicators */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge className="bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-200/60 dark:from-amber-900/40 dark:to-orange-900/40 dark:text-amber-300 dark:border-amber-800/40 text-xs font-medium px-2.5 py-0.5 shadow-sm">
-                  <Clock className="w-3 h-3 mr-1" />
-                  Draft
-                </Badge>
-                {isValid && (
-                  <Badge className="bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border border-emerald-200/60 dark:from-emerald-900/40 dark:to-teal-900/40 dark:text-emerald-300 dark:border-emerald-800/40 text-xs font-medium px-2.5 py-0.5 shadow-sm">
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    Valid
-                  </Badge>
-                )}
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSaveDraft}
-                  className="border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs sm:text-sm flex-1 sm:flex-initial shadow-sm hover:shadow transition-all"
-                >
-                  <Save className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1.5" />
-                  <span className="hidden xs:inline">Save </span>Draft
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearDraft}
-                  className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs sm:text-sm px-3 transition-all"
-                >
-                  <XCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <Separator className="opacity-60" />
-
-          {/* Progress section */}
-          <div className="px-3 sm:px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                Overall Progress
-              </span>
-              <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
-                {progress.pct}%
-              </span>
-            </div>
-            <div className="h-2 w-full rounded-full bg-slate-200/80 dark:bg-slate-700/80 overflow-hidden shadow-inner">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-full transition-all duration-700 ease-out relative overflow-hidden"
-                style={{ width: `${progress.pct}%` }}
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearDraft}
+                className="text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-              </div>
+                <X className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveDraft}
+                className="gap-2"
+              >
+                <Save className="w-4 h-4" />
+                <span className="hidden sm:inline">Save Draft</span>
+              </Button>
             </div>
           </div>
+        </header>
 
-          <Separator className="opacity-60" />
-
-          {/* Autosave info */}
-          <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 bg-emerald-50/50 dark:bg-emerald-950/20">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-            <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
-              Auto-save enabled • Secure browser storage
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_280px] gap-3 sm:gap-4 md:gap-6">
-        {/* Desktop Stepper - Hidden on mobile, visible on lg+ */}
-        <aside className="hidden lg:block rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-md p-4 h-fit sticky top-20">
-          <div className="relative">
-            <div className="absolute left-[18px] top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-200 via-indigo-200 to-purple-200 dark:from-blue-800 dark:via-indigo-800 dark:to-purple-800" />
-          </div>
-          <div className="space-y-4 relative">
-            {steps.map((step, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all duration-300",
-                    step.active
-                      ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-transparent shadow-lg shadow-blue-500/40"
-                      : "bg-white dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700 shadow-sm"
-                  )}
-                >
-                  {step.done ? (
-                    <CheckCircle2 className="w-5 h-5" />
-                  ) : (
-                    <step.icon className="w-5 h-5" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className={cn("text-sm font-semibold", step.active ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400")}>
-                    {step.label}
-                  </div>
-                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                    {idx === 0 ? (isValid ? "Complete ✓" : "In progress...") : "Locked"}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        {/* Main form */}
-        <main className="space-y-3 sm:space-y-4 md:space-y-6">
-          {/* Main content card */}
-          <section className="rounded-xl sm:rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-md overflow-hidden hover:shadow-lg transition-all duration-300">
-            <div className="p-4 sm:p-5 md:p-6 border-b border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-br from-slate-50/50 to-transparent dark:from-slate-900/30 dark:to-transparent">
-              <div className="flex items-center gap-2.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm shadow-blue-500/50" />
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                  Title & Categories
-                </h2>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-2 leading-relaxed">
-                Craft a compelling title and select relevant categories to maximize discoverability.
-              </p>
-            </div>
-            <div className="p-4 sm:p-5 md:p-6">
-              <CreateBlogInputSection />
-            </div>
-          </section>
-
-          {/* Upcoming features card */}
-          <section className="rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-200/80 dark:border-slate-700/80 bg-gradient-to-br from-blue-50/30 via-indigo-50/20 to-purple-50/30 dark:from-blue-950/10 dark:via-indigo-950/10 dark:to-purple-950/10 backdrop-blur-sm p-4 sm:p-5 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md flex-shrink-0">
-                <Sparkles className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-1">
-                  Content Editor Coming Soon
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                  We&apos;re building a powerful rich-text editor with live preview, AI assistance, and media management. Stay tuned!
-                </p>
-              </div>
-            </div>
-          </section>
-        </main>
-
-        {/* Desktop Help Panel - Hidden on mobile, visible on lg+ */}
-        <aside className="hidden lg:block rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-md p-4 h-fit space-y-4 sticky top-20">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-1 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white">Quality Tips</h4>
-            </div>
-            <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-400">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                <span>Use 5–9 word titles with clear benefit</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                <span>Limit to 3–5 precise categories</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <span>Avoid emojis or excessive punctuation</span>
-              </li>
-            </ul>
-          </div>
-          <Separator />
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-purple-500" />
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white">SEO Optimization</h4>
-            </div>
-            <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg">
-              <strong className="text-slate-700 dark:text-slate-300">Title length:</strong> Aim for 35–60 characters. Keep it descriptive and unique for better search rankings.
-            </div>
-          </div>
-        </aside>
-      </div>
-
-      {/* Premium Sticky Footer */}
-      <div className="sticky bottom-0 z-50 mt-4 sm:mt-6 -mx-3 sm:-mx-4 md:mx-0">
-        <div className="backdrop-blur-xl bg-white/95 dark:bg-slate-900/95 border-t border-slate-200/80 dark:border-slate-700/80 shadow-2xl shadow-slate-900/10 dark:shadow-black/40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-3 sm:py-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
-              {/* Step indicator */}
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-                  <span className="text-xs font-bold text-white">1</span>
+        {/* Progress Section */}
+        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500 delay-100">
+          <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+            {/* Progress Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "flex items-center justify-center w-10 h-10 rounded-xl text-sm font-semibold transition-all",
+                  progress > 0
+                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                )}>
+                  {progress > 0 ? <Check className="w-5 h-5" /> : `${currentStep.id}`}
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-slate-900 dark:text-white">
-                    Step 1 of 3
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    Step {currentStep.id} of {steps.length}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {currentStep.label}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-semibold text-slate-900 dark:text-white tabular-nums">
+                  {progress}%
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Complete</p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="relative h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${Math.max(progress, 2)}%` }}
+              />
+            </div>
+
+            {/* Auto-save Indicator */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Auto-save enabled</span>
+              </div>
+              {lastSaved && (
+                <span className="text-xs text-slate-400 dark:text-slate-500">
+                  Last saved {lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 lg:gap-8">
+          {/* Sidebar - Steps */}
+          <aside className="hidden lg:block animate-in fade-in slide-in-from-left-4 duration-500 delay-200">
+            <div className="sticky top-6 space-y-6">
+              {/* Steps Card */}
+              <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-4">
+                  Progress
+                </h3>
+                <nav className="space-y-1">
+                  {steps.map((step, index) => (
+                    <div key={step.id} className="relative">
+                      {/* Connector Line */}
+                      {index < steps.length - 1 && (
+                        <div className={cn(
+                          "absolute left-5 top-12 w-0.5 h-8 transition-colors",
+                          step.status === "complete"
+                            ? "bg-emerald-300 dark:bg-emerald-700"
+                            : "bg-slate-200 dark:bg-slate-700"
+                        )} />
+                      )}
+
+                      <button
+                        disabled={step.status === "locked"}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all",
+                          step.status === "current" && "bg-slate-50 dark:bg-slate-800/50",
+                          step.status === "locked" && "opacity-50 cursor-not-allowed",
+                          step.status !== "locked" && "hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "flex items-center justify-center w-10 h-10 rounded-xl transition-all",
+                          step.status === "complete" && "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400",
+                          step.status === "current" && "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 ring-2 ring-blue-500/20",
+                          step.status === "locked" && "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
+                        )}>
+                          {step.status === "complete" ? (
+                            <CheckCircle2 className="w-5 h-5" />
+                          ) : step.status === "locked" ? (
+                            <Lock className="w-4 h-4" />
+                          ) : (
+                            <step.icon className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            "text-sm font-medium truncate",
+                            step.status === "current"
+                              ? "text-slate-900 dark:text-white"
+                              : "text-slate-600 dark:text-slate-400"
+                          )}>
+                            {step.label}
+                          </p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                            {step.status === "complete" ? "Completed" : step.status === "locked" ? "Coming soon" : step.description}
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  ))}
+                </nav>
+              </div>
+
+              {/* Tips Card */}
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 rounded-2xl border border-amber-200/50 dark:border-amber-800/30 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                  <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                    Pro Tips
+                  </h3>
+                </div>
+                <ul className="space-y-2.5 text-xs text-amber-800 dark:text-amber-300/80">
+                  <li className="flex items-start gap-2">
+                    <Check className="w-3.5 h-3.5 mt-0.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <span>Use 5-9 words for optimal titles</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <Check className="w-3.5 h-3.5 mt-0.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <span>Select 3-5 relevant categories</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <span>Avoid emojis in titles</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+
+          {/* Main Form Area */}
+          <main className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+            {/* Form Card */}
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+              {/* Card Header */}
+              <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                    <FileText className="w-5 h-5" />
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    Title & Categories
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                      Title & Categories
+                    </h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Define the foundation of your post
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex items-center gap-2.5">
+              {/* Card Content */}
+              <div className="p-6">
+                <CreateBlogInputSection />
+              </div>
+            </div>
+
+            {/* Coming Soon Card */}
+            <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-8 text-center">
+              {/* Decorative Elements */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-violet-100/50 to-transparent dark:from-violet-900/20 rounded-bl-full" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-100/50 to-transparent dark:from-blue-900/20 rounded-tr-full" />
+
+              <div className="relative">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 text-violet-600 dark:text-violet-400 mb-4">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                  Rich Content Editor
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  A powerful WYSIWYG editor with AI assistance, media management,
+                  and real-time collaboration is coming soon.
+                </p>
+                <div className="inline-flex items-center gap-2 mt-4 px-3 py-1.5 rounded-full bg-violet-100 dark:bg-violet-900/30 text-xs font-medium text-violet-700 dark:text-violet-300">
+                  <Circle className="w-2 h-2 fill-current animate-pulse" />
+                  In Development
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* Sticky Footer */}
+      <div className="fixed bottom-0 inset-x-0 z-50">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              {/* Step Info - Mobile */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-semibold">
+                  {currentStep.id}
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    {currentStep.label}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Step {currentStep.id} of {steps.length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3">
                 <Link
                   href="/teacher/posts/all-posts"
-                  className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-medium px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                  className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   Cancel
                 </Link>
@@ -369,26 +396,31 @@ export default function EnterpriseCreatePost() {
                   variant="outline"
                   size="sm"
                   onClick={handleSaveDraft}
-                  className="border-slate-200/80 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs sm:text-sm shadow-sm hover:shadow transition-all font-medium"
+                  className="hidden sm:flex gap-2"
                 >
-                  <Save className="w-3.5 h-3.5 mr-2" />
+                  <Save className="w-4 h-4" />
                   Save Draft
                 </Button>
                 <Button
                   size="sm"
                   onClick={triggerSubmit}
                   disabled={!isValid || isSubmitting}
-                  className="text-xs sm:text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold px-6"
+                  className={cn(
+                    "gap-2 min-w-[120px] transition-all",
+                    isValid
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/25"
+                      : ""
+                  )}
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                      Creating...
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Creating...</span>
                     </>
                   ) : (
                     <>
-                      Continue
-                      <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                      <span>Continue</span>
+                      <ChevronRight className="w-4 h-4" />
                     </>
                   )}
                 </Button>

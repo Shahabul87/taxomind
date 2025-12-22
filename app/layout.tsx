@@ -3,8 +3,32 @@ import './globals.css'
 import clsx from "clsx";
 import { logger } from '@/lib/logger';
 
-// NOTE: Disabled Google Fonts in build to support offline/restricted builds.
-// Use Tailwind's default font stack or self-host fonts via next/font/local if needed.
+// Editorial Typography - Google Fonts for Blog Pages
+import { Playfair_Display, Source_Serif_4, Inter } from 'next/font/google';
+
+// Display font for headings - elegant serif with high contrast
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-display',
+  weight: ['400', '500', '600', '700', '800', '900'],
+});
+
+// Body font for reading - optimized for long-form content
+const sourceSerif = Source_Serif_4({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-body',
+  weight: ['400', '500', '600', '700'],
+});
+
+// UI font for interface elements - clean and modern
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-ui',
+  weight: ['400', '500', '600', '700'],
+});
 
 import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
@@ -54,8 +78,9 @@ export default async function RootLayout({
 
   try {
     session = await auth();
-  } catch (error: any) {
-    logger.error("Error fetching auth session:", error);
+  } catch (authError) {
+    const errorMessage = authError instanceof Error ? authError.message : 'Unknown auth error';
+    logger.error("Error fetching auth session:", errorMessage);
     session = null;
   }
 
@@ -87,8 +112,11 @@ export default async function RootLayout({
         />
       </head>
       <body className={clsx(
+        playfairDisplay.variable,
+        sourceSerif.variable,
+        inter.variable,
         "min-h-screen transition-colors duration-300",
-        "bg-background text-foreground"
+        "bg-background text-foreground font-sans"
       )}>
         <Providers session={session}>
           {/* Skip link for keyboard users */}

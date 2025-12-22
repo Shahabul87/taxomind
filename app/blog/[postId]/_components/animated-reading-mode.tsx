@@ -33,33 +33,30 @@ interface AnimatedReadingModeProps {
 export const AnimatedReadingMode: React.FC<AnimatedReadingModeProps> = ({
   postchapter,
 }) => {
-  const placeholderImage = "https://via.placeholder.com/300";
-
   // Handle null/undefined postchapter
   if (!postchapter || !Array.isArray(postchapter) || postchapter.length === 0) {
     return (
-      <div className="flex items-center justify-center p-10">
-        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
+        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full py-6 px-4 md:px-6">
-      {/* Header */}
+    <div className="w-full py-6 px-4 md:px-6 bg-blog-bg dark:bg-slate-900/50">
+      {/* Header - Editorial */}
       <div className="mb-8 space-y-2">
         <h2
           className={cn(
             "text-2xl md:text-3xl lg:text-4xl font-bold",
-            "bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600",
-            "dark:from-blue-400 dark:via-purple-400 dark:to-pink-400",
-            "bg-clip-text text-transparent",
+            "text-blog-text dark:text-white",
+            "font-[family-name:var(--font-display)]",
             "tracking-tight"
           )}
         >
           Immersive Reading Experience
         </h2>
-        <p className="text-sm md:text-base text-slate-600 dark:text-slate-400">
+        <p className="text-sm md:text-base text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">
           Click any chapter card to dive into an immersive reading experience
         </p>
       </div>
@@ -96,8 +93,8 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
           transition={{ delay: index * 0.1 }}
           className="relative h-full"
         >
-          {/* Card Container */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden h-full flex flex-col">
+          {/* Card Container - Warm Earth */}
+          <div className="bg-blog-surface dark:bg-slate-900 border border-blog-border dark:border-slate-800 rounded-xl overflow-hidden h-full flex flex-col">
             {/* Image Section */}
             <div className="relative h-48 w-full overflow-hidden">
               <Image
@@ -109,14 +106,15 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-              {/* Chapter Badge */}
+              {/* Chapter Badge - Terracotta */}
               <div className="absolute top-3 left-3">
                 <span
                   className={cn(
                     "inline-flex items-center gap-1.5",
                     "px-3 py-1.5 rounded-full text-xs font-semibold",
-                    "bg-gradient-to-r from-blue-600 to-purple-600",
-                    "text-white shadow-lg"
+                    "bg-gradient-to-r from-blog-primary to-blog-primary-dark",
+                    "text-white shadow-lg",
+                    "font-[family-name:var(--font-ui)]"
                   )}
                 >
                   <BookOpen className="w-3 h-3" />
@@ -127,7 +125,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
               {/* Status Badge */}
               {chapter.isFree && (
                 <div className="absolute top-3 right-3">
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500 text-white">
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-blog-accent text-white font-[family-name:var(--font-ui)]">
                     Free
                   </span>
                 </div>
@@ -136,13 +134,13 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
 
             {/* Content Section */}
             <div className="p-4 flex-1 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              <h3 className="text-lg font-bold text-blog-text dark:text-white mb-2 line-clamp-2 group-hover:text-blog-primary dark:group-hover:text-blog-primary-light transition-colors font-[family-name:var(--font-display)]">
                 {chapter.title}
               </h3>
 
               {chapter.description && (
                 <div
-                  className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-3"
+                  className="text-sm text-blog-text-muted dark:text-slate-400 line-clamp-2 mb-3 font-[family-name:var(--font-body)]"
                   dangerouslySetInnerHTML={{
                     __html: chapter.description.substring(0, 120) + "...",
                   }}
@@ -150,13 +148,13 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
               )}
 
               {/* Footer */}
-              <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-500">
+              <div className="mt-auto pt-3 border-t border-blog-border dark:border-slate-800">
+                <div className="flex items-center justify-between text-xs text-blog-text-muted dark:text-slate-500 font-[family-name:var(--font-ui)]">
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     <span>5 min read</span>
                   </div>
-                  <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                  <div className="flex items-center gap-1 text-blog-primary dark:text-blog-primary-light font-medium">
                     <span>Read now</span>
                     <span className="group-hover:translate-x-1 transition-transform">
                       →
@@ -170,7 +168,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
       </ModalTrigger>
 
       <ModalBody>
-        <ModalContent className="max-h-[70vh]">
+        <ModalContent className="max-h-[70vh] bg-blog-surface dark:bg-slate-900">
           {/* Modal Header */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
@@ -178,28 +176,29 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
                 className={cn(
                   "inline-flex items-center gap-1.5",
                   "px-3 py-1 rounded-full text-xs font-semibold",
-                  "bg-gradient-to-r from-blue-600/10 to-purple-600/10",
-                  "text-blue-600 dark:text-blue-400",
-                  "border border-blue-200 dark:border-blue-800"
+                  "bg-gradient-to-r from-blog-primary/10 to-blog-accent/10",
+                  "text-blog-primary dark:text-blog-primary-light",
+                  "border border-blog-primary/30 dark:border-blog-primary/40",
+                  "font-[family-name:var(--font-ui)]"
                 )}
               >
                 <BookOpen className="w-3 h-3" />
                 Chapter {chapter.position || index + 1}
               </span>
               {chapter.isFree && (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blog-accent/10 text-blog-accent dark:bg-blog-accent/20 dark:text-blog-accent font-[family-name:var(--font-ui)]">
                   Free Chapter
                 </span>
               )}
             </div>
 
-            <h4 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">
+            <h4 className="text-2xl md:text-3xl font-bold text-blog-text dark:text-white mb-4 font-[family-name:var(--font-display)]">
               {chapter.title}
             </h4>
 
             {/* Chapter Image in Modal */}
             {chapter.imageUrl && (
-              <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6">
+              <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6 border border-blog-border dark:border-slate-700">
                 <Image
                   src={chapter.imageUrl}
                   alt={chapter.title}
@@ -212,17 +211,20 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
             )}
           </div>
 
-          {/* Chapter Content */}
+          {/* Chapter Content - Source Serif 4 */}
           <div
             className={cn(
               "prose prose-slate dark:prose-invert max-w-none",
+              "font-[family-name:var(--font-body)]",
               "prose-headings:font-bold prose-headings:tracking-tight",
-              "prose-p:text-slate-700 dark:prose-p:text-slate-300",
-              "prose-p:leading-relaxed",
-              "prose-a:text-blue-600 dark:prose-a:text-blue-400",
-              "prose-strong:text-slate-900 dark:prose-strong:text-white",
-              "prose-code:text-purple-600 dark:prose-code:text-purple-400",
-              "prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950"
+              "prose-headings:font-[family-name:var(--font-display)]",
+              "prose-p:text-blog-text dark:prose-p:text-slate-300",
+              "prose-p:leading-[1.8]",
+              "prose-a:text-blog-primary dark:prose-a:text-blog-primary-light",
+              "prose-strong:text-blog-text dark:prose-strong:text-white",
+              "prose-code:text-blog-accent dark:prose-code:text-blog-accent",
+              "prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950",
+              "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5"
             )}
           >
             <div
@@ -234,10 +236,10 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
         </ModalContent>
 
         <ModalFooter className="gap-4 justify-between">
-          <button className="px-4 py-2 bg-gray-200 text-black dark:bg-slate-800 dark:text-white border border-gray-300 dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-slate-700 transition-colors">
+          <button className="px-4 py-2 bg-blog-bg text-blog-text dark:bg-slate-800 dark:text-white border border-blog-border dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-blog-border dark:hover:bg-slate-700 transition-colors font-[family-name:var(--font-ui)]">
             Close
           </button>
-          <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
+          <button className="px-4 py-2 bg-gradient-to-r from-blog-primary to-blog-primary-dark text-white rounded-lg text-sm font-medium hover:from-blog-primary-dark hover:to-blog-primary transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-[family-name:var(--font-ui)]">
             <CheckCircle2 className="w-4 h-4" />
             Mark as Complete
           </button>

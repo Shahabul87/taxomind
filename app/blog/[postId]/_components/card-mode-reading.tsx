@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { Carousel, Card } from "@/components/ui/apple-cards-carousel";
-import parse from 'html-react-parser';
+import parse, { DOMNode, Element } from 'html-react-parser';
 import { cn } from "@/lib/utils";
 
 interface ChapterData {
@@ -29,8 +29,8 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
   // Handle null/undefined chapters
   if (!chapters || !Array.isArray(chapters) || chapters.length === 0) {
     return (
-      <div className="flex items-center justify-center p-10">
-        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
+        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
       </div>
     );
   }
@@ -40,55 +40,59 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
 
     try {
       return parse(htmlString, {
-        replace: (domNode: any) => {
+        replace: (domNode: DOMNode) => {
           if (domNode.type === 'tag') {
-            switch (domNode.name) {
+            const element = domNode as Element;
+            switch (element.name) {
               case 'strong':
               case 'b':
-                return <span className="font-bold">{domNode.children?.map((child: any) =>
-                  child.data || (child.children && parse(child.children))
+                return <span className="font-bold text-blog-text dark:text-white">{element.children?.map((child) =>
+                  (child as { data?: string }).data || ((child as Element).children && parse((child as Element).children as unknown as string))
                 )}</span>;
               case 'em':
               case 'i':
-                return <span className="italic">{domNode.children?.map((child: any) =>
-                  child.data || (child.children && parse(child.children))
+                return <span className="italic text-blog-text-muted dark:text-slate-300">{element.children?.map((child) =>
+                  (child as { data?: string }).data || ((child as Element).children && parse((child as Element).children as unknown as string))
                 )}</span>;
               case 'u':
-                return <span className="underline">{domNode.children?.map((child: any) =>
-                  child.data || (child.children && parse(child.children))
+                return <span className="underline decoration-blog-primary/40">{element.children?.map((child) =>
+                  (child as { data?: string }).data || ((child as Element).children && parse((child as Element).children as unknown as string))
                 )}</span>;
             }
           }
           return undefined;
         }
       });
-    } catch (error) {
-      return <p>{htmlString}</p>;
+    } catch {
+      return <p className="font-[family-name:var(--font-body)]">{htmlString}</p>;
     }
   };
 
   const DummyContent = ({ chapter }: { chapter: ChapterData }) => {
     return (
-      <div className="bg-[#F5F5F7] dark:bg-neutral-800 p-8 md:p-14 rounded-3xl">
+      <div className="bg-blog-surface dark:bg-slate-800 p-8 md:p-14 rounded-3xl border border-blog-border dark:border-slate-700">
         {chapter.description ? (
           <div
             className={cn(
               "prose prose-slate dark:prose-invert max-w-none",
+              "font-[family-name:var(--font-body)]",
               "prose-headings:font-bold prose-headings:tracking-tight",
-              "prose-p:text-neutral-600 dark:prose-p:text-neutral-400",
-              "prose-p:leading-relaxed prose-p:text-base md:prose-p:text-2xl",
-              "prose-a:text-blue-600 dark:prose-a:text-blue-400",
-              "prose-strong:text-neutral-700 dark:prose-strong:text-neutral-200",
+              "prose-headings:font-[family-name:var(--font-display)]",
+              "prose-p:text-blog-text dark:prose-p:text-slate-300",
+              "prose-p:leading-[1.8] prose-p:text-base md:prose-p:text-2xl",
+              "prose-a:text-blog-primary dark:prose-a:text-blog-primary-light",
+              "prose-strong:text-blog-text dark:prose-strong:text-white",
               "prose-strong:font-bold",
-              "prose-code:text-purple-600 dark:prose-code:text-purple-400",
-              "prose-pre:bg-neutral-900 dark:prose-pre:bg-neutral-950"
+              "prose-code:text-blog-accent dark:prose-code:text-blog-accent",
+              "prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950",
+              "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5"
             )}
           >
             {parseHtmlContent(chapter.description)}
           </div>
         ) : (
-          <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-2xl font-sans max-w-3xl mx-auto">
-            <span className="font-bold text-neutral-700 dark:text-neutral-200">
+          <p className="text-blog-text dark:text-slate-300 text-base md:text-2xl font-[family-name:var(--font-body)] max-w-3xl mx-auto">
+            <span className="font-bold text-blog-text dark:text-white font-[family-name:var(--font-display)]">
               Chapter {chapter.position || 1}: {chapter.title}
             </span>{" "}
             Explore this chapter to discover amazing insights and knowledge.
@@ -101,7 +105,7 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
             alt={chapter.title}
             width={800}
             height={600}
-            className="md:w-1/2 md:h-1/2 h-full w-full mx-auto object-contain mt-8 rounded-2xl"
+            className="md:w-1/2 md:h-1/2 h-full w-full mx-auto object-contain mt-8 rounded-2xl border border-blog-border dark:border-slate-700"
           />
         )}
       </div>
@@ -120,11 +124,11 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
   ));
 
   return (
-    <div className="w-full h-full py-10 md:py-20">
-      <h2 className="max-w-7xl pl-4 mx-auto text-2xl md:text-5xl font-bold text-neutral-800 dark:text-neutral-200 font-sans mb-4">
+    <div className="w-full h-full py-10 md:py-20 bg-blog-bg dark:bg-slate-900/50">
+      <h2 className="max-w-7xl pl-4 mx-auto text-2xl md:text-5xl font-bold text-blog-text dark:text-white font-[family-name:var(--font-display)] mb-4">
         Explore Your Learning Journey
       </h2>
-      <p className="max-w-7xl pl-4 mx-auto text-base md:text-xl text-neutral-600 dark:text-neutral-400 font-sans mb-8">
+      <p className="max-w-7xl pl-4 mx-auto text-base md:text-xl text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)] mb-8">
         Swipe through the chapters and click to dive deep into each topic.
       </p>
       <Carousel items={cards} />

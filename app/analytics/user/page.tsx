@@ -5,12 +5,11 @@ import { useSession } from "next-auth/react";
 import { AlertCircle, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ImprovedUnifiedAnalytics } from '@/components/analytics/ImprovedUnifiedAnalytics';
-import { AnalyticsErrorBoundary } from '@/components/analytics/ErrorBoundary';
-import { AnalyticsSkeleton } from '@/components/analytics/AnalyticsSkeleton';
-import { MobileLayout } from '@/components/layouts/MobileLayout';
+import { EnterpriseUnifiedAnalytics } from "@/components/analytics/EnterpriseUnifiedAnalytics";
+import { AnalyticsErrorBoundary } from "@/components/analytics/ErrorBoundary";
+import { AnalyticsDashboardSkeleton } from "@/components/analytics/enterprise/Skeleton";
+import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { ExtendedUser } from "@/next-auth";
-// UserRole removed - users no longer have roles
 
 /**
  * Stable demo user object to prevent unnecessary re-renders.
@@ -27,49 +26,30 @@ const DEMO_USER: ExtendedUser = {
 
 /**
  * Type guard to check if a user object is a valid ExtendedUser.
- * Ensures all required fields are present before using the user object.
- *
- * @param user - The user object to validate
- * @returns True if the user is a valid ExtendedUser with all required fields
- *
- * @example
- * ```tsx
- * const user = session?.user;
- * if (isExtendedUser(user)) {
- *   // TypeScript knows user has all ExtendedUser fields
- *   console.log(user.isTwoFactorEnabled);
- * }
- * ```
  */
 function isExtendedUser(user: unknown): user is ExtendedUser {
-  if (!user || typeof user !== 'object') return false;
-
+  if (!user || typeof user !== "object") return false;
   const u = user as Partial<ExtendedUser>;
-
   return (
-    typeof u.id === 'string' &&
-    typeof u.isTwoFactorEnabled === 'boolean' &&
-    typeof u.isOAuth === 'boolean'
+    typeof u.id === "string" &&
+    typeof u.isTwoFactorEnabled === "boolean" &&
+    typeof u.isOAuth === "boolean"
   );
 }
 
 /**
- * User Analytics Page Component
+ * User Analytics Page - Enterprise Edition
  *
- * Main page component for displaying comprehensive user analytics.
- * Handles authentication state, loading states, and error scenarios.
- *
- * Features:
- * - Session-based authentication with fallback to demo mode
- * - Comprehensive analytics dashboard
- * - Mobile-optimized layout with gestures
- * - Error boundary protection
- * - Loading states with proper UX
+ * A completely redesigned analytics dashboard with:
+ * - Consolidated navigation (5 main tabs instead of 11)
+ * - Enterprise-level design system with cohesive colors
+ * - Proper skeleton loading states
+ * - Improved empty states with CTAs
+ * - Sparkline trends and progress indicators
+ * - Clean typography hierarchy
  *
  * Route: `/analytics/user`
  * Access: Public (shows demo data if not authenticated)
- *
- * @returns Analytics page with full dashboard or appropriate error/loading state
  */
 export default function UserAnalyticsPage() {
   const { data: session, status } = useSession();
@@ -79,11 +59,7 @@ export default function UserAnalyticsPage() {
   // Memoize the user to prevent unnecessary re-renders
   const user = useMemo((): ExtendedUser | null => {
     if (status === "loading" || !isInitialized) return null;
-
-    if (session?.user) {
-      return session.user;
-    }
-
+    if (session?.user) return session.user;
     return DEMO_USER;
   }, [session?.user, status, isInitialized]);
 
@@ -93,8 +69,8 @@ export default function UserAnalyticsPage() {
   }, []);
 
   useEffect(() => {
-    if (status === "loading") return; // Still loading
-    
+    if (status === "loading") return;
+
     if (status === "unauthenticated") {
       setError("User not authenticated");
       setIsInitialized(true);
@@ -110,6 +86,7 @@ export default function UserAnalyticsPage() {
     }
   }, [session?.user, status]);
 
+  // Loading state with skeleton
   if (status === "loading") {
     return (
       <MobileLayout
@@ -117,52 +94,47 @@ export default function UserAnalyticsPage() {
         showHeader={true}
         showSidebar={false}
         showBottomBar={false}
-        contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
+        contentClassName="bg-slate-50 dark:bg-slate-900"
       >
-        <AnalyticsSkeleton variant="fullpage" />
+        <div className="p-4 sm:p-6">
+          <AnalyticsDashboardSkeleton />
+        </div>
       </MobileLayout>
     );
   }
 
+  // Error state when no user
   if (error && !user) {
     return (
-      <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-8">
-        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 sm:p-6">
+        <Card className="max-w-lg mx-auto mt-12 border-red-200 dark:border-red-800 bg-white dark:bg-slate-800">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-3">
               <AlertCircle className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
               <h2 className="font-semibold text-lg">Unable to Load Analytics</h2>
             </div>
-            <p className="text-sm text-red-700 dark:text-red-300 mb-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
               {error === "User not authenticated"
-                ? "You need to be signed in to view your personalized analytics."
-                : "We encountered an issue loading your analytics dashboard. This is usually temporary."}
+                ? "Sign in to view your personalized learning analytics and track your progress."
+                : "We encountered an issue loading your analytics. This is usually temporary."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               {error === "User not authenticated" ? (
                 <Button
-                  size="sm"
-                  onClick={() => window.location.href = '/auth/signin'}
-                  aria-label="Go to sign in page"
+                  onClick={() => (window.location.href = "/auth/signin")}
+                  className="gap-2"
                 >
-                  <ArrowRight className="w-4 h-4 mr-2" aria-hidden="true" />
                   Sign In
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetError}
-                  aria-label="Try loading analytics again"
-                >
+                <Button variant="outline" onClick={resetError}>
                   Try Again
                 </Button>
               )}
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={() => window.location.href = '/'}
-                aria-label="Go to home page"
+                onClick={() => (window.location.href = "/")}
               >
                 Go Home
               </Button>
@@ -183,21 +155,20 @@ export default function UserAnalyticsPage() {
       showHeader={true}
       showSidebar={true}
       showBottomBar={true}
-      enableGestures={true}
-      contentClassName="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700"
+      enableGestures={false}
+      contentClassName="bg-slate-50 dark:bg-slate-900"
     >
+      {/* Demo mode notice - subtle and non-intrusive */}
       {error && (
-        <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-4">
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-6">
-            <p className="text-amber-700 dark:text-amber-300 text-sm">
-              {error} — Using demo data for analytics.
-            </p>
-          </div>
+        <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800 px-4 py-2">
+          <p className="text-blue-700 dark:text-blue-300 text-sm text-center">
+            Viewing demo analytics — <a href="/auth/signin" className="underline font-medium">Sign in</a> for your personalized data
+          </p>
         </div>
       )}
 
       <AnalyticsErrorBoundary>
-        <ImprovedUnifiedAnalytics
+        <EnterpriseUnifiedAnalytics
           user={user}
           variant="fullpage"
           className="min-h-screen"

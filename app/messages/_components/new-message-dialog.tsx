@@ -1,15 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, GraduationCap, X, BookOpen, Users, ChevronLeft, Check } from "lucide-react";
+import {
+  Search,
+  GraduationCap,
+  BookOpen,
+  Users,
+  ChevronLeft,
+  Check,
+  Sparkles,
+  MessageCircle,
+  Loader2,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface NewMessageDialogProps {
   open: boolean;
@@ -53,7 +65,6 @@ export const NewMessageDialog = ({ open, onClose, userId, onChatStart }: NewMess
   useEffect(() => {
     if (open) {
       fetchCourses();
-      // Reset state when dialog opens
       setStep("courses");
       setSelectedCourse(null);
       setSelectedParticipants([]);
@@ -105,7 +116,6 @@ export const NewMessageDialog = ({ open, onClose, userId, onChatStart }: NewMess
 
   const handleStartChat = () => {
     if (selectedParticipants.length > 0 && onChatStart) {
-      // Notify parent component to open the chat
       onChatStart(selectedParticipants);
     }
   };
@@ -119,156 +129,253 @@ export const NewMessageDialog = ({ open, onClose, userId, onChatStart }: NewMess
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm
-                                border-slate-200 dark:border-slate-700 max-w-2xl w-full">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl font-semibold text-slate-900 dark:text-white">
-            {step === "participants" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="mr-2"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-            )}
-            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
+      <DialogContent className={cn(
+        "max-w-2xl w-full p-0 overflow-hidden",
+        "bg-[hsl(var(--msg-surface))]/95 backdrop-blur-xl",
+        "border-[hsl(var(--msg-border))]",
+        "shadow-2xl shadow-[hsl(var(--msg-primary))]/10"
+      )}>
+        {/* Premium Header */}
+        <DialogHeader className="p-5 border-b border-[hsl(var(--msg-border-subtle))] msg-header-gradient">
+          <DialogTitle className="flex items-center gap-3 text-white">
+            <AnimatePresence mode="wait">
+              {step === "participants" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleBack}
+                    className="h-9 w-9 text-white/80 hover:text-white hover:bg-white/10"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="p-2.5 rounded-xl bg-white/15 backdrop-blur-sm">
               {step === "courses" ? (
-                <BookOpen className="w-5 h-5 text-white" />
+                <BookOpen className="w-5 h-5" />
               ) : (
-                <Users className="w-5 h-5 text-white" />
+                <Users className="w-5 h-5" />
               )}
             </div>
-            {step === "courses" ? "Select a Course" : selectedCourse?.title}
+
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold">
+                {step === "courses" ? "Select a Course" : selectedCourse?.title}
+              </h3>
+              <p className="text-sm text-white/70 font-normal">
+                {step === "courses"
+                  ? "Choose a course to start messaging"
+                  : `${selectedCourse?.participants.length || 0} participants`}
+              </p>
+            </div>
+
+            {step === "courses" && (
+              <div className="flex items-center gap-1.5 text-sm text-white/80">
+                <Sparkles className="w-4 h-4" />
+                <span>{allCourses.length} courses</span>
+              </div>
+            )}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="p-5 space-y-4">
           {/* Selected Participants Summary */}
-          {step === "participants" && selectedParticipants.length > 0 && (
-            <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20
-                          dark:to-indigo-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {selectedParticipants.length} {selectedParticipants.length === 1 ? "person" : "people"} selected
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedParticipants([])}
-                  className="h-7 text-xs"
-                >
-                  Clear all
-                </Button>
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {step === "participants" && selectedParticipants.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                className={cn(
+                  "p-3.5 rounded-xl",
+                  "bg-gradient-to-r from-[hsl(var(--msg-primary-muted))] to-[hsl(var(--msg-cyan))]/10",
+                  "border border-[hsl(var(--msg-primary))]/20"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-[hsl(var(--msg-primary))] flex items-center justify-center">
+                      <MessageCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <p className="text-sm font-medium text-[hsl(var(--msg-text))]">
+                      {selectedParticipants.length} {selectedParticipants.length === 1 ? "person" : "people"} selected
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedParticipants([])}
+                    className="h-8 text-xs text-[hsl(var(--msg-text-muted))] hover:text-[hsl(var(--msg-rose))]"
+                  >
+                    Clear all
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--msg-text-subtle))]" />
             <Input
               placeholder={step === "courses" ? "Search courses..." : "Search participants..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700
-                       text-slate-900 dark:text-white"
+              className={cn(
+                "pl-10 h-11 rounded-xl",
+                "bg-[hsl(var(--msg-surface-hover))]",
+                "border-[hsl(var(--msg-border))]",
+                "text-[hsl(var(--msg-text))]",
+                "placeholder:text-[hsl(var(--msg-text-subtle))]",
+                "focus:border-[hsl(var(--msg-primary))]",
+                "focus:ring-2 focus:ring-[hsl(var(--msg-primary))]/10"
+              )}
             />
           </div>
 
           {/* Content */}
-          <ScrollArea className="h-[400px] pr-4">
-            {step === "courses" ? (
-              // STEP 1: Course Selection
-              <div className="space-y-4">
-                {loading ? (
-                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                    Loading courses...
-                  </div>
-                ) : filteredCourses.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                    <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium mb-1">No courses found</p>
-                    <p className="text-sm">Enroll in a course to start messaging</p>
-                  </div>
-                ) : (
-                  <>
-                    {/* Enrolled Courses */}
-                    {courses?.enrolledCourses && courses.enrolledCourses.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
-                          <GraduationCap className="w-4 h-4" />
-                          My Courses ({courses.enrolledCourses.length})
-                        </h3>
-                        <div className="space-y-2">
-                          {courses.enrolledCourses
-                            .filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
-                            .map((course) => (
-                              <CourseCard
-                                key={course.id}
-                                course={course}
-                                onClick={() => handleCourseSelect(course)}
-                              />
-                            ))}
-                        </div>
+          <ScrollArea className="h-[400px] pr-4 msg-scrollbar">
+            <AnimatePresence mode="wait">
+              {step === "courses" ? (
+                <motion.div
+                  key="courses"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
+                >
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center py-16">
+                      <Loader2 className="w-8 h-8 text-[hsl(var(--msg-primary))] animate-spin mb-3" />
+                      <p className="text-sm text-[hsl(var(--msg-text-muted))]">Loading courses...</p>
+                    </div>
+                  ) : filteredCourses.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 msg-empty-state">
+                      <div className="msg-empty-icon mb-4">
+                        <BookOpen className="w-8 h-8 text-[hsl(var(--msg-primary))]" />
                       </div>
-                    )}
+                      <h4 className="font-semibold text-[hsl(var(--msg-text))] mb-1">No courses found</h4>
+                      <p className="text-sm text-[hsl(var(--msg-text-muted))] text-center max-w-[200px]">
+                        Enroll in a course to start messaging
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Enrolled Courses */}
+                      {courses?.enrolledCourses && courses.enrolledCourses.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-[hsl(var(--msg-text-subtle))] uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4" />
+                            My Courses ({courses.enrolledCourses.length})
+                          </h3>
+                          <div className="space-y-2">
+                            {courses.enrolledCourses
+                              .filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                              .map((course, index) => (
+                                <motion.div
+                                  key={course.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                >
+                                  <CourseCard
+                                    course={course}
+                                    onClick={() => handleCourseSelect(course)}
+                                  />
+                                </motion.div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
 
-                    {/* Created Courses */}
-                    {courses?.createdCourses && courses.createdCourses.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Teaching ({courses.createdCourses.length})
-                        </h3>
-                        <div className="space-y-2">
-                          {courses.createdCourses
-                            .filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
-                            .map((course) => (
-                              <CourseCard
-                                key={course.id}
-                                course={course}
-                                onClick={() => handleCourseSelect(course)}
-                              />
-                            ))}
+                      {/* Created Courses */}
+                      {courses?.createdCourses && courses.createdCourses.length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-semibold text-[hsl(var(--msg-text-subtle))] uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <Users className="w-4 h-4" />
+                            Teaching ({courses.createdCourses.length})
+                          </h3>
+                          <div className="space-y-2">
+                            {courses.createdCourses
+                              .filter((c) => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                              .map((course, index) => (
+                                <motion.div
+                                  key={course.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: index * 0.05 }}
+                                >
+                                  <CourseCard
+                                    course={course}
+                                    onClick={() => handleCourseSelect(course)}
+                                  />
+                                </motion.div>
+                              ))}
+                          </div>
                         </div>
+                      )}
+                    </>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="participants"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-2"
+                >
+                  {filteredParticipants.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 msg-empty-state">
+                      <div className="msg-empty-icon mb-4">
+                        <Users className="w-8 h-8 text-[hsl(var(--msg-primary))]" />
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : (
-              // STEP 2: Participant Selection
-              <div className="space-y-2">
-                {filteredParticipants.length === 0 ? (
-                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                    <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium mb-1">No participants found</p>
-                    <p className="text-sm">No one to message in this course yet</p>
-                  </div>
-                ) : (
-                  filteredParticipants.map((participant) => (
-                    <ParticipantCard
-                      key={participant.id}
-                      participant={participant}
-                      isInstructor={selectedCourse?.instructor.id === participant.id}
-                      isSelected={selectedParticipants.includes(participant.id)}
-                      onToggle={() => handleParticipantToggle(participant.id)}
-                    />
-                  ))
-                )}
-              </div>
-            )}
+                      <h4 className="font-semibold text-[hsl(var(--msg-text))] mb-1">No participants found</h4>
+                      <p className="text-sm text-[hsl(var(--msg-text-muted))] text-center max-w-[200px]">
+                        No one to message in this course yet
+                      </p>
+                    </div>
+                  ) : (
+                    filteredParticipants.map((participant, index) => (
+                      <motion.div
+                        key={participant.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                      >
+                        <ParticipantCard
+                          participant={participant}
+                          isInstructor={selectedCourse?.instructor.id === participant.id}
+                          isSelected={selectedParticipants.includes(participant.id)}
+                          onToggle={() => handleParticipantToggle(participant.id)}
+                        />
+                      </motion.div>
+                    ))
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </ScrollArea>
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="flex justify-end gap-2 pt-4 border-t border-[hsl(var(--msg-border-subtle))]">
             <Button
               variant="outline"
               onClick={onClose}
-              className="border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300
-                       hover:bg-slate-100 dark:hover:bg-slate-800"
+              className={cn(
+                "h-10 px-5 rounded-xl",
+                "border-[hsl(var(--msg-border))]",
+                "text-[hsl(var(--msg-text-muted))]",
+                "hover:border-[hsl(var(--msg-text-muted))]",
+                "hover:bg-[hsl(var(--msg-surface-hover))]"
+              )}
             >
               Cancel
             </Button>
@@ -276,9 +383,12 @@ export const NewMessageDialog = ({ open, onClose, userId, onChatStart }: NewMess
               <Button
                 disabled={selectedParticipants.length === 0}
                 onClick={handleStartChat}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600
-                         hover:to-indigo-600 text-white shadow-md disabled:opacity-50"
+                className={cn(
+                  "msg-send-btn h-10 px-6 rounded-xl",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
               >
+                <MessageCircle className="w-4 h-4 mr-2" />
                 Start Chat ({selectedParticipants.length})
               </Button>
             )}
@@ -298,53 +408,56 @@ interface CourseCardProps {
 const CourseCard = ({ course, onClick }: CourseCardProps) => (
   <div
     onClick={onClick}
-    className="flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all
-              bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50
-              border border-slate-200 dark:border-slate-700 hover:border-blue-200
-              dark:hover:border-blue-800 hover:shadow-md group"
+    className={cn(
+      "msg-conversation-card group",
+      "cursor-pointer"
+    )}
   >
-    {/* Course Image */}
-    <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-950/50 dark:to-indigo-950/50">
-      {course.imageUrl ? (
-        <Image
-          src={course.imageUrl}
-          alt={course.title}
-          fill
-          className="object-cover"
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center">
-          <BookOpen className="w-8 h-8 text-blue-500" />
-        </div>
-      )}
-    </div>
-
-    {/* Course Info */}
-    <div className="flex-1 min-w-0">
-      <h4 className="font-semibold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
-        {course.title}
-      </h4>
-      <div className="flex items-center gap-2 mt-1">
-        <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
-          Instructor: {course.instructor.name}
-        </p>
-        <Badge
-          variant="outline"
-          className="text-xs"
-        >
-          {course.participants.length} {course.participants.length === 1 ? "person" : "people"}
-        </Badge>
+    <div className="flex items-center gap-4">
+      {/* Course Image */}
+      <div className="relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden bg-gradient-to-br from-[hsl(var(--msg-primary-muted))] to-[hsl(var(--msg-cyan))]/20">
+        {course.imageUrl ? (
+          <Image
+            src={course.imageUrl}
+            alt={course.title}
+            fill
+            className="object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <BookOpen className="w-6 h-6 text-[hsl(var(--msg-primary))]" />
+          </div>
+        )}
       </div>
-    </div>
 
-    {/* Role Badge */}
-    <Badge className={
-      course.role === "INSTRUCTOR"
-        ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-white"
-        : "bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
-    }>
-      {course.role === "INSTRUCTOR" ? "Teaching" : "Enrolled"}
-    </Badge>
+      {/* Course Info */}
+      <div className="flex-1 min-w-0">
+        <h4 className="font-semibold text-[hsl(var(--msg-text))] truncate group-hover:text-[hsl(var(--msg-primary))] transition-colors">
+          {course.title}
+        </h4>
+        <div className="flex items-center gap-2 mt-1">
+          <p className="text-sm text-[hsl(var(--msg-text-muted))] truncate">
+            {course.instructor.name}
+          </p>
+          <Badge
+            variant="outline"
+            className="text-[10px] border-[hsl(var(--msg-border))] text-[hsl(var(--msg-text-subtle))]"
+          >
+            {course.participants.length} {course.participants.length === 1 ? "person" : "people"}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Role Badge */}
+      <Badge className={cn(
+        "h-6 px-2.5 text-[10px] font-semibold border-0",
+        course.role === "INSTRUCTOR"
+          ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white"
+          : "bg-gradient-to-r from-[hsl(var(--msg-primary))] to-[hsl(var(--msg-cyan))] text-white"
+      )}>
+        {course.role === "INSTRUCTOR" ? "Teaching" : "Enrolled"}
+      </Badge>
+    </div>
   </div>
 );
 
@@ -359,54 +472,62 @@ interface ParticipantCardProps {
 const ParticipantCard = ({ participant, isInstructor, isSelected, onToggle }: ParticipantCardProps) => (
   <div
     onClick={onToggle}
-    className={`
-      flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all
-      ${isSelected
-        ? "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800"
-        : "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-slate-700"
-      }
-    `}
+    className={cn(
+      "flex items-center gap-3 p-3.5 rounded-xl cursor-pointer transition-all duration-200",
+      isSelected
+        ? "bg-gradient-to-r from-[hsl(var(--msg-primary-muted))] to-[hsl(var(--msg-cyan))]/10 border-2 border-[hsl(var(--msg-primary))]/30"
+        : "msg-conversation-card"
+    )}
   >
     <Checkbox
       checked={isSelected}
       onCheckedChange={onToggle}
-      className="data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+      className={cn(
+        "data-[state=checked]:bg-[hsl(var(--msg-primary))]",
+        "data-[state=checked]:border-[hsl(var(--msg-primary))]"
+      )}
     />
 
-    <div className="relative">
-      <Avatar className="w-12 h-12">
+    <div className="relative msg-avatar-ring">
+      <Avatar className="w-11 h-11">
         <AvatarImage src={participant.image || undefined} />
-        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
+        <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--msg-primary))] to-[hsl(var(--msg-cyan))] text-white font-semibold">
           {participant.name?.charAt(0) || "?"}
         </AvatarFallback>
       </Avatar>
       {isInstructor && (
-        <div className="absolute -top-1 -left-1 bg-gradient-to-r from-yellow-500 to-amber-500
-                      rounded-full p-1">
-          <GraduationCap className="w-3 h-3 text-white" />
+        <div className="absolute -top-1 -left-1 p-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-sm">
+          <GraduationCap className="w-2.5 h-2.5 text-white" />
         </div>
       )}
     </div>
 
     <div className="flex-1 min-w-0">
-      <h4 className="font-medium text-slate-900 dark:text-white truncate">
+      <h4 className="font-medium text-[hsl(var(--msg-text))] truncate">
         {participant.name || "Unknown User"}
       </h4>
-      <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
+      <p className="text-sm text-[hsl(var(--msg-text-muted))] truncate">
         {participant.email}
       </p>
     </div>
 
     {isInstructor && (
-      <Badge className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white">
+      <Badge className="h-5 px-2 text-[10px] font-semibold bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0">
         Instructor
       </Badge>
     )}
 
-    {isSelected && (
-      <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-        <Check className="w-4 h-4 text-white" />
-      </div>
-    )}
+    <AnimatePresence>
+      {isSelected && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0 }}
+          className="flex-shrink-0 w-6 h-6 bg-[hsl(var(--msg-primary))] rounded-full flex items-center justify-center"
+        >
+          <Check className="w-4 h-4 text-white" />
+        </motion.div>
+      )}
+    </AnimatePresence>
   </div>
 );

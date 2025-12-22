@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { Settings } from "lucide-react";
@@ -28,11 +29,20 @@ interface EnterpriseSettingsProps {
 }
 
 export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("account");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab') as SettingsTab | null;
+  const [activeTab, setActiveTab] = useState<SettingsTab>(tabParam || "account");
   const [error, setError] = useState<string | undefined>();
   const [success, setSuccess] = useState<string | undefined>();
   const { update } = useSession();
   const [isPending, startTransition] = useTransition();
+
+  // Handle URL tab parameter changes
+  useEffect(() => {
+    if (tabParam && ['account', 'security', 'privacy', 'profile', 'notifications', 'financial'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
@@ -47,6 +57,9 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
       // Profile
       phone: user.phone || undefined,
       image: user.image || undefined,
+      bio: user.bio || undefined,
+      location: user.location || undefined,
+      website: user.website || undefined,
       learningStyle: user.learningStyle || undefined,
 
       // Notifications (defaults - should be fetched from user preferences)
@@ -187,6 +200,11 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
                     form={form}
                     isPending={isPending}
                     currentImage={user.image}
+                    currentBio={user.bio}
+                    currentLocation={user.location}
+                    currentWebsite={user.website}
+                    profileLinks={user.profileLinks}
+                    userName={user.name}
                   />
                 )}
                 {activeTab === "notifications" && (

@@ -40,6 +40,20 @@ interface LearningContext {
   formData?: Record<string, any>;
   analysisMode?: 'basic' | 'contextual' | 'deep';
   lastContextUpdate?: Date;
+  // Evaluation context
+  evaluationContext?: EvaluationContextData;
+}
+
+interface EvaluationContextData {
+  examId?: string;
+  attemptId?: string;
+  currentQuestionId?: string;
+  isGrading?: boolean;
+  isViewingResults?: boolean;
+  studentId?: string;
+  evaluationType?: 'auto' | 'ai' | 'teacher';
+  bloomsLevel?: string;
+  questionType?: string;
 }
 
 const SAMGlobalContext = createContext<SAMGlobalContextType | undefined>(undefined);
@@ -197,28 +211,53 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
 
   // Determine features based on tutor mode and context
   const features = useMemo((): string[] => {
+    const baseFeatures: string[] = [];
+
+    // Add evaluation-specific features
+    const isExamContext = pathname?.includes('/exam') ||
+                          pathname?.includes('/results') ||
+                          learningContext.evaluationContext?.isGrading ||
+                          learningContext.evaluationContext?.isViewingResults;
+
+    if (isExamContext) {
+      baseFeatures.push(
+        'exam-evaluation',
+        'answer-analysis',
+        'blooms-assessment',
+        'cognitive-profiling',
+        'feedback-generation'
+      );
+    }
+
     switch (tutorMode) {
       case 'teacher':
         return [
+          ...baseFeatures,
           'lesson-planning',
           'student-analytics',
           'assessment-generation',
           'teaching-insights',
           'curriculum-design',
-          'grading-assistance'
+          'grading-assistance',
+          'rubric-evaluation',
+          'score-suggestions'
         ];
       case 'student':
         if (pathname?.includes('/learn')) {
           return [
+            ...baseFeatures,
             'concept-explanation',
             'quiz-help',
             'study-guidance',
             'homework-assistance',
             'progress-tracking',
-            'learning-tips'
+            'learning-tips',
+            'result-explanation',
+            'improvement-suggestions'
           ];
         }
         return [
+          ...baseFeatures,
           'general-help',
           'course-recommendations',
           'study-planning',
@@ -227,6 +266,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
         ];
       case 'admin':
         return [
+          ...baseFeatures,
           'platform-management',
           'user-analytics',
           'system-insights',
@@ -236,7 +276,7 @@ export function SAMGlobalProvider({ children }: SAMGlobalProviderProps) {
       default:
         return ['general-help', 'navigation-assistance'];
     }
-  }, [tutorMode, pathname]);
+  }, [tutorMode, pathname, learningContext.evaluationContext]);
 
   // Determine position based on context
   const position = useMemo((): 'floating' | 'sidebar' | 'header' | 'tab' => {

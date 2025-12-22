@@ -49,8 +49,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
 
   return (
     <>
-      <div className="min-h-screen pt-16 sm:pt-20 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        <EnterpriseEditPost
+      <EnterpriseEditPost
           postId={post.id}
           title={post.title}
           description={post.description}
@@ -71,9 +70,6 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
             postId: chapter.postId,
           }))}
         />
-      </div>
-
-      <Footer />
     </>
   );
 }

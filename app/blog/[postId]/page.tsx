@@ -25,18 +25,62 @@ const CommentSection = dynamic(() => import("./_components/facebook-comment-sect
 import { FeaturedImage } from "./_components/featured-image";
 import EnterprisePostHeader from "./_components/enterprise-post-header";
 
+// Editorial components - lazy loaded
+const ReadingProgressBar = dynamic(() => import("./_components/reading-progress-bar"));
+const FloatingShare = dynamic(() => import("./_components/floating-share"));
+
 // Is the app running in development mode?
 const isDev = process.env.NODE_ENV === 'development';
 
+// Type definitions for comment replies matching Prisma query result
+interface CommentUser {
+  id: string;
+  name: string | null;
+  image: string | null;
+}
+
+interface CommentReply {
+  id: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+  commentId: string;
+  parentReplyId?: string | null;
+  depth?: number;
+  User?: CommentUser;
+  other_Reply?: CommentReply[];
+}
+
+// Comment interface matching facebook-comment-section expectations
+interface TransformedComment {
+  id: string;
+  content: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  userId: string;
+  postId: string;
+  parentId: string | null;
+  depth: number;
+  User?: CommentUser;
+  replies?: TransformedComment[];
+}
+
 // Transform database replies to match Comment interface
-const transformReplies = (replies: any[]): any[] => {
+const transformReplies = (replies: CommentReply[], postId: string): TransformedComment[] => {
   if (!replies || !Array.isArray(replies)) return [];
 
   return replies.map(reply => ({
-    ...reply,
+    id: reply.id,
+    content: reply.content,
+    createdAt: reply.createdAt,
+    updatedAt: reply.updatedAt,
+    userId: reply.userId,
+    postId: postId,
     parentId: reply.parentReplyId || null,
     depth: reply.depth || 1,
-    replies: reply.other_Reply ? transformReplies(reply.other_Reply) : []
+    User: reply.User,
+    replies: reply.other_Reply ? transformReplies(reply.other_Reply, postId) : []
   }));
 };
 
@@ -96,11 +140,21 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
           }}
         />
       )}
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+      {/* Reading Progress Bar */}
+      <ReadingProgressBar />
+
+      {/* Floating Share */}
+      <FloatingShare
+        title={post.title}
+        description={post.description}
+      />
+
+      {/* Main Content - Editorial Style */}
+      <div className="min-h-screen bg-blog-bg dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
         <div className="w-full max-w-7xl mx-auto">
           <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 mx-auto">
             <div className="mx-auto w-full py-3 sm:py-4 md:py-6 lg:py-10">
-              {/* Enterprise Header */}
+              {/* Enterprise Header - Editorial */}
               <EnterprisePostHeader
                 postId={params.postId}
                 title={post.title}
@@ -124,7 +178,8 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
                 isPremium={false}
               />
 
-              <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent my-6 sm:my-8 md:my-12" />
+              {/* Editorial Divider */}
+              <div className="blog-divider my-6 sm:my-8 md:my-12" />
 
               {/* Featured Image with Toggle */}
               {post.imageUrl && (
@@ -145,15 +200,21 @@ const PostIdPage = async (props: {params: Promise<{ postId: string; }>}) => {
                 useDummyData={true}
               />
 
-              {/* Comments Section */}
-              <div className="mt-4 sm:mt-6 md:mt-8 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 border border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+              {/* Comments Section - Editorial */}
+              <div className="mt-4 sm:mt-6 md:mt-8 bg-blog-surface/90 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg sm:rounded-xl md:rounded-2xl lg:rounded-3xl p-3 sm:p-4 md:p-5 lg:p-6 border border-blog-border dark:border-slate-700/50 shadow-lg blog-content-reveal blog-delay-7">
                 <CommentSection
                   postId={params.postId}
                   initialComments={(post.comments || []).map(comment => ({
-                    ...comment,
+                    id: comment.id,
+                    content: comment.content,
+                    createdAt: comment.createdAt,
+                    updatedAt: comment.updatedAt,
+                    userId: comment.userId,
+                    postId: comment.postId,
                     parentId: null,
                     depth: 0,
-                    replies: transformReplies(comment.replies || [])
+                    User: comment.User,
+                    replies: transformReplies(comment.replies || [], comment.postId)
                   }))}
                 />
               </div>

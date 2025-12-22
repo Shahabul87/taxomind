@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ProfilePageLayout } from './_components/ProfilePageLayout';
@@ -108,10 +108,17 @@ interface EnrolledCourse {
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const { toast } = useToast();
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Prevent hydration mismatch by waiting for client mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -173,7 +180,8 @@ export default function ProfilePage() {
     }
   }, [session, toast]);
 
-  if (status === 'loading' || isLoading) {
+  // Show loading state - consistent between server and client
+  if (!isMounted || status === 'loading' || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen px-4">
         <div className="animate-spin rounded-full h-10 w-10 xs:h-12 xs:w-12 border-b-2 border-primary"></div>
@@ -279,10 +287,8 @@ export default function ProfilePage() {
                 size="icon"
                 variant="secondary"
                 className="absolute bottom-0 right-0 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity h-8 w-8 sm:h-9 sm:w-9"
-                onClick={() => toast({
-                  title: "Coming Soon",
-                  description: "Profile picture upload feature is currently in development!",
-                })}
+                onClick={() => router.push('/settings?tab=profile')}
+                title="Edit profile picture"
               >
                 <Camera className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
@@ -363,15 +369,7 @@ export default function ProfilePage() {
 
                 <Button
                   variant="outline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Edit Profile button clicked');
-                    toast({
-                      title: "Coming Soon",
-                      description: "Profile editing feature is currently in development!",
-                    });
-                  }}
+                  onClick={() => router.push('/settings?tab=profile')}
                   className="border-slate-300 dark:border-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-400 dark:hover:bg-blue-900/20 dark:hover:text-blue-300 dark:hover:border-blue-600 transition-all w-full sm:w-auto mt-3 sm:mt-0 h-9 sm:h-10 text-xs sm:text-sm"
                 >
                   <Edit2 className="h-3.5 w-3.5 xs:h-4 xs:w-4 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />

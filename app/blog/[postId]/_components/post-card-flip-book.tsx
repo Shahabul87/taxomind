@@ -5,11 +5,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import parse from 'html-react-parser';
+import parse, { DOMNode, Element } from 'html-react-parser';
 import { logger } from '@/lib/logger';
 
+interface PostChapter {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  postId: string;
+  videoUrl?: string | null;
+  position: number;
+  isPublished: boolean | null;
+  isFree: boolean | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 interface PostCardFlipBookProps {
-  data: any[];
+  data: PostChapter[];
 }
 
 export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
@@ -47,8 +61,8 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   // Early return after all hooks
   if (!hasValidData) {
     return (
-      <div className="flex items-center justify-center p-10">
-        <p className="text-gray-500 dark:text-gray-400">No chapters available</p>
+      <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
+        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
       </div>
     );
   }
@@ -65,8 +79,8 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   // If no data, show loading state
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
-      <div className="w-full h-[calc(100vh-12rem)] flex items-center justify-center bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-3xl">
-        <div className="text-xl text-gray-600 dark:text-gray-400">
+      <div className="w-full h-[calc(100vh-12rem)] flex items-center justify-center bg-gradient-to-br from-blog-bg to-blog-surface dark:from-slate-900 dark:to-slate-800 rounded-3xl">
+        <div className="text-xl text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">
           No content available
         </div>
       </div>
@@ -76,15 +90,16 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   const parseHtmlContent = (htmlString: string) => {
     if (!htmlString) return null;
     return parse(htmlString, {
-      replace: (domNode: any) => {
+      replace: (domNode: DOMNode) => {
         if (domNode.type === 'tag') {
-          switch (domNode.name) {
+          const element = domNode as Element;
+          switch (element.name) {
             case 'p':
-              return <p className="mb-4">{domNode.children.map((child: any) => child.data || '')}</p>;
+              return <p className="mb-4 text-blog-text dark:text-slate-300 font-[family-name:var(--font-body)] leading-[1.8]">{element.children?.map((child) => (child as { data?: string }).data || '')}</p>;
             case 'strong':
-              return <span className="font-bold">{domNode.children.map((child: any) => child.data || '')}</span>;
+              return <span className="font-bold text-blog-text dark:text-white">{element.children?.map((child) => (child as { data?: string }).data || '')}</span>;
             case 'em':
-              return <span className="italic">{domNode.children.map((child: any) => child.data || '')}</span>;
+              return <span className="italic text-blog-text-muted dark:text-slate-300">{element.children?.map((child) => (child as { data?: string }).data || '')}</span>;
           }
         }
         return undefined;
@@ -122,11 +137,11 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
           background: transparent;
         }
         .flip-book-page::-webkit-scrollbar-thumb {
-          background: rgb(203 213 225);
+          background: hsl(var(--blog-border));
           border-radius: 4px;
         }
         .flip-book-page::-webkit-scrollbar-thumb:hover {
-          background: rgb(148 163 184);
+          background: hsl(var(--blog-primary) / 0.3);
         }
         .dark .flip-book-page::-webkit-scrollbar-thumb {
           background: rgb(51 65 85);
@@ -135,9 +150,9 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
           background: rgb(71 85 105);
         }
       `}</style>
-      <div className="relative w-full h-[80vh] flex items-center justify-center bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+      <div className="relative w-full h-[80vh] flex items-center justify-center bg-gradient-to-br from-blog-bg to-blog-surface dark:from-slate-900 dark:to-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-blog-border dark:border-slate-700">
         {/* Book Shadow Effect */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/5 to-transparent dark:from-white/5" />
+        <div className="absolute inset-0 bg-gradient-to-b from-blog-primary/5 to-transparent dark:from-white/5" />
 
       {/* Book Container */}
       <div
@@ -203,23 +218,24 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
             <div className={cn(
               "flip-book-page",
               "flex-1 relative p-6 lg:p-8",
-              "bg-white dark:bg-slate-900",
+              "bg-blog-surface dark:bg-slate-900",
               "rounded-l-2xl shadow-2xl",
               "overflow-y-auto overflow-x-hidden",
-              "border-l border-t border-b border-slate-100 dark:border-slate-800",
+              "border-l border-t border-b border-blog-border dark:border-slate-800",
               "max-h-full"
             )}
             style={{
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgb(203 213 225) transparent'
+              scrollbarColor: 'hsl(var(--blog-border)) transparent'
             }}>
-              <div className="absolute top-4 right-4 text-sm font-medium text-slate-500 dark:text-slate-400">
+              <div className="absolute top-4 right-4 text-sm font-medium text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-ui)]">
                 Page {currentSpread * 2 + 1}
               </div>
               <div className="space-y-6">
                 <h2 className={cn(
                   "text-3xl font-bold",
-                  "text-slate-900 dark:text-white"
+                  "text-blog-text dark:text-white",
+                  "font-[family-name:var(--font-display)]"
                 )}>
                   {data[currentSpread * 2]?.title || 'Untitled'}
                 </h2>
@@ -227,26 +243,26 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
                 {/* Image Modal Trigger */}
                 {data[currentSpread * 2]?.imageUrl && (
                   <div className="relative group cursor-pointer">
-                    <div className="relative w-full h-[180px] rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-800 transition-transform duration-300 group-hover:scale-[1.02]">
+                    <div className="relative w-full h-[180px] rounded-xl overflow-hidden border-2 border-blog-border dark:border-slate-700 transition-transform duration-300 group-hover:scale-[1.02]">
                       <Image
-                        src={data[currentSpread * 2].imageUrl}
+                        src={data[currentSpread * 2].imageUrl || '/placeholder.svg'}
                         alt={data[currentSpread * 2].title || 'Post image'}
                         fill
                         className="object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-[family-name:var(--font-ui)]">
                         Click to enlarge
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  {parseHtmlContent(data[currentSpread * 2]?.description)}
+                <div className="prose prose-sm dark:prose-invert max-w-none font-[family-name:var(--font-body)] prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
+                  {parseHtmlContent(data[currentSpread * 2]?.description ?? '')}
                 </div>
               </div>
-              <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent via-gray-100/50 to-gray-200/50 dark:via-gray-800/50 dark:to-gray-700/50 rounded-tl-2xl pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent via-blog-primary/5 to-blog-primary/10 dark:via-slate-800/50 dark:to-slate-700/50 rounded-tl-2xl pointer-events-none" />
             </div>
 
             {/* Right Page */}
@@ -254,23 +270,24 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
               <div className={cn(
                 "flip-book-page",
                 "flex-1 relative p-6 lg:p-8",
-                "bg-white dark:bg-slate-900",
+                "bg-blog-surface dark:bg-slate-900",
                 "rounded-r-2xl shadow-2xl",
                 "overflow-y-auto overflow-x-hidden",
-                "border-r border-t border-b border-slate-100 dark:border-slate-800",
+                "border-r border-t border-b border-blog-border dark:border-slate-800",
                 "max-h-full"
               )}
               style={{
                 scrollbarWidth: 'thin',
-                scrollbarColor: 'rgb(203 213 225) transparent'
+                scrollbarColor: 'hsl(var(--blog-border)) transparent'
               }}>
-                <div className="absolute top-4 right-4 text-sm font-medium text-slate-500 dark:text-slate-400">
+                <div className="absolute top-4 right-4 text-sm font-medium text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-ui)]">
                   Page {currentSpread * 2 + 2}
                 </div>
                 <div className="space-y-6">
                   <h2 className={cn(
                     "text-3xl font-bold",
-                    "text-slate-900 dark:text-white"
+                    "text-blog-text dark:text-white",
+                    "font-[family-name:var(--font-display)]"
                   )}>
                     {data[currentSpread * 2 + 1]?.title || 'Untitled'}
                   </h2>
@@ -278,33 +295,33 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
                   {/* Image Modal Trigger */}
                   {data[currentSpread * 2 + 1]?.imageUrl && (
                     <div className="relative group cursor-pointer">
-                      <div className="relative w-full h-[180px] rounded-xl overflow-hidden border-2 border-gray-100 dark:border-gray-800 transition-transform duration-300 group-hover:scale-[1.02]">
+                      <div className="relative w-full h-[180px] rounded-xl overflow-hidden border-2 border-blog-border dark:border-slate-700 transition-transform duration-300 group-hover:scale-[1.02]">
                         <Image
-                          src={data[currentSpread * 2 + 1].imageUrl}
+                          src={data[currentSpread * 2 + 1].imageUrl || '/placeholder.svg'}
                           alt={data[currentSpread * 2 + 1].title || 'Post image'}
                           fill
                           className="object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-[family-name:var(--font-ui)]">
                           Click to enlarge
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    {parseHtmlContent(data[currentSpread * 2 + 1]?.description)}
+                  <div className="prose prose-sm dark:prose-invert max-w-none font-[family-name:var(--font-body)] prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
+                    {parseHtmlContent(data[currentSpread * 2 + 1]?.description ?? '')}
                   </div>
                 </div>
-                <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent via-gray-100/50 to-gray-200/50 dark:via-gray-800/50 dark:to-gray-700/50 rounded-tl-2xl pointer-events-none" />
+                <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-br from-transparent via-blog-primary/5 to-blog-primary/10 dark:via-slate-800/50 dark:to-slate-700/50 rounded-tl-2xl pointer-events-none" />
               </div>
             )}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Page Progress Bar */}
+      {/* Page Progress Bar - Warm Earth */}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1">
         {Array.from({ length: Math.ceil(data.length / 2) }).map((_, index) => (
           <div
@@ -312,8 +329,8 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
             className={cn(
               "w-2 h-2 rounded-full transition-all duration-300",
               currentSpread === index
-                ? "bg-purple-500 w-4"
-                : "bg-gray-300 dark:bg-gray-600"
+                ? "bg-blog-primary w-4"
+                : "bg-blog-border dark:bg-slate-600"
             )}
           />
         ))}

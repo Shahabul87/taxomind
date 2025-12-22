@@ -16,6 +16,9 @@ import {
   Clock,
   TrendingUp,
   BookOpen,
+  Zap,
+  Target,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +35,7 @@ interface ModernHeroSectionProps {
 /**
  * Optimized Hero Section for Blog Page
  * Uses CSS animations instead of Framer Motion for better performance
+ * Handles low-content scenarios gracefully
  */
 export function ModernHeroSectionOptimized({
   featuredPosts,
@@ -76,12 +80,24 @@ export function ModernHeroSectionOptimized({
 
   const currentSlideData = slides[currentSlide];
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000) {
-      return `${Math.floor(num / 1000)}K+`;
-    }
+  // Smart number formatting - don&apos;t show embarrassingly low numbers
+  const formatNumber = (num: number, minDisplay: number = 1) => {
+    if (num < minDisplay) return null; // Return null for numbers below threshold
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M+`;
+    if (num >= 1000) return `${Math.floor(num / 1000)}K+`;
+    if (num >= 100) return `${num}+`;
+    if (num >= 10) return `${Math.floor(num / 10) * 10}+`;
     return `${num}+`;
   };
+
+  // Check if we have enough content to show featured cards
+  const hasFeaturedContent = featuredPosts.length > 0;
+  const hasMultipleFeatured = featuredPosts.length >= 2;
+
+  // Determine what stats to show (hide embarrassingly low numbers)
+  const showArticlesStat = (statistics?.publishedArticles || 0) >= 1;
+  const showReadersStat = (statistics?.totalReaders || 0) >= 10;
+  const showAuthorsStat = (statistics?.totalAuthors || 0) >= 1;
 
   return (
     <div className="relative min-h-[60vh] sm:min-h-[75vh] lg:min-h-[85vh] flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
@@ -162,92 +178,107 @@ export function ModernHeroSectionOptimized({
               </Button>
             </div>
 
-            {/* Live Stats */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 sm:flex sm:flex-wrap pt-4 animate-fade-in-up animation-delay-400">
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 sm:min-w-[140px]">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  {isLoading ? (
-                    <p className="text-base sm:text-xl lg:text-2xl font-bold text-white animate-pulse">--</p>
-                  ) : (
-                    <p className="text-base sm:text-xl lg:text-2xl font-bold text-white">
-                      {formatNumber(statistics?.publishedArticles || 0)}
-                    </p>
-                  )}
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-slate-400 truncate">Published</p>
-                </div>
+            {/* Live Stats - Only show stats that have meaningful values */}
+            {(showArticlesStat || showReadersStat || showAuthorsStat || isLoading) && (
+              <div className="flex flex-wrap gap-4 sm:gap-6 pt-4 animate-fade-in-up animation-delay-400">
+                {(showArticlesStat || isLoading) && (
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
+                      <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
+                    <div>
+                      {isLoading ? (
+                        <div className="h-7 w-12 bg-white/20 rounded animate-pulse" />
+                      ) : (
+                        <p className="text-xl sm:text-2xl font-bold text-white">
+                          {formatNumber(statistics?.publishedArticles || 0)}
+                        </p>
+                      )}
+                      <p className="text-xs sm:text-sm text-slate-400">Published</p>
+                    </div>
+                  </div>
+                )}
+                {(showReadersStat || isLoading) && (
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 flex-shrink-0">
+                      <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
+                    <div>
+                      {isLoading ? (
+                        <div className="h-7 w-12 bg-white/20 rounded animate-pulse" />
+                      ) : (
+                        <p className="text-xl sm:text-2xl font-bold text-white">
+                          {formatNumber(statistics?.totalReaders || 0, 10)}
+                        </p>
+                      )}
+                      <p className="text-xs sm:text-sm text-slate-400">Views</p>
+                    </div>
+                  </div>
+                )}
+                {(showAuthorsStat || isLoading) && (
+                  <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 flex-shrink-0">
+                      <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    </div>
+                    <div>
+                      {isLoading ? (
+                        <div className="h-7 w-12 bg-white/20 rounded animate-pulse" />
+                      ) : (
+                        <p className="text-xl sm:text-2xl font-bold text-white">
+                          {formatNumber(statistics?.totalAuthors || 0)}
+                        </p>
+                      )}
+                      <p className="text-xs sm:text-sm text-slate-400">Authors</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 sm:min-w-[140px]">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  {isLoading ? (
-                    <p className="text-base sm:text-xl lg:text-2xl font-bold text-white animate-pulse">--</p>
-                  ) : (
-                    <p className="text-base sm:text-xl lg:text-2xl font-bold text-white">
-                      {formatNumber(statistics?.totalReaders || 0)}
-                    </p>
-                  )}
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-slate-400 truncate">Readers</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 sm:min-w-[140px]">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  {isLoading ? (
-                    <p className="text-base sm:text-xl lg:text-2xl font-bold text-white animate-pulse">--</p>
-                  ) : (
-                    <p className="text-base sm:text-xl lg:text-2xl font-bold text-white">
-                      {formatNumber(statistics?.totalAuthors || 0)}
-                    </p>
-                  )}
-                  <p className="text-[10px] sm:text-xs lg:text-sm text-slate-400 truncate">Authors</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Right Content - Floating Cards Section - CSS Animations Only */}
           <div className={cn("hidden lg:block relative transition-all duration-1000 delay-300", isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-12")}>
-            <div className="relative">
-              {/* Floating Card 1 - Top */}
-              {featuredPosts[0] && (
+            <div className="relative min-h-[500px]">
+              {/* Featured Post Card - Always show if we have content */}
+              {hasFeaturedContent && (
                 <div className="absolute top-0 right-0 w-80 animate-float">
                   <Link href={`/blog/${featuredPosts[0].id}`}>
-                    <Card className="overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl hover:shadow-3xl transition-all cursor-pointer group">
-                      <div className="relative h-32">
-                        <Image
-                          src={featuredPosts[0].imageUrl || "/api/placeholder/800/400"}
-                          alt={featuredPosts[0].title}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-110"
-                          sizes="320px"
-                          priority
-                          fetchPriority="high"
-                          quality={75}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        <Badge className="absolute top-2 left-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white border-0 text-xs px-2 py-1">
+                    <Card className="overflow-hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all cursor-pointer group border border-white/20">
+                      <div className="relative h-36">
+                        {featuredPosts[0].imageUrl ? (
+                          <Image
+                            src={featuredPosts[0].imageUrl}
+                            alt={featuredPosts[0].title}
+                            fill
+                            className="object-cover transition-transform duration-700 group-hover:scale-110"
+                            sizes="320px"
+                            priority
+                            fetchPriority="high"
+                            quality={80}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+                            <BookOpen className="w-12 h-12 text-white/80" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <Badge className="absolute top-3 left-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 text-xs px-3 py-1.5 shadow-lg">
+                          <Sparkles className="w-3 h-3 mr-1" />
                           Featured
                         </Badge>
                       </div>
                       <CardContent className="p-4">
-                        <h3 className="font-bold text-sm line-clamp-2 text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h3 className="font-bold text-sm line-clamp-2 text-slate-900 dark:text-white mb-3 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-snug">
                           {featuredPosts[0].title}
                         </h3>
                         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <Eye className="w-3.5 h-3.5 text-indigo-500" />
                             {featuredPosts[0].views.toLocaleString()}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {featuredPosts[0].readingTime}
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            {featuredPosts[0].readingTime || "3 min read"}
                           </span>
                         </div>
                       </CardContent>
@@ -256,26 +287,26 @@ export function ModernHeroSectionOptimized({
                 </div>
               )}
 
-              {/* Floating Card 2 - Middle */}
-              {featuredPosts[1] && (
+              {/* Trending Card - Only show if we have multiple posts */}
+              {hasMultipleFeatured && (
                 <div className="absolute top-56 left-0 w-72 animate-float animation-delay-1000">
                   <Link href={`/blog/${featuredPosts[1].id}`}>
-                    <Card className="overflow-hidden bg-white dark:bg-slate-800 rounded-2xl shadow-2xl hover:shadow-3xl transition-all cursor-pointer group">
+                    <Card className="overflow-hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all cursor-pointer group border border-white/20">
                       <CardContent className="p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
                             <TrendingUp className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <p className="font-semibold text-sm text-slate-900 dark:text-white">
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">
                               Trending Now
                             </p>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                               {featuredPosts[1].views.toLocaleString()} views
                             </p>
                           </div>
                         </div>
-                        <h4 className="text-xs font-medium text-slate-700 dark:text-slate-300 line-clamp-2">
+                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                           {featuredPosts[1].title}
                         </h4>
                       </CardContent>
@@ -284,26 +315,49 @@ export function ModernHeroSectionOptimized({
                 </div>
               )}
 
-              {/* Floating Card 3 - Bottom Right */}
-              {featuredPosts[2] && (
-                <div className="absolute top-[26rem] -right-10 w-64 animate-float-reverse animation-delay-500">
-                  <Card className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-2xl p-5 text-white">
-                    <BookOpen className="w-8 h-8 mb-3 opacity-90" />
-                    <p className="font-bold text-2xl mb-1">
-                      {formatNumber(statistics?.publishedArticles || 50)}
-                    </p>
-                    <p className="text-sm opacity-90">Articles Published</p>
-                    <div className="mt-3 flex items-center gap-2 text-xs">
-                      <div className="flex -space-x-2">
-                        {[1, 2, 3].map((i) => (
-                          <div key={i} className="w-6 h-6 rounded-full bg-white/30 border-2 border-purple-500" />
-                        ))}
+              {/* Stats/CTA Card - Show different content based on data */}
+              <div className="absolute top-[26rem] -right-10 w-64 animate-float-reverse animation-delay-500">
+                {featuredPosts.length >= 3 ? (
+                  // Show third featured post if available
+                  <Link href={`/blog/${featuredPosts[2].id}`}>
+                    <Card className="bg-gradient-to-br from-purple-500 via-violet-500 to-pink-600 rounded-2xl shadow-2xl p-5 text-white hover:scale-105 transition-transform cursor-pointer border border-white/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Zap className="w-6 h-6" />
+                        <span className="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">Must Read</span>
                       </div>
-                      <span className="opacity-75">+{formatNumber(statistics?.totalAuthors || 20)} authors</span>
+                      <h4 className="font-bold text-sm line-clamp-2 mb-2">{featuredPosts[2].title}</h4>
+                      <div className="flex items-center gap-2 text-xs text-white/80">
+                        <Eye className="w-3 h-3" />
+                        {featuredPosts[2].views.toLocaleString()} views
+                      </div>
+                    </Card>
+                  </Link>
+                ) : (
+                  // Show CTA card when not enough content
+                  <Card className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-600 rounded-2xl shadow-2xl p-5 text-white border border-white/20">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-4">
+                      <Lightbulb className="w-6 h-6" />
                     </div>
+                    <p className="font-bold text-lg mb-1">Share Your Ideas</p>
+                    <p className="text-sm text-white/80 mb-4">
+                      Join our community and start writing today.
+                    </p>
+                    <Link href="/teacher/posts/create">
+                      <Button
+                        size="sm"
+                        className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                      >
+                        <PenSquare className="w-4 h-4 mr-2" />
+                        Write Article
+                      </Button>
+                    </Link>
                   </Card>
-                </div>
-              )}
+                )}
+              </div>
+
+              {/* Decorative floating elements */}
+              <div className="absolute top-32 right-96 w-20 h-20 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-2xl blur-xl animate-float animation-delay-2000" />
+              <div className="absolute top-80 right-20 w-16 h-16 bg-gradient-to-br from-pink-400/20 to-rose-400/20 rounded-full blur-xl animate-float-reverse animation-delay-1000" />
             </div>
           </div>
         </div>

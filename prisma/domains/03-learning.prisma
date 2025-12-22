@@ -215,6 +215,9 @@ model Section {
   // Discussions
   discussions Discussion[]
 
+  // Exam & Evaluation System relations
+  learningObjectiveItems LearningObjectiveItem[]
+
   @@index([chapterId])
   @@index([chapterId, position]) // For ordered chapter queries
   @@index([isPublished, isFree])  // For access control queries
@@ -267,6 +270,9 @@ model Exam {
   ExamBloomsProfile ExamBloomsProfile?
   ExamQuestion      ExamQuestion[]
   UserExamAttempt   UserExamAttempt[]
+
+  // Exam & Evaluation System - Enhanced Questions
+  enhancedQuestions EnhancedQuestion[] @relation("ExamEnhancedQuestions")
 
   @@index([sectionId])
   @@index([isPublished, isActive])
@@ -519,6 +525,9 @@ model UserExamAttempt {
   UserAnswer      UserAnswer[]
   Exam            Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
   User            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Exam & Evaluation System - Enhanced Answers
+  enhancedAnswers EnhancedAnswer[]
 
   @@unique([userId, examId, attemptNumber])
   @@index([status])
@@ -818,4 +827,322 @@ model SectionCompletionTracking {
   @@index([sectionId])
   @@index([status])
   @@index([completedAt])
+}
+
+// ==========================================
+// Exam & Evaluation System Models
+// ==========================================
+// Enhanced models for cognitive skill development
+// and AI-powered evaluation system
+
+// Learning Objective Model (link questions to objectives)
+model LearningObjectiveItem {
+  id          String      @id @default(cuid())
+  sectionId   String
+  objective   String      @db.Text
+  bloomsLevel BloomsLevel
+  order       Int         @default(0)
+
+  // Relations
+  section   Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  questions EnhancedQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sectionId])
+  @@index([bloomsLevel])
+}
+
+// Enhanced Question Model for cognitive assessment
+model EnhancedQuestion {
+  id             String  @id @default(cuid())
+  examId         String?
+  questionBankId String?
+
+  // Basic Info
+  question     String       @db.Text
+  questionType QuestionType
+  points       Int          @default(1)
+  order        Int          @default(0)
+
+  // Answer Configuration
+  options              Json? // For MCQ, matching, etc.
+  correctAnswer        String   @db.Text
+  acceptableVariations Json? // Alternative correct answers
+  rubric               Json? // For essay/short answer evaluation
+
+  // Bloom's Taxonomy
+  bloomsLevel         BloomsLevel
+  cognitiveSkills     String[] // Tags like "critical-thinking", "problem-solving"
+  learningObjectiveId String? // Link to section learning objective
+
+  // Hints & Explanations
+  hint                 String? @db.Text
+  explanation          String  @db.Text
+  commonMisconceptions Json? // Array of misconceptions
+
+  // Metadata
+  difficulty       QuestionDifficulty @default(MEDIUM)
+  estimatedTime    Int? // seconds
+  prerequisites    String[] // Concept prerequisites
+  relatedConcepts  String[] // Related topics
+  generationMode   QuestionGenerationMode @default(MANUAL)
+
+  // Analytics
+  totalAttempts       Int    @default(0)
+  correctAttempts     Int    @default(0)
+  avgTimeSpent        Float? // seconds
+  discriminationIndex Float? // Statistical measure
+
+  // Relations
+  exam              Exam?                 @relation("ExamEnhancedQuestions", fields: [examId], references: [id], onDelete: Cascade)
+  learningObjective LearningObjectiveItem? @relation(fields: [learningObjectiveId], references: [id])
+  answers           EnhancedAnswer[]
+  aiEvaluations     AIEvaluationRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([examId])
+  @@index([bloomsLevel])
+  @@index([difficulty])
+  @@index([questionType])
+  @@index([learningObjectiveId])
+}
+
+// Enhanced Answer Model for detailed tracking
+model EnhancedAnswer {
+  id         String  @id @default(cuid())
+  attemptId  String
+  questionId String
+
+  // Answer content
+  answer       String  @db.Text
+  isCorrect    Boolean?
+  pointsEarned Float   @default(0)
+  timeSpent    Int? // seconds
+
+  // Evaluation type tracking
+  evaluationType EvaluationType @default(AUTO_GRADED)
+
+  // Relations
+  attempt       UserExamAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question      EnhancedQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  aiEvaluations AIEvaluationRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+// Cognitive Skill Progress (per student per concept)
+model CognitiveSkillProgress {
+  id        String @id @default(cuid())
+  userId    String
+  conceptId String // Could be sectionId or custom concept
+
+  // Bloom's Level Mastery (0-100)
+  rememberMastery   Float @default(0)
+  understandMastery Float @default(0)
+  applyMastery      Float @default(0)
+  analyzeMastery    Float @default(0)
+  evaluateMastery   Float @default(0)
+  createMastery     Float @default(0)
+
+  // Overall
+  overallMastery     Float       @default(0)
+  currentBloomsLevel BloomsLevel @default(REMEMBER)
+  masteryLevel       MasteryLevel @default(NOT_STARTED)
+
+  // Tracking
+  totalAttempts   Int       @default(0)
+  lastAttemptDate DateTime?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, conceptId])
+  @@index([userId])
+  @@index([conceptId])
+  @@index([currentBloomsLevel])
+}
+
+// Spaced Repetition Schedule (SM-2 Algorithm)
+model SpacedRepetitionSchedule {
+  id        String @id @default(cuid())
+  userId    String
+  conceptId String
+
+  // Scheduling (SM-2 Algorithm)
+  nextReviewDate DateTime
+  easeFactor     Float    @default(2.5) // SM-2 ease factor
+  interval       Int      @default(1) // days
+  repetitions    Int      @default(0)
+
+  // Performance
+  lastScore         Float?
+  retentionEstimate Float @default(100)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, conceptId])
+  @@index([userId, nextReviewDate])
+}
+
+// AI Evaluation Record for subjective questions
+model AIEvaluationRecord {
+  id       String @id @default(cuid())
+  answerId String
+
+  // Evaluation Details
+  score    Float
+  maxScore Float
+
+  // Bloom's Analysis
+  targetBloomsLevel BloomsLevel
+  demonstratedLevel BloomsLevel
+  bloomsEvidence    Json? // Evidence for level determination
+
+  // Content Analysis (0-100)
+  accuracy     Float
+  completeness Float
+  relevance    Float
+  depth        Float
+
+  // Insights
+  conceptsUnderstood Json? // Array of strings
+  misconceptions     Json? // Array of identified misconceptions
+  knowledgeGaps      Json? // Array of gaps
+
+  // Feedback
+  feedback     String @db.Text
+  strengths    Json?
+  improvements Json?
+  nextSteps    Json?
+
+  // Metadata
+  evaluationModel  String // Which AI model was used
+  confidence       Float // 0-100
+  flaggedForReview Boolean @default(false)
+
+  // Relations
+  answer           EnhancedAnswer?   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  enhancedQuestion EnhancedQuestion? @relation(fields: [enhancedQuestionId], references: [id])
+  enhancedQuestionId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([answerId])
+  @@index([flaggedForReview])
+}
+
+// Study Guide Model (personalized study materials)
+model StudyGuide {
+  id        String  @id @default(cuid())
+  userId    String
+  examId    String?
+  sectionId String?
+
+  // Content
+  title   String
+  content String @db.Text
+
+  // Structure
+  focusAreas        Json // Array of focus areas
+  practiceQuestions Json // Array of practice question IDs
+  resources         Json // Array of resource links
+
+  // Personalization
+  basedOnPerformance Json? // Performance data used to generate
+  targetBloomsLevels Json // Levels to focus on
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([examId])
+  @@index([sectionId])
+}
+
+// Learning Activity Log (for pathway tracking)
+model LearningActivityLog {
+  id        String               @id @default(cuid())
+  userId    String
+  sectionId String?
+  courseId  String?
+
+  // Activity Details
+  activityType LearningActivityType
+  bloomsLevel  BloomsLevel?
+  duration     Int? // seconds
+  score        Float?
+
+  // Context
+  contentId   String? // ID of the content engaged with
+  contentType String? // Type of content
+
+  // Metadata
+  metadata Json?
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([sectionId])
+  @@index([courseId])
+  @@index([activityType])
+  @@index([createdAt])
+}
+
+// Progress Intervention (alerts and recommendations)
+model ProgressIntervention {
+  id     String @id @default(cuid())
+  userId String
+
+  // Intervention Details
+  interventionType InterventionType
+  title            String
+  message          String  @db.Text
+  priority         String  @default("MEDIUM") // HIGH, MEDIUM, LOW
+
+  // Context
+  courseId  String?
+  sectionId String?
+  conceptId String?
+
+  // Status
+  isRead      Boolean   @default(false)
+  isActedUpon Boolean   @default(false)
+  readAt      DateTime?
+  actedAt     DateTime?
+
+  // Recommendations
+  suggestedActions Json? // Array of suggested actions
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([interventionType])
+  @@index([createdAt])
 }

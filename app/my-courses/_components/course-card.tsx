@@ -11,10 +11,12 @@ import {
   TrendingUp,
   Award,
   Calendar,
+  Share2,
 } from 'lucide-react';
 import { TimeAgo } from '@/app/components/ui/time-ago';
 import { cn } from '@/lib/utils';
 import { ensureHttpsUrl, getFallbackImageUrl } from '@/lib/cloudinary-utils';
+import { CourseShareDialog } from '@/components/course/course-share-dialog';
 
 interface CourseCardProps {
   course: any;
@@ -119,12 +121,37 @@ export const CourseCard = ({ course, type }: CourseCardProps) => {
             <span className="drop-shadow-sm whitespace-nowrap">{statusBadge.text}</span>
           </div>
 
-          {/* Category Badge */}
-          {course.category && (
-            <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] font-semibold bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-md border border-white/50 dark:border-slate-700/50 shadow-md truncate max-w-[40%] sm:max-w-none">
-              {course.category.name}
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Share Button - Only for created courses */}
+            {!isEnrolled && (
+              <div
+                onClick={(e) => e.preventDefault()}
+                className="flex-shrink-0"
+              >
+                <CourseShareDialog
+                  courseId={course.id}
+                  courseTitle={course.title}
+                  courseSlug={course.slug}
+                  isPublished={course.isPublished}
+                  trigger={
+                    <button
+                      className="p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/95 dark:bg-slate-900/95 text-slate-700 dark:text-slate-300 backdrop-blur-md border border-white/50 dark:border-slate-700/50 shadow-md hover:bg-white hover:text-blue-600 dark:hover:bg-slate-800 dark:hover:text-blue-400 transition-colors"
+                      title="Share course"
+                    >
+                      <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    </button>
+                  }
+                />
+              </div>
+            )}
+
+            {/* Category Badge */}
+            {course.category && (
+              <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] font-semibold bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white backdrop-blur-md border border-white/50 dark:border-slate-700/50 shadow-md truncate max-w-[40%] sm:max-w-none">
+                {course.category.name}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Bottom Info on Image */}

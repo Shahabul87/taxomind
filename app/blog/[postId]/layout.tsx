@@ -38,12 +38,18 @@ export default function BlogPostLayout({ children }: BlogPostLayoutProps) {
               min-height: 100vh !important;
             }
 
-            /* Ensure full-width layout */
+            /* Ensure full-width layout with editorial background */
             .blog-post-wrapper {
               width: 100%;
               min-height: 100vh;
               padding: 0 !important;
               margin: 0 !important;
+              background: hsl(var(--blog-bg, 35 30% 98%));
+            }
+
+            /* Dark mode support */
+            .dark .blog-post-wrapper {
+              background: linear-gradient(to bottom right, #0f172a, #1e293b, #334155);
             }
           `,
         }}

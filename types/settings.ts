@@ -5,12 +5,26 @@ import { LearningStyle } from '@prisma/client';
  * Comprehensive Settings User Interface
  * Includes all user fields accessible in settings page
  */
+/**
+ * Profile Link Interface
+ * For social media and website links
+ */
+export interface ProfileLink {
+  id: string;
+  platform: string;
+  url: string;
+  position?: number | null;
+}
+
 export interface SettingsUser {
   id: string;
   name: string | null;
   email: string | null;
   image: string | null;
   phone: string | null;
+  bio: string | null;
+  location: string | null;
+  website: string | null;
   isOAuth: boolean;
   isTwoFactorEnabled: boolean;
   totpEnabled: boolean;
@@ -28,6 +42,7 @@ export interface SettingsUser {
   lastLoginIp: string | null;
   isAccountLocked: boolean;
   emailVerified: Date | null;
+  profileLinks?: ProfileLink[];
 }
 
 /**

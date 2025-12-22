@@ -1,87 +1,168 @@
-import { Loader2, Sparkles } from "lucide-react";
-
 /**
- * Loading Component for Create Post Page
- * Shows while page is loading or authenticating
+ * Loading Skeleton for Create Post Page
+ * Matches the enterprise layout structure for seamless transitions
  */
 export default function CreatePostLoading() {
   return (
-    <div className="flex justify-center items-center py-10">
-      <div className="min-h-[calc(100vh-8rem)] w-full max-w-6xl mx-auto bg-white/5 dark:bg-gray-900/5 border border-gray-100/10 dark:border-gray-800/10 backdrop-blur-sm rounded-xl overflow-hidden shadow-xl">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-28">
         {/* Header Skeleton */}
-        <div className="px-6 md:px-10 pt-8 pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200/50 dark:border-gray-800/50">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-lg animate-pulse" />
+        <div className="mb-8">
+          {/* Back Link */}
+          <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded mb-6 animate-pulse" />
+
+          {/* Title Section */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="space-y-2">
-              <div className="h-6 w-48 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
-              <div className="h-4 w-32 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
+              <div className="h-10 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+              <div className="h-5 w-80 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+              <div className="h-9 w-28 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
             </div>
           </div>
-          <div className="h-6 w-24 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-full animate-pulse" />
         </div>
 
-        {/* Timeline Steps Skeleton */}
-        <div className="flex items-center justify-center px-6 md:px-10 py-6">
-          <div className="w-full max-w-md">
-            <div className="flex items-center justify-between">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-full animate-pulse" />
-                  <div className="h-3 w-16 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
+        {/* Progress Section Skeleton */}
+        <div className="mb-8">
+          <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+                <div className="space-y-1.5">
+                  <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-3 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                 </div>
-              ))}
+              </div>
+              <div className="text-right space-y-1.5">
+                <div className="h-7 w-12 bg-slate-200 dark:bg-slate-800 rounded ml-auto animate-pulse" />
+                <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded ml-auto animate-pulse" />
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse" />
+
+            {/* Auto-save Indicator */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="h-3 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
             </div>
           </div>
         </div>
 
-        {/* Main Content Skeleton */}
-        <div className="px-6 md:px-10 py-6">
-          <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-100/80 dark:border-gray-800/80 rounded-2xl shadow-xl overflow-hidden mx-auto w-full max-w-3xl">
-            <div className="p-6 md:p-8 space-y-6">
-              {/* Title Section */}
-              <div className="space-y-3">
-                <div className="h-6 w-48 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
-                <div className="h-4 w-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
+        {/* Main Content Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 lg:gap-8">
+          {/* Sidebar Skeleton */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-6 space-y-6">
+              {/* Steps Card */}
+              <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5">
+                <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded mb-4 animate-pulse" />
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                        <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Input Field */}
-              <div className="h-14 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-xl animate-pulse" />
-
-              {/* Categories Section */}
-              <div className="space-y-3">
-                <div className="h-5 w-32 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
-                <div className="h-10 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-xl animate-pulse" />
-              </div>
-
-              {/* Button */}
-              <div className="h-12 w-full md:w-48 md:ml-auto bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-xl animate-pulse" />
-            </div>
-          </div>
-
-          {/* Inspiration Cards Skeleton */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 mx-auto w-full max-w-3xl">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="p-4 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-gray-100/80 dark:border-gray-700/80 rounded-xl space-y-3"
-              >
-                <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-full animate-pulse" />
+              {/* Tips Card */}
+              <div className="bg-amber-50/50 dark:bg-amber-950/10 rounded-2xl border border-amber-200/30 dark:border-amber-800/20 p-5">
+                <div className="h-4 w-20 bg-amber-200/50 dark:bg-amber-800/30 rounded mb-3 animate-pulse" />
                 <div className="space-y-2">
-                  <div className="h-5 w-32 bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
-                  <div className="h-3 w-full bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded animate-pulse" />
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-3 w-full bg-amber-200/50 dark:bg-amber-800/30 rounded animate-pulse" />
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </aside>
 
-        {/* Loading Indicator */}
-        <div className="flex items-center justify-center py-8 gap-3">
-          <Loader2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400 animate-spin" />
-          <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-            Loading create post form...
-          </span>
-          <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
+          {/* Main Form Area Skeleton */}
+          <main className="space-y-6">
+            {/* Form Card */}
+            <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden">
+              {/* Card Header */}
+              <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+                  <div className="space-y-1.5">
+                    <div className="h-5 w-36 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                    <div className="h-4 w-48 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Content */}
+              <div className="p-6 space-y-8">
+                {/* Title Field */}
+                <div className="space-y-3">
+                  <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-12 w-full bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                  <div className="flex justify-between">
+                    <div className="h-3 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                    <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  </div>
+                </div>
+
+                {/* Categories Field */}
+                <div className="space-y-3">
+                  <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-3 w-64 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                  <div className="flex gap-2">
+                    <div className="h-10 flex-1 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                    <div className="h-10 w-12 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                  </div>
+                </div>
+
+                {/* Submit Area */}
+                <div className="pt-4 flex justify-between items-center">
+                  <div className="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-11 w-40 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                </div>
+              </div>
+            </div>
+
+            {/* Coming Soon Card */}
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-8">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="w-14 h-14 bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />
+                <div className="h-5 w-40 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                <div className="h-4 w-64 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                <div className="h-6 w-28 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse" />
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* Sticky Footer Skeleton */}
+      <div className="fixed bottom-0 inset-x-0 z-50">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                <div className="hidden sm:block space-y-1.5">
+                  <div className="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-16 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+                <div className="h-9 w-28 bg-slate-200 dark:bg-slate-800 rounded-lg hidden sm:block animate-pulse" />
+                <div className="h-9 w-28 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

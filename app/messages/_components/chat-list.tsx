@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { format, formatDistanceToNow } from "date-fns";
-import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
 import {
   GraduationCap,
   Paperclip,
@@ -11,9 +10,11 @@ import {
   FileText,
   AlertCircle,
   MessageSquare,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 interface Conversation {
   id: string;
@@ -79,7 +80,6 @@ export const ChatList = ({
 
       if (!response.ok) {
         if (response.status === 401) {
-          // User not authenticated, fail silently
           console.warn("User not authenticated");
         } else {
           console.warn(`Failed to fetch conversations, status: ${response.status}`);
@@ -90,15 +90,13 @@ export const ChatList = ({
 
       const data = await response.json();
 
-      // Check if response has error or is not an array
       if (data.error || !Array.isArray(data)) {
         console.warn("Invalid response from API:", data);
         setConversations([]);
         return;
       }
 
-      // Group messages by conversation (sender/recipient pair)
-      const conversationMap = new Map<string, any>();
+      const conversationMap = new Map<string, Conversation>();
 
       data.forEach((message: any) => {
         const otherUser = message.senderId === userId
@@ -107,31 +105,31 @@ export const ChatList = ({
 
         const convKey = `${Math.min(message.senderId, message.recipientId)}-${Math.max(message.senderId, message.recipientId)}`;
 
-        if (!conversationMap.has(convKey) || new Date(message.createdAt) > new Date(conversationMap.get(convKey).lastMessage.timestamp)) {
+        if (!conversationMap.has(convKey) || new Date(message.createdAt) > new Date(conversationMap.get(convKey)!.lastMessage.timestamp)) {
           conversationMap.set(convKey, {
             id: convKey,
             instructor: {
               id: otherUser.id,
               name: otherUser.name,
               avatar: otherUser.image,
-              online: false, // TODO: Implement online status
-              responseTime: "2-3 hours", // TODO: Calculate from data
+              online: false,
+              responseTime: "2-3 hours",
             },
-            course: null, // Course relation not available in Message model
+            course: null,
             lastMessage: {
               content: message.content,
               timestamp: new Date(message.createdAt),
               isOwn: message.senderId === userId,
             },
-            category: "GENERAL", // Default category
-            priority: "NORMAL", // Default priority
+            category: "GENERAL",
+            priority: "NORMAL",
             unread: message.senderId !== userId && !message.read ? 1 : 0,
-            hasAttachment: false, // MessageAttachment relation not available
+            hasAttachment: false,
             attachmentCount: 0,
           });
         } else {
           const existing = conversationMap.get(convKey);
-          if (message.senderId !== userId && !message.read) {
+          if (existing && message.senderId !== userId && !message.read) {
             existing.unread += 1;
           }
         }
@@ -139,7 +137,6 @@ export const ChatList = ({
 
       let convList = Array.from(conversationMap.values());
 
-      // Apply search filter
       if (searchQuery) {
         convList = convList.filter(
           (conv) =>
@@ -149,7 +146,6 @@ export const ChatList = ({
         );
       }
 
-      // Apply sorting
       convList.sort((a, b) => {
         if (sortBy === "recent") {
           return b.lastMessage.timestamp.getTime() - a.lastMessage.timestamp.getTime();
@@ -190,148 +186,155 @@ export const ChatList = ({
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Loading conversations...</div>
+      <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <Loader2 className="w-8 h-8 text-[hsl(var(--msg-primary))] animate-spin mb-3" />
+        <p className="text-sm text-[hsl(var(--msg-text-muted))]">Loading conversations...</p>
       </div>
     );
   }
 
   if (conversations.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
-        <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20
-                      dark:to-indigo-950/20 rounded-lg sm:rounded-xl mb-3">
-          <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center msg-empty-state">
+        <div className="msg-empty-icon mb-4">
+          <MessageSquare className="w-8 h-8 text-[hsl(var(--msg-primary))]" />
         </div>
-        <h3 className="font-medium text-slate-700 dark:text-slate-300 mb-1 text-sm sm:text-base">No conversations</h3>
-        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 px-4">
-          Start a new conversation with an instructor
+        <h3 className="font-semibold text-[hsl(var(--msg-text))] mb-1">No conversations</h3>
+        <p className="text-sm text-[hsl(var(--msg-text-muted))] max-w-[200px]">
+          Start a new conversation to begin messaging
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="space-y-2 p-2 sm:p-3">
-        {conversations.map((conv, index) => (
-          <motion.div
-            key={conv.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            onClick={() => onChatSelect(conv.id)}
-            className={`
-              group relative p-3 sm:p-4 rounded-lg sm:rounded-xl cursor-pointer transition-all duration-300 active:scale-[0.98]
-              ${activeChat === conv.id
-                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800'
-                : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-slate-200 dark:border-slate-700'
-              }
-            `}
-          >
-            {/* Course Badge */}
-            {conv.course && (
-              <div className="absolute top-2 right-2">
-                <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs">
-                  {conv.course.title.length > 15
-                    ? conv.course.title.substring(0, 15) + "..."
-                    : conv.course.title}
-                </Badge>
-              </div>
-            )}
+    <div className="flex-1 overflow-y-auto msg-scrollbar">
+      <div className="p-3 space-y-2">
+        {conversations.map((conv, index) => {
+          const isActive = activeChat === conv.id;
 
-            {/* Instructor Avatar & Info */}
-            <div className="flex items-start gap-2 sm:gap-3">
-              <div className="relative flex-shrink-0">
-                <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-white dark:border-slate-700">
-                  <AvatarImage src={conv.instructor.avatar || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white text-sm sm:text-base">
-                    {conv.instructor.name?.charAt(0) || "?"}
-                  </AvatarFallback>
-                </Avatar>
+          return (
+            <motion.div
+              key={conv.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              onClick={() => onChatSelect(conv.id)}
+              className={cn(
+                "msg-conversation-card",
+                isActive && "active"
+              )}
+            >
+              {/* Avatar Section */}
+              <div className="flex items-start gap-3">
+                <div className="relative flex-shrink-0 msg-avatar-ring">
+                  <Avatar className="w-12 h-12 border-2 border-[hsl(var(--msg-surface))]">
+                    <AvatarImage src={conv.instructor.avatar || undefined} />
+                    <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--msg-primary))] to-[hsl(var(--msg-cyan))] text-white font-semibold">
+                      {conv.instructor.name?.charAt(0) || "?"}
+                    </AvatarFallback>
+                  </Avatar>
 
-                {/* Online Status */}
-                {conv.instructor.online && (
-                  <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-emerald-500
-                              rounded-full border-2 border-white dark:border-slate-800" />
-                )}
+                  {/* Online Status */}
+                  {conv.instructor.online && (
+                    <div className="msg-status-online" />
+                  )}
 
-                {/* Instructor Badge */}
-                <div className="absolute -top-0.5 -left-0.5 sm:-top-1 sm:-left-1 bg-gradient-to-r from-yellow-500 to-amber-500
-                            rounded-full p-0.5 sm:p-1">
-                  <GraduationCap className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                </div>
-              </div>
-
-              <div className="flex-1 min-w-0">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-1 gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-slate-900 dark:text-white text-xs sm:text-sm truncate">
-                      {conv.instructor.name || "Unknown"}
-                    </h4>
-                    <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
-                      Instructor • {conv.instructor.responseTime}
-                    </p>
+                  {/* Instructor Badge */}
+                  <div className="absolute -top-1 -left-1 p-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-sm">
+                    <GraduationCap className="w-2.5 h-2.5 text-white" />
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className="text-[10px] sm:text-xs text-slate-400 whitespace-nowrap">
-                      {formatDistanceToNow(conv.lastMessage.timestamp, { addSuffix: true })}
-                    </span>
-                    {/* Priority Badge */}
-                    {conv.priority === "URGENT" && (
-                      <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-1 sm:px-1.5 py-0.5 text-[10px] sm:text-xs">
-                        Urgent
-                      </Badge>
+                </div>
+
+                {/* Content Section */}
+                <div className="flex-1 min-w-0">
+                  {/* Header Row */}
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-sm text-[hsl(var(--msg-text))] truncate">
+                        {conv.instructor.name || "Unknown"}
+                      </h4>
+                      <p className="text-[11px] text-[hsl(var(--msg-text-subtle))]">
+                        {conv.instructor.responseTime}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span className="text-[11px] text-[hsl(var(--msg-text-subtle))]">
+                        {formatDistanceToNow(conv.lastMessage.timestamp, { addSuffix: true })}
+                      </span>
+
+                      {conv.priority === "URGENT" && (
+                        <Badge className="h-5 px-1.5 text-[10px] font-semibold bg-gradient-to-r from-rose-500 to-red-500 text-white border-0">
+                          Urgent
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Message Preview */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex-1 min-w-0">
+                      {/* Category Tag */}
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[hsl(var(--msg-text-subtle))]">
+                          {getCategoryIcon(conv.category)}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-wide text-[hsl(var(--msg-text-subtle))] font-medium">
+                          {conv.category.replace("_", " ")}
+                        </span>
+                      </div>
+
+                      <p className={cn(
+                        "text-sm leading-relaxed truncate",
+                        conv.unread > 0
+                          ? "text-[hsl(var(--msg-text))] font-medium"
+                          : "text-[hsl(var(--msg-text-muted))]"
+                      )}>
+                        {conv.lastMessage.isOwn && (
+                          <span className="text-[hsl(var(--msg-text-subtle))]">You: </span>
+                        )}
+                        {conv.lastMessage.content}
+                      </p>
+                    </div>
+
+                    {/* Unread Badge */}
+                    {conv.unread > 0 && (
+                      <div className="msg-unread-badge">
+                        {conv.unread}
+                      </div>
                     )}
                   </div>
-                </div>
 
-                {/* Last Message Preview */}
-                <div className="mt-1.5 sm:mt-2 flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    {/* Category Icon */}
-                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
-                      <div className="text-slate-500 dark:text-slate-400">
-                        {getCategoryIcon(conv.category)}
-                      </div>
-                      <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
-                        {conv.category}
-                      </span>
+                  {/* Attachments Badge */}
+                  {conv.hasAttachment && (
+                    <div className="mt-2">
+                      <Badge
+                        variant="outline"
+                        className="h-5 px-2 text-[10px] border-[hsl(var(--msg-border))] text-[hsl(var(--msg-text-muted))]"
+                      >
+                        <Paperclip className="w-3 h-3 mr-1" />
+                        {conv.attachmentCount} file{conv.attachmentCount > 1 ? "s" : ""}
+                      </Badge>
                     </div>
-                    <p className={`text-xs sm:text-sm truncate leading-relaxed ${
-                      conv.unread > 0
-                        ? 'text-slate-900 dark:text-white font-medium'
-                        : 'text-slate-600 dark:text-slate-400'
-                    }`}>
-                      {conv.lastMessage.isOwn ? "You: " : ""}
-                      {conv.lastMessage.content}
-                    </p>
-                  </div>
+                  )}
 
-                  {/* Unread Badge */}
-                  {conv.unread > 0 && (
-                    <div className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gradient-to-r from-blue-500 to-indigo-500
-                                  text-white text-[10px] sm:text-xs font-bold rounded-full min-w-[20px] sm:min-w-[24px] text-center flex-shrink-0">
-                      {conv.unread}
+                  {/* Course Badge */}
+                  {conv.course && (
+                    <div className="mt-2">
+                      <Badge className="h-5 px-2 text-[10px] bg-gradient-to-r from-[hsl(var(--msg-primary))] to-[hsl(var(--msg-cyan))] text-white border-0">
+                        {conv.course.title.length > 20
+                          ? conv.course.title.substring(0, 20) + "..."
+                          : conv.course.title}
+                      </Badge>
                     </div>
                   )}
                 </div>
-
-                {/* Quick Action Tags */}
-                {conv.hasAttachment && (
-                  <div className="mt-2 flex gap-1">
-                    <Badge variant="outline" className="text-xs border-slate-300 dark:border-slate-600">
-                      <Paperclip className="w-3 h-3 mr-1" />
-                      {conv.attachmentCount}
-                    </Badge>
-                  </div>
-                )}
               </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
-}; 
+};

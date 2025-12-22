@@ -86,8 +86,9 @@ export const PostComment = ({
       form.reset();
       router.refresh();
       onCommentAdded?.();
-    } catch (error: any) {
-      toast.error("Failed to add comment");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add comment';
+      toast.error(errorMessage);
     }
   };
 
@@ -101,10 +102,10 @@ export const PostComment = ({
   };
 
   return (
-    <Card className="border-none shadow-lg bg-transparent">
+    <Card className="border border-slate-200 dark:border-slate-700 shadow-lg bg-white dark:bg-slate-800/90 rounded-2xl overflow-hidden">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             <FormField
               control={form.control}
               name="comments"
@@ -115,20 +116,20 @@ export const PostComment = ({
                       {...field}
                       disabled={isSubmitting}
                       placeholder="Write your comment here..."
-                      className="resize-none min-h-[150px] bg-background/50 focus:bg-background transition-all duration-300"
+                      className="resize-none min-h-[150px] bg-[#FAF6F1] dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-[#C65D3B]/50 focus:ring-1 focus:ring-[#C65D3B]/30 rounded-xl transition-all duration-300 font-[family-name:var(--font-body)] placeholder:text-slate-400"
                     />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-[#C65D3B]" />
                 </FormItem>
               )}
             />
           </CardContent>
           <CardFooter className={cn(
             "flex justify-between items-center",
-            "border-t border-gray-200 dark:border-gray-700/50",
-            "pt-4 pb-2",
-            "bg-gradient-to-b from-transparent to-gray-50/50",
-            "dark:to-gray-800/50"
+            "border-t border-slate-200 dark:border-slate-700",
+            "pt-4 pb-4 px-4 sm:px-6",
+            "bg-gradient-to-b from-transparent to-[#FAF6F1]/50",
+            "dark:to-slate-900/50"
           )}>
             <div className="relative">
               <TooltipProvider>
@@ -139,26 +140,26 @@ export const PostComment = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      className="h-8 w-8"
+                      className="h-9 w-9 hover:bg-[#C65D3B]/10 text-slate-600 dark:text-slate-400 hover:text-[#C65D3B]"
                     >
-                      <Smile className="h-4 w-4" />
+                      <Smile className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="bg-slate-800 text-white font-[family-name:var(--font-ui)]">
                     <p>Add emoji</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
 
               {showEmojiPicker && (
-                <Card className="absolute bottom-full left-0 mb-2 p-3 w-[360px] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border border-gray-200/50 dark:border-gray-700/50 z-50">
-                  <div className="grid grid-cols-6 gap-1">
+                <Card className="absolute bottom-full left-0 mb-2 p-4 w-[360px] bg-white dark:bg-slate-800 backdrop-blur-sm shadow-xl border border-slate-200 dark:border-slate-700 z-50 rounded-xl">
+                  <div className="grid grid-cols-6 gap-1.5">
                     {emojiOptions.slice(0, 6).map(({ emoji, label }) => (
                       <Button
                         key={emoji}
                         type="button"
                         variant="ghost"
-                        className="relative group h-14 w-14 p-0 hover:bg-accent/50 rounded-xl overflow-hidden"
+                        className="relative group h-12 w-12 p-0 hover:bg-[#C65D3B]/10 rounded-xl overflow-hidden"
                         onClick={() => {
                           handleReactionSelect(emoji);
                           setShowEmojiPicker(false);
@@ -173,24 +174,24 @@ export const PostComment = ({
                           </span>
                         </div>
                         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-hover:-translate-y-4 transition-all duration-200">
-                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-black/80 text-white whitespace-nowrap">
+                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-slate-800 text-white whitespace-nowrap font-[family-name:var(--font-ui)]">
                             {label}
                           </span>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#C65D3B]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                       </Button>
                     ))}
                   </div>
-                  
-                  <Separator className="my-3" />
-                  
-                  <div className="grid grid-cols-6 gap-1">
+
+                  <Separator className="my-3 bg-slate-200 dark:bg-slate-700" />
+
+                  <div className="grid grid-cols-6 gap-1.5">
                     {emojiOptions.slice(6).map(({ emoji, label }) => (
                       <Button
                         key={emoji}
                         type="button"
                         variant="ghost"
-                        className="relative group h-14 w-14 p-0 hover:bg-accent/50 rounded-xl overflow-hidden"
+                        className="relative group h-12 w-12 p-0 hover:bg-[#87A878]/10 rounded-xl overflow-hidden"
                         onClick={() => {
                           handleReactionSelect(emoji);
                           setShowEmojiPicker(false);
@@ -205,11 +206,11 @@ export const PostComment = ({
                           </span>
                         </div>
                         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-hover:-translate-y-4 transition-all duration-200">
-                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-black/80 text-white whitespace-nowrap">
+                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-slate-800 text-white whitespace-nowrap font-[family-name:var(--font-ui)]">
                             {label}
                           </span>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#87A878]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                       </Button>
                     ))}
                   </div>
@@ -222,15 +223,15 @@ export const PostComment = ({
                 variant="outline"
                 onClick={handleClose}
                 className={cn(
-                  "h-9 px-4 font-medium",
-                  "bg-white dark:bg-gray-800/50",
-                  "border-gray-300 dark:border-gray-700",
-                  "text-gray-800 dark:text-gray-200",
-                  "hover:bg-gray-50 dark:hover:bg-gray-700/50",
-                  "hover:text-gray-900 dark:hover:text-white",
-                  "hover:border-gray-400 dark:hover:border-gray-600",
+                  "h-10 px-5 font-medium font-[family-name:var(--font-ui)]",
+                  "bg-white dark:bg-slate-800",
+                  "border-slate-200 dark:border-slate-700",
+                  "text-slate-700 dark:text-slate-200",
+                  "hover:bg-slate-50 dark:hover:bg-slate-700",
+                  "hover:text-slate-900 dark:hover:text-white",
+                  "hover:border-slate-300 dark:hover:border-slate-600",
                   "transition-all duration-300",
-                  "backdrop-blur-sm",
+                  "rounded-xl",
                   "shadow-sm hover:shadow-md",
                   "active:scale-95"
                 )}
@@ -244,23 +245,20 @@ export const PostComment = ({
                 type="submit"
                 disabled={!isValid || isSubmitting}
                 className={cn(
-                  "h-9 px-6 font-medium",
-                  "bg-gradient-to-r from-blue-600 to-indigo-600",
-                  "dark:from-blue-500 dark:to-indigo-500",
+                  "h-10 px-6 font-medium font-[family-name:var(--font-ui)]",
+                  "bg-[#C65D3B]",
                   "text-white",
-                  "hover:from-blue-700 hover:to-indigo-700",
-                  "dark:hover:from-blue-600 dark:hover:to-indigo-600",
-                  "disabled:from-gray-300 disabled:to-gray-400",
-                  "disabled:dark:from-gray-700 disabled:dark:to-gray-800",
-                  "disabled:text-gray-500 dark:disabled:text-gray-400",
+                  "hover:bg-[#A84D32]",
+                  "disabled:bg-slate-300",
+                  "disabled:dark:bg-slate-700",
+                  "disabled:text-slate-500 dark:disabled:text-slate-400",
                   "disabled:cursor-not-allowed disabled:opacity-70",
                   "transition-all duration-300",
-                  "shadow-md hover:shadow-lg",
-                  "shadow-blue-500/20 hover:shadow-blue-500/30",
-                  "dark:shadow-blue-500/10 dark:hover:shadow-blue-500/20",
+                  "rounded-xl",
+                  "shadow-lg hover:shadow-xl",
+                  "shadow-[#C65D3B]/20 hover:shadow-[#C65D3B]/30",
                   "active:scale-95",
-                  "disabled:hover:shadow-none disabled:active:scale-100",
-                  "disabled:border disabled:border-gray-200 dark:disabled:border-gray-700"
+                  "disabled:hover:shadow-none disabled:active:scale-100"
                 )}
               >
                 <span className="inline-flex items-center gap-2">

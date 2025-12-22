@@ -310,9 +310,9 @@ export function IntelligentFeaturesTab({ analytics, performance }: IntelligentFe
             <Button
               variant={selectedCategory === 'all' ? 'default' : 'ghost'}
               onClick={() => setSelectedCategory('all')}
-              className={`${selectedCategory === 'all' 
-                ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md' 
-                : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+              className={`${selectedCategory === 'all'
+                ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md'
+                : 'text-slate-700 dark:text-slate-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 hover:text-violet-700 dark:hover:text-violet-300'
               } transition-all duration-200 text-xs sm:text-sm min-h-[36px] sm:min-h-[32px] px-3 sm:px-4 touch-manipulation`}
             >
               All Features
@@ -322,9 +322,9 @@ export function IntelligentFeaturesTab({ analytics, performance }: IntelligentFe
                 key={category}
                 variant={selectedCategory === category ? 'default' : 'ghost'}
                 onClick={() => setSelectedCategory(category)}
-                className={`${selectedCategory === category 
-                  ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md' 
-                  : 'hover:bg-slate-100 dark:hover:bg-slate-700'
+                className={`${selectedCategory === category
+                  ? 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-md'
+                  : 'text-slate-700 dark:text-slate-300 hover:bg-violet-100 dark:hover:bg-violet-900/30 hover:text-violet-700 dark:hover:text-violet-300'
                 } transition-all duration-200 text-xs sm:text-sm min-h-[36px] sm:min-h-[32px] px-3 sm:px-4 touch-manipulation break-words`}
               >
                 {category}

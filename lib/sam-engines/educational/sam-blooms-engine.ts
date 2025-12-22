@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { BloomsLevel } from '@prisma/client';
+import { BloomsLevel, CognitiveSkillType, MasteryLevel } from '@prisma/client';
 import { Anthropic } from '@anthropic-ai/sdk';
 
 // Limit parallel section analyses to avoid LLM spikes
@@ -147,6 +147,61 @@ export interface CareerPath {
   matchedSkills: string[];
 }
 
+// ==========================================
+// Cognitive Skill Mapping (Exam Evaluation System)
+// ==========================================
+
+export interface CognitiveSkillMapping {
+  bloomsLevel: BloomsLevel;
+  cognitiveSkills: CognitiveSkillType[];
+  weight: number;
+  description: string;
+}
+
+export interface CognitiveProgressAnalysis {
+  userId: string;
+  conceptId: string;
+  masteryLevels: Record<BloomsLevel, number>;
+  overallMastery: number;
+  currentLevel: BloomsLevel;
+  masteryStatus: MasteryLevel;
+  cognitiveSkillBreakdown: CognitiveSkillBreakdown[];
+  recommendations: CognitiveRecommendation[];
+}
+
+export interface CognitiveSkillBreakdown {
+  skill: CognitiveSkillType;
+  mastery: number;
+  recentActivity: string;
+  nextAction: string;
+}
+
+export interface CognitiveRecommendation {
+  type: 'review' | 'practice' | 'advance' | 'reinforce';
+  targetLevel: BloomsLevel;
+  activity: string;
+  estimatedTime: number;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface QuestionBloomsAnalysis {
+  questionText: string;
+  bloomsLevel: BloomsLevel;
+  cognitiveSkills: CognitiveSkillType[];
+  confidence: number;
+  keywords: string[];
+  rationale: string;
+}
+
+export interface SpacedRepetitionParams {
+  userId: string;
+  conceptId: string;
+  performance: number; // 0-5 scale (SM-2)
+  currentEaseFactor?: number;
+  currentInterval?: number;
+  repetitions?: number;
+}
+
 export class BloomsAnalysisEngine {
   private bloomsLevels: BloomsLevel[] = [
     'REMEMBER',
@@ -172,6 +227,46 @@ export class BloomsAnalysisEngine {
       qualityMatters: 'Partial Implementation',
     },
   };
+
+  // Cognitive Skill Mapping - Maps Bloom's levels to cognitive skills
+  private cognitiveSkillMap: CognitiveSkillMapping[] = [
+    {
+      bloomsLevel: 'REMEMBER',
+      cognitiveSkills: ['INFORMATION_PROCESSING'],
+      weight: 1,
+      description: 'Basic recall and recognition of facts',
+    },
+    {
+      bloomsLevel: 'UNDERSTAND',
+      cognitiveSkills: ['INFORMATION_PROCESSING', 'LOGICAL_REASONING'],
+      weight: 2,
+      description: 'Comprehension and interpretation of meaning',
+    },
+    {
+      bloomsLevel: 'APPLY',
+      cognitiveSkills: ['PROBLEM_SOLVING', 'DECISION_MAKING'],
+      weight: 3,
+      description: 'Using knowledge in new situations',
+    },
+    {
+      bloomsLevel: 'ANALYZE',
+      cognitiveSkills: ['ANALYTICAL_THINKING', 'CRITICAL_THINKING', 'LOGICAL_REASONING'],
+      weight: 4,
+      description: 'Breaking down information into component parts',
+    },
+    {
+      bloomsLevel: 'EVALUATE',
+      cognitiveSkills: ['CRITICAL_THINKING', 'DECISION_MAKING', 'METACOGNITION'],
+      weight: 5,
+      description: 'Making judgments based on criteria',
+    },
+    {
+      bloomsLevel: 'CREATE',
+      cognitiveSkills: ['CREATIVE_THINKING', 'PROBLEM_SOLVING', 'METACOGNITION'],
+      weight: 6,
+      description: 'Producing original work or novel solutions',
+    },
+  ];
 
   async analyzeCourse(
     courseId: string,
@@ -955,5 +1050,560 @@ Description: ${section.description || 'No description'}
         careerAlignment: [],
       },
     };
+  }
+
+  // ==========================================
+  // Cognitive Skill Mapping Methods
+  // ==========================================
+
+  /**
+   * Get cognitive skills associated with a Bloom's level
+   */
+  getCognitiveSkillsForBloomsLevel(level: BloomsLevel): CognitiveSkillType[] {
+    const mapping = this.cognitiveSkillMap.find(m => m.bloomsLevel === level);
+    return mapping?.cognitiveSkills || [];
+  }
+
+  /**
+   * Get all cognitive skill mappings
+   */
+  getCognitiveSkillMappings(): CognitiveSkillMapping[] {
+    return this.cognitiveSkillMap;
+  }
+
+  /**
+   * Analyze a question to determine its Bloom's level and cognitive skills using AI
+   */
+  async analyzeQuestionBlooms(questionText: string): Promise<QuestionBloomsAnalysis> {
+    const systemPrompt = `You are an expert educational psychologist specializing in Bloom's Taxonomy. Analyze the given question and determine:
+1. The primary Bloom's Taxonomy level (REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE)
+2. The cognitive skills being assessed
+3. Keywords that indicate the cognitive level
+4. Your confidence level (0-100)
+
+Respond in JSON format:
+{
+  "bloomsLevel": "LEVEL",
+  "cognitiveSkills": ["skill1", "skill2"],
+  "confidence": 85,
+  "keywords": ["keyword1", "keyword2"],
+  "rationale": "Brief explanation"
+}
+
+Cognitive skill options: CRITICAL_THINKING, PROBLEM_SOLVING, CREATIVE_THINKING, ANALYTICAL_THINKING, LOGICAL_REASONING, METACOGNITION, INFORMATION_PROCESSING, DECISION_MAKING`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 500,
+      temperature: 0.2,
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: `Analyze this question: "${questionText}"` }
+      ],
+    });
+
+    const aiResponse = response.content[0];
+    const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+
+    try {
+      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          questionText,
+          bloomsLevel: parsed.bloomsLevel as BloomsLevel,
+          cognitiveSkills: parsed.cognitiveSkills as CognitiveSkillType[],
+          confidence: parsed.confidence,
+          keywords: parsed.keywords,
+          rationale: parsed.rationale,
+        };
+      }
+    } catch {
+      // Fallback to keyword analysis
+    }
+
+    // Fallback to keyword-based analysis
+    const bloomsLevel = this.analyzeQuestionText(questionText);
+    return {
+      questionText,
+      bloomsLevel,
+      cognitiveSkills: this.getCognitiveSkillsForBloomsLevel(bloomsLevel),
+      confidence: 60,
+      keywords: [],
+      rationale: 'Analyzed using keyword matching',
+    };
+  }
+
+  /**
+   * Update cognitive skill progress for a user
+   */
+  async updateCognitiveProgress(
+    userId: string,
+    conceptId: string,
+    bloomsLevel: BloomsLevel,
+    score: number // 0-100
+  ): Promise<void> {
+    const existingProgress = await db.cognitiveSkillProgress.findUnique({
+      where: { userId_conceptId: { userId, conceptId } },
+    });
+
+    const normalizedScore = Math.min(100, Math.max(0, score));
+    const levelKey = `${bloomsLevel.toLowerCase()}Mastery` as keyof typeof levelUpdates;
+
+    // Calculate weighted update (blend old and new scores)
+    const blendFactor = 0.3; // New score contributes 30%
+    const levelUpdates = {
+      rememberMastery: existingProgress?.rememberMastery || 0,
+      understandMastery: existingProgress?.understandMastery || 0,
+      applyMastery: existingProgress?.applyMastery || 0,
+      analyzeMastery: existingProgress?.analyzeMastery || 0,
+      evaluateMastery: existingProgress?.evaluateMastery || 0,
+      createMastery: existingProgress?.createMastery || 0,
+    };
+
+    // Update the specific level
+    const currentValue = levelUpdates[levelKey] || 0;
+    levelUpdates[levelKey] = currentValue * (1 - blendFactor) + normalizedScore * blendFactor;
+
+    // Calculate overall mastery
+    const overallMastery =
+      levelUpdates.rememberMastery * 0.1 +
+      levelUpdates.understandMastery * 0.15 +
+      levelUpdates.applyMastery * 0.2 +
+      levelUpdates.analyzeMastery * 0.2 +
+      levelUpdates.evaluateMastery * 0.15 +
+      levelUpdates.createMastery * 0.2;
+
+    // Determine current Bloom's level and mastery status
+    const currentBloomsLevel = this.determineCurrentBloomsLevel(levelUpdates);
+    const masteryLevel = this.determineMasteryStatus(overallMastery);
+
+    await db.cognitiveSkillProgress.upsert({
+      where: { userId_conceptId: { userId, conceptId } },
+      update: {
+        ...levelUpdates,
+        overallMastery,
+        currentBloomsLevel,
+        masteryLevel,
+        totalAttempts: { increment: 1 },
+        lastAttemptDate: new Date(),
+      },
+      create: {
+        userId,
+        conceptId,
+        ...levelUpdates,
+        overallMastery,
+        currentBloomsLevel,
+        masteryLevel,
+        totalAttempts: 1,
+        lastAttemptDate: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Determine the current Bloom's level based on mastery scores
+   */
+  private determineCurrentBloomsLevel(mastery: Record<string, number>): BloomsLevel {
+    const threshold = 60; // 60% mastery to consider level achieved
+
+    if (mastery.createMastery >= threshold) return 'CREATE';
+    if (mastery.evaluateMastery >= threshold) return 'EVALUATE';
+    if (mastery.analyzeMastery >= threshold) return 'ANALYZE';
+    if (mastery.applyMastery >= threshold) return 'APPLY';
+    if (mastery.understandMastery >= threshold) return 'UNDERSTAND';
+    return 'REMEMBER';
+  }
+
+  /**
+   * Determine mastery status based on overall score
+   */
+  private determineMasteryStatus(overallMastery: number): MasteryLevel {
+    if (overallMastery >= 90) return 'MASTERED';
+    if (overallMastery >= 75) return 'PROFICIENT';
+    if (overallMastery >= 50) return 'PROGRESSING';
+    if (overallMastery >= 25) return 'DEVELOPING';
+    return 'NOT_STARTED';
+  }
+
+  /**
+   * Calculate spaced repetition schedule using SM-2 algorithm
+   */
+  async calculateSpacedRepetition(params: SpacedRepetitionParams): Promise<{
+    nextReviewDate: Date;
+    easeFactor: number;
+    interval: number;
+    repetitions: number;
+  }> {
+    const {
+      userId,
+      conceptId,
+      performance,
+      currentEaseFactor = 2.5,
+      currentInterval = 1,
+      repetitions = 0,
+    } = params;
+
+    // SM-2 Algorithm
+    let newEaseFactor = currentEaseFactor;
+    let newInterval = currentInterval;
+    let newRepetitions = repetitions;
+
+    if (performance >= 3) {
+      // Correct response
+      if (newRepetitions === 0) {
+        newInterval = 1;
+      } else if (newRepetitions === 1) {
+        newInterval = 6;
+      } else {
+        newInterval = Math.round(currentInterval * newEaseFactor);
+      }
+      newRepetitions++;
+    } else {
+      // Incorrect response - reset
+      newRepetitions = 0;
+      newInterval = 1;
+    }
+
+    // Update ease factor
+    newEaseFactor = Math.max(
+      1.3,
+      currentEaseFactor + (0.1 - (5 - performance) * (0.08 + (5 - performance) * 0.02))
+    );
+
+    const nextReviewDate = new Date();
+    nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
+
+    // Store in database
+    await db.spacedRepetitionSchedule.upsert({
+      where: { userId_conceptId: { userId, conceptId } },
+      update: {
+        nextReviewDate,
+        easeFactor: newEaseFactor,
+        interval: newInterval,
+        repetitions: newRepetitions,
+        lastScore: performance,
+        retentionEstimate: this.calculateRetention(newInterval),
+      },
+      create: {
+        userId,
+        conceptId,
+        nextReviewDate,
+        easeFactor: newEaseFactor,
+        interval: newInterval,
+        repetitions: newRepetitions,
+        lastScore: performance,
+        retentionEstimate: this.calculateRetention(newInterval),
+      },
+    });
+
+    return {
+      nextReviewDate,
+      easeFactor: newEaseFactor,
+      interval: newInterval,
+      repetitions: newRepetitions,
+    };
+  }
+
+  /**
+   * Estimate retention based on interval (forgetting curve)
+   */
+  private calculateRetention(interval: number): number {
+    // Simple forgetting curve: R = e^(-t/S) where S is stability
+    const stability = 20; // Average stability in days
+    return Math.exp(-interval / stability) * 100;
+  }
+
+  /**
+   * Get comprehensive cognitive progress analysis for a user
+   */
+  async getCognitiveProgressAnalysis(
+    userId: string,
+    conceptId: string
+  ): Promise<CognitiveProgressAnalysis> {
+    const progress = await db.cognitiveSkillProgress.findUnique({
+      where: { userId_conceptId: { userId, conceptId } },
+    });
+
+    if (!progress) {
+      return this.getEmptyCognitiveProgress(userId, conceptId);
+    }
+
+    const masteryLevels: Record<BloomsLevel, number> = {
+      REMEMBER: progress.rememberMastery,
+      UNDERSTAND: progress.understandMastery,
+      APPLY: progress.applyMastery,
+      ANALYZE: progress.analyzeMastery,
+      EVALUATE: progress.evaluateMastery,
+      CREATE: progress.createMastery,
+    };
+
+    const cognitiveSkillBreakdown = this.buildCognitiveBreakdown(masteryLevels);
+    const recommendations = this.generateCognitiveRecommendations(masteryLevels);
+
+    return {
+      userId,
+      conceptId,
+      masteryLevels,
+      overallMastery: progress.overallMastery,
+      currentLevel: progress.currentBloomsLevel,
+      masteryStatus: progress.masteryLevel,
+      cognitiveSkillBreakdown,
+      recommendations,
+    };
+  }
+
+  /**
+   * Get empty cognitive progress for new users
+   */
+  private getEmptyCognitiveProgress(userId: string, conceptId: string): CognitiveProgressAnalysis {
+    return {
+      userId,
+      conceptId,
+      masteryLevels: {
+        REMEMBER: 0,
+        UNDERSTAND: 0,
+        APPLY: 0,
+        ANALYZE: 0,
+        EVALUATE: 0,
+        CREATE: 0,
+      },
+      overallMastery: 0,
+      currentLevel: 'REMEMBER',
+      masteryStatus: 'NOT_STARTED',
+      cognitiveSkillBreakdown: [],
+      recommendations: [
+        {
+          type: 'practice',
+          targetLevel: 'REMEMBER',
+          activity: 'Start with basic recall exercises',
+          estimatedTime: 15,
+          priority: 'high',
+        },
+      ],
+    };
+  }
+
+  /**
+   * Build cognitive skill breakdown from mastery levels
+   */
+  private buildCognitiveBreakdown(masteryLevels: Record<BloomsLevel, number>): CognitiveSkillBreakdown[] {
+    const skillMastery: Record<CognitiveSkillType, number[]> = {
+      CRITICAL_THINKING: [],
+      PROBLEM_SOLVING: [],
+      CREATIVE_THINKING: [],
+      ANALYTICAL_THINKING: [],
+      LOGICAL_REASONING: [],
+      METACOGNITION: [],
+      INFORMATION_PROCESSING: [],
+      DECISION_MAKING: [],
+    };
+
+    // Aggregate mastery per cognitive skill
+    for (const mapping of this.cognitiveSkillMap) {
+      const levelMastery = masteryLevels[mapping.bloomsLevel];
+      for (const skill of mapping.cognitiveSkills) {
+        skillMastery[skill].push(levelMastery);
+      }
+    }
+
+    const breakdowns: CognitiveSkillBreakdown[] = [];
+    for (const [skill, masteryValues] of Object.entries(skillMastery)) {
+      if (masteryValues.length > 0) {
+        const avgMastery = masteryValues.reduce((a, b) => a + b, 0) / masteryValues.length;
+        breakdowns.push({
+          skill: skill as CognitiveSkillType,
+          mastery: avgMastery,
+          recentActivity: this.getRecentActivityForSkill(skill as CognitiveSkillType),
+          nextAction: this.getNextActionForSkill(skill as CognitiveSkillType, avgMastery),
+        });
+      }
+    }
+
+    return breakdowns.sort((a, b) => b.mastery - a.mastery);
+  }
+
+  /**
+   * Get recent activity description for a cognitive skill
+   */
+  private getRecentActivityForSkill(skill: CognitiveSkillType): string {
+    const activities: Record<CognitiveSkillType, string> = {
+      CRITICAL_THINKING: 'Evaluated and analyzed content',
+      PROBLEM_SOLVING: 'Solved practical problems',
+      CREATIVE_THINKING: 'Created original solutions',
+      ANALYTICAL_THINKING: 'Analyzed data and patterns',
+      LOGICAL_REASONING: 'Applied logical principles',
+      METACOGNITION: 'Reflected on learning process',
+      INFORMATION_PROCESSING: 'Processed new information',
+      DECISION_MAKING: 'Made informed decisions',
+    };
+    return activities[skill];
+  }
+
+  /**
+   * Get next action recommendation for a cognitive skill
+   */
+  private getNextActionForSkill(skill: CognitiveSkillType, mastery: number): string {
+    if (mastery < 30) {
+      return `Practice basic ${skill.toLowerCase().replace(/_/g, ' ')} exercises`;
+    } else if (mastery < 60) {
+      return `Engage in intermediate ${skill.toLowerCase().replace(/_/g, ' ')} challenges`;
+    } else if (mastery < 80) {
+      return `Tackle advanced ${skill.toLowerCase().replace(/_/g, ' ')} problems`;
+    }
+    return `Maintain ${skill.toLowerCase().replace(/_/g, ' ')} through varied application`;
+  }
+
+  /**
+   * Generate cognitive recommendations based on mastery levels
+   */
+  private generateCognitiveRecommendations(masteryLevels: Record<BloomsLevel, number>): CognitiveRecommendation[] {
+    const recommendations: CognitiveRecommendation[] = [];
+
+    // Find weakest levels
+    const sortedLevels = Object.entries(masteryLevels)
+      .sort(([, a], [, b]) => a - b);
+
+    // Add recommendations for weak areas
+    for (const [level, mastery] of sortedLevels.slice(0, 3)) {
+      if (mastery < 50) {
+        recommendations.push({
+          type: mastery < 20 ? 'practice' : 'reinforce',
+          targetLevel: level as BloomsLevel,
+          activity: this.getActivityForLevel(level as BloomsLevel),
+          estimatedTime: 20 + (this.bloomsLevels.indexOf(level as BloomsLevel) * 5),
+          priority: mastery < 20 ? 'high' : 'medium',
+        });
+      }
+    }
+
+    // Add advancement recommendation if ready
+    const highestMasteredLevel = sortedLevels
+      .reverse()
+      .find(([, mastery]) => mastery >= 70);
+
+    if (highestMasteredLevel) {
+      const currentIndex = this.bloomsLevels.indexOf(highestMasteredLevel[0] as BloomsLevel);
+      if (currentIndex < this.bloomsLevels.length - 1) {
+        const nextLevel = this.bloomsLevels[currentIndex + 1];
+        recommendations.push({
+          type: 'advance',
+          targetLevel: nextLevel,
+          activity: this.getActivityForLevel(nextLevel),
+          estimatedTime: 30 + (currentIndex * 10),
+          priority: 'medium',
+        });
+      }
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Get recommended activity for a Bloom's level
+   */
+  private getActivityForLevel(level: BloomsLevel): string {
+    const activities: Record<BloomsLevel, string> = {
+      REMEMBER: 'Flashcard review and terminology practice',
+      UNDERSTAND: 'Concept explanation and summarization exercises',
+      APPLY: 'Problem-solving and case study analysis',
+      ANALYZE: 'Comparative analysis and pattern identification',
+      EVALUATE: 'Critical evaluation and argument assessment',
+      CREATE: 'Project creation and original solution design',
+    };
+    return activities[level];
+  }
+
+  /**
+   * Log a learning activity for tracking
+   */
+  async logLearningActivity(
+    userId: string,
+    activityType: 'READ_CONTENT' | 'WATCH_VIDEO' | 'PRACTICE_QUESTIONS' | 'DISCUSSION' | 'CREATE_PROJECT' | 'PEER_REVIEW' | 'REFLECTION' | 'TAKE_EXAM' | 'REVIEW_MISTAKES',
+    options: {
+      sectionId?: string;
+      courseId?: string;
+      bloomsLevel?: BloomsLevel;
+      duration?: number;
+      score?: number;
+      contentId?: string;
+      contentType?: string;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<void> {
+    await db.learningActivityLog.create({
+      data: {
+        userId,
+        activityType,
+        sectionId: options.sectionId,
+        courseId: options.courseId,
+        bloomsLevel: options.bloomsLevel,
+        duration: options.duration,
+        score: options.score,
+        contentId: options.contentId,
+        contentType: options.contentType,
+        metadata: options.metadata as any,
+      },
+    });
+  }
+
+  /**
+   * Create a progress intervention for a user
+   */
+  async createProgressIntervention(
+    userId: string,
+    interventionType: 'ENCOURAGEMENT' | 'CHALLENGE_INCREASE' | 'SUPPORT_NEEDED' | 'REVIEW_REQUIRED' | 'CELEBRATION' | 'GUIDANCE' | 'REMEDIATION',
+    title: string,
+    message: string,
+    options?: {
+      priority?: 'HIGH' | 'MEDIUM' | 'LOW';
+      courseId?: string;
+      sectionId?: string;
+      conceptId?: string;
+      suggestedActions?: string[];
+      expiresAt?: Date;
+    }
+  ): Promise<void> {
+    await db.progressIntervention.create({
+      data: {
+        userId,
+        interventionType,
+        title,
+        message,
+        priority: options?.priority || 'MEDIUM',
+        courseId: options?.courseId,
+        sectionId: options?.sectionId,
+        conceptId: options?.conceptId,
+        suggestedActions: options?.suggestedActions as any,
+        expiresAt: options?.expiresAt,
+      },
+    });
+  }
+
+  /**
+   * Get due concepts for spaced repetition review
+   */
+  async getDueReviews(userId: string, limit = 10): Promise<{
+    conceptId: string;
+    nextReviewDate: Date;
+    interval: number;
+    retentionEstimate: number;
+  }[]> {
+    const now = new Date();
+    const schedules = await db.spacedRepetitionSchedule.findMany({
+      where: {
+        userId,
+        nextReviewDate: { lte: now },
+      },
+      orderBy: { nextReviewDate: 'asc' },
+      take: limit,
+    });
+
+    return schedules.map(s => ({
+      conceptId: s.conceptId,
+      nextReviewDate: s.nextReviewDate,
+      interval: s.interval,
+      retentionEstimate: s.retentionEstimate,
+    }));
   }
 }

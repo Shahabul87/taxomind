@@ -2,25 +2,23 @@
 
 import * as z from "zod";
 import axios from "axios";
-import { Pencil, PlusCircle, Image as ImageIcon } from "lucide-react";
+import { Pencil, Image as ImageIcon, Upload, X, Check } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Post } from "@prisma/client";
 import Image from "next/image";
 import { FileUpload } from "@/fileupload/file-upload";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
-// Define the type for each uploaded file
 interface UploadedFile {
   publicId: string;
   url: string;
 }
 
 interface ImageFormProps {
-  initialData: Post;
+  initialData: { imageUrl: string | null };
   postId: string;
 }
 
@@ -32,30 +30,27 @@ const formSchema = z.object({
 
 export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const toggleEdit = () => setIsEditing((current) => !current);
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadResponse, setUploadResponse] = useState<UploadedFile[] | null>(null);
+  const [uploadResponse, setUploadResponse] = useState<UploadedFile[] | null>(
+    null
+  );
   const router = useRouter();
-  const [urlsArray, setUrlsArray] = useState<string[]>([]);
 
-  // State to manage form values based on Zod schema
   const [formValues, setFormValues] = useState<z.infer<typeof formSchema>>({
-    imageUrl: initialData.imageUrl || "", // Initial value from props or empty
+    imageUrl: initialData.imageUrl || "",
   });
 
-  // useEffect to update urlsArray when uploadResponse changes
+  const toggleEdit = () => setIsEditing((current) => !current);
+
   useEffect(() => {
     if (uploadResponse) {
-      const urls = uploadResponse.map((file) => file.url);
-      setUrlsArray(urls);
+      // URLs are extracted but currently unused - keeping for future features
     }
   }, [uploadResponse]);
 
-  // Handle file selection
   const handleFileUpload = (uploadedFiles: File[]) => {
     setFiles(uploadedFiles);
-
   };
 
   const handleCombinedSubmit = async () => {
@@ -72,7 +67,6 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
     });
 
     try {
-      // First execute handleSubmit to upload files
       const response = await axios.post("/api/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -83,146 +77,211 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
         const result = response.data;
         setUploadResponse(result.uploadedFiles);
 
-        // Now proceed to execute onSubmit logic
-        const firstImageUrl = result.uploadedFiles.length > 0 ? result.uploadedFiles[0].url : null;
+        const firstImageUrl =
+          result.uploadedFiles.length > 0 ? result.uploadedFiles[0].url : null;
 
         if (!firstImageUrl) {
           toast.error("Image upload failed. Please try again.");
           return;
         }
 
-        // Update formValues with the first image URL
         const updatedValues = {
           ...formValues,
-          imageUrl: firstImageUrl, // Assign first image URL to form data
+          imageUrl: firstImageUrl,
         };
 
-        // Submit the updated values to the API
         await axios.patch(`/api/posts/${postId}`, updatedValues);
 
-        toast.success("Post updated successfully");
+        toast.success("Image updated successfully");
+        window.dispatchEvent(new CustomEvent("post-saved"));
 
-        // Clear files and toggle edit state after successful operations
         setFiles([]);
         toggleEdit();
         router.refresh();
       } else {
         toast.error("Failed to upload files.");
       }
-    } catch (error: any) {
-      logger.error("Error during submission:", error);
-      toast.error("Something went wrong during the submission process.");
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        logger.error("Error during submission:", error.response?.data);
+        toast.error(error.response?.data?.message || "Upload failed");
+      } else {
+        logger.error("Unexpected error:", error);
+        toast.error("Something went wrong during the submission process.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="p-4 sm:p-6 bg-white/50 dark:bg-gray-800/40 rounded-lg sm:rounded-xl border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/60 dark:hover:bg-gray-800/50 transition-all duration-200">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-purple-50 dark:bg-purple-500/10 rounded-xl">
-            <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+    <div
+      className={cn(
+        "group relative",
+        "bg-white dark:bg-slate-900/50",
+        "border border-slate-200/80 dark:border-slate-800",
+        "rounded-xl overflow-hidden",
+        "transition-all duration-200",
+        isEditing && "ring-2 ring-[#C65D3B]/20"
+      )}
+    >
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-800/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className={cn(
+                "w-9 h-9 rounded-lg flex items-center justify-center",
+                "bg-[#C65D3B]/10 text-[#C65D3B]"
+              )}
+            >
+              <ImageIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white font-[family-name:var(--font-ui)]">
+                Cover Image
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+                {initialData.imageUrl
+                  ? "Click to change image"
+                  : "Add a cover image"}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
-              Post Image
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Upload a cover image for your post
-            </p>
-          </div>
+
+          <Button
+            onClick={toggleEdit}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "text-[#C65D3B] hover:text-[#A84D32]",
+              "hover:bg-[#C65D3B]/10",
+              "font-[family-name:var(--font-ui)]"
+            )}
+          >
+            {isEditing ? (
+              <>
+                <X className="h-3.5 w-3.5 mr-1.5" />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                {initialData.imageUrl ? "Change" : "Add"}
+              </>
+            )}
+          </Button>
         </div>
-        <Button 
-          onClick={toggleEdit} 
-          variant="ghost"
-          className="w-full sm:w-auto text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:bg-purple-50 dark:hover:text-purple-300 dark:hover:bg-purple-500/10"
-        >
-          {isEditing ? (
-            <>Cancel</>
-          ) : (
-            <>
-              <Pencil className="h-4 w-4 mr-2" />
-              {initialData.imageUrl ? "Change Image" : "Add Image"}
-            </>
-          )}
-        </Button>
       </div>
 
-      {!isEditing && (
-        !initialData.imageUrl ? (
-          <div className="flex flex-col items-center justify-center h-40 sm:h-60 bg-gray-50 dark:bg-gray-800/50 rounded-lg sm:rounded-xl border-2 border-dashed border-gray-200/50 dark:border-gray-700/50">
-            <ImageIcon className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 dark:text-gray-600 mb-3" />
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              No image uploaded yet
-            </p>
-          </div>
-        ) : (
-          <div className="relative aspect-video rounded-lg sm:rounded-xl overflow-hidden group">
-            <div className="absolute inset-0 bg-black/5 dark:bg-black/20 group-hover:bg-black/10 dark:group-hover:bg-black/30 transition-colors duration-200" />
-            <Image
-              alt="Post Cover"
-              fill
-              className="object-cover"
-              src={initialData.imageUrl}
-            />
-          </div>
-        )
-      )}
-
-      {isEditing && (
-        <div className="space-y-4">
-          <div className="p-4 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg sm:rounded-xl border border-gray-200/50 dark:border-gray-700/50">
-            <div className="w-full max-w-4xl mx-auto">
-              <FileUpload 
-                onChange={handleFileUpload}
-                className="min-h-[150px] sm:min-h-[200px] flex flex-col items-center justify-center p-4 sm:p-6 border-2 border-dashed border-gray-200/50 dark:border-gray-700/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/30 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-              />
-            </div>
-
-            <div className="flex justify-center mt-4 sm:mt-6">
-              <Button
-                onClick={handleCombinedSubmit}
-                disabled={isSubmitting || files.length === 0}
+      {/* Content */}
+      <div className="p-5">
+        {!isEditing && (
+          <>
+            {!initialData.imageUrl ? (
+              <div
                 className={cn(
-                  "bg-purple-600 hover:bg-purple-700 text-white px-6 sm:px-8",
-                  "disabled:bg-gray-200 dark:disabled:bg-gray-700",
-                  "disabled:text-gray-500 dark:disabled:text-gray-400",
-                  "transition-all duration-200",
-                  "w-full sm:w-auto"
+                  "flex flex-col items-center justify-center",
+                  "h-48 rounded-xl",
+                  "bg-slate-50 dark:bg-slate-800/50",
+                  "border-2 border-dashed border-slate-200 dark:border-slate-700"
                 )}
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>Uploading...</span>
-                  </div>
-                ) : (
-                  <>Upload Image</>
-                )}
-              </Button>
-            </div>
-          </div>
+                <ImageIcon className="h-12 w-12 text-slate-300 dark:text-slate-600 mb-3" />
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+                  No cover image
+                </p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-[family-name:var(--font-ui)] mt-1">
+                  Click edit to upload one
+                </p>
+              </div>
+            ) : (
+              <div className="relative aspect-video rounded-xl overflow-hidden group/image">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity z-10" />
+                <Image
+                  alt="Post Cover"
+                  fill
+                  className="object-cover"
+                  src={initialData.imageUrl}
+                />
+              </div>
+            )}
+          </>
+        )}
 
-          {files.length > 0 && (
-            <div className="p-3 sm:p-4 bg-purple-50 dark:bg-purple-500/10 rounded-lg sm:rounded-xl border border-purple-200/50 dark:border-purple-500/20">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100/50 dark:bg-purple-500/20 rounded-lg">
-                  <ImageIcon className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+        {isEditing && (
+          <div className="space-y-4">
+            <div
+              className={cn(
+                "p-4 rounded-xl",
+                "bg-slate-50 dark:bg-slate-800/50",
+                "border border-slate-200/80 dark:border-slate-700/50"
+              )}
+            >
+              <FileUpload
+                onChange={handleFileUpload}
+                className={cn(
+                  "min-h-[200px] flex flex-col items-center justify-center p-6",
+                  "border-2 border-dashed border-slate-200 dark:border-slate-700",
+                  "rounded-xl",
+                  "bg-white dark:bg-slate-900/50",
+                  "hover:bg-slate-50 dark:hover:bg-slate-800/50",
+                  "transition-colors cursor-pointer"
+                )}
+              />
+
+              {files.length > 0 && (
+                <div
+                  className={cn(
+                    "mt-4 p-3 rounded-lg",
+                    "bg-[#87A878]/10 border border-[#87A878]/20"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-[#87A878]/20 rounded-lg">
+                      <Check className="h-4 w-4 text-[#87A878]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#87A878] truncate font-[family-name:var(--font-ui)]">
+                        {files[0].name}
+                      </p>
+                      <p className="text-xs text-[#87A878]/70 font-[family-name:var(--font-ui)]">
+                        {(files[0].size / (1024 * 1024)).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-purple-700 dark:text-purple-300 truncate">
-                    {files[0].name}
-                  </p>
-                  <p className="text-xs text-purple-600/70 dark:text-purple-400/70">
-                    {(files[0].size / (1024 * 1024)).toFixed(2)} MB
-                  </p>
-                </div>
+              )}
+
+              <div className="flex justify-center mt-6">
+                <Button
+                  onClick={handleCombinedSubmit}
+                  disabled={isSubmitting || files.length === 0}
+                  className={cn(
+                    "bg-[#C65D3B] hover:bg-[#A84D32] text-white",
+                    "font-[family-name:var(--font-ui)]",
+                    "shadow-sm px-6",
+                    "disabled:bg-slate-200 dark:disabled:bg-slate-700",
+                    "disabled:text-slate-400 dark:disabled:text-slate-500"
+                  )}
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Uploading...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Image
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

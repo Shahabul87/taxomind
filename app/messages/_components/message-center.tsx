@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageCircle,
   Search,
@@ -10,7 +10,10 @@ import {
   Star,
   AlertCircle,
   Plus,
-  Filter
+  Filter,
+  Sparkles,
+  Users,
+  Inbox,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,6 +28,7 @@ import { ChatList } from "./chat-list";
 import { ChatView } from "./chat-view";
 import { NewMessageDialog } from "./new-message-dialog";
 import { SearchDialog } from "./search-dialog";
+import { cn } from "@/lib/utils";
 
 interface MessageCenterProps {
   userId: string | undefined;
@@ -33,6 +37,14 @@ interface MessageCenterProps {
 type FilterType = "all" | "questions" | "assignments" | "starred" | "urgent";
 type SortType = "recent" | "unread" | "priority" | "course";
 
+const filterOptions = [
+  { value: "all", icon: Inbox, label: "All", color: "default" },
+  { value: "questions", icon: HelpCircle, label: "Questions", color: "cyan" },
+  { value: "assignments", icon: FileText, label: "Assignments", color: "violet" },
+  { value: "starred", icon: Star, label: "Starred", color: "amber" },
+  { value: "urgent", icon: AlertCircle, label: "Urgent", color: "rose" },
+];
+
 export const MessageCenter = ({ userId }: MessageCenterProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChat, setActiveChat] = useState<string | null>(null);
@@ -40,161 +52,249 @@ export const MessageCenter = ({ userId }: MessageCenterProps) => {
   const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
   const [sortBy, setSortBy] = useState<SortType>("recent");
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
 
   const handleMessageSelect = (messageId: string) => {
-    // TODO: Navigate to the message in the chat view
     console.log("Selected message:", messageId);
   };
 
   if (!userId) return null;
 
   return (
-    <div className="h-[calc(100vh-120px)] sm:h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-4 sm:gap-6">
-      {/* Sidebar - Hidden on mobile when chat is active */}
+    <div className="h-[calc(100vh-120px)] flex flex-col lg:flex-row gap-4 lg:gap-5 msg-container relative overflow-hidden rounded-2xl lg:rounded-3xl">
+      {/* Sidebar Panel */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className={`
-          w-full lg:w-80 flex flex-col bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
-          border border-slate-200/50 dark:border-slate-700/50 rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-lg
-          ${activeChat ? 'hidden lg:flex' : 'flex'}
-        `}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className={cn(
+          "w-full lg:w-[340px] xl:w-[380px] flex flex-col msg-panel",
+          activeChat ? "hidden lg:flex" : "flex"
+        )}
       >
-        {/* Header with Search and New Message */}
-        <div className="p-3 sm:p-4 border-b border-slate-200/50 dark:border-slate-700/50">
-          <div className="flex items-center gap-2 mb-3 sm:mb-4">
-            <div className="p-1.5 sm:p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
-              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        {/* Header Section */}
+        <div className="p-4 lg:p-5 border-b border-[hsl(var(--msg-border-subtle))]">
+          {/* Title Row */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="p-2.5 rounded-xl msg-header-gradient">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[hsl(var(--msg-success))] rounded-full border-2 border-[hsl(var(--msg-surface))]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[hsl(var(--msg-text))]">
+                  Messages
+                </h2>
+                <p className="text-xs text-[hsl(var(--msg-text-muted))]">
+                  Stay connected with your team
+                </p>
+              </div>
             </div>
-            <h2 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
-              Messages
-            </h2>
-          </div>
 
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" />
-              <Input
-                placeholder="Filter conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchDialogOpen(true)}
-                className="pl-8 sm:pl-10 h-9 sm:h-10 text-sm bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700
-                         text-slate-900 dark:text-white cursor-pointer"
-                readOnly
-              />
-            </div>
+            {/* New Message Button */}
             <Button
               onClick={() => setIsNewMessageOpen(true)}
-              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600
-                       hover:to-indigo-600 text-white shadow-md h-9 w-9 sm:h-10 sm:w-10"
+              className={cn(
+                "msg-send-btn w-11 h-11",
+                "hover:scale-105 active:scale-95"
+              )}
               size="icon"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </Button>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--msg-text-subtle))]" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchDialogOpen(true)}
+              className={cn(
+                "pl-10 h-11 text-sm rounded-xl cursor-pointer",
+                "bg-[hsl(var(--msg-surface-hover))]",
+                "border-[hsl(var(--msg-border))]",
+                "text-[hsl(var(--msg-text))]",
+                "placeholder:text-[hsl(var(--msg-text-subtle))]",
+                "focus:border-[hsl(var(--msg-primary))]",
+                "focus:ring-2 focus:ring-[hsl(var(--msg-primary))]/10"
+              )}
+              readOnly
+            />
+            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border border-[hsl(var(--msg-border))] bg-[hsl(var(--msg-surface))] px-1.5 font-mono text-[10px] text-[hsl(var(--msg-text-subtle))]">
+              ⌘K
+            </kbd>
           </div>
         </div>
 
-        {/* Quick Filters */}
-        <div className="p-2 sm:p-3 border-b border-slate-200/50 dark:border-slate-700/50 overflow-x-auto">
-          <div className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 min-w-max sm:min-w-0">
-            {[
-              { value: "all", icon: MessageCircle, label: "All", color: "slate" },
-              { value: "questions", icon: HelpCircle, label: "Questions", color: "blue" },
-              { value: "assignments", icon: FileText, label: "Assignments", color: "purple" },
-              { value: "starred", icon: Star, label: "Starred", color: "yellow" },
-              { value: "urgent", icon: AlertCircle, label: "Urgent", color: "red" },
-            ].map((item) => (
-              <Button
-                key={item.value}
-                variant={filter === item.value ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setFilter(item.value as FilterType)}
-                className={`
-                  text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3 whitespace-nowrap
-                  ${filter === item.value
-                    ? item.value === "questions"
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white"
-                      : item.value === "assignments"
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                      : item.value === "starred"
-                      ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-white"
-                      : item.value === "urgent"
-                      ? "bg-gradient-to-r from-orange-500 to-red-500 text-white"
-                      : "bg-gradient-to-r from-slate-500 to-slate-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }
-                `}
-              >
-                <item.icon className="w-3 h-3 mr-1" />
-                <span className="hidden xs:inline">{item.label}</span>
-              </Button>
-            ))}
+        {/* Filter Chips */}
+        <div className="p-3 lg:p-4 border-b border-[hsl(var(--msg-border-subtle))]">
+          <div className="flex flex-wrap gap-2">
+            {filterOptions.map((item) => {
+              const isActive = filter === item.value;
+              return (
+                <button
+                  key={item.value}
+                  onClick={() => setFilter(item.value as FilterType)}
+                  className={cn(
+                    "msg-filter-chip",
+                    isActive && "active"
+                  )}
+                >
+                  <item.icon className="w-3.5 h-3.5" />
+                  <span className="hidden xs:inline">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Sort Options */}
-        <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-slate-200/50 dark:border-slate-700/50">
+        <div className="px-4 py-3 border-b border-[hsl(var(--msg-border-subtle))]">
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortType)}>
-            <SelectTrigger className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-9 sm:h-10 text-sm">
-              <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
-              <SelectValue placeholder="Sort by..." />
+            <SelectTrigger className={cn(
+              "h-10 text-sm rounded-xl",
+              "bg-[hsl(var(--msg-surface))]",
+              "border-[hsl(var(--msg-border))]",
+              "text-[hsl(var(--msg-text))]"
+            )}>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-[hsl(var(--msg-text-muted))]" />
+                <SelectValue placeholder="Sort by..." />
+              </div>
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Most Recent</SelectItem>
-              <SelectItem value="unread">Unread First</SelectItem>
-              <SelectItem value="priority">Priority</SelectItem>
-              <SelectItem value="course">By Course</SelectItem>
+            <SelectContent className="bg-[hsl(var(--msg-surface))] border-[hsl(var(--msg-border))]">
+              <SelectItem value="recent" className="text-[hsl(var(--msg-text))]">Most Recent</SelectItem>
+              <SelectItem value="unread" className="text-[hsl(var(--msg-text))]">Unread First</SelectItem>
+              <SelectItem value="priority" className="text-[hsl(var(--msg-text))]">Priority</SelectItem>
+              <SelectItem value="course" className="text-[hsl(var(--msg-text))]">By Course</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         {/* Chat List */}
-        <ChatList
-          searchQuery={searchQuery}
-          activeChat={activeChat}
-          onChatSelect={setActiveChat}
-          filter={filter}
-          sortBy={sortBy}
-          userId={userId}
-        />
+        <div className="flex-1 overflow-hidden">
+          <ChatList
+            searchQuery={searchQuery}
+            activeChat={activeChat}
+            onChatSelect={setActiveChat}
+            filter={filter}
+            sortBy={sortBy}
+            userId={userId}
+          />
+        </div>
       </motion.div>
 
-      {/* Main Chat View - Hidden on mobile when no chat selected */}
+      {/* Main Chat View Panel */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`
-          flex-1 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm
-          border border-slate-200/50 dark:border-slate-700/50 rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-lg
-          ${activeChat ? 'flex' : 'hidden lg:flex'}
-        `}
-      >
-        {activeChat ? (
-          <ChatView chatId={activeChat} userId={userId} onBack={() => setActiveChat(null)} />
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 p-4 sm:p-6">
-            <div className="p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20
-                          dark:to-indigo-950/20 rounded-xl sm:rounded-2xl mb-4">
-              <MessageCircle className="w-12 h-12 sm:w-16 sm:h-16 text-blue-500" />
-            </div>
-            <h3 className="text-base sm:text-lg font-medium text-slate-600 dark:text-slate-300 mb-2 text-center">
-              No conversation selected
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center px-4">
-              Select a conversation to start messaging with your instructor
-            </p>
-          </div>
+        transition={{ duration: 0.4, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        className={cn(
+          "flex-1 msg-panel overflow-hidden",
+          activeChat ? "flex" : "hidden lg:flex"
         )}
+      >
+        <AnimatePresence mode="wait">
+          {activeChat ? (
+            <motion.div
+              key={activeChat}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.3 }}
+              className="w-full h-full"
+            >
+              <ChatView
+                chatId={activeChat}
+                userId={userId}
+                onBack={() => setActiveChat(null)}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="h-full flex flex-col items-center justify-center msg-empty-state"
+            >
+              {/* Decorative Background */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-gradient-to-br from-[hsl(var(--msg-primary))] to-[hsl(var(--msg-cyan))] opacity-5 blur-3xl" />
+                <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-gradient-to-br from-[hsl(var(--msg-rose))] to-[hsl(var(--msg-primary))] opacity-5 blur-3xl" />
+              </div>
+
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="msg-empty-icon mb-6">
+                  <MessageCircle className="w-10 h-10 text-[hsl(var(--msg-primary))]" />
+                </div>
+
+                <h3 className="text-xl font-semibold text-[hsl(var(--msg-text))] mb-2">
+                  No conversation selected
+                </h3>
+                <p className="text-sm text-[hsl(var(--msg-text-muted))] text-center max-w-sm mb-6">
+                  Select a conversation from the sidebar or start a new one to begin messaging
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button
+                    onClick={() => setIsNewMessageOpen(true)}
+                    className={cn(
+                      "h-11 px-6 rounded-xl font-medium",
+                      "bg-gradient-to-r from-[hsl(var(--msg-primary))] to-[hsl(258,85%,55%)]",
+                      "text-white shadow-lg shadow-[hsl(var(--msg-primary))]/25",
+                      "hover:shadow-xl hover:shadow-[hsl(var(--msg-primary))]/30",
+                      "transition-all duration-300 hover:scale-[1.02]"
+                    )}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Start New Conversation
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsSearchDialogOpen(true)}
+                    className={cn(
+                      "h-11 px-6 rounded-xl font-medium",
+                      "border-[hsl(var(--msg-border))]",
+                      "text-[hsl(var(--msg-text))]",
+                      "hover:border-[hsl(var(--msg-primary))]",
+                      "hover:text-[hsl(var(--msg-primary))]",
+                      "hover:bg-[hsl(var(--msg-primary-muted))]"
+                    )}
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Search Messages
+                  </Button>
+                </div>
+
+                {/* Quick Tips */}
+                <div className="mt-10 flex flex-wrap justify-center gap-4">
+                  <div className="flex items-center gap-2 text-xs text-[hsl(var(--msg-text-subtle))]">
+                    <kbd className="h-5 px-2 rounded border border-[hsl(var(--msg-border))] bg-[hsl(var(--msg-surface))]">⌘K</kbd>
+                    <span>Quick search</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-[hsl(var(--msg-text-subtle))]">
+                    <kbd className="h-5 px-2 rounded border border-[hsl(var(--msg-border))] bg-[hsl(var(--msg-surface))]">⌘N</kbd>
+                    <span>New message</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
+      {/* Dialogs */}
       <NewMessageDialog
         open={isNewMessageOpen}
         onClose={() => setIsNewMessageOpen(false)}
         userId={userId}
         onChatStart={(recipientIds) => {
-          // For 1-on-1 chat, use consistent chatId format
           const chatId = recipientIds.length === 1
             ? `${userId}-${recipientIds[0]}`
             : `group-${Date.now()}`;
@@ -210,4 +310,4 @@ export const MessageCenter = ({ userId }: MessageCenterProps) => {
       />
     </div>
   );
-}; 
+};

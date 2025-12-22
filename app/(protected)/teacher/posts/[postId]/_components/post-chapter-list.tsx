@@ -41,8 +41,8 @@ interface PostChapter {
   description: string | null;
   position: number;
   isPublished: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
   isFree: boolean;
   postId: string;
 }

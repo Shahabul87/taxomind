@@ -178,6 +178,8 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
+    // Ensure unique row IDs even if course.id is empty or undefined
+    getRowId: (row: any, index) => row?.id || `row-${index}`,
     state: {
       sorting,
       columnFilters,

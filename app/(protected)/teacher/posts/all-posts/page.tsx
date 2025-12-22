@@ -1,30 +1,15 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { MyPostsDashboard } from "./_components/my-posts-dashboard";
+import { EnhancedDashboard } from "./_components/enhanced-dashboard";
 import { PostsPageLayout } from "./_components/posts-page-layout";
 import { db } from "@/lib/db";
 import { Metadata } from "next";
+import type { Post, PostComment, PostUser } from "./_components/types";
 
 export const metadata: Metadata = {
-  title: "My Posts | Taxomind Teacher Dashboard",
-  description: "Manage your blog posts and track their performance",
+  title: "My Content Hub | Taxomind Teacher Dashboard",
+  description: "Manage your blog posts and track their performance with enterprise analytics",
 };
-
-// Define type for Post with views field
-interface Post {
-  id: string;
-  title: string;
-  description?: string | null;
-  imageUrl?: string | null;
-  category?: string | null;
-  published?: boolean | null;
-  views: number;
-  createdAt: Date;
-  updatedAt: Date;
-  userId: string;
-  user: any;
-  comments: any[];
-}
 
 const TeacherAllPostsPage = async () => {
   const user = await currentUser();
@@ -33,12 +18,11 @@ const TeacherAllPostsPage = async () => {
     return redirect("/");
   }
 
-  // Note: All users can create posts, role check removed since users no longer have roles
-
-  // Fetch user's posts
+  // Fetch user's posts with relations
   const postsData = await db.post.findMany({
     where: {
-      userId: user.id
+      userId: user.id,
+      isArchived: false,
     },
     include: {
       User: {
@@ -50,15 +34,24 @@ const TeacherAllPostsPage = async () => {
           isTeacher: true,
         }
       },
-      comments: true,
+      comments: {
+        select: {
+          id: true,
+          userId: true,
+          postId: true,
+          content: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      },
     },
     orderBy: {
       createdAt: 'desc'
     }
   });
 
-  // Serialize posts to match home page format and avoid serialization issues
-  const posts = postsData.map(post => ({
+  // Serialize posts with proper typing
+  const posts: Post[] = postsData.map(post => ({
     id: post.id,
     title: post.title,
     description: post.description || null,
@@ -69,45 +62,59 @@ const TeacherAllPostsPage = async () => {
     updatedAt: post.updatedAt.toISOString(),
     userId: post.userId,
     views: post.views,
-    comments: post.comments,
-    user: post.User,
-    likes: [], // TODO: Add likes relation to Post model
+    body: post.body,
+    isArchived: post.isArchived,
+    comments: post.comments.map(comment => ({
+      id: comment.id,
+      userId: comment.userId,
+      postId: comment.postId,
+      content: comment.content,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
+    })),
+    user: {
+      id: post.User.id,
+      name: post.User.name,
+      email: post.User.email,
+      image: post.User.image,
+      isTeacher: post.User.isTeacher ?? false,
+    },
+    likes: [], // TODO: Add likes relation to Post model when implemented
   }));
 
-  // Get post stats
+  // Calculate stats
   const publishedCount = posts.filter(post => post.published).length;
   const draftCount = posts.filter(post => !post.published).length;
-
-  // Calculate total views
   const totalViews = posts.reduce((sum, post) => sum + post.views, 0);
-
-  // Calculate comments
   const totalComments = posts.reduce((sum, post) => sum + post.comments.length, 0);
+  const totalLikes = posts.reduce((sum, post) => sum + (post.likes?.length || 0), 0);
 
-  // Get categories
-  const categories = Array.from(new Set(posts.map(post => post.category))).filter(Boolean);
+  // Get unique categories
+  const categories = Array.from(
+    new Set(posts.map(post => post.category).filter((c): c is string => c !== null))
+  );
 
-  // Serialize user object to convert Decimal fields to numbers for client component
+  // Serialize user for client component
   const serializedUser = {
     id: user.id,
-    name: user.name,
-    email: user.email,
-    image: user.image,
+    name: user.name ?? null,
+    email: user.email ?? null,
+    image: user.image ?? null,
     role: user.role,
   };
 
   return (
     <PostsPageLayout user={user}>
-      <div className="min-h-full bg-gradient-to-b from-gray-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 w-full">
-        <MyPostsDashboard
+      <div className="min-h-full bg-gradient-to-br from-slate-50 via-white to-violet-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-violet-950/20 w-full">
+        <EnhancedDashboard
           posts={posts}
-          categories={categories as string[]}
+          categories={categories}
           stats={{
             published: publishedCount,
             drafts: draftCount,
             views: totalViews,
-            likes: 0, // We need to add a likes relation to the Post model
-            comments: totalComments
+            likes: totalLikes,
+            comments: totalComments,
           }}
           user={serializedUser}
         />

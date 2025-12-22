@@ -828,3 +828,71 @@ enum SAMFeatureType {
   ADVANCED_ANALYTICS // Premium only
 }
 
+// ==========================================
+// Cognitive Skill & Assessment Enums
+// ==========================================
+
+// Cognitive skill types for detailed tracking
+enum CognitiveSkillType {
+  CRITICAL_THINKING
+  PROBLEM_SOLVING
+  CREATIVE_THINKING
+  ANALYTICAL_THINKING
+  LOGICAL_REASONING
+  METACOGNITION
+  INFORMATION_PROCESSING
+  DECISION_MAKING
+}
+
+// Learning activity types for pathway tracking
+enum LearningActivityType {
+  READ_CONTENT
+  WATCH_VIDEO
+  PRACTICE_QUESTIONS
+  DISCUSSION
+  CREATE_PROJECT
+  PEER_REVIEW
+  REFLECTION
+  TAKE_EXAM
+  REVIEW_MISTAKES
+}
+
+// Intervention types for progress alerts
+enum InterventionType {
+  ENCOURAGEMENT
+  CHALLENGE_INCREASE
+  SUPPORT_NEEDED
+  REVIEW_REQUIRED
+  CELEBRATION
+  GUIDANCE
+  REMEDIATION
+}
+
+// Question generation mode
+enum QuestionGenerationMode {
+  MANUAL
+  AI_QUICK
+  AI_GUIDED
+  AI_ADAPTIVE
+  AI_GAP_FILLING
+  HYBRID
+}
+
+// Evaluation type for answers
+enum EvaluationType {
+  AUTO_GRADED
+  AI_EVALUATED
+  PEER_REVIEWED
+  TEACHER_GRADED
+  HYBRID
+}
+
+// Mastery level for cognitive skills
+enum MasteryLevel {
+  NOT_STARTED
+  DEVELOPING
+  PROGRESSING
+  PROFICIENT
+  MASTERED
+}
+

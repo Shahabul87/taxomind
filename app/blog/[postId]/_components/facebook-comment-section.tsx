@@ -167,35 +167,35 @@ const CommentItem = ({
     return indentMap[clampedDepth] || "";
   };
 
-  // Visual nesting indicator for mobile
+  // Visual nesting indicator for mobile - Editorial colors
   const getBorderClass = () => {
     if (depth === 0) return "";
-    return "border-l-2 border-blue-200 dark:border-blue-800 pl-1 sm:pl-1.5 md:pl-0 md:border-l-0";
+    return "border-l-2 border-[#C65D3B]/30 dark:border-[#C65D3B]/40 pl-2 sm:pl-2.5 md:pl-0 md:border-l-0";
   };
 
   return (
-    <div className={cn("flex gap-1 sm:gap-1.5 md:gap-2", getIndentClass(), getBorderClass())}>
+    <div className={cn("flex gap-2 sm:gap-2.5 md:gap-3", getIndentClass(), getBorderClass())}>
       {/* Avatar - smaller on mobile for nested comments */}
-      <Avatar className={cn("mt-0.5 sm:mt-1 flex-shrink-0", depth > 0 ? "w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" : "w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8")}>
+      <Avatar className={cn("mt-0.5 sm:mt-1 flex-shrink-0 ring-2 ring-[#C65D3B]/10", depth > 0 ? "w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" : "w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9")}>
         <AvatarImage src={(comment.User?.image || comment.user?.image) || undefined} />
-        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-[10px] sm:text-xs">
+        <AvatarFallback className="bg-gradient-to-br from-[#C65D3B] to-[#A84D32] text-white text-[10px] sm:text-xs font-[family-name:var(--font-ui)]">
           {(comment.User?.name || comment.user?.name)?.charAt(0).toUpperCase() || "U"}
         </AvatarFallback>
       </Avatar>
 
       <div className="flex-1 min-w-0">
-        {/* Comment Bubble */}
+        {/* Comment Bubble - Editorial Style */}
         <div className="group relative">
           {isEditing ? (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg sm:rounded-xl md:rounded-2xl p-2 sm:p-2.5 md:p-3">
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-700">
               <Textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[45px] sm:min-h-[50px] md:min-h-[60px] text-xs sm:text-sm resize-none border-0 bg-transparent focus-visible:ring-0"
+                className="min-h-[50px] sm:min-h-[60px] text-sm resize-none border border-slate-200 dark:border-slate-700 bg-[#FAF6F1] dark:bg-slate-900 focus:border-[#C65D3B]/50 focus:ring-1 focus:ring-[#C65D3B]/30 rounded-lg font-[family-name:var(--font-body)]"
                 autoFocus
               />
-              <div className="flex gap-1 sm:gap-1.5 md:gap-2 mt-1 sm:mt-1.5 md:mt-2">
-                <Button size="sm" onClick={handleEditSubmit} className="h-6 sm:h-7 md:h-8 text-[10px] sm:text-xs md:text-sm px-1.5 sm:px-2 md:px-3">
+              <div className="flex gap-2 mt-2 sm:mt-3">
+                <Button size="sm" onClick={handleEditSubmit} className="h-7 sm:h-8 text-xs sm:text-sm px-3 sm:px-4 bg-[#C65D3B] hover:bg-[#A84D32] rounded-lg font-[family-name:var(--font-ui)]">
                   Save
                 </Button>
                 <Button
@@ -205,30 +205,30 @@ const CommentItem = ({
                     setIsEditing(false);
                     setEditContent(comment.content);
                   }}
-                  className="h-6 sm:h-7 md:h-8 text-[10px] sm:text-xs md:text-sm px-1.5 sm:px-2 md:px-3"
+                  className="h-7 sm:h-8 text-xs sm:text-sm px-3 sm:px-4 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-[family-name:var(--font-ui)]"
                 >
                   Cancel
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg sm:rounded-xl md:rounded-2xl px-2 sm:px-2.5 md:px-3 py-1 sm:py-1.5 md:py-2 inline-block max-w-full">
-              <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 mb-0.5 sm:mb-1">
-                <span className="font-semibold text-[10px] sm:text-xs md:text-sm text-gray-900 dark:text-white">
+            <div className="bg-white dark:bg-slate-800 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 inline-block max-w-full border border-slate-200 dark:border-slate-700 shadow-sm">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                <span className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-white font-[family-name:var(--font-display)]">
                   {comment.User?.name || comment.user?.name || "Anonymous"}
                 </span>
               </div>
-              <p className="text-[11px] sm:text-xs md:text-sm text-gray-900 dark:text-gray-100 break-words whitespace-pre-wrap leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 break-words whitespace-pre-wrap leading-relaxed font-[family-name:var(--font-body)]">
                 {comment.content}
               </p>
             </div>
           )}
 
-          {/* Like Badge */}
+          {/* Like Badge - Terracotta accent */}
           {likeCount > 0 && !isEditing && (
-            <div className="absolute -bottom-1 sm:-bottom-1.5 md:-bottom-2 right-0 bg-white dark:bg-gray-700 rounded-full px-1 sm:px-1.5 md:px-2 py-0.5 border border-gray-200 dark:border-gray-600 shadow-sm flex items-center gap-0.5 sm:gap-1">
-              <ThumbsUp className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3 text-blue-600 dark:text-blue-400 fill-current" />
-              <span className="text-[9px] sm:text-[10px] md:text-xs font-medium text-gray-700 dark:text-gray-300">
+            <div className="absolute -bottom-1.5 sm:-bottom-2 right-0 bg-white dark:bg-slate-700 rounded-full px-1.5 sm:px-2 py-0.5 border border-slate-200 dark:border-slate-600 shadow-sm flex items-center gap-1">
+              <ThumbsUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#C65D3B] fill-current" />
+              <span className="text-[10px] sm:text-xs font-medium text-slate-700 dark:text-slate-300 font-[family-name:var(--font-ui)]">
                 {likeCount}
               </span>
             </div>
@@ -273,44 +273,44 @@ const CommentItem = ({
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Editorial Style */}
         {!isEditing && (
-          <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 mt-0.5 sm:mt-1 ml-1.5 sm:ml-2 md:ml-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 mt-1 sm:mt-1.5 ml-2 sm:ml-3 flex-wrap font-[family-name:var(--font-ui)]">
             <button
               onClick={handleLike}
               className={cn(
-                "text-[9px] sm:text-[10px] md:text-xs font-semibold transition-colors touch-manipulation py-0.5 px-1 rounded",
+                "text-[10px] sm:text-xs font-semibold transition-colors touch-manipulation py-0.5 px-1.5 rounded-md",
                 isLiked
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                  ? "text-[#C65D3B] bg-[#C65D3B]/10"
+                  : "text-slate-500 dark:text-slate-400 hover:text-[#C65D3B] hover:bg-[#C65D3B]/5"
               )}
             >
               Like
             </button>
             <button
               onClick={() => setShowReplyBox(!showReplyBox)}
-              className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors touch-manipulation py-0.5 px-1 rounded"
+              className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-[#87A878] hover:bg-[#87A878]/5 transition-colors touch-manipulation py-0.5 px-1.5 rounded-md"
             >
               Reply
             </button>
-            <span className="text-[8px] sm:text-[9px] md:text-xs text-gray-500 dark:text-gray-500 flex-shrink-0">
+            <span className="text-[9px] sm:text-xs text-slate-400 dark:text-slate-500 flex-shrink-0">
               {isMounted ? timeText : ""}
             </span>
           </div>
         )}
 
-        {/* Reply Input */}
+        {/* Reply Input - Editorial Style */}
         <AnimatePresence>
           {showReplyBox && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-1 sm:mt-1.5 md:mt-2 flex gap-1 sm:gap-1.5 md:gap-2"
+              className="mt-2 sm:mt-2.5 flex gap-2 sm:gap-2.5 p-2 sm:p-3 bg-white dark:bg-slate-800/80 rounded-lg border border-slate-200 dark:border-slate-700"
             >
-              <Avatar className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0">
+              <Avatar className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 ring-2 ring-[#87A878]/20">
                 <AvatarImage src={session?.user?.image || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-[8px] sm:text-[10px] md:text-xs">
+                <AvatarFallback className="bg-gradient-to-br from-[#87A878] to-[#6B9466] text-white text-[8px] sm:text-[10px] font-[family-name:var(--font-ui)]">
                   {session?.user?.name?.charAt(0).toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -319,7 +319,7 @@ const CommentItem = ({
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
                   placeholder="Write a reply..."
-                  className="min-h-[45px] sm:min-h-[50px] md:min-h-[60px] text-[11px] sm:text-xs md:text-sm resize-none rounded-lg sm:rounded-xl md:rounded-2xl bg-gray-100 dark:bg-gray-800 border-0 pr-7 sm:pr-8 md:pr-10 py-1 sm:py-1.5 md:py-2"
+                  className="min-h-[50px] sm:min-h-[55px] text-xs sm:text-sm resize-none rounded-lg bg-[#FAF6F1] dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-[#87A878]/50 focus:ring-1 focus:ring-[#87A878]/30 pr-9 sm:pr-10 py-2 font-[family-name:var(--font-body)] placeholder:text-slate-400"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -331,23 +331,23 @@ const CommentItem = ({
                   size="sm"
                   onClick={handleReplySubmit}
                   disabled={!replyContent.trim()}
-                  className="absolute bottom-1 sm:bottom-1.5 md:bottom-2 right-1 sm:right-1.5 md:right-2 h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 p-0 rounded-full"
+                  className="absolute bottom-1.5 sm:bottom-2 right-1.5 sm:right-2 h-6 w-6 sm:h-7 sm:w-7 p-0 rounded-full bg-[#87A878] hover:bg-[#6B9466] disabled:bg-slate-300 dark:disabled:bg-slate-600 shadow-sm"
                   aria-label="Send reply"
                 >
-                  <Send className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3" />
+                  <Send className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 </Button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Nested Replies */}
+        {/* Nested Replies - Editorial Style */}
         {hasReplies && (
-          <div className="mt-1.5 sm:mt-2 md:mt-3">
+          <div className="mt-2 sm:mt-3">
             {depth < 3 && (
               <button
                 onClick={() => setShowReplies(!showReplies)}
-                className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline mb-1 sm:mb-1.5 md:mb-2 touch-manipulation py-0.5"
+                className="text-[10px] sm:text-xs font-semibold text-[#C65D3B] dark:text-[#D97F5F] hover:underline mb-1.5 sm:mb-2 touch-manipulation py-0.5 font-[family-name:var(--font-ui)]"
               >
                 {showReplies
                   ? `Hide ${comment.replies?.length} ${
@@ -757,17 +757,26 @@ export const CommentSection = ({
     });
 
   return (
-    <div className="w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4 gap-2">
-        <h3 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-1 sm:gap-1.5 md:gap-2 min-w-0">
-          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 flex-shrink-0" />
-          <span className="truncate">Comments ({comments.length})</span>
-        </h3>
+    <div className="w-full bg-[#FAF6F1] dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+      {/* Header - Editorial Style */}
+      <div className="flex items-center justify-between mb-4 sm:mb-5 md:mb-6 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="p-2 bg-[#C65D3B]/10 rounded-xl">
+            <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-[#C65D3B]" />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-white font-[family-name:var(--font-display)]">
+              Comments
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+              {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
+            </p>
+          </div>
+        </div>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as "newest" | "popular")}
-          className="text-[10px] sm:text-xs md:text-sm bg-transparent border-0 text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer flex-shrink-0 px-1 py-0.5 rounded"
+          className="text-xs sm:text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 focus:ring-1 focus:ring-[#C65D3B]/30 focus:border-[#C65D3B]/50 cursor-pointer flex-shrink-0 px-3 py-1.5 rounded-lg font-[family-name:var(--font-ui)]"
           aria-label="Sort comments by"
         >
           <option value="newest">Newest</option>
@@ -775,12 +784,12 @@ export const CommentSection = ({
         </select>
       </div>
 
-      {/* Comment Input */}
+      {/* Comment Input - Editorial Style */}
       {session ? (
-        <div className="flex gap-1.5 sm:gap-2 mb-3 sm:mb-4 md:mb-6">
-          <Avatar className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 mt-0.5 sm:mt-1 flex-shrink-0">
+        <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-5 md:mb-6 p-3 sm:p-4 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
+          <Avatar className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 ring-2 ring-[#C65D3B]/20">
             <AvatarImage src={session.user?.image || undefined} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-[10px] sm:text-xs">
+            <AvatarFallback className="bg-gradient-to-br from-[#C65D3B] to-[#A84D32] text-white text-xs sm:text-sm font-[family-name:var(--font-ui)]">
               {session.user?.name?.charAt(0).toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
@@ -789,7 +798,7 @@ export const CommentSection = ({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="min-h-[50px] sm:min-h-[60px] md:min-h-[80px] text-xs sm:text-sm resize-none rounded-lg sm:rounded-xl md:rounded-2xl bg-gray-100 dark:bg-gray-800 border-0 pr-7 sm:pr-8 md:pr-10 py-1.5 sm:py-2"
+              className="min-h-[60px] sm:min-h-[70px] md:min-h-[80px] text-sm resize-none rounded-xl bg-[#FAF6F1] dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-[#C65D3B]/50 focus:ring-1 focus:ring-[#C65D3B]/30 pr-10 sm:pr-12 py-2.5 sm:py-3 font-[family-name:var(--font-body)] placeholder:text-slate-400"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
@@ -801,23 +810,24 @@ export const CommentSection = ({
               size="sm"
               onClick={handleAddComment}
               disabled={!newComment.trim() || isSubmitting}
-              className="absolute bottom-1 sm:bottom-1.5 md:bottom-2 right-1 sm:right-1.5 md:right-2 h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 p-0 rounded-full"
+              className="absolute bottom-2 sm:bottom-2.5 right-2 sm:right-2.5 h-7 w-7 sm:h-8 sm:w-8 p-0 rounded-full bg-[#C65D3B] hover:bg-[#A84D32] disabled:bg-slate-300 dark:disabled:bg-slate-600 shadow-lg shadow-[#C65D3B]/20"
               aria-label="Post comment"
             >
-              <Send className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3 md:h-3" />
+              <Send className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </Button>
           </div>
         </div>
       ) : (
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-2.5 sm:p-3 md:p-4 mb-3 sm:mb-4 md:mb-6 text-center">
-          <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">
-            Please sign in to comment
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-5 mb-4 sm:mb-5 md:mb-6 text-center border border-slate-200 dark:border-slate-700">
+          <MessageCircle className="w-8 h-8 mx-auto text-[#C65D3B]/50 mb-2" />
+          <p className="text-sm text-slate-600 dark:text-slate-400 font-[family-name:var(--font-body)]">
+            Please sign in to join the conversation
           </p>
         </div>
       )}
 
       {/* Comments List */}
-      <div className="space-y-2 sm:space-y-3 md:space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {sortedComments.map((comment) => (
           <CommentItem
             key={comment.id}
@@ -830,10 +840,15 @@ export const CommentSection = ({
         ))}
 
         {comments.length === 0 && (
-          <div className="text-center py-6 sm:py-8 md:py-12">
-            <MessageCircle className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 mx-auto text-gray-300 dark:text-gray-600 mb-1.5 sm:mb-2 md:mb-3" />
-            <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 dark:text-gray-400">
-              No comments yet. Be the first to comment!
+          <div className="text-center py-8 sm:py-10 md:py-12 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="p-3 bg-[#C65D3B]/10 rounded-full w-fit mx-auto mb-3">
+              <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-[#C65D3B]" />
+            </div>
+            <h4 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-white mb-1 font-[family-name:var(--font-display)]">
+              No comments yet
+            </h4>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-[family-name:var(--font-body)]">
+              Be the first to share your thoughts!
             </p>
           </div>
         )}
