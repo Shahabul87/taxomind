@@ -10,8 +10,8 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-12-21T23:56:20.193Z
-// Source: 18 domain files
+// Generated: 2025-12-22T20:46:02.670Z
+// Source: 19 domain files
 // ==========================================
 
 
@@ -1238,6 +1238,19 @@ model User {
   studyGuides                StudyGuide[]
   learningActivityLogs       LearningActivityLog[]
   progressInterventions      ProgressIntervention[]
+
+  // Advanced Exam Evaluation System Relations (added December 2024)
+  integrityReports           IntegrityReport[]
+  proctorSessions            ProctorSession[]
+  reviewAssignments          ReviewAssignment[]
+  peerReviews                PeerReview[]
+  reviewerProfile            ReviewerProfile?
+  disputesCreated            ReviewDispute[] @relation("DisputeCreator")
+  disputesModerated          ReviewDispute[] @relation("DisputeModerator")
+  catSessions                CATSession[]
+  xAPIStatements             xAPIStatement[]
+  scormProgress              SCORMProgress[]
+  accessibilityAccommodations AccessibilityAccommodation[]
 }
 
 model Account {
@@ -1946,6 +1959,13 @@ model Exam {
 
   // Exam & Evaluation System - Enhanced Questions
   enhancedQuestions EnhancedQuestion[] @relation("ExamEnhancedQuestions")
+
+  // Advanced Exam Evaluation System Relations (added December 2024)
+  integrityReports            IntegrityReport[]
+  proctorSessions             ProctorSession[]
+  catItemBank                 CATItemBank[]
+  scormProgress               SCORMProgress[]
+  accessibilityAccommodations AccessibilityAccommodation[]
 
   @@index([sectionId])
   @@index([isPublished, isActive])
@@ -7553,4 +7573,792 @@ model DashboardPreferences {
   updatedAt       DateTime       @updatedAt
 
   @@map("dashboard_preferences")
+}
+
+// ==========================================
+// Source: 19-exam-evaluation.prisma
+// ==========================================
+
+// ==========================================
+// Exam Evaluation System Models
+// ==========================================
+// Comprehensive exam evaluation including:
+// - Academic Integrity (Plagiarism Detection)
+// - Proctoring Sessions
+// - Peer Review Workflow
+// - CAT/IRT Adaptive Testing
+// - LMS Interoperability (xAPI/SCORM)
+// ==========================================
+
+// Integrity Check Enums
+enum IntegrityCheckType {
+  PLAGIARISM
+  AI_DETECTION
+  STYLE_CONSISTENCY
+  COMPREHENSIVE
+}
+
+enum IntegrityStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FLAGGED
+  CLEARED
+  MANUAL_REVIEW
+}
+
+enum IntegritySeverity {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Proctoring Enums
+enum ProctorViolationType {
+  TAB_SWITCH
+  WINDOW_BLUR
+  FULLSCREEN_EXIT
+  COPY_PASTE
+  RIGHT_CLICK
+  KEYBOARD_SHORTCUT
+  MULTIPLE_FACES
+  NO_FACE_DETECTED
+  SUSPICIOUS_AUDIO
+  BROWSER_RESIZE
+  DEVTOOLS_OPEN
+  EXTERNAL_DISPLAY
+  SCREENSHOT_ATTEMPT
+}
+
+enum ProctorViolationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ProctorSessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  TERMINATED
+}
+
+// Peer Review Enums
+enum PeerReviewStatus {
+  PENDING_ASSIGNMENT
+  ASSIGNED
+  IN_PROGRESS
+  SUBMITTED
+  CALIBRATING
+  DISPUTED
+  RESOLVED
+  COMPLETED
+}
+
+enum ReviewerLevel {
+  NOVICE
+  INTERMEDIATE
+  EXPERT
+  MASTER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_UPHELD
+  RESOLVED_MODIFIED
+  RESOLVED_REJECTED
+}
+
+// CAT/IRT Enums
+enum CATSessionStatus {
+  IN_PROGRESS
+  COMPLETED
+  TERMINATED
+}
+
+enum PerformanceClassification {
+  EXCELLENT
+  PROFICIENT
+  BASIC
+  BELOW_BASIC
+}
+
+// ==========================================
+// Academic Integrity Models
+// ==========================================
+
+model IntegrityReport {
+  id                String            @id @default(cuid())
+  answerId          String
+  studentId         String
+  examId            String
+  checkType         IntegrityCheckType
+  status            IntegrityStatus   @default(PENDING)
+
+  // Overall scores
+  overallScore      Float             @default(100) // 0-100, higher is more original
+  riskLevel         IntegritySeverity @default(NONE)
+
+  // Plagiarism results
+  plagiarismScore   Float?            // 0-100, lower is better
+  highestSimilarity Float?
+  matchedSources    Json?             // Array of matched sources
+
+  // AI detection results
+  aiProbability     Float?            // 0-1, probability of AI-generated
+  perplexity        Float?
+  burstiness        Float?
+
+  // Style consistency results
+  styleConsistency  Float?            // 0-100, higher is more consistent
+  styleDeviation    Float?
+
+  // Metadata
+  textLength        Int?
+  wordCount         Int?
+  processingTime    Int?              // milliseconds
+
+  // Review
+  reviewedBy        String?
+  reviewedAt        DateTime?
+  reviewNotes       String?           @db.Text
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  student           User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  exam              Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  matches           IntegrityMatch[]
+
+  @@index([answerId])
+  @@index([studentId])
+  @@index([examId])
+  @@index([status])
+  @@index([riskLevel])
+}
+
+model IntegrityMatch {
+  id                String            @id @default(cuid())
+  reportId          String
+  sourceType        String            // "CORPUS", "WEB", "STUDENT_SUBMISSION"
+  sourceId          String?           // ID of matched source if internal
+  sourceTitle       String?
+  sourceUrl         String?
+  similarity        Float             // 0-1 cosine similarity
+  matchedText       String            @db.Text
+  originalText      String            @db.Text
+  position          Int               // Position in original text
+  createdAt         DateTime          @default(now())
+
+  report            IntegrityReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([similarity])
+}
+
+// ==========================================
+// Proctoring Models
+// ==========================================
+
+model ProctorSession {
+  id                String              @id @default(cuid())
+  examId            String
+  userId            String
+  attemptId         String?
+  status            ProctorSessionStatus @default(ACTIVE)
+
+  // Session info
+  startTime         DateTime            @default(now())
+  endTime           DateTime?
+
+  // Browser info
+  userAgent         String?
+  screenWidth       Int?
+  screenHeight      Int?
+  devicePixelRatio  Float?
+  platform          String?
+  language          String?
+
+  // Consent tracking
+  webcamConsent     Boolean             @default(false)
+  microphoneConsent Boolean             @default(false)
+  screenConsent     Boolean             @default(false)
+  lockdownConsent   Boolean             @default(false)
+
+  // Integrity metrics
+  integrityScore    Int                 @default(100) // 0-100
+  violationCount    Int                 @default(0)
+
+  // Termination
+  terminationReason String?
+
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam              Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
+  violations        ProctorViolation[]
+
+  @@index([examId])
+  @@index([userId])
+  @@index([status])
+  @@index([startTime])
+}
+
+model ProctorViolation {
+  id                String                  @id @default(cuid())
+  sessionId         String
+  type              ProctorViolationType
+  severity          ProctorViolationSeverity
+  description       String
+  metadata          Json?
+  screenshot        String?                 @db.Text // Base64 encoded
+  timestamp         DateTime                @default(now())
+
+  session           ProctorSession          @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([type])
+  @@index([severity])
+  @@index([timestamp])
+}
+
+// ==========================================
+// Peer Review Models
+// ==========================================
+
+model ReviewRubric {
+  id                String            @id @default(cuid())
+  name              String
+  description       String?           @db.Text
+  examId            String?
+  questionId        String?
+
+  // Scoring
+  totalPoints       Int
+  passingScore      Int
+
+  // Bloom's alignment
+  bloomsAlignment   Json?             // Map of Bloom's level to criteria IDs
+
+  // Settings
+  isActive          Boolean           @default(true)
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  criteria          RubricCriterion[]
+  assignments       ReviewAssignment[]
+  calibrations      CalibrationSession[]
+
+  @@index([examId])
+  @@index([questionId])
+}
+
+model RubricCriterion {
+  id                String            @id @default(cuid())
+  rubricId          String
+  name              String
+  description       String            @db.Text
+  weight            Float             // Percentage of total score
+  maxScore          Int
+  position          Int               @default(0)
+
+  // Scoring levels
+  levels            Json              // Array of { score, label, description }
+
+  rubric            ReviewRubric      @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  scores            ReviewScore[]
+
+  @@index([rubricId])
+}
+
+model ReviewAssignment {
+  id                String            @id @default(cuid())
+  submissionId      String            // Answer ID being reviewed
+  reviewerId        String
+  rubricId          String
+  status            PeerReviewStatus  @default(ASSIGNED)
+
+  // Assignment info
+  isBlind           Boolean           @default(true)
+  assignedAt        DateTime          @default(now())
+  dueDate           DateTime
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  reviewer          User              @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  rubric            ReviewRubric      @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  review            PeerReview?
+
+  @@index([submissionId])
+  @@index([reviewerId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model PeerReview {
+  id                String            @id @default(cuid())
+  assignmentId      String            @unique
+  submissionId      String
+  reviewerId        String
+
+  // Overall assessment
+  overallScore      Float
+  overallFeedback   String            @db.Text
+
+  // Qualitative feedback
+  strengths         Json              // Array of strings
+  improvements      Json              // Array of strings
+
+  // Metrics
+  timeSpentMinutes  Int
+  confidence        String            // LOW, MEDIUM, HIGH
+
+  // Timestamps
+  submittedAt       DateTime          @default(now())
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  assignment        ReviewAssignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  reviewer          User              @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  scores            ReviewScore[]
+  disputes          ReviewDispute[]
+
+  @@index([submissionId])
+  @@index([reviewerId])
+  @@index([submittedAt])
+}
+
+model ReviewScore {
+  id                String            @id @default(cuid())
+  reviewId          String
+  criterionId       String
+  score             Float
+  feedback          String            @db.Text
+
+  review            PeerReview        @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  criterion         RubricCriterion   @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, criterionId])
+  @@index([reviewId])
+  @@index([criterionId])
+}
+
+model ReviewerProfile {
+  id                  String          @id @default(cuid())
+  userId              String          @unique
+  level               ReviewerLevel   @default(NOVICE)
+
+  // Statistics
+  totalReviews        Int             @default(0)
+  averageAgreement    Float           @default(0)
+  averageTimeMinutes  Float           @default(0)
+  calibrationsPassed  Int             @default(0)
+  calibrationsFailed  Int             @default(0)
+  disputesReceived    Int             @default(0)
+  disputesLost        Int             @default(0)
+  reliabilityScore    Int             @default(50) // 0-100
+
+  // Specializations
+  specializations     Json?           // Array of topic areas
+
+  // Timestamps
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  // Relations
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calibrations        CalibrationSession[]
+
+  @@index([level])
+  @@index([reliabilityScore])
+}
+
+model CalibrationSession {
+  id                String            @id @default(cuid())
+  rubricId          String
+  reviewerId        String
+
+  // Expert submissions for calibration
+  expertSubmissions Json              // Array of { submissionId, expertScores }
+  reviewerScores    Json?             // Array of { submissionId, scores }
+
+  // Results
+  agreement         Float             @default(0) // 0-100
+  passed            Boolean           @default(false)
+  feedback          String?           @db.Text
+
+  // Timestamps
+  completedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  rubric            ReviewRubric      @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  reviewer          ReviewerProfile   @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@index([rubricId])
+  @@index([reviewerId])
+  @@index([passed])
+}
+
+model ReviewDispute {
+  id                String            @id @default(cuid())
+  reviewId          String
+  submissionId      String
+  disputedBy        String
+
+  // Dispute details
+  reason            String            @db.Text
+  disputedCriteria  Json              // Array of criterion IDs
+  status            DisputeStatus     @default(OPEN)
+
+  // Resolution
+  moderatorId       String?
+  resolution        Json?             // { decision, newScores, feedback }
+
+  // Timestamps
+  resolvedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  review            PeerReview        @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  disputer          User              @relation("DisputeCreator", fields: [disputedBy], references: [id], onDelete: Cascade)
+  moderator         User?             @relation("DisputeModerator", fields: [moderatorId], references: [id])
+
+  @@index([reviewId])
+  @@index([submissionId])
+  @@index([status])
+}
+
+// ==========================================
+// CAT/IRT Adaptive Testing Models
+// ==========================================
+
+model CATItemBank {
+  id                String            @id @default(cuid())
+  examId            String
+
+  // Item bank metadata
+  name              String
+  description       String?           @db.Text
+
+  // Statistics
+  totalItems        Int               @default(0)
+  activeItems       Int               @default(0)
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  exam              Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  items             CATItem[]
+  sessions          CATSession[]
+
+  @@index([examId])
+}
+
+model CATItem {
+  id                String            @id @default(cuid())
+  itemBankId        String
+  questionId        String            // Reference to actual Question
+
+  // IRT Parameters (3PL Model)
+  discrimination    Float             @default(1.0)  // a parameter (0.5-2.5)
+  difficulty        Float             @default(0)    // b parameter (-3 to +3)
+  guessing          Float             @default(0.25) // c parameter (0-0.35)
+
+  // Content classification
+  bloomsLevel       BloomsLevel
+  topic             String
+  subtopic          String?
+
+  // Exposure control
+  exposureCount     Int               @default(0)
+  exposureRate      Float             @default(0)
+  lastUsed          DateTime?
+
+  // Statistics
+  totalAttempts     Int               @default(0)
+  correctResponses  Int               @default(0)
+  averageTime       Float             @default(0)    // seconds
+
+  // Status
+  isActive          Boolean           @default(true)
+  isCalibrated      Boolean           @default(false)
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  itemBank          CATItemBank       @relation(fields: [itemBankId], references: [id], onDelete: Cascade)
+  responses         CATResponse[]
+
+  @@index([itemBankId])
+  @@index([questionId])
+  @@index([difficulty])
+  @@index([bloomsLevel])
+  @@index([topic])
+}
+
+model CATSession {
+  id                String            @id @default(cuid())
+  itemBankId        String
+  userId            String
+  examId            String
+
+  // Session status
+  status            CATSessionStatus  @default(IN_PROGRESS)
+  terminationReason String?
+
+  // Ability estimation
+  currentTheta      Float             @default(0)    // Current ability estimate
+  currentSE         Float             @default(1.5)  // Standard error
+  confidenceLower   Float?
+  confidenceUpper   Float?
+
+  // Progress
+  itemsAdministered Int               @default(0)
+  correctResponses  Int               @default(0)
+
+  // Content balance tracking
+  contentBalance    Json?             // Map of topic -> count
+  bloomsBalance     Json?             // Map of Bloom's level -> count
+
+  // Timing
+  startTime         DateTime          @default(now())
+  endTime           DateTime?
+  totalTimeSeconds  Int?
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  itemBank          CATItemBank       @relation(fields: [itemBankId], references: [id], onDelete: Cascade)
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses         CATResponse[]
+  report            CATScoreReport?
+
+  @@index([itemBankId])
+  @@index([userId])
+  @@index([examId])
+  @@index([status])
+}
+
+model CATResponse {
+  id                String            @id @default(cuid())
+  sessionId         String
+  itemId            String
+
+  // Response data
+  response          Int               // 0 = incorrect, 1 = correct
+  responseTime      Int               // milliseconds
+  abilityAfter      Float             // Theta after this response
+  seAfter           Float             // SE after this response
+
+  // Timestamps
+  timestamp         DateTime          @default(now())
+
+  // Relations
+  session           CATSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  item              CATItem           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([itemId])
+  @@index([timestamp])
+}
+
+model CATScoreReport {
+  id                    String                  @id @default(cuid())
+  sessionId             String                  @unique
+
+  // Ability scores
+  theta                 Float
+  standardError         Float
+  scaledScore           Int                     // 0-100
+  percentile            Int                     // 0-100
+  confidenceLower       Float
+  confidenceUpper       Float
+
+  // Performance metrics
+  itemsAdministered     Int
+  correctResponses      Int
+  accuracy              Int                     // percentage
+  totalTimeSeconds      Int
+  averageResponseTime   Float                   // seconds
+
+  // Bloom's performance
+  bloomsPerformance     Json                    // Map of level -> { correct, total, percentage }
+
+  // Classification
+  reliability           Float
+  classification        PerformanceClassification
+
+  // Timestamps
+  completedAt           DateTime                @default(now())
+  createdAt             DateTime                @default(now())
+
+  // Relations
+  session               CATSession              @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([classification])
+}
+
+// ==========================================
+// LMS Interoperability Models
+// ==========================================
+
+model xAPIStatement {
+  id                String            @id @default(cuid())
+  statementId       String            @unique // UUID from LRS
+  userId            String
+
+  // Statement components
+  verb              String            // e.g., "completed", "answered", "experienced"
+  objectType        String            // e.g., "Activity", "Agent", "StatementRef"
+  objectId          String            // IRI of the object
+  objectName        String?
+
+  // Result (if applicable)
+  success           Boolean?
+  completion        Boolean?
+  score             Json?             // { scaled, raw, min, max }
+  duration          String?           // ISO 8601 duration
+  response          String?           @db.Text
+
+  // Context
+  contextActivities Json?             // Parent, grouping, category activities
+  extensions        Json?
+
+  // Timestamps
+  timestamp         DateTime          @default(now())
+  stored            DateTime          @default(now())
+
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([verb])
+  @@index([objectId])
+  @@index([timestamp])
+}
+
+model SCORMProgress {
+  id                String            @id @default(cuid())
+  userId            String
+  examId            String
+  attemptId         String
+
+  // SCORM data model elements
+  learnerId         String
+  learnerName       String
+  completionStatus  String            @default("incomplete") // completed, incomplete, not attempted, unknown
+  successStatus     String            @default("unknown")    // passed, failed, unknown
+
+  // Scoring
+  scoreScaled       Float?            // -1.0 to 1.0
+  scoreRaw          Float?
+  scoreMin          Float?
+  scoreMax          Float?
+
+  // Progress
+  progressMeasure   Float?            // 0.0 to 1.0
+  location          String?           // bookmark
+  suspendData       String?           @db.Text // max 64000 chars
+
+  // Timing
+  sessionTime       String?           // ISO 8601 duration
+  totalTime         String?           // ISO 8601 duration
+  entry             String?           // ab-initio, resume, ""
+  exitStatus        String?           // timeout, suspend, logout, normal, ""
+
+  // Interactions
+  interactions      Json?             // Array of SCORM interactions
+  objectives        Json?             // Array of SCORM objectives
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam              Exam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, examId, attemptId])
+  @@index([userId])
+  @@index([examId])
+  @@index([completionStatus])
+}
+
+// ==========================================
+// Accessibility Accommodations Model
+// ==========================================
+
+model AccessibilityAccommodation {
+  id                String            @id @default(cuid())
+  userId            String
+  examId            String?           // If null, applies to all exams
+
+  // Time accommodations
+  timeMultiplier    Float             @default(1.0) // 1.5 = time and a half, 2.0 = double time
+  breakInterval     Int?              // minutes between breaks
+  breakDuration     Int?              // minutes per break
+
+  // Display accommodations
+  fontSize          String?           // small, medium, large, x-large
+  highContrast      Boolean           @default(false)
+  colorBlindMode    String?           // protanopia, deuteranopia, tritanopia
+
+  // Input accommodations
+  screenReader      Boolean           @default(false)
+  keyboardOnly      Boolean           @default(false)
+
+  // Content accommodations
+  textToSpeech      Boolean           @default(false)
+  signLanguage      Boolean           @default(false)
+  brailleFormat     Boolean           @default(false)
+
+  // Documentation
+  documentationUrl  String?
+  approvedBy        String?
+  approvedAt        DateTime?
+  expiresAt         DateTime?
+
+  // Status
+  isActive          Boolean           @default(true)
+  notes             String?           @db.Text
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam              Exam?             @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([examId])
+  @@index([isActive])
 }

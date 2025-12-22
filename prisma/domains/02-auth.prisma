@@ -293,6 +293,19 @@ model User {
   studyGuides                StudyGuide[]
   learningActivityLogs       LearningActivityLog[]
   progressInterventions      ProgressIntervention[]
+
+  // Advanced Exam Evaluation System Relations (added December 2024)
+  integrityReports           IntegrityReport[]
+  proctorSessions            ProctorSession[]
+  reviewAssignments          ReviewAssignment[]
+  peerReviews                PeerReview[]
+  reviewerProfile            ReviewerProfile?
+  disputesCreated            ReviewDispute[] @relation("DisputeCreator")
+  disputesModerated          ReviewDispute[] @relation("DisputeModerator")
+  catSessions                CATSession[]
+  xAPIStatements             xAPIStatement[]
+  scormProgress              SCORMProgress[]
+  accessibilityAccommodations AccessibilityAccommodation[]
 }
 
 model Account {

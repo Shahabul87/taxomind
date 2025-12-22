@@ -274,6 +274,13 @@ model Exam {
   // Exam & Evaluation System - Enhanced Questions
   enhancedQuestions EnhancedQuestion[] @relation("ExamEnhancedQuestions")
 
+  // Advanced Exam Evaluation System Relations (added December 2024)
+  integrityReports            IntegrityReport[]
+  proctorSessions             ProctorSession[]
+  catItemBank                 CATItemBank[]
+  scormProgress               SCORMProgress[]
+  accessibilityAccommodations AccessibilityAccommodation[]
+
   @@index([sectionId])
   @@index([isPublished, isActive])
 }
