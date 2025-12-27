@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samResourceEngine } from "@/lib/sam-engines/content/sam-resource-engine";
-import { logger } from '@/lib/logger';
-import {
-  Topic,
+import { createResourceEngine } from "@sam-ai/educational";
+import type {
+  TopicForResource,
   ResourceDiscoveryConfig,
   StudentResourceProfile,
   ResourceType,
-} from "@/lib/sam-engines/content/sam-resource-engine";
+} from "@sam-ai/educational";
+import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { logger } from '@/lib/logger';
+
+// Create resource engine singleton with portable package
+let resourceEngine: ReturnType<typeof createResourceEngine> | null = null;
+
+function getResourceEngine() {
+  if (!resourceEngine) {
+    resourceEngine = createResourceEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return resourceEngine;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,7 +91,7 @@ async function handleDiscoverResources(data: any) {
     throw new Error("Topic name is required");
   }
 
-  const topicObj: Topic = {
+  const topicObj: TopicForResource = {
     id: topic.id || `topic-${Date.now()}`,
     name: topic.name,
     category: topic.category || "general",
@@ -103,7 +117,8 @@ async function handleDiscoverResources(data: any) {
     costFilter: config?.costFilter,
   };
 
-  return await samResourceEngine.discoverResources(topicObj, discoveryConfig);
+  const engine = getResourceEngine();
+  return await engine.discoverResources(topicObj, discoveryConfig);
 }
 
 async function handleQualityScore(data: any) {
@@ -113,7 +128,8 @@ async function handleQualityScore(data: any) {
     throw new Error("Resource URL is required");
   }
 
-  return await samResourceEngine.scoreResourceQuality(resource);
+  const engine = getResourceEngine();
+  return await engine.scoreResourceQuality(resource);
 }
 
 async function handleLicenseCheck(data: any) {
@@ -123,7 +139,8 @@ async function handleLicenseCheck(data: any) {
     throw new Error("Resource is required");
   }
 
-  return await samResourceEngine.checkLicenseCompatibility(
+  const engine = getResourceEngine();
+  return await engine.checkLicenseCompatibility(
     resource,
     intendedUse
   );
@@ -139,7 +156,8 @@ async function handleROIAnalysis(data: any, userId: string) {
   // Build learner profile
   const profile = await buildLearnerProfile(userId);
 
-  return await samResourceEngine.analyzeResourceROI(resource, profile);
+  const engine = getResourceEngine();
+  return await engine.analyzeResourceROI(resource, profile);
 }
 
 async function handlePersonalize(data: any, userId: string) {
@@ -152,7 +170,8 @@ async function handlePersonalize(data: any, userId: string) {
   // Build learner profile
   const profile = await buildLearnerProfile(userId);
 
-  return await samResourceEngine.personalizeRecommendations(
+  const engine = getResourceEngine();
+  return await engine.personalizeRecommendations(
     profile,
     resources
   );
@@ -237,7 +256,8 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type") || "recommendations";
 
     if (type === "recommendations" && topic) {
-      const recommendations = await samResourceEngine.getResourceRecommendations(
+      const engine = getResourceEngine();
+      const recommendations = await engine.getResourceRecommendations(
         session.user.id,
         topic
       );

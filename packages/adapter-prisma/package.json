@@ -1,0 +1,63 @@
+{
+  "name": "@sam-ai/adapter-prisma",
+  "version": "0.1.0",
+  "description": "Prisma database adapter for SAM AI - connects SAM to PostgreSQL, MySQL, SQLite, and other Prisma-supported databases",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "prisma"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@sam-ai/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@prisma/client": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.22.0",
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": [
+    "sam",
+    "ai",
+    "prisma",
+    "database",
+    "adapter",
+    "postgresql",
+    "mysql",
+    "sqlite",
+    "orm"
+  ],
+  "author": "Taxomind <dev@taxomind.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taxomind/sam-ai.git",
+    "directory": "packages/adapter-prisma"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

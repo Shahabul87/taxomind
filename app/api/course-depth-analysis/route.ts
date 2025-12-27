@@ -214,45 +214,134 @@ interface LegacyResource {
   type: string;
 }
 
-// SAM Blooms Analysis Engine Integration
+// SAM Blooms Analysis Engine Integration - Using Unified Engine
 async function analyzeBlooms(courseContent: LegacyCourseContent): Promise<FallbackBloomsAnalysis | Record<string, unknown>> {
   try {
-    // Import the Blooms engine directly instead of making HTTP calls
-    const { BloomsAnalysisEngine } = await import('@/lib/sam-engines/educational/sam-blooms-engine');
-    const engine = new BloomsAnalysisEngine();
+    // Use the unified Bloom's engine from @sam-ai/educational
+    const { createUnifiedBloomsEngine } = await import('@sam-ai/educational');
+    const { getSAMConfig, getDatabaseAdapter } = await import('@/lib/adapters');
+
+    const engine = createUnifiedBloomsEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+      defaultMode: 'standard',
+      confidenceThreshold: 0.7,
+      enableCache: true,
+      cacheTTL: 3600,
+    });
+
+    // Transform LegacyCourseContent to UnifiedCourseInput
+    const courseInput = {
+      id: courseContent.courseId,
+      title: courseContent.title,
+      description: courseContent.description,
+      chapters: courseContent.chapters.map((chapter, chapterIndex) => ({
+        id: `chapter-${chapterIndex}-${chapter.title.replace(/\s+/g, '-').toLowerCase()}`,
+        title: chapter.title,
+        position: chapter.position,
+        sections: chapter.sections.map((section, sectionIndex) => ({
+          id: `section-${sectionIndex}-${section.title.replace(/\s+/g, '-').toLowerCase()}`,
+          title: section.title,
+          content: chapter.description || '', // Use chapter description as content fallback
+          description: chapter.learningOutcome || '', // Use learning outcome as description
+          learningObjectives: [], // Legacy type doesn't have learning objectives
+        })),
+      })),
+    };
 
     // Perform comprehensive analysis
-    const analysis = await engine.analyzeCourse(
-      courseContent.courseId,
-      'detailed', // Use detailed analysis for comprehensive data
-      true // Include recommendations
-    );
+    const analysis = await engine.analyzeCourse(courseInput, {
+      depth: 'detailed',
+      includeRecommendations: true,
+      mode: 'standard',
+    });
 
-    interface ChapterBloomsResult {
-      chapterId: string;
-      chapterTitle: string;
-      primaryLevel: string;
-      cognitiveDepth: number;
-      bloomsDistribution: Record<string, number>;
-      sections: unknown[];
-    }
-
+    // Transform UnifiedCourseResult to FallbackBloomsAnalysis format
     return {
       distribution: analysis.courseLevel.distribution,
       cognitiveDepth: analysis.courseLevel.cognitiveDepth,
       balance: analysis.courseLevel.balance,
-      chapterAnalysis: analysis.chapterAnalysis,
-      learningPathway: analysis.learningPathway,
-      recommendations: analysis.recommendations,
-      studentImpact: analysis.studentImpact,
-      chapterInsights: (analysis.chapterAnalysis as unknown as ChapterBloomsResult[]).map((ch: ChapterBloomsResult) => ({
+      chapterAnalysis: analysis.chapters.map((ch) => ({
+        chapterId: ch.chapterId,
+        chapterTitle: ch.chapterTitle,
+        bloomsDistribution: ch.distribution,
+        primaryLevel: ch.primaryLevel,
+        cognitiveDepth: ch.cognitiveDepth,
+        sections: ch.sections.map((s) => ({
+          sectionId: s.id,
+          sectionTitle: s.title,
+          bloomsLevel: s.level,
+          activities: [],
+          learningObjectives: [],
+        })),
+      })),
+      learningPathway: analysis.learningPathway ? {
+        current: {
+          stages: analysis.learningPathway.stages.map((s) => ({
+            level: s.level,
+            mastery: s.mastery,
+            activities: s.activities,
+            timeEstimate: s.timeEstimate,
+          })),
+          currentStage: 0,
+          completionPercentage: 0,
+        },
+        recommended: {
+          stages: analysis.learningPathway.stages,
+          currentStage: 0,
+          completionPercentage: 100,
+        },
+        gaps: [],
+      } : {
+        current: { stages: [], currentStage: 0, completionPercentage: 0 },
+        recommended: { stages: [], currentStage: 0, completionPercentage: 0 },
+        gaps: [],
+      },
+      recommendations: {
+        contentAdjustments: analysis.recommendations
+          .filter((r) => r.type === 'content')
+          .map((r) => ({
+            type: 'modify' as const,
+            bloomsLevel: r.targetLevel,
+            description: r.description,
+            impact: r.priority === 'high' ? 'high' : r.priority === 'medium' ? 'medium' : 'low',
+          })),
+        assessmentChanges: analysis.recommendations
+          .filter((r) => r.type === 'assessment')
+          .map((r) => ({
+            type: 'add_questions',
+            bloomsLevel: r.targetLevel,
+            description: r.description,
+            examples: r.examples || [],
+          })),
+        activitySuggestions: analysis.recommendations
+          .filter((r) => r.type === 'activity')
+          .map((r) => ({
+            bloomsLevel: r.targetLevel,
+            activityType: 'practice',
+            description: r.description,
+            implementation: r.description,
+            expectedOutcome: r.expectedImpact || 'Improved learning outcomes',
+          })),
+      },
+      studentImpact: {
+        skillsDeveloped: [],
+        cognitiveGrowth: {
+          currentLevel: analysis.courseLevel.cognitiveDepth,
+          projectedLevel: Math.min(100, analysis.courseLevel.cognitiveDepth + 15),
+          timeframe: '4 weeks',
+          keyMilestones: ['Complete foundational content', 'Practice with exercises', 'Apply knowledge'],
+        },
+        careerAlignment: [],
+      },
+      chapterInsights: analysis.chapters.map((ch) => ({
         id: ch.chapterId,
         title: ch.chapterTitle,
         primaryLevel: ch.primaryLevel,
         score: ch.cognitiveDepth,
-        distribution: ch.bloomsDistribution,
-        sections: ch.sections
-      }))
+        distribution: ch.distribution,
+        sections: ch.sections,
+      })),
     };
   } catch (error) {
     logger.error('SAM Blooms analysis failed:', error);

@@ -1,7 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { samResearchEngine } from '@/lib/sam-engines/advanced/sam-research-engine';
+import { createResearchEngine } from '@sam-ai/educational';
+import type { ResearchDatabaseAdapter, ResearchPaper, ResearchCategory } from '@sam-ai/educational';
+import { getSAMConfig } from '@/lib/adapters';
+import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+
+// Create research-specific database adapter
+function createResearchDatabaseAdapter(): ResearchDatabaseAdapter {
+  return {
+    async createInteraction(data: {
+      userId: string;
+      interactionType: string;
+      context?: Record<string, unknown>;
+    }): Promise<void> {
+      // Map to valid SAMInteractionType
+      type SAMInteractionType = 'NAVIGATION' | 'FORM_POPULATE' | 'FORM_SUBMIT' | 'FORM_VALIDATE' | 'CONTENT_GENERATE' | 'CHAT_MESSAGE' | 'QUICK_ACTION' | 'ANALYTICS_VIEW' | 'GAMIFICATION_ACTION' | 'LEARNING_ASSISTANCE';
+      const validType: SAMInteractionType = 'CONTENT_GENERATE';
+
+      await db.sAMInteraction.create({
+        data: {
+          userId: data.userId,
+          interactionType: validType,
+          context: data.context ?? {},
+        }
+      });
+    }
+  };
+}
+
+// Lazy initialization of research engine to avoid build-time errors
+let _researchEngine: ReturnType<typeof createResearchEngine> | null = null;
+
+function getResearchEngine() {
+  if (!_researchEngine) {
+    _researchEngine = createResearchEngine({
+      samConfig: getSAMConfig(),
+      database: createResearchDatabaseAdapter(),
+    });
+  }
+  return _researchEngine;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -24,7 +63,7 @@ export async function GET(req: NextRequest) {
         const sort = searchParams.get('sort') as any;
         const limit = searchParams.get('limit');
 
-        const papers = await samResearchEngine.searchPapers({
+        const papers = await getResearchEngine().searchPapers({
           query,
           filters: {
             categories,
@@ -41,7 +80,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'trends': {
-        const trends = await samResearchEngine.getResearchTrends();
+        const trends = await getResearchEngine().getResearchTrends();
         return NextResponse.json({ trends });
       }
 
@@ -51,7 +90,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Paper ID required' }, { status: 400 });
         }
 
-        const paper = await samResearchEngine.getPaperDetails(paperId);
+        const paper = await getResearchEngine().getPaperDetails(paperId);
         if (!paper) {
           return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
         }
@@ -67,7 +106,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Paper ID required' }, { status: 400 });
         }
 
-        const network = await samResearchEngine.getCitationNetwork(
+        const network = await getResearchEngine().getCitationNetwork(
           paperId,
           depth ? parseInt(depth) : 1
         );
@@ -88,7 +127,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Paper ID required' }, { status: 400 });
         }
 
-        const recommendations = await samResearchEngine.recommendPapers(
+        const recommendations = await getResearchEngine().recommendPapers(
           paperId,
           count ? parseInt(count) : 5
         );
@@ -100,7 +139,7 @@ export async function GET(req: NextRequest) {
         const difficulty = searchParams.get('difficulty') || undefined;
         const prerequisites = searchParams.get('prerequisites')?.split(',').filter(Boolean) || undefined;
 
-        const papers = await samResearchEngine.getEducationalPapers(
+        const papers = await getResearchEngine().getEducationalPapers(
           difficulty,
           prerequisites
         );
@@ -112,18 +151,18 @@ export async function GET(req: NextRequest) {
         const field = searchParams.get('field') || 'AI';
         const timeframe = searchParams.get('timeframe') as any || 'month';
 
-        const metrics = await samResearchEngine.getMetrics(field, timeframe);
+        const metrics = await getResearchEngine().getMetrics(field, timeframe);
         return NextResponse.json({ metrics });
       }
 
       case 'reading-lists': {
-        const lists = await samResearchEngine.getReadingLists(session.user.id);
+        const lists = await getResearchEngine().getReadingLists(session.user.id);
         return NextResponse.json({ lists });
       }
 
       default: {
         // Default: search all papers
-        const papers = await samResearchEngine.searchPapers({ query: '' });
+        const papers = await getResearchEngine().searchPapers({ query: '' });
         return NextResponse.json({ papers });
       }
     }
@@ -154,7 +193,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Topic and scope required' }, { status: 400 });
         }
 
-        const review = await samResearchEngine.generateLiteratureReview(
+        const review = await getResearchEngine().generateLiteratureReview(
           topic,
           scope,
           paperIds
@@ -170,7 +209,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        const list = await samResearchEngine.createReadingList(
+        const list = await getResearchEngine().createReadingList(
           session.user.id,
           name,
           description,
@@ -188,7 +227,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        await samResearchEngine.recordInteraction(
+        await getResearchEngine().recordInteraction(
           session.user.id,
           paperId,
           interactionType
@@ -207,7 +246,7 @@ export async function POST(req: NextRequest) {
 
         // Get all papers
         const papers = await Promise.all(
-          paperIds.map(id => samResearchEngine.getPaperDetails(id))
+          paperIds.map(id => getResearchEngine().getPaperDetails(id))
         );
 
         const validPapers = papers.filter(p => p !== null);
@@ -241,7 +280,7 @@ export async function POST(req: NextRequest) {
         // Generate BibTeX entries
         const bibtexEntries = await Promise.all(
           paperIds.map(async (id) => {
-            const paper = await samResearchEngine.getPaperDetails(id);
+            const paper = await getResearchEngine().getPaperDetails(id);
             if (!paper) return null;
             return generateBibtex(paper);
           })
@@ -265,7 +304,26 @@ export async function POST(req: NextRequest) {
 }
 
 // Helper functions for analysis
-function analyzeTrends(papers: any[]): any {
+interface TrendAnalysis {
+  yearlyDistribution: Record<string, number>;
+  categoryDistribution: Record<string, number>;
+  topKeywords: Array<{ keyword: string; count: number }>;
+  growthRate: number;
+}
+
+interface GapAnalysis {
+  potentialGaps: string[];
+  underexploredAreas: string[];
+  methodologyGaps: string;
+}
+
+interface CollaborationAnalysis {
+  totalCollaborations: number;
+  topCollaborations: Array<{ institutions: string; count: number }>;
+  collaborationIntensity: number;
+}
+
+function analyzeTrends(papers: ResearchPaper[]): TrendAnalysis {
   const yearCounts = new Map<number, number>();
   const categoryCounts = new Map<string, number>();
   const keywordFrequency = new Map<string, number>();
@@ -295,13 +353,11 @@ function analyzeTrends(papers: any[]): any {
   };
 }
 
-function analyzeGaps(papers: any[]): any {
+function analyzeGaps(papers: ResearchPaper[]): GapAnalysis {
   // Simplified gap analysis
-  const allKeywords = new Set<string>();
   const methodologies = new Set<string>();
-  
+
   papers.forEach(paper => {
-    paper.keywords.forEach((k: string) => allKeywords.add(k));
     paper.methodology.forEach((m: string) => methodologies.add(m));
   });
 
@@ -316,19 +372,18 @@ function analyzeGaps(papers: any[]): any {
       'Long-term impact studies',
       'Interdisciplinary approaches'
     ],
-    methodologyGaps: Array.from(methodologies).length < 5 
-      ? 'Limited methodological diversity' 
+    methodologyGaps: Array.from(methodologies).length < 5
+      ? 'Limited methodological diversity'
       : 'Good methodological coverage'
   };
 }
 
-function analyzeCollaboration(papers: any[]): any {
+function analyzeCollaboration(papers: ResearchPaper[]): CollaborationAnalysis {
   const institutionPairs = new Map<string, number>();
-  const internationalCollabs = new Set<string>();
 
   papers.forEach(paper => {
-    const institutions = paper.authors.map((a: any) => a.affiliation);
-    
+    const institutions = paper.authors.map(a => a.affiliation);
+
     // Count institution pairs
     for (let i = 0; i < institutions.length; i++) {
       for (let j = i + 1; j < institutions.length; j++) {
@@ -351,20 +406,22 @@ function analyzeCollaboration(papers: any[]): any {
 function calculateGrowthRate(yearCounts: Map<number, number>): number {
   const years = Array.from(yearCounts.keys()).sort();
   if (years.length < 2) return 0;
-  
+
   const firstYear = yearCounts.get(years[0]) || 0;
   const lastYear = yearCounts.get(years[years.length - 1]) || 0;
-  
+
   return ((lastYear - firstYear) / firstYear) * 100;
 }
 
-function generateBibtex(paper: any): string {
+function generateBibtex(paper: ResearchPaper): string {
   const type = paper.publication.type === 'journal' ? '@article' : '@inproceedings';
-  const key = paper.authors[0].name.split(' ').pop() + paper.publishDate.getFullYear();
-  
+  const nameParts = paper.authors[0]?.name.split(' ') ?? ['Unknown'];
+  const lastName = nameParts[nameParts.length - 1] ?? 'Unknown';
+  const key = lastName + paper.publishDate.getFullYear();
+
   return `${type}{${key},
   title={${paper.title}},
-  author={${paper.authors.map((a: any) => a.name).join(' and ')}},
+  author={${paper.authors.map(a => a.name).join(' and ')}},
   year={${paper.publishDate.getFullYear()}},
   ${paper.publication.type === 'journal' ? 'journal' : 'booktitle'}={${paper.publication.venue}},
   ${paper.publication.doi ? `doi={${paper.publication.doi}},` : ''}

@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
-import { samEvaluationEngine } from '@/lib/sam-engines/educational/sam-evaluation-engine';
+import { createEvaluationEngine } from '@sam-ai/educational';
+import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { BloomsLevel } from '@prisma/client';
+import { logger } from '@/lib/logger';
+
+// Create evaluation engine singleton with portable package
+let evaluationEngine: ReturnType<typeof createEvaluationEngine> | null = null;
+
+function getEvaluationEngine() {
+  if (!evaluationEngine) {
+    evaluationEngine = createEvaluationEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return evaluationEngine;
+}
 
 // ==========================================
 // SAM Grading Assistance API Route
@@ -77,7 +92,8 @@ export async function POST(request: Request) {
 
         const validatedData = GradingAssistanceSchema.parse(body.data);
 
-        const assistance = await samEvaluationEngine.getGradingAssistance(
+        const engine = getEvaluationEngine();
+        const assistance = await engine.getGradingAssistance(
           validatedData.questionText,
           validatedData.expectedAnswer,
           validatedData.studentAnswer,
@@ -88,6 +104,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: true,
           assistance,
+          metadata: { engine: '@sam-ai/educational' },
         });
       }
 
@@ -95,7 +112,8 @@ export async function POST(request: Request) {
         // Students can ask for explanations about their results
         const validatedData = ExplanationRequestSchema.parse(body.data);
 
-        const explanation = await samEvaluationEngine.explainResultToStudent(
+        const engine = getEvaluationEngine();
+        const explanation = await engine.explainResultToStudent(
           validatedData.question,
           validatedData.questionResult as any,
           validatedData.studentName || user.name || 'Student'
@@ -104,6 +122,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: true,
           explanation,
+          metadata: { engine: '@sam-ai/educational' },
         });
       }
 
@@ -118,7 +137,8 @@ export async function POST(request: Request) {
 
         const validatedData = TeacherChatSchema.parse(body.data);
 
-        const response = await samEvaluationEngine.assistTeacherGrading(
+        const engine = getEvaluationEngine();
+        const response = await engine.assistTeacherGrading(
           validatedData.question,
           validatedData.gradingContext as any
         );
@@ -126,6 +146,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: true,
           response,
+          metadata: { engine: '@sam-ai/educational' },
         });
       }
 
@@ -136,7 +157,7 @@ export async function POST(request: Request) {
         );
     }
   } catch (error) {
-    console.error('Error in SAM assist:', error);
+    logger.error('Error in SAM assist:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

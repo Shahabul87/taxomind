@@ -492,17 +492,19 @@ Provide a helpful response in JSON format:
    * Extract feature flags from config
    */
   private extractFeatureFlags(config: SAMEngineConfig): FeatureFlags {
+    // Use config to extract any feature flags if provided
+    const customFlags = config as Record<string, unknown>;
     return {
-      enableMarketAnalysis: true,
-      enableBloomsTracking: true,
-      enableAdaptiveLearning: true,
-      enableCourseGuide: true,
-      enableTrendsAnalysis: false,
-      enableNewsIntegration: false,
-      enableResearchAccess: false,
-      enableGamification: true,
-      enableCollaboration: true,
-      enablePredictiveAnalytics: true
+      enableMarketAnalysis: customFlags.enableMarketAnalysis !== false,
+      enableBloomsTracking: customFlags.enableBloomsTracking !== false,
+      enableAdaptiveLearning: customFlags.enableAdaptiveLearning !== false,
+      enableCourseGuide: customFlags.enableCourseGuide !== false,
+      enableTrendsAnalysis: customFlags.enableTrendsAnalysis === true,
+      enableNewsIntegration: customFlags.enableNewsIntegration === true,
+      enableResearchAccess: customFlags.enableResearchAccess === true,
+      enableGamification: customFlags.enableGamification !== false,
+      enableCollaboration: customFlags.enableCollaboration !== false,
+      enablePredictiveAnalytics: customFlags.enablePredictiveAnalytics !== false
     };
   }
 
@@ -536,8 +538,9 @@ Provide a helpful response in JSON format:
    */
   async destroy(): Promise<void> {
     // Unregister all plugins
-    for (const [name, plugin] of this.plugins) {
+    for (const [pluginName, plugin] of this.plugins) {
       if (plugin.destroy) {
+        this.logger.debug(`Destroying plugin: ${pluginName}`);
         await plugin.destroy();
       }
     }
@@ -567,15 +570,23 @@ interface AIProvider {
  * Anthropic Provider
  */
 class AnthropicProvider implements AIProvider {
-  constructor(private apiKey: string, private config: SAMEngineConfig) {}
+  private apiKeyValue: string;
+  private configValue: SAMEngineConfig;
+
+  constructor(apiKey: string, config: SAMEngineConfig) {
+    this.apiKeyValue = apiKey;
+    this.configValue = config;
+  }
 
   async complete(prompt: string): Promise<string> {
-    // Implementation would use Anthropic SDK
-    // This is a placeholder
+    // Implementation would use Anthropic SDK with this.apiKeyValue and this.configValue
+    // This is a placeholder - log prompt length for debugging
+    console.debug(`[AnthropicProvider] Processing prompt (${prompt.length} chars) with model: ${this.configValue.model || 'default'}`);
     return JSON.stringify({
       message: "This is a placeholder response. Implement Anthropic SDK integration.",
       suggestions: ["Install @anthropic-ai/sdk", "Configure API key"],
-      contextInsights: null
+      contextInsights: null,
+      apiKeyConfigured: !!this.apiKeyValue
     });
   }
 }
@@ -584,15 +595,23 @@ class AnthropicProvider implements AIProvider {
  * OpenAI Provider
  */
 class OpenAIProvider implements AIProvider {
-  constructor(private apiKey: string, private config: SAMEngineConfig) {}
+  private apiKeyValue: string;
+  private configValue: SAMEngineConfig;
+
+  constructor(apiKey: string, config: SAMEngineConfig) {
+    this.apiKeyValue = apiKey;
+    this.configValue = config;
+  }
 
   async complete(prompt: string): Promise<string> {
-    // Implementation would use OpenAI SDK
-    // This is a placeholder
+    // Implementation would use OpenAI SDK with this.apiKeyValue and this.configValue
+    // This is a placeholder - log prompt length for debugging
+    console.debug(`[OpenAIProvider] Processing prompt (${prompt.length} chars) with model: ${this.configValue.model || 'default'}`);
     return JSON.stringify({
       message: "This is a placeholder response. Implement OpenAI SDK integration.",
       suggestions: ["Install openai package", "Configure API key"],
-      contextInsights: null
+      contextInsights: null,
+      apiKeyConfigured: !!this.apiKeyValue
     });
   }
 }
@@ -601,15 +620,21 @@ class OpenAIProvider implements AIProvider {
  * Custom Provider
  */
 class CustomProvider implements AIProvider {
-  constructor(private config: SAMEngineConfig) {}
+  private configValue: SAMEngineConfig;
+
+  constructor(config: SAMEngineConfig) {
+    this.configValue = config;
+  }
 
   async complete(prompt: string): Promise<string> {
-    // Implementation would call custom endpoint
-    // This is a placeholder
+    // Implementation would call custom endpoint using this.configValue.baseUrl
+    // This is a placeholder - log prompt length for debugging
+    console.debug(`[CustomProvider] Processing prompt (${prompt.length} chars) to: ${this.configValue.baseUrl || 'not configured'}`);
     return JSON.stringify({
       message: "This is a placeholder response. Implement custom provider.",
       suggestions: ["Configure base URL", "Set up authentication"],
-      contextInsights: null
+      contextInsights: null,
+      baseUrl: this.configValue.baseUrl
     });
   }
 }

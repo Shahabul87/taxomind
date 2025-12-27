@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samPersonalizationEngine } from "@/lib/sam-engines/educational/sam-personalization-engine";
+import { createPersonalizationEngine } from "@sam-ai/educational";
+import type { LearningBehavior, PersonalizationContext } from "@sam-ai/educational";
+import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
-import {
-  LearningBehavior,
-  PersonalizationContext,
-} from "@/lib/sam-engines/educational/sam-personalization-engine";
+
+// Create personalization engine singleton with portable package
+let personalizationEngine: ReturnType<typeof createPersonalizationEngine> | null = null;
+
+function getPersonalizationEngine() {
+  if (!personalizationEngine) {
+    personalizationEngine = createPersonalizationEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return personalizationEngine;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -73,13 +84,15 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleDetectLearningStyle(data: any, userId: string) {
+  const engine = getPersonalizationEngine();
   const behavior = await buildLearningBehavior(data.userId || userId);
-  return await samPersonalizationEngine.detectLearningStyle(behavior);
+  return await engine.detectLearningStyle(behavior);
 }
 
 async function handleOptimizeCognitiveLoad(data: any, userId: string) {
+  const engine = getPersonalizationEngine();
   const { content } = data;
-  
+
   if (!content) {
     throw new Error("Content is required");
   }
@@ -95,25 +108,36 @@ async function handleOptimizeCognitiveLoad(data: any, userId: string) {
     throw new Error("Student not found");
   }
 
-  return await samPersonalizationEngine.optimizeCognitiveLoad(content, student);
+  // Transform to StudentInfo type for portable engine
+  const studentInfo = {
+    id: student.id,
+    name: student.name ?? undefined,
+    samLearningProfile: student.samLearningProfile,
+  };
+
+  return await engine.optimizeCognitiveLoad(content, studentInfo);
 }
 
 async function handleRecognizeEmotionalState(data: any, userId: string) {
+  const engine = getPersonalizationEngine();
   const interactions = await getRecentInteractions(data.userId || userId);
-  return await samPersonalizationEngine.recognizeEmotionalState(interactions);
+  return await engine.recognizeEmotionalState(interactions);
 }
 
 async function handleAnalyzeMotivation(data: any, userId: string) {
+  const engine = getPersonalizationEngine();
   const history = await buildLearningHistory(data.userId || userId);
-  return await samPersonalizationEngine.analyzeMotivationPatterns(history);
+  return await engine.analyzeMotivationPatterns(history);
 }
 
 async function handleGenerateLearningPath(data: any, userId: string) {
+  const engine = getPersonalizationEngine();
   const profile = await buildStudentProfile(data.userId || userId);
-  return await samPersonalizationEngine.generatePersonalizedPath(profile);
+  return await engine.generatePersonalizedPath(profile);
 }
 
 async function handleApplyPersonalization(data: any, userId: string) {
+  const engine = getPersonalizationEngine();
   const context: PersonalizationContext = {
     userId: data.userId || userId,
     currentContent: data.currentContent,
@@ -122,7 +146,7 @@ async function handleApplyPersonalization(data: any, userId: string) {
     preferenceOverrides: data.preferenceOverrides,
   };
 
-  return await samPersonalizationEngine.applyPersonalization(context);
+  return await engine.applyPersonalization(context);
 }
 
 async function buildLearningBehavior(userId: string): Promise<LearningBehavior> {
@@ -261,15 +285,15 @@ async function buildStudentProfile(userId: string) {
     }));
 
   // Extract career goals from enrollments
-  const careerGoals = user.Enrollment.map((e: any) => e.Course.title).slice(0, 3);
+  const careerGoals: string[] = user.Enrollment.map((e: { Course: { title: string } }) => e.Course.title).slice(0, 3);
 
   // Determine learning pace
   const avgProgress = progress.reduce(
     (sum, p) => sum + (p.progressPercent || 0),
     0
   ) / Math.max(1, progress.length);
-  
-  const learningPace = avgProgress > 80 ? "fast" : avgProgress > 50 ? "normal" : "slow";
+
+  const learningPace: 'slow' | 'normal' | 'fast' = avgProgress > 80 ? "fast" : avgProgress > 50 ? "normal" : "slow";
 
   return {
     userId,

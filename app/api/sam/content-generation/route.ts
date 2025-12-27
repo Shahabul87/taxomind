@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samGenerationEngine } from "@/lib/sam-engines/content/sam-generation-engine";
+import { createContentGenerationEngine } from "@sam-ai/educational";
+import type { LearningObjectiveInput, GenerationConfig } from "@sam-ai/educational";
+import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import { SAMGuards } from '@/lib/premium';
-import {
-  LearningObjective,
-  GenerationConfig,
-} from "@/lib/sam-engines/content/sam-generation-engine";
+
+// Create content generation engine singleton with portable package
+let contentEngine: ReturnType<typeof createContentGenerationEngine> | null = null;
+
+function getContentGenerationEngine() {
+  if (!contentEngine) {
+    contentEngine = createContentGenerationEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return contentEngine;
+}
 
 // Content Generation is a premium-only feature
 export const POST = SAMGuards.contentGeneration(async (req, context) => {
@@ -73,7 +84,7 @@ async function handleGenerateCourse(data: any) {
     throw new Error("Learning objectives are required");
   }
 
-  const learningObjectives: LearningObjective[] = objectives.map((obj: any) => ({
+  const learningObjectives: LearningObjectiveInput[] = objectives.map((obj: any) => ({
     id: obj.id || `obj-${Date.now()}-${Math.random()}`,
     objective: obj.objective,
     bloomsLevel: obj.bloomsLevel || "understand",
@@ -91,7 +102,8 @@ async function handleGenerateCourse(data: any) {
     constraints: config?.constraints,
   };
 
-  return await samGenerationEngine.generateCourseContent(
+  const engine = getContentGenerationEngine();
+  return await engine.generateCourseContent(
     learningObjectives,
     generationConfig
   );
@@ -114,7 +126,8 @@ async function handleCreateAssessments(data: any) {
     keywords: topic.keywords || [],
   }));
 
-  return await samGenerationEngine.createAssessments(
+  const engine = getContentGenerationEngine();
+  return await engine.createAssessments(
     topicObjects,
     assessmentType,
     config
@@ -163,7 +176,8 @@ async function handleGenerateStudyGuide(data: any, userId: string) {
     difficulty: course.difficulty?.toString() as string | undefined,
   };
 
-  return await samGenerationEngine.generateStudyGuides(courseForSAM as any);
+  const engine = getContentGenerationEngine();
+  return await engine.generateStudyGuides(courseForSAM as any);
 }
 
 async function handleCreateExercises(data: any) {
@@ -184,7 +198,8 @@ async function handleCreateExercises(data: any) {
     skills: concept.skills || [],
   }));
 
-  return await samGenerationEngine.createInteractiveExercises(
+  const engine = getContentGenerationEngine();
+  return await engine.createInteractiveExercises(
     conceptObjects,
     exerciseType
   );
@@ -201,7 +216,8 @@ async function handleTranslateContent(data: any) {
     throw new Error("Target language is required");
   }
 
-  return await samGenerationEngine.adaptContentLanguage(
+  const engine = getContentGenerationEngine();
+  return await engine.adaptContentLanguage(
     content,
     targetLanguage
   );

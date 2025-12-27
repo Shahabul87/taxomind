@@ -169,6 +169,8 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     const entitySummary = metadata.entitySummary as string | undefined;
     const formSummary = metadata.formSummary as string | undefined;
     const courseTitle = metadata.courseTitle as string | undefined;
+    const memorySummary = metadata.memorySummary as string | undefined;
+    const reviewSummary = metadata.reviewSummary as string | undefined;
 
     let prompt = `You are ${name}, an intelligent AI tutor assistant for an educational platform. Be ${tone}.
 
@@ -209,6 +211,20 @@ ${entitySummary}
       prompt += `
 ## Form Fields
 ${formSummary}
+`;
+    }
+
+    if (memorySummary) {
+      prompt += `
+## Student Memory Summary
+${memorySummary}
+`;
+    }
+
+    if (reviewSummary) {
+      prompt += `
+## Review Schedule
+${reviewSummary}
 `;
     }
 

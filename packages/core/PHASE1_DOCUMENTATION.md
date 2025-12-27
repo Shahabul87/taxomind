@@ -355,12 +355,12 @@ Utilities:
 import {
   createOrchestrator,
   createContextEngine,
-  createBloomsEngine,
   createResponseEngine,
   createAnthropicAdapter,
   createMemoryCache,
   createSAMConfig,
 } from '@sam-ai/core';
+import { createUnifiedBloomsEngine } from '@sam-ai/educational';
 
 // Create configuration
 const config = createSAMConfig({
@@ -372,8 +372,15 @@ const config = createSAMConfig({
 // Create orchestrator and register engines
 const orchestrator = createOrchestrator(config);
 orchestrator.registerEngine(createContextEngine(config));
-orchestrator.registerEngine(createBloomsEngine(config));
 orchestrator.registerEngine(createResponseEngine(config));
+
+// Unified Bloom's analysis (recommended)
+const bloomsEngine = createUnifiedBloomsEngine({
+  samConfig: config,
+  defaultMode: 'standard',
+  confidenceThreshold: 0.7,
+  enableCache: true,
+});
 ```
 
 ### 2. Running Analysis
@@ -401,7 +408,8 @@ const result = await orchestrator.orchestrate(
 );
 
 console.log(result.response.message);
-console.log(result.response.blooms?.dominantLevel);
+const blooms = await bloomsEngine.analyze('Analyze this course structure');
+console.log(blooms.dominantLevel);
 ```
 
 ### 3. State Machine Usage

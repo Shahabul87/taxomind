@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { samTrendsEngine } from '@/lib/sam-engines/advanced/sam-trends-engine';
+import { createTrendsEngine } from '@sam-ai/educational';
+import type { TrendAnalysis } from '@sam-ai/educational';
+import { getSAMConfig, createTrendsAdapter } from '@/lib/adapters';
+import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+
+// Lazy initialization of trends engine to avoid build-time errors
+let _trendsEngine: ReturnType<typeof createTrendsEngine> | null = null;
+
+function getTrendsEngine() {
+  if (!_trendsEngine) {
+    _trendsEngine = createTrendsEngine({
+      samConfig: getSAMConfig(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      database: createTrendsAdapter(db as any),
+    });
+  }
+  return _trendsEngine;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,11 +33,11 @@ export async function GET(req: NextRequest) {
     switch (action) {
       case 'analyze': {
         const category = searchParams.get('category') || undefined;
-        const timeframe = searchParams.get('timeframe') as any;
-        const impact = searchParams.get('impact') as any;
+        const timeframe = searchParams.get('timeframe') as 'emerging' | 'current' | 'declining' | undefined;
+        const impact = searchParams.get('impact') as 'low' | 'medium' | 'high' | 'transformative' | undefined;
         const minRelevance = searchParams.get('minRelevance');
 
-        const trends = await samTrendsEngine.analyzeTrends({
+        const trends = await getTrendsEngine().analyzeTrends({
           category,
           timeframe,
           impact,
@@ -31,7 +48,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'categories': {
-        const categories = await samTrendsEngine.getTrendCategories();
+        const categories = await getTrendsEngine().getTrendCategories();
         return NextResponse.json({ categories });
       }
 
@@ -41,31 +58,31 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Trend ID required' }, { status: 400 });
         }
 
-        const signals = await samTrendsEngine.detectMarketSignals(trendId);
+        const signals = await getTrendsEngine().detectMarketSignals(trendId);
         return NextResponse.json({ signals });
       }
 
       case 'compare': {
         const trendId1 = searchParams.get('trendId1');
         const trendId2 = searchParams.get('trendId2');
-        
+
         if (!trendId1 || !trendId2) {
           return NextResponse.json({ error: 'Two trend IDs required' }, { status: 400 });
         }
 
-        const comparison = await samTrendsEngine.compareTrends(trendId1, trendId2);
+        const comparison = await getTrendsEngine().compareTrends(trendId1, trendId2);
         return NextResponse.json({ comparison });
       }
 
       case 'predict': {
         const trendId = searchParams.get('trendId');
-        const horizon = searchParams.get('horizon') as any;
-        
+        const horizon = searchParams.get('horizon') as '3months' | '6months' | '1year' | '2years' | null;
+
         if (!trendId || !horizon) {
           return NextResponse.json({ error: 'Trend ID and horizon required' }, { status: 400 });
         }
 
-        const prediction = await samTrendsEngine.predictTrendTrajectory(trendId, horizon);
+        const prediction = await getTrendsEngine().predictTrendTrajectory(trendId, horizon);
         return NextResponse.json({ prediction });
       }
 
@@ -75,7 +92,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Industry required' }, { status: 400 });
         }
 
-        const report = await samTrendsEngine.generateIndustryReport(industry);
+        const report = await getTrendsEngine().generateIndustryReport(industry);
         return NextResponse.json({ report });
       }
 
@@ -85,28 +102,28 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Search query required' }, { status: 400 });
         }
 
-        const results = await samTrendsEngine.searchTrends(query);
+        const results = await getTrendsEngine().searchTrends(query);
         return NextResponse.json({ results });
       }
 
       case 'trending': {
-        const trending = await samTrendsEngine.getTrendingNow();
+        const trending = await getTrendsEngine().getTrendingNow();
         return NextResponse.json({ trending });
       }
 
       case 'emerging': {
-        const emerging = await samTrendsEngine.getEmergingTrends();
+        const emerging = await getTrendsEngine().getEmergingTrends();
         return NextResponse.json({ emerging });
       }
 
       case 'educational': {
-        const educational = await samTrendsEngine.getEducationalTrends();
+        const educational = await getTrendsEngine().getEducationalTrends();
         return NextResponse.json({ educational });
       }
 
       default: {
         // Default: get all trends
-        const trends = await samTrendsEngine.analyzeTrends();
+        const trends = await getTrendsEngine().analyzeTrends();
         return NextResponse.json({ trends });
       }
     }
@@ -132,12 +149,12 @@ export async function POST(req: NextRequest) {
     switch (action) {
       case 'record-interaction': {
         const { trendId, interactionType } = params;
-        
+
         if (!trendId || !interactionType) {
           return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        await samTrendsEngine.recordInteraction(
+        await getTrendsEngine().recordInteraction(
           session.user.id,
           trendId,
           interactionType
@@ -148,10 +165,10 @@ export async function POST(req: NextRequest) {
 
       case 'analyze-custom': {
         // For more complex analysis with custom parameters
-        const trends = await samTrendsEngine.analyzeTrends(params.filter);
-        
+        const trends = await getTrendsEngine().analyzeTrends(params.filter);
+
         // Additional processing could go here
-        const enrichedTrends = trends.map(trend => ({
+        const enrichedTrends = trends.map((trend: TrendAnalysis) => ({
           ...trend,
           userRelevance: calculateUserRelevance(trend, session.user)
         }));
@@ -172,14 +189,18 @@ export async function POST(req: NextRequest) {
 }
 
 // Helper function to calculate user-specific relevance
-function calculateUserRelevance(trend: any, user: any): number {
+interface UserWithRole {
+  role?: string;
+}
+
+function calculateUserRelevance(trend: TrendAnalysis, user: UserWithRole): number {
   // This could be enhanced with user preferences, history, etc.
   let relevance = trend.relevance;
-  
+
   // Boost educational trends for student users
   if (user.role === 'USER' && trend.educationalImplications?.length > 0) {
     relevance += 10;
   }
-  
+
   return Math.min(relevance, 100);
 }

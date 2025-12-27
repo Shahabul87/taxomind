@@ -2,6 +2,12 @@
  * SAM Unified API Route
  * Uses @sam-ai/core orchestrator with all 6 engines
  * Now with FULL context awareness - fetches actual entity data!
+ *
+ * UPDATED: Now integrates:
+ * - Unified Blooms Engine (AI-powered, not keyword-only)
+ * - Quality Gates Pipeline (content validation)
+ * - Pedagogy Checks (Bloom&apos;s alignment, scaffolding, ZPD)
+ * - Memory Integration (mastery tracking, spaced repetition)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,18 +23,54 @@ import {
   createAnthropicAdapter,
   createMemoryCache,
   createContextEngine,
-  createBloomsEngine,
   createContentEngine,
   createPersonalizationEngine,
+  createAssessmentEngine,
   createResponseEngine,
   type SAMConfig,
   type SAMContext,
   type SAMPageType,
   type SAMFormField,
-} from '@/packages/core/src';
+  type BloomsEngineOutput,
+} from '@sam-ai/core';
+
+// Import Unified Blooms Engine from @sam-ai/educational (replaces core keyword-only engine)
+import {
+  createUnifiedBloomsAdapterEngine,
+} from '@sam-ai/educational';
 
 // Import entity context service for REAL context awareness
 import { buildEntityContext, buildFormSummary } from '@/lib/sam/entity-context';
+
+// Import Prisma database adapter for SAM
+import { createPrismaSAMAdapter } from '@/lib/sam/adapters';
+
+// Import Quality Gates Pipeline for content validation
+import {
+  createQualityGatePipeline,
+  type ContentQualityGatePipeline,
+  type GeneratedContent,
+  type ValidationResult as QualityValidationResult,
+} from '@/lib/sam/quality-gates';
+
+// Import Pedagogy Pipeline for educational effectiveness
+import {
+  createPedagogicalPipeline,
+  type PedagogicalPipeline,
+  type PedagogicalPipelineResult,
+} from '@/lib/sam/pedagogical';
+
+// Import Memory Integration for mastery tracking
+import {
+  createSpacedRepetitionScheduler,
+  createMasteryTracker,
+  getDefaultStudentProfileStore,
+  getDefaultReviewScheduleStore,
+  buildMemorySummary,
+  type SpacedRepetitionScheduler,
+  type MasteryTracker,
+  type EvaluationOutcome,
+} from '@/lib/sam/memory';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -108,15 +150,36 @@ const UnifiedRequestSchema = z.object({
 });
 
 // ============================================================================
-// ORCHESTRATOR SINGLETON
+// ORCHESTRATOR SINGLETON & SUBSYSTEMS
 // ============================================================================
 
 let orchestrator: SAMAgentOrchestrator | null = null;
 let samConfig: SAMConfig | null = null;
+let qualityPipeline: ContentQualityGatePipeline | null = null;
+let pedagogyPipeline: PedagogicalPipeline | null = null;
+let masteryTracker: MasteryTracker | null = null;
+let spacedRepScheduler: SpacedRepetitionScheduler | null = null;
 
-function getOrchestrator(): SAMAgentOrchestrator {
-  if (orchestrator) {
-    return orchestrator;
+/**
+ * Initialize all subsystems (orchestrator, quality gates, pedagogy, memory)
+ */
+function initializeSubsystems(): {
+  orchestrator: SAMAgentOrchestrator;
+  config: SAMConfig;
+  quality: ContentQualityGatePipeline;
+  pedagogy: PedagogicalPipeline;
+  mastery: MasteryTracker;
+  spacedRep: SpacedRepetitionScheduler;
+} {
+  if (orchestrator && samConfig && qualityPipeline && pedagogyPipeline && masteryTracker && spacedRepScheduler) {
+    return {
+      orchestrator,
+      config: samConfig,
+      quality: qualityPipeline,
+      pedagogy: pedagogyPipeline,
+      mastery: masteryTracker,
+      spacedRep: spacedRepScheduler,
+    };
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -138,10 +201,14 @@ function getOrchestrator(): SAMAgentOrchestrator {
     defaultTTL: 300,
   });
 
+  // Create database adapter for Prisma
+  const databaseAdapter = createPrismaSAMAdapter();
+
   // Create SAM configuration
   samConfig = createSAMConfig({
     ai: aiAdapter,
     cache: cacheAdapter,
+    database: databaseAdapter,
     logger: {
       debug: (msg, ...args) => logger.debug(msg, ...args),
       info: (msg, ...args) => logger.info(msg, ...args),
@@ -149,12 +216,12 @@ function getOrchestrator(): SAMAgentOrchestrator {
       error: (msg, ...args) => logger.error(msg, ...args),
     },
     features: {
-      gamification: false, // Phase 4
+      gamification: false,
       formSync: true,
       autoContext: true,
       emotionDetection: true,
       learningStyleDetection: true,
-      streaming: false, // Phase 4
+      streaming: false,
       analytics: true,
     },
     model: {
@@ -172,7 +239,7 @@ function getOrchestrator(): SAMAgentOrchestrator {
     maxConversationHistory: 20,
     personality: {
       name: 'SAM',
-      greeting: 'Hello! I\'m SAM, your intelligent learning assistant.',
+      greeting: 'Hello! I&apos;m SAM, your intelligent learning assistant.',
       tone: 'friendly and professional',
     },
   });
@@ -180,16 +247,62 @@ function getOrchestrator(): SAMAgentOrchestrator {
   // Create orchestrator
   orchestrator = new SAMAgentOrchestrator(samConfig);
 
-  // Register all engines
+  // Register core engines (context, content, personalization, assessment, response)
   orchestrator.registerEngine(createContextEngine(samConfig));
-  orchestrator.registerEngine(createBloomsEngine(samConfig));
   orchestrator.registerEngine(createContentEngine(samConfig));
   orchestrator.registerEngine(createPersonalizationEngine(samConfig));
+  orchestrator.registerEngine(createAssessmentEngine(samConfig));
   orchestrator.registerEngine(createResponseEngine(samConfig));
 
-  logger.info('[SAM_UNIFIED] Orchestrator initialized with all engines');
+  // Register Unified Blooms Adapter Engine (AI-powered analysis)
+  orchestrator.registerEngine(createUnifiedBloomsAdapterEngine({
+    samConfig,
+    database: databaseAdapter,
+    defaultMode: 'standard', // Keyword first, AI escalation if confidence low
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  }));
 
-  return orchestrator;
+  // Initialize Quality Gates Pipeline for content validation
+  qualityPipeline = createQualityGatePipeline({
+    threshold: 70,
+    parallel: true,
+    enableEnhancement: true,
+    maxIterations: 2,
+    timeoutMs: 30000,
+  });
+
+  // Initialize Pedagogy Pipeline for educational effectiveness
+  // Use default config - all evaluators enabled by default
+  pedagogyPipeline = createPedagogicalPipeline({});
+
+  // Initialize Memory Tracking for mastery and spaced repetition
+  const profileStore = getDefaultStudentProfileStore();
+  const reviewStore = getDefaultReviewScheduleStore();
+  masteryTracker = createMasteryTracker(profileStore);
+  spacedRepScheduler = createSpacedRepetitionScheduler(reviewStore);
+
+  logger.info('[SAM_UNIFIED] All subsystems initialized:', {
+    engines: ['context', 'blooms', 'content', 'personalization', 'assessment', 'response'],
+    qualityGates: true,
+    pedagogyPipeline: true,
+    memoryTracking: true,
+  });
+
+  return {
+    orchestrator,
+    config: samConfig,
+    quality: qualityPipeline,
+    pedagogy: pedagogyPipeline,
+    mastery: masteryTracker,
+    spacedRep: spacedRepScheduler,
+  };
+}
+
+// Keep backward compatible function
+function getOrchestrator(): SAMAgentOrchestrator {
+  return initializeSubsystems().orchestrator;
 }
 
 // ============================================================================
@@ -200,17 +313,23 @@ const ENGINE_PRESETS: Record<string, string[]> = {
   // Quick chat - minimal engines for fast response
   quick: ['context', 'response'],
 
-  // Standard chat - with Bloom's analysis
+  // Standard chat - with Bloom&apos;s analysis
   standard: ['context', 'blooms', 'response'],
 
-  // Full analysis - all engines
-  full: ['context', 'blooms', 'content', 'personalization', 'response'],
+  // Full analysis - all 6 engines
+  full: ['context', 'blooms', 'content', 'personalization', 'assessment', 'response'],
 
   // Content focused
   content: ['context', 'blooms', 'content', 'response'],
 
   // Learning focused
   learning: ['context', 'blooms', 'personalization', 'response'],
+
+  // Assessment focused - for quiz/exam generation
+  assessment: ['context', 'blooms', 'assessment', 'response'],
+
+  // Exam/quiz mode - includes assessment engine
+  exam: ['context', 'blooms', 'assessment', 'personalization', 'response'],
 };
 
 function getEnginePreset(pageType: string, hasForm: boolean, message?: string): string[] {
@@ -221,13 +340,29 @@ function getEnginePreset(pageType: string, hasForm: boolean, message?: string): 
     !lowerMessage.includes('generate') &&
     !lowerMessage.includes('create') &&
     !lowerMessage.includes('analyze') &&
-    !lowerMessage.includes('improve');
+    !lowerMessage.includes('improve') &&
+    !lowerMessage.includes('quiz') &&
+    !lowerMessage.includes('question') &&
+    !lowerMessage.includes('exam') &&
+    !lowerMessage.includes('test');
 
   if (isSimpleQuery) {
     return ENGINE_PRESETS.quick;
   }
 
-  // Use content preset only for generation/creation requests
+  // Use assessment preset for quiz/exam/question generation
+  const isAssessmentRequest = lowerMessage.includes('quiz') ||
+    lowerMessage.includes('question') ||
+    lowerMessage.includes('exam') ||
+    lowerMessage.includes('test me') ||
+    lowerMessage.includes('assessment') ||
+    lowerMessage.includes('evaluate');
+
+  if (isAssessmentRequest) {
+    return ENGINE_PRESETS.assessment;
+  }
+
+  // Use content preset only for content generation/creation requests
   const isGenerationRequest = lowerMessage.includes('generate') ||
     lowerMessage.includes('create') ||
     lowerMessage.includes('write') ||
@@ -380,6 +515,26 @@ export async function POST(request: NextRequest) {
     // Build form summary for context
     const formSummary = buildFormSummary(formContext?.fields);
 
+    // Initialize all subsystems early for memory context
+    const subsystems = initializeSubsystems();
+
+    // Build memory summary for prompt injection
+    let memorySummary: string | undefined;
+    let reviewSummary: string | undefined;
+    if (user.id) {
+      try {
+        const memoryResult = await buildMemorySummary({
+          studentId: user.id,
+          masteryTracker: subsystems.mastery,
+          spacedRepScheduler: subsystems.spacedRep,
+        });
+        memorySummary = memoryResult.memorySummary;
+        reviewSummary = memoryResult.reviewSummary;
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Failed to build memory summary:', error);
+      }
+    }
+
     // Build SAMContext with REAL entity data
     const samContext: SAMContext = createDefaultContext({
       user: {
@@ -403,6 +558,8 @@ export async function POST(request: NextRequest) {
           entityContext,
           entitySummary: entityContext.summary,
           formSummary,
+          memorySummary,
+          reviewSummary,
           // Include specific entity data for easy access
           courseTitle: entityContext.course?.title,
           courseDescription: entityContext.course?.description,
@@ -443,30 +600,138 @@ export async function POST(request: NextRequest) {
 
     logger.debug('[SAM_UNIFIED] Running engines:', { engines: enginesToRun, messageLength: message.length });
 
-    // Get orchestrator and run
-    const orch = getOrchestrator();
-    const result = await orch.orchestrate(samContext, message, {
+    // Run orchestrator for core engines
+    const result = await subsystems.orchestrator.orchestrate(samContext, message, {
       engines: enginesToRun,
     });
 
+    const bloomsOutput = result.results.blooms?.data as unknown as BloomsEngineOutput | undefined;
+    const bloomsAnalysis = bloomsOutput?.analysis;
+    if (bloomsAnalysis) {
+      logger.debug('[SAM_UNIFIED] Unified Blooms analysis:', {
+        dominantLevel: bloomsAnalysis.dominantLevel,
+        confidence: bloomsAnalysis.confidence,
+        method: bloomsAnalysis.method,
+      });
+    }
+
+    // Run Quality Gates Pipeline for content generation requests
+    let qualityResult: QualityValidationResult | null = null;
+    const isContentGeneration = enginesToRun.includes('content') ||
+      message.toLowerCase().includes('generate') ||
+      message.toLowerCase().includes('create');
+
+    if (isContentGeneration && result.response?.message) {
+      const generatedContent: GeneratedContent = {
+        type: 'explanation',
+        content: result.response.message,
+        targetBloomsLevel: bloomsAnalysis?.dominantLevel || 'UNDERSTAND',
+      };
+
+      qualityResult = await subsystems.quality.validate(generatedContent);
+
+      logger.debug('[SAM_UNIFIED] Quality validation:', {
+        passed: qualityResult.passed,
+        score: qualityResult.overallScore,
+        failedGates: qualityResult.failedGates,
+      });
+    }
+
+    // Run Pedagogy Pipeline for educational effectiveness
+    const shouldRunPedagogy =
+      !!bloomsAnalysis &&
+      (enginesToRun.includes('personalization') || enginesToRun.includes('content'));
+    let pedagogyResult: PedagogicalPipelineResult | null = null;
+    if (shouldRunPedagogy) {
+      try {
+        pedagogyResult = await subsystems.pedagogy.evaluate({
+          type: 'explanation',
+          content: result.response?.message || message,
+          targetBloomsLevel: bloomsAnalysis?.dominantLevel ?? 'UNDERSTAND',
+          targetDifficulty: 'intermediate',
+        });
+
+        logger.debug('[SAM_UNIFIED] Pedagogy evaluation:', {
+          passed: pedagogyResult.passed,
+          score: pedagogyResult.overallScore,
+        });
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Pedagogy evaluation failed:', error);
+      }
+    }
+
+    // Update Memory Tracking if we have user and section context
+    let memoryUpdate: { masteryUpdated: boolean; spacedRepScheduled: boolean } | null = null;
+    const memoryEligiblePages = new Set(['section-detail', 'section-view', 'section-edit', 'learning']);
+    if (
+      user.id &&
+      pageContext.entityId &&
+      bloomsAnalysis &&
+      memoryEligiblePages.has(pageContext.type)
+    ) {
+      try {
+        const confidence = bloomsAnalysis.confidence ?? 0.5;
+        // Create evaluation outcome for memory systems
+        const evaluationOutcome: EvaluationOutcome = {
+          evaluationId: `unified_${user.id}_${pageContext.entityId}_${Date.now()}`,
+          studentId: user.id,
+          topicId: pageContext.entityId,
+          sectionId: pageContext.entityId,
+          score: confidence * 100,
+          maxScore: 100,
+          bloomsLevel: bloomsAnalysis.dominantLevel,
+          assessmentType: 'practice',
+          timeSpentMinutes: 0, // Not tracked in unified chat
+          strengths: confidence > 0.7 ? [bloomsAnalysis.dominantLevel] : [],
+          areasForImprovement: bloomsAnalysis.gaps ?? [],
+          feedback: `Analyzed at ${bloomsAnalysis.dominantLevel} level with ${(confidence * 100).toFixed(0)}% confidence`,
+          evaluatedAt: new Date(),
+        };
+
+        // Update mastery based on evaluation outcome
+        const masteryResult = await subsystems.mastery.processEvaluation(evaluationOutcome);
+
+        // Schedule spaced repetition based on evaluation outcome
+        const scheduleResult = await subsystems.spacedRep.scheduleFromEvaluation(evaluationOutcome);
+
+        memoryUpdate = { masteryUpdated: true, spacedRepScheduled: true };
+
+        logger.debug('[SAM_UNIFIED] Memory updated:', {
+          userId: user.id,
+          sectionId: pageContext.entityId,
+          masteryLevel: masteryResult.currentMastery.score,
+          nextReview: scheduleResult.entry.scheduledFor,
+        });
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Memory update failed:', error);
+        memoryUpdate = { masteryUpdated: false, spacedRepScheduled: false };
+      }
+    }
+
     // Extract data from results
     const contextData = result.results.context?.data as Record<string, unknown> | undefined;
-    const bloomsData = result.results.blooms?.data as Record<string, unknown> | undefined;
     const contentData = result.results.content?.data as Record<string, unknown> | undefined;
     const personalizationData = result.results.personalization?.data as Record<string, unknown> | undefined;
 
-    // Build response
+    // Build response with all integrated data
     const response = {
       success: result.success,
       response: result.response.message,
       suggestions: result.response.suggestions || [],
       actions: result.response.actions || [],
       insights: {
-        blooms: bloomsData ? {
-          distribution: (bloomsData as { analysis?: { distribution?: unknown } }).analysis?.distribution,
-          dominantLevel: (bloomsData as { analysis?: { dominantLevel?: unknown } }).analysis?.dominantLevel,
-          recommendations: (bloomsData as { recommendations?: unknown[] }).recommendations,
-          gaps: (bloomsData as { analysis?: { gaps?: unknown[] } }).analysis?.gaps,
+        // Use Unified Blooms data (AI-powered, not keyword-only)
+        blooms: bloomsAnalysis ? {
+          distribution: bloomsAnalysis.distribution,
+          dominantLevel: bloomsAnalysis.dominantLevel,
+          confidence: bloomsAnalysis.confidence,
+          cognitiveDepth: bloomsAnalysis.cognitiveDepth,
+          balance: bloomsAnalysis.balance,
+          gaps: bloomsAnalysis.gaps,
+          recommendations: bloomsAnalysis.recommendations,
+          method: bloomsAnalysis.method,
+          sectionAnalysis: bloomsOutput?.sectionAnalysis,
+          actionItems: bloomsOutput?.actionItems,
         } : undefined,
         content: contentData ? {
           metrics: (contentData as { metrics?: unknown }).metrics,
@@ -483,6 +748,39 @@ export async function POST(request: NextRequest) {
           keywords: (contextData as { queryAnalysis?: { keywords?: string[] } }).queryAnalysis?.keywords,
           complexity: (contextData as { queryAnalysis?: { complexity?: string } }).queryAnalysis?.complexity,
         } : undefined,
+        // NEW: Quality validation results
+        quality: qualityResult ? {
+          passed: qualityResult.passed,
+          score: qualityResult.overallScore,
+          failedGates: qualityResult.failedGates,
+          suggestions: qualityResult.allSuggestions,
+          criticalIssues: qualityResult.criticalIssues?.map(i => i.description),
+        } : undefined,
+        // NEW: Pedagogy evaluation results
+        pedagogy: pedagogyResult ? {
+          passed: pedagogyResult.passed,
+          score: pedagogyResult.overallScore,
+          evaluators: {
+            blooms: pedagogyResult.evaluatorResults.blooms ? {
+              passed: pedagogyResult.evaluatorResults.blooms.passed,
+              score: pedagogyResult.evaluatorResults.blooms.score,
+            } : undefined,
+            scaffolding: pedagogyResult.evaluatorResults.scaffolding ? {
+              passed: pedagogyResult.evaluatorResults.scaffolding.passed,
+              score: pedagogyResult.evaluatorResults.scaffolding.score,
+            } : undefined,
+            zpd: pedagogyResult.evaluatorResults.zpd ? {
+              passed: pedagogyResult.evaluatorResults.zpd.passed,
+              score: pedagogyResult.evaluatorResults.zpd.score,
+            } : undefined,
+          },
+        } : undefined,
+        // NEW: Memory tracking results
+        memory: memoryUpdate,
+        memoryContext: memorySummary || reviewSummary ? {
+          summary: memorySummary,
+          reviewSummary,
+        } : undefined,
       },
       metadata: {
         enginesRun: result.metadata.enginesExecuted,
@@ -490,6 +788,13 @@ export async function POST(request: NextRequest) {
         enginesCached: result.metadata.enginesCached,
         totalTime: result.metadata.totalExecutionTime,
         requestTime: Date.now() - startTime,
+        // NEW: Subsystem usage flags
+        subsystems: {
+          unifiedBlooms: !!bloomsAnalysis,
+          qualityGates: !!qualityResult,
+          pedagogyPipeline: !!pedagogyResult,
+          memoryTracking: !!memoryUpdate,
+        },
       },
     };
 
@@ -497,6 +802,8 @@ export async function POST(request: NextRequest) {
       success: result.success,
       enginesRun: result.metadata.enginesExecuted.length,
       totalTime: result.metadata.totalExecutionTime,
+      qualityPassed: qualityResult?.passed,
+      pedagogyPassed: pedagogyResult?.passed,
     });
 
     return NextResponse.json(response);

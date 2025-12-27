@@ -204,6 +204,7 @@ export type {
 // ADAPTERS
 // ============================================================================
 
+// AI & Cache Adapters
 export {
   AnthropicAdapter,
   createAnthropicAdapter,
@@ -214,6 +215,33 @@ export {
 export type {
   AnthropicAdapterOptions,
   MemoryCacheOptions,
+} from './adapters';
+
+// Database Adapters
+export {
+  NoopDatabaseAdapter,
+  createNoopDatabaseAdapter,
+  InMemoryDatabaseAdapter,
+  createInMemoryDatabase,
+} from './adapters';
+
+export type {
+  SAMDatabaseAdapter,
+  DatabaseAdapterOptions,
+  QueryOptions,
+  CountResult,
+  TransactionContext,
+  InMemoryDatabaseOptions,
+  // Entity types for database operations
+  SAMUser,
+  SAMCourse,
+  SAMChapter,
+  SAMSection,
+  SAMQuestion,
+  SAMBloomsProgress,
+  SAMCognitiveProgress,
+  SAMInteractionLog,
+  SAMCourseAnalysis,
 } from './adapters';
 
 // ============================================================================

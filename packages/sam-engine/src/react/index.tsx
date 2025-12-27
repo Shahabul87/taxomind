@@ -88,7 +88,7 @@ export function SAMProvider({
 
         samEngine.on('error.occurred', (event) => {
           if (onError && event.error) {
-            onError(new Error(event.error));
+            onError(event.error instanceof Error ? event.error : new Error(String(event.error)));
           }
         });
 

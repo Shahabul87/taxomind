@@ -146,7 +146,6 @@ function SAMProvider({
     const sm = (0, import_core.createStateMachine)();
     const orch = (0, import_core.createOrchestrator)(config);
     orch.registerEngine((0, import_core.createContextEngine)(config));
-    orch.registerEngine((0, import_core.createBloomsEngine)(config));
     orch.registerEngine((0, import_core.createContentEngine)(config));
     orch.registerEngine((0, import_core.createAssessmentEngine)(config));
     orch.registerEngine((0, import_core.createPersonalizationEngine)(config));

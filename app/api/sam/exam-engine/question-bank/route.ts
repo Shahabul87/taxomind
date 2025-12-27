@@ -1,9 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { AdvancedExamEngine } from '@/lib/sam-engines/educational/sam-exam-engine';
+import { createExamEngine } from '@sam-ai/educational';
+import type { QuestionBankEntry, QuestionBankQuery } from '@sam-ai/educational';
+import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { QuestionType, BloomsLevel, QuestionDifficulty } from '@prisma/client';
 import { logger } from '@/lib/logger';
+
+// Create exam engine singleton with portable package
+let examEngine: ReturnType<typeof createExamEngine> | null = null;
+
+function getExamEngine() {
+  if (!examEngine) {
+    examEngine = createExamEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return examEngine;
+}
+
+// Type for question input from request
+interface QuestionInput {
+  text: string;
+  type: QuestionType;
+  bloomsLevel: BloomsLevel;
+  difficulty: QuestionDifficulty;
+  subtopic?: string;
+  tags?: string[];
+  options?: Array<{ text: string; isCorrect: boolean }>;
+  explanation?: string;
+  metadata?: Record<string, unknown>;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,18 +71,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save questions to question bank
-    const engine = new AdvancedExamEngine();
-    await engine.saveToQuestionBank(questions, courseId, subject, topic);
+    // Convert questions to QuestionBankEntry format
+    const questionEntries: QuestionBankEntry[] = questions.map((q: QuestionInput) => ({
+      subject,
+      topic,
+      subtopic: q.subtopic,
+      question: q.text,
+      questionType: q.type,
+      bloomsLevel: q.bloomsLevel,
+      difficulty: q.difficulty,
+      // Map options to include required 'id' field
+      options: q.options?.map((o, idx) => ({
+        id: `opt-${idx}`,
+        text: o.text,
+        isCorrect: o.isCorrect,
+      })),
+      correctAnswer: q.options?.find((o) => o.isCorrect)?.text || '',
+      explanation: q.explanation || '',
+      tags: q.tags || [],
+      metadata: q.metadata,
+    }));
+
+    // Save questions to question bank using portable engine
+    const engine = getExamEngine();
+    const result = await engine.saveToQuestionBank(questionEntries, courseId, subject, topic);
 
     return NextResponse.json({
       success: true,
-      message: `${questions.length} questions added to question bank`,
+      message: `${result.saved} questions added to question bank`,
       data: {
-        count: questions.length,
+        count: result.saved,
+        errors: result.errors,
         courseId,
         subject,
         topic,
+      },
+      metadata: {
+        engine: '@sam-ai/educational',
       },
     });
 
@@ -70,7 +123,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -85,11 +138,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build query
-    const where: any = {};
-    
+    // Check course access if courseId provided
     if (courseId) {
-      // Check course access
       const course = await db.course.findUnique({
         where: { id: courseId },
         select: { userId: true, organizationId: true },
@@ -99,43 +149,41 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Course not found' }, { status: 404 });
       }
 
-      const hasAccess = course.userId === user.id || 
+      const hasAccess = course.userId === user.id ||
         (course.organizationId && await checkOrganizationAccess(user.id, course.organizationId));
 
       if (!hasAccess && user.role !== 'ADMIN') {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 });
       }
-
-      where.courseId = courseId;
     }
-    
-    if (subject) where.subject = subject;
-    if (topic) where.topic = topic;
-    if (bloomsLevel) where.bloomsLevel = bloomsLevel;
-    if (difficulty) where.difficulty = difficulty;
-    if (questionType) where.questionType = questionType;
 
-    // Get questions
-    const questions = await db.questionBank.findMany({
-      where,
-      skip: offset,
-      take: limit,
-      orderBy: [
-        { usageCount: 'asc' },
-        { createdAt: 'desc' },
-      ],
+    // Build query for portable engine
+    const query: QuestionBankQuery = {
+      courseId: courseId || undefined,
+      subject: subject || undefined,
+      topic: topic || undefined,
+      bloomsLevel: bloomsLevel || undefined,
+      difficulty: difficulty || undefined,
+      questionType: questionType || undefined,
+      limit,
+      offset,
+    };
+
+    // Get questions using portable engine
+    const engine = getExamEngine();
+    const result = await engine.getFromQuestionBank(query);
+
+    // Get statistics using portable engine
+    const stats = await engine.getQuestionBankStats({
+      courseId: courseId || undefined,
+      subject: subject || undefined,
+      topic: topic || undefined,
     });
-
-    // Get total count
-    const totalCount = await db.questionBank.count({ where });
-
-    // Get aggregated statistics
-    const stats = await getQuestionBankStats(where);
 
     return NextResponse.json({
       success: true,
       data: {
-        questions: questions.map(q => ({
+        questions: result.questions.map((q) => ({
           id: q.id,
           question: q.question,
           questionType: q.questionType,
@@ -149,12 +197,15 @@ export async function GET(request: NextRequest) {
           avgTimeSpent: q.avgTimeSpent,
         })),
         pagination: {
-          total: totalCount,
+          total: result.total,
           limit,
           offset,
-          hasMore: offset + limit < totalCount,
+          hasMore: result.hasMore,
         },
         stats,
+      },
+      metadata: {
+        engine: '@sam-ai/educational',
       },
     });
 
@@ -349,4 +400,40 @@ async function getQuestionBankStats(where: any): Promise<any> {
   }
 
   return stats;
+}
+
+/**
+ * Save questions to the question bank database
+ * Extracted from AdvancedExamEngine for portability
+ */
+async function saveQuestionsToBank(
+  questions: QuestionInput[],
+  courseId: string | null,
+  subject: string,
+  topic: string
+): Promise<void> {
+  for (const question of questions) {
+    const correctAnswerText = question.options?.find((o) => o.isCorrect)?.text || '';
+
+    await db.questionBank.create({
+      data: {
+        courseId,
+        subject,
+        topic,
+        subtopic: question.subtopic,
+        question: question.text,
+        questionType: question.type,
+        bloomsLevel: question.bloomsLevel,
+        difficulty: question.difficulty,
+        options: question.options,
+        correctAnswer: { text: correctAnswerText },
+        explanation: question.explanation || '',
+        tags: question.tags || [],
+        usageCount: 0,
+        avgTimeSpent: 0,
+        successRate: 0,
+        metadata: question.metadata,
+      },
+    });
+  }
 }

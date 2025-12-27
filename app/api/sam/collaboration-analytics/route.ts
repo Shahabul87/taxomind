@@ -1,8 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samCollaborationEngine } from "@/lib/sam-engines/social/sam-collaboration-engine";
+import { createCollaborationEngine } from "@sam-ai/educational";
+import type { CollaborationActivityType } from "@sam-ai/educational";
 import { logger } from '@/lib/logger';
+import { createCollaborationAdapter } from '@/lib/adapters';
+
+// Create collaboration engine singleton
+let collaborationEngine: ReturnType<typeof createCollaborationEngine> | null = null;
+
+function getCollaborationEngine() {
+  if (!collaborationEngine) {
+    collaborationEngine = createCollaborationEngine({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      databaseAdapter: createCollaborationAdapter(db as any),
+    });
+  }
+  return collaborationEngine;
+}
+
+// Alias for backward compatibility
+const samCollaborationEngine = {
+  startCollaborationSession: (courseId: string, chapterId: string, userId: string, type: CollaborationActivityType) =>
+    getCollaborationEngine().startCollaborationSession(courseId, chapterId, userId, type),
+  joinCollaborationSession: (sessionId: string, userId: string) =>
+    getCollaborationEngine().joinCollaborationSession(sessionId, userId),
+  recordContribution: (sessionId: string, userId: string, contribution: Parameters<ReturnType<typeof createCollaborationEngine>['recordContribution']>[2]) =>
+    getCollaborationEngine().recordContribution(sessionId, userId, contribution),
+  getRealTimeMetrics: (courseId?: string) =>
+    getCollaborationEngine().getRealTimeMetrics(courseId),
+  endCollaborationSession: (sessionId: string) =>
+    getCollaborationEngine().endCollaborationSession(sessionId),
+  analyzeCollaboration: (sessionId: string) =>
+    getCollaborationEngine().analyzeCollaboration(sessionId),
+};
 
 export async function POST(req: NextRequest) {
   try {

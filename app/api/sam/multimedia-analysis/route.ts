@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samMultiMediaEngine } from "@/lib/sam-engines/content/sam-multimedia-engine";
+import { createMultimediaEngine } from "@sam-ai/educational";
+import type {
+  VideoContent,
+  AudioContent,
+  InteractiveContent,
+} from "@sam-ai/educational";
+import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
+
+// Create multimedia engine singleton with portable package
+let multimediaEngine: ReturnType<typeof createMultimediaEngine> | null = null;
+
+function getMultimediaEngine() {
+  if (!multimediaEngine) {
+    multimediaEngine = createMultimediaEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return multimediaEngine;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -52,27 +71,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const engine = getMultimediaEngine();
     let analysis;
     switch (contentType) {
       case "video":
-        analysis = await samMultiMediaEngine.analyzeVideo({
+        analysis = await engine.analyzeVideo({
           ...contentData,
           courseId,
-        });
+        } as VideoContent);
         break;
 
       case "audio":
-        analysis = await samMultiMediaEngine.analyzeAudio({
+        analysis = await engine.analyzeAudio({
           ...contentData,
           courseId,
-        });
+        } as AudioContent);
         break;
 
       case "interactive":
-        analysis = await samMultiMediaEngine.analyzeInteractive({
+        analysis = await engine.analyzeInteractive({
           ...contentData,
           courseId,
-        });
+        } as InteractiveContent);
         break;
 
       default:
@@ -144,14 +164,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const engine = getMultimediaEngine();
     let result;
     switch (reportType) {
       case "recommendations":
-        result = await samMultiMediaEngine.getContentRecommendations(courseId);
+        result = await engine.getContentRecommendations(courseId);
         break;
 
       case "accessibility":
-        result = await samMultiMediaEngine.getAccessibilityReport(courseId);
+        result = await engine.getAccessibilityReport(courseId);
         break;
 
       case "comprehensive":
@@ -172,7 +193,7 @@ export async function GET(req: NextRequest) {
           .filter((a) => a.contentType === "interactive")
           .map((a) => JSON.parse(a.analysis as string));
 
-        result = await samMultiMediaEngine.generateMultiModalInsights(
+        result = await engine.generateMultiModalInsights(
           courseId,
           {
             videos: videoAnalyses,

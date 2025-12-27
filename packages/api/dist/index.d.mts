@@ -297,6 +297,9 @@ declare function createRouteHandlerFactory(options: RouteHandlerFactoryOptions):
 /**
  * @sam-ai/api - Chat Handler
  * Handles chat/conversation requests with SAM AI
+ *
+ * UPDATED: Now uses Unified Blooms Engine from @sam-ai/educational
+ * for AI-powered cognitive level analysis instead of keyword-only
  */
 
 /**
@@ -311,6 +314,9 @@ declare function createStreamingChatHandler(config: SAMConfig): (request: SAMApi
 /**
  * @sam-ai/api - Analyze Handler
  * Handles content analysis requests
+ *
+ * UPDATED: Now uses Unified Blooms Engine from @sam-ai/educational
+ * for AI-powered cognitive level analysis instead of keyword-only
  */
 
 /**
@@ -318,7 +324,7 @@ declare function createStreamingChatHandler(config: SAMConfig): (request: SAMApi
  */
 declare function createAnalyzeHandler(config: SAMConfig): SAMHandler;
 /**
- * Quick Bloom's analysis utility
+ * Quick Bloom's analysis utility using unified engine
  */
 declare function analyzeBloomsLevel(config: SAMConfig, content: string): Promise<BloomsAnalysis | null>;
 
@@ -452,12 +458,12 @@ declare const chatRequestSchema: z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         content: string;
         id: string;
-        role: "user" | "system" | "assistant";
+        role: "user" | "assistant" | "system";
         timestamp?: string | Date | undefined;
     }, {
         content: string;
         id: string;
-        role: "user" | "system" | "assistant";
+        role: "user" | "assistant" | "system";
         timestamp?: string | Date | undefined;
     }>, "many">>;
     stream: z.ZodOptional<z.ZodBoolean>;
@@ -467,7 +473,7 @@ declare const chatRequestSchema: z.ZodObject<{
     history?: {
         content: string;
         id: string;
-        role: "user" | "system" | "assistant";
+        role: "user" | "assistant" | "system";
         timestamp?: string | Date | undefined;
     }[] | undefined;
     stream?: boolean | undefined;
@@ -477,7 +483,7 @@ declare const chatRequestSchema: z.ZodObject<{
     history?: {
         content: string;
         id: string;
-        role: "user" | "system" | "assistant";
+        role: "user" | "assistant" | "system";
         timestamp?: string | Date | undefined;
     }[] | undefined;
     stream?: boolean | undefined;
@@ -502,19 +508,19 @@ declare const analyzeRequestSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     content?: string | undefined;
     type?: "blooms" | "content" | "assessment" | "full" | undefined;
+    context?: Record<string, unknown> | undefined;
     options?: {
         includeRecommendations?: boolean | undefined;
         targetBloomsLevel?: string | undefined;
     } | undefined;
-    context?: Record<string, unknown> | undefined;
 }, {
     content?: string | undefined;
     type?: "blooms" | "content" | "assessment" | "full" | undefined;
+    context?: Record<string, unknown> | undefined;
     options?: {
         includeRecommendations?: boolean | undefined;
         targetBloomsLevel?: string | undefined;
     } | undefined;
-    context?: Record<string, unknown> | undefined;
 }>;
 /**
  * Gamification request validation schema

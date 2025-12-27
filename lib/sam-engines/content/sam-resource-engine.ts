@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
-import { anthropic } from "@/lib/anthropic";
+import { anthropic, getResponseText } from "@/lib/anthropic";
 import { logger } from '@/lib/logger';
 
 // Types for Resource Intelligence Hub
@@ -548,7 +548,7 @@ export class SAMResourceEngine {
         }]
       });
       
-      const relevance = parseFloat(response.content[0].text || '0.7');
+      const relevance = parseFloat(getResponseText(response.content, '0.7'));
       return Math.max(0, Math.min(1, relevance));
     } catch {
       return resource.relevanceScore || 0.7;
@@ -885,7 +885,7 @@ export class SAMResourceEngine {
         }]
       });
       
-      return response.content[0].text || 'Based on the analysis, this resource offers good value.';
+      return getResponseText(response.content, 'Based on the analysis, this resource offers good value.');
     } catch {
       return `This resource is ${recommendation} based on its cost-benefit ratio of ${costBenefitRatio.toFixed(0)} and learning efficiency of ${(learningEfficiency * 100).toFixed(0)}%.`;
     }
@@ -1028,7 +1028,7 @@ export class SAMResourceEngine {
         }]
       });
       
-      return response.content[0].text || 'This resource aligns well with your learning objectives.';
+      return getResponseText(response.content, 'This resource aligns well with your learning objectives.');
     } catch {
       return `This ${resource.type} is suitable for your ${student.skillLevel} level and supports your learning goals.`;
     }

@@ -5,7 +5,7 @@ import Google from "next-auth/providers/google";
 
 import { LoginSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
-import { DefaultCookieConfig } from "@/lib/security/cookie-config";
+// import { DefaultCookieConfig } from "@/lib/security/cookie-config";
 
 export default {
   providers: [
@@ -19,7 +19,7 @@ export default {
           response_type: "code"
         }
       },
-      allowDangerousEmailAccountLinking: false, // SECURITY: Disabled to prevent account takeover via email compromise
+      allowDangerousEmailAccountLinking: false,
     }),
     Github({
       clientId: process.env.GITHUB_CLIENT_ID,
@@ -64,9 +64,8 @@ export default {
   jwt: {
     maxAge: 30 * 24 * 60 * 60, // 30 days matching session
   },
-  // Secure cookie configuration
-  cookies: DefaultCookieConfig,
-  // Configure for secure environments
+  // Cookie configuration (simplified for debugging)
+  // cookies: DefaultCookieConfig,
   useSecureCookies: process.env.NODE_ENV === 'production',
   // Trust host
   trustHost: true,

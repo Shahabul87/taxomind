@@ -51,6 +51,8 @@ export interface BloomsAnalysis {
   balance: 'well-balanced' | 'bottom-heavy' | 'top-heavy';
   gaps: BloomsLevel[];
   recommendations: string[];
+  confidence?: number; // 0-1 when provided by AI-backed analyzers
+  method?: 'keyword' | 'ai' | 'hybrid';
 }
 
 // ============================================================================

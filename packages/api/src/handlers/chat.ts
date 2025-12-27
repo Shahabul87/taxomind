@@ -1,6 +1,9 @@
 /**
  * @sam-ai/api - Chat Handler
  * Handles chat/conversation requests with SAM AI
+ *
+ * UPDATED: Now uses Unified Blooms Engine from @sam-ai/educational
+ * for AI-powered cognitive level analysis instead of keyword-only
  */
 
 import type {
@@ -8,14 +11,18 @@ import type {
   SAMContext,
   OrchestrationResult,
   SAMUserContext,
+  BloomsAnalysis,
+  BloomsEngineOutput,
 } from '@sam-ai/core';
 import {
   createOrchestrator,
-  createBloomsEngine,
   createContextEngine,
   createResponseEngine,
   createDefaultContext,
 } from '@sam-ai/core';
+import {
+  createUnifiedBloomsAdapterEngine,
+} from '@sam-ai/educational';
 import type {
   SAMApiRequest,
   SAMApiResponse,
@@ -69,13 +76,16 @@ function createErrorResponse(
 /**
  * Convert orchestration result to chat response
  */
-function toResponse(result: OrchestrationResult): ChatResponse {
+function toResponse(
+  result: OrchestrationResult,
+  bloomsAnalysis?: BloomsAnalysis
+): ChatResponse {
   return {
     message: result.response.message,
     conversationId: `conv_${Date.now()}`,
     suggestions: result.response.suggestions ?? [],
     actions: result.response.actions ?? [],
-    bloomsAnalysis: result.response.blooms,
+    bloomsAnalysis: bloomsAnalysis ?? result.response.blooms,
     usage: undefined,
   };
 }
@@ -107,9 +117,15 @@ function buildUserContext(
 export function createChatHandler(config: SAMConfig): SAMHandler {
   const orchestrator = createOrchestrator(config);
 
-  // Register engines
+  // Register engines (use unified blooms adapter instead of core keyword-only engine)
   orchestrator.registerEngine(createContextEngine(config));
-  orchestrator.registerEngine(createBloomsEngine(config));
+  orchestrator.registerEngine(createUnifiedBloomsAdapterEngine({
+    samConfig: config,
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  }));
   orchestrator.registerEngine(createResponseEngine(config));
 
   return async (
@@ -162,6 +178,10 @@ export function createChatHandler(config: SAMConfig): SAMHandler {
         includeInsights: true,
       });
 
+      const bloomsOutput = result.results.blooms?.data as unknown as BloomsEngineOutput | undefined;
+      const bloomsAnalysis: BloomsAnalysis | undefined =
+        bloomsOutput?.analysis ?? result.response.blooms;
+
       // Check for errors
       if (!result.success && result.metadata.enginesFailed.length > 0) {
         return createErrorResponse(
@@ -175,7 +195,7 @@ export function createChatHandler(config: SAMConfig): SAMHandler {
       }
 
       // Return success response
-      const chatResponse = toResponse(result);
+      const chatResponse = toResponse(result, bloomsAnalysis);
       return createSuccessResponse(chatResponse);
     } catch (error) {
       console.error('[SAM Chat Handler] Error:', error);
@@ -211,9 +231,15 @@ export function createStreamingChatHandler(
 ) => Promise<void> {
   const orchestrator = createOrchestrator(config);
 
-  // Register engines
+  // Register engines (use unified blooms adapter instead of core keyword-only engine)
   orchestrator.registerEngine(createContextEngine(config));
-  orchestrator.registerEngine(createBloomsEngine(config));
+  orchestrator.registerEngine(createUnifiedBloomsAdapterEngine({
+    samConfig: config,
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  }));
   orchestrator.registerEngine(createResponseEngine(config));
 
   return async (
@@ -239,6 +265,9 @@ export function createStreamingChatHandler(
 
     // Process and stream
     const result = await orchestrator.orchestrate(samContext, body.message);
+    const bloomsOutput = result.results.blooms?.data as unknown as BloomsEngineOutput | undefined;
+    const bloomsAnalysis: BloomsAnalysis | undefined =
+      bloomsOutput?.analysis ?? result.response.blooms;
 
     // Send the response as a single chunk (streaming can be enhanced later)
     onChunk(
@@ -252,7 +281,7 @@ export function createStreamingChatHandler(
     onChunk(
       JSON.stringify({
         type: 'done',
-        data: toResponse(result),
+        data: toResponse(result, bloomsAnalysis),
       })
     );
   };

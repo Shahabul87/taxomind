@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { CourseGuideEngine } from '@/lib/sam-engines/educational/sam-course-guide-engine';
+import { createCourseGuideEngine } from '@sam-ai/educational';
 import { db } from '@/lib/db';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { logger } from '@/lib/logger';
+import { createCourseGuideAdapter } from '@/lib/adapters';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
+
+// Create course guide engine singleton
+let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;
+
+function getCourseGuideEngine() {
+  if (!courseGuideEngine) {
+    courseGuideEngine = createCourseGuideEngine({
+      aiProvider: 'anthropic',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      databaseAdapter: createCourseGuideAdapter(db as any),
+    });
+  }
+  return courseGuideEngine;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate course guide to get current state
-    const engine = new CourseGuideEngine();
+    const engine = getCourseGuideEngine();
     const guide = await engine.generateCourseGuide(courseId, false, false);
 
     // Generate detailed recommendations based on focus area

@@ -1,16 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samPredictiveEngine } from "@/lib/sam-engines/advanced/sam-predictive-engine";
-import { logger } from '@/lib/logger';
-import {
-  StudentProfile,
-  LearningHistory,
-  PerformanceMetrics,
-  BehaviorPatterns,
+import { createPredictiveEngine } from "@sam-ai/educational";
+import type {
+  PredictiveStudentProfile,
+  PredictiveLearningHistory,
+  PredictivePerformanceMetrics,
+  PredictiveBehaviorPatterns,
   StudentCohort,
-  LearningContext,
-} from "@/lib/sam-engines/advanced/sam-predictive-engine";
+  PredictiveLearningContext,
+} from "@sam-ai/educational";
+import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { logger } from "@/lib/logger";
+
+// Singleton pattern for predictive engine
+let predictiveEngine: ReturnType<typeof createPredictiveEngine> | null = null;
+
+function getPredictiveEngine() {
+  if (!predictiveEngine) {
+    predictiveEngine = createPredictiveEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return predictiveEngine;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,7 +91,7 @@ async function handlePredictOutcomes(data: any, userId: string) {
     data.studentId || userId,
     data.courseId
   );
-  return await samPredictiveEngine.predictLearningOutcomes(studentProfile);
+  return await getPredictiveEngine().predictLearningOutcomes(studentProfile);
 }
 
 async function handleIdentifyAtRisk(data: any, user: any) {
@@ -87,7 +101,7 @@ async function handleIdentifyAtRisk(data: any, user: any) {
   }
 
   const cohort = await buildStudentCohort(data.courseId, data.timeframe);
-  return await samPredictiveEngine.identifyAtRiskStudents(cohort);
+  return await getPredictiveEngine().identifyAtRiskStudents(cohort);
 }
 
 async function handleRecommendInterventions(data: any, userId: string) {
@@ -95,7 +109,7 @@ async function handleRecommendInterventions(data: any, userId: string) {
     data.studentId || userId,
     data.courseId
   );
-  return await samPredictiveEngine.recommendInterventions(studentProfile);
+  return await getPredictiveEngine().recommendInterventions(studentProfile);
 }
 
 async function handleOptimizeVelocity(data: any, userId: string) {
@@ -103,7 +117,7 @@ async function handleOptimizeVelocity(data: any, userId: string) {
     data.studentId || userId,
     data.courseId
   );
-  return await samPredictiveEngine.optimizeLearningVelocity(studentProfile);
+  return await getPredictiveEngine().optimizeLearningVelocity(studentProfile);
 }
 
 async function handleCalculateProbability(data: any, userId: string) {
@@ -112,13 +126,13 @@ async function handleCalculateProbability(data: any, userId: string) {
     data.courseId,
     data.environmentFactors
   );
-  return await samPredictiveEngine.calculateSuccessProbability(context);
+  return await getPredictiveEngine().calculateSuccessProbability(context);
 }
 
 async function buildStudentProfile(
   userId: string,
   courseId?: string
-): Promise<StudentProfile> {
+): Promise<PredictiveStudentProfile> {
   // Gather user data
   const [user, progress, activities, enrollments, achievements] =
     await Promise.all([
@@ -154,7 +168,7 @@ async function buildStudentProfile(
   }
 
   // Calculate learning history
-  const learningHistory: LearningHistory = {
+  const learningHistory: PredictiveLearningHistory = {
     coursesCompleted: enrollments.filter((e: any) => e.updatedAt !== e.createdAt).length,
     averageScore: calculateAverageScore(progress),
     timeSpentLearning: calculateTotalLearningTime(activities),
@@ -166,7 +180,7 @@ async function buildStudentProfile(
   };
 
   // Calculate performance metrics
-  const performanceMetrics: PerformanceMetrics = {
+  const performanceMetrics: PredictivePerformanceMetrics = {
     overallProgress: calculateOverallProgress(progress),
     assessmentScores: extractAssessmentScores(progress),
     improvementRate: calculateImprovementRate(progress),
@@ -177,7 +191,7 @@ async function buildStudentProfile(
   };
 
   // Identify behavior patterns
-  const behaviorPatterns: BehaviorPatterns = {
+  const behaviorPatterns: PredictiveBehaviorPatterns = {
     studyFrequency: identifyStudyFrequency(activities),
     sessionDuration: calculateAverageSessionDuration(activities),
     contentPreferences: identifyContentPreferences(activities),
@@ -215,7 +229,7 @@ async function buildStudentCohort(
     },
   });
 
-  const students: StudentProfile[] = [];
+  const students: PredictiveStudentProfile[] = [];
   for (const enrollment of enrollments) {
     try {
       const profile = await buildStudentProfile(enrollment.userId, courseId);
@@ -239,7 +253,7 @@ async function buildLearningContext(
   userId: string,
   courseId: string,
   environmentFactors?: any
-): Promise<LearningContext> {
+): Promise<PredictiveLearningContext> {
   const studentProfile = await buildStudentProfile(userId, courseId);
 
   const course = await db.course.findUnique({

@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { MarketAnalysisEngine } from '@/lib/sam-engines/business/sam-market-engine';
+import { createMarketEngine } from '@sam-ai/educational';
+import type { MarketAnalysisType } from '@sam-ai/educational';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { createMarketAdapter } from '@/lib/adapters';
+
+// Create market engine singleton
+let marketEngine: ReturnType<typeof createMarketEngine> | null = null;
+
+function getMarketEngine() {
+  if (!marketEngine) {
+    marketEngine = createMarketEngine({
+      aiProvider: 'anthropic',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      databaseAdapter: createMarketAdapter(db as any),
+    });
+  }
+  return marketEngine;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform market analysis
-    const engine = new MarketAnalysisEngine();
+    const engine = getMarketEngine();
     const analysis = await engine.analyzeCourse(courseId, analysisType, includeRecommendations);
 
     // Record the analysis as a SAM interaction

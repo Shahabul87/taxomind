@@ -1,6 +1,9 @@
 /**
  * @sam-ai/api - Analyze Handler
  * Handles content analysis requests
+ *
+ * UPDATED: Now uses Unified Blooms Engine from @sam-ai/educational
+ * for AI-powered cognitive level analysis instead of keyword-only
  */
 
 import type {
@@ -11,10 +14,14 @@ import type {
 } from '@sam-ai/core';
 import {
   createOrchestrator,
-  createBloomsEngine,
+  createContextEngine,
   createContentEngine,
   createDefaultContext,
 } from '@sam-ai/core';
+import {
+  createUnifiedBloomsAdapterEngine,
+  createUnifiedBloomsEngine,
+} from '@sam-ai/educational';
 import type {
   SAMApiRequest,
   SAMApiResponse,
@@ -92,8 +99,15 @@ function buildUserContext(
 export function createAnalyzeHandler(config: SAMConfig): SAMHandler {
   const orchestrator = createOrchestrator(config);
 
-  // Register engines
-  orchestrator.registerEngine(createBloomsEngine(config));
+  // Register engines (use unified blooms adapter instead of core keyword-only engine)
+  orchestrator.registerEngine(createContextEngine(config));
+  orchestrator.registerEngine(createUnifiedBloomsAdapterEngine({
+    samConfig: config,
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  }));
   orchestrator.registerEngine(createContentEngine(config));
 
   return async (
@@ -142,6 +156,9 @@ export function createAnalyzeHandler(config: SAMConfig): SAMHandler {
       if (analysisType === 'content' || analysisType === 'full') {
         enginesToRun.push('content');
       }
+      if (!enginesToRun.includes('context')) {
+        enginesToRun.unshift('context');
+      }
 
       // Run orchestration with selected engines
       const result = await orchestrator.orchestrate(
@@ -152,25 +169,25 @@ export function createAnalyzeHandler(config: SAMConfig): SAMHandler {
 
       // Extract Bloom's analysis from results
       if (result.results['blooms']?.success && result.results['blooms']?.data) {
-        const bloomsData = result.results['blooms'].data as Record<string, unknown>;
-        if (bloomsData.distribution && bloomsData.dominantLevel) {
-          analysis.blooms = bloomsData as unknown as BloomsAnalysis;
+        const bloomsOutput = result.results['blooms'].data as { analysis?: BloomsAnalysis };
+        const blooms = bloomsOutput.analysis;
+        if (blooms?.distribution && blooms.dominantLevel) {
+          analysis.blooms = blooms;
           enginesUsed.push('blooms');
 
           // Add Bloom's recommendations
           if (body.options?.includeRecommendations) {
-            const blooms = analysis.blooms;
-            if (blooms && blooms.cognitiveDepth < 50) {
+            if (blooms.cognitiveDepth < 50) {
               recommendations.push(
                 'Consider adding higher-order thinking questions (analyze, evaluate, create)'
               );
             }
-            if (blooms && blooms.dominantLevel === 'REMEMBER') {
+            if (blooms.dominantLevel === 'REMEMBER') {
               recommendations.push(
                 'The content is focused on basic recall. Consider adding application exercises.'
               );
             }
-            if (blooms?.recommendations) {
+            if (blooms.recommendations) {
               recommendations.push(...blooms.recommendations.slice(0, 3));
             }
           }
@@ -254,37 +271,37 @@ export function createAnalyzeHandler(config: SAMConfig): SAMHandler {
 }
 
 /**
- * Quick Bloom's analysis utility
+ * Quick Bloom's analysis utility using unified engine
  */
 export async function analyzeBloomsLevel(
   config: SAMConfig,
   content: string
 ): Promise<BloomsAnalysis | null> {
-  const orchestrator = createOrchestrator(config);
-  orchestrator.registerEngine(createBloomsEngine(config));
+  const unifiedBlooms = createUnifiedBloomsEngine({
+    samConfig: config,
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  });
 
   try {
-    // Create default context
-    const context: SAMContext = createDefaultContext({
-      user: {
-        id: 'system',
-        role: 'teacher',
-        preferences: {},
-        capabilities: [],
-      },
+    // Use unified engine directly for analysis
+    const result = await unifiedBlooms.analyze(content, {
+      mode: 'standard',
     });
 
-    const result = await orchestrator.orchestrate(context, content, {
-      engines: ['blooms'],
-    });
-
-    if (result.results['blooms']?.success && result.results['blooms']?.data) {
-      const data = result.results['blooms'].data as Record<string, unknown>;
-      if (data.distribution && data.dominantLevel) {
-        return data as unknown as BloomsAnalysis;
-      }
-    }
-    return null;
+    // Map UnifiedBloomsResult to BloomsAnalysis
+    return {
+      dominantLevel: result.dominantLevel,
+      distribution: result.distribution,
+      cognitiveDepth: result.cognitiveDepth,
+      balance: result.balance,
+      gaps: result.gaps,
+      recommendations: result.recommendations.map((r) => r.action),
+      confidence: result.confidence,
+      method: result.metadata.method,
+    };
   } catch {
     return null;
   }

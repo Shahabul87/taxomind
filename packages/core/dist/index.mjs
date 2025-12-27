@@ -103,6 +103,7 @@ function createSAMConfig(input) {
     storage: input.storage,
     cache: input.cache,
     analytics: input.analytics,
+    database: input.database,
     logger: input.logger ?? console,
     features: {
       gamification: true,
@@ -1599,14 +1600,14 @@ var ContextEngine = class extends BaseEngine {
     if (/^(what|how|why|when|where|who|which|can|could|would|should|is|are|do|does)\b/i.test(query)) {
       return "question";
     }
-    if (/^(create|generate|add|remove|delete|update|edit|change|set|make)\b/i.test(query)) {
-      return "command";
+    if (/\b(generate|create|write|draft|compose|produce|make me|build|develop)\b/i.test(query)) {
+      return "generation";
     }
     if (/\b(analyze|analysis|review|check|evaluate|assess|examine)\b/i.test(query)) {
       return "analysis";
     }
-    if (/\b(generate|create|write|draft|compose|produce)\b/i.test(query)) {
-      return "generation";
+    if (/^(add|remove|delete|update|edit|change|set|move|copy|rename)\b/i.test(query)) {
+      return "command";
     }
     if (/\b(help|assist|support|guide|explain|show me)\b/i.test(query)) {
       return "help";
@@ -2141,7 +2142,13 @@ var BloomsEngine = class extends BaseEngine {
     return actionItems;
   }
 };
+var hasWarned = false;
 function createBloomsEngine(config) {
+  if (!hasWarned) {
+    const warn = config.logger?.warn ?? console.warn;
+    warn("[SAM] createBloomsEngine is deprecated. Use createUnifiedBloomsEngine from @sam-ai/educational.");
+    hasWarned = true;
+  }
   return new BloomsEngine(config);
 }
 
@@ -3472,11 +3479,15 @@ var ResponseEngine = class extends BaseEngine {
   }
   shouldUseAI(query, contextResult) {
     if (!query) return false;
+    const intent = contextResult?.queryAnalysis?.intent;
+    const aiRequiredIntents = ["question", "generation", "analysis", "command", "help"];
+    if (intent && aiRequiredIntents.includes(intent)) {
+      return true;
+    }
     if (contextResult?.queryAnalysis?.complexity === "complex") return true;
-    if (contextResult?.queryAnalysis?.intent === "question") return true;
-    if (contextResult?.queryAnalysis?.intent === "generation") return true;
-    if (query.split(/\s+/).length > 10) return true;
-    return false;
+    if (contextResult?.queryAnalysis?.complexity === "moderate") return true;
+    if (query.split(/\s+/).length > 5) return true;
+    return query.trim().length > 10;
   }
   async generateAIResponse(query, context, contextResult, bloomsResult) {
     const systemPrompt = this.buildSystemPrompt(context, contextResult, bloomsResult);
@@ -3496,33 +3507,89 @@ var ResponseEngine = class extends BaseEngine {
   buildSystemPrompt(context, contextResult, bloomsResult) {
     const personality = this.config.personality;
     const name = personality?.name ?? "SAM";
-    const tone = personality?.tone ?? "friendly and helpful";
-    let prompt = `You are ${name}, an AI tutor assistant. Be ${tone}.
+    const tone = personality?.tone ?? "friendly and professional";
+    const metadata = context.page.metadata || {};
+    const entitySummary = metadata.entitySummary;
+    const formSummary = metadata.formSummary;
+    const courseTitle = metadata.courseTitle;
+    const memorySummary = metadata.memorySummary;
+    const reviewSummary = metadata.reviewSummary;
+    let prompt = `You are ${name}, an intelligent AI tutor assistant for an educational platform. Be ${tone}.
 
-Current context:
-- Page: ${context.page.type}
-- User role: ${context.user.role}
+## Current Context
+- Page Type: ${context.page.type}
+- User Role: ${context.user.role}
+- Path: ${context.page.path}
 `;
+    if (entitySummary && entitySummary !== "No specific entity context available.") {
+      prompt += `
+## Entity Information (ACTUAL DATA FROM DATABASE)
+${entitySummary}
+`;
+    } else if (courseTitle) {
+      prompt += `- Course: ${courseTitle}
+`;
+    }
     if (contextResult?.enrichedContext) {
-      prompt += `- Entity type: ${contextResult.enrichedContext.entityType}
-- Available actions: ${contextResult.enrichedContext.capabilities.join(", ")}
+      prompt += `- Capabilities: ${contextResult.enrichedContext.capabilities.join(", ")}
+`;
+    }
+    if (context.form && Object.keys(context.form.fields).length > 0) {
+      prompt += `
+## Form Fields (CURRENT PAGE)
+`;
+      for (const [fieldName, field] of Object.entries(context.form.fields)) {
+        const currentValue = field.value ? `"${String(field.value).substring(0, 200)}${String(field.value).length > 200 ? "..." : ""}"` : "(empty)";
+        const label = field.label || fieldName;
+        prompt += `- ${label}: ${currentValue}
+`;
+      }
+    } else if (formSummary && formSummary !== "No form data available on this page.") {
+      prompt += `
+## Form Fields
+${formSummary}
+`;
+    }
+    if (memorySummary) {
+      prompt += `
+## Student Memory Summary
+${memorySummary}
+`;
+    }
+    if (reviewSummary) {
+      prompt += `
+## Review Schedule
+${reviewSummary}
 `;
     }
     if (bloomsResult?.analysis) {
       prompt += `
-Bloom's Taxonomy Analysis:
-- Dominant level: ${bloomsResult.analysis.dominantLevel}
-- Cognitive depth: ${bloomsResult.analysis.cognitiveDepth}%
+## Bloom's Taxonomy Analysis
+- Dominant Level: ${bloomsResult.analysis.dominantLevel}
+- Cognitive Depth: ${bloomsResult.analysis.cognitiveDepth}%
 - Balance: ${bloomsResult.analysis.balance}
+`;
+      if (bloomsResult.recommendations?.length > 0) {
+        prompt += `- Recommendations: ${bloomsResult.recommendations.slice(0, 2).join("; ")}
+`;
+      }
+    }
+    if (contextResult?.queryAnalysis) {
+      prompt += `
+## Query Analysis
+- Intent: ${contextResult.queryAnalysis.intent}
+- Keywords: ${contextResult.queryAnalysis.keywords.join(", ")}
 `;
     }
     prompt += `
-Guidelines:
-- Be concise but thorough
-- Provide actionable suggestions when appropriate
-- Reference specific features available on the current page
-- If analyzing content, mention Bloom's taxonomy insights
-- Use markdown formatting for better readability
+## Response Guidelines
+1. **USE THE ENTITY INFORMATION ABOVE** - You know the course title, description, chapters, etc.
+2. For GENERATION requests: Create content SPECIFIC to this course/chapter/section
+3. For learning objectives: Use Bloom's Taxonomy verbs (Remember, Understand, Apply, Analyze, Evaluate, Create)
+4. Reference actual course details in your responses
+5. Be specific and actionable
+6. Use markdown formatting
+7. If generating form content, provide the content directly without preamble
 `;
     return prompt;
   }
@@ -4087,6 +4154,556 @@ function createMemoryCache(options) {
   return new MemoryCacheAdapter(options);
 }
 
+// src/adapters/database.ts
+var NoopDatabaseAdapter = class {
+  async findUser() {
+    return null;
+  }
+  async findUsers() {
+    return [];
+  }
+  async updateUser(_id, data) {
+    return { id: _id, name: null, email: null, ...data };
+  }
+  async findCourse() {
+    return null;
+  }
+  async findCourses() {
+    return [];
+  }
+  async findChapter() {
+    return null;
+  }
+  async findChaptersByCourse() {
+    return [];
+  }
+  async findSection() {
+    return null;
+  }
+  async findSectionsByChapter() {
+    return [];
+  }
+  async findQuestions() {
+    return [];
+  }
+  async createQuestion(data) {
+    return {
+      id: `temp-${Date.now()}`,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date(),
+      ...data
+    };
+  }
+  async updateQuestion(id, data) {
+    return {
+      id,
+      question: "",
+      questionType: "multiple_choice",
+      bloomsLevel: "remember",
+      difficulty: "medium",
+      points: 1,
+      courseId: "",
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date(),
+      ...data
+    };
+  }
+  async deleteQuestion() {
+  }
+  async findBloomsProgress() {
+    return null;
+  }
+  async upsertBloomsProgress(userId, courseId, data) {
+    return {
+      id: `temp-${Date.now()}`,
+      userId,
+      courseId,
+      rememberScore: 0,
+      understandScore: 0,
+      applyScore: 0,
+      analyzeScore: 0,
+      evaluateScore: 0,
+      createScore: 0,
+      overallScore: 0,
+      assessmentCount: 0,
+      updatedAt: /* @__PURE__ */ new Date(),
+      ...data
+    };
+  }
+  async findCognitiveProgress() {
+    return null;
+  }
+  async upsertCognitiveProgress(userId, skillType, data) {
+    return {
+      id: `temp-${Date.now()}`,
+      userId,
+      skillType,
+      proficiencyLevel: 0,
+      totalAttempts: 0,
+      successfulAttempts: 0,
+      averageTimeSeconds: 0,
+      updatedAt: /* @__PURE__ */ new Date(),
+      ...data
+    };
+  }
+  async logInteraction(data) {
+    return {
+      id: `temp-${Date.now()}`,
+      createdAt: /* @__PURE__ */ new Date(),
+      ...data
+    };
+  }
+  async findInteractions() {
+    return [];
+  }
+  async countInteractions() {
+    return 0;
+  }
+  async findCourseAnalysis() {
+    return null;
+  }
+  async upsertCourseAnalysis(courseId, data) {
+    return {
+      id: `temp-${Date.now()}`,
+      courseId,
+      rememberPercentage: 0,
+      understandPercentage: 0,
+      applyPercentage: 0,
+      analyzePercentage: 0,
+      evaluatePercentage: 0,
+      createPercentage: 0,
+      totalObjectives: 0,
+      overallScore: 0,
+      analyzedAt: /* @__PURE__ */ new Date(),
+      ...data
+    };
+  }
+  async healthCheck() {
+    return true;
+  }
+};
+function createNoopDatabaseAdapter() {
+  return new NoopDatabaseAdapter();
+}
+
+// src/adapters/memory-database.ts
+var InMemoryDatabaseAdapter = class {
+  // Data stores
+  users = /* @__PURE__ */ new Map();
+  courses = /* @__PURE__ */ new Map();
+  chapters = /* @__PURE__ */ new Map();
+  sections = /* @__PURE__ */ new Map();
+  questions = /* @__PURE__ */ new Map();
+  bloomsProgress = /* @__PURE__ */ new Map();
+  cognitiveProgress = /* @__PURE__ */ new Map();
+  interactions = [];
+  courseAnalysis = /* @__PURE__ */ new Map();
+  idCounter = 1;
+  options;
+  constructor(options = {}) {
+    this.options = options;
+    if (options.seed?.users) {
+      options.seed.users.forEach((u) => this.users.set(u.id, u));
+    }
+    if (options.seed?.courses) {
+      options.seed.courses.forEach((c) => {
+        this.courses.set(c.id, c);
+        c.chapters?.forEach((ch) => {
+          this.chapters.set(ch.id, ch);
+          ch.sections?.forEach((s) => this.sections.set(s.id, s));
+        });
+      });
+    }
+    if (options.seed?.questions) {
+      options.seed.questions.forEach((q) => this.questions.set(q.id, q));
+    }
+    if (options.persistToLocalStorage && typeof localStorage !== "undefined") {
+      this.loadFromStorage();
+    }
+  }
+  generateId(prefix) {
+    return `${prefix}-${Date.now()}-${this.idCounter++}`;
+  }
+  // ============================================================================
+  // USER OPERATIONS
+  // ============================================================================
+  async findUser(id) {
+    return this.users.get(id) ?? null;
+  }
+  async findUsers(filter, options) {
+    let results = Array.from(this.users.values());
+    if (filter.email) {
+      results = results.filter((u) => u.email === filter.email);
+    }
+    if (filter.name) {
+      results = results.filter((u) => u.name?.includes(filter.name));
+    }
+    if (filter.role) {
+      results = results.filter((u) => u.role === filter.role);
+    }
+    return this.applyQueryOptions(results, options);
+  }
+  async updateUser(id, data) {
+    const user = this.users.get(id);
+    if (!user) {
+      throw new Error(`User ${id} not found`);
+    }
+    const updated = {
+      ...user,
+      ...data,
+      id,
+      // Preserve ID
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.users.set(id, updated);
+    this.persist();
+    return updated;
+  }
+  // ============================================================================
+  // COURSE OPERATIONS
+  // ============================================================================
+  async findCourse(id, options) {
+    const course = this.courses.get(id);
+    if (!course) return null;
+    if (options?.include?.chapters) {
+      const chapters = Array.from(this.chapters.values()).filter((ch) => ch.courseId === id).sort((a, b) => a.position - b.position);
+      if (options.include.sections) {
+        chapters.forEach((ch) => {
+          ch.sections = Array.from(this.sections.values()).filter((s) => s.chapterId === ch.id).sort((a, b) => a.position - b.position);
+        });
+      }
+      return { ...course, chapters };
+    }
+    return course;
+  }
+  async findCourses(filter, options) {
+    let results = Array.from(this.courses.values());
+    if (filter.userId) {
+      results = results.filter((c) => c.userId === filter.userId);
+    }
+    if (filter.isPublished !== void 0) {
+      results = results.filter((c) => c.isPublished === filter.isPublished);
+    }
+    if (filter.title) {
+      results = results.filter(
+        (c) => c.title.toLowerCase().includes(filter.title.toLowerCase())
+      );
+    }
+    if (filter.categoryId) {
+      results = results.filter((c) => c.categoryId === filter.categoryId);
+    }
+    return this.applyQueryOptions(results, options);
+  }
+  // ============================================================================
+  // CHAPTER/SECTION OPERATIONS
+  // ============================================================================
+  async findChapter(id, options) {
+    const chapter = this.chapters.get(id);
+    if (!chapter) return null;
+    if (options?.include?.sections) {
+      const sections = Array.from(this.sections.values()).filter((s) => s.chapterId === id).sort((a, b) => a.position - b.position);
+      return { ...chapter, sections };
+    }
+    return chapter;
+  }
+  async findChaptersByCourse(courseId, options) {
+    let results = Array.from(this.chapters.values()).filter((ch) => ch.courseId === courseId).sort((a, b) => a.position - b.position);
+    if (options?.include?.sections) {
+      results = results.map((ch) => ({
+        ...ch,
+        sections: Array.from(this.sections.values()).filter((s) => s.chapterId === ch.id).sort((a, b) => a.position - b.position)
+      }));
+    }
+    return this.applyQueryOptions(results, options);
+  }
+  async findSection(id) {
+    return this.sections.get(id) ?? null;
+  }
+  async findSectionsByChapter(chapterId, options) {
+    const results = Array.from(this.sections.values()).filter((s) => s.chapterId === chapterId).sort((a, b) => a.position - b.position);
+    return this.applyQueryOptions(results, options);
+  }
+  // ============================================================================
+  // QUESTION BANK OPERATIONS
+  // ============================================================================
+  async findQuestions(filter, options) {
+    let results = Array.from(this.questions.values());
+    if (filter.courseId) {
+      results = results.filter((q) => q.courseId === filter.courseId);
+    }
+    if (filter.chapterId) {
+      results = results.filter((q) => q.chapterId === filter.chapterId);
+    }
+    if (filter.sectionId) {
+      results = results.filter((q) => q.sectionId === filter.sectionId);
+    }
+    if (filter.bloomsLevel) {
+      results = results.filter((q) => q.bloomsLevel === filter.bloomsLevel);
+    }
+    if (filter.difficulty) {
+      results = results.filter((q) => q.difficulty === filter.difficulty);
+    }
+    if (filter.questionType) {
+      results = results.filter((q) => q.questionType === filter.questionType);
+    }
+    return this.applyQueryOptions(results, options);
+  }
+  async createQuestion(data) {
+    const question = {
+      id: this.generateId("question"),
+      ...data,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.questions.set(question.id, question);
+    this.persist();
+    return question;
+  }
+  async updateQuestion(id, data) {
+    const question = this.questions.get(id);
+    if (!question) {
+      throw new Error(`Question ${id} not found`);
+    }
+    const updated = {
+      ...question,
+      ...data,
+      id,
+      // Preserve ID
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.questions.set(id, updated);
+    this.persist();
+    return updated;
+  }
+  async deleteQuestion(id) {
+    this.questions.delete(id);
+    this.persist();
+  }
+  // ============================================================================
+  // BLOOM'S PROGRESS OPERATIONS
+  // ============================================================================
+  async findBloomsProgress(userId, courseId) {
+    const key = `${userId}:${courseId}`;
+    return this.bloomsProgress.get(key) ?? null;
+  }
+  async upsertBloomsProgress(userId, courseId, data) {
+    const key = `${userId}:${courseId}`;
+    const existing = this.bloomsProgress.get(key);
+    const progress = {
+      id: existing?.id ?? this.generateId("blooms"),
+      userId,
+      courseId,
+      rememberScore: data.rememberScore ?? existing?.rememberScore ?? 0,
+      understandScore: data.understandScore ?? existing?.understandScore ?? 0,
+      applyScore: data.applyScore ?? existing?.applyScore ?? 0,
+      analyzeScore: data.analyzeScore ?? existing?.analyzeScore ?? 0,
+      evaluateScore: data.evaluateScore ?? existing?.evaluateScore ?? 0,
+      createScore: data.createScore ?? existing?.createScore ?? 0,
+      overallScore: data.overallScore ?? existing?.overallScore ?? 0,
+      assessmentCount: data.assessmentCount ?? existing?.assessmentCount ?? 0,
+      lastAssessedAt: data.lastAssessedAt ?? /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.bloomsProgress.set(key, progress);
+    this.persist();
+    return progress;
+  }
+  // ============================================================================
+  // COGNITIVE PROGRESS OPERATIONS
+  // ============================================================================
+  async findCognitiveProgress(userId, skillType) {
+    const key = `${userId}:${skillType}`;
+    return this.cognitiveProgress.get(key) ?? null;
+  }
+  async upsertCognitiveProgress(userId, skillType, data) {
+    const key = `${userId}:${skillType}`;
+    const existing = this.cognitiveProgress.get(key);
+    const progress = {
+      id: existing?.id ?? this.generateId("cognitive"),
+      userId,
+      skillType,
+      proficiencyLevel: data.proficiencyLevel ?? existing?.proficiencyLevel ?? 0,
+      totalAttempts: data.totalAttempts ?? existing?.totalAttempts ?? 0,
+      successfulAttempts: data.successfulAttempts ?? existing?.successfulAttempts ?? 0,
+      averageTimeSeconds: data.averageTimeSeconds ?? existing?.averageTimeSeconds ?? 0,
+      lastPracticedAt: data.lastPracticedAt ?? /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.cognitiveProgress.set(key, progress);
+    this.persist();
+    return progress;
+  }
+  // ============================================================================
+  // INTERACTION LOGGING
+  // ============================================================================
+  async logInteraction(data) {
+    const interaction = {
+      id: this.generateId("interaction"),
+      ...data,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    this.interactions.push(interaction);
+    this.persist();
+    return interaction;
+  }
+  async findInteractions(userId, options) {
+    let results = this.interactions.filter((i) => i.userId === userId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return this.applyQueryOptions(results, options);
+  }
+  async countInteractions(filter) {
+    let results = [...this.interactions];
+    if (filter?.userId) {
+      results = results.filter((i) => i.userId === filter.userId);
+    }
+    if (filter?.pageType) {
+      results = results.filter((i) => i.pageType === filter.pageType);
+    }
+    if (filter?.startDate) {
+      results = results.filter((i) => i.createdAt >= filter.startDate);
+    }
+    if (filter?.endDate) {
+      results = results.filter((i) => i.createdAt <= filter.endDate);
+    }
+    return results.length;
+  }
+  // ============================================================================
+  // COURSE ANALYSIS OPERATIONS
+  // ============================================================================
+  async findCourseAnalysis(courseId) {
+    return this.courseAnalysis.get(courseId) ?? null;
+  }
+  async upsertCourseAnalysis(courseId, data) {
+    const existing = this.courseAnalysis.get(courseId);
+    const analysis = {
+      id: existing?.id ?? this.generateId("analysis"),
+      courseId,
+      rememberPercentage: data.rememberPercentage ?? existing?.rememberPercentage ?? 0,
+      understandPercentage: data.understandPercentage ?? existing?.understandPercentage ?? 0,
+      applyPercentage: data.applyPercentage ?? existing?.applyPercentage ?? 0,
+      analyzePercentage: data.analyzePercentage ?? existing?.analyzePercentage ?? 0,
+      evaluatePercentage: data.evaluatePercentage ?? existing?.evaluatePercentage ?? 0,
+      createPercentage: data.createPercentage ?? existing?.createPercentage ?? 0,
+      totalObjectives: data.totalObjectives ?? existing?.totalObjectives ?? 0,
+      overallScore: data.overallScore ?? existing?.overallScore ?? 0,
+      recommendations: data.recommendations ?? existing?.recommendations,
+      gaps: data.gaps ?? existing?.gaps,
+      analyzedAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.courseAnalysis.set(courseId, analysis);
+    this.persist();
+    return analysis;
+  }
+  // ============================================================================
+  // UTILITY OPERATIONS
+  // ============================================================================
+  async healthCheck() {
+    return true;
+  }
+  async beginTransaction() {
+    return {
+      id: `tx-${Date.now()}`,
+      startedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  async commitTransaction() {
+  }
+  async rollbackTransaction() {
+  }
+  // ============================================================================
+  // DATA MANAGEMENT
+  // ============================================================================
+  /**
+   * Clear all data from memory
+   */
+  clear() {
+    this.users.clear();
+    this.courses.clear();
+    this.chapters.clear();
+    this.sections.clear();
+    this.questions.clear();
+    this.bloomsProgress.clear();
+    this.cognitiveProgress.clear();
+    this.interactions = [];
+    this.courseAnalysis.clear();
+    this.persist();
+  }
+  /**
+   * Add a user to the store
+   */
+  addUser(user) {
+    this.users.set(user.id, user);
+    this.persist();
+  }
+  /**
+   * Add a course to the store
+   */
+  addCourse(course) {
+    this.courses.set(course.id, course);
+    course.chapters?.forEach((ch) => {
+      this.chapters.set(ch.id, ch);
+      ch.sections?.forEach((s) => this.sections.set(s.id, s));
+    });
+    this.persist();
+  }
+  /**
+   * Get all stored data (for debugging/export)
+   */
+  getData() {
+    return {
+      users: Array.from(this.users.values()),
+      courses: Array.from(this.courses.values()),
+      questions: Array.from(this.questions.values()),
+      interactions: [...this.interactions]
+    };
+  }
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+  applyQueryOptions(results, options) {
+    if (options?.offset) {
+      results = results.slice(options.offset);
+    }
+    if (options?.limit) {
+      results = results.slice(0, options.limit);
+    }
+    return results;
+  }
+  persist() {
+    if (this.options.persistToLocalStorage && typeof localStorage !== "undefined") {
+      const prefix = this.options.storageKeyPrefix ?? "sam-db-";
+      localStorage.setItem(`${prefix}users`, JSON.stringify(Array.from(this.users.entries())));
+      localStorage.setItem(`${prefix}courses`, JSON.stringify(Array.from(this.courses.entries())));
+      localStorage.setItem(`${prefix}chapters`, JSON.stringify(Array.from(this.chapters.entries())));
+      localStorage.setItem(`${prefix}sections`, JSON.stringify(Array.from(this.sections.entries())));
+      localStorage.setItem(`${prefix}questions`, JSON.stringify(Array.from(this.questions.entries())));
+      localStorage.setItem(`${prefix}interactions`, JSON.stringify(this.interactions));
+    }
+  }
+  loadFromStorage() {
+    if (typeof localStorage === "undefined") return;
+    const prefix = this.options.storageKeyPrefix ?? "sam-db-";
+    try {
+      const users = localStorage.getItem(`${prefix}users`);
+      if (users) this.users = new Map(JSON.parse(users));
+      const courses = localStorage.getItem(`${prefix}courses`);
+      if (courses) this.courses = new Map(JSON.parse(courses));
+      const chapters = localStorage.getItem(`${prefix}chapters`);
+      if (chapters) this.chapters = new Map(JSON.parse(chapters));
+      const sections = localStorage.getItem(`${prefix}sections`);
+      if (sections) this.sections = new Map(JSON.parse(sections));
+      const questions = localStorage.getItem(`${prefix}questions`);
+      if (questions) this.questions = new Map(JSON.parse(questions));
+      const interactions = localStorage.getItem(`${prefix}interactions`);
+      if (interactions) this.interactions = JSON.parse(interactions);
+    } catch {
+    }
+  }
+};
+function createInMemoryDatabase(options = {}) {
+  return new InMemoryDatabaseAdapter(options);
+}
+
 // src/index.ts
 var VERSION = "0.1.0";
 export {
@@ -4103,8 +4720,10 @@ export {
   ContextEngine,
   DependencyError,
   EngineError,
+  InMemoryDatabaseAdapter,
   InitializationError,
   MemoryCacheAdapter,
+  NoopDatabaseAdapter,
   OrchestrationError,
   PersonalizationEngine,
   RateLimitError,
@@ -4127,7 +4746,9 @@ export {
   createDefaultPageContext,
   createDefaultUIContext,
   createDefaultUserContext,
+  createInMemoryDatabase,
   createMemoryCache,
+  createNoopDatabaseAdapter,
   createOrchestrator,
   createPersonalizationEngine,
   createResponseEngine,

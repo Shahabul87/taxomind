@@ -1,15 +1,15 @@
 {
   "name": "@sam-ai/react",
   "version": "0.1.0",
-  "description": "React hooks and providers for SAM AI Tutor",
+  "description": "React hooks, providers, and components for SAM AI Tutor - build context-aware educational interfaces",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "files": [
@@ -17,25 +17,28 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
-    "@sam-ai/core": "file:../core"
+    "@sam-ai/core": "workspace:*",
+    "@sam-ai/educational": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.5.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.3.0"
+    "tsup": "^8.2.4",
+    "typescript": "^5.6.2"
   },
   "keywords": [
     "sam",
@@ -43,12 +46,26 @@
     "tutor",
     "react",
     "hooks",
-    "education"
+    "education",
+    "provider",
+    "context",
+    "adaptive-learning"
   ],
-  "author": "Taxomind",
+  "author": "Taxomind <dev@taxomind.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/taxomind/sam-ai"
+    "url": "git+https://github.com/taxomind/sam-ai.git",
+    "directory": "packages/react"
+  },
+  "bugs": {
+    "url": "https://github.com/taxomind/sam-ai/issues"
+  },
+  "homepage": "https://github.com/taxomind/sam-ai/tree/main/packages/react#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

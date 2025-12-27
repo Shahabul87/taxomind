@@ -12,7 +12,6 @@ import {
   createOrchestrator,
   createStateMachine,
   createContextEngine,
-  createBloomsEngine,
   createContentEngine,
   createAssessmentEngine,
   createPersonalizationEngine,
@@ -122,7 +121,6 @@ function SAMProvider({
     const sm = createStateMachine();
     const orch = createOrchestrator(config);
     orch.registerEngine(createContextEngine(config));
-    orch.registerEngine(createBloomsEngine(config));
     orch.registerEngine(createContentEngine(config));
     orch.registerEngine(createAssessmentEngine(config));
     orch.registerEngine(createPersonalizationEngine(config));

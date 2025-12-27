@@ -82,51 +82,31 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
     }
   });
 
-  // Don't render animations until mounted to prevent hydration mismatch
-  if (!isMounted) {
-    return (
-      <div
-        className={cn(
-          "fixed inset-x-0 top-0 z-50 pointer-events-none",
-          className
-        )}
-        style={{ opacity: 0, pointerEvents: "none" }}
-      >
-        {/* Placeholder for SSR - matches structure but without animations */}
-        <div className="relative mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full px-4 py-2 lg:flex" />
-        <div className="relative z-[60] mx-auto flex flex-row items-center justify-between rounded-full px-3 py-2.5 sm:px-4 sm:py-3 lg:hidden" />
-      </div>
-    );
-  }
+  // Use consistent initial state for hydration
+  const shouldShow = isMounted && isVisible;
 
   return (
-    <motion.div
-      initial={false}
-      animate={{
-        opacity: isVisible ? 1 : 0,
-        y: isVisible ? 0 : -20,
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 30,
-      }}
+    <div
       className={cn(
-        "fixed inset-x-0 top-0 z-50 pointer-events-none",
+        "fixed inset-x-0 top-0 z-50",
         className
       )}
       style={{
-        pointerEvents: isVisible ? "auto" : "none",
+        opacity: shouldShow ? 1 : 0,
+        transform: shouldShow ? 'translateY(0)' : 'translateY(-20px)',
+        pointerEvents: shouldShow ? "auto" : "none",
+        transition: isMounted ? 'opacity 0.3s ease, transform 0.3s ease' : 'none',
       }}
     >
       <motion.div
+        initial={false}
         animate={{
-          backdropFilter: isVisible ? "blur(8px)" : "none",
-          boxShadow: isVisible
+          backdropFilter: shouldShow ? "blur(8px)" : "none",
+          boxShadow: shouldShow
             ? "0 4px 24px rgba(59, 130, 246, 0.1), 0 2px 8px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05)"
             : "none",
-          width: isVisible ? "60%" : "100%",
-          y: isVisible ? 10 : 0,
+          width: shouldShow ? "60%" : "100%",
+          y: shouldShow ? 10 : 0,
         }}
         transition={{
           type: "spring",
@@ -138,7 +118,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
         }}
         className={cn(
           "relative mx-auto hidden w-full max-w-7xl flex-row items-center justify-between self-start rounded-full px-4 py-2 lg:flex",
-          isVisible && "bg-blue-50 dark:bg-slate-800/95 border border-blue-100 dark:border-slate-700/50"
+          shouldShow && "bg-blue-50 dark:bg-slate-800/95 border border-blue-100 dark:border-slate-700/50"
         )}
       >
         {/* Logo */}
@@ -208,13 +188,14 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
 
       {/* Mobile Navigation - Shows on scroll */}
       <motion.div
+        initial={false}
         animate={{
-          backdropFilter: isVisible ? "blur(8px)" : "none",
-          boxShadow: isVisible
+          backdropFilter: shouldShow ? "blur(8px)" : "none",
+          boxShadow: shouldShow
             ? "0 4px 20px rgba(59, 130, 246, 0.1), 0 2px 6px rgba(59, 130, 246, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05)"
             : "none",
-          width: isVisible ? "85%" : "100%",
-          y: isVisible ? 8 : 0,
+          width: shouldShow ? "85%" : "100%",
+          y: shouldShow ? 8 : 0,
         }}
         transition={{
           type: "spring",
@@ -226,7 +207,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
         }}
         className={cn(
           "relative z-[60] mx-auto flex flex-row items-center justify-between rounded-full px-3 py-2.5 sm:px-4 sm:py-3 lg:hidden",
-          isVisible && "bg-blue-50 dark:bg-slate-800/95 border border-blue-100 dark:border-slate-700/50"
+          shouldShow && "bg-blue-50 dark:bg-slate-800/95 border border-blue-100 dark:border-slate-700/50"
         )}
       >
         {/* Mobile Logo */}
@@ -424,6 +405,6 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
           </div>
         </div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }

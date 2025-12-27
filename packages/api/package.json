@@ -1,7 +1,7 @@
 {
   "name": "@sam-ai/api",
   "version": "0.1.0",
-  "description": "API route handlers and middleware for SAM AI Tutor",
+  "description": "Next.js API route handlers, middleware, and server utilities for SAM AI Tutor integration",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -17,19 +17,21 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@sam-ai/core": "file:../core",
-    "zod": "^3.22.4"
+    "@sam-ai/core": "workspace:*",
+    "@sam-ai/educational": "workspace:*",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.3.0"
+    "@types/node": "^22.5.5",
+    "tsup": "^8.2.4",
+    "typescript": "^5.6.2"
   },
   "peerDependencies": {
     "next": ">=14.0.0"
@@ -45,12 +47,26 @@
     "tutor",
     "api",
     "nextjs",
-    "education"
+    "education",
+    "server",
+    "middleware",
+    "streaming"
   ],
-  "author": "Taxomind",
+  "author": "Taxomind <dev@taxomind.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/taxomind/sam-ai"
+    "url": "git+https://github.com/taxomind/sam-ai.git",
+    "directory": "packages/api"
+  },
+  "bugs": {
+    "url": "https://github.com/taxomind/sam-ai/issues"
+  },
+  "homepage": "https://github.com/taxomind/sam-ai/tree/main/packages/api#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -1,0 +1,63 @@
+{
+  "name": "@sam-ai/quality",
+  "version": "0.1.0",
+  "description": "Content quality gates for SAM AI Tutor - validate AI-generated educational content before delivery",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@sam-ai/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.5",
+    "tsup": "^8.2.4",
+    "typescript": "^5.6.2"
+  },
+  "keywords": [
+    "sam",
+    "ai",
+    "tutor",
+    "quality",
+    "gates",
+    "validation",
+    "content",
+    "education",
+    "completeness",
+    "structure"
+  ],
+  "author": "Taxomind <dev@taxomind.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taxomind/sam-ai.git",
+    "directory": "packages/quality"
+  },
+  "bugs": {
+    "url": "https://github.com/taxomind/sam-ai/issues"
+  },
+  "homepage": "https://github.com/taxomind/sam-ai/tree/main/packages/quality#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

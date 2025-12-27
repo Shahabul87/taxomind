@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import {
+  validateContent,
+  type GeneratedContent,
+  type DifficultyLevel,
+} from '@/lib/sam/quality-gates';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -66,15 +71,56 @@ Return a JSON array of problems, each with:
       problems = parseProblemsFromText(problemsText, count, difficulty, topic);
     }
 
+    // Validate content quality using quality gates
+    const problemsArray = Array.isArray(problems) ? problems : [problems];
+    const contentToValidate: GeneratedContent = {
+      content: JSON.stringify(problemsArray, null, 2),
+      type: 'exercise',
+      targetDifficulty: mapDifficultyLevel(difficulty),
+      context: {
+        topic,
+        studentLevel: mapDifficultyLevel(difficulty),
+      },
+      generationMetadata: {
+        model: 'claude-sonnet-4-5-20250929',
+        timestamp: new Date().toISOString(),
+      },
+    };
+
+    const validationResult = await validateContent(contentToValidate, {
+      threshold: 70,
+      parallel: true,
+      enableEnhancement: false, // Don't auto-enhance, just report
+    });
+
+    // Log validation results
+    if (!validationResult.passed) {
+      logger.warn('[PracticeProblems] Quality validation issues detected', {
+        score: validationResult.overallScore,
+        failedGates: validationResult.failedGates,
+        suggestions: validationResult.allSuggestions.slice(0, 3),
+      });
+    }
+
     return NextResponse.json({
-      problems: Array.isArray(problems) ? problems : [problems],
+      problems: problemsArray,
       topic,
       difficulty,
       adaptedFor: learningStyle.type,
       metadata: {
         generatedAt: new Date().toISOString(),
-        totalProblems: Array.isArray(problems) ? problems.length : 1
-      }
+        totalProblems: problemsArray.length,
+      },
+      qualityValidation: {
+        passed: validationResult.passed,
+        score: validationResult.overallScore,
+        suggestions: validationResult.allSuggestions.slice(0, 5),
+        gateResults: validationResult.gateResults.map((g) => ({
+          gate: g.gateName,
+          passed: g.passed,
+          score: g.score,
+        })),
+      },
     });
 
   } catch (error) {
@@ -120,7 +166,18 @@ function determineBloomsLevel(difficulty: string, problemType: string): string {
     medium: ['Application', 'Analysis'],
     hard: ['Synthesis', 'Evaluation']
   };
-  
+
   const possibleLevels = levels[difficulty as keyof typeof levels] || levels.medium;
   return possibleLevels[Math.floor(Math.random() * possibleLevels.length)];
+}
+
+// Helper function to map difficulty string to DifficultyLevel type
+function mapDifficultyLevel(difficulty: string): DifficultyLevel {
+  const mapping: Record<string, DifficultyLevel> = {
+    easy: 'beginner',
+    medium: 'intermediate',
+    hard: 'advanced',
+    expert: 'expert',
+  };
+  return mapping[difficulty.toLowerCase()] ?? 'intermediate';
 }

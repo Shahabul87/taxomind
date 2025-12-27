@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samFinancialEngine } from "@/lib/sam-engines/business/sam-financial-engine";
+import { createFinancialEngine } from "@sam-ai/educational";
+import type { DateRange } from "@sam-ai/educational";
+import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
+
+// Create financial engine singleton with portable package
+let financialEngine: ReturnType<typeof createFinancialEngine> | null = null;
+
+function getFinancialEngine() {
+  if (!financialEngine) {
+    financialEngine = createFinancialEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return financialEngine;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -122,7 +137,8 @@ async function handleAnalyzeFinancials(
         end: new Date(),
       };
 
-  const analytics = await samFinancialEngine.analyzeFinancials(
+  const engine = getFinancialEngine();
+  const analytics = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
   );
@@ -163,7 +179,8 @@ async function handleRevenueAnalysis(
         end: new Date(),
       };
 
-  const financials = await samFinancialEngine.analyzeFinancials(
+  const engine = getFinancialEngine();
+  const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
   );
@@ -227,7 +244,8 @@ async function handleCostAnalysis(
         end: new Date(),
       };
 
-  const financials = await samFinancialEngine.analyzeFinancials(
+  const engine = getFinancialEngine();
+  const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
   );
@@ -293,7 +311,8 @@ async function handleProfitabilityAnalysis(
         end: new Date(),
       };
 
-  const financials = await samFinancialEngine.analyzeFinancials(
+  const engine = getFinancialEngine();
+  const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
   );
@@ -367,7 +386,8 @@ async function handlePricingOptimization(
     end: new Date(),
   };
 
-  const financials = await samFinancialEngine.analyzeFinancials(
+  const engine = getFinancialEngine();
+  const financials = await engine.analyzeFinancials(
     organizationId,
     dateRange
   );
@@ -452,7 +472,8 @@ async function handleSubscriptionMetrics(
         end: new Date(),
       };
 
-  const financials = await samFinancialEngine.analyzeFinancials(
+  const engine = getFinancialEngine();
+  const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
   );
@@ -495,7 +516,8 @@ async function handleFinancialForecast(
     end: new Date(),
   };
 
-  const financials = await samFinancialEngine.analyzeFinancials(
+  const engine = getFinancialEngine();
+  const financials = await engine.analyzeFinancials(
     organizationId,
     dateRange
   );

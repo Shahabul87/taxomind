@@ -1,8 +1,22 @@
 # SAM Engine - Smart Adaptive Mentor AI Assistant
 
+> **DEPRECATED**: This package (`@taxomind/sam-engine`) is deprecated in favor of the modular `@sam-ai/*` package family.
+>
+> **Migration Path:**
+> - `@sam-ai/core` - Core engine orchestration and Bloom&apos;s analysis
+> - `@sam-ai/react` - React hooks and components
+> - `@sam-ai/api` - Next.js route handlers
+>
+> See [SAM Portability Plan](../../docs/SAM_PORTABILITY_PLAN.md) for migration details.
+>
+> **Status:** This package is not actively used in the Taxomind application. All new development should use `@sam-ai/core`.
+
+---
+
 [![npm version](https://img.shields.io/npm/v/@taxomind/sam-engine.svg)](https://www.npmjs.com/package/@taxomind/sam-engine)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue.svg)](https://www.typescriptlang.org/)
+[![DEPRECATED](https://img.shields.io/badge/status-DEPRECATED-red.svg)](https://github.com/taxomind/sam-ai)
 
 A powerful, modular AI educational assistant engine that can be integrated into any web application or LMS platform. SAM (Smart Adaptive Mentor) provides intelligent, context-aware assistance for educators and learners.
 

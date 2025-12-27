@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
-import { anthropic } from "@/lib/anthropic";
+import { anthropic, getResponseText } from "@/lib/anthropic";
 import { logger } from '@/lib/logger';
 
 // Types for Content Generation Assistant
@@ -375,7 +375,7 @@ export class SAMGenerationEngine {
     });
     
     // Parse response and structure data
-    const structureText = response.content[0].text || '';
+    const structureText = getResponseText(response.content, '');
     return this.parseStructureResponse(structureText);
   }
 
@@ -491,7 +491,7 @@ export class SAMGenerationEngine {
       }]
     });
     
-    const questionData = JSON.parse(response.content[0].text || '{}');
+    const questionData = JSON.parse(getResponseText(response.content, '{}'));
     
     return {
       id: `q-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -563,7 +563,7 @@ export class SAMGenerationEngine {
     });
     
     // Parse and structure translated content
-    return this.parseTranslatedContent(response.content[0].text || '', content);
+    return this.parseTranslatedContent(getResponseText(response.content, ''), content);
   }
 
   private async analyzeCourseForStudyGuide(course: any) {

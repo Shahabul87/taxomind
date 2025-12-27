@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getUserAchievementSummary } from '@/lib/sam-engines/educational/sam-achievement-engine';
+import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const summary = await getUserAchievementSummary(session.user.id);
+    const summary = await getAchievementEngine().getSummary(session.user.id);
 
     return NextResponse.json({
       success: true,

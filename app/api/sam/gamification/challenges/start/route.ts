@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { startChallengeForUser } from '@/lib/sam-engines/educational/sam-achievement-engine';
+import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { challengeId } = await req.json();
-    
+
     if (!challengeId) {
       return NextResponse.json({ error: 'Challenge ID is required' }, { status: 400 });
     }
 
-    const success = await startChallengeForUser(session.user.id, challengeId);
-    
+    const success = await getAchievementEngine().startChallenge(session.user.id, challengeId);
+
     if (!success) {
       return NextResponse.json(
         { error: 'Failed to start challenge' },

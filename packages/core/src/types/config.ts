@@ -4,6 +4,7 @@
  */
 
 import type { SAMMessage } from './context';
+import type { SAMDatabaseAdapter } from '../adapters/database';
 
 // ============================================================================
 // ADAPTER INTERFACES
@@ -256,6 +257,7 @@ export interface SAMConfig {
   storage?: StorageAdapter;
   cache?: CacheAdapter;
   analytics?: AnalyticsAdapter;
+  database?: SAMDatabaseAdapter;
   logger?: SAMLogger;
 
   // Feature flags
@@ -299,6 +301,7 @@ export interface SAMConfigInput {
   storage?: StorageAdapter;
   cache?: CacheAdapter;
   analytics?: AnalyticsAdapter;
+  database?: SAMDatabaseAdapter;
   logger?: SAMLogger;
   features?: Partial<SAMFeatureFlags>;
   routes?: SAMRoutePatterns;
@@ -317,6 +320,7 @@ export function createSAMConfig(input: SAMConfigInput): SAMConfig {
     storage: input.storage,
     cache: input.cache,
     analytics: input.analytics,
+    database: input.database,
     logger: input.logger ?? console,
 
     features: {

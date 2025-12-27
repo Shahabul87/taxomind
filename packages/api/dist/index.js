@@ -49,6 +49,7 @@ module.exports = __toCommonJS(index_exports);
 
 // src/handlers/chat.ts
 var import_core = require("@sam-ai/core");
+var import_educational = require("@sam-ai/educational");
 function createSuccessResponse(data, status = 200) {
   return {
     status,
@@ -77,13 +78,13 @@ function createErrorResponse(status, code, message, details) {
     }
   };
 }
-function toResponse(result) {
+function toResponse(result, bloomsAnalysis) {
   return {
     message: result.response.message,
     conversationId: `conv_${Date.now()}`,
     suggestions: result.response.suggestions ?? [],
     actions: result.response.actions ?? [],
-    bloomsAnalysis: result.response.blooms,
+    bloomsAnalysis: bloomsAnalysis ?? result.response.blooms,
     usage: void 0
   };
 }
@@ -104,7 +105,13 @@ function buildUserContext(handlerContext) {
 function createChatHandler(config) {
   const orchestrator = (0, import_core.createOrchestrator)(config);
   orchestrator.registerEngine((0, import_core.createContextEngine)(config));
-  orchestrator.registerEngine((0, import_core.createBloomsEngine)(config));
+  orchestrator.registerEngine((0, import_educational.createUnifiedBloomsAdapterEngine)({
+    samConfig: config,
+    defaultMode: "standard",
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600
+  }));
   orchestrator.registerEngine((0, import_core.createResponseEngine)(config));
   return async (request, handlerContext) => {
     const body = request.body;
@@ -143,6 +150,8 @@ function createChatHandler(config) {
       const result = await orchestrator.orchestrate(samContext, body.message, {
         includeInsights: true
       });
+      const bloomsOutput = result.results.blooms?.data;
+      const bloomsAnalysis = bloomsOutput?.analysis ?? result.response.blooms;
       if (!result.success && result.metadata.enginesFailed.length > 0) {
         return createErrorResponse(
           500,
@@ -153,7 +162,7 @@ function createChatHandler(config) {
           }
         );
       }
-      const chatResponse = toResponse(result);
+      const chatResponse = toResponse(result, bloomsAnalysis);
       return createSuccessResponse(chatResponse);
     } catch (error) {
       console.error("[SAM Chat Handler] Error:", error);
@@ -175,7 +184,13 @@ function createChatHandler(config) {
 function createStreamingChatHandler(config) {
   const orchestrator = (0, import_core.createOrchestrator)(config);
   orchestrator.registerEngine((0, import_core.createContextEngine)(config));
-  orchestrator.registerEngine((0, import_core.createBloomsEngine)(config));
+  orchestrator.registerEngine((0, import_educational.createUnifiedBloomsAdapterEngine)({
+    samConfig: config,
+    defaultMode: "standard",
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600
+  }));
   orchestrator.registerEngine((0, import_core.createResponseEngine)(config));
   return async (request, handlerContext, onChunk) => {
     const body = request.body;
@@ -190,6 +205,8 @@ function createStreamingChatHandler(config) {
       }
     });
     const result = await orchestrator.orchestrate(samContext, body.message);
+    const bloomsOutput = result.results.blooms?.data;
+    const bloomsAnalysis = bloomsOutput?.analysis ?? result.response.blooms;
     onChunk(
       JSON.stringify({
         type: "text",
@@ -199,7 +216,7 @@ function createStreamingChatHandler(config) {
     onChunk(
       JSON.stringify({
         type: "done",
-        data: toResponse(result)
+        data: toResponse(result, bloomsAnalysis)
       })
     );
   };
@@ -207,6 +224,7 @@ function createStreamingChatHandler(config) {
 
 // src/handlers/analyze.ts
 var import_core2 = require("@sam-ai/core");
+var import_educational2 = require("@sam-ai/educational");
 function createSuccessResponse2(data, status = 200) {
   return {
     status,
@@ -251,7 +269,14 @@ function buildUserContext2(handlerContext) {
 }
 function createAnalyzeHandler(config) {
   const orchestrator = (0, import_core2.createOrchestrator)(config);
-  orchestrator.registerEngine((0, import_core2.createBloomsEngine)(config));
+  orchestrator.registerEngine((0, import_core2.createContextEngine)(config));
+  orchestrator.registerEngine((0, import_educational2.createUnifiedBloomsAdapterEngine)({
+    samConfig: config,
+    defaultMode: "standard",
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600
+  }));
   orchestrator.registerEngine((0, import_core2.createContentEngine)(config));
   return async (request, handlerContext) => {
     const body = request.body;
@@ -285,29 +310,32 @@ function createAnalyzeHandler(config) {
       if (analysisType === "content" || analysisType === "full") {
         enginesToRun.push("content");
       }
+      if (!enginesToRun.includes("context")) {
+        enginesToRun.unshift("context");
+      }
       const result = await orchestrator.orchestrate(
         samContext,
         body.content ?? "Analyze the current context",
         { engines: enginesToRun }
       );
       if (result.results["blooms"]?.success && result.results["blooms"]?.data) {
-        const bloomsData = result.results["blooms"].data;
-        if (bloomsData.distribution && bloomsData.dominantLevel) {
-          analysis.blooms = bloomsData;
+        const bloomsOutput = result.results["blooms"].data;
+        const blooms = bloomsOutput.analysis;
+        if (blooms?.distribution && blooms.dominantLevel) {
+          analysis.blooms = blooms;
           enginesUsed.push("blooms");
           if (body.options?.includeRecommendations) {
-            const blooms = analysis.blooms;
-            if (blooms && blooms.cognitiveDepth < 50) {
+            if (blooms.cognitiveDepth < 50) {
               recommendations.push(
                 "Consider adding higher-order thinking questions (analyze, evaluate, create)"
               );
             }
-            if (blooms && blooms.dominantLevel === "REMEMBER") {
+            if (blooms.dominantLevel === "REMEMBER") {
               recommendations.push(
                 "The content is focused on basic recall. Consider adding application exercises."
               );
             }
-            if (blooms?.recommendations) {
+            if (blooms.recommendations) {
               recommendations.push(...blooms.recommendations.slice(0, 3));
             }
           }
@@ -375,27 +403,27 @@ function createAnalyzeHandler(config) {
   };
 }
 async function analyzeBloomsLevel(config, content) {
-  const orchestrator = (0, import_core2.createOrchestrator)(config);
-  orchestrator.registerEngine((0, import_core2.createBloomsEngine)(config));
+  const unifiedBlooms = (0, import_educational2.createUnifiedBloomsEngine)({
+    samConfig: config,
+    defaultMode: "standard",
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600
+  });
   try {
-    const context = (0, import_core2.createDefaultContext)({
-      user: {
-        id: "system",
-        role: "teacher",
-        preferences: {},
-        capabilities: []
-      }
+    const result = await unifiedBlooms.analyze(content, {
+      mode: "standard"
     });
-    const result = await orchestrator.orchestrate(context, content, {
-      engines: ["blooms"]
-    });
-    if (result.results["blooms"]?.success && result.results["blooms"]?.data) {
-      const data = result.results["blooms"].data;
-      if (data.distribution && data.dominantLevel) {
-        return data;
-      }
-    }
-    return null;
+    return {
+      dominantLevel: result.dominantLevel,
+      distribution: result.distribution,
+      cognitiveDepth: result.cognitiveDepth,
+      balance: result.balance,
+      gaps: result.gaps,
+      recommendations: result.recommendations.map((r) => r.action),
+      confidence: result.confidence,
+      method: result.metadata.method
+    };
   } catch {
     return null;
   }

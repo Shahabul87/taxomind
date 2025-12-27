@@ -1,34 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { BloomsAnalysisEngine } from '@/lib/sam-engines/educational/sam-blooms-engine';
+import { createUnifiedBloomsEngine } from '@sam-ai/educational';
+import type { UnifiedCourseInput, UnifiedCourseOptions } from '@sam-ai/educational';
+import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+
+// Create Unified Blooms engine singleton (Priority 1: Unified Bloom's Engine)
+let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
+
+function getUnifiedBloomsEngine() {
+  if (!unifiedBloomsEngine) {
+    unifiedBloomsEngine = createUnifiedBloomsEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+      defaultMode: 'standard', // Keyword + AI validation when confidence low
+      confidenceThreshold: 0.7,
+      enableCache: true,
+      cacheTTL: 3600, // 1 hour cache
+    });
+  }
+  return unifiedBloomsEngine;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      courseId, 
-      depth = 'detailed', 
-      includeRecommendations = true 
+    const {
+      courseId,
+      depth = 'detailed',
+      includeRecommendations = true
     } = await request.json();
 
     if (!courseId) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });
     }
 
-    // Check if user has access to the course
+    // Fetch full course data for portable engine
     const course = await db.course.findUnique({
       where: { id: courseId },
-      select: { 
-        userId: true, 
-        organizationId: true,
-        title: true,
+      include: {
+        chapters: {
+          orderBy: { position: 'asc' },
+          include: {
+            sections: {
+              orderBy: { position: 'asc' },
+              include: {
+                exams: {
+                  include: {
+                    enhancedQuestions: {
+                      select: {
+                        id: true,
+                        question: true,
+                        bloomsLevel: true,
+                      },
+                    },
+                  },
+                },
+                learningObjectiveItems: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -37,16 +75,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Check access permissions
-    const hasAccess = course.userId === user.id || 
+    const hasAccess = course.userId === user.id ||
       (course.organizationId && await checkOrganizationAccess(user.id, course.organizationId));
 
     if (!hasAccess && user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Perform Bloom's Taxonomy analysis
-    const engine = new BloomsAnalysisEngine();
-    const analysis = await engine.analyzeCourse(courseId, depth, includeRecommendations);
+    // Build UnifiedCourseInput for unified Blooms engine
+    const courseData: UnifiedCourseInput = {
+      id: course.id,
+      title: course.title || 'Untitled Course',
+      description: course.description || undefined,
+      chapters: course.chapters.map((chapter) => ({
+        id: chapter.id,
+        title: chapter.title,
+        position: chapter.position,
+        sections: chapter.sections.map((section) => ({
+          id: section.id,
+          title: section.title,
+          content: section.description || undefined,
+          description: section.description || undefined,
+          learningObjectives: section.learningObjectiveItems?.map((obj) => obj.objective) || [],
+        })),
+      })),
+    };
+
+    // Configure analysis options
+    const options: UnifiedCourseOptions = {
+      depth: depth as 'basic' | 'detailed' | 'comprehensive',
+      includeRecommendations,
+      mode: depth === 'comprehensive' ? 'comprehensive' : 'standard',
+    };
+
+    // Perform Bloom's Taxonomy analysis using unified engine
+    const engine = getUnifiedBloomsEngine();
+    const analysis = await engine.analyzeCourse(courseData, options);
 
     // Record the analysis as a SAM interaction
     await recordSAMInteraction(user.id, courseId, 'BLOOMS_ANALYSIS', {
@@ -57,13 +121,22 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: analysis,
+      data: {
+        courseLevel: analysis.courseLevel,
+        chapters: analysis.chapters,
+        learningPathway: analysis.learningPathway,
+        recommendations: analysis.recommendations,
+        analyzedAt: analysis.analyzedAt,
+      },
       metadata: {
         courseId,
         courseTitle: course.title,
         analysisDepth: depth,
         timestamp: new Date().toISOString(),
         userId: user.id,
+        engine: '@sam-ai/educational (unified)',
+        processingTimeMs: analysis.metadata.processingTimeMs,
+        fromCache: analysis.metadata.fromCache,
       },
     });
 

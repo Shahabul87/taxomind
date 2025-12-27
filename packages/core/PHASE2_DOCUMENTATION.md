@@ -13,7 +13,7 @@ Phase 2 migrates existing SAM AI engines from the taxomind codebase to the unifi
 | CourseGuideEngine | ContentEngine | Migrated |
 | AdvancedExamEngine | AssessmentEngine | Migrated |
 | SAMPersonalizationEngine | PersonalizationEngine | Migrated |
-| BloomsAnalysisEngine | BloomsEngine | Completed in Phase 1 |
+| BloomsAnalysisEngine | UnifiedBloomsEngine (@sam-ai/educational) | Completed in Phase 1 |
 | N/A | ContextEngine | Completed in Phase 1 |
 | N/A | ResponseEngine | Completed in Phase 1 |
 
@@ -359,15 +359,17 @@ Tier 1 (no dependencies):
 ├── ContextEngine
 
 Tier 2 (depends on context):
-├── BloomsEngine
 ├── ContentEngine
 └── PersonalizationEngine
 
-Tier 3 (depends on blooms/context):
+Tier 3 (depends on context + optional Bloom analysis input):
 ├── AssessmentEngine
 
 Tier 4 (aggregates all):
 └── ResponseEngine
+
+Note: Bloom's analysis is now handled by UnifiedBloomsEngine from `@sam-ai/educational`.
+It runs alongside the core orchestrator instead of being registered as a core engine.
 ```
 
 ### Engine Base Pattern
@@ -447,7 +449,6 @@ class ContentEngine extends BaseEngine<ContentEngineOutput> {
 import {
   createOrchestrator,
   createContextEngine,
-  createBloomsEngine,
   createContentEngine,
   createAssessmentEngine,
   createPersonalizationEngine,
@@ -457,6 +458,7 @@ import {
   createSAMConfig,
   createDefaultContext,
 } from '@sam-ai/core';
+import { createUnifiedBloomsEngine } from '@sam-ai/educational';
 
 // Create configuration
 const config = createSAMConfig({
@@ -470,10 +472,15 @@ const config = createSAMConfig({
 
 // Create orchestrator and register all engines
 const orchestrator = createOrchestrator(config);
+const bloomsEngine = createUnifiedBloomsEngine({
+  samConfig: config,
+  defaultMode: 'standard',
+  confidenceThreshold: 0.7,
+  enableCache: true,
+});
 
 // Phase 1 engines
 orchestrator.registerEngine(createContextEngine(config));
-orchestrator.registerEngine(createBloomsEngine(config));
 orchestrator.registerEngine(createResponseEngine(config));
 
 // Phase 2 engines
@@ -493,8 +500,10 @@ const result = await orchestrator.orchestrate(
   { parallel: true }
 );
 
+const blooms = await bloomsEngine.analyze('Help me understand calculus derivatives');
+
 console.log('Response:', result.response.message);
-console.log('Blooms Level:', result.results.blooms?.data?.analysis.dominantLevel);
+console.log('Blooms Level:', blooms.dominantLevel);
 console.log('Learning Style:', result.results.personalization?.data?.learningStyle.primary);
 ```
 

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { openai } from "@/lib/openai";
-import { anthropic } from "@/lib/anthropic";
+import { anthropic, getResponseText } from "@/lib/anthropic";
 import { logger } from '@/lib/logger';
 
 // Types for Advanced Personalization Engine
@@ -891,7 +891,7 @@ export class SAMPersonalizationEngine {
         }]
       });
       
-      explanations.push(response.content[0].text || '');
+      explanations.push(getResponseText(response.content, ''));
     } catch (error: any) {
       explanations.push('Additional explanations will be provided during the lesson');
     }

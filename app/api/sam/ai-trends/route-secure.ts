@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { samTrendsEngine } from '@/lib/sam-engines/advanced/sam-trends-engine';
+import { createTrendsEngine } from '@sam-ai/educational';
+import { getSAMConfig, createTrendsAdapter } from '@/lib/adapters';
+import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import {
@@ -13,6 +15,41 @@ import {
   sanitizeString
 } from '@/lib/sam/types/sam-validators';
 import { rateLimiters, RateLimiter, rateLimitResponse } from '@/lib/rate-limiter';
+
+// Trend horizon and interaction types
+type TrendHorizon = '3months' | '6months' | '1year' | '2years';
+type TrendInteractionType = 'analyze' | 'view' | 'save' | 'share';
+
+// Create trends engine singleton
+let trendsEngine: ReturnType<typeof createTrendsEngine> | null = null;
+
+function getTrendsEngine() {
+  if (!trendsEngine) {
+    trendsEngine = createTrendsEngine({
+      samConfig: getSAMConfig(),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      database: createTrendsAdapter(db as any),
+    });
+  }
+  return trendsEngine;
+}
+
+// Backward compatibility alias with proper types
+const samTrendsEngine = {
+  analyzeTrends: (filter?: Record<string, unknown>) => getTrendsEngine().analyzeTrends(filter),
+  getTrendCategories: () => getTrendsEngine().getTrendCategories(),
+  detectMarketSignals: (trendId: string) => getTrendsEngine().detectMarketSignals(trendId),
+  compareTrends: (id1: string, id2: string) => getTrendsEngine().compareTrends(id1, id2),
+  predictTrendTrajectory: (id: string, horizon: TrendHorizon) =>
+    getTrendsEngine().predictTrendTrajectory(id, horizon),
+  generateIndustryReport: (industry: string) => getTrendsEngine().generateIndustryReport(industry),
+  searchTrends: (query: string) => getTrendsEngine().searchTrends(query),
+  getTrendingNow: () => getTrendsEngine().getTrendingNow(),
+  getEmergingTrends: () => getTrendsEngine().getEmergingTrends(),
+  getEducationalTrends: () => getTrendsEngine().getEducationalTrends(),
+  recordInteraction: (userId: string, trendId: string, type: TrendInteractionType) =>
+    getTrendsEngine().recordInteraction(userId, trendId, type),
+};
 
 // Error response helper
 function errorResponse(message: string, status: number = 400) {

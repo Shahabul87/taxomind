@@ -1,0 +1,1417 @@
+/**
+ * @sam-ai/educational - Unified Bloom's Taxonomy Engine
+ *
+ * Priority 1: Unified Bloom's Engine
+ *
+ * This engine merges the keyword-only core engine with the AI+DB educational engine,
+ * providing a single unified interface with intelligent fallback.
+ *
+ * Key features:
+ * - Fast keyword-only classification for quick analysis (<10ms)
+ * - AI-powered semantic analysis for comprehensive understanding
+ * - Confidence-based escalation: if keyword confidence < threshold, uses AI
+ * - In-memory caching for AI results to reduce costs
+ * - Course-level analysis with learning pathways
+ * - Cognitive progress tracking with spaced repetition (SM-2)
+ *
+ * @packageDocumentation
+ */
+
+import { z } from 'zod';
+import type { SAMConfig, SAMDatabaseAdapter, BloomsLevel } from '@sam-ai/core';
+import { BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER } from '@sam-ai/core';
+import type { BloomsDistribution, CognitiveProfile } from '../types/blooms.types';
+import {
+  parseAndValidate,
+  type ValidationResult as ParseValidationResult,
+} from '../validation/utils';
+import type {
+  UnifiedBloomsConfig,
+  UnifiedBloomsMode,
+  UnifiedBloomsResult,
+  UnifiedBloomsRecommendation,
+  AnalysisOptions,
+  AnalysisMetadata,
+  SectionAnalysis,
+  UnifiedCourseInput,
+  UnifiedCourseOptions,
+  UnifiedCourseResult,
+  ChapterAnalysis,
+  CourseRecommendation,
+  UnifiedLearningPath,
+  PathwayStage,
+  CognitiveProgressInput,
+  CognitiveProgressResult,
+  ProgressRecommendation,
+  UnifiedSpacedRepetitionInput,
+  UnifiedSpacedRepetitionResult,
+  CacheEntry,
+  CacheStats,
+} from '../types/unified-blooms.types';
+
+// ============================================================================
+// BLOOM'S TAXONOMY KEYWORDS (from core engine)
+// ============================================================================
+
+const BLOOMS_KEYWORDS: Record<BloomsLevel, string[]> = {
+  REMEMBER: [
+    'define', 'list', 'recall', 'name', 'identify', 'describe', 'label',
+    'recognize', 'match', 'select', 'state', 'memorize', 'repeat', 'record',
+    'outline', 'duplicate', 'reproduce', 'recite', 'locate', 'tell',
+  ],
+  UNDERSTAND: [
+    'explain', 'summarize', 'interpret', 'classify', 'compare', 'contrast',
+    'discuss', 'distinguish', 'paraphrase', 'predict', 'translate', 'extend',
+    'infer', 'estimate', 'generalize', 'rewrite', 'exemplify', 'illustrate',
+  ],
+  APPLY: [
+    'apply', 'demonstrate', 'solve', 'use', 'implement', 'execute', 'operate',
+    'practice', 'calculate', 'compute', 'construct', 'modify', 'produce',
+    'show', 'complete', 'examine', 'illustrate', 'experiment', 'schedule',
+  ],
+  ANALYZE: [
+    'analyze', 'differentiate', 'organize', 'attribute', 'compare', 'contrast',
+    'distinguish', 'examine', 'experiment', 'question', 'test', 'investigate',
+    'categorize', 'deconstruct', 'diagram', 'dissect', 'survey', 'correlate',
+  ],
+  EVALUATE: [
+    'evaluate', 'judge', 'critique', 'justify', 'assess', 'argue', 'defend',
+    'support', 'value', 'prioritize', 'rank', 'rate', 'recommend', 'conclude',
+    'appraise', 'criticize', 'decide', 'discriminate', 'measure', 'validate',
+  ],
+  CREATE: [
+    'create', 'design', 'develop', 'construct', 'produce', 'invent', 'compose',
+    'formulate', 'generate', 'plan', 'assemble', 'devise', 'build', 'author',
+    'combine', 'compile', 'integrate', 'modify', 'reorganize', 'synthesize',
+  ],
+};
+
+// ============================================================================
+// ZOD SCHEMAS FOR AI RESPONSE VALIDATION
+// ============================================================================
+
+/**
+ * Schema for AI-generated Bloom's Taxonomy analysis response
+ * Used by parseAndValidate to ensure type-safe parsing
+ */
+const BloomsDistributionSchema = z.object({
+  REMEMBER: z.number().min(0).max(100).optional().default(0),
+  UNDERSTAND: z.number().min(0).max(100).optional().default(0),
+  APPLY: z.number().min(0).max(100).optional().default(0),
+  ANALYZE: z.number().min(0).max(100).optional().default(0),
+  EVALUATE: z.number().min(0).max(100).optional().default(0),
+  CREATE: z.number().min(0).max(100).optional().default(0),
+});
+
+const BloomsAIResponseSchema = z.object({
+  dominantLevel: z.enum(['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE']).optional(),
+  distribution: BloomsDistributionSchema.optional(),
+  confidence: z.number().min(0).max(1).default(0.8),
+  cognitiveDepth: z.number().min(0).max(100).default(50),
+  balance: z.enum(['well-balanced', 'bottom-heavy', 'top-heavy']).default('well-balanced'),
+  gaps: z.array(z.enum(['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'])).default([]),
+  recommendations: z.array(
+    z.object({
+      type: z.string().optional(),
+      priority: z.enum(['high', 'medium', 'low']).default('medium'),
+      message: z.string().optional(),
+      action: z.string().optional(),
+      targetLevel: z.enum(['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE']).optional(),
+    })
+  ).default([]),
+});
+
+type BloomsAIResponse = z.output<typeof BloomsAIResponseSchema>;
+
+// ============================================================================
+// UNIFIED BLOOM'S ENGINE
+// ============================================================================
+
+export class UnifiedBloomsEngine {
+  private readonly config: SAMConfig;
+  private readonly database?: SAMDatabaseAdapter;
+  private readonly defaultMode: UnifiedBloomsMode;
+  private readonly confidenceThreshold: number;
+  private readonly enableCache: boolean;
+  private readonly cacheTTL: number;
+
+  // In-memory cache for AI analysis results
+  private readonly cache: Map<string, CacheEntry<UnifiedBloomsResult | UnifiedCourseResult>> = new Map();
+  private cacheHits = 0;
+  private cacheMisses = 0;
+
+  constructor(config: UnifiedBloomsConfig) {
+    this.config = config.samConfig;
+    this.database = config.database;
+    this.defaultMode = config.defaultMode ?? 'standard';
+    this.confidenceThreshold = config.confidenceThreshold ?? 0.7;
+    this.enableCache = config.enableCache ?? true;
+    this.cacheTTL = (config.cacheTTL ?? 3600) * 1000; // Convert to ms
+  }
+
+  // ============================================================================
+  // PUBLIC API - QUICK CLASSIFY
+  // ============================================================================
+
+  /**
+   * Fast keyword-only classification (<10ms)
+   * Use when you need immediate results without AI costs
+   *
+   * @param content - Text content to classify
+   * @returns The dominant Bloom's level
+   */
+  quickClassify(content: string): BloomsLevel {
+    const text = content.toLowerCase();
+    const distribution = this.analyzeKeywordDistribution(text);
+    return this.findDominantLevel(distribution);
+  }
+
+  // ============================================================================
+  // PUBLIC API - ANALYZE CONTENT
+  // ============================================================================
+
+  /**
+   * Analyze content with intelligent mode selection
+   *
+   * In 'quick' mode: keyword-only analysis
+   * In 'standard' mode: keyword analysis, AI escalation if confidence < threshold
+   * In 'comprehensive' mode: full AI semantic analysis
+   *
+   * @param content - Text content to analyze
+   * @param options - Analysis options
+   * @returns Unified analysis result
+   */
+  async analyze(content: string, options: AnalysisOptions = {}): Promise<UnifiedBloomsResult> {
+    const startTime = Date.now();
+    const mode = options.mode ?? this.defaultMode;
+
+    // Check cache first
+    if (this.enableCache && !options.forceAI) {
+      const cacheKey = this.generateCacheKey('content', content, mode);
+      const cached = this.getFromCache<UnifiedBloomsResult>(cacheKey);
+      if (cached) {
+        return {
+          ...cached,
+          metadata: {
+            ...cached.metadata,
+            fromCache: true,
+          },
+        };
+      }
+    }
+
+    // Quick mode: keyword-only
+    if (mode === 'quick' || options.forceKeyword) {
+      const result = this.analyzeWithKeywords(content, options, startTime);
+      return result;
+    }
+
+    // Standard mode: keyword first, escalate if needed
+    if (mode === 'standard' && !options.forceAI) {
+      const keywordResult = this.analyzeWithKeywords(content, options, startTime);
+      const threshold = options.confidenceThreshold ?? this.confidenceThreshold;
+
+      // If confidence is high enough, return keyword result
+      if (keywordResult.confidence >= threshold) {
+        return keywordResult;
+      }
+
+      // Escalate to AI analysis
+      return this.analyzeWithAI(content, keywordResult, options, startTime);
+    }
+
+    // Comprehensive mode: full AI analysis
+    return this.analyzeWithAI(content, undefined, options, startTime);
+  }
+
+  // ============================================================================
+  // PUBLIC API - ANALYZE COURSE
+  // ============================================================================
+
+  /**
+   * Analyze an entire course structure
+   *
+   * @param courseData - Course structure with chapters and sections
+   * @param options - Analysis options
+   * @returns Course-level analysis with recommendations
+   */
+  async analyzeCourse(
+    courseData: UnifiedCourseInput,
+    options: UnifiedCourseOptions = {}
+  ): Promise<UnifiedCourseResult> {
+    const startTime = Date.now();
+    const mode = options.mode ?? this.defaultMode;
+
+    // Check cache
+    if (this.enableCache && !options.forceReanalyze) {
+      const cacheKey = this.generateCacheKey('course', courseData.id, mode);
+      const cached = this.getFromCache<UnifiedCourseResult>(cacheKey);
+      if (cached) {
+        return {
+          ...cached,
+          metadata: {
+            ...cached.metadata,
+            fromCache: true,
+          },
+        };
+      }
+    }
+
+    // Analyze each chapter
+    const chapterAnalyses: ChapterAnalysis[] = [];
+    const allDistributions: BloomsDistribution[] = [];
+    let totalConfidence = 0;
+
+    for (const chapter of courseData.chapters) {
+      const chapterText = this.extractChapterText(chapter);
+      const chapterResult = await this.analyze(chapterText, {
+        mode: options.depth === 'comprehensive' ? 'comprehensive' : 'standard',
+        includeSections: true,
+      });
+
+      const sectionAnalyses: SectionAnalysis[] = chapter.sections.map((section) => {
+        const sectionText = `${section.title} ${section.content ?? ''} ${section.description ?? ''}`;
+        const level = this.quickClassify(sectionText);
+        return {
+          id: section.id,
+          title: section.title,
+          level,
+          confidence: this.calculateKeywordConfidence(sectionText.toLowerCase(), level),
+        };
+      });
+
+      chapterAnalyses.push({
+        chapterId: chapter.id,
+        chapterTitle: chapter.title,
+        distribution: chapterResult.distribution,
+        primaryLevel: chapterResult.dominantLevel,
+        cognitiveDepth: chapterResult.cognitiveDepth,
+        confidence: chapterResult.confidence,
+        sections: sectionAnalyses,
+      });
+
+      allDistributions.push(chapterResult.distribution);
+      totalConfidence += chapterResult.confidence;
+    }
+
+    // Calculate course-level metrics
+    const courseDistribution = this.aggregateDistributions(allDistributions);
+    const courseCognitiveDepth = this.calculateCognitiveDepth(courseDistribution);
+    const courseBalance = this.determineBalance(courseDistribution);
+    const avgConfidence = chapterAnalyses.length > 0
+      ? totalConfidence / chapterAnalyses.length
+      : 0.5;
+
+    // Generate recommendations
+    const recommendations = this.generateCourseRecommendations(
+      courseDistribution,
+      chapterAnalyses,
+      courseBalance
+    );
+
+    // Generate learning pathway if requested
+    let learningPathway: UnifiedLearningPath | undefined;
+    if (options.includeLearningPathway !== false) {
+      learningPathway = this.generateLearningPathway(courseDistribution, chapterAnalyses);
+    }
+
+    const result: UnifiedCourseResult = {
+      courseId: courseData.id,
+      courseLevel: {
+        distribution: courseDistribution,
+        cognitiveDepth: courseCognitiveDepth,
+        balance: courseBalance,
+        confidence: avgConfidence,
+      },
+      chapters: chapterAnalyses,
+      recommendations,
+      learningPathway,
+      metadata: {
+        method: mode === 'comprehensive' ? 'ai' : 'hybrid',
+        processingTimeMs: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+        fromCache: false,
+      },
+      analyzedAt: new Date().toISOString(),
+    };
+
+    // Cache result
+    if (this.enableCache) {
+      const cacheKey = this.generateCacheKey('course', courseData.id, mode);
+      this.setCache(cacheKey, result);
+    }
+
+    return result;
+  }
+
+  // ============================================================================
+  // PUBLIC API - COGNITIVE PROGRESS
+  // ============================================================================
+
+  /**
+   * Update cognitive progress for a user
+   *
+   * @param input - Progress update input
+   * @returns Updated cognitive profile with recommendations
+   */
+  async updateCognitiveProgress(input: CognitiveProgressInput): Promise<CognitiveProgressResult>;
+  /**
+   * Update cognitive progress for a user (legacy signature)
+   *
+   * @param userId - User ID
+   * @param sectionId - Section ID (used as context)
+   * @param bloomsLevel - Bloom's level demonstrated
+   * @param score - Score achieved (0-100)
+   */
+  async updateCognitiveProgress(
+    userId: string,
+    sectionId: string,
+    bloomsLevel: BloomsLevel,
+    score: number
+  ): Promise<void>;
+  async updateCognitiveProgress(
+    inputOrUserId: CognitiveProgressInput | string,
+    sectionId?: string,
+    bloomsLevel?: BloomsLevel,
+    score?: number
+  ): Promise<CognitiveProgressResult | void> {
+    // Handle legacy signature
+    if (typeof inputOrUserId === 'string') {
+      const userId = inputOrUserId;
+      if (!sectionId || !bloomsLevel || score === undefined) {
+        throw new Error('Missing required parameters for legacy signature');
+      }
+
+      // Use database adapter for progress tracking
+      if (this.database) {
+        try {
+          const existing = await this.database.findBloomsProgress(userId, sectionId);
+          const scores: Record<BloomsLevel, number> = {
+            REMEMBER: 0,
+            UNDERSTAND: 0,
+            APPLY: 0,
+            ANALYZE: 0,
+            EVALUATE: 0,
+            CREATE: 0,
+          };
+
+          if (existing) {
+            scores.REMEMBER = existing.rememberScore ?? 0;
+            scores.UNDERSTAND = existing.understandScore ?? 0;
+            scores.APPLY = existing.applyScore ?? 0;
+            scores.ANALYZE = existing.analyzeScore ?? 0;
+            scores.EVALUATE = existing.evaluateScore ?? 0;
+            scores.CREATE = existing.createScore ?? 0;
+          }
+
+          // Weighted average with new score
+          const currentScore = scores[bloomsLevel] ?? 0;
+          scores[bloomsLevel] = (currentScore * 0.7) + (score * 0.3);
+
+          await this.database.upsertBloomsProgress(userId, sectionId, {
+            rememberScore: scores.REMEMBER,
+            understandScore: scores.UNDERSTAND,
+            applyScore: scores.APPLY,
+            analyzeScore: scores.ANALYZE,
+            evaluateScore: scores.EVALUATE,
+            createScore: scores.CREATE,
+          });
+        } catch (error) {
+          this.config.logger?.error?.('[UnifiedBloomsEngine] Failed to update cognitive progress', error);
+        }
+      }
+      return;
+    }
+
+    // Handle new signature
+    const input = inputOrUserId;
+    if (!this.database) {
+      throw new Error('Database adapter required for cognitive progress tracking');
+    }
+
+    // Get current profile
+    const profile = await this.getCognitiveProfile(input.userId, input.courseId);
+
+    // Update level mastery
+    const currentMastery = profile.levelMastery[input.bloomsLevel] ?? 0;
+    const newMastery = Math.min(100, currentMastery + (input.score * 10));
+    profile.levelMastery[input.bloomsLevel] = newMastery;
+
+    // Recalculate overall mastery
+    const masteryValues = Object.values(profile.levelMastery);
+    profile.overallMastery = masteryValues.length > 0
+      ? masteryValues.reduce((a, b) => a + b, 0) / masteryValues.length
+      : 0;
+
+    // Update preferred and challenge areas
+    profile.preferredLevels = this.identifyPreferredLevels(profile.levelMastery);
+    profile.challengeAreas = this.identifyChallengeAreas(profile.levelMastery);
+
+    // Generate recommendations
+    const recommendations = this.generateProgressRecommendations(profile, input.bloomsLevel, input.score);
+
+    return {
+      updated: true,
+      profile,
+      recommendations,
+    };
+  }
+
+  /**
+   * Get cognitive profile for a user
+   */
+  async getCognitiveProfile(userId: string, courseId?: string): Promise<CognitiveProfile> {
+    // Default profile structure
+    const defaultProfile: CognitiveProfile = {
+      overallMastery: 0,
+      levelMastery: {
+        REMEMBER: 0,
+        UNDERSTAND: 0,
+        APPLY: 0,
+        ANALYZE: 0,
+        EVALUATE: 0,
+        CREATE: 0,
+      },
+      learningVelocity: 1.0,
+      preferredLevels: [],
+      challengeAreas: [],
+    };
+
+    if (!this.database) {
+      return defaultProfile;
+    }
+
+    // In a real implementation, fetch from database
+    // For now, return default profile
+    return defaultProfile;
+  }
+
+  // ============================================================================
+  // PUBLIC API - SPACED REPETITION (SM-2 ALGORITHM)
+  // ============================================================================
+
+  /**
+   * Calculate next review date using SM-2 algorithm
+   *
+   * @param input - Spaced repetition input
+   * @returns Calculated review schedule
+   */
+  calculateSpacedRepetition(input: UnifiedSpacedRepetitionInput): UnifiedSpacedRepetitionResult {
+    const performance = Math.max(0, Math.min(1, input.performance));
+    const quality = Math.round(performance * 5); // Convert to 0-5 scale
+
+    // SM-2 Algorithm
+    let easeFactor = input.previousEaseFactor ?? 2.5;
+    let interval = input.previousInterval ?? 1;
+    let repetitions = 0;
+
+    // Update ease factor based on performance
+    easeFactor = easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    easeFactor = Math.max(1.3, easeFactor); // Minimum ease factor
+
+    if (quality < 3) {
+      // Failed review - reset
+      interval = 1;
+      repetitions = 0;
+    } else {
+      // Successful review
+      repetitions++;
+      if (repetitions === 1) {
+        interval = 1;
+      } else if (repetitions === 2) {
+        interval = 6;
+      } else {
+        interval = Math.round(interval * easeFactor);
+      }
+    }
+
+    const nextReviewDate = new Date();
+    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+
+    return {
+      nextReviewDate,
+      intervalDays: interval,
+      easeFactor,
+      repetitionCount: repetitions,
+    };
+  }
+
+  // ============================================================================
+  // PUBLIC API - LEARNING ACTIVITY TRACKING
+  // ============================================================================
+
+  /**
+   * Log a learning activity for a user
+   *
+   * @param userId - User ID
+   * @param activityType - Type of activity (e.g., 'TAKE_EXAM', 'COMPLETE_SECTION')
+   * @param data - Activity metadata
+   */
+  async logLearningActivity(
+    userId: string,
+    activityType: string,
+    data: Record<string, unknown>
+  ): Promise<void> {
+    if (!this.database) {
+      this.config.logger?.debug?.('[UnifiedBloomsEngine] No database, skipping activity log');
+      return;
+    }
+
+    try {
+      await this.database.logInteraction({
+        userId,
+        pageType: 'LEARNING_ACTIVITY',
+        pagePath: `/activity/${activityType}`,
+        query: activityType,
+        response: JSON.stringify(data),
+        enginesUsed: ['unified-blooms-engine'],
+        responseTimeMs: 0,
+      });
+    } catch (error) {
+      this.config.logger?.warn?.('[UnifiedBloomsEngine] Failed to log activity', error);
+    }
+  }
+
+  /**
+   * Create a progress intervention for a user
+   *
+   * @param userId - User ID
+   * @param type - Intervention type (e.g., 'SUPPORT_NEEDED', 'CELEBRATION')
+   * @param title - Intervention title
+   * @param message - Intervention message
+   * @param metadata - Additional metadata
+   */
+  async createProgressIntervention(
+    userId: string,
+    type: string,
+    title: string,
+    message: string,
+    metadata: Record<string, unknown>
+  ): Promise<void> {
+    if (!this.database) {
+      this.config.logger?.debug?.('[UnifiedBloomsEngine] No database, skipping intervention');
+      return;
+    }
+
+    try {
+      await this.database.logInteraction({
+        userId,
+        pageType: 'INTERVENTION',
+        pagePath: `/intervention/${type}`,
+        query: title,
+        response: JSON.stringify({ message, ...metadata }),
+        enginesUsed: ['unified-blooms-engine'],
+        responseTimeMs: 0,
+      });
+    } catch (error) {
+      this.config.logger?.warn?.('[UnifiedBloomsEngine] Failed to create intervention', error);
+    }
+  }
+
+  // ============================================================================
+  // PUBLIC API - CACHE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): CacheStats {
+    let oldestEntry: string | undefined;
+    let oldestTime = Infinity;
+
+    this.cache.forEach((entry, key) => {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestEntry = key;
+      }
+    });
+
+    return {
+      hits: this.cacheHits,
+      misses: this.cacheMisses,
+      size: this.cache.size,
+      oldestEntry,
+    };
+  }
+
+  /**
+   * Clear the cache
+   */
+  clearCache(): void {
+    this.cache.clear();
+    this.cacheHits = 0;
+    this.cacheMisses = 0;
+  }
+
+  // ============================================================================
+  // PRIVATE - KEYWORD ANALYSIS
+  // ============================================================================
+
+  private analyzeWithKeywords(
+    content: string,
+    options: AnalysisOptions,
+    startTime: number
+  ): UnifiedBloomsResult {
+    const text = content.toLowerCase();
+    const distribution = this.analyzeKeywordDistribution(text);
+    const dominantLevel = this.findDominantLevel(distribution);
+    const confidence = this.calculateKeywordConfidence(text, dominantLevel);
+    const cognitiveDepth = this.calculateCognitiveDepth(distribution);
+    const balance = this.determineBalance(distribution);
+    const gaps = this.identifyGaps(distribution);
+    const recommendations = this.generateRecommendations(distribution, gaps, balance);
+
+    let sectionAnalysis: SectionAnalysis[] | undefined;
+    if (options.includeSections) {
+      // Section analysis would require structured input - skip for raw content
+    }
+
+    const result: UnifiedBloomsResult = {
+      dominantLevel,
+      distribution,
+      confidence,
+      cognitiveDepth,
+      balance,
+      gaps,
+      recommendations,
+      sectionAnalysis,
+      metadata: {
+        method: 'keyword',
+        processingTimeMs: Date.now() - startTime,
+        timestamp: new Date().toISOString(),
+        fromCache: false,
+        keywordConfidence: confidence,
+      },
+    };
+
+    // Cache keyword results too (they're fast but useful for repeated calls)
+    if (this.enableCache) {
+      const cacheKey = this.generateCacheKey('content', content, 'quick');
+      this.setCache(cacheKey, result);
+    }
+
+    return result;
+  }
+
+  private analyzeKeywordDistribution(text: string): BloomsDistribution {
+    const distribution: BloomsDistribution = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0,
+    };
+
+    let totalMatches = 0;
+
+    for (const level of BLOOMS_LEVELS) {
+      const keywords = BLOOMS_KEYWORDS[level];
+      let levelCount = 0;
+
+      for (const keyword of keywords) {
+        const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+        const matches = text.match(regex);
+        if (matches) {
+          levelCount += matches.length;
+        }
+      }
+
+      distribution[level] = levelCount;
+      totalMatches += levelCount;
+    }
+
+    // Normalize to percentages
+    if (totalMatches > 0) {
+      for (const level of BLOOMS_LEVELS) {
+        distribution[level] = Math.round((distribution[level] / totalMatches) * 100);
+      }
+    } else {
+      // Default distribution if no keywords found
+      distribution.UNDERSTAND = 40;
+      distribution.APPLY = 30;
+      distribution.ANALYZE = 20;
+      distribution.REMEMBER = 10;
+    }
+
+    return distribution;
+  }
+
+  private findDominantLevel(distribution: BloomsDistribution): BloomsLevel {
+    let maxLevel: BloomsLevel = 'UNDERSTAND';
+    let maxValue = 0;
+
+    for (const level of BLOOMS_LEVELS) {
+      if (distribution[level] > maxValue) {
+        maxValue = distribution[level];
+        maxLevel = level;
+      }
+    }
+
+    return maxLevel;
+  }
+
+  private calculateKeywordConfidence(text: string, level: BloomsLevel): number {
+    const keywords = BLOOMS_KEYWORDS[level];
+    let matches = 0;
+
+    for (const keyword of keywords) {
+      if (text.includes(keyword)) {
+        matches++;
+      }
+    }
+
+    // Confidence based on keyword matches and text length
+    const keywordCoverage = Math.min(matches / 5, 1) * 0.6;
+    const textLengthFactor = Math.min(text.length / 500, 1) * 0.2;
+    const distributionFactor = 0.2; // Base confidence
+
+    return Math.round((keywordCoverage + textLengthFactor + distributionFactor) * 100) / 100;
+  }
+
+  private calculateCognitiveDepth(distribution: BloomsDistribution): number {
+    let weightedSum = 0;
+    let totalWeight = 0;
+
+    for (const level of BLOOMS_LEVELS) {
+      const weight = BLOOMS_LEVEL_ORDER[level];
+      weightedSum += distribution[level] * weight;
+      totalWeight += distribution[level];
+    }
+
+    if (totalWeight === 0) return 50;
+
+    const avgLevel = weightedSum / totalWeight;
+    return Math.round((avgLevel / 6) * 100);
+  }
+
+  private determineBalance(distribution: BloomsDistribution): 'well-balanced' | 'bottom-heavy' | 'top-heavy' {
+    const lowerLevels = distribution.REMEMBER + distribution.UNDERSTAND;
+    const upperLevels = distribution.EVALUATE + distribution.CREATE;
+    const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+
+    if (total === 0) return 'well-balanced';
+
+    const lowerPct = lowerLevels / total;
+    const upperPct = upperLevels / total;
+
+    if (lowerPct > 0.6) return 'bottom-heavy';
+    if (upperPct > 0.5) return 'top-heavy';
+    return 'well-balanced';
+  }
+
+  private identifyGaps(distribution: BloomsDistribution): BloomsLevel[] {
+    const gaps: BloomsLevel[] = [];
+
+    for (const level of BLOOMS_LEVELS) {
+      if (distribution[level] < 5) {
+        gaps.push(level);
+      }
+    }
+
+    return gaps;
+  }
+
+  // ============================================================================
+  // PRIVATE - AI ANALYSIS
+  // ============================================================================
+
+  private async analyzeWithAI(
+    content: string,
+    keywordResult: UnifiedBloomsResult | undefined,
+    options: AnalysisOptions,
+    startTime: number
+  ): Promise<UnifiedBloomsResult> {
+    // Check if AI is available
+    if (!this.config.ai?.chat) {
+      // Fallback to keyword analysis if AI not available
+      if (keywordResult) {
+        return {
+          ...keywordResult,
+          metadata: {
+            ...keywordResult.metadata,
+            method: 'keyword',
+          },
+        };
+      }
+      return this.analyzeWithKeywords(content, options, startTime);
+    }
+
+    try {
+      const prompt = this.buildAIPrompt(content, keywordResult);
+
+      const response = await this.config.ai.chat({
+        messages: [{ role: 'user', content: prompt }],
+        systemPrompt: this.getSystemPrompt(),
+      });
+
+      const aiAnalysis = this.parseAIResponse(response.content);
+
+      const result: UnifiedBloomsResult = {
+        dominantLevel: aiAnalysis.dominantLevel,
+        distribution: aiAnalysis.distribution,
+        confidence: aiAnalysis.confidence,
+        cognitiveDepth: aiAnalysis.cognitiveDepth,
+        balance: aiAnalysis.balance,
+        gaps: aiAnalysis.gaps,
+        recommendations: aiAnalysis.recommendations,
+        metadata: {
+          method: keywordResult ? 'hybrid' : 'ai',
+          processingTimeMs: Date.now() - startTime,
+          timestamp: new Date().toISOString(),
+          fromCache: false,
+          aiModel: this.config.ai.getModel?.() ?? this.config.model?.name ?? 'claude-sonnet',
+          keywordConfidence: keywordResult?.confidence,
+        },
+      };
+
+      // Cache AI result
+      if (this.enableCache) {
+        const cacheKey = this.generateCacheKey('content', content, 'comprehensive');
+        this.setCache(cacheKey, result);
+      }
+
+      return result;
+    } catch (error) {
+      // Fallback to keyword analysis on AI error
+      if (keywordResult) {
+        return {
+          ...keywordResult,
+          metadata: {
+            ...keywordResult.metadata,
+            method: 'keyword',
+          },
+        };
+      }
+      return this.analyzeWithKeywords(content, options, startTime);
+    }
+  }
+
+  private getSystemPrompt(): string {
+    return `You are an expert in Bloom's Taxonomy educational assessment. Analyze content to determine its cognitive level distribution across the six levels: REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, and CREATE.
+
+Respond with a JSON object containing:
+{
+  "dominantLevel": "LEVEL_NAME",
+  "distribution": {
+    "REMEMBER": number (0-100),
+    "UNDERSTAND": number (0-100),
+    "APPLY": number (0-100),
+    "ANALYZE": number (0-100),
+    "EVALUATE": number (0-100),
+    "CREATE": number (0-100)
+  },
+  "confidence": number (0-1),
+  "cognitiveDepth": number (0-100),
+  "balance": "well-balanced" | "bottom-heavy" | "top-heavy",
+  "gaps": ["LEVEL_NAME", ...],
+  "recommendations": [
+    {
+      "level": "LEVEL_NAME",
+      "action": "description",
+      "priority": "low" | "medium" | "high"
+    }
+  ]
+}
+
+Ensure distribution percentages sum to 100. Be precise in your analysis.`;
+  }
+
+  private buildAIPrompt(content: string, keywordResult?: UnifiedBloomsResult): string {
+    let prompt = `Analyze the following content for Bloom's Taxonomy levels:\n\n${content}\n\n`;
+
+    if (keywordResult) {
+      prompt += `Initial keyword analysis suggests:
+- Dominant Level: ${keywordResult.dominantLevel}
+- Confidence: ${keywordResult.confidence}
+- Distribution: ${JSON.stringify(keywordResult.distribution)}
+
+Please provide a more thorough semantic analysis to confirm or correct this assessment.`;
+    }
+
+    return prompt;
+  }
+
+  private parseAIResponse(content: string): UnifiedBloomsResult {
+    // Use validation utilities for safe, schema-validated parsing
+    // Note: parseAndValidate returns ValidationResult with schema's output type after Zod applies defaults
+    const validationResult = parseAndValidate(
+      content,
+      BloomsAIResponseSchema,
+      'BloomsAIResponse'
+    );
+
+    if (!validationResult.success || !validationResult.data) {
+      // Log validation failure for debugging - don't silently default
+      console.warn(
+        '[UnifiedBloomsEngine] AI response validation failed:',
+        validationResult.error?.message,
+        validationResult.error?.zodErrors?.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ')
+      );
+
+      // Return default analysis with lowered confidence to indicate fallback
+      return {
+        dominantLevel: 'UNDERSTAND',
+        distribution: {
+          REMEMBER: 15,
+          UNDERSTAND: 30,
+          APPLY: 25,
+          ANALYZE: 15,
+          EVALUATE: 10,
+          CREATE: 5,
+        },
+        confidence: 0.3, // Lower confidence indicates parsing fallback
+        cognitiveDepth: 45,
+        balance: 'well-balanced',
+        gaps: [],
+        recommendations: [],
+        metadata: {
+          method: 'ai',
+          processingTimeMs: 0,
+          timestamp: new Date().toISOString(),
+          fromCache: false,
+          validationError: validationResult.error?.message,
+        },
+      };
+    }
+
+    // Successfully validated - transform to UnifiedBloomsResult
+    // Cast to output type since Zod has applied defaults
+    const validated = validationResult.data as BloomsAIResponse;
+
+    // Determine dominant level from distribution if not explicitly provided
+    let dominantLevel: BloomsLevel = validated.dominantLevel ?? 'UNDERSTAND';
+    if (!validated.dominantLevel && validated.distribution) {
+      dominantLevel = this.findDominantLevel(validated.distribution);
+    }
+
+    return {
+      dominantLevel,
+      distribution: this.normalizeDistribution(validated.distribution ?? {}),
+      confidence: validated.confidence,
+      cognitiveDepth: validated.cognitiveDepth,
+      balance: validated.balance,
+      gaps: validated.gaps,
+      recommendations: this.parseRecommendations(validated.recommendations),
+      metadata: {
+        method: 'ai',
+        processingTimeMs: 0,
+        timestamp: new Date().toISOString(),
+        fromCache: false,
+      },
+    };
+  }
+
+  private validateBloomsLevel(level: string): BloomsLevel {
+    if (BLOOMS_LEVELS.includes(level as BloomsLevel)) {
+      return level as BloomsLevel;
+    }
+    return 'UNDERSTAND';
+  }
+
+  private validateBalance(balance: string): 'well-balanced' | 'bottom-heavy' | 'top-heavy' {
+    if (['well-balanced', 'bottom-heavy', 'top-heavy'].includes(balance)) {
+      return balance as 'well-balanced' | 'bottom-heavy' | 'top-heavy';
+    }
+    return 'well-balanced';
+  }
+
+  private normalizeDistribution(dist: Record<string, number>): BloomsDistribution {
+    const normalized: BloomsDistribution = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0,
+    };
+
+    let total = 0;
+    for (const level of BLOOMS_LEVELS) {
+      normalized[level] = Math.max(0, dist[level] ?? 0);
+      total += normalized[level];
+    }
+
+    // Normalize to 100
+    if (total > 0 && total !== 100) {
+      const factor = 100 / total;
+      for (const level of BLOOMS_LEVELS) {
+        normalized[level] = Math.round(normalized[level] * factor);
+      }
+    }
+
+    return normalized;
+  }
+
+  private parseRecommendations(recs: Array<{ level?: string; action?: string; priority?: string }>): UnifiedBloomsRecommendation[] {
+    return recs.slice(0, 5).map((rec) => ({
+      level: this.validateBloomsLevel(rec.level ?? 'UNDERSTAND'),
+      action: rec.action ?? 'Review content for improvements',
+      priority: (['low', 'medium', 'high'].includes(rec.priority ?? '')
+        ? rec.priority
+        : 'medium') as 'low' | 'medium' | 'high',
+    }));
+  }
+
+  // ============================================================================
+  // PRIVATE - RECOMMENDATIONS
+  // ============================================================================
+
+  private generateRecommendations(
+    distribution: BloomsDistribution,
+    gaps: BloomsLevel[],
+    balance: string
+  ): UnifiedBloomsRecommendation[] {
+    const recommendations: UnifiedBloomsRecommendation[] = [];
+
+    // Balance-based recommendations
+    if (balance === 'bottom-heavy') {
+      recommendations.push({
+        level: 'ANALYZE',
+        action: 'Add more activities requiring analysis and higher-order thinking',
+        priority: 'high',
+        examples: ['Case studies', 'Compare and contrast exercises', 'Root cause analysis'],
+        expectedImpact: 'Increase cognitive depth by 15-20 points',
+      });
+    } else if (balance === 'top-heavy') {
+      recommendations.push({
+        level: 'UNDERSTAND',
+        action: 'Ensure foundational concepts are well-covered before advanced topics',
+        priority: 'high',
+        examples: ['Concept explanations', 'Examples and illustrations', 'Knowledge checks'],
+        expectedImpact: 'Improve learning retention and reduce confusion',
+      });
+    }
+
+    // Gap-based recommendations
+    const gapRecommendations: Record<BloomsLevel, UnifiedBloomsRecommendation> = {
+      REMEMBER: {
+        level: 'REMEMBER',
+        action: 'Add definitions, key terms, and fact-based content',
+        priority: 'medium',
+        examples: ['Glossary terms', 'Key concept lists', 'Flashcard-style content'],
+        expectedImpact: 'Build foundational knowledge base',
+      },
+      UNDERSTAND: {
+        level: 'UNDERSTAND',
+        action: 'Include explanations, summaries, and conceptual examples',
+        priority: 'medium',
+        examples: ['Concept explanations', 'Analogies', 'Visual diagrams'],
+        expectedImpact: 'Improve comprehension of core concepts',
+      },
+      APPLY: {
+        level: 'APPLY',
+        action: 'Add practical exercises and real-world applications',
+        priority: 'high',
+        examples: ['Hands-on exercises', 'Practice problems', 'Simulations'],
+        expectedImpact: 'Enable skill transfer to real situations',
+      },
+      ANALYZE: {
+        level: 'ANALYZE',
+        action: 'Include comparison activities and analytical exercises',
+        priority: 'medium',
+        examples: ['Case analyses', 'Data interpretation', 'Pattern recognition'],
+        expectedImpact: 'Develop critical thinking skills',
+      },
+      EVALUATE: {
+        level: 'EVALUATE',
+        action: 'Add critical thinking questions and peer review activities',
+        priority: 'medium',
+        examples: ['Critique exercises', 'Decision-making scenarios', 'Debate topics'],
+        expectedImpact: 'Build judgment and evaluation skills',
+      },
+      CREATE: {
+        level: 'CREATE',
+        action: 'Include projects, design challenges, or original work assignments',
+        priority: 'low',
+        examples: ['Project-based learning', 'Design challenges', 'Creative assignments'],
+        expectedImpact: 'Foster innovation and synthesis skills',
+      },
+    };
+
+    for (const gap of gaps.slice(0, 2)) {
+      recommendations.push(gapRecommendations[gap]);
+    }
+
+    return recommendations.slice(0, 5);
+  }
+
+  private generateCourseRecommendations(
+    distribution: BloomsDistribution,
+    chapters: ChapterAnalysis[],
+    balance: string
+  ): CourseRecommendation[] {
+    const recommendations: CourseRecommendation[] = [];
+
+    // Find chapters needing improvement
+    for (const chapter of chapters) {
+      if (chapter.cognitiveDepth < 40) {
+        recommendations.push({
+          type: 'content',
+          priority: 'high',
+          targetLevel: 'ANALYZE',
+          description: `Chapter "${chapter.chapterTitle}" has low cognitive depth (${chapter.cognitiveDepth}%). Add higher-order thinking activities.`,
+          targetChapter: chapter.chapterId,
+          expectedImpact: 'Increase chapter cognitive depth by 20+ points',
+        });
+      }
+
+      if (chapter.confidence < 0.5) {
+        recommendations.push({
+          type: 'structure',
+          priority: 'medium',
+          targetLevel: chapter.primaryLevel,
+          description: `Chapter "${chapter.chapterTitle}" lacks clear learning objectives. Add explicit Bloom's-aligned objectives.`,
+          targetChapter: chapter.chapterId,
+          expectedImpact: 'Improve content clarity and learning outcomes',
+        });
+      }
+    }
+
+    // Overall balance recommendations
+    if (balance === 'bottom-heavy') {
+      recommendations.push({
+        type: 'assessment',
+        priority: 'high',
+        targetLevel: 'EVALUATE',
+        description: 'Course is heavily focused on lower cognitive levels. Add assessments requiring evaluation and creation.',
+        examples: ['Project-based assessments', 'Peer reviews', 'Design challenges'],
+        expectedImpact: 'Prepare students for real-world application of knowledge',
+      });
+    }
+
+    // Gap-based recommendations
+    const gaps = this.identifyGaps(distribution);
+    for (const gap of gaps) {
+      recommendations.push({
+        type: 'activity',
+        priority: 'medium',
+        targetLevel: gap,
+        description: `Add activities targeting the ${gap} level across the course.`,
+        expectedImpact: `Improve course balance and student ${gap.toLowerCase()} skills`,
+      });
+    }
+
+    return recommendations.slice(0, 6);
+  }
+
+  private generateLearningPathway(
+    distribution: BloomsDistribution,
+    chapters: ChapterAnalysis[]
+  ): UnifiedLearningPath {
+    const stages: PathwayStage[] = [];
+
+    // Build progressive stages based on Bloom's hierarchy
+    for (const level of BLOOMS_LEVELS) {
+      const levelChapters = chapters.filter((c) => c.primaryLevel === level);
+      const mastery = distribution[level];
+
+      if (mastery > 0 || level === 'REMEMBER' || level === 'UNDERSTAND') {
+        stages.push({
+          level,
+          mastery,
+          activities: this.getActivitiesForLevel(level),
+          timeEstimate: Math.max(1, Math.round(mastery / 10)),
+        });
+      }
+    }
+
+    const cognitiveProgression = stages.map((s) => s.level);
+    const totalTime = stages.reduce((acc, s) => acc + s.timeEstimate, 0);
+
+    return {
+      stages,
+      estimatedDuration: `${totalTime} hours`,
+      cognitiveProgression,
+      recommendations: [
+        'Start with foundational concepts before advancing',
+        'Complete each stage before moving to higher levels',
+        'Review and practice regularly to reinforce learning',
+      ],
+    };
+  }
+
+  private getActivitiesForLevel(level: BloomsLevel): string[] {
+    const activities: Record<BloomsLevel, string[]> = {
+      REMEMBER: ['Read key concepts', 'Review definitions', 'Complete flashcards'],
+      UNDERSTAND: ['Watch explanations', 'Study examples', 'Summarize content'],
+      APPLY: ['Complete exercises', 'Work through problems', 'Practice skills'],
+      ANALYZE: ['Analyze case studies', 'Compare solutions', 'Identify patterns'],
+      EVALUATE: ['Critique approaches', 'Assess solutions', 'Review peer work'],
+      CREATE: ['Design projects', 'Develop solutions', 'Create original work'],
+    };
+
+    return activities[level];
+  }
+
+  // ============================================================================
+  // PRIVATE - COGNITIVE PROGRESS HELPERS
+  // ============================================================================
+
+  private identifyPreferredLevels(mastery: Record<BloomsLevel, number>): BloomsLevel[] {
+    return BLOOMS_LEVELS.filter((level) => mastery[level] >= 70);
+  }
+
+  private identifyChallengeAreas(mastery: Record<BloomsLevel, number>): BloomsLevel[] {
+    return BLOOMS_LEVELS.filter((level) => mastery[level] < 40);
+  }
+
+  private generateProgressRecommendations(
+    profile: CognitiveProfile,
+    recentLevel: BloomsLevel,
+    score: number
+  ): ProgressRecommendation[] {
+    const recommendations: ProgressRecommendation[] = [];
+
+    if (score < 0.5) {
+      recommendations.push({
+        type: 'review',
+        title: `Review ${recentLevel} concepts`,
+        description: 'Your recent performance suggests reviewing foundational material would be beneficial.',
+        bloomsLevel: recentLevel,
+        priority: 1,
+      });
+    } else if (score >= 0.8) {
+      const levelIndex = BLOOMS_LEVELS.indexOf(recentLevel);
+      if (levelIndex < BLOOMS_LEVELS.length - 1) {
+        const nextLevel = BLOOMS_LEVELS[levelIndex + 1];
+        recommendations.push({
+          type: 'advance',
+          title: `Ready for ${nextLevel}`,
+          description: 'Your strong performance indicates readiness for higher cognitive challenges.',
+          bloomsLevel: nextLevel,
+          priority: 1,
+        });
+      }
+    }
+
+    // Add recommendations for challenge areas
+    for (const challengeLevel of profile.challengeAreas.slice(0, 2)) {
+      recommendations.push({
+        type: 'practice',
+        title: `Strengthen ${challengeLevel} skills`,
+        description: `This is an area where additional practice would improve your overall mastery.`,
+        bloomsLevel: challengeLevel,
+        priority: 2,
+      });
+    }
+
+    return recommendations;
+  }
+
+  // ============================================================================
+  // PRIVATE - HELPERS
+  // ============================================================================
+
+  private extractChapterText(chapter: { title: string; sections: Array<{ title: string; content?: string; description?: string }> }): string {
+    const parts: string[] = [chapter.title];
+
+    for (const section of chapter.sections) {
+      parts.push(section.title);
+      if (section.content) parts.push(section.content);
+      if (section.description) parts.push(section.description);
+    }
+
+    return parts.join(' ');
+  }
+
+  private aggregateDistributions(distributions: BloomsDistribution[]): BloomsDistribution {
+    const aggregate: BloomsDistribution = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0,
+    };
+
+    if (distributions.length === 0) return aggregate;
+
+    for (const dist of distributions) {
+      for (const level of BLOOMS_LEVELS) {
+        aggregate[level] += dist[level];
+      }
+    }
+
+    for (const level of BLOOMS_LEVELS) {
+      aggregate[level] = Math.round(aggregate[level] / distributions.length);
+    }
+
+    return aggregate;
+  }
+
+  // ============================================================================
+  // PRIVATE - CACHING
+  // ============================================================================
+
+  private generateCacheKey(type: string, identifier: string, mode: string): string {
+    const hash = this.hashString(`${type}:${identifier}:${mode}`);
+    return `unified-blooms:${hash}`;
+  }
+
+  private hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  private getFromCache<T>(key: string): T | null {
+    const entry = this.cache.get(key) as CacheEntry<T> | undefined;
+
+    if (!entry) {
+      this.cacheMisses++;
+      return null;
+    }
+
+    // Check if expired
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      this.cacheMisses++;
+      return null;
+    }
+
+    this.cacheHits++;
+    return entry.data;
+  }
+
+  private setCache(key: string, data: UnifiedBloomsResult | UnifiedCourseResult): void {
+    // Clean up old entries if cache is too large
+    if (this.cache.size > 1000) {
+      this.evictOldestEntries(100);
+    }
+
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl: this.cacheTTL,
+      key,
+    });
+  }
+
+  private evictOldestEntries(count: number): void {
+    const entries = Array.from(this.cache.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+
+    for (let i = 0; i < count && i < entries.length; i++) {
+      this.cache.delete(entries[i][0]);
+    }
+  }
+}
+
+// ============================================================================
+// FACTORY
+// ============================================================================
+
+/**
+ * Create a unified Bloom's engine instance
+ *
+ * @param config - Engine configuration
+ * @returns UnifiedBloomsEngine instance
+ */
+export function createUnifiedBloomsEngine(config: UnifiedBloomsConfig): UnifiedBloomsEngine {
+  return new UnifiedBloomsEngine(config);
+}

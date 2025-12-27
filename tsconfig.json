@@ -34,6 +34,30 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@sam-ai/core": [
+        "./packages/core/src/index.ts"
+      ],
+      "@sam-ai/core/*": [
+        "./packages/core/src/*"
+      ],
+      "@sam-ai/api": [
+        "./packages/api/src/index.ts"
+      ],
+      "@sam-ai/api/*": [
+        "./packages/api/src/*"
+      ],
+      "@sam-ai/react": [
+        "./packages/react/src/index.ts"
+      ],
+      "@sam-ai/react/*": [
+        "./packages/react/src/*"
+      ],
+      "@sam-ai/educational": [
+        "./packages/educational/src/index.ts"
+      ],
+      "@sam-ai/educational/*": [
+        "./packages/educational/src/*"
       ]
     }
   },

@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { CourseGuideEngine } from '@/lib/sam-engines/educational/sam-course-guide-engine';
+import { createCourseGuideEngine } from '@sam-ai/educational';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { createCourseGuideAdapter } from '@/lib/adapters';
+
+// Create course guide engine singleton
+let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;
+
+function getCourseGuideEngine() {
+  if (!courseGuideEngine) {
+    courseGuideEngine = createCourseGuideEngine({
+      aiProvider: 'anthropic',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      databaseAdapter: createCourseGuideAdapter(db as any),
+    });
+  }
+  return courseGuideEngine;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate course guide
-    const engine = new CourseGuideEngine();
+    const engine = getCourseGuideEngine();
     const guide = await engine.generateCourseGuide(
       courseId,
       includeComparison,
@@ -116,7 +131,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate and export course guide
-    const engine = new CourseGuideEngine();
+    const engine = getCourseGuideEngine();
     
     if (format === 'html') {
       const htmlContent = await engine.exportCourseGuide(courseId, 'html');

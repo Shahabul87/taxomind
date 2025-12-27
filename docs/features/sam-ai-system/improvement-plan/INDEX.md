@@ -10,6 +10,9 @@
 - **[Master Roadmap](./00-MASTER-ROADMAP.md)** - Complete 12-month transformation plan
 - **[Implementation Status](./IMPLEMENTATION-STATUS.md)** - Track progress and next steps
 
+### Critical Improvement Plans
+- **[Evaluation System Improvement Plan](./EVALUATION-SYSTEM-IMPROVEMENT-PLAN.md)** ✅ NEW - Fix Bloom's fragmentation, quality gates, and calibration loops
+
 ### For Engineers
 - **[Phase 1 Overview](./phase-1-reliability/README.md)** - Production reliability (start here)
 - **[Code Standards](./implementation-guides/code-standards.md)** ⏳ - How to write code
@@ -241,7 +244,8 @@
 - [Student Memory](./phase-2-intelligence/02-student-memory-system.md) ⏳
 - [Self-Critique](./phase-3-advanced/01-self-critique-loops.md) ⏳
 
-### Quality & Testing
+### Evaluation & Quality
+- **[Evaluation System Improvement Plan](./EVALUATION-SYSTEM-IMPROVEMENT-PLAN.md)** ✅ - Unified Bloom's, quality gates, calibration
 - [Content Quality Gates](./phase-3-advanced/02-content-quality-gates.md) ⏳
 - [Pedagogical Evaluators](./phase-3-advanced/03-pedagogical-evaluators.md) ⏳
 - [AI Quality Testing](./testing-strategies/ai-quality-testing.md) ⏳
@@ -285,10 +289,11 @@
 
 ## 📊 Progress Tracking
 
-### Documents Completed: 3/70+ (4%)
+### Documents Completed: 4/70+ (6%)
 - ✅ Master Roadmap
 - ✅ Phase 1 Overview
 - ✅ Implementation Status
+- ✅ Evaluation System Improvement Plan (NEW)
 
 ### Next to Create (Priority Order):
 1. ⏳ Phase 1 Initiative Documents (6)
@@ -348,8 +353,8 @@ Request creation following priority order in IMPLEMENTATION-STATUS.md
 
 ---
 
-**Last Updated**: January 2025
-**Status**: 3/70 documents complete
+**Last Updated**: December 2025
+**Status**: 4/70 documents complete
 **Next Milestone**: Complete Phase 1 initiative documents
 **Maintainer**: Technical Documentation Team
 

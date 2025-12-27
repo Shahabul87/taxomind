@@ -1,19 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { AdvancedExamEngine } from '@/lib/sam-engines/educational/sam-exam-engine';
+import { createExamEngine } from '@sam-ai/educational';
+import type { ExamGenerationConfig, StudentProfile } from '@sam-ai/educational';
+import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
-import { QuestionType } from '@prisma/client';
 import { logger } from '@/lib/logger';
+
+// Create exam engine singleton with portable package
+let examEngine: ReturnType<typeof createExamEngine> | null = null;
+
+function getExamEngine() {
+  if (!examEngine) {
+    examEngine = createExamEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+    });
+  }
+  return examEngine;
+}
 
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
+    const {
       courseId,
       sectionIds,
       config,
@@ -40,7 +54,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user is course owner or has organization access
-      const hasAccess = course.userId === user.id || 
+      const hasAccess = course.userId === user.id ||
         (course.organizationId && await checkOrganizationAccess(user.id, course.organizationId));
 
       if (!hasAccess && user.role !== 'ADMIN') {
@@ -65,7 +79,7 @@ export async function POST(request: NextRequest) {
 
       for (const section of sections) {
         const hasAccess = section.chapter.course.userId === user.id ||
-          (section.chapter.course.organizationId && 
+          (section.chapter.course.organizationId &&
            await checkOrganizationAccess(user.id, section.chapter.course.organizationId));
 
         if (!hasAccess && user.role !== 'ADMIN') {
@@ -74,19 +88,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Build exam generation config for the portable engine
+    const examConfig: ExamGenerationConfig = {
+      totalQuestions: config.totalQuestions,
+      duration: config.timeLimit || config.duration || 60,
+      bloomsDistribution: config.bloomsDistribution || {
+        REMEMBER: 15,
+        UNDERSTAND: 20,
+        APPLY: 25,
+        ANALYZE: 20,
+        EVALUATE: 15,
+        CREATE: 5,
+      },
+      difficultyDistribution: config.difficultyDistribution || {
+        EASY: 30,
+        MEDIUM: 50,
+        HARD: 20,
+      },
+      questionTypes: config.questionTypes || ['MULTIPLE_CHOICE', 'SHORT_ANSWER'],
+      adaptiveMode: config.adaptiveMode ?? false,
+    };
+
     // Get student profile if needed
-    const studentProfile = includeStudentProfile ? {
+    const studentProfile: StudentProfile | undefined = includeStudentProfile ? {
       userId: user.id,
       currentLevel: await getStudentLevel(user.id, courseId),
       learningStyle: await getStudentLearningStyle(user.id),
     } : undefined;
 
-    // Generate exam
-    const engine = new AdvancedExamEngine();
+    // Generate exam using portable @sam-ai/educational engine
+    const engine = getExamEngine();
     const examResponse = await engine.generateExam(
       courseId,
       sectionIds,
-      config,
+      examConfig,
       studentProfile
     );
 
@@ -105,6 +140,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         courseId,
         sectionCount: sectionIds?.length || 0,
+        engine: '@sam-ai/educational',
       },
     });
 
@@ -120,7 +156,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -157,7 +193,7 @@ export async function GET(request: NextRequest) {
 
     // Check access
     const hasAccess = exam.section.chapter.course.userId === user.id ||
-      (exam.section.chapter.course.organizationId && 
+      (exam.section.chapter.course.organizationId &&
        await checkOrganizationAccess(user.id, exam.section.chapter.course.organizationId));
 
     if (!hasAccess && user.role !== 'ADMIN') {
@@ -210,7 +246,7 @@ async function checkOrganizationAccess(userId: string, organizationId: string): 
       role: 'ADMIN',
     },
   });
-  
+
   return !!membership;
 }
 
@@ -218,13 +254,13 @@ async function getStudentLevel(userId: string, courseId: string | null): Promise
   if (courseId) {
     const progress = await db.studentBloomsProgress.findUnique({
       where: {
-        userId_courseId: { userId, courseId } as any,
+        userId_courseId: { userId, courseId },
       },
     });
 
     if (progress) {
-      const scores = progress.bloomsScores as any;
-      const avgScore = Object.values(scores).reduce((sum: number, score: any) => sum + score, 0) / 6;
+      const scores = progress.bloomsScores as Record<string, number>;
+      const avgScore = Object.values(scores).reduce((sum, score) => sum + (score ?? 0), 0) / 6;
       return avgScore > 70 ? 'advanced' : avgScore > 40 ? 'intermediate' : 'beginner';
     }
   }
@@ -244,7 +280,7 @@ async function recordSAMInteraction(
   userId: string,
   courseId: string | null,
   interactionType: string,
-  result: any
+  result: Record<string, unknown>
 ): Promise<void> {
   try {
     await db.sAMInteraction.create({

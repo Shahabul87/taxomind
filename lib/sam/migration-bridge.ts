@@ -8,13 +8,15 @@
  * - Import from this file during migration
  * - Gradually replace with direct @sam-ai imports
  * - Remove this file after migration is complete
+ *
+ * UPDATED: Uses Unified Blooms Engine from @sam-ai/educational
+ * for AI-powered cognitive level analysis instead of keyword-only
  */
 
 import {
   createOrchestrator,
   createAnthropicAdapter,
   createContextEngine,
-  createBloomsEngine,
   createResponseEngine,
   createDefaultContext,
   createSAMConfig,
@@ -26,6 +28,11 @@ import {
   type OrchestrationResult,
   type SAMConfigInput,
 } from '@sam-ai/core';
+import {
+  createUnifiedBloomsEngine,
+  type UnifiedBloomsEngine,
+  createUnifiedBloomsAdapterEngine,
+} from '@sam-ai/educational';
 
 // Re-export core types for convenience
 export type {
@@ -41,16 +48,19 @@ export type {
   BloomsAnalysis,
 } from '@sam-ai/core';
 
-// Re-export core factories
+// Re-export core factories (not createBloomsEngine - use unified instead)
 export {
   createOrchestrator,
   createContextEngine,
-  createBloomsEngine,
   createResponseEngine,
   createDefaultContext,
   createSAMConfig,
   SAMError,
 } from '@sam-ai/core';
+
+// Re-export unified blooms engine from @sam-ai/educational
+export { createUnifiedBloomsEngine, createUnifiedBloomsAdapterEngine } from '@sam-ai/educational';
+export type { UnifiedBloomsEngine } from '@sam-ai/educational';
 
 // Re-export API handlers
 export {
@@ -189,6 +199,18 @@ export function convertToLegacyResponse(result: OrchestrationResult): LegacyResp
 }
 
 /**
+ * Create unified blooms engine for AI-powered analysis
+ */
+function createUnifiedBlooms(config: SAMConfig): UnifiedBloomsEngine {
+  return createUnifiedBloomsEngine({
+    samConfig: config,
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+  });
+}
+
+/**
  * Create a configured SAM orchestrator for the main app
  */
 export function createAppOrchestrator(configOverrides?: Partial<SAMConfigInput>) {
@@ -220,10 +242,24 @@ export function createAppOrchestrator(configOverrides?: Partial<SAMConfigInput>)
 
   const orchestrator = createOrchestrator(config);
 
+  // Register unified blooms adapter for orchestrator flow
+  orchestrator.registerEngine(createUnifiedBloomsAdapterEngine({
+    samConfig: config,
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  }));
+
+  // Create unified blooms engine (kept for legacy direct access)
+  const unifiedBlooms = createUnifiedBlooms(config);
+
   // Register core engines
   orchestrator.registerEngine(createContextEngine(config));
-  orchestrator.registerEngine(createBloomsEngine(config));
   orchestrator.registerEngine(createResponseEngine(config));
+
+  // Attach unified blooms to orchestrator for access
+  (orchestrator as ReturnType<typeof createOrchestrator> & { unifiedBlooms: UnifiedBloomsEngine }).unifiedBlooms = unifiedBlooms;
 
   return orchestrator;
 }

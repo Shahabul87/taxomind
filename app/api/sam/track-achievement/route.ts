@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { trackAchievementProgress } from '@/lib/sam-engines/educational/sam-achievement-engine';
+import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 import { logger } from '@/lib/logger';
 
 /**
  * POST /api/sam/track-achievement
  * Track achievement progress and award points/badges
- * Server-side only - handles Prisma database operations
  */
 export async function POST(request: NextRequest) {
   try {
-    // Authenticate user
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -19,7 +17,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
     const body = await request.json();
     const { action, metadata, context } = body;
 
@@ -30,11 +27,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Track achievement progress using server-side function
-    const result = await trackAchievementProgress(
+    const result = await getAchievementEngine().trackProgress(
       session.user.id,
       action,
-      metadata || {},
+      metadata ?? {},
       context
     );
 
@@ -42,7 +38,7 @@ export async function POST(request: NextRequest) {
       success: true,
       ...result,
     });
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Error in track-achievement API:', error);
 
     return NextResponse.json(

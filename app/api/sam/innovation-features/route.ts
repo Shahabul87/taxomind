@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { samInnovationEngine } from "@/lib/sam-engines/advanced/sam-innovation-engine";
+import { createInnovationEngine } from "@sam-ai/educational";
+import type { BuddyInteractionType, PathObservationType } from "@sam-ai/educational";
 import { logger } from '@/lib/logger';
+import { createInnovationAdapter } from '@/lib/adapters';
+
+// Create innovation engine singleton
+let innovationEngine: ReturnType<typeof createInnovationEngine> | null = null;
+
+function getInnovationEngine() {
+  if (!innovationEngine) {
+    innovationEngine = createInnovationEngine({
+      aiProvider: 'anthropic',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      databaseAdapter: createInnovationAdapter(db as any),
+    });
+  }
+  return innovationEngine;
+}
+
+// Backward compatibility alias
+const samInnovationEngine = {
+  assessCognitiveFitness: (userId: string) =>
+    getInnovationEngine().assessCognitiveFitness(userId),
+  generateLearningDNA: (userId: string) =>
+    getInnovationEngine().generateLearningDNA(userId),
+  createStudyBuddy: (userId: string, preferences: Record<string, unknown>) =>
+    getInnovationEngine().createStudyBuddy(userId, preferences),
+  interactWithBuddy: (buddyId: string, userId: string, type: BuddyInteractionType, context: Record<string, unknown>) =>
+    getInnovationEngine().interactWithBuddy(buddyId, userId, type, context),
+  createQuantumPath: (userId: string, learningGoal: string) =>
+    getInnovationEngine().createQuantumPath(userId, learningGoal),
+  observeQuantumPath: (pathId: string, type: PathObservationType, data: Record<string, unknown>) =>
+    getInnovationEngine().observeQuantumPath(pathId, type, data),
+};
 
 export async function POST(req: NextRequest) {
   try {

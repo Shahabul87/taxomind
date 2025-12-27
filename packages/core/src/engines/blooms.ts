@@ -396,6 +396,16 @@ export class BloomsEngine extends BaseEngine<BloomsEngineInput, BloomsEngineOutp
 // FACTORY
 // ============================================================================
 
+let hasWarned = false;
+
+/**
+ * @deprecated Use createUnifiedBloomsEngine from @sam-ai/educational.
+ */
 export function createBloomsEngine(config: SAMConfig): BloomsEngine {
+  if (!hasWarned) {
+    const warn = config.logger?.warn ?? console.warn;
+    warn('[SAM] createBloomsEngine is deprecated. Use createUnifiedBloomsEngine from @sam-ai/educational.');
+    hasWarned = true;
+  }
   return new BloomsEngine(config);
 }

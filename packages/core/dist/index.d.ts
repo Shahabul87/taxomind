@@ -200,6 +200,8 @@ interface BloomsAnalysis {
     balance: 'well-balanced' | 'bottom-heavy' | 'top-heavy';
     gaps: BloomsLevel[];
     recommendations: string[];
+    confidence?: number;
+    method?: 'keyword' | 'ai' | 'hybrid';
 }
 interface EngineInput {
     context: SAMContext;
@@ -358,6 +360,366 @@ interface AssessmentResponse {
     estimatedTime: number;
     bloomsAnalysis: BloomsAnalysis;
 }
+
+/**
+ * SAM Database Adapter Interface
+ *
+ * This adapter abstracts database operations to make @sam-ai/core portable.
+ * Implement this interface to connect SAM to any database system.
+ */
+/**
+ * Common query options for database operations
+ */
+interface QueryOptions {
+    /** Include related entities */
+    include?: Record<string, boolean | object>;
+    /** Select specific fields */
+    select?: Record<string, boolean>;
+    /** Limit number of results */
+    limit?: number;
+    /** Skip results for pagination */
+    offset?: number;
+    /** Order by fields */
+    orderBy?: Record<string, 'asc' | 'desc'>;
+}
+/**
+ * Result of count operations
+ */
+interface CountResult {
+    count: number;
+}
+/**
+ * Basic user information for SAM context
+ */
+interface SAMUser {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role?: string;
+    preferences?: Record<string, unknown>;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+/**
+ * Course entity for educational context
+ */
+interface SAMCourse {
+    id: string;
+    title: string;
+    description: string | null;
+    imageUrl?: string | null;
+    categoryId?: string | null;
+    userId: string;
+    isPublished: boolean;
+    chapters?: SAMChapter[];
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+/**
+ * Chapter entity (also called Section in some systems)
+ */
+interface SAMChapter {
+    id: string;
+    title: string;
+    description: string | null;
+    position: number;
+    isPublished: boolean;
+    courseId: string;
+    sections?: SAMSection[];
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+/**
+ * Section entity for granular content organization
+ */
+interface SAMSection {
+    id: string;
+    title: string;
+    description: string | null;
+    content: string | null;
+    position: number;
+    isPublished: boolean;
+    chapterId: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+/**
+ * Question from question bank
+ */
+interface SAMQuestion {
+    id: string;
+    question: string;
+    answer?: string | null;
+    options?: string[] | null;
+    questionType: 'multiple_choice' | 'true_false' | 'short_answer' | 'essay' | 'fill_blank';
+    bloomsLevel: 'remember' | 'understand' | 'apply' | 'analyze' | 'evaluate' | 'create';
+    difficulty: 'easy' | 'medium' | 'hard';
+    points: number;
+    courseId: string;
+    chapterId?: string | null;
+    sectionId?: string | null;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+/**
+ * Student progress on Bloom's taxonomy levels
+ */
+interface SAMBloomsProgress {
+    id: string;
+    userId: string;
+    courseId: string;
+    rememberScore: number;
+    understandScore: number;
+    applyScore: number;
+    analyzeScore: number;
+    evaluateScore: number;
+    createScore: number;
+    overallScore: number;
+    assessmentCount: number;
+    lastAssessedAt?: Date;
+    updatedAt?: Date;
+}
+/**
+ * Cognitive skill progress for adaptive learning
+ */
+interface SAMCognitiveProgress {
+    id: string;
+    userId: string;
+    skillType: string;
+    proficiencyLevel: number;
+    totalAttempts: number;
+    successfulAttempts: number;
+    averageTimeSeconds: number;
+    lastPracticedAt?: Date;
+    updatedAt?: Date;
+}
+/**
+ * SAM interaction log for analytics
+ */
+interface SAMInteractionLog {
+    id: string;
+    userId: string;
+    sessionId?: string | null;
+    pageType: string;
+    pagePath: string;
+    query: string;
+    response: string;
+    enginesUsed: string[];
+    responseTimeMs: number;
+    tokenCount?: number;
+    metadata?: Record<string, unknown>;
+    createdAt: Date;
+}
+/**
+ * Course-level Bloom's analysis
+ */
+interface SAMCourseAnalysis {
+    id: string;
+    courseId: string;
+    rememberPercentage: number;
+    understandPercentage: number;
+    applyPercentage: number;
+    analyzePercentage: number;
+    evaluatePercentage: number;
+    createPercentage: number;
+    totalObjectives: number;
+    overallScore: number;
+    recommendations?: string[];
+    gaps?: string[];
+    analyzedAt: Date;
+    updatedAt?: Date;
+}
+/**
+ * SAM Database Adapter Interface
+ *
+ * Implement this interface to connect SAM to your database system.
+ * All methods return promises and use platform-agnostic types.
+ *
+ * @example
+ * ```typescript
+ * import { PrismaClient } from '@prisma/client';
+ * import { SAMDatabaseAdapter } from '@sam-ai/core';
+ *
+ * export class PrismaSAMAdapter implements SAMDatabaseAdapter {
+ *   constructor(private prisma: PrismaClient) {}
+ *
+ *   async findUser(id: string) {
+ *     return this.prisma.user.findUnique({ where: { id } });
+ *   }
+ *   // ... implement other methods
+ * }
+ * ```
+ */
+interface SAMDatabaseAdapter {
+    /**
+     * Find a user by ID
+     */
+    findUser(id: string, options?: QueryOptions): Promise<SAMUser | null>;
+    /**
+     * Find multiple users
+     */
+    findUsers(filter: Partial<SAMUser>, options?: QueryOptions): Promise<SAMUser[]>;
+    /**
+     * Update user data
+     */
+    updateUser(id: string, data: Partial<SAMUser>): Promise<SAMUser>;
+    /**
+     * Find a course by ID with optional includes
+     */
+    findCourse(id: string, options?: QueryOptions): Promise<SAMCourse | null>;
+    /**
+     * Find multiple courses
+     */
+    findCourses(filter: Partial<SAMCourse>, options?: QueryOptions): Promise<SAMCourse[]>;
+    /**
+     * Find a chapter by ID
+     */
+    findChapter(id: string, options?: QueryOptions): Promise<SAMChapter | null>;
+    /**
+     * Find chapters by course ID
+     */
+    findChaptersByCourse(courseId: string, options?: QueryOptions): Promise<SAMChapter[]>;
+    /**
+     * Find a section by ID
+     */
+    findSection(id: string, options?: QueryOptions): Promise<SAMSection | null>;
+    /**
+     * Find sections by chapter ID
+     */
+    findSectionsByChapter(chapterId: string, options?: QueryOptions): Promise<SAMSection[]>;
+    /**
+     * Find questions by filter criteria
+     */
+    findQuestions(filter: Partial<SAMQuestion>, options?: QueryOptions): Promise<SAMQuestion[]>;
+    /**
+     * Create a new question
+     */
+    createQuestion(data: Omit<SAMQuestion, 'id' | 'createdAt' | 'updatedAt'>): Promise<SAMQuestion>;
+    /**
+     * Update an existing question
+     */
+    updateQuestion(id: string, data: Partial<SAMQuestion>): Promise<SAMQuestion>;
+    /**
+     * Delete a question
+     */
+    deleteQuestion(id: string): Promise<void>;
+    /**
+     * Find student's Bloom's progress for a course
+     */
+    findBloomsProgress(userId: string, courseId: string): Promise<SAMBloomsProgress | null>;
+    /**
+     * Create or update Bloom's progress
+     */
+    upsertBloomsProgress(userId: string, courseId: string, data: Partial<SAMBloomsProgress>): Promise<SAMBloomsProgress>;
+    /**
+     * Find cognitive skill progress
+     */
+    findCognitiveProgress(userId: string, skillType: string): Promise<SAMCognitiveProgress | null>;
+    /**
+     * Create or update cognitive progress
+     */
+    upsertCognitiveProgress(userId: string, skillType: string, data: Partial<SAMCognitiveProgress>): Promise<SAMCognitiveProgress>;
+    /**
+     * Log a SAM interaction
+     */
+    logInteraction(data: Omit<SAMInteractionLog, 'id' | 'createdAt'>): Promise<SAMInteractionLog>;
+    /**
+     * Find interactions by user
+     */
+    findInteractions(userId: string, options?: QueryOptions): Promise<SAMInteractionLog[]>;
+    /**
+     * Count interactions with optional filter
+     */
+    countInteractions(filter?: {
+        userId?: string;
+        pageType?: string;
+        startDate?: Date;
+        endDate?: Date;
+    }): Promise<number>;
+    /**
+     * Find course-level Bloom's analysis
+     */
+    findCourseAnalysis(courseId: string): Promise<SAMCourseAnalysis | null>;
+    /**
+     * Create or update course analysis
+     */
+    upsertCourseAnalysis(courseId: string, data: Partial<SAMCourseAnalysis>): Promise<SAMCourseAnalysis>;
+    /**
+     * Check if database connection is healthy
+     */
+    healthCheck(): Promise<boolean>;
+    /**
+     * Begin a database transaction (optional)
+     * Returns a transaction context that can be passed to other methods
+     */
+    beginTransaction?(): Promise<TransactionContext>;
+    /**
+     * Commit a transaction (optional)
+     */
+    commitTransaction?(context: TransactionContext): Promise<void>;
+    /**
+     * Rollback a transaction (optional)
+     */
+    rollbackTransaction?(context: TransactionContext): Promise<void>;
+}
+/**
+ * Transaction context for database operations
+ */
+interface TransactionContext {
+    id: string;
+    startedAt: Date;
+    /** Platform-specific transaction object */
+    _internal?: unknown;
+}
+/**
+ * Options for creating a database adapter
+ */
+interface DatabaseAdapterOptions {
+    /** Enable debug logging */
+    debug?: boolean;
+    /** Connection timeout in milliseconds */
+    timeout?: number;
+    /** Maximum number of connections (for pool-based adapters) */
+    maxConnections?: number;
+    /** Retry configuration */
+    retry?: {
+        maxAttempts: number;
+        delayMs: number;
+    };
+}
+/**
+ * No-operation database adapter for testing or when no database is available.
+ * All read operations return null/empty, all write operations are no-ops.
+ */
+declare class NoopDatabaseAdapter implements SAMDatabaseAdapter {
+    findUser(): Promise<null>;
+    findUsers(): Promise<SAMUser[]>;
+    updateUser(_id: string, data: Partial<SAMUser>): Promise<SAMUser>;
+    findCourse(): Promise<null>;
+    findCourses(): Promise<SAMCourse[]>;
+    findChapter(): Promise<null>;
+    findChaptersByCourse(): Promise<SAMChapter[]>;
+    findSection(): Promise<null>;
+    findSectionsByChapter(): Promise<SAMSection[]>;
+    findQuestions(): Promise<SAMQuestion[]>;
+    createQuestion(data: Omit<SAMQuestion, 'id' | 'createdAt' | 'updatedAt'>): Promise<SAMQuestion>;
+    updateQuestion(id: string, data: Partial<SAMQuestion>): Promise<SAMQuestion>;
+    deleteQuestion(): Promise<void>;
+    findBloomsProgress(): Promise<null>;
+    upsertBloomsProgress(userId: string, courseId: string, data: Partial<SAMBloomsProgress>): Promise<SAMBloomsProgress>;
+    findCognitiveProgress(): Promise<null>;
+    upsertCognitiveProgress(userId: string, skillType: string, data: Partial<SAMCognitiveProgress>): Promise<SAMCognitiveProgress>;
+    logInteraction(data: Omit<SAMInteractionLog, 'id' | 'createdAt'>): Promise<SAMInteractionLog>;
+    findInteractions(): Promise<SAMInteractionLog[]>;
+    countInteractions(): Promise<number>;
+    findCourseAnalysis(): Promise<null>;
+    upsertCourseAnalysis(courseId: string, data: Partial<SAMCourseAnalysis>): Promise<SAMCourseAnalysis>;
+    healthCheck(): Promise<boolean>;
+}
+/**
+ * Create a no-operation database adapter
+ */
+declare function createNoopDatabaseAdapter(): SAMDatabaseAdapter;
 
 /**
  * @sam-ai/core - Configuration Types
@@ -566,6 +928,7 @@ interface SAMConfig {
     storage?: StorageAdapter;
     cache?: CacheAdapter;
     analytics?: AnalyticsAdapter;
+    database?: SAMDatabaseAdapter;
     logger?: SAMLogger;
     features: SAMFeatureFlags;
     routes?: SAMRoutePatterns;
@@ -586,6 +949,7 @@ interface SAMConfigInput {
     storage?: StorageAdapter;
     cache?: CacheAdapter;
     analytics?: AnalyticsAdapter;
+    database?: SAMDatabaseAdapter;
     logger?: SAMLogger;
     features?: Partial<SAMFeatureFlags>;
     routes?: SAMRoutePatterns;
@@ -996,6 +1360,9 @@ declare class BloomsEngine extends BaseEngine<BloomsEngineInput, BloomsEngineOut
     private generateRecommendations;
     private generateActionItems;
 }
+/**
+ * @deprecated Use createUnifiedBloomsEngine from @sam-ai/educational.
+ */
 declare function createBloomsEngine(config: SAMConfig): BloomsEngine;
 
 /**
@@ -1421,6 +1788,137 @@ declare class MemoryCacheAdapter implements CacheAdapter {
 declare function createMemoryCache(options?: MemoryCacheOptions): MemoryCacheAdapter;
 
 /**
+ * In-Memory SAM Database Adapter
+ *
+ * A memory-based implementation of SAMDatabaseAdapter for:
+ * - Testing and development
+ * - Standalone SAM usage without a database
+ * - Prototyping and demos
+ */
+
+interface InMemoryDatabaseOptions {
+    /** Seed data to initialize with */
+    seed?: {
+        users?: SAMUser[];
+        courses?: SAMCourse[];
+        questions?: SAMQuestion[];
+    };
+    /** Enable persistence to localStorage (browser only) */
+    persistToLocalStorage?: boolean;
+    /** localStorage key prefix */
+    storageKeyPrefix?: string;
+}
+/**
+ * In-memory implementation of SAMDatabaseAdapter
+ *
+ * Stores all data in memory maps. Useful for:
+ * - Unit testing
+ * - Local development without database
+ * - Standalone SAM demos
+ *
+ * @example
+ * ```typescript
+ * const dbAdapter = new InMemoryDatabaseAdapter({
+ *   seed: {
+ *     users: [{ id: 'user-1', name: 'Test User', email: 'test@example.com' }],
+ *   },
+ * });
+ * ```
+ */
+declare class InMemoryDatabaseAdapter implements SAMDatabaseAdapter {
+    private users;
+    private courses;
+    private chapters;
+    private sections;
+    private questions;
+    private bloomsProgress;
+    private cognitiveProgress;
+    private interactions;
+    private courseAnalysis;
+    private idCounter;
+    private options;
+    constructor(options?: InMemoryDatabaseOptions);
+    private generateId;
+    findUser(id: string): Promise<SAMUser | null>;
+    findUsers(filter: Partial<SAMUser>, options?: QueryOptions): Promise<SAMUser[]>;
+    updateUser(id: string, data: Partial<SAMUser>): Promise<SAMUser>;
+    findCourse(id: string, options?: QueryOptions): Promise<SAMCourse | null>;
+    findCourses(filter: Partial<SAMCourse>, options?: QueryOptions): Promise<SAMCourse[]>;
+    findChapter(id: string, options?: QueryOptions): Promise<SAMChapter | null>;
+    findChaptersByCourse(courseId: string, options?: QueryOptions): Promise<SAMChapter[]>;
+    findSection(id: string): Promise<SAMSection | null>;
+    findSectionsByChapter(chapterId: string, options?: QueryOptions): Promise<SAMSection[]>;
+    findQuestions(filter: Partial<SAMQuestion>, options?: QueryOptions): Promise<SAMQuestion[]>;
+    createQuestion(data: Omit<SAMQuestion, 'id' | 'createdAt' | 'updatedAt'>): Promise<SAMQuestion>;
+    updateQuestion(id: string, data: Partial<SAMQuestion>): Promise<SAMQuestion>;
+    deleteQuestion(id: string): Promise<void>;
+    findBloomsProgress(userId: string, courseId: string): Promise<SAMBloomsProgress | null>;
+    upsertBloomsProgress(userId: string, courseId: string, data: Partial<SAMBloomsProgress>): Promise<SAMBloomsProgress>;
+    findCognitiveProgress(userId: string, skillType: string): Promise<SAMCognitiveProgress | null>;
+    upsertCognitiveProgress(userId: string, skillType: string, data: Partial<SAMCognitiveProgress>): Promise<SAMCognitiveProgress>;
+    logInteraction(data: Omit<SAMInteractionLog, 'id' | 'createdAt'>): Promise<SAMInteractionLog>;
+    findInteractions(userId: string, options?: QueryOptions): Promise<SAMInteractionLog[]>;
+    countInteractions(filter?: {
+        userId?: string;
+        pageType?: string;
+        startDate?: Date;
+        endDate?: Date;
+    }): Promise<number>;
+    findCourseAnalysis(courseId: string): Promise<SAMCourseAnalysis | null>;
+    upsertCourseAnalysis(courseId: string, data: Partial<SAMCourseAnalysis>): Promise<SAMCourseAnalysis>;
+    healthCheck(): Promise<boolean>;
+    beginTransaction(): Promise<TransactionContext>;
+    commitTransaction(): Promise<void>;
+    rollbackTransaction(): Promise<void>;
+    /**
+     * Clear all data from memory
+     */
+    clear(): void;
+    /**
+     * Add a user to the store
+     */
+    addUser(user: SAMUser): void;
+    /**
+     * Add a course to the store
+     */
+    addCourse(course: SAMCourse): void;
+    /**
+     * Get all stored data (for debugging/export)
+     */
+    getData(): {
+        users: SAMUser[];
+        courses: SAMCourse[];
+        questions: SAMQuestion[];
+        interactions: SAMInteractionLog[];
+    };
+    private applyQueryOptions;
+    private persist;
+    private loadFromStorage;
+}
+/**
+ * Create an in-memory SAM database adapter
+ *
+ * @example
+ * ```typescript
+ * // Simple usage
+ * const dbAdapter = createInMemoryDatabase();
+ *
+ * // With seed data
+ * const dbAdapter = createInMemoryDatabase({
+ *   seed: {
+ *     users: [{ id: 'demo-user', name: 'Demo', email: 'demo@example.com' }],
+ *   },
+ * });
+ *
+ * // With localStorage persistence (browser)
+ * const dbAdapter = createInMemoryDatabase({
+ *   persistToLocalStorage: true,
+ * });
+ * ```
+ */
+declare function createInMemoryDatabase(options?: InMemoryDatabaseOptions): InMemoryDatabaseAdapter;
+
+/**
  * @sam-ai/core - Error Classes
  * Standardized error handling for SAM AI Tutor
  */
@@ -1577,4 +2075,4 @@ declare function withRetry<T>(fn: () => Promise<T>, options: {
 
 declare const VERSION = "0.1.0";
 
-export { type AIAdapter, type AIChatParams, type AIChatResponse, type AIChatStreamChunk, AIError, type AIMessage, type AggregatedResponse, type AnalysisRequest, type AnalysisResponse, type AnalysisType, type AnalyticsAdapter, type AnalyticsEvent, type AnalyzeEvent, AnthropicAdapter, type AnthropicAdapterOptions, type AssessmentAnalysis, type AssessmentConfig, AssessmentEngine, type AssessmentEngineOutput, type AssessmentRequest, type AssessmentResponse, BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER, type BadgeData, BaseEngine, type BaseEngineOptions, type BloomsAnalysis, type BloomsDistribution, BloomsEngine, type BloomsEngineInput, type BloomsEngineOutput, type BloomsLevel, type CacheAdapter, CacheError, type CognitiveLoad, type CognitiveLoadProfile, ConfigurationError, type ContentAdaptation, ContentEngine, type ContentEngineOutput, type ContentMetrics, type ContentSuggestion, type ContentType, ContextEngine, type ContextEngineOutput, type ConversationData, DependencyError, type EmotionalProfile, type EmotionalState, type EngineConfig, EngineError, type EngineErrorInfo, type EngineInput, type EngineRegistration, type EngineResult, type EngineResultData, type EngineResultMetadata, type ErrorEvent, type ExecuteActionEvent, type GamificationData, type GeneratedContent, type GeneratedQuestion, type GenerationRequest, type GenerationResponse, InitializationError, type InteractionData, type LearningPathNode, type LearningProfileData, type LearningStyleProfile, MemoryCacheAdapter, type MemoryCacheOptions, type MotivationProfile, OrchestrationError, type OrchestrationMetadata, type OrchestrationOptions, type OrchestrationResult, PersonalizationEngine, type PersonalizationEngineOutput, type PersonalizedLearningPath, type QueryIntent, type Question, type QuestionOption, type QuestionType, RateLimitError, type ReceiveResponseEvent, ResponseEngine, type ResponseEngineOutput, type SAMAchievement, type SAMAction, SAMAgentOrchestrator, type SAMBadge, type SAMBadgeLevel, type SAMConfig, type SAMConfigInput, type SAMContext, type SAMContextMetadata, type SAMConversationContext, type SAMEmotion, type SAMEngineSettings, SAMError, type SAMErrorCode, type SAMErrorDetails, type SAMEvent, type SAMEventType, type SAMFeatureFlags, type SAMFormContext, type SAMFormField, type SAMGamificationContext, type SAMLearningStyle, type SAMLogger, type SAMMessage, type SAMMessageMetadata, type SAMMessageRole, type SAMModelConfig, type SAMPageContext, type SAMPageType, type SAMPosition, type SAMRateLimitConfig, type SAMRoutePatterns, type SAMSize, type SAMState, type SAMStateListener, SAMStateMachine, type SAMStreak, type SAMSuggestion, type SAMTeachingMethod, type SAMTheme, type SAMTone, type SAMUIContext, type SAMUserContext, type SAMUserPreferences, type SAMUserRole, type SendMessageEvent, type StorageAdapter, StorageError, type StreamChunkEvent, type StudyGuide, TimeoutError, type UpdateContextEvent, type UpdateFormEvent, type UpdateGamificationEvent, type UpdatePageEvent, VERSION, ValidationError, createAnthropicAdapter, createAssessmentEngine, createBloomsEngine, createContentEngine, createContextEngine, createDefaultContext, createDefaultConversationContext, createDefaultGamificationContext, createDefaultPageContext, createDefaultUIContext, createDefaultUserContext, createMemoryCache, createOrchestrator, createPersonalizationEngine, createResponseEngine, createSAMConfig, createStateMachine, createTimeoutPromise, isSAMError, withRetry, withTimeout, wrapError };
+export { type AIAdapter, type AIChatParams, type AIChatResponse, type AIChatStreamChunk, AIError, type AIMessage, type AggregatedResponse, type AnalysisRequest, type AnalysisResponse, type AnalysisType, type AnalyticsAdapter, type AnalyticsEvent, type AnalyzeEvent, AnthropicAdapter, type AnthropicAdapterOptions, type AssessmentAnalysis, type AssessmentConfig, AssessmentEngine, type AssessmentEngineOutput, type AssessmentRequest, type AssessmentResponse, BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER, type BadgeData, BaseEngine, type BaseEngineOptions, type BloomsAnalysis, type BloomsDistribution, BloomsEngine, type BloomsEngineInput, type BloomsEngineOutput, type BloomsLevel, type CacheAdapter, CacheError, type CognitiveLoad, type CognitiveLoadProfile, ConfigurationError, type ContentAdaptation, ContentEngine, type ContentEngineOutput, type ContentMetrics, type ContentSuggestion, type ContentType, ContextEngine, type ContextEngineOutput, type ConversationData, type CountResult, type DatabaseAdapterOptions, DependencyError, type EmotionalProfile, type EmotionalState, type EngineConfig, EngineError, type EngineErrorInfo, type EngineInput, type EngineRegistration, type EngineResult, type EngineResultData, type EngineResultMetadata, type ErrorEvent, type ExecuteActionEvent, type GamificationData, type GeneratedContent, type GeneratedQuestion, type GenerationRequest, type GenerationResponse, InMemoryDatabaseAdapter, type InMemoryDatabaseOptions, InitializationError, type InteractionData, type LearningPathNode, type LearningProfileData, type LearningStyleProfile, MemoryCacheAdapter, type MemoryCacheOptions, type MotivationProfile, NoopDatabaseAdapter, OrchestrationError, type OrchestrationMetadata, type OrchestrationOptions, type OrchestrationResult, PersonalizationEngine, type PersonalizationEngineOutput, type PersonalizedLearningPath, type QueryIntent, type QueryOptions, type Question, type QuestionOption, type QuestionType, RateLimitError, type ReceiveResponseEvent, ResponseEngine, type ResponseEngineOutput, type SAMAchievement, type SAMAction, SAMAgentOrchestrator, type SAMBadge, type SAMBadgeLevel, type SAMBloomsProgress, type SAMChapter, type SAMCognitiveProgress, type SAMConfig, type SAMConfigInput, type SAMContext, type SAMContextMetadata, type SAMConversationContext, type SAMCourse, type SAMCourseAnalysis, type SAMDatabaseAdapter, type SAMEmotion, type SAMEngineSettings, SAMError, type SAMErrorCode, type SAMErrorDetails, type SAMEvent, type SAMEventType, type SAMFeatureFlags, type SAMFormContext, type SAMFormField, type SAMGamificationContext, type SAMInteractionLog, type SAMLearningStyle, type SAMLogger, type SAMMessage, type SAMMessageMetadata, type SAMMessageRole, type SAMModelConfig, type SAMPageContext, type SAMPageType, type SAMPosition, type SAMQuestion, type SAMRateLimitConfig, type SAMRoutePatterns, type SAMSection, type SAMSize, type SAMState, type SAMStateListener, SAMStateMachine, type SAMStreak, type SAMSuggestion, type SAMTeachingMethod, type SAMTheme, type SAMTone, type SAMUIContext, type SAMUser, type SAMUserContext, type SAMUserPreferences, type SAMUserRole, type SendMessageEvent, type StorageAdapter, StorageError, type StreamChunkEvent, type StudyGuide, TimeoutError, type TransactionContext, type UpdateContextEvent, type UpdateFormEvent, type UpdateGamificationEvent, type UpdatePageEvent, VERSION, ValidationError, createAnthropicAdapter, createAssessmentEngine, createBloomsEngine, createContentEngine, createContextEngine, createDefaultContext, createDefaultConversationContext, createDefaultGamificationContext, createDefaultPageContext, createDefaultUIContext, createDefaultUserContext, createInMemoryDatabase, createMemoryCache, createNoopDatabaseAdapter, createOrchestrator, createPersonalizationEngine, createResponseEngine, createSAMConfig, createStateMachine, createTimeoutPromise, isSAMError, withRetry, withTimeout, wrapError };

@@ -1,6 +1,10 @@
 /**
  * @sam-ai/react - SAM Context
  * React context for SAM AI Tutor state management
+ *
+ * UPDATED: Removed core Blooms engine registration.
+ * Unified Blooms analysis is now handled server-side via API routes
+ * that use @sam-ai/educational's createUnifiedBloomsEngine.
  */
 
 'use client';
@@ -19,7 +23,6 @@ import {
   createOrchestrator,
   createStateMachine,
   createContextEngine,
-  createBloomsEngine,
   createContentEngine,
   createAssessmentEngine,
   createPersonalizationEngine,
@@ -184,9 +187,8 @@ export function SAMProvider({
     const sm = createStateMachine();
     const orch = createOrchestrator(config);
 
-    // Register all engines
+    // Register engines (not core blooms - unified blooms is used server-side via API routes)
     orch.registerEngine(createContextEngine(config));
-    orch.registerEngine(createBloomsEngine(config));
     orch.registerEngine(createContentEngine(config));
     orch.registerEngine(createAssessmentEngine(config));
     orch.registerEngine(createPersonalizationEngine(config));
