@@ -155,23 +155,31 @@ export function createChatHandler(config: SAMConfig): SAMHandler {
       // Build user context
       const userContext = buildUserContext(handlerContext);
 
-      // Create SAM context using factory
-      const samContext: SAMContext = createDefaultContext({
-        user: userContext as SAMUserContext,
-        page: {
-          type: 'other',
-          path: '/',
-          capabilities: [],
-          breadcrumb: [],
-        },
+      const normalizedHistory = (body.history ?? []).map((message) => ({
+        ...message,
+        timestamp: message.timestamp ? new Date(message.timestamp) : new Date(),
+      }));
+
+      const baseContext = createDefaultContext(body.context);
+      const samContext: SAMContext = {
+        ...baseContext,
+        user: userContext
+          ? ({ ...baseContext.user, ...userContext } as SAMUserContext)
+          : baseContext.user,
         conversation: {
-          id: null,
-          messages: body.history ?? [],
-          isStreaming: false,
-          lastMessageAt: null,
-          totalMessages: body.history?.length ?? 0,
+          ...baseContext.conversation,
+          messages: normalizedHistory.length > 0
+            ? normalizedHistory
+            : baseContext.conversation.messages,
+          totalMessages: normalizedHistory.length > 0
+            ? normalizedHistory.length
+            : baseContext.conversation.totalMessages,
+          lastMessageAt:
+            normalizedHistory.length > 0
+              ? normalizedHistory[normalizedHistory.length - 1]?.timestamp ?? null
+              : baseContext.conversation.lastMessageAt,
         },
-      });
+      };
 
       // Process the message using orchestrator
       const result = await orchestrator.orchestrate(samContext, body.message, {
@@ -253,15 +261,31 @@ export function createStreamingChatHandler(
     const userContext = buildUserContext(handlerContext);
 
     // Create SAM context using factory
-    const samContext: SAMContext = createDefaultContext({
-      user: userContext as SAMUserContext,
-      page: {
-        type: 'other',
-        path: '/',
-        capabilities: [],
-        breadcrumb: [],
+    const normalizedHistory = (body.history ?? []).map((message) => ({
+      ...message,
+      timestamp: message.timestamp ? new Date(message.timestamp) : new Date(),
+    }));
+
+    const baseContext = createDefaultContext(body.context);
+    const samContext: SAMContext = {
+      ...baseContext,
+      user: userContext
+        ? ({ ...baseContext.user, ...userContext } as SAMUserContext)
+        : baseContext.user,
+      conversation: {
+        ...baseContext.conversation,
+        messages: normalizedHistory.length > 0
+          ? normalizedHistory
+          : baseContext.conversation.messages,
+        totalMessages: normalizedHistory.length > 0
+          ? normalizedHistory.length
+          : baseContext.conversation.totalMessages,
+        lastMessageAt:
+          normalizedHistory.length > 0
+            ? normalizedHistory[normalizedHistory.length - 1]?.timestamp ?? null
+            : baseContext.conversation.lastMessageAt,
       },
-    });
+    };
 
     // Process and stream
     const result = await orchestrator.orchestrate(samContext, body.message);

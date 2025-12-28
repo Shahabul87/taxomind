@@ -41,7 +41,7 @@
 ---
 
 ### 2. SAM AI System Documentation (10 files)
-**Location**: `docs/sam-ai-system/`
+**Location**: `docs/features/sam-ai-system/`
 
 **Core SAM Documentation**
 - ✅ `SAM_AI_TEACHER_POWER_ANALYSIS_REPORT.md`
@@ -49,7 +49,7 @@
 - ✅ `SAM_CONTEXT_AWARENESS_SOLUTION.md`
 - ✅ `SAM_INTELLIGENT_CONTEXT_DETECTION.md`
 
-**SAM Integration** (`docs/sam-ai-system/integration/`)
+**SAM Integration** (`docs/features/sam-ai-system/integration/`)
 - ✅ `SAM_CONTEXT_INTEGRATION_COMPLETE.md`
 - ✅ `SAM_FORM_INTEGRATION_GUIDE.md`
 - ✅ `SAM_GLOBAL_COMPLETE.md`
@@ -132,9 +132,9 @@ docs/
 │   ├── phase-1/
 │   │   └── weekly-summaries/     # NEW
 │   └── quick-wins/                # NEW
-├── sam-ai-system/
-│   └── integration/               # NEW
 └── features/
+    ├── sam-ai-system/
+    │   └── integration/           # NEW
     └── responsive-design/
         ├── headers/               # NEW
         └── icons/                 # NEW
@@ -237,7 +237,7 @@ Total:                      37 files
 
 - **Getting Started**: `README.md` → `docs/setup/`
 - **Development Guidelines**: `CLAUDE.md`
-- **SAM AI**: `docs/sam-ai-system/`
+- **SAM AI**: `docs/features/sam-ai-system/`
 - **UI Components**: `docs/features/`
 - **Deployment**: `docs/deployment/`
 - **Phase Progress**: `docs/phases/`
@@ -292,7 +292,7 @@ Total:                      37 files
 | Category | Files | Location | Purpose |
 |----------|-------|----------|---------|
 | Phase Documentation | 9 | `docs/phases/` | Project phases and progress |
-| SAM AI System | 10 | `docs/sam-ai-system/` | SAM AI implementation |
+| SAM AI System | 10 | `docs/features/sam-ai-system/` | SAM AI implementation |
 | Features & UI | 9 | `docs/features/` | UI components and design |
 | Course Management | 2 | `docs/course-management/` | Course-related features |
 | API Documentation | 1 | `docs/api/` | API implementation |
@@ -309,7 +309,7 @@ Total:                      37 files
 - [x] Analyze all markdown files in root directory
 - [x] Create logical folder structure
 - [x] Move phase documentation to `docs/phases/`
-- [x] Move SAM AI documentation to `docs/sam-ai-system/`
+- [x] Move SAM AI documentation to `docs/features/sam-ai-system/`
 - [x] Move UI/features documentation to `docs/features/`
 - [x] Move course, API, deployment, and testing docs to respective folders
 - [x] Create comprehensive documentation index

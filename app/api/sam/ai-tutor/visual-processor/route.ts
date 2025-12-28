@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,6 +65,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function runVisualChat(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: { maxTokens?: number; temperature?: number; model?: string }
+): Promise<string> {
+  return runSAMChat({
+    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+    maxTokens: options?.maxTokens ?? 1500,
+    temperature: options?.temperature ?? 0.7,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+}
+
 async function analyzeImageForLearning(
   visualData: any,
   learningContext: any
@@ -97,18 +107,11 @@ Provide comprehensive analysis including:
 7. Accessibility considerations
 8. Related visual resources`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this educational image: ${imageDescription}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runVisualChat(
+    systemPrompt,
+    `Analyze this educational image: ${imageDescription}`,
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'image_analysis',
@@ -153,18 +156,11 @@ Create a detailed diagram specification including:
 7. Accessibility features
 8. Implementation guidelines`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a ${diagramType} diagram for "${concept}" at ${complexity} complexity level for ${audience}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const specificationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const specificationText = await runVisualChat(
+    systemPrompt,
+    `Create a ${diagramType} diagram for "${concept}" at ${complexity} complexity level for ${audience}`,
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'diagram_specification',
@@ -213,18 +209,11 @@ Create a comprehensive visualization plan including:
 7. Assessment integration
 8. Customization options`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a ${visualizationType} visualization for concepts: ${concepts.join(', ')}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const visualizationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const visualizationText = await runVisualChat(
+    systemPrompt,
+    `Create a ${visualizationType} visualization for concepts: ${concepts.join(', ')}`,
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'concept_visualization',
@@ -271,18 +260,11 @@ Create interactive annotation plan including:
 7. Assessment opportunities
 8. Engagement mechanics`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1200,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create interactive annotations for: ${imageDescription}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const annotationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const annotationText = await runVisualChat(
+    systemPrompt,
+    `Create interactive annotations for: ${imageDescription}`,
+    { maxTokens: 1200, temperature: 0.7 }
+  );
 
   return {
     type: 'interactive_annotation',
@@ -328,18 +310,11 @@ Create visual quiz including:
 7. Accessibility adaptations
 8. Feedback and explanations`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a visual quiz for: ${imageDescription}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const quizText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const quizText = await runVisualChat(
+    systemPrompt,
+    `Create a visual quiz for: ${imageDescription}`,
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'visual_quiz',
@@ -383,18 +358,11 @@ Create infographic specification including:
 7. Accessibility considerations
 8. Learning enhancement features`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create an infographic about "${topic}" for ${audience}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const infographicText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const infographicText = await runVisualChat(
+    systemPrompt,
+    `Create an infographic about "${topic}" for ${audience}`,
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'infographic_specification',
@@ -441,18 +409,11 @@ Create mind map specification including:
 7. Interactive exploration features
 8. Assessment integration points`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a mind map for "${centralConcept}" with ${depth} levels of depth` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const mindMapText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const mindMapText = await runVisualChat(
+    systemPrompt,
+    `Create a mind map for "${centralConcept}" with ${depth} levels of depth`,
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'mind_map_specification',
@@ -499,18 +460,11 @@ Create flowchart specification including:
 7. Learning checkpoints
 8. Assessment opportunities`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a ${flowType} flowchart for the process: "${process}"` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const flowchartText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const flowchartText = await runVisualChat(
+    systemPrompt,
+    `Create a ${flowType} flowchart for the process: "${process}"`,
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'flowchart_specification',

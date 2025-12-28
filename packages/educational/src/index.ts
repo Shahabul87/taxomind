@@ -80,6 +80,11 @@ export {
   CourseGuideEngine,
   createCourseGuideEngine,
 
+  // Enhanced Depth Analysis Engine
+  EnhancedDepthAnalysisEngine,
+  createEnhancedDepthAnalysisEngine,
+  enhancedDepthEngine,
+
   // Collaboration Engine
   CollaborationEngine,
   createCollaborationEngine,

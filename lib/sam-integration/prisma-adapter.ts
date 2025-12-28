@@ -27,11 +27,11 @@ const TAXOMIND_PRISMA_CONFIG: PrismaSAMAdapterConfig = {
     course: 'course',
     chapter: 'chapter',
     section: 'section',
-    questionBank: 'sAMQuestion',
+    questionBank: 'questionBank',
     studentBloomsProgress: 'studentBloomsProgress',
-    cognitiveSkillProgress: 'studentCognitiveProgress',
-    samInteraction: 'sAMInteractionLog',
-    courseBloomsAnalysis: 'courseAnalysis',
+    cognitiveSkillProgress: 'cognitiveSkillProgress',
+    samInteraction: 'sAMInteraction',
+    courseBloomsAnalysis: 'courseBloomsAnalysis',
   },
 };
 

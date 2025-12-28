@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -79,32 +75,42 @@ export async function GET(request: NextRequest) {
 
     // Get user's study guides
     const where: any = { userId: user.id };
-    if (courseId) where.courseId = courseId;
     if (examId) where.examId = examId;
 
-    // StudyGuide model not found in schema - returning empty array
-    const studyGuides: any[] = [];
-    // const studyGuides = await db.studyGuide.findMany({
-    //   where,
-    //   orderBy: { createdAt: 'desc' },
-    //   take: limit,
-    //   include: {
-    //     course: {
-    //       select: {
-    //         title: true,
-    //       },
-    //     },
-    //     exam: {
-    //       select: {
-    //         title: true,
-    //       },
-    //     },
-    //   },
-    // });
+    const studyGuides = await db.studyGuide.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    const filteredGuides = courseId
+      ? studyGuides.filter((guide) => {
+          if (!guide.basedOnPerformance || typeof guide.basedOnPerformance !== 'object') {
+            return false;
+          }
+          const basedOn = guide.basedOnPerformance as Record<string, unknown>;
+          return basedOn.courseId === courseId;
+        })
+      : studyGuides;
+
+    const parsedGuides = filteredGuides.map((guide) => {
+      let structuredContent: any = null;
+      if (guide.content) {
+        try {
+          structuredContent = JSON.parse(guide.content);
+        } catch {
+          structuredContent = null;
+        }
+      }
+      return {
+        ...guide,
+        structuredContent,
+      };
+    });
 
     return NextResponse.json({
       success: true,
-      data: studyGuides, // Empty array since StudyGuide model not available
+      data: parsedGuides,
     });
 
   } catch (error) {
@@ -279,18 +285,13 @@ ${focusAreas?.join(', ') || 'General improvement'}
 5. A suggested study schedule
 6. Tips for improvement based on performance patterns`;
 
-  const response = await anthropic.messages.create({
+  const guideText = await runSAMChat({
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 3000,
+    maxTokens: 3000,
     temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: userPrompt }
-    ],
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
   });
-
-  const aiResponse = response.content[0];
-  const guideText = aiResponse.type === 'text' ? aiResponse.text : '';
 
   return parseStudyGuide(guideText, studentData);
 }
@@ -430,19 +431,38 @@ async function saveStudyGuide(
   guide: any
 ): Promise<void> {
   try {
-    // StudyGuide model not found in schema - skipping save
-    // await db.studyGuide.create({
-    //   data: {
-    //     userId,
-    //     courseId,
-    //     examId,
-    //     focusAreas: guide.priorityTopics.map((t: any) => t.topic || t),
-    //     recommendations: guide.improvementTips,
-    //     resources: guide.resources,
-    //     schedule: guide.studySchedule,
-    //     estimatedHours: Math.ceil(guide.estimatedTime / 60),
-    //   },
-    // });
+    const focusAreas = Array.isArray(guide.priorityTopics)
+      ? guide.priorityTopics.map((item: any) => item?.topic ?? item).filter(Boolean)
+      : [];
+
+    const targetBloomsLevels = guide.learningActivities
+      ? Object.keys(guide.learningActivities)
+      : [];
+
+    const title = examId
+      ? 'Exam Study Guide'
+      : courseId
+        ? 'Course Study Guide'
+        : 'Personalized Study Guide';
+
+    await db.studyGuide.create({
+      data: {
+        userId,
+        examId: examId || null,
+        sectionId: null,
+        title,
+        content: JSON.stringify(guide),
+        focusAreas,
+        practiceQuestions: guide.practiceQuestions ?? [],
+        resources: guide.resources ?? [],
+        basedOnPerformance: {
+          courseId,
+          examId,
+          generatedAt: new Date().toISOString(),
+        },
+        targetBloomsLevels,
+      },
+    });
   } catch (error) {
     logger.error('Error saving study guide:', error);
   }

@@ -58,6 +58,36 @@
       ],
       "@sam-ai/educational/*": [
         "./packages/educational/src/*"
+      ],
+      "@sam-ai/adapter-prisma": [
+        "./packages/adapter-prisma/src/index.ts"
+      ],
+      "@sam-ai/adapter-prisma/*": [
+        "./packages/adapter-prisma/src/*"
+      ],
+      "@sam-ai/quality": [
+        "./packages/quality/src/index.ts"
+      ],
+      "@sam-ai/quality/*": [
+        "./packages/quality/src/*"
+      ],
+      "@sam-ai/pedagogy": [
+        "./packages/pedagogy/src/index.ts"
+      ],
+      "@sam-ai/pedagogy/*": [
+        "./packages/pedagogy/src/*"
+      ],
+      "@sam-ai/memory": [
+        "./packages/memory/src/index.ts"
+      ],
+      "@sam-ai/memory/*": [
+        "./packages/memory/src/*"
+      ],
+      "@sam-ai/safety": [
+        "./packages/safety/src/index.ts"
+      ],
+      "@sam-ai/safety/*": [
+        "./packages/safety/src/*"
       ]
     }
   },
@@ -72,9 +102,6 @@
   ],
   "exclude": [
     "node_modules",
-    "_archive/**",
-    "sam_ai_deprecated/**",
-    "packages/sam-engine",
     "playwright.config.ts",
     "e2e/**",
     "backups/**",
@@ -91,6 +118,6 @@
     "**/mocks/**",
     "scripts/**",
     "SCALABLE_ARCHITECTURE_DOCS/**",
-    "old-components/**"
+    "**/examples/**"
   ]
 }

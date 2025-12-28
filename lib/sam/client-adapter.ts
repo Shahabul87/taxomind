@@ -43,9 +43,13 @@ function createClientAIAdapter(apiEndpoint: string = '/api/sam'): AIAdapter {
         }
 
         const data = await response.json();
+        const message =
+          typeof data?.data?.message === 'string'
+            ? data.data.message
+            : data.response || data.message || '';
 
         return {
-          content: data.response || data.message || '',
+          content: message,
           model: 'api-proxy',
           finishReason: 'stop',
           usage: {

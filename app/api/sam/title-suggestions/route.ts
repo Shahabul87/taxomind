@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import Anthropic from '@anthropic-ai/sdk';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 export const runtime = 'nodejs';
 
@@ -99,20 +95,15 @@ Return ONLY valid JSON in this format:
   }
 }`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-3-5-haiku-20241022", // Using Haiku for cost efficiency
-    max_tokens: 800,
-    temperature: 0.7, // Higher creativity for titles
-    messages: [{ role: "user", content: prompt }]
+  const responseText = await runSAMChat({
+    model: 'claude-3-5-haiku-20241022',
+    maxTokens: 800,
+    temperature: 0.7,
+    messages: [{ role: 'user', content: prompt }],
   });
 
-  const contentResponse = response.content[0];
-  if (contentResponse.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-
   try {
-    return JSON.parse(contentResponse.text);
+    return JSON.parse(responseText);
   } catch (parseError) {
     logger.error('Failed to parse title suggestions response:', parseError);
     

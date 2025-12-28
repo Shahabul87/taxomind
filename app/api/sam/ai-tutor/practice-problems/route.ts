@@ -1,16 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { createAnthropicAdapter } from '@sam-ai/core';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import {
   validateContent,
   type GeneratedContent,
   type DifficultyLevel,
-} from '@/lib/sam/quality-gates';
+} from '@sam-ai/quality';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+let aiAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
+
+function getAIAdapter() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+  }
+  if (!aiAdapter) {
+    aiAdapter = createAnthropicAdapter({
+      apiKey,
+      model: 'claude-sonnet-4-5-20250929',
+      timeout: 60000,
+      maxRetries: 2,
+    });
+  }
+  return aiAdapter;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,18 +64,20 @@ Return a JSON array of problems, each with:
 - explanation: Why this is the correct answer
 - bloomsLevel: Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation`;
 
-    const response = await anthropic.messages.create({
+    const response = await getAIAdapter().chat({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2000,
+      maxTokens: 2000,
       temperature: 0.8,
+      systemPrompt,
       messages: [
-        { role: 'user', content: `System Instructions: ${systemPrompt}` },
-        { role: 'user', content: `Generate ${count} practice problems about ${topic} at ${difficulty} difficulty level.` }
-      ]
+        {
+          role: 'user',
+          content: `Generate ${count} practice problems about ${topic} at ${difficulty} difficulty level.`,
+        },
+      ],
     });
 
-    const aiResponse = response.content[0];
-    let problemsText = aiResponse.type === 'text' ? aiResponse.text : '';
+    let problemsText = response.content ?? '';
 
     // Try to parse as JSON, fallback to structured parsing
     let problems;

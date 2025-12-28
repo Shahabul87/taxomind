@@ -53,6 +53,9 @@ const customJestConfig = {
     '^.+\\.module\\.(css|sass|scss)$': 'identity-obj-proxy',
     '^.+\\.(css|sass|scss)$': 'identity-obj-proxy',
     '^.+\\.(png|jpg|jpeg|gif|webp|avif|ico|bmp|svg)$/i': 'jest-transform-stub',
+    // Mock lucide-react to avoid ESM issues (including transformed imports from optimizePackageImports)
+    '^lucide-react$': '<rootDir>/__mocks__/lucide-react.js',
+    '^lucide-react/dist/esm/icons/(.*)$': '<rootDir>/__mocks__/lucide-react.js',
     // Mock next-auth
     '^next-auth$': '<rootDir>/__mocks__/next-auth.js',
     '^next-auth/providers/(.*)$': '<rootDir>/__mocks__/next-auth-providers.js',

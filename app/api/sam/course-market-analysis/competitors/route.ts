@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { MarketAnalysisEngine } from '@/lib/sam-engines/business/sam-market-engine';
+import { createMarketEngine } from '@sam-ai/educational';
+import { createMarketAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+
+let marketEngine: ReturnType<typeof createMarketEngine> | null = null;
+
+function getMarketEngine() {
+  if (!marketEngine) {
+    marketEngine = createMarketEngine({ databaseAdapter: createMarketAdapter(db as never) });
+  }
+  return marketEngine;
+}
+
+function normalizeList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry));
+  }
+  if (typeof value === 'string' && value.trim()) {
+    return [value];
+  }
+  return [];
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,9 +53,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Get competitors
-    const engine = new MarketAnalysisEngine();
-    const competitors = await engine.findCompetitors(courseId);
+    const competitors = await db.courseCompetitor.findMany({
+      where: { courseId },
+      orderBy: { analyzedAt: 'desc' },
+    });
 
     return NextResponse.json({
       success: true,
@@ -87,18 +108,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Add competitor
-    const engine = new MarketAnalysisEngine();
-    await engine.analyzeCompetitor(courseId, competitorData);
+    const competitor = await db.courseCompetitor.create({
+      data: {
+        courseId,
+        competitorName: String(competitorData.name ?? competitorData.title ?? 'Competitor'),
+        competitorUrl: competitorData.url ? String(competitorData.url) : undefined,
+        price: Number(competitorData.price ?? 0),
+        rating: competitorData.rating !== undefined ? Number(competitorData.rating) : undefined,
+        enrollments: competitorData.enrollments !== undefined ? Number(competitorData.enrollments) : undefined,
+        features: normalizeList(competitorData.features),
+        strengths: normalizeList(competitorData.strengths),
+        weaknesses: normalizeList(competitorData.weaknesses),
+      },
+    });
 
-    // Re-run market analysis with new competitor data
-    const analysis = await engine.analyzeCourse(courseId, 'competition', false);
+    const analysis = await getMarketEngine().analyzeCourse(courseId, 'competition', false);
 
     return NextResponse.json({
       success: true,
       message: 'Competitor added successfully',
       data: {
         competitionAnalysis: analysis.competition,
+        competitorId: competitor.id,
       },
     });
 

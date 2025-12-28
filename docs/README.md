@@ -139,13 +139,13 @@ Enterprise auth, course catalog, code quality.
 
 ---
 
-### 🤖 [SAM AI System](./sam-ai-system/)
+### 🤖 [SAM AI System](./features/sam-ai-system/)
 SAM AI engine, tutor implementation, context awareness.
 
 **Key Documentation:**
-- `SAM_AI_ENGINE_COMPREHENSIVE_ARCHITECTURE.md`
+- `features/sam-ai-system/reports/SAM_AI_ENGINE_COMPREHENSIVE_ARCHITECTURE.md`
 - `SAM_NPM_PACKAGE_GUIDE.md`
-- `SAM_ENGINE_REUSABILITY_GUIDE.md`
+- `features/sam-ai-system/reports/SAM_ENGINE_REUSABILITY_GUIDE.md`
 - `SAM_DEEP_ANALYSIS_AND_OPINION.md`
 
 ---
@@ -206,7 +206,7 @@ Phase-by-phase project implementation.
 - [System Architecture](./system-architecture/) - System design
 - [Platform Enhancements](./platform-enhancements/) - Platform improvements
 - [Onboarding](./onboarding/) - User onboarding
-- [SAM Implementation](./sam-implementation/) - SAM-specific implementation
+- [SAM Implementation](./features/sam-ai-system/implementation/) - SAM-specific implementation
 - [Tracking Guides](./tracking-guides/) - Analytics tracking
 - [Miscellaneous](./misc/) - Other docs
 
@@ -262,16 +262,6 @@ Component READMEs remain with their components:
 
 ---
 
-## 🗄️ Archive
-
-Outdated documentation moved to:
-- [`_archive/docs/`](../_archive/docs/) - Old implementation docs
-- [`_archive/scalable-architecture-old/`](../_archive/scalable-architecture-old/) - Old architecture
-
-**Note**: Archive is for reference only. Always use current docs.
-
----
-
 ## 📖 Documentation Conventions
 
 ### File Naming
@@ -311,8 +301,8 @@ Standard sections:
 
 ### SAM AI System
 - [SAM Architecture](./architecture/sam-ai-tutor/) - Complete architecture
-- [SAM Implementation](./sam-implementation/) - Implementation guides
-- [SAM AI System](./sam-ai-system/) - System documentation
+- [SAM Implementation](./features/sam-ai-system/implementation/) - Implementation guides
+- [SAM AI System](./features/sam-ai-system/) - System documentation
 
 ---
 

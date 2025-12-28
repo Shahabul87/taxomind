@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { SAMGuards } from '@/lib/premium';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 // Course Assistant is a premium-only feature
 export const POST = SAMGuards.courseCreation(async (request, context) => {
@@ -101,13 +97,11 @@ Return the response as a JSON object with:
 }`;
 
   try {
-    const response = await anthropic.messages.create({
+    const content = await runSAMChat({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }]
+      maxTokens: 1000,
+      messages: [{ role: 'user', content: prompt }],
     });
-
-    const content = response.content[0].type === 'text' ? response.content[0].text : '';
     
     try {
       const parsed = JSON.parse(content);

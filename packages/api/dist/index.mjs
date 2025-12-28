@@ -89,22 +89,21 @@ function createChatHandler(config) {
     }
     try {
       const userContext = buildUserContext(handlerContext);
-      const samContext = createDefaultContext({
-        user: userContext,
-        page: {
-          type: "other",
-          path: "/",
-          capabilities: [],
-          breadcrumb: []
-        },
+      const normalizedHistory = (body.history ?? []).map((message) => ({
+        ...message,
+        timestamp: message.timestamp ? new Date(message.timestamp) : /* @__PURE__ */ new Date()
+      }));
+      const baseContext = createDefaultContext(body.context);
+      const samContext = {
+        ...baseContext,
+        user: userContext ? { ...baseContext.user, ...userContext } : baseContext.user,
         conversation: {
-          id: null,
-          messages: body.history ?? [],
-          isStreaming: false,
-          lastMessageAt: null,
-          totalMessages: body.history?.length ?? 0
+          ...baseContext.conversation,
+          messages: normalizedHistory.length > 0 ? normalizedHistory : baseContext.conversation.messages,
+          totalMessages: normalizedHistory.length > 0 ? normalizedHistory.length : baseContext.conversation.totalMessages,
+          lastMessageAt: normalizedHistory.length > 0 ? normalizedHistory[normalizedHistory.length - 1]?.timestamp ?? null : baseContext.conversation.lastMessageAt
         }
-      });
+      };
       const result = await orchestrator.orchestrate(samContext, body.message, {
         includeInsights: true
       });
@@ -153,15 +152,21 @@ function createStreamingChatHandler(config) {
   return async (request, handlerContext, onChunk) => {
     const body = request.body;
     const userContext = buildUserContext(handlerContext);
-    const samContext = createDefaultContext({
-      user: userContext,
-      page: {
-        type: "other",
-        path: "/",
-        capabilities: [],
-        breadcrumb: []
+    const normalizedHistory = (body.history ?? []).map((message) => ({
+      ...message,
+      timestamp: message.timestamp ? new Date(message.timestamp) : /* @__PURE__ */ new Date()
+    }));
+    const baseContext = createDefaultContext(body.context);
+    const samContext = {
+      ...baseContext,
+      user: userContext ? { ...baseContext.user, ...userContext } : baseContext.user,
+      conversation: {
+        ...baseContext.conversation,
+        messages: normalizedHistory.length > 0 ? normalizedHistory : baseContext.conversation.messages,
+        totalMessages: normalizedHistory.length > 0 ? normalizedHistory.length : baseContext.conversation.totalMessages,
+        lastMessageAt: normalizedHistory.length > 0 ? normalizedHistory[normalizedHistory.length - 1]?.timestamp ?? null : baseContext.conversation.lastMessageAt
       }
-    });
+    };
     const result = await orchestrator.orchestrate(samContext, body.message);
     const bloomsOutput = result.results.blooms?.data;
     const bloomsAnalysis = bloomsOutput?.analysis ?? result.response.blooms;

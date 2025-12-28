@@ -1,7 +1,0 @@
-{
-  "deploymentId": "deploy_1752374821624_qaphqam3d",
-  "environment": "development",
-  "timestamp": "2025-07-13T02:47:01.625Z",
-  "error": "Missing environment variables: DATABASE_URL, AUTH_SECRET, NEXT_PUBLIC_APP_URL",
-  "duration": 1
-}

@@ -26,3 +26,5 @@ export {
   createCollaborationAdapter,
   createInnovationAdapter,
 } from './specialized-adapters';
+
+export { PrismaCourseDepthAnalysisStore } from './course-depth-analysis-store';

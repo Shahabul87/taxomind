@@ -2,13 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { createCourseGuideEngine } from '@sam-ai/educational';
 import { db } from '@/lib/db';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { createCourseGuideAdapter } from '@/lib/adapters';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Create course guide engine singleton
 let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;
@@ -394,40 +390,85 @@ async function generateMarketingRecommendations(
 }
 
 async function generateAssessmentExamples(course: any): Promise<any[]> {
-  const prompt = `Generate 3 example assessment questions for a course titled "${course.title}" with description: "${course.description}". Include different question types.`;
+  const systemPrompt = `You are SAM. Return ONLY valid JSON with 3 assessment examples for the course.
 
-  const response = await anthropic.messages.create({
+Schema:
+[
+  {
+    "type": "multiple_choice|true_false|short_answer",
+    "question": "string",
+    "options": ["string", "..."] (only for multiple_choice),
+    "correctAnswer": "string|boolean",
+    "sampleAnswer": "string" (only for short_answer)
+  }
+]`;
+
+  const prompt = `Course title: "${course.title}"
+Course description: "${course.description || 'No description provided'}"
+Generate 3 varied assessment examples.`;
+
+  const responseText = await runSAMChat({
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
+    maxTokens: 1000,
     temperature: 0.7,
-    messages: [
-      { role: 'user', content: prompt }
-    ],
+    systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
   });
 
-  // Parse response and return examples
+  const cleaned = responseText.replace(/```json/i, '').replace(/```/g, '').trim();
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // Fall through to fallback examples.
+  }
+
   return [
     {
       type: 'multiple_choice',
-      question: 'Example MCQ based on course content',
+      question: `Which statement best captures a core concept from "${course.title}"?`,
       options: ['Option A', 'Option B', 'Option C', 'Option D'],
-      correctAnswer: 'A',
+      correctAnswer: 'Option A',
     },
     {
       type: 'true_false',
-      question: 'Example true/false statement',
+      question: `True or false: "${course.title}" emphasizes practical application.`,
       correctAnswer: true,
     },
     {
       type: 'short_answer',
-      question: 'Example short answer question',
-      sampleAnswer: 'Expected answer format',
+      question: `Explain one key idea from "${course.title}".`,
+      sampleAnswer: 'A concise explanation that references the main concept.',
     },
   ];
 }
 
 async function suggestAdditionalTopics(course: any): Promise<string[]> {
-  // This would analyze current content and suggest gaps
+  const systemPrompt = `Return ONLY valid JSON: an array of 5 topic strings that would improve the course coverage.`;
+  const prompt = `Course title: "${course.title}"
+Course description: "${course.description || 'No description provided'}"
+Suggest 5 additional topics or sections to fill gaps.`;
+
+  const responseText = await runSAMChat({
+    model: 'claude-sonnet-4-5-20250929',
+    maxTokens: 600,
+    temperature: 0.6,
+    systemPrompt,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const cleaned = responseText.replace(/```json/i, '').replace(/```/g, '').trim();
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item) => typeof item === 'string').slice(0, 5);
+    }
+  } catch {
+    // Fall through to fallback.
+  }
+
   return [
     'Advanced techniques and best practices',
     'Industry case studies and examples',

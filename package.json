@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Taxomind - Intelligent Learning Platform with AI-powered education and adaptive courses",
+  "workspaces": [
+    "packages/*"
+  ],
   "keywords": [
     "education",
     "AI",
@@ -21,19 +24,6 @@
     "url": "https://github.com/Shahabul87/taxomind/issues"
   },
   "homepage": "https://github.com/Shahabul87/taxomind#readme",
-  "workspaces": [
-    "packages/core",
-    "packages/educational",
-    "packages/api",
-    "packages/react",
-    "packages/database",
-    "packages/adapter-prisma",
-    "packages/quality",
-    "packages/pedagogy",
-    "packages/memory",
-    "packages/safety",
-    "packages/sam-engine"
-  ],
   "engines": {
     "node": ">=22.12.0",
     "npm": ">=10.0.0"
@@ -181,7 +171,15 @@
     "admin:list": "tsx scripts/admin-cli.ts list",
     "capability:grant": "tsx scripts/capability-cli.ts grant",
     "capability:revoke": "tsx scripts/capability-cli.ts revoke",
-    "capability:list": "tsx scripts/capability-cli.ts list"
+    "capability:list": "tsx scripts/capability-cli.ts list",
+    "sam:build": "bash scripts/sam-build-all.sh build",
+    "sam:build:clean": "bash scripts/sam-build-all.sh rebuild",
+    "sam:typecheck": "bash scripts/sam-build-all.sh typecheck",
+    "sam:publish": "bash scripts/publish-sam-packages.sh",
+    "sam:publish:dry": "bash scripts/publish-sam-packages.sh --dry-run",
+    "sam:publish:patch": "bash scripts/publish-sam-packages.sh --version patch",
+    "sam:publish:minor": "bash scripts/publish-sam-packages.sh --version minor",
+    "sam:publish:beta": "bash scripts/publish-sam-packages.sh --tag beta"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
@@ -224,15 +222,15 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.13",
     "@radix-ui/react-tooltip": "^1.1.4",
-    "@sam-ai/adapter-prisma": "file:packages/adapter-prisma",
-    "@sam-ai/api": "file:packages/api",
-    "@sam-ai/core": "file:packages/core",
-    "@sam-ai/educational": "file:packages/educational",
-    "@sam-ai/memory": "file:packages/memory",
-    "@sam-ai/pedagogy": "file:packages/pedagogy",
-    "@sam-ai/quality": "file:packages/quality",
-    "@sam-ai/react": "file:packages/react",
-    "@sam-ai/safety": "file:packages/safety",
+    "@sam-ai/adapter-prisma": "workspace:*",
+    "@sam-ai/api": "workspace:*",
+    "@sam-ai/core": "workspace:*",
+    "@sam-ai/educational": "workspace:*",
+    "@sam-ai/memory": "workspace:*",
+    "@sam-ai/pedagogy": "workspace:*",
+    "@sam-ai/quality": "workspace:*",
+    "@sam-ai/react": "workspace:*",
+    "@sam-ai/safety": "workspace:*",
     "@sentry/nextjs": "^10.3.0",
     "@stripe/stripe-js": "^5.4.0",
     "@svgr/webpack": "^8.1.0",

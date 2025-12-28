@@ -74,7 +74,7 @@ interface SAMSuggestion {
 }
 interface SAMAction {
     id: string;
-    type: 'navigate' | 'generate' | 'analyze' | 'update' | 'execute' | 'custom';
+    type: 'navigate' | 'generate' | 'analyze' | 'update' | 'execute' | 'custom' | 'form_fill';
     label: string;
     payload: Record<string, unknown>;
     requiresConfirmation?: boolean;

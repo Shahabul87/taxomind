@@ -34,11 +34,18 @@ import {
   type SAMFormField,
   type SAMState,
   type OrchestrationResult,
+  type OrchestrationMetadata,
   type BloomsAnalysis,
   type SAMAgentOrchestrator,
   type SAMStateMachine,
 } from '@sam-ai/core';
-import type { SAMProviderConfig, SAMProviderState, UseSAMReturn } from '../types';
+import type {
+  SAMProviderConfig,
+  SAMProviderState,
+  UseSAMReturn,
+  SAMApiTransportOptions,
+  SAMApiTransportResponse,
+} from '../types';
 
 // ============================================================================
 // STATE MANAGEMENT
@@ -52,6 +59,7 @@ type SAMAction_Internal =
   | { type: 'SET_PROCESSING'; payload: boolean }
   | { type: 'SET_STREAMING'; payload: boolean }
   | { type: 'ADD_MESSAGE'; payload: SAMMessage }
+  | { type: 'UPDATE_MESSAGE'; payload: { id: string; updates: Partial<SAMMessage> } }
   | { type: 'SET_MESSAGES'; payload: SAMMessage[] }
   | { type: 'CLEAR_MESSAGES' }
   | { type: 'SET_ERROR'; payload: Error | null }
@@ -100,6 +108,28 @@ function samReducer(state: SAMProviderState, action: SAMAction_Internal): SAMPro
           },
         },
       };
+    case 'UPDATE_MESSAGE': {
+      const { id, updates } = action.payload;
+      const nextMessages = state.messages.map((msg) => {
+        if (msg.id !== id) return msg;
+        const nextMessage: SAMMessage = { ...msg, ...updates };
+        if (updates.metadata && msg.metadata) {
+          nextMessage.metadata = { ...msg.metadata, ...updates.metadata };
+        }
+        return nextMessage;
+      });
+      return {
+        ...state,
+        messages: nextMessages,
+        context: {
+          ...state.context,
+          conversation: {
+            ...state.context.conversation,
+            messages: nextMessages,
+          },
+        },
+      };
+    }
     case 'SET_MESSAGES':
       return {
         ...state,
@@ -137,6 +167,112 @@ function samReducer(state: SAMProviderState, action: SAMAction_Internal): SAMPro
   }
 }
 
+function toRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function toArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function defaultParseResponse(payload: unknown): SAMApiTransportResponse | null {
+  const data = toRecord(payload);
+  if (!data) return null;
+
+  if (data.success === true && data.data && typeof data.data === 'object') {
+    const inner = data.data as Record<string, unknown>;
+    return {
+      message: String(inner.message ?? ''),
+      suggestions: toArray<SAMSuggestion>(inner.suggestions),
+      actions: toArray<SAMAction>(inner.actions),
+      blooms: inner.bloomsAnalysis as BloomsAnalysis | undefined,
+      insights: toRecord(inner.insights),
+      metadata: toRecord(inner.metadata) as Partial<OrchestrationMetadata> | undefined,
+    };
+  }
+
+  if (typeof data.response === 'string') {
+    const insights = toRecord(data.insights);
+    return {
+      message: data.response,
+      suggestions: toArray<SAMSuggestion>(data.suggestions),
+      actions: toArray<SAMAction>(data.actions),
+      insights,
+      blooms: (insights?.blooms as BloomsAnalysis | undefined) ?? undefined,
+      metadata: toRecord(data.metadata) as Partial<OrchestrationMetadata> | undefined,
+    };
+  }
+
+  if (typeof data.message === 'string') {
+    return {
+      message: data.message,
+      suggestions: toArray<SAMSuggestion>(data.suggestions),
+      actions: toArray<SAMAction>(data.actions),
+      insights: toRecord(data.insights),
+      blooms: data.blooms as BloomsAnalysis | undefined,
+      metadata: toRecord(data.metadata) as Partial<OrchestrationMetadata> | undefined,
+    };
+  }
+
+  return null;
+}
+
+function buildMetadata(
+  input?: Partial<OrchestrationMetadata> | Record<string, unknown>
+): OrchestrationMetadata {
+  const meta = (input ?? {}) as Record<string, unknown>;
+  const enginesExecuted = Array.isArray(meta.enginesExecuted)
+    ? (meta.enginesExecuted as string[])
+    : Array.isArray(meta.enginesRun)
+      ? (meta.enginesRun as string[])
+      : [];
+
+  return {
+    totalExecutionTime: typeof meta.totalExecutionTime === 'number'
+      ? meta.totalExecutionTime
+      : typeof meta.totalTime === 'number'
+        ? meta.totalTime
+        : 0,
+    enginesExecuted,
+    enginesFailed: Array.isArray(meta.enginesFailed) ? (meta.enginesFailed as string[]) : [],
+    enginesCached: Array.isArray(meta.enginesCached) ? (meta.enginesCached as string[]) : [],
+    parallelTiers: Array.isArray(meta.parallelTiers) ? (meta.parallelTiers as string[][]) : [],
+  };
+}
+
+function safeJsonParse(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function parseSSEEvent(block: string): { event: string; data: string } | null {
+  const lines = block.split(/\n/);
+  let event = 'message';
+  const dataLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith('event:')) {
+      event = line.slice(6).trim() || event;
+      continue;
+    }
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice(5).trim());
+    }
+  }
+
+  if (!dataLines.length) {
+    return null;
+  }
+
+  return { event, data: dataLines.join('\n') };
+}
+
 // ============================================================================
 // CONTEXT
 // ============================================================================
@@ -159,6 +295,8 @@ interface SAMProviderProps extends SAMProviderConfig {
 export function SAMProvider({
   children,
   config,
+  transport = 'orchestrator',
+  api,
   initialContext,
   autoDetectContext = false,
   debug = false,
@@ -185,6 +323,15 @@ export function SAMProvider({
   // Create orchestrator and state machine
   const { orchestrator, stateMachine } = useMemo(() => {
     const sm = createStateMachine();
+
+    if (transport === 'api') {
+      return { orchestrator: null, stateMachine: sm };
+    }
+
+    if (!config) {
+      throw new Error('SAMProvider requires a config when using orchestrator transport');
+    }
+
     const orch = createOrchestrator(config);
 
     // Register engines (not core blooms - unified blooms is used server-side via API routes)
@@ -195,7 +342,7 @@ export function SAMProvider({
     orch.registerEngine(createResponseEngine(config));
 
     return { orchestrator: orch, stateMachine: sm };
-  }, [config]);
+  }, [config, transport]);
 
   // Subscribe to state machine changes
   useEffect(() => {
@@ -234,6 +381,385 @@ export function SAMProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoDetectContext, debug]);
 
+  const apiOptions: SAMApiTransportOptions | undefined =
+    transport === 'api' ? api : undefined;
+
+  const buildApiRequest = useCallback(
+    (message: string, context: SAMContextType, history: SAMMessage[]): unknown => {
+      if (apiOptions?.buildRequest) {
+        return apiOptions.buildRequest({ message, context, history });
+      }
+      return { message, context, history };
+    },
+    [apiOptions]
+  );
+
+  const parseApiResponse = useCallback(
+    (payload: unknown): SAMApiTransportResponse | null => {
+      if (apiOptions?.parseResponse) {
+        return apiOptions.parseResponse(payload);
+      }
+      return defaultParseResponse(payload);
+    },
+    [apiOptions]
+  );
+
+  const buildResultFromApi = useCallback(
+    (parsed: SAMApiTransportResponse): OrchestrationResult => ({
+      success: true,
+      results: {},
+      response: {
+        message: parsed.message,
+        suggestions: parsed.suggestions ?? [],
+        actions: parsed.actions ?? [],
+        insights: parsed.insights ?? {},
+        blooms: parsed.blooms,
+      },
+      metadata: buildMetadata(parsed.metadata),
+    }),
+    []
+  );
+
+  const sendMessageViaFetch = useCallback(
+    async (content: string): Promise<OrchestrationResult | null> => {
+      if (!apiOptions?.endpoint) {
+        return null;
+      }
+
+      try {
+        dispatch({ type: 'SET_PROCESSING', payload: true });
+        dispatch({ type: 'SET_ERROR', payload: null });
+
+        const history = state.context.conversation.messages;
+        const requestBody = buildApiRequest(content, state.context, history);
+
+        const userMessage: SAMMessage = {
+          id: `msg-${Date.now()}`,
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+        dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+        stateMachine.send({ type: 'SEND_MESSAGE', payload: userMessage });
+
+        const response = await fetch(apiOptions.endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(apiOptions.headers ?? {}),
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(
+            typeof payload?.error === 'string'
+              ? payload.error
+              : 'API request failed'
+          );
+        }
+
+        const parsed = parseApiResponse(payload);
+        if (!parsed) {
+          throw new Error('Failed to parse SAM response');
+        }
+
+        const result = buildResultFromApi(parsed);
+
+        const assistantMessage: SAMMessage = {
+          id: `msg-${Date.now() + 1}`,
+          role: 'assistant',
+          content: result.response.message,
+          timestamp: new Date(),
+          metadata: {
+            suggestions: result.response.suggestions,
+            actions: result.response.actions,
+            engineInsights: result.response.insights,
+          },
+        };
+        dispatch({ type: 'ADD_MESSAGE', payload: assistantMessage });
+        dispatch({ type: 'SET_RESULT', payload: result });
+
+        stateMachine.send({
+          type: 'RECEIVE_RESPONSE',
+          payload: assistantMessage,
+        });
+
+        if (debug) {
+          console.log('[SAM] API response:', result);
+        }
+
+        return result;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        dispatch({ type: 'SET_ERROR', payload: err });
+        onError?.(err);
+
+        if (debug) {
+          console.error('[SAM] API error:', err);
+        }
+
+        return null;
+      } finally {
+        dispatch({ type: 'SET_PROCESSING', payload: false });
+      }
+    },
+    [
+      apiOptions,
+      buildApiRequest,
+      buildResultFromApi,
+      parseApiResponse,
+      state.context,
+      stateMachine,
+      debug,
+      onError,
+    ]
+  );
+
+  const sendMessageViaStream = useCallback(
+    async (content: string): Promise<OrchestrationResult | null> => {
+      if (!apiOptions?.streamEndpoint) {
+        return null;
+      }
+
+      try {
+        dispatch({ type: 'SET_PROCESSING', payload: true });
+        dispatch({ type: 'SET_STREAMING', payload: true });
+        dispatch({ type: 'SET_ERROR', payload: null });
+
+        const history = state.context.conversation.messages;
+        const requestBody = buildApiRequest(content, state.context, history);
+
+        const userMessage: SAMMessage = {
+          id: `msg-${Date.now()}`,
+          role: 'user',
+          content,
+          timestamp: new Date(),
+        };
+        dispatch({ type: 'ADD_MESSAGE', payload: userMessage });
+        stateMachine.send({ type: 'SEND_MESSAGE', payload: userMessage });
+
+        const assistantMessageId = `msg-${Date.now() + 1}`;
+        const assistantMessage: SAMMessage = {
+          id: assistantMessageId,
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+        };
+        dispatch({ type: 'ADD_MESSAGE', payload: assistantMessage });
+
+        const response = await fetch(apiOptions.streamEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'text/event-stream',
+            ...(apiOptions.headers ?? {}),
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(
+            typeof payload?.error === 'string'
+              ? payload.error
+              : 'Streaming API request failed'
+          );
+        }
+
+        if (!response.body) {
+          throw new Error('Streaming response is not supported by the browser');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let assistantContent = '';
+        let suggestions: SAMSuggestion[] | undefined;
+        let actions: SAMAction[] | undefined;
+        let insights: Record<string, unknown> | undefined;
+        let metadata: Partial<OrchestrationMetadata> | undefined;
+        let blooms: BloomsAnalysis | undefined;
+        let doneReceived = false;
+
+        const updateAssistantContent = () => {
+          dispatch({
+            type: 'UPDATE_MESSAGE',
+            payload: { id: assistantMessageId, updates: { content: assistantContent } },
+          });
+        };
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const parts = buffer.split('\n\n');
+          buffer = parts.pop() ?? '';
+
+          for (const part of parts) {
+            const event = parseSSEEvent(part);
+            if (!event) continue;
+            const payload = safeJsonParse(event.data);
+
+            switch (event.event) {
+              case 'content': {
+                const text =
+                  typeof payload === 'string'
+                    ? payload
+                    : toRecord(payload)?.text;
+                if (typeof text === 'string') {
+                  assistantContent += text;
+                  updateAssistantContent();
+                }
+                break;
+              }
+              case 'suggestions': {
+                if (Array.isArray(payload)) {
+                  suggestions = payload as SAMSuggestion[];
+                }
+                break;
+              }
+              case 'actions': {
+                if (Array.isArray(payload)) {
+                  actions = payload as SAMAction[];
+                }
+                break;
+              }
+              case 'insights': {
+                if (payload && typeof payload === 'object') {
+                  insights = payload as Record<string, unknown>;
+                  const bloomsCandidate = toRecord(payload)?.blooms;
+                  if (bloomsCandidate && typeof bloomsCandidate === 'object') {
+                    blooms = bloomsCandidate as BloomsAnalysis;
+                  }
+                }
+                break;
+              }
+              case 'done': {
+                if (payload && typeof payload === 'object') {
+                  const donePayload = payload as Record<string, unknown>;
+                  metadata = toRecord(donePayload.metadata) as Partial<OrchestrationMetadata> | undefined;
+                }
+                doneReceived = true;
+                break;
+              }
+              case 'error': {
+                const errorMessage =
+                  toRecord(payload)?.error && typeof toRecord(payload)?.error === 'string'
+                    ? String(toRecord(payload)?.error)
+                    : 'Streaming error';
+                throw new Error(errorMessage);
+              }
+              default:
+                break;
+            }
+          }
+        }
+
+        if (buffer.trim()) {
+          const event = parseSSEEvent(buffer);
+          if (event?.event === 'content') {
+            const payload = safeJsonParse(event.data);
+            const text =
+              typeof payload === 'string'
+                ? payload
+                : toRecord(payload)?.text;
+            if (typeof text === 'string') {
+              assistantContent += text;
+              updateAssistantContent();
+            }
+          }
+        }
+
+        if (!doneReceived && !assistantContent) {
+          throw new Error('Streaming response ended unexpectedly');
+        }
+
+        const parsed: SAMApiTransportResponse = {
+          message: assistantContent,
+          suggestions,
+          actions,
+          insights,
+          blooms,
+          metadata,
+        };
+        const result = buildResultFromApi(parsed);
+
+        dispatch({
+          type: 'UPDATE_MESSAGE',
+          payload: {
+            id: assistantMessageId,
+            updates: {
+              content: assistantContent,
+              metadata: {
+                suggestions: result.response.suggestions,
+                actions: result.response.actions,
+                engineInsights: result.response.insights,
+              },
+            },
+          },
+        });
+        dispatch({ type: 'SET_RESULT', payload: result });
+
+        stateMachine.send({
+          type: 'RECEIVE_RESPONSE',
+          payload: {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: assistantContent,
+            timestamp: new Date(),
+            metadata: {
+              suggestions: result.response.suggestions,
+              actions: result.response.actions,
+              engineInsights: result.response.insights,
+            },
+          },
+        });
+
+        if (debug) {
+          console.log('[SAM] Streamed API response:', result);
+        }
+
+        return result;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        dispatch({ type: 'SET_ERROR', payload: err });
+        onError?.(err);
+
+        if (debug) {
+          console.error('[SAM] Streaming API error:', err);
+        }
+
+        return null;
+      } finally {
+        dispatch({ type: 'SET_STREAMING', payload: false });
+        dispatch({ type: 'SET_PROCESSING', payload: false });
+      }
+    },
+    [
+      apiOptions,
+      buildApiRequest,
+      buildResultFromApi,
+      state.context,
+      stateMachine,
+      debug,
+      onError,
+    ]
+  );
+
+  const sendMessageViaApi = useCallback(
+    async (content: string): Promise<OrchestrationResult | null> => {
+      if (apiOptions?.streamEndpoint) {
+        return sendMessageViaStream(content);
+      }
+
+      return sendMessageViaFetch(content);
+    },
+    [apiOptions?.streamEndpoint, sendMessageViaFetch, sendMessageViaStream]
+  );
+
   // ============================================================================
   // ACTIONS
   // ============================================================================
@@ -258,6 +784,14 @@ export function SAMProvider({
 
   const sendMessage = useCallback(
     async (content: string): Promise<OrchestrationResult | null> => {
+      if (apiOptions?.endpoint) {
+        return sendMessageViaApi(content);
+      }
+
+      if (!orchestrator) {
+        throw new Error('SAMProvider is not configured with an orchestrator');
+      }
+
       try {
         dispatch({ type: 'SET_PROCESSING', payload: true });
         dispatch({ type: 'SET_ERROR', payload: null });
@@ -318,7 +852,15 @@ export function SAMProvider({
         dispatch({ type: 'SET_PROCESSING', payload: false });
       }
     },
-    [orchestrator, stateMachine, state.context, debug, onError]
+    [
+      apiOptions?.endpoint,
+      sendMessageViaApi,
+      orchestrator,
+      stateMachine,
+      state.context,
+      debug,
+      onError,
+    ]
   );
 
   const clearMessages = useCallback(() => {
@@ -353,6 +895,14 @@ export function SAMProvider({
 
   const analyze = useCallback(
     async (query?: string): Promise<OrchestrationResult | null> => {
+      if (apiOptions?.endpoint) {
+        return sendMessageViaApi(query ?? 'Analyze the current context');
+      }
+
+      if (!orchestrator) {
+        throw new Error('SAMProvider is not configured with an orchestrator');
+      }
+
       try {
         dispatch({ type: 'SET_PROCESSING', payload: true });
         dispatch({ type: 'SET_ERROR', payload: null });
@@ -379,7 +929,14 @@ export function SAMProvider({
         dispatch({ type: 'SET_PROCESSING', payload: false });
       }
     },
-    [orchestrator, state.context, debug, onError]
+    [
+      apiOptions?.endpoint,
+      sendMessageViaApi,
+      orchestrator,
+      state.context,
+      debug,
+      onError,
+    ]
   );
 
   const getBloomsAnalysis = useCallback((): BloomsAnalysis | null => {

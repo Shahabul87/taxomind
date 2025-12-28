@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 interface RequestBody {
   message: string;
@@ -34,13 +29,25 @@ interface SamResponse {
 
 // Retry logic for Anthropic API calls
 async function callAnthropicWithRetry(
-  messageRequest: any, 
+  messageRequest: {
+    model: string;
+    max_tokens: number;
+    temperature?: number;
+    system?: string;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  },
   maxRetries: number = 3,
   baseDelay: number = 1000
-): Promise<any> {
+): Promise<string> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await anthropic.messages.create(messageRequest);
+      return await runSAMChat({
+        model: messageRequest.model,
+        maxTokens: messageRequest.max_tokens,
+        temperature: messageRequest.temperature,
+        systemPrompt: messageRequest.system,
+        messages: messageRequest.messages,
+      });
     } catch (error: any) {
       logger.error(`Anthropic API attempt ${attempt} failed:`, error);
       
@@ -58,6 +65,8 @@ async function callAnthropicWithRetry(
       throw error;
     }
   }
+  // This should never be reached, but TypeScript needs it
+  throw new Error('All retry attempts exhausted');
 }
 
 // Action-specific prompt builders
@@ -232,8 +241,7 @@ export async function POST(request: NextRequest) {
       systemPrompt = buildPrompts[action as keyof typeof buildPrompts](body.context);
     }
 
-    // Call Anthropic API with retry logic
-    const completion = await callAnthropicWithRetry({
+    const responseText = await callAnthropicWithRetry({
       model: 'claude-3-haiku-20240307',
       max_tokens: 500,
       temperature: 0.7,
@@ -241,17 +249,10 @@ export async function POST(request: NextRequest) {
       messages: [
         {
           role: 'user',
-          content: body.message
-        }
-      ]
+          content: body.message,
+        },
+      ],
     });
-
-    const responseContent = completion.content[0];
-    let responseText = '';
-    
-    if (responseContent.type === 'text') {
-      responseText = responseContent.text;
-    }
 
     // Generate suggestions
     const suggestions = generateSuggestions(action, body.context);

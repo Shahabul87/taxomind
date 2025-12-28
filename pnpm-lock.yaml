@@ -129,31 +129,31 @@ importers:
         specifier: ^1.1.4
         version: 1.2.8(@types/react-dom@18.3.7(@types/react@18.3.27))(@types/react@18.3.27)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@sam-ai/adapter-prisma':
-        specifier: file:packages/adapter-prisma
-        version: file:packages/adapter-prisma(@prisma/client@6.19.1(prisma@6.19.1(typescript@5.9.3))(typescript@5.9.3))
+        specifier: workspace:*
+        version: link:packages/adapter-prisma
       '@sam-ai/api':
-        specifier: file:packages/api
-        version: file:packages/api(next@16.1.1(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        specifier: workspace:*
+        version: link:packages/api
       '@sam-ai/core':
-        specifier: file:packages/core
+        specifier: workspace:*
         version: link:packages/core
       '@sam-ai/educational':
-        specifier: file:packages/educational
-        version: file:packages/educational(@anthropic-ai/sdk@0.71.2(zod@3.25.76))
+        specifier: workspace:*
+        version: link:packages/educational
       '@sam-ai/memory':
-        specifier: file:packages/memory
+        specifier: workspace:*
         version: link:packages/memory
       '@sam-ai/pedagogy':
-        specifier: file:packages/pedagogy
+        specifier: workspace:*
         version: link:packages/pedagogy
       '@sam-ai/quality':
-        specifier: file:packages/quality
-        version: file:packages/quality
+        specifier: workspace:*
+        version: link:packages/quality
       '@sam-ai/react':
-        specifier: file:packages/react
-        version: file:packages/react(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: workspace:*
+        version: link:packages/react
       '@sam-ai/safety':
-        specifier: file:packages/safety
+        specifier: workspace:*
         version: link:packages/safety
       '@sentry/nextjs':
         specifier: ^10.3.0
@@ -4332,41 +4332,6 @@ packages:
 
   '@rushstack/eslint-patch@1.15.0':
     resolution: {integrity: sha512-ojSshQPKwVvSMR8yT2L/QtUkV5SXi/IfDiJ4/8d6UbTPjiHVmxZzUAzGD8Tzks1b9+qQkZa0isUOvYObedITaw==}
-
-  '@sam-ai/adapter-prisma@file:packages/adapter-prisma':
-    resolution: {directory: packages/adapter-prisma, type: directory}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@prisma/client': '>=5.0.0'
-
-  '@sam-ai/api@file:packages/api':
-    resolution: {directory: packages/api, type: directory}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      next: '>=14.0.0'
-    peerDependenciesMeta:
-      next:
-        optional: true
-
-  '@sam-ai/educational@file:packages/educational':
-    resolution: {directory: packages/educational, type: directory}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@anthropic-ai/sdk': '>=0.27.3'
-    peerDependenciesMeta:
-      '@anthropic-ai/sdk':
-        optional: true
-
-  '@sam-ai/quality@file:packages/quality':
-    resolution: {directory: packages/quality, type: directory}
-    engines: {node: '>=18.0.0'}
-
-  '@sam-ai/react@file:packages/react':
-    resolution: {directory: packages/react, type: directory}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      react: ^18.0.0 || ^19.0.0
-      react-dom: ^18.0.0 || ^19.0.0
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
@@ -15194,37 +15159,6 @@ snapshots:
   '@rtsao/scc@1.1.0': {}
 
   '@rushstack/eslint-patch@1.15.0': {}
-
-  '@sam-ai/adapter-prisma@file:packages/adapter-prisma(@prisma/client@6.19.1(prisma@6.19.1(typescript@5.9.3))(typescript@5.9.3))':
-    dependencies:
-      '@prisma/client': 6.19.1(prisma@6.19.1(typescript@5.9.3))(typescript@5.9.3)
-      '@sam-ai/core': link:packages/core
-
-  '@sam-ai/api@file:packages/api(next@16.1.1(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
-    dependencies:
-      '@sam-ai/core': link:packages/core
-      '@sam-ai/educational': link:packages/educational
-      zod: 3.25.76
-    optionalDependencies:
-      next: 16.1.1(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.57.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-
-  '@sam-ai/educational@file:packages/educational(@anthropic-ai/sdk@0.71.2(zod@3.25.76))':
-    dependencies:
-      '@sam-ai/core': link:packages/core
-      zod: 3.25.76
-    optionalDependencies:
-      '@anthropic-ai/sdk': 0.71.2(zod@3.25.76)
-
-  '@sam-ai/quality@file:packages/quality':
-    dependencies:
-      '@sam-ai/core': link:packages/core
-
-  '@sam-ai/react@file:packages/react(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@sam-ai/core': link:packages/core
-      '@sam-ai/educational': link:packages/educational
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
 
   '@selderee/plugin-htmlparser2@0.11.0':
     dependencies:

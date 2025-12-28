@@ -1,7 +1,7 @@
 import * as react_jsx_runtime from 'react/jsx-runtime';
 import * as react from 'react';
 import { ReactNode } from 'react';
-import { SAMConfig, SAMContext as SAMContext$1, SAMState, SAMMessage, OrchestrationResult, SAMFormField, BloomsAnalysis, SAMSuggestion, SAMAction, SAMPageType, SAMAgentOrchestrator, SAMStateMachine } from '@sam-ai/core';
+import { SAMConfig, SAMContext as SAMContext$1, SAMMessage, SAMSuggestion, SAMAction, BloomsAnalysis, OrchestrationMetadata, SAMState, OrchestrationResult, SAMFormField, SAMPageType, SAMAgentOrchestrator, SAMStateMachine } from '@sam-ai/core';
 export { BloomsAnalysis, BloomsLevel, OrchestrationResult, SAMAction, SAMConfig, SAMContext as SAMContextType, SAMFormField, SAMMessage, SAMPageType, SAMState, SAMSuggestion } from '@sam-ai/core';
 
 /**
@@ -10,7 +10,11 @@ export { BloomsAnalysis, BloomsLevel, OrchestrationResult, SAMAction, SAMConfig,
 
 interface SAMProviderConfig {
     /** Core SAM configuration */
-    config: SAMConfig;
+    config?: SAMConfig;
+    /** Transport mode for chat execution */
+    transport?: 'orchestrator' | 'api';
+    /** API transport options (used when transport === 'api') */
+    api?: SAMApiTransportOptions;
     /** Initial context (optional) */
     initialContext?: Partial<SAMContext$1>;
     /** Enable auto-context detection from URL/DOM */
@@ -21,6 +25,30 @@ interface SAMProviderConfig {
     onStateChange?: (state: SAMState) => void;
     /** Callback when error occurs */
     onError?: (error: Error) => void;
+}
+interface SAMApiTransportOptions {
+    /** API endpoint for chat requests */
+    endpoint: string;
+    /** Optional streaming endpoint for SSE responses */
+    streamEndpoint?: string;
+    /** Extra headers to include */
+    headers?: Record<string, string>;
+    /** Custom request builder for API payloads */
+    buildRequest?: (input: {
+        message: string;
+        context: SAMContext$1;
+        history: SAMMessage[];
+    }) => unknown;
+    /** Custom response parser */
+    parseResponse?: (payload: unknown) => SAMApiTransportResponse | null;
+}
+interface SAMApiTransportResponse {
+    message: string;
+    suggestions?: SAMSuggestion[];
+    actions?: SAMAction[];
+    insights?: Record<string, unknown>;
+    blooms?: BloomsAnalysis;
+    metadata?: Partial<OrchestrationMetadata>;
 }
 interface SAMProviderState {
     /** Current SAM context */
@@ -137,7 +165,7 @@ declare const SAMContext: react.Context<SAMContextValue | null>;
 interface SAMProviderProps extends SAMProviderConfig {
     children: ReactNode;
 }
-declare function SAMProvider({ children, config, initialContext, autoDetectContext, debug, onStateChange, onError, }: SAMProviderProps): react_jsx_runtime.JSX.Element;
+declare function SAMProvider({ children, config, transport, api, initialContext, autoDetectContext, debug, onStateChange, onError, }: SAMProviderProps): react_jsx_runtime.JSX.Element;
 declare function useSAMContext(): SAMContextValue;
 
 /**
@@ -378,4 +406,4 @@ declare const contextDetector: {
 
 declare const VERSION = "0.1.0";
 
-export { type ContextDetectorOptions, type FormAutoFillOptions, type FormSyncOptions, type PageContextDetection, SAMContext, SAMProvider, type SAMProviderConfig, type SAMProviderState, type UseSAMActionsReturn, type UseSAMAnalysisReturn, type UseSAMChatReturn, type UseSAMContextReturn, type UseSAMFormReturn, type UseSAMReturn, VERSION, contextDetector, createContextDetector, getCapabilities, hasCapability, useSAM, useSAMActions, useSAMAnalysis, useSAMAutoContext, useSAMChat, useSAMContext, useSAMForm, useSAMFormSync, useSAMPageContext };
+export { type ContextDetectorOptions, type FormAutoFillOptions, type FormSyncOptions, type PageContextDetection, type SAMApiTransportOptions, type SAMApiTransportResponse, SAMContext, SAMProvider, type SAMProviderConfig, type SAMProviderState, type UseSAMActionsReturn, type UseSAMAnalysisReturn, type UseSAMChatReturn, type UseSAMContextReturn, type UseSAMFormReturn, type UseSAMReturn, VERSION, contextDetector, createContextDetector, getCapabilities, hasCapability, useSAM, useSAMActions, useSAMAnalysis, useSAMAutoContext, useSAMChat, useSAMContext, useSAMForm, useSAMFormSync, useSAMPageContext };

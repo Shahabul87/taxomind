@@ -21,7 +21,6 @@ Successfully fixed **ALL 25 ESLint errors** and resolved critical code quality i
 **Problem**: Using reserved variable name `module` in Next.js
 **Files Fixed**:
 - `app/(course)/courses/[courseId]/_config/category-registry.ts:110`
-- `_archive/scalable-architecture-old/config/category-registry.ts:110`
 
 **Fix Applied**:
 ```typescript
@@ -218,11 +217,10 @@ The 41 remaining warnings are **acceptable** and fall into these categories:
 4. `app/blog/[postId]/_components/post-card-flip-book.tsx`
 5. `app/courses/new/_components/EnterpriseCoursesLanding.tsx`
 
-### Test/Archive Code (4 files)
-6. `_archive/scalable-architecture-old/config/category-registry.ts`
-7. `e2e/fixtures/test-fixtures.ts`
-8. `e2e/tests/user-journeys.test.tsx`
-9. `jest.setup.js`
+### Test Code (3 files)
+6. `e2e/fixtures/test-fixtures.ts`
+7. `e2e/tests/user-journeys.test.tsx`
+8. `jest.setup.js`
 
 ---
 

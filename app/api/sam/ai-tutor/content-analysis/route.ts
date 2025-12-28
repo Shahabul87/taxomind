@@ -1,11 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { createAnthropicAdapter } from '@sam-ai/core';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+let aiAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
+
+function getAIAdapter() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+  }
+  if (!aiAdapter) {
+    aiAdapter = createAnthropicAdapter({
+      apiKey,
+      model: 'claude-sonnet-4-5-20250929',
+      timeout: 60000,
+      maxRetries: 2,
+    });
+  }
+  return aiAdapter;
+}
+
+async function runAIAnalysis(
+  systemPrompt: string,
+  userPrompt: string,
+  maxTokens: number
+): Promise<string> {
+  const response = await getAIAdapter().chat({
+    model: 'claude-sonnet-4-5-20250929',
+    maxTokens,
+    temperature: 0.7,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+  return response.content ?? '';
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,23 +119,16 @@ async function analyzeVideoContent(
   - Timestamp-based chapter suggestions
   - Accessibility considerations`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 2000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this video content:
-        Title: ${title}
-        Description: ${description}
-        Duration: ${duration}
-        Transcript: ${transcript || 'No transcript available'}
-        URL: ${url}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAIAnalysis(
+    systemPrompt,
+    `Analyze this video content:
+Title: ${title}
+Description: ${description}
+Duration: ${duration}
+Transcript: ${transcript || 'No transcript available'}
+URL: ${url}`,
+    2000
+  );
 
   return {
     type: 'video',
@@ -144,22 +166,15 @@ async function analyzeTextContent(
   - Interactive activities
   - Assessment opportunities`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this text content:
-        Title: ${title}
-        Type: ${type}
-        Word Count: ${wordCount}
-        Content: ${content.substring(0, 2000)}...` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAIAnalysis(
+    systemPrompt,
+    `Analyze this text content:
+Title: ${title}
+Type: ${type}
+Word Count: ${wordCount}
+Content: ${content.substring(0, 2000)}...`,
+    1500
+  );
 
   return {
     type: 'text',
@@ -198,25 +213,18 @@ async function analyzeCodeContent(
   - Debug challenges
   - Step-by-step explanations`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this code:
-        Title: ${title}
-        Language: ${language}
-        Description: ${description}
-        Code:
-        \`\`\`${language}
-        ${code}
-        \`\`\`` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAIAnalysis(
+    systemPrompt,
+    `Analyze this code:
+Title: ${title}
+Language: ${language}
+Description: ${description}
+Code:
+\`\`\`${language}
+${code}
+\`\`\``,
+    1500
+  );
 
   return {
     type: 'code',
@@ -254,22 +262,15 @@ async function analyzeImageContent(
   - Accessibility considerations
   - Related visual aids suggestions`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this image content:
-        Title: ${title}
-        Description: ${description}
-        Alt Text: ${altText}
-        URL: ${url}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAIAnalysis(
+    systemPrompt,
+    `Analyze this image content:
+Title: ${title}
+Description: ${description}
+Alt Text: ${altText}
+URL: ${url}`,
+    1000
+  );
 
   return {
     type: 'image',
@@ -305,22 +306,15 @@ async function analyzePDFContent(
   - Assessment opportunities
   - Note-taking suggestions`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this PDF content:
-        Title: ${title}
-        Description: ${description}
-        Page Count: ${pageCount}
-        Extracted Text: ${extractedText?.substring(0, 2000) || 'No text extracted'}...` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAIAnalysis(
+    systemPrompt,
+    `Analyze this PDF content:
+Title: ${title}
+Description: ${description}
+Page Count: ${pageCount}
+Extracted Text: ${extractedText?.substring(0, 2000) || 'No text extracted'}...`,
+    1500
+  );
 
   return {
     type: 'pdf',
@@ -355,22 +349,15 @@ async function analyzeQuizContent(
   - Adaptive hints
   - Learning objectives alignment`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this quiz content:
-        Title: ${title}
-        Description: ${description}
-        Total Points: ${totalPoints}
-        Questions: ${JSON.stringify(questions).substring(0, 1500)}...` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAIAnalysis(
+    systemPrompt,
+    `Analyze this quiz content:
+Title: ${title}
+Description: ${description}
+Total Points: ${totalPoints}
+Questions: ${JSON.stringify(questions).substring(0, 1500)}...`,
+    1500
+  );
 
   return {
     type: 'quiz',
@@ -406,23 +393,16 @@ async function analyzeWebpageContent(
   - Study activities
   - Critical thinking questions`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Analyze this webpage content:
-        URL: ${url}
-        Title: ${title}
-        Description: ${description}
-        Content: ${content?.substring(0, 2000) || 'No content available'}...
-        Links: ${JSON.stringify(links).substring(0, 500)}...` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAIAnalysis(
+    systemPrompt,
+    `Analyze this webpage content:
+URL: ${url}
+Title: ${title}
+Description: ${description}
+Content: ${content?.substring(0, 2000) || 'No content available'}...
+Links: ${JSON.stringify(links).substring(0, 500)}...`,
+    1500
+  );
 
   return {
     type: 'webpage',

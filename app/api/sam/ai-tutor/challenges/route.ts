@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { awardSAMPoints } from '@/lib/sam/utils/sam-database';
+import { SAMPointsCategory } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 export async function GET(request: NextRequest) {
   try {
@@ -359,88 +362,192 @@ async function getAvailableChallenges(type: string, category?: string) {
 }
 
 async function getUserChallengeProgress(userId: string, status: string) {
-  // Mock user challenge progress data
-  const mockProgress = [
-    {
-      challengeId: 'daily_questions_5',
-      progress: 60,
-      completed: false,
-      startedAt: new Date().toISOString(),
-      completedAt: null,
-      currentValue: 3,
-      reward: null
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      samActiveChallenges: true,
+      samCompletedChallenges: true,
     },
-    {
-      challengeId: 'weekly_streak_7',
-      progress: 100,
-      completed: true,
-      startedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      completedAt: new Date().toISOString(),
-      currentValue: 7,
-      reward: {
-        points: 300,
-        badge: 'weekly_warrior',
-        title: 'Streak Master'
-      }
-    }
-  ];
+  });
 
-  return mockProgress;
+  if (!user) return [];
+
+  const active = normalizeChallengeList(user.samActiveChallenges);
+  const completed = normalizeChallengeList(user.samCompletedChallenges);
+
+  if (status === 'active') {
+    return active.filter((item) => !item.completed);
+  }
+  if (status === 'completed') {
+    return completed.filter((item) => item.completed);
+  }
+  if (status === 'missed') {
+    return active.filter((item) => item.completed === false && item.expired === true);
+  }
+
+  return [...active, ...completed];
 }
 
 async function startChallenge(userId: string, challengeId: string) {
-  // Mock challenge start
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      samActiveChallenges: true,
+      samCompletedChallenges: true,
+    },
+  });
+
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  const active = normalizeChallengeList(user.samActiveChallenges);
+  const completed = normalizeChallengeList(user.samCompletedChallenges);
+  const existing = [...active, ...completed].find((item) => item.challengeId === challengeId);
+
+  if (existing) {
+    return NextResponse.json({
+      success: true,
+      message: 'Challenge already started',
+      userChallenge: existing,
+    });
+  }
+
+  const available = await getAvailableChallenges('all');
+  const definition = available.find((challenge) => challenge.id === challengeId);
+
+  const userChallenge = {
+    id: randomUUID(),
+    userId,
+    challengeId,
+    startedAt: new Date().toISOString(),
+    progress: 0,
+    currentValue: 0,
+    completed: false,
+    completedAt: null,
+    reward: definition?.reward ?? null,
+  };
+
+  active.push(userChallenge);
+
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      samActiveChallenges: active,
+    },
+  });
+
   return NextResponse.json({
     success: true,
     message: 'Challenge started successfully!',
-    userChallenge: {
-      id: 'mock-user-challenge-id',
-      userId,
-      challengeId,
-      startedAt: new Date().toISOString(),
-      progress: 0,
-      currentValue: 0,
-      completed: false
-    }
+    userChallenge,
   });
 }
 
 async function updateChallengeProgress(userId: string, challengeId: string, progress: number, currentValue: number) {
-  // Mock progress update
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { samActiveChallenges: true },
+  });
+
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  const active = normalizeChallengeList(user.samActiveChallenges);
+  const updated = active.map((item) => {
+    if (item.challengeId !== challengeId) return item;
+    return {
+      ...item,
+      progress: Math.min(progress, 100),
+      currentValue,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+
+  await db.user.update({
+    where: { id: userId },
+    data: { samActiveChallenges: updated },
+  });
+
+  const updatedChallenge = updated.find((item) => item.challengeId === challengeId);
+
   return NextResponse.json({
     success: true,
     message: 'Challenge progress updated!',
-    userChallenge: {
+    userChallenge: updatedChallenge ?? {
       userId,
       challengeId,
       progress: Math.min(progress, 100),
       currentValue,
-      updatedAt: new Date().toISOString()
-    }
+    },
   });
 }
 
 async function completeChallenge(userId: string, challengeId: string) {
-  // Mock challenge completion
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      samActiveChallenges: true,
+      samCompletedChallenges: true,
+    },
+  });
+
+  if (!user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
+
+  const active = normalizeChallengeList(user.samActiveChallenges);
+  const completed = normalizeChallengeList(user.samCompletedChallenges);
+
+  const challenge = active.find((item) => item.challengeId === challengeId);
+  if (!challenge) {
+    return NextResponse.json({ error: 'Challenge not found or not active' }, { status: 404 });
+  }
+
+  const available = await getAvailableChallenges('all');
+  const definition = available.find((challenge) => challenge.id === challengeId);
+
+  const completedChallenge = {
+    ...challenge,
+    completed: true,
+    progress: 100,
+    completedAt: new Date().toISOString(),
+    reward: challenge.reward ?? definition?.reward ?? null,
+  };
+
+  const updatedActive = active.filter((item) => item.challengeId !== challengeId);
+  completed.push(completedChallenge);
+
+  await db.user.update({
+    where: { id: userId },
+    data: {
+      samActiveChallenges: updatedActive,
+      samCompletedChallenges: completed,
+    },
+  });
+
+  const rewardPoints = typeof completedChallenge.reward?.points === 'number' ? completedChallenge.reward.points : 0;
+  if (rewardPoints > 0) {
+    await awardSAMPoints(userId, {
+      points: rewardPoints,
+      reason: `Challenge completed: ${challengeId}`,
+      source: SAMPointsCategory.ACHIEVEMENT_UNLOCK,
+    });
+  }
+
   return NextResponse.json({
     success: true,
     message: 'Congratulations! Challenge completed!',
-    userChallenge: {
-      userId,
-      challengeId,
-      completed: true,
-      completedAt: new Date().toISOString(),
-      progress: 100,
-      reward: {
-        points: 100,
-        badge: 'challenge_master',
-        title: 'Challenge Complete'
-      }
-    }
+    userChallenge: completedChallenge,
   });
 }
 
 // Helper functions
+function normalizeChallengeList(value: unknown): any[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function getTimeRemaining(endDate: Date): string {
   const now = new Date();
   const diff = endDate.getTime() - now.getTime();

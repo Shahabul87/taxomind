@@ -109,7 +109,7 @@ For detailed system diagrams, refer to:
 - [Features](../features/) - Feature implementations
 - [Deployment](../deployment/) - Deployment architecture
 - [API Documentation](../api-documentation/) - API architecture
-- [SAM AI System](../sam-ai-system/) - AI architecture
+- [SAM AI System](../features/sam-ai-system/) - AI architecture
 
 ## 📝 Architecture Decisions
 

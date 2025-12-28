@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -43,7 +44,7 @@ import {
 import { buildEntityContext, buildFormSummary } from '@/lib/sam/entity-context';
 
 // Import Prisma database adapter for SAM
-import { createPrismaSAMAdapter } from '@/lib/sam/adapters';
+import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 
 // Import Quality Gates Pipeline for content validation
 import {
@@ -51,14 +52,14 @@ import {
   type ContentQualityGatePipeline,
   type GeneratedContent,
   type ValidationResult as QualityValidationResult,
-} from '@/lib/sam/quality-gates';
+} from '@sam-ai/quality';
 
 // Import Pedagogy Pipeline for educational effectiveness
 import {
   createPedagogicalPipeline,
   type PedagogicalPipeline,
   type PedagogicalPipelineResult,
-} from '@/lib/sam/pedagogical';
+} from '@sam-ai/pedagogy';
 
 // Import Memory Integration for mastery tracking
 import {
@@ -70,7 +71,7 @@ import {
   type SpacedRepetitionScheduler,
   type MasteryTracker,
   type EvaluationOutcome,
-} from '@/lib/sam/memory';
+} from '@sam-ai/memory';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -202,7 +203,7 @@ function initializeSubsystems(): {
   });
 
   // Create database adapter for Prisma
-  const databaseAdapter = createPrismaSAMAdapter();
+  const databaseAdapter = createPrismaSAMAdapter({ prisma: db });
 
   // Create SAM configuration
   samConfig = createSAMConfig({

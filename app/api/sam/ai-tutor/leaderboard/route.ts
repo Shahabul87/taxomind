@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import type { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,207 +63,417 @@ export async function GET(request: NextRequest) {
 }
 
 async function getGlobalLeaderboard(period: string, limit: number) {
-  const periodFilter = getPeriodFilter(period);
-  
-  // Mock data for now - in production, this would query actual user statistics
+  return buildLeaderboard({ period, limit });
+}
+
+async function getClassLeaderboard(courseId: string, period: string, limit: number) {
+  const enrollments = await db.enrollment.findMany({
+    where: { courseId },
+    select: { userId: true, createdAt: true },
+  });
+
+  const userIds = Array.from(new Set(enrollments.map((enrollment) => enrollment.userId)));
+  if (userIds.length === 0) return [];
+
+  const leaderboard = await buildLeaderboard({
+    period,
+    limit,
+    courseId,
+    userIds,
+    enrollmentMap: new Map(enrollments.map((item) => [item.userId, item.createdAt])),
+  });
+
+  return leaderboard;
+}
+
+async function getFriendsLeaderboard(userId: string, period: string, limit: number) {
+  const friendGroups = await db.group.findMany({
+    where: {
+      tags: { has: 'sam-friends' },
+      members: { some: { userId } },
+    },
+    select: { id: true },
+  });
+
+  if (!friendGroups.length) return [];
+
+  const groupIds = friendGroups.map((group) => group.id);
+  const members = await db.groupMember.findMany({
+    where: {
+      groupId: { in: groupIds },
+      userId: { not: userId },
+      status: 'active',
+    },
+    select: { userId: true },
+  });
+
+  const friendIds = Array.from(new Set(members.map((item) => item.userId)));
+  if (friendIds.length === 0) return [];
+
+  return buildLeaderboard({ period, limit, userIds: friendIds });
+}
+
+async function getUserRank(userId: string, type: string, period: string, courseId?: string) {
+  const periodStart = getPeriodStart(period);
+  const pointsWhere: Prisma.SAMPointsWhereInput = {
+    ...(periodStart ? { awardedAt: { gte: periodStart } } : {}),
+  };
+
+  if (courseId) {
+    pointsWhere.courseId = courseId;
+  }
+
+  let scopedUserIds: string[] | null = null;
+  if (type === 'class' && courseId) {
+    const enrollments = await db.enrollment.findMany({
+      where: { courseId },
+      select: { userId: true },
+    });
+    scopedUserIds = enrollments.map((item) => item.userId);
+  } else if (type === 'friends') {
+    const friendGroups = await db.group.findMany({
+      where: {
+        tags: { has: 'sam-friends' },
+        members: { some: { userId } },
+      },
+      select: { id: true },
+    });
+    if (friendGroups.length) {
+      const groupIds = friendGroups.map((group) => group.id);
+      const members = await db.groupMember.findMany({
+        where: {
+          groupId: { in: groupIds },
+          userId: { not: userId },
+          status: 'active',
+        },
+        select: { userId: true },
+      });
+      scopedUserIds = Array.from(new Set(members.map((item) => item.userId)));
+    } else {
+      scopedUserIds = [];
+    }
+  }
+
+  if (scopedUserIds && scopedUserIds.length === 0) {
+    return {
+      rank: null,
+      totalUsers: 0,
+      percentile: 0,
+      points: 0,
+      level: 1,
+      streak: 0,
+      change: 0,
+      nextRankPoints: 0,
+      stats: {
+        coursesCompleted: 0,
+        timeStudied: 0,
+        badges: 0,
+        achievements: 0,
+        questionsAsked: 0,
+        helpfulAnswers: 0,
+        averageScore: 0,
+      },
+    };
+  }
+
+  if (scopedUserIds) {
+    pointsWhere.userId = { in: scopedUserIds };
+  }
+
+  const leaderboard = await db.sAMPoints.groupBy({
+    by: ['userId'],
+    where: pointsWhere,
+    _sum: { points: true },
+    orderBy: { _sum: { points: 'desc' } },
+  });
+
+  const totalUsers = leaderboard.length;
+  const userIndex = leaderboard.findIndex((entry) => entry.userId === userId);
+  const rank = userIndex >= 0 ? userIndex + 1 : null;
+  const points = userIndex >= 0 ? leaderboard[userIndex]._sum.points ?? 0 : 0;
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { samLevel: true },
+  });
+
+  const streak = await db.sAMStreak.findUnique({
+    where: { userId },
+    select: { currentStreak: true },
+  });
+
+  return {
+    rank,
+    totalUsers,
+    percentile: totalUsers > 0 && rank ? Math.round(((totalUsers - rank) / totalUsers) * 100) : 0,
+    points,
+    level: user?.samLevel ?? 1,
+    streak: streak?.currentStreak ?? 0,
+    change: 0,
+    nextRankPoints: 0,
+    stats: {
+      coursesCompleted: 0,
+      timeStudied: 0,
+      badges: 0,
+      achievements: 0,
+      questionsAsked: 0,
+      helpfulAnswers: 0,
+      averageScore: 0,
+    },
+  };
+}
+
+function getPeriodStart(period: string): Date | null {
+  const now = new Date();
+  switch (period) {
+    case 'daily':
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    case 'weekly':
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      return startOfWeek;
+    case 'monthly':
+      return new Date(now.getFullYear(), now.getMonth(), 1);
+    case 'all_time':
+    default:
+      return null;
+  }
+}
+
+async function buildLeaderboard(options: {
+  period: string;
+  limit: number;
+  courseId?: string;
+  userIds?: string[];
+  enrollmentMap?: Map<string, Date>;
+}) {
+  const { period, limit, courseId, userIds, enrollmentMap } = options;
+  const periodStart = getPeriodStart(period);
+
+  const pointsWhere: Prisma.SAMPointsWhereInput = {
+    ...(periodStart ? { awardedAt: { gte: periodStart } } : {}),
+    ...(courseId ? { courseId } : {}),
+    ...(userIds ? { userId: { in: userIds } } : {}),
+  };
+
+  const pointsAgg = await db.sAMPoints.groupBy({
+    by: ['userId'],
+    where: pointsWhere,
+    _sum: { points: true },
+    orderBy: { _sum: { points: 'desc' } },
+    take: limit,
+  });
+
+  if (!pointsAgg.length) return [];
+
+  const ids = pointsAgg.map((row) => row.userId);
+
   const users = await db.user.findMany({
+    where: { id: { in: ids } },
     select: {
       id: true,
       name: true,
       image: true,
-      createdAt: true
+      samLevel: true,
     },
-    take: limit,
-    orderBy: {
-      createdAt: 'desc'
-    }
   });
 
-  // Generate mock leaderboard data
-  const leaderboard = users.map((user, index) => ({
-    rank: index + 1,
-    userId: user.id,
-    name: user.name,
-    image: user.image,
-    points: Math.floor(Math.random() * 5000) + 1000,
-    level: Math.floor(Math.random() * 20) + 1,
-    streak: Math.floor(Math.random() * 100) + 1,
-    coursesCompleted: Math.floor(Math.random() * 10) + 1,
-    timeStudied: Math.floor(Math.random() * 1000) + 100, // minutes
-    badges: Math.floor(Math.random() * 15) + 1,
-    achievements: Math.floor(Math.random() * 25) + 5,
-    change: Math.floor(Math.random() * 21) - 10, // -10 to +10
-    stats: {
-      questionsAsked: Math.floor(Math.random() * 200) + 50,
-      helpfulAnswers: Math.floor(Math.random() * 50) + 10,
-      contentCreated: Math.floor(Math.random() * 20) + 1,
-      averageScore: Math.floor(Math.random() * 30) + 70 // 70-100%
-    }
-  }));
-
-  // Sort by points
-  return leaderboard.sort((a, b) => b.points - a.points).map((user, index) => ({
-    ...user,
-    rank: index + 1
-  }));
-}
-
-async function getClassLeaderboard(courseId: string, period: string, limit: number) {
-  const periodFilter = getPeriodFilter(period);
-  
-  // Get enrolled students in the course
-  const enrollments = await db.enrollment.findMany({
-    where: {
-      courseId: courseId,
-      ...periodFilter
-    },
-    include: {
-      User: {
-        select: {
-          id: true,
-          name: true,
-          image: true
-        }
-      }
-    },
-    take: limit
+  const streaks = await db.sAMStreak.findMany({
+    where: { userId: { in: ids } },
+    select: { userId: true, currentStreak: true },
   });
 
-  // Generate mock class leaderboard
-  const classLeaderboard = enrollments.map((enrollment, index) => ({
-    rank: index + 1,
-    userId: enrollment.User.id,
-    name: enrollment.User.name,
-    image: enrollment.User.image,
-    points: Math.floor(Math.random() * 3000) + 500,
-    level: Math.floor(Math.random() * 15) + 1,
-    streak: Math.floor(Math.random() * 50) + 1,
-    coursesCompleted: Math.floor(Math.random() * 5) + 1,
-    timeStudied: Math.floor(Math.random() * 500) + 50,
-    badges: Math.floor(Math.random() * 10) + 1,
-    achievements: Math.floor(Math.random() * 15) + 3,
-    change: Math.floor(Math.random() * 11) - 5,
-    courseProgress: Math.floor(Math.random() * 100) + 1,
-    courseScore: Math.floor(Math.random() * 30) + 70,
-    chaptersCompleted: Math.floor(Math.random() * 10) + 1,
-    enrolledAt: enrollment.createdAt
-  }));
+  const badgesAgg = await db.sAMBadge.groupBy({
+    by: ['userId'],
+    where: { userId: { in: ids } },
+    _count: { _all: true },
+  });
 
-  return classLeaderboard.sort((a, b) => b.points - a.points).map((user, index) => ({
-    ...user,
-    rank: index + 1
-  }));
-}
-
-async function getFriendsLeaderboard(userId: string, period: string, limit: number) {
-  // Mock friends leaderboard - in production, this would query user's friends
-  const mockFriends = [
-    {
-      rank: 1,
-      userId: 'friend1',
-      name: 'Alex Chen',
-      image: null,
-      points: 2800,
-      level: 12,
-      streak: 45,
-      coursesCompleted: 3,
-      timeStudied: 420,
-      badges: 8,
-      achievements: 12,
-      change: 5,
-      relationship: 'friend',
-      friendsSince: '2024-01-15',
-      mutualFriends: 3
-    },
-    {
-      rank: 2,
-      userId: 'friend2',
-      name: 'Sarah Johnson',
-      image: null,
-      points: 2650,
-      level: 11,
-      streak: 32,
-      coursesCompleted: 4,
-      timeStudied: 380,
-      badges: 7,
-      achievements: 15,
-      change: -2,
-      relationship: 'friend',
-      friendsSince: '2024-02-01',
-      mutualFriends: 5
-    },
-    {
-      rank: 3,
-      userId: 'friend3',
-      name: 'Mike Rodriguez',
-      image: null,
-      points: 2400,
-      level: 10,
-      streak: 28,
-      coursesCompleted: 2,
-      timeStudied: 350,
-      badges: 6,
-      achievements: 10,
-      change: 3,
-      relationship: 'friend',
-      friendsSince: '2024-01-20',
-      mutualFriends: 2
-    }
-  ];
-
-  return mockFriends.slice(0, limit);
-}
-
-async function getUserRank(userId: string, type: string, period: string, courseId?: string) {
-  // Mock user rank data
-  return {
-    rank: Math.floor(Math.random() * 50) + 1,
-    totalUsers: Math.floor(Math.random() * 1000) + 100,
-    percentile: Math.floor(Math.random() * 100) + 1,
-    points: Math.floor(Math.random() * 3000) + 500,
-    level: Math.floor(Math.random() * 15) + 1,
-    streak: Math.floor(Math.random() * 60) + 1,
-    change: Math.floor(Math.random() * 21) - 10,
-    nextRankPoints: Math.floor(Math.random() * 500) + 100,
-    stats: {
-      coursesCompleted: Math.floor(Math.random() * 8) + 1,
-      timeStudied: Math.floor(Math.random() * 800) + 100,
-      badges: Math.floor(Math.random() * 12) + 1,
-      achievements: Math.floor(Math.random() * 20) + 5,
-      questionsAsked: Math.floor(Math.random() * 150) + 25,
-      helpfulAnswers: Math.floor(Math.random() * 40) + 5,
-      averageScore: Math.floor(Math.random() * 25) + 75
-    }
+  const activityWhere: Prisma.LearningActivityLogWhereInput = {
+    userId: { in: ids },
+    ...(courseId ? { courseId } : {}),
+    ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
   };
-}
 
-function getPeriodFilter(period: string) {
-  const now = new Date();
-  switch (period) {
-    case 'daily':
-      return {
-        createdAt: {
-          gte: new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        }
-      };
-    case 'weekly':
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay());
-      return {
-        createdAt: {
-          gte: startOfWeek
-        }
-      };
-    case 'monthly':
-      return {
-        createdAt: {
-          gte: new Date(now.getFullYear(), now.getMonth(), 1)
-        }
-      };
-    case 'all_time':
-    default:
-      return {};
+  const activityAgg = await db.learningActivityLog.groupBy({
+    by: ['userId'],
+    where: activityWhere,
+    _sum: { duration: true },
+  });
+
+  const chatAgg = await db.sAMInteraction.groupBy({
+    by: ['userId'],
+    where: {
+      userId: { in: ids },
+      interactionType: 'CHAT_MESSAGE',
+      ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+      ...(courseId ? { courseId } : {}),
+    },
+    _count: { _all: true },
+  });
+
+  const contentAgg = await db.sAMPoints.groupBy({
+    by: ['userId'],
+    where: {
+      userId: { in: ids },
+      category: 'CONTENT_CREATION',
+      ...(periodStart ? { awardedAt: { gte: periodStart } } : {}),
+      ...(courseId ? { courseId } : {}),
+    },
+    _count: { _all: true },
+  });
+
+  const examAttempts = await db.userExamAttempt.findMany({
+    where: {
+      userId: { in: ids },
+      ...(periodStart ? { createdAt: { gte: periodStart } } : {}),
+      ...(courseId
+        ? {
+            Exam: {
+              is: {
+                section: {
+                  is: {
+                    chapter: {
+                      is: { courseId },
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    select: {
+      userId: true,
+      scorePercentage: true,
+      isPassed: true,
+      Exam: {
+        select: {
+          section: {
+            select: {
+              chapter: {
+                select: { courseId: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const userMap = new Map(users.map((user) => [user.id, user]));
+  const streakMap = new Map(streaks.map((item) => [item.userId, item.currentStreak]));
+  const badgeMap = new Map(badgesAgg.map((item) => [item.userId, item._count._all]));
+  const activityMap = new Map(activityAgg.map((item) => [item.userId, item._sum.duration ?? 0]));
+  const chatMap = new Map(chatAgg.map((item) => [item.userId, item._count._all]));
+  const contentMap = new Map(contentAgg.map((item) => [item.userId, item._count._all]));
+
+  const courseCompletionByUser = new Map<string, Set<string>>();
+  const scoreBuckets = new Map<string, number[]>();
+
+  examAttempts.forEach((attempt) => {
+    if (attempt.scorePercentage != null) {
+      const scores = scoreBuckets.get(attempt.userId) ?? [];
+      scores.push(attempt.scorePercentage);
+      scoreBuckets.set(attempt.userId, scores);
+    }
+    if (attempt.isPassed && attempt.Exam?.section?.chapter?.courseId) {
+      const set = courseCompletionByUser.get(attempt.userId) ?? new Set<string>();
+      set.add(attempt.Exam.section.chapter.courseId);
+      courseCompletionByUser.set(attempt.userId, set);
+    }
+  });
+
+  let sectionCountsByUser: Map<string, number> | null = null;
+  let chapterCountsByUser: Map<string, number> | null = null;
+
+  if (courseId) {
+    const logs = await db.learningActivityLog.findMany({
+      where: {
+        courseId,
+        userId: { in: ids },
+      },
+      select: { userId: true, sectionId: true },
+    });
+
+    const sectionIds = Array.from(new Set(logs.map((log) => log.sectionId).filter(Boolean))) as string[];
+    const sections = sectionIds.length
+      ? await db.section.findMany({
+          where: { id: { in: sectionIds } },
+          select: { id: true, chapterId: true },
+        })
+      : [];
+
+    const sectionToChapter = new Map(sections.map((section) => [section.id, section.chapterId]));
+    const sectionMap = new Map<string, Set<string>>();
+    const chapterMap = new Map<string, Set<string>>();
+
+    logs.forEach((log) => {
+      if (!log.sectionId) return;
+      const sectionSet = sectionMap.get(log.userId) ?? new Set<string>();
+      sectionSet.add(log.sectionId);
+      sectionMap.set(log.userId, sectionSet);
+
+      const chapterId = sectionToChapter.get(log.sectionId);
+      if (chapterId) {
+        const chapterSet = chapterMap.get(log.userId) ?? new Set<string>();
+        chapterSet.add(chapterId);
+        chapterMap.set(log.userId, chapterSet);
+      }
+    });
+
+    sectionCountsByUser = new Map(
+      Array.from(sectionMap.entries()).map(([id, set]) => [id, set.size])
+    );
+    chapterCountsByUser = new Map(
+      Array.from(chapterMap.entries()).map(([id, set]) => [id, set.size])
+    );
   }
+
+  const totalSections = courseId
+    ? await db.section.count({ where: { chapter: { courseId } } })
+    : 0;
+
+  return pointsAgg.map((row, index) => {
+    const user = userMap.get(row.userId);
+    const points = row._sum.points ?? 0;
+    const scores = scoreBuckets.get(row.userId) ?? [];
+    const avgScore = scores.length ? Math.round(scores.reduce((sum, val) => sum + val, 0) / scores.length) : 0;
+    const timeStudiedMinutes = Math.round((activityMap.get(row.userId) ?? 0) / 60);
+    const courseCompletedCount = courseCompletionByUser.get(row.userId)?.size ?? 0;
+
+    const sectionCount = sectionCountsByUser?.get(row.userId) ?? 0;
+    const courseProgress = totalSections > 0 ? Math.round((sectionCount / totalSections) * 100) : 0;
+
+    return {
+      rank: index + 1,
+      userId: row.userId,
+      name: user?.name ?? 'Unknown',
+      image: user?.image ?? null,
+      points,
+      level: user?.samLevel ?? 1,
+      streak: streakMap.get(row.userId) ?? 0,
+      coursesCompleted: courseCompletedCount,
+      timeStudied: timeStudiedMinutes,
+      badges: badgeMap.get(row.userId) ?? 0,
+      achievements: badgeMap.get(row.userId) ?? 0,
+      change: 0,
+      stats: {
+        questionsAsked: chatMap.get(row.userId) ?? 0,
+        helpfulAnswers: 0,
+        contentCreated: contentMap.get(row.userId) ?? 0,
+        averageScore: avgScore,
+      },
+      ...(courseId
+        ? {
+            courseProgress,
+            courseScore: avgScore,
+            chaptersCompleted: chapterCountsByUser?.get(row.userId) ?? 0,
+            enrolledAt: enrollmentMap?.get(row.userId) ?? null,
+          }
+        : {}),
+    };
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -276,45 +488,131 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'add_friend':
-        // Mock friend addition
+        if (!targetUserId) {
+          return NextResponse.json({ error: 'Target user required' }, { status: 400 });
+        }
+
+        const friendGroup = await db.group.findFirst({
+          where: {
+            creatorId: user.id,
+            tags: { has: 'sam-friends' },
+          },
+        });
+
+        const group =
+          friendGroup ??
+          (await db.group.create({
+            data: {
+              name: 'SAM Friends',
+              description: 'SAM friend connections',
+              creatorId: user.id,
+              isPrivate: true,
+              tags: ['sam-friends'],
+            },
+          }));
+
+        await db.groupMember.upsert({
+          where: { userId_groupId: { userId: user.id, groupId: group.id } },
+          update: { status: 'active' },
+          create: {
+            id: randomUUID(),
+            userId: user.id,
+            groupId: group.id,
+            role: 'owner',
+            status: 'active',
+          },
+        });
+
+        await db.groupMember.upsert({
+          where: { userId_groupId: { userId: targetUserId, groupId: group.id } },
+          update: { status: 'active' },
+          create: {
+            id: randomUUID(),
+            userId: targetUserId,
+            groupId: group.id,
+            role: 'member',
+            status: 'active',
+          },
+        });
+
         return NextResponse.json({
           success: true,
-          message: 'Friend request sent successfully',
+          message: 'Friend added successfully',
           friendRequest: {
-            id: 'mock-request-id',
+            id: group.id,
             fromUserId: user.id,
             toUserId: targetUserId,
-            status: 'pending',
-            sentAt: new Date().toISOString()
-          }
+            status: 'active',
+            sentAt: new Date().toISOString(),
+          },
         });
 
       case 'challenge_friend':
-        // Mock challenge creation
+        if (!targetUserId) {
+          return NextResponse.json({ error: 'Target user required' }, { status: 400 });
+        }
+
+        const challengeId = randomUUID();
+        const challengePayload = {
+          id: challengeId,
+          type: 'points_race',
+          duration: '7_days',
+          startDate: new Date().toISOString(),
+          status: 'pending',
+          fromUserId: user.id,
+          toUserId: targetUserId,
+        };
+
+        const [fromUser, toUser] = await Promise.all([
+          db.user.findUnique({ where: { id: user.id }, select: { samActiveChallenges: true } }),
+          db.user.findUnique({ where: { id: targetUserId }, select: { samActiveChallenges: true } }),
+        ]);
+
+        await db.user.update({
+          where: { id: user.id },
+          data: {
+            samActiveChallenges: [...(Array.isArray(fromUser?.samActiveChallenges) ? fromUser?.samActiveChallenges : []), challengePayload],
+          },
+        });
+
+        if (toUser) {
+          await db.user.update({
+            where: { id: targetUserId },
+            data: {
+              samActiveChallenges: [...(Array.isArray(toUser.samActiveChallenges) ? toUser.samActiveChallenges : []), challengePayload],
+            },
+          });
+        }
+
         return NextResponse.json({
           success: true,
           message: 'Challenge sent successfully',
-          challenge: {
-            id: 'mock-challenge-id',
-            fromUserId: user.id,
-            toUserId: targetUserId,
-            type: 'points_race',
-            duration: '7_days',
-            startDate: new Date().toISOString(),
-            status: 'pending'
-          }
+          challenge: challengePayload,
         });
 
       case 'join_class_leaderboard':
-        // Mock class leaderboard join
+        if (!courseId) {
+          return NextResponse.json({ error: 'Course ID required' }, { status: 400 });
+        }
+
+        const enrollment = await db.enrollment.upsert({
+          where: { userId_courseId: { userId: user.id, courseId } },
+          update: { updatedAt: new Date() },
+          create: {
+            id: randomUUID(),
+            userId: user.id,
+            courseId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            status: 'ACTIVE',
+            enrollmentType: 'FREE',
+          },
+        });
+
         return NextResponse.json({
           success: true,
           message: 'Successfully joined class leaderboard',
-          enrollment: {
-            courseId,
-            userId: user.id,
-            joinedAt: new Date().toISOString()
-          }
+          enrollment,
         });
 
       default:

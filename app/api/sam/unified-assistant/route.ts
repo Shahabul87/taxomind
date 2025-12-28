@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
 
 interface RequestBody {
   message: string;
@@ -204,26 +199,13 @@ export async function POST(request: NextRequest) {
       systemPrompt = buildPrompts[action as keyof typeof buildPrompts](body.context);
     }
 
-    // Call Anthropic API
-    const completion = await anthropic.messages.create({
+    const responseText = await runSAMChat({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 500,
+      maxTokens: 500,
       temperature: 0.7,
-      system: systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: body.message
-        }
-      ]
+      systemPrompt,
+      messages: [{ role: 'user', content: body.message }],
     });
-
-    const responseContent = completion.content[0];
-    let responseText = '';
-    
-    if (responseContent.type === 'text') {
-      responseText = responseContent.text;
-    }
 
     // Generate suggestions
     const suggestions = generateSuggestions(action, body.context);

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import Anthropic from '@anthropic-ai/sdk';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -179,13 +175,13 @@ TASK: Create an enhanced, comprehensive course description that:
 
 Return only the enhanced course description (2-3 paragraphs), no additional formatting or explanations.`;
 
-  const response = await anthropic.messages.create({
+  const responseText = await runSAMChat({
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 500,
-    messages: [{ role: 'user', content: prompt }]
+    maxTokens: 500,
+    messages: [{ role: 'user', content: prompt }],
   });
 
-  return response.content[0].type === 'text' ? response.content[0].text.trim() : context.courseOverview;
+  return responseText.trim() || context.courseOverview;
 }
 
 async function generateContextualLearningObjectives(context: any, existingObjectives: string[]) {
@@ -223,20 +219,21 @@ Format each objective as a complete sentence starting with "Students will be abl
 
 Return as a JSON array of strings, no additional formatting.`;
 
-  const response = await anthropic.messages.create({
+  const responseText = await runSAMChat({
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 800,
-    messages: [{ role: 'user', content: prompt }]
+    maxTokens: 800,
+    messages: [{ role: 'user', content: prompt }],
   });
 
   try {
-    const content = response.content[0].type === 'text' ? response.content[0].text.trim() : '[]';
+    const content = responseText.trim() || '[]';
     const objectives = JSON.parse(content);
     return Array.isArray(objectives) ? objectives : existingObjectives;
   } catch {
     // Fallback: Parse text format
-    const content = response.content[0].type === 'text' ? response.content[0].text : '';
-    const lines = content.split('\n').filter(line => line.includes('Students will be able to'));
+    const lines = responseText
+      .split('\n')
+      .filter(line => line.includes('Students will be able to'));
     return lines.length > 0 ? lines : existingObjectives;
   }
 }
@@ -299,14 +296,14 @@ Return as JSON in this exact format:
   ]
 }`;
 
-  const response = await anthropic.messages.create({
+  const responseText = await runSAMChat({
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 4000,
-    messages: [{ role: 'user', content: prompt }]
+    maxTokens: 4000,
+    messages: [{ role: 'user', content: prompt }],
   });
 
   try {
-    const content = response.content[0].type === 'text' ? response.content[0].text.trim() : '{"chapters": []}';
+    const content = responseText.trim() || '{"chapters": []}';
     // Clean up the response to ensure valid JSON
     const cleanedContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const result = JSON.parse(cleanedContent);

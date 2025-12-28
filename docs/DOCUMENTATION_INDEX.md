@@ -1,314 +1,515 @@
 # Taxomind Documentation Index
 
-> **Last Updated**: October 23, 2025
-> **Status**: Active - Comprehensive documentation structure
+> **Last Updated**: December 27, 2025
+> **Status**: Active - Reorganized and deduplicated documentation structure
 
 This index provides a complete map of all documentation in the Taxomind project. All files have been organized into logical categories for easy navigation.
 
 ---
 
-## 📚 Quick Navigation
+## Quick Navigation
 
-- [Phase Documentation](#phase-documentation)
-- [SAM AI System](#sam-ai-system-documentation)
-- [Features & UI](#features--ui-documentation)
-- [Course Management](#course-management)
-- [API Documentation](#api-documentation)
-- [Architecture](#architecture--system-design)
-- [Deployment](#deployment--infrastructure)
-- [Testing](#testing--qa)
-- [Fixes & Troubleshooting](#fixes--troubleshooting)
-- [Setup & Getting Started](#setup--getting-started)
-
----
-
-## 📋 Phase Documentation
-
-**Location**: `docs/phases/`
-
-### Phase 1 - Foundation & Quick Wins
-**Path**: `docs/phases/phase-1/`
-
-- `PHASE_1_COMPLETE_SUMMARY.md` - Complete Phase 1 overview and achievements
-- `PHASE_1_COMPONENT_MAP.md` - Component architecture map
-- `PHASE_1_FINAL_VERIFICATION.md` - Final verification checklist
-- `PHASE_1_QUICK_REFERENCE.md` - Quick reference guide
-
-**Weekly Implementation Summaries**
-**Path**: `docs/phases/phase-1/weekly-summaries/`
-
-- `PHASE_1_WEEK_1_IMPLEMENTATION_SUMMARY.md` - Week 1 progress
-- `PHASE_1_WEEK_2_IMPLEMENTATION_SUMMARY.md` - Week 2 progress
-- `PHASE_1_WEEK_3_IMPLEMENTATION_SUMMARY.md` - Week 3 progress
-- `PHASE_1_WEEK_4_IMPLEMENTATION_SUMMARY.md` - Week 4 progress
-
-### Quick Wins
-**Path**: `docs/phases/quick-wins/`
-
-- `QUICK_WINS_WEEK1_COMPLETED.md` - Week 1 quick wins implementation
-
-### Phase 2 - Advanced Features
-**Path**: `docs/phases/`
-
-- `PHASE_2_OVERVIEW.md` - Phase 2 planning and overview
+| Category | Path | Description |
+|----------|------|-------------|
+| [Admin](#admin) | `docs/admin/` | Admin panel and user management |
+| [Analytics](#analytics) | `docs/analytics/` | Analytics, tracking, and dashboards |
+| [API](#api-documentation) | `docs/api/` | API documentation and endpoints |
+| [Architecture](#architecture) | `docs/architecture/` | System design and ADRs |
+| [Auth](#authentication) | `docs/auth/` | Authentication and authorization |
+| [Build](#build-optimization) | `docs/build-optimization/` | Build and performance optimization |
+| [CI/CD](#cicd) | `docs/ci-cd/` | Pipeline and deployment automation |
+| [Completed](#completed-features) | `docs/completed-features/` | Completed feature summaries |
+| [Courses](#course-management) | `docs/course-management/` | Course creation and management |
+| [Database](#database) | `docs/database/` | Prisma, migrations, and queries |
+| [Deployment](#deployment) | `docs/deployment/` | Railway, Docker, and production |
+| [Design](#design) | `docs/design/` | UI/UX design documentation |
+| [Enterprise](#enterprise) | `docs/enterprise/` | Enterprise features and patterns |
+| [Features](#features) | `docs/features/` | Feature documentation and SAM AI |
+| [Fixes](#fixes) | `docs/fixes/` | Bug fixes and solutions |
+| [Implementation](#implementation) | `docs/implementation/` | Implementation guides |
+| [Integrations](#integrations) | `docs/integrations/` | Third-party integrations |
+| [Phases](#phases) | `docs/phases/` | Project phase documentation |
+| [Runbooks](#runbooks) | `docs/runbooks/` | Operational runbooks |
+| [Setup](#setup) | `docs/setup/` | Development setup and onboarding |
+| [Testing](#testing) | `docs/testing/` | Testing strategies and guides |
+| [Troubleshooting](#troubleshooting) | `docs/troubleshooting/` | Issue debugging and resolution |
+| [UI/UX](#uiux) | `docs/ui-ux/` | UI implementation details |
 
 ---
 
-## 🤖 SAM AI System Documentation
+## Admin
 
-**Location**: `docs/sam-ai-system/`
+**Path**: `docs/admin/`
 
-### Core SAM Documentation
-- `SAM_AI_TEACHER_POWER_ANALYSIS_REPORT.md` - Comprehensive power analysis
-- `SAM_CENTRALIZATION_COMPLETE.md` - Centralization architecture
-- `SAM_CONTEXT_AWARENESS_SOLUTION.md` - Context awareness implementation
-- `SAM_INTELLIGENT_CONTEXT_DETECTION.md` - Intelligent detection system
+Admin panel, user management, and JWT authentication fixes.
 
-### SAM Integration
-**Path**: `docs/sam-ai-system/integration/`
-
-- `SAM_CONTEXT_INTEGRATION_COMPLETE.md` - Context integration completion
-- `SAM_FORM_INTEGRATION_GUIDE.md` - Form integration guide
-- `SAM_GLOBAL_COMPLETE.md` - Global implementation
-- `SAM_GLOBAL_FIXES_APPLIED.md` - Global fixes documentation
-- `SAM_GLOBAL_INTEGRATION_COMPLETE_FINAL.md` - Final integration report
-- `SAM_INTEGRATION_ACTIVATED.md` - Activation documentation
-
-### Additional SAM Resources
-- See `sam-ai-tutor/` folder for SAM-specific implementation files
-- See `docs/sam-implementation/` for implementation guides
+- `ADMIN_AUTH_FIX_SUMMARY.md` - Admin authentication fixes
+- `ADMIN_AUTH_JWE_FIX.md` - JWE token fixes
+- `ADMIN_JWT_FIX_PERMANENT_SOLUTION.md` - Permanent JWT solution
+- `ADMIN_JWT_SECRET_MISMATCH_FIX.md` - Secret mismatch resolution
+- `ADMIN_USER_SEPARATION_ANALYSIS.md` - Admin/user separation analysis
+- `ADMIN_USERS_PAGE_ENHANCEMENT.md` - Users page improvements
+- `DEBUG_ENDPOINT_SECURITY.md` - Security debugging
+- `DELETE_USER_FIX_SUMMARY.md` - User deletion fixes
+- `QUICK_FIX_ADMIN_JWT.md` - Quick JWT fixes
 
 ---
 
-## 🎨 Features & UI Documentation
+## Analytics
 
-**Location**: `docs/features/`
+**Path**: `docs/analytics/`
+
+Dashboard analytics, tracking, and reporting.
+
+- `ADMIN_DASHBOARD_NOTIFICATION_ANALYSIS.md` - Dashboard notifications
+- `ANALYTICS_API_DOCUMENTATION.md` - Analytics API reference
+- `ANALYTICS_USER_PAGE_AUDIT.md` - User analytics audit
+- `ANALYTICS_USER_PAGE_ENTERPRISE_ANALYSIS.md` - Enterprise analytics
+- `CLICK_SCROLL_TRACKING_GUIDE.md` - Click and scroll tracking
+- `REAL_TIME_DASHBOARD_GUIDE.md` - Real-time dashboard
+- `VIDEO_TRACKING_GUIDE.md` - Video analytics tracking
+
+---
+
+## API Documentation
+
+**Path**: `docs/api/`
+
+API endpoints, documentation, and testing.
+
+- `README.md` - API overview
+- `endpoints.md` - API endpoint reference
+- `STATISTICS_API_IMPLEMENTATION.md` - Statistics API
+- `API_TEST_ENDPOINTS.md` - Testing endpoints
+
+---
+
+## Architecture
+
+**Path**: `docs/architecture/`
+
+System architecture, ADRs, and design decisions.
+
+### Core Architecture
+- `README.md` - Architecture overview
+- `COMPREHENSIVE_SYSTEM_ARCHITECTURE.md` - Full system architecture
+- `CLEAN_ARCHITECTURE_MIGRATION_STATUS.md` - Clean architecture migration
+- `EMAIL_SYSTEM_ARCHITECTURE.md` - Email system design
+- `INTELLIGENT_PLATFORM_ROADMAP.md` - Platform roadmap
+- `SCALABLE_COURSE_ARCHITECTURE_PLAN.md` - Course scalability
+
+### Enterprise Patterns
+- `ENTERPRISE_SECTION_IMPLEMENTATION_GUIDE.md` - Enterprise sections
+- `ENTERPRISE_ADMIN_DASHBOARD_COMPLETE.md` - Admin dashboard
+- `ENTERPRISE_MIDDLEWARE_BEST_PRACTICES.md` - Middleware patterns
+- `ENTERPRISE_ROLE_BASED_AUTH_SOLUTION.md` - RBAC solution
+
+### ADRs (Architectural Decision Records)
+**Path**: `docs/architecture/adrs/`
+
+- `0001-use-nextjs-15-app-router.md` - Next.js 15 adoption
+- `0002-choose-prisma-postgresql.md` - Prisma + PostgreSQL
+- `0003-implement-nextauth-v5.md` - NextAuth v5
+- `0004-adopt-role-based-access-control.md` - RBAC
+- `0005-use-redis-caching-strategy.md` - Redis caching
+- `0006-implement-enterprise-security.md` - Security
+- `0007-choose-radix-ui-components.md` - Radix UI
+- `0008-adopt-typescript-strict-mode.md` - TypeScript strict
+- `0009-implement-microservices-patterns.md` - Microservices
+- `0010-choose-monitoring-observability.md` - Observability
+
+---
+
+## Authentication
+
+**Path**: `docs/auth/`
+
+Authentication flows, audits, and security.
+
+- `AUTH_FLOW_DIAGRAM.md` - Auth flow visualization
+- `AUTHENTICATION_ARCHITECTURE.md` - Auth architecture
+- `AUTHENTICATION_FLOW_AUDIT_REPORT.md` - Auth flow audit
+- `AUTH_IMPROVEMENTS_IMPLEMENTATION_GUIDE.md` - Improvements guide
+- `AUTH_IMPROVEMENTS_SUMMARY.md` - Improvements summary
+- `AUTH_INTEGRATION_VERIFICATION.md` - Integration verification
+- `AUTH_SEPARATION_FIX_SUMMARY.md` - Admin/user separation
+- `AUTH_STATS_IMPLEMENTATION.md` - Auth statistics
+- `AUTH_SYSTEM_AUDIT_REPORT.md` - System audit
+- `CLAIM_VERIFICATION_REPORT.md` - Claim verification
+- `COMPREHENSIVE_AUTH_AUDIT_REPORT.md` - Comprehensive audit
+- `COURSE_CREATION_AUTH_FIX.md` - Course creation auth
+- `ENTERPRISE_AUTH_IMPLEMENTATION_PLAN.md` - Enterprise auth plan
+- `SIMPLE_AUTH_FLOW.md` - Simplified auth flow
+
+---
+
+## Build Optimization
+
+**Path**: `docs/build-optimization/`
+
+Build performance, caching, and optimization.
+
+- `BLOG-LIGHTHOUSE-OPTIMIZATION-REPORT.md` - Lighthouse optimization
+- `BUILD-ERROR-SUMMARY.md` - Build error summary
+- `BUILD-FAILURE-CORRECTIONS.md` - Build failure fixes
+- `BUILD_FIXES_SUMMARY.md` - Build fixes
+- `CACHE-CLEARING-GUIDE.md` - Cache clearing
+- `CACHING_AND_OPTIMIZATION.md` - Caching strategies
+- `CLEAR_CACHE_INSTRUCTIONS.md` - Cache instructions
+- `CODE_QUALITY_FIXES.md` - Code quality
+- `MEMORY-OPTIMIZATION-GUIDE.md` - Memory optimization
+
+---
+
+## CI/CD
+
+**Path**: `docs/ci-cd/`
+
+Continuous integration and deployment pipelines.
+
+Organized by date for incident tracking and progress updates.
+
+---
+
+## Completed Features
+
+**Path**: `docs/completed-features/`
+
+Documentation for completed feature implementations.
+
+- `DOCUMENTATION_ORGANIZATION_COMPLETE.md` - Doc organization
+- `FINAL_IMPLEMENTATION_SUMMARY.md` - Final summary
+- `IMPLEMENTATION_COMPLETE.md` - Implementation complete
+- `IMPLEMENTATION_REPORT.md` - Implementation report
+- `LEARNING_INTERFACE_IMPLEMENTATION_COMPLETE.md` - Learning interface
+- `LEARN_PAGE_SUMMARY.md` - Learn page
+- `NEXT_STEPS_IMPLEMENTATION_SUMMARY.md` - Next steps
+- `YOUTUBE_INTEGRATION_COMPLETE.md` - YouTube integration
+
+---
+
+## Course Management
+
+**Path**: `docs/course-management/`
+
+Course creation, analysis, and management.
+
+- `AUDIT_REPORT_COURSES_PAGE.md` - Courses page audit
+- `CHAPTER_CREATION_TROUBLESHOOTING.md` - Chapter troubleshooting
+- `COMPREHENSIVE_COURSE_FORM_ANALYSIS.md` - Form analysis
+- `COMPREHENSIVE_FORM_ACCESS_IMPLEMENTATION.md` - Form access
+- `COURSE_CREATION_ANALYSIS.md` - Creation analysis
+- `COURSE_DELETE_404_TROUBLESHOOTING.md` - Delete troubleshooting
+- `COURSE_DEPTH_ANALYZER_DOCUMENTATION.md` - Depth analyzer
+- `COURSE_PAGE_IMPROVEMENT_PLAN.md` - Improvement plan
+- `COURSES_PAGE_FIX_SUMMARY.md` - Page fixes
+- `DEPTH_ANALYZER_STANDALONE_PAGE.md` - Standalone analyzer
+- `LEARNING-SYSTEM-DOCUMENTATION.md` - Learning system
+
+---
+
+## Database
+
+**Path**: `docs/database/`
+
+Prisma, migrations, and database operations.
+
+- `MIGRATION_GUIDE.md` - Migration guide
+- `PRISMA_MIGRATION_WORKFLOW.md` - Prisma workflow
+- `SAFE_MIGRATIONS_QUICK_GUIDE.md` - Safe migrations
+
+---
+
+## Deployment
+
+**Path**: `docs/deployment/`
+
+Railway, Docker, and production deployment.
+
+### Railway Deployment
+**Path**: `docs/deployment/railway/`
+
+- `RAILWAY_DEPLOYMENT.md` - Comprehensive Railway guide
+- `RAILWAY_BUILD_ERRORS.md` - Build error resolution
+- `RAILWAY_FIXES_APPLIED.md` - Applied fixes
+- `RAILWAY_POSTGRES_DEPLOYMENT.md` - PostgreSQL on Railway
+- `RAILWAY_QUICK_REFERENCE.md` - Quick reference
+
+### Other Deployment
+- `README.md` - Deployment overview
+- `DEPLOYMENT.md` - General deployment
+- `LOCAL_RAILWAY_BUILD_GUIDE.md` - Local Railway builds
+- `NEXTJS_BUILD_OPTIMIZATION_GUIDE.md` - Next.js optimization
+- `PRODUCTION_DEPLOYMENT_GUIDE.md` - Production deployment
+- `PRODUCTION_INCIDENT_SUMMARY.md` - Incident summary
+- `PRODUCTION_TESTING_GUIDE.md` - Production testing
+- `SAFE_RAILWAY_DEPLOYMENT.md` - Safe deployment
+
+---
+
+## Design
+
+**Path**: `docs/design/`
+
+UI/UX design documentation and specifications.
+
+- `BLOG_REDESIGN_SUMMARY.md` - Blog redesign
+- `DYNAMIC_LAYOUT_IMPLEMENTATION_SUMMARY.md` - Dynamic layouts
+- `DYNAMIC_LAYOUT_QUICK_START.md` - Layout quick start
+- `DYNAMIC_LAYOUT_SYSTEM.md` - Layout system
+- `EDIT_USER_MODAL_ELEGANT_DESIGN.md` - Edit modal design
+- `GLOBAL-NAVIGATION.md` - Global navigation
+- `MODAL_DESIGN_SUMMARY.md` - Modal designs
+- `MOBILE_LAYOUT_MIGRATION.md` - Mobile layouts
+- `PROFILE_PAGE_DESIGN.md` - Profile page
+- `SECTION_DESIGN_ENTERPRISE_ANALYSIS.md` - Section design
+- `VIEW_DETAILS_MODAL_REDESIGN.md` - View details modal
+
+---
+
+## Enterprise
+
+**Path**: `docs/enterprise/`
+
+Enterprise features and patterns.
+
+- `ENTERPRISE_AUTH_SEPARATION_EVIDENCE.md` - Auth separation
+- `ENTERPRISE_AUTH_VERIFICATION_REPORT.md` - Auth verification
+- `ENTERPRISE_CODE_QUALITY_PLAN.md` - Code quality
+- `ENTERPRISE_COURSE_CATALOG_ARCHITECTURE.md` - Catalog architecture
+- `ENTERPRISE_COURSE_CATALOG_IMPLEMENTATION_GUIDE.md` - Catalog implementation
+- `ENTERPRISE_COURSE_CATALOG_SUMMARY.md` - Catalog summary
+- `ENTERPRISE_PAYMENT_ENROLLMENT_PLAN.md` - Payment and enrollment
+- `ENTERPRISE_SCHEMA_ARCHITECTURE.md` - Schema architecture
+- `ENTERPRISE_SCHEMA_IMPLEMENTATION_EVIDENCE.md` - Schema evidence
+
+---
+
+## Features
+
+**Path**: `docs/features/`
+
+Feature documentation organized by feature area.
+
+### SAM AI System
+**Path**: `docs/features/sam-ai-system/`
+
+Comprehensive SAM AI documentation including:
+- Architecture and overview
+- API references and guides
+- Implementation guides
+- Integration plans
+- Improvement roadmap (4 phases)
+- Reports and analysis
 
 ### Responsive Design
 **Path**: `docs/features/responsive-design/`
 
-- `RESPONSIVENESS_ANALYSIS.md` - Complete responsive design analysis
-- `RESPONSIVE-IMPLEMENTATION-SUMMARY.md` - Implementation summary
+Mobile, tablet, and desktop responsive implementations.
 
-**Headers**
-**Path**: `docs/features/responsive-design/headers/`
-
-- `AI_FEATURES_MEGA_MENU_SUMMARY.md` - AI features mega menu
-- `HEADER_UPDATES_SUMMARY.md` - Header updates and improvements
-- `INTEGRATION_COMPLETE.md` - Header integration completion
-- `MOBILE_LANDSCAPE_HEADER_INTEGRATION.md` - Mobile landscape header
-- `MOBILE_MINI_HEADER_IMPLEMENTATION.md` - Mobile mini header
-
-**Icons**
-**Path**: `docs/features/responsive-design/icons/`
-
-- `COMPACT_ICONS_UPDATE.md` - Compact icon system
-- `ICON_CONSISTENCY_UPDATE.md` - Icon consistency improvements
-- `PERFECT_ICON_CONSISTENCY.md` - Final icon consistency
+### Other Features
+- Blog and courses
+- Code tabs and math tabs
+- Teacher dashboard
+- Payment system
+- AI news and content
 
 ---
 
-## 📖 Course Management
+## Fixes
 
-**Location**: `docs/course-management/`
+**Path**: `docs/fixes/`
 
-- `AUDIT_REPORT_COURSES_PAGE.md` - Course page audit report
-- `COURSE_PAGE_IMPROVEMENT_PLAN.md` - Course page improvement roadmap
+Bug fixes and solutions.
 
----
-
-## 🔌 API Documentation
-
-**Location**: `docs/api/`
-
-- `STATISTICS_API_IMPLEMENTATION.md` - Statistics API implementation
-- `API_TEST_ENDPOINTS.md` - API testing endpoints
-- Additional API docs available in this folder
+- `CLOUDINARY_FIX.md` - Cloudinary fixes
+- `QUICK-FIX-REFERENCE.md` - Quick fix reference
+- And other fix documentation
 
 ---
 
-## 🏗️ Architecture & System Design
+## Implementation
 
-**Location**: `docs/architecture/` and `docs/system-architecture/`
+**Path**: `docs/implementation/`
 
-### Core Architecture
-- System architecture diagrams
-- Clean architecture migration status
-- Database schema and domain analysis
+Implementation guides and status.
 
-### Enterprise Architecture
-**Location**: `docs/enterprise/`
-
-- Enterprise auth implementation
-- Clean architecture patterns
-- System design documentation
+- `IMPLEMENTATION_GUIDE.md` - General guide
+- `IMPLEMENTATION_SUMMARY.md` - Summary
+- `DASHBOARD_IMPLEMENTATION_COMPLETE.md` - Dashboard
+- `SOCKET_IO_IMPLEMENTATION_SUMMARY.md` - Socket.IO
+- Kafka, ML, and other implementation guides
 
 ---
 
-## 🚀 Deployment & Infrastructure
+## Integrations
 
-**Location**: `docs/deployment/`
+**Path**: `docs/integrations/`
 
-- `RAILWAY_MIGRATION_FIX.md` - Railway migration fixes
-- `NEXTJS_BUILD_OPTIMIZATION_GUIDE.md` - Next.js build optimization
-- `RAILWAY_DEPLOYMENT_GUIDE.md` - Railway deployment guide
-- `RAILWAY_DEPLOYMENT_SUCCESS_GUIDE.md` - Success patterns
+Third-party service integrations.
 
-### Additional Deployment Resources
-**Path**: `docs/deployment/`
-
-- Railway-specific guides
-- Build optimization
-- Production deployment checklist
+- `CLOUDINARY_SETUP.md` - Cloudinary setup
+- `DEBUG_OAUTH_GUIDE.md` - OAuth debugging
+- `INTEGRATION_CHECKLIST.md` - Integration checklist
+- `INTEGRATION_GUIDE.md` - Integration guide
+- `OAUTH_TROUBLESHOOTING_GUIDE.md` - OAuth troubleshooting
+- `STRIPE-TESTING-GUIDE.md` - Stripe testing
 
 ---
 
-## 🧪 Testing & QA
+## Phases
 
-**Location**: `docs/testing/`
+**Path**: `docs/phases/`
 
-- `TESTING_GUIDE_QA_SYSTEM.md` - Comprehensive QA testing guide
-- Additional testing strategies and guides
+Project phase documentation.
 
----
+### Phase 1
+**Path**: `docs/phases/phase-1/`
 
-## 🔧 Fixes & Troubleshooting
+- Complete summary and verification
+- Weekly implementation summaries
 
-**Location**: `docs/fixes/`
+### Phase 2
+- Overview and implementation summary
 
-- `BUGFIX_AUTH_SERVER_ONLY.md` - Auth server-only bugfix
-- Additional bugfixes and solutions
-
-**Troubleshooting Resources**
-**Location**: `docs/troubleshooting/`
-
-- Comprehensive troubleshooting guides
-- Common issues and solutions
-- Debug workflows
+### Quick Wins
+**Path**: `docs/phases/quick-wins/`
 
 ---
 
-## ⚙️ Setup & Getting Started
+## Runbooks
 
-**Location**: `docs/setup/` and `docs/project-setup/`
+**Path**: `docs/runbooks/`
 
-### Quick Start
-1. Read `README.md` (root) - Project overview
-2. Read `CLAUDE.md` (root) - Development guidelines
-3. Follow `docs/setup/` guides for initial setup
+Operational runbooks for incident response.
 
-### Configuration Files
-- Authentication setup
-- Database configuration
-- Environment variables
-- Development tools
-
----
-
-## 📌 Miscellaneous
-
-**Location**: `docs/misc/`
-
-- `DOCUMENTATION_ORGANIZATION_SUMMARY.md` - This organization effort
-- Additional meta-documentation
+- `authentication-issues-runbook.md` - Auth issues
+- `cache-issues-runbook.md` - Cache issues
+- `database-issues-runbook.md` - Database issues
+- `deployment-issues-runbook.md` - Deployment issues
+- `monitoring-alerts-runbook.md` - Monitoring alerts
+- `performance-issues-runbook.md` - Performance issues
+- `security-incidents-runbook.md` - Security incidents
 
 ---
 
-## 🗂️ Folder Structure Overview
+## Setup
+
+**Path**: `docs/setup/`
+
+Development setup and onboarding.
+
+- `README.md` - Setup overview
+- `DEVELOPER_ONBOARDING.md` - Developer onboarding guide
+- `GIT_WORKFLOW_GUIDE.md` - Git workflow
+- `LOCAL_DEVELOPMENT_GUIDE.md` - Local development
+- `LOCAL_DEVELOPMENT_SETUP.md` - Setup steps
+- `QUICK-START.md` - Quick start
+- `RATE_LIMITING.md` - Rate limiting
+- `SENTRY_SETUP.md` - Sentry setup
+- `SETUP_GITHUB_OAUTH.md` - GitHub OAuth
+- `SETUP_GOOGLE_OAUTH.md` - Google OAuth
+- `SMTP_SETUP_GUIDE.md` - SMTP setup
+
+---
+
+## Testing
+
+**Path**: `docs/testing/`
+
+Testing strategies and guides.
+
+- Testing guides and strategies
+- Performance testing documentation
+
+---
+
+## Troubleshooting
+
+**Path**: `docs/troubleshooting/`
+
+Issue debugging and resolution.
+
+- `README.md` - Troubleshooting overview
+- Error-specific documentation
+- Incident reports
+
+---
+
+## UI/UX
+
+**Path**: `docs/ui-ux/`
+
+UI implementation details.
+
+- Dashboard implementations
+- Color schemes and styling
+- Hero sections and navigation
+- Responsive implementations
+
+---
+
+## Folder Structure
 
 ```
 docs/
-├── api/                          # API documentation
-├── architecture/                 # System architecture
-├── auth/                        # Authentication docs
-├── course-management/           # Course-related docs
-├── deployment/                  # Deployment guides
-├── design/                      # Design documents
-├── enterprise/                  # Enterprise patterns
-├── features/                    # Feature documentation
-│   └── responsive-design/       # Responsive UI
-│       ├── headers/            # Header components
-│       └── icons/              # Icon system
-├── fixes/                       # Bugfixes and solutions
-├── implementation/              # Implementation guides
-├── misc/                        # Miscellaneous docs
-├── phases/                      # Project phases
-│   ├── phase-1/                # Phase 1 docs
-│   │   └── weekly-summaries/   # Weekly progress
-│   └── quick-wins/             # Quick win implementations
-├── sam-ai-system/              # SAM AI documentation
-│   └── integration/            # SAM integration docs
-├── sam-implementation/         # SAM implementation
-├── setup/                      # Setup guides
-├── system-architecture/        # System design
-├── testing/                    # Testing guides
-└── troubleshooting/           # Troubleshooting
+├── DOCUMENTATION_INDEX.md     # This file
+├── QUICK_NAVIGATION_GUIDE.md  # Quick navigation
+├── QUICK_REFERENCE.md         # Quick reference
+├── README.md                  # Docs overview
+├── admin/                     # Admin documentation
+├── analytics/                 # Analytics and tracking
+├── api/                       # API documentation
+├── architecture/              # System architecture + ADRs
+├── auth/                      # Authentication
+├── build-optimization/        # Build and performance
+├── ci-cd/                     # CI/CD pipelines
+├── completed-features/        # Completed features
+├── course-management/         # Course documentation
+├── database/                  # Database and migrations
+├── deployment/                # Deployment guides
+│   └── railway/              # Railway-specific
+├── design/                    # Design documentation
+├── enterprise/                # Enterprise features
+├── features/                  # Feature documentation
+│   ├── sam-ai-system/        # SAM AI (comprehensive)
+│   ├── responsive-design/    # Responsive UI
+│   └── ...                   # Other features
+├── fixes/                     # Bug fixes
+├── implementation/            # Implementation guides
+├── integrations/              # Third-party integrations
+├── misc/                      # Miscellaneous
+├── phases/                    # Project phases
+├── runbooks/                  # Operational runbooks
+├── setup/                     # Setup and onboarding
+├── testing/                   # Testing documentation
+├── troubleshooting/           # Troubleshooting
+└── ui-ux/                     # UI implementation
 ```
 
 ---
 
-## 🔍 Finding Documentation
+## Statistics
 
-### By Topic
-- **Getting Started**: `docs/setup/`, `docs/project-setup/`
-- **SAM AI**: `docs/sam-ai-system/`, `sam-ai-tutor/`
-- **UI/Design**: `docs/features/`, `docs/design/`
-- **Backend**: `docs/api/`, `docs/architecture/`
-- **Deployment**: `docs/deployment/`, `docs/troubleshooting/`
-- **Testing**: `docs/testing/`
-
-### By Phase
-- **Phase 1**: `docs/phases/phase-1/`
-- **Phase 2**: `docs/phases/`
-- **Quick Wins**: `docs/phases/quick-wins/`
-
-### By Component
-- **Authentication**: `docs/auth/`, `docs/enterprise/`
-- **Courses**: `docs/course-management/`
-- **Admin**: `docs/admin/`
-- **Analytics**: `docs/analytics/`
+- **Total Files**: ~590 markdown files
+- **Main Categories**: 24 organized folders
+- **Last Reorganization**: December 27, 2025
+- **Duplicates Removed**: 15+ files
+- **Folders Consolidated**: 13 folders merged
 
 ---
 
-## 📝 Contributing to Documentation
+## Contributing
 
 When adding new documentation:
 
-1. **Choose the right location** based on the category above
-2. **Use descriptive filenames** with uppercase and underscores
-3. **Update this index** if adding new categories
-4. **Link related documents** for easy navigation
-5. **Include dates** in documentation headers
-
-### Naming Conventions
-- Use `UPPERCASE_WITH_UNDERSCORES.md` for documentation files
-- Use descriptive names that indicate content
-- Include version/date information when relevant
+1. **Choose the right folder** based on categories above
+2. **Use UPPERCASE_WITH_UNDERSCORES.md** naming
+3. **Update this index** for new categories
+4. **Link related documents** for navigation
+5. **Include dates** in headers
 
 ---
-
-## 🔗 External Resources
-
-- **Main README**: `/README.md` - Project overview and quick start
-- **Claude Guidelines**: `/CLAUDE.md` - Development standards and best practices
-- **SAM AI Tutor**: `/sam-ai-tutor/` - SAM AI implementation folder
-
----
-
-## 📊 Documentation Statistics
-
-- **Total Documentation Files**: 100+ markdown files
-- **Main Categories**: 20+ organized folders
-- **Phase Documentation**: Complete Phase 1, Phase 2 in progress
-- **Last Major Reorganization**: October 23, 2025
-
----
-
-**Need Help?**
-- Check the relevant category above
-- Search for keywords in the folder structure
-- Refer to `README.md` for project overview
-- Consult `CLAUDE.md` for development guidelines
 
 **Maintained by**: Taxomind Development Team
 **Project**: Enterprise LMS Platform with AI Integration

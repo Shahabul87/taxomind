@@ -27,7 +27,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { type ComprehensiveAnalytics } from '@/lib/sam-engines/advanced/sam-analytics-engine';
+import { type ComprehensiveAnalytics } from '@sam-ai/educational';
 
 // Chart components (simplified - in production, use a chart library like recharts)
 const SimpleLineChart = ({ data, color = 'blue' }: { data: Array<{ date: string; value: number }>, color?: string }) => {

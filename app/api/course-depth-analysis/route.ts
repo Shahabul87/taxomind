@@ -4,35 +4,39 @@ import { db } from '@/lib/db';
 import getAnthropicClient from '@/lib/anthropic-client';
 import { logger } from '@/lib/logger';
 import {
-  enhancedDepthEngine,
-  CourseData,
-  ChapterData,
-  SectionData,
-} from '@/lib/sam-engines/educational/enhanced-depth-engine';
-import type { EnhancedDepthAnalysisResponse, BloomsDistribution as EnhancedBloomsDistribution } from '@/lib/sam-engines/educational/types/depth-analysis.types';
-import type { Prisma, BloomsLevel, QuestionType } from '@prisma/client';
-import {
+  createEnhancedDepthAnalysisEngine,
   deterministicRubricEngine,
-  serializeAnalysisResult,
   deepContentAnalyzer,
-  transcriptAnalyzer,
-  type CourseAnalysisInput,
-  type DeterministicAnalysisResult,
-  type ContentSource,
-  type DeepContentAnalysisResult,
-  type TranscriptSource,
-  type CourseTranscriptAnalysisResult,
-} from '@/lib/sam-engines/educational/analyzers';
-import {
-  getValidatedDistribution,
-  getCitationString,
-  qmEvaluator,
-  olcEvaluator,
   distributionAnalyzer,
-  type QMEvaluationResult,
-  type OLCEvaluationResult,
+  generateCourseContentHash,
+  getCitationString,
+  getValidatedDistribution,
+  olcEvaluator,
+  qmEvaluator,
+  serializeAnalysisResult,
+  transcriptAnalyzer,
+  type BloomsDistribution as EnhancedBloomsDistribution,
+  type CourseAnalysisInput,
+  type CourseData,
+  type ChapterData,
+  type SectionData,
+  type ContentSource,
+  type CourseTranscriptAnalysisResult,
+  type DeepContentAnalysisResult,
+  type DeterministicAnalysisResult,
   type DistributionAnalysisResult,
-} from '@/lib/sam-engines/educational/standards';
+  type EnhancedDepthAnalysisResponse,
+  type OLCEvaluationResult,
+  type QMEvaluationResult,
+  type TranscriptSource,
+} from '@sam-ai/educational/depth-analysis';
+import type { Prisma, BloomsLevel, QuestionType } from '@prisma/client';
+import { PrismaCourseDepthAnalysisStore } from '@/lib/adapters';
+
+const enhancedDepthEngine = createEnhancedDepthAnalysisEngine({
+  storage: new PrismaCourseDepthAnalysisStore(),
+  logger,
+});
 
 // Type for exam question options from JSON field
 interface ExamQuestionOption {
@@ -595,7 +599,6 @@ export async function GET(req: NextRequest) {
     }
 
     // Generate current content hash to check if it's still valid
-    const { generateCourseContentHash } = await import('@/lib/course-content-hash');
     const fullCourse = await db.course.findUnique({
       where: { id: courseId },
       include: {
@@ -616,7 +619,9 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    const currentContentHash = fullCourse ? generateCourseContentHash(fullCourse) : null;
+    const currentContentHash = fullCourse
+      ? generateCourseContentHash(fullCourse as unknown as CourseData)
+      : null;
     const isStale = currentContentHash !== existingAnalysis.contentHash;
 
     // Normalize the distribution for response
@@ -818,6 +823,8 @@ export async function POST(req: NextRequest) {
         title: filteredCourse.title ?? 'Untitled Course',
         description: filteredCourse.description,
         whatYouWillLearn: filteredCourse.whatYouWillLearn ?? [],
+        categoryId: filteredCourse.categoryId ?? null,
+        price: filteredCourse.price ?? null,
         category: filteredCourse.category ? { name: filteredCourse.category.name } : null,
         chapters: filteredCourse.chapters.map((ch): ChapterData => ({
           id: ch.id,
@@ -1475,8 +1482,7 @@ export async function POST(req: NextRequest) {
       // ═══════════════════════════════════════════════════════════════
       if (enhancedAnalysis.courseLevel?.bloomsDistribution) {
         try {
-          const { generateCourseContentHash } = await import('@/lib/course-content-hash');
-          const currentContentHash = generateCourseContentHash(course);
+          const currentContentHash = generateCourseContentHash(course as unknown as CourseData);
 
           await db.courseBloomsAnalysis.upsert({
             where: { courseId },
@@ -1513,8 +1519,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate content hash and check for existing analysis
-    const { generateCourseContentHash } = await import('@/lib/course-content-hash');
-    const currentContentHash = generateCourseContentHash(course);
+    const currentContentHash = generateCourseContentHash(course as unknown as CourseData);
 
     // Check if we have a recent analysis with the same content hash
     if (!forceReanalyze) {

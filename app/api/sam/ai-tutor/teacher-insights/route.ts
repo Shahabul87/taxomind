@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,36 +110,162 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function runTeacherInsightsChat(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: { maxTokens?: number; temperature?: number; model?: string }
+): Promise<string> {
+  return runSAMChat({
+    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+    maxTokens: options?.maxTokens ?? 1500,
+    temperature: options?.temperature ?? 0.7,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+}
+
 async function generateOverviewInsights(courseId: string | null, timeframe: string) {
-  // Mock data - in production, this would query actual database
+  const { startDate, previousStartDate, endDate } = getTimeframeRange(timeframe);
+  const enrollmentWhere = courseId ? { courseId } : {};
+
+  const totalStudents = await db.enrollment.count({ where: enrollmentWhere });
+
+  const activityWhere = {
+    ...(courseId ? { courseId } : {}),
+    ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+  };
+
+  const activeUsers = await db.learningActivityLog.groupBy({
+    by: ['userId'],
+    where: activityWhere,
+  });
+
+  const previousActivityCount = await db.learningActivityLog.count({
+    where: {
+      ...(courseId ? { courseId } : {}),
+      ...(previousStartDate && startDate ? { createdAt: { gte: previousStartDate, lt: startDate } } : {}),
+    },
+  });
+
+  const currentActivityCount = await db.learningActivityLog.count({ where: activityWhere });
+
+  const avgTimeSpent = await db.learningActivityLog.aggregate({
+    where: activityWhere,
+    _avg: { duration: true },
+  });
+
+  const examStats = await db.userExamAttempt.aggregate({
+    where: {
+      ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+      ...(courseId
+        ? {
+            Exam: {
+              is: {
+                section: {
+                  is: {
+                    chapter: {
+                      is: { courseId },
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    _avg: { scorePercentage: true },
+  });
+
+  const performanceByUser = await db.userExamAttempt.groupBy({
+    by: ['userId'],
+    where: {
+      ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+      ...(courseId
+        ? {
+            Exam: {
+              is: {
+                section: {
+                  is: {
+                    chapter: {
+                      is: { courseId },
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    _avg: { scorePercentage: true },
+  });
+
+  const userIds = performanceByUser.map((entry) => entry.userId);
+  const users = userIds.length
+    ? await db.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+
+  const userMap = new Map(users.map((user) => [user.id, user.name ?? 'Unknown']));
+  const sortedPerformance = performanceByUser
+    .map((entry) => ({
+      userId: entry.userId,
+      score: entry._avg.scorePercentage ?? 0,
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  const topPerformers = sortedPerformance.slice(0, 3).map((entry) => ({
+    name: userMap.get(entry.userId) ?? 'Unknown',
+    score: Math.round(entry.score),
+    progress: 100,
+  }));
+
+  const strugglingStudents = sortedPerformance.slice(-2).map((entry) => ({
+    name: userMap.get(entry.userId) ?? 'Unknown',
+    score: Math.round(entry.score),
+    progress: Math.max(0, Math.round(entry.score)),
+    risk: entry.score < 70 ? 'high' : 'medium',
+  }));
+
+  const activitySamples = await db.learningActivityLog.findMany({
+    where: activityWhere,
+    select: { createdAt: true, contentType: true },
+    take: 200,
+  });
+
+  const mostActiveHours = summarizeActiveHours(activitySamples.map((log) => log.createdAt));
+  const contentTypes = activitySamples.map((log) => log.contentType).filter(Boolean) as string[];
+  const contentTypeRank = rankByCount(contentTypes);
+
+  const completionAnalytics = courseId
+    ? await db.courseCompletionAnalytics.findUnique({
+        where: { courseId },
+        select: { completionRate: true },
+      })
+    : null;
+
   const mockData = {
-    totalStudents: 45,
-    activeStudents: 38,
-    completionRate: 76,
-    averageScore: 83,
-    engagementRate: 82,
-    timeSpent: 24.5, // hours per student
-    mostActiveHours: ['14:00-16:00', '19:00-21:00'],
-    topPerformers: [
-      { name: 'Sarah Johnson', score: 97, progress: 100 },
-      { name: 'Mike Chen', score: 95, progress: 98 },
-      { name: 'Elena Rodriguez', score: 92, progress: 95 }
-    ],
-    strugglingStudents: [
-      { name: 'John Smith', score: 65, progress: 45, risk: 'high' },
-      { name: 'Lisa Brown', score: 72, progress: 60, risk: 'medium' }
-    ],
+    totalStudents,
+    activeStudents: activeUsers.length,
+    completionRate: completionAnalytics?.completionRate ?? 0,
+    averageScore: Math.round(examStats._avg.scorePercentage ?? 0),
+    engagementRate: totalStudents ? Math.round((activeUsers.length / totalStudents) * 100) : 0,
+    timeSpent: Math.round(((avgTimeSpent._avg.duration ?? 0) / 3600) * 10) / 10,
+    mostActiveHours,
+    topPerformers,
+    strugglingStudents,
     contentPerformance: {
-      bestChapters: ['Introduction to AI', 'Machine Learning Basics'],
-      challengingChapters: ['Neural Networks', 'Deep Learning'],
-      mostEngaging: 'Interactive Coding Examples',
-      leastEngaging: 'Theoretical Concepts'
+      bestChapters: [],
+      challengingChapters: [],
+      mostEngaging: contentTypeRank[0]?.label ?? 'N/A',
+      leastEngaging: contentTypeRank[contentTypeRank.length - 1]?.label ?? 'N/A',
     },
     trends: {
-      engagement: { direction: 'up', change: 12 },
-      completion: { direction: 'up', change: 8 },
-      scores: { direction: 'stable', change: 2 }
-    }
+      engagement: calculateTrend(currentActivityCount, previousActivityCount),
+      completion: { direction: 'stable', change: 0 },
+      scores: { direction: 'stable', change: 0 },
+    },
   };
 
   const systemPrompt = `You are SAM, an AI teaching assistant analyzing class performance data. Generate comprehensive insights for a teacher about their class performance.
@@ -163,36 +285,30 @@ Provide actionable insights including:
 
 Make the insights practical and actionable for teachers.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Generate comprehensive class overview insights for this teacher.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runTeacherInsightsChat(
+    systemPrompt,
+    'Generate comprehensive class overview insights for this teacher.',
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     type: 'overview',
     summary: analysisText,
     metrics: mockData,
     recommendations: extractRecommendations(analysisText),
-    alerts: [
-      {
-        type: 'warning',
-        message: '2 students are at risk of falling behind',
-        action: 'Schedule intervention meetings'
-      },
-      {
-        type: 'info',
-        message: 'Neural Networks chapter has low completion rate',
-        action: 'Consider adding more examples'
-      }
-    ],
+    alerts: mockData.strugglingStudents.length
+      ? mockData.strugglingStudents.map((student: any) => ({
+          type: 'warning',
+          message: `${student.name} may need extra support`,
+          action: 'Schedule an intervention or check-in',
+        }))
+      : [
+          {
+            type: 'info',
+            message: 'No high-risk students detected in this timeframe',
+            action: 'Continue monitoring engagement',
+          },
+        ],
     quickActions: [
       'Schedule one-on-one meetings',
       'Create additional practice materials',
@@ -203,29 +319,60 @@ Make the insights practical and actionable for teachers.`;
 }
 
 async function generateEngagementInsights(courseId: string | null, timeframe: string) {
-  const mockEngagementData = {
-    overallEngagement: 78,
-    dailyEngagement: [65, 72, 80, 75, 82, 68, 45], // Mon-Sun
-    peakHours: ['14:00-16:00', '19:00-21:00'],
-    engagementByContent: {
-      videos: 85,
-      quizzes: 92,
-      discussions: 64,
-      assignments: 71,
-      reading: 58
+  const { startDate, previousStartDate, endDate } = getTimeframeRange(timeframe);
+  const activityWhere = {
+    ...(courseId ? { courseId } : {}),
+    ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+  };
+
+  const activityLogs = await db.learningActivityLog.findMany({
+    where: activityWhere,
+    select: { userId: true, createdAt: true, contentType: true },
+  });
+
+  const overallEngagement = activityLogs.length;
+  const peakHours = summarizeActiveHours(activityLogs.map((log) => log.createdAt));
+  const contentTypes = activityLogs.map((log) => log.contentType).filter(Boolean) as string[];
+  const engagementByContent = buildContentEngagement(contentTypes);
+
+  const engagementByUser = rankByCount(activityLogs.map((log) => log.userId));
+  const userIds = engagementByUser.map((entry) => entry.label);
+  const users = userIds.length
+    ? await db.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true, lastLoginAt: true },
+      })
+    : [];
+
+  const userMap = new Map(users.map((user) => [user.id, user]));
+  const studentEngagement = engagementByUser.slice(0, 4).map((entry) => ({
+    name: userMap.get(entry.label)?.name ?? 'Unknown',
+    engagement: entry.count,
+    lastActive: userMap.get(entry.label)?.lastLoginAt
+      ? new Date(userMap.get(entry.label)?.lastLoginAt as Date).toLocaleDateString()
+      : 'unknown',
+  }));
+
+  const previousCount = await db.learningActivityLog.count({
+    where: {
+      ...(courseId ? { courseId } : {}),
+      ...(previousStartDate && startDate ? { createdAt: { gte: previousStartDate, lt: startDate } } : {}),
     },
-    studentEngagement: [
-      { name: 'Sarah J.', engagement: 95, lastActive: '2 hours ago' },
-      { name: 'Mike C.', engagement: 88, lastActive: '1 day ago' },
-      { name: 'Elena R.', engagement: 82, lastActive: '3 hours ago' },
-      { name: 'John S.', engagement: 45, lastActive: '5 days ago' }
-    ],
+  });
+  const engagementTrends = calculateTrend(activityLogs.length, previousCount);
+
+  const mockEngagementData = {
+    overallEngagement,
+    dailyEngagement: buildDailyEngagement(activityLogs.map((log) => log.createdAt)),
+    peakHours,
+    engagementByContent,
+    studentEngagement,
     engagementTrends: {
-      weekOverWeek: 8, // % increase
-      monthOverMonth: 15,
-      dropoffPoints: ['Chapter 3 Quiz', 'Assignment 2'],
-      highEngagementTriggers: ['Interactive demos', 'Peer discussions']
-    }
+      weekOverWeek: engagementTrends.change,
+      monthOverMonth: engagementTrends.change,
+      dropoffPoints: [],
+      highEngagementTriggers: [],
+    },
   };
 
   const systemPrompt = `You are SAM, an AI teaching assistant analyzing student engagement data. Generate detailed engagement insights for a teacher.
@@ -245,18 +392,11 @@ Provide insights on:
 
 Focus on actionable recommendations to improve student engagement.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1200,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Analyze the engagement patterns and provide actionable insights.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runTeacherInsightsChat(
+    systemPrompt,
+    'Analyze the engagement patterns and provide actionable insights.',
+    { maxTokens: 1200, temperature: 0.7 }
+  );
 
   return {
     type: 'engagement',
@@ -269,49 +409,83 @@ Focus on actionable recommendations to improve student engagement.`;
       'Create discussion prompts for reading materials',
       'Implement gamification for assignments'
     ],
-    alerts: [
-      {
+    alerts: mockEngagementData.studentEngagement
+      .filter((student: any) => student.engagement < 10)
+      .map((student: any) => ({
         type: 'warning',
-        message: 'John S. hasn\'t been active for 5 days',
-        action: 'Send check-in message'
-      },
-      {
-        type: 'info',
-        message: 'Quiz engagement is highest among all content types',
-        action: 'Consider adding more interactive quizzes'
-      }
-    ]
+        message: `${student.name} has low engagement`,
+        action: 'Send check-in message',
+      }))
+      .concat(
+        Object.keys(mockEngagementData.engagementByContent).length
+          ? [
+              {
+                type: 'info',
+                message: 'Content engagement varies by format',
+                action: 'Double down on the highest performing formats',
+              },
+            ]
+          : []
+      ),
   };
 }
 
 async function generatePerformanceInsights(courseId: string | null, timeframe: string) {
-  const mockPerformanceData = {
-    classAverage: 83.2,
-    gradeDistribution: {
-      'A': 22, 'B': 35, 'C': 28, 'D': 12, 'F': 3
+  const { startDate, endDate } = getTimeframeRange(timeframe);
+  const attempts = await db.userExamAttempt.findMany({
+    where: {
+      ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+      ...(courseId
+        ? {
+            Exam: {
+              is: {
+                section: {
+                  is: {
+                    chapter: {
+                      is: { courseId },
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : {}),
     },
-    performanceByChapter: [
-      { chapter: 'Introduction', average: 91, completion: 98 },
-      { chapter: 'Basics', average: 87, completion: 94 },
-      { chapter: 'Intermediate', average: 79, completion: 87 },
-      { chapter: 'Advanced', average: 72, completion: 78 }
-    ],
+    select: {
+      scorePercentage: true,
+      Exam: {
+        select: {
+          section: {
+            select: { chapterId: true },
+          },
+        },
+      },
+    },
+  });
+
+  const scores = attempts.map((attempt) => attempt.scorePercentage ?? 0);
+  const classAverage = scores.length
+    ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length)
+    : 0;
+
+  const gradeDistribution = buildGradeDistribution(scores);
+  const performanceByChapter = buildChapterPerformance(attempts);
+
+  const mockPerformanceData = {
+    classAverage,
+    gradeDistribution,
+    performanceByChapter,
     skillsAnalysis: {
-      strongest: ['Problem Solving', 'Critical Thinking'],
-      weakest: ['Technical Implementation', 'Complex Analysis'],
-      improving: ['Communication', 'Collaboration']
+      strongest: [],
+      weakest: [],
+      improving: [],
     },
     learningOutcomes: {
-      met: 78,
-      partiallyMet: 18,
-      notMet: 4
+      met: 0,
+      partiallyMet: 0,
+      notMet: 0,
     },
-    assessmentPerformance: {
-      quizzes: 86,
-      assignments: 81,
-      projects: 79,
-      finalExam: 83
-    }
+    assessmentPerformance: {},
   };
 
   const systemPrompt = `You are SAM, an AI teaching assistant analyzing student performance data. Generate detailed performance insights for a teacher.
@@ -331,18 +505,11 @@ Provide insights on:
 
 Focus on data-driven recommendations for improving student outcomes.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1200,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Analyze the performance data and provide actionable insights.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runTeacherInsightsChat(
+    systemPrompt,
+    'Analyze the performance data and provide actionable insights.',
+    { maxTokens: 1200, temperature: 0.7 }
+  );
 
   return {
     type: 'performance',
@@ -365,48 +532,118 @@ Focus on data-driven recommendations for improving student outcomes.`;
 }
 
 async function generateAtRiskInsights(courseId: string | null, timeframe: string) {
+  const { startDate, endDate } = getTimeframeRange(timeframe);
+  const enrollments = await db.enrollment.findMany({
+    where: courseId ? { courseId } : {},
+    select: { userId: true },
+  });
+
+  const userIds = Array.from(new Set(enrollments.map((item) => item.userId)));
+
+  const activityAgg = await db.learningActivityLog.groupBy({
+    by: ['userId'],
+    where: {
+      userId: { in: userIds },
+      ...(courseId ? { courseId } : {}),
+      ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+    },
+    _max: { createdAt: true },
+  });
+
+  const scoresAgg = await db.userExamAttempt.groupBy({
+    by: ['userId'],
+    where: {
+      userId: { in: userIds },
+      ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+      ...(courseId
+        ? {
+            Exam: {
+              is: {
+                section: {
+                  is: {
+                    chapter: {
+                      is: { courseId },
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    _avg: { scorePercentage: true },
+  });
+
+  const userMap = new Map(
+    (
+      await db.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, name: true },
+      })
+    ).map((user) => [user.id, user.name ?? 'Unknown'])
+  );
+
+  const lastActiveMap = new Map(activityAgg.map((item) => [item.userId, item._max.createdAt]));
+  const scoreMap = new Map(scoresAgg.map((item) => [item.userId, item._avg.scorePercentage ?? 0]));
+
+  const atRiskStudents = userIds
+    .map((id) => {
+      const lastActive = lastActiveMap.get(id);
+      const score = scoreMap.get(id) ?? 0;
+      const inactive = !lastActive;
+      const lowScore = score > 0 && score < 70;
+
+      let risk: 'high' | 'medium' | 'low' = 'low';
+      if (inactive || score < 60) risk = 'high';
+      else if (lowScore) risk = 'medium';
+
+      const factors = [];
+      if (inactive) factors.push('inactivity');
+      if (lowScore) factors.push('low_scores');
+
+      return {
+        name: userMap.get(id) ?? 'Unknown',
+        risk,
+        factors,
+        lastActive: lastActive ? new Date(lastActive).toDateString() : 'unknown',
+        averageScore: Math.round(score),
+        interventionSuggestions: risk === 'high'
+          ? ['immediate_contact', 'academic_support']
+          : risk === 'medium'
+            ? ['check_in_meeting', 'study_resources']
+            : [],
+      };
+    })
+    .filter((student) => student.risk !== 'low');
+
+  const riskLevels = atRiskStudents.reduce(
+    (acc, student) => {
+      acc[student.risk] += 1;
+      return acc;
+    },
+    { high: 0, medium: 0, low: 0 }
+  );
+
   const mockAtRiskData = {
-    totalAtRisk: 8,
-    riskLevels: {
-      high: 3,
-      medium: 5,
-      low: 12
-    },
+    totalAtRisk: atRiskStudents.length,
+    riskLevels,
     riskFactors: {
-      lowEngagement: 6,
-      poorPerformance: 4,
-      missedDeadlines: 7,
-      inactivity: 3
+      lowEngagement: atRiskStudents.filter((student) => student.factors.includes('inactivity')).length,
+      poorPerformance: atRiskStudents.filter((student) => student.factors.includes('low_scores')).length,
+      missedDeadlines: 0,
+      inactivity: atRiskStudents.filter((student) => student.factors.includes('inactivity')).length,
     },
-    atRiskStudents: [
-      {
-        name: 'John Smith',
-        risk: 'high',
-        factors: ['inactivity', 'missed_deadlines', 'low_scores'],
-        lastActive: '5 days ago',
-        averageScore: 58,
-        interventionSuggestions: ['immediate_contact', 'academic_support', 'counseling']
-      },
-      {
-        name: 'Lisa Brown',
-        risk: 'medium',
-        factors: ['low_engagement', 'declining_scores'],
-        lastActive: '2 days ago',
-        averageScore: 72,
-        interventionSuggestions: ['check_in_meeting', 'study_resources', 'peer_support']
-      }
-    ],
+    atRiskStudents,
     earlyWarningSignals: [
       'Students inactive for 3+ days',
-      'Score drops of 15+ points',
-      'Missed 2+ consecutive assignments',
-      'Engagement below 50%'
+      'Score drops of 10+ points',
+      'Engagement below 50%',
     ],
     interventionSuccess: {
-      contacted: 12,
-      improved: 8,
-      stillStruggling: 4
-    }
+      contacted: 0,
+      improved: 0,
+      stillStruggling: 0,
+    },
   };
 
   const systemPrompt = `You are SAM, an AI teaching assistant analyzing at-risk student data. Generate insights to help teachers identify and support struggling students.
@@ -426,30 +663,20 @@ Provide insights on:
 
 Focus on prevention and early intervention strategies.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1200,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Analyze at-risk student patterns and provide intervention strategies.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runTeacherInsightsChat(
+    systemPrompt,
+    'Analyze at-risk student patterns and provide intervention strategies.',
+    { maxTokens: 1200, temperature: 0.7 }
+  );
 
   return {
     type: 'at_risk',
     summary: analysisText,
     metrics: mockAtRiskData,
     recommendations: extractRecommendations(analysisText),
-    immediateActions: [
-      'Contact John Smith immediately - high risk',
-      'Schedule check-in with Lisa Brown',
-      'Send engagement survey to class',
-      'Review early warning system triggers'
-    ],
+    immediateActions: mockAtRiskData.atRiskStudents.length
+      ? mockAtRiskData.atRiskStudents.slice(0, 4).map((student: any) => `Check in with ${student.name}`)
+      : ['Monitor engagement and performance trends'],
     preventionStrategies: [
       'Implement weekly check-ins',
       'Create peer support groups',
@@ -460,35 +687,23 @@ Focus on prevention and early intervention strategies.`;
 }
 
 async function generateLearningPatternInsights(courseId: string | null, timeframe: string) {
+  const { startDate, endDate } = getTimeframeRange(timeframe);
+  const activityLogs = await db.learningActivityLog.findMany({
+    where: {
+      ...(courseId ? { courseId } : {}),
+      ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
+    },
+    select: { createdAt: true, contentType: true },
+  });
+
   const mockPatternData = {
-    learningStyles: {
-      visual: 35,
-      auditory: 28,
-      kinesthetic: 22,
-      reading: 15
-    },
-    studyPatterns: {
-      earlyMorning: 18,
-      midday: 32,
-      evening: 38,
-      lateNight: 12
-    },
-    contentPreferences: {
-      videos: 78,
-      interactive: 82,
-      reading: 45,
-      discussions: 67
-    },
-    pacePreferences: {
-      selfPaced: 42,
-      structured: 35,
-      accelerated: 23
-    },
-    collaborationStyles: {
-      independent: 40,
-      smallGroups: 35,
-      peerToPeer: 25
-    }
+    learningStyles: {},
+    studyPatterns: buildStudyPatternDistribution(activityLogs.map((log) => log.createdAt)),
+    contentPreferences: buildContentEngagement(
+      activityLogs.map((log) => log.contentType).filter(Boolean) as string[]
+    ),
+    pacePreferences: {},
+    collaborationStyles: {},
   };
 
   const systemPrompt = `You are SAM, an AI teaching assistant analyzing learning patterns. Generate insights about how students learn best.
@@ -508,18 +723,11 @@ Provide insights on:
 
 Focus on how to adapt teaching methods to match student learning patterns.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Analyze learning patterns and suggest teaching adaptations.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runTeacherInsightsChat(
+    systemPrompt,
+    'Analyze learning patterns and suggest teaching adaptations.',
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'learning_patterns',
@@ -536,29 +744,22 @@ Focus on how to adapt teaching methods to match student learning patterns.`;
 }
 
 async function generateContentEffectivenessInsights(courseId: string | null, timeframe: string) {
-  const mockContentData = {
-    contentRatings: {
-      videos: { engagement: 85, effectiveness: 82, completion: 78 },
-      quizzes: { engagement: 92, effectiveness: 88, completion: 95 },
-      readings: { engagement: 58, effectiveness: 72, completion: 65 },
-      assignments: { engagement: 71, effectiveness: 79, completion: 83 }
+  const { startDate, endDate } = getTimeframeRange(timeframe);
+  const activityLogs = await db.learningActivityLog.findMany({
+    where: {
+      ...(courseId ? { courseId } : {}),
+      ...(startDate ? { createdAt: { gte: startDate, lte: endDate } } : {}),
     },
-    topPerforming: [
-      { title: 'Interactive Demo: AI Basics', type: 'video', rating: 4.8 },
-      { title: 'Quick Knowledge Check', type: 'quiz', rating: 4.7 },
-      { title: 'Hands-on Project', type: 'assignment', rating: 4.6 }
-    ],
-    needsImprovement: [
-      { title: 'Theoretical Foundations', type: 'reading', rating: 3.2 },
-      { title: 'Complex Algorithm Overview', type: 'video', rating: 3.4 },
-      { title: 'Advanced Concepts Quiz', type: 'quiz', rating: 3.5 }
-    ],
-    contentGaps: [
-      'More practical examples needed',
-      'Better visual aids for complex topics',
-      'Interactive elements missing in readings',
-      'Assessment alignment issues'
-    ]
+    select: { contentType: true, score: true },
+  });
+
+  const contentRatings = buildContentRatings(activityLogs);
+
+  const mockContentData = {
+    contentRatings,
+    topPerforming: [],
+    needsImprovement: [],
+    contentGaps: [],
   };
 
   const systemPrompt = `You are SAM, an AI teaching assistant analyzing content effectiveness. Generate insights about how well different content types are working.
@@ -578,18 +779,11 @@ Provide insights on:
 
 Focus on data-driven content optimization strategies.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Analyze content effectiveness and provide optimization suggestions.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runTeacherInsightsChat(
+    systemPrompt,
+    'Analyze content effectiveness and provide optimization suggestions.',
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'content_effectiveness',
@@ -684,18 +878,11 @@ async function generateCustomInsight(query: string, courseId: string) {
 
 Provide practical, actionable insights based on educational best practices and data analysis principles.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 800,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: query }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runTeacherInsightsChat(
+    systemPrompt,
+    query,
+    { maxTokens: 800, temperature: 0.7 }
+  );
 
   return {
     query,
@@ -734,4 +921,156 @@ function extractRecommendations(text: string): string[] {
   const recommendationRegex = /(?:recommend|suggest|consider|should|try):\s*([^.!?]+)/gi;
   const matches = text.match(recommendationRegex);
   return matches ? matches.map(m => m.replace(/(?:recommend|suggest|consider|should|try):\s*/i, '').trim()).slice(0, 5) : [];
+}
+
+function getTimeframeRange(timeframe: string): { startDate: Date | null; previousStartDate: Date | null; endDate: Date } {
+  const endDate = new Date();
+  let days = 0;
+  switch (timeframe) {
+    case '7_days':
+      days = 7;
+      break;
+    case '30_days':
+      days = 30;
+      break;
+    case '90_days':
+      days = 90;
+      break;
+    case 'all_time':
+    default:
+      return { startDate: null, previousStartDate: null, endDate };
+  }
+  const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+  const previousStartDate = new Date(startDate.getTime() - days * 24 * 60 * 60 * 1000);
+  return { startDate, previousStartDate, endDate };
+}
+
+function calculateTrend(current: number, previous: number) {
+  if (previous === 0) {
+    return { direction: current > 0 ? 'up' : 'stable', change: current > 0 ? 100 : 0 };
+  }
+  const change = Math.round(((current - previous) / previous) * 100);
+  let direction: 'up' | 'down' | 'stable' = 'stable';
+  if (change > 5) direction = 'up';
+  else if (change < -5) direction = 'down';
+  return { direction, change };
+}
+
+function summarizeActiveHours(dates: Date[]): string[] {
+  if (!dates.length) return [];
+  const hourCounts = new Map<number, number>();
+  dates.forEach((date) => {
+    const hour = date.getHours();
+    hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
+  });
+  const topHours = Array.from(hourCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([hour]) => {
+      const start = hour.toString().padStart(2, '0');
+      const end = ((hour + 2) % 24).toString().padStart(2, '0');
+      return `${start}:00-${end}:00`;
+    });
+  return topHours;
+}
+
+function rankByCount(values: string[]) {
+  const counts = new Map<string, number>();
+  values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, count]) => ({ label, count }));
+}
+
+function buildContentEngagement(contentTypes: string[]) {
+  const ranked = rankByCount(contentTypes);
+  const result: Record<string, number> = {};
+  ranked.forEach((entry) => {
+    result[entry.label] = entry.count;
+  });
+  return result;
+}
+
+function buildContentRatings(
+  logs: Array<{ contentType: string | null; score: number | null }>
+) {
+  const ratings: Record<string, { engagement: number; effectiveness: number; completion: number }> = {};
+  logs.forEach((log) => {
+    if (!log.contentType) return;
+    if (!ratings[log.contentType]) {
+      ratings[log.contentType] = { engagement: 0, effectiveness: 0, completion: 0 };
+    }
+    ratings[log.contentType].engagement += 1;
+    if (typeof log.score === 'number') {
+      ratings[log.contentType].effectiveness += log.score;
+      ratings[log.contentType].completion += log.score >= 70 ? 1 : 0;
+    }
+  });
+
+  Object.keys(ratings).forEach((key) => {
+    const base = ratings[key];
+    base.effectiveness = base.engagement ? Math.round(base.effectiveness / base.engagement) : 0;
+    base.completion = base.engagement ? Math.round((base.completion / base.engagement) * 100) : 0;
+  });
+  return ratings;
+}
+
+function buildStudyPatternDistribution(dates: Date[]) {
+  const buckets = { earlyMorning: 0, midday: 0, evening: 0, lateNight: 0 };
+  dates.forEach((date) => {
+    const hour = date.getHours();
+    if (hour < 8) buckets.earlyMorning += 1;
+    else if (hour < 16) buckets.midday += 1;
+    else if (hour < 22) buckets.evening += 1;
+    else buckets.lateNight += 1;
+  });
+  return buckets;
+}
+
+function buildDailyEngagement(dates: Date[]) {
+  const dayCounts = Array(7).fill(0);
+  dates.forEach((date) => {
+    dayCounts[date.getDay()] += 1;
+  });
+  return dayCounts;
+}
+
+function buildGradeDistribution(scores: number[]) {
+  const distribution = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+  scores.forEach((score) => {
+    if (score >= 90) distribution.A += 1;
+    else if (score >= 80) distribution.B += 1;
+    else if (score >= 70) distribution.C += 1;
+    else if (score >= 60) distribution.D += 1;
+    else distribution.F += 1;
+  });
+  return distribution;
+}
+
+function buildScoreDistribution(scores: number[]) {
+  return {
+    '90-100': scores.filter((score) => score >= 90).length,
+    '80-89': scores.filter((score) => score >= 80 && score < 90).length,
+    '70-79': scores.filter((score) => score >= 70 && score < 80).length,
+    '60-69': scores.filter((score) => score >= 60 && score < 70).length,
+    'below-60': scores.filter((score) => score < 60).length,
+  };
+}
+
+function buildChapterPerformance(attempts: Array<{ scorePercentage: number | null; Exam?: { section?: { chapterId: string | null } } }>) {
+  const chapterScores = new Map<string, { total: number; count: number }>();
+  attempts.forEach((attempt) => {
+    const chapterId = attempt.Exam?.section?.chapterId;
+    if (!chapterId) return;
+    const entry = chapterScores.get(chapterId) ?? { total: 0, count: 0 };
+    entry.total += attempt.scorePercentage ?? 0;
+    entry.count += 1;
+    chapterScores.set(chapterId, entry);
+  });
+
+  return Array.from(chapterScores.entries()).map(([chapter, data]) => ({
+    chapter,
+    average: data.count ? Math.round(data.total / data.count) : 0,
+    completion: data.count ? Math.min(100, Math.round((data.count / attempts.length) * 100)) : 0,
+  }));
 }

@@ -1,3 +1,9 @@
+import {
+  EnhancedDepthAnalysisEngine,
+  createEnhancedDepthAnalysisEngine,
+  enhancedDepthEngine
+} from "./chunk-3KL3OQO6.mjs";
+
 // src/engines/exam-engine.ts
 var AdvancedExamEngine = class {
   config;
@@ -15036,6 +15042,7 @@ export {
   ContentGenerationEngine,
   CourseGuideEngine,
   DEFAULT_RETRY_CONFIG,
+  EnhancedDepthAnalysisEngine,
   SAMEvaluationEngine as EvaluationEngine,
   FinancialEngine,
   GradingAssistanceResponseSchema,
@@ -15062,6 +15069,7 @@ export {
   createCollaborationEngine,
   createContentGenerationEngine,
   createCourseGuideEngine,
+  createEnhancedDepthAnalysisEngine,
   createEvaluationEngine,
   createExamEngine,
   createFinancialEngine,
@@ -15080,6 +15088,7 @@ export {
   createTrendsEngine,
   createUnifiedBloomsAdapterEngine,
   createUnifiedBloomsEngine,
+  enhancedDepthEngine,
   executeWithRetry,
   extractJson,
   extractJsonWithOptions,

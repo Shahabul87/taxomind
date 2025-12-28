@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { samMasterIntegration } from '@/lib/sam-engines/core/sam-master-integration';
+import {
+  SAMAgentOrchestrator,
+  createAssessmentEngine,
+  createContentEngine,
+  createContextEngine,
+  createDefaultContext,
+  createPersonalizationEngine,
+  createResponseEngine,
+  type SAMContext,
+} from '@sam-ai/core';
+import { createUnifiedBloomsAdapterEngine } from '@sam-ai/educational';
+import { getDatabaseAdapter, getSAMConfig } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
@@ -8,6 +19,56 @@ import { logger } from '@/lib/logger';
  * Enhanced SAM Chat API with Engine Integration
  * This shows how to integrate all 5 engines into SAM's chat functionality
  */
+let orchestrator: SAMAgentOrchestrator | null = null;
+
+function getOrchestrator() {
+  if (orchestrator) return orchestrator;
+  const config = getSAMConfig();
+  const dbAdapter = getDatabaseAdapter();
+  const instance = new SAMAgentOrchestrator(config);
+
+  instance.registerEngine(createContextEngine(config));
+  instance.registerEngine(createContentEngine(config));
+  instance.registerEngine(createPersonalizationEngine(config));
+  instance.registerEngine(createAssessmentEngine(config));
+  instance.registerEngine(createResponseEngine(config));
+  instance.registerEngine(
+    createUnifiedBloomsAdapterEngine({
+      samConfig: config,
+      database: dbAdapter,
+      defaultMode: 'standard',
+      confidenceThreshold: 0.7,
+      enableCache: true,
+      cacheTTL: 3600,
+    })
+  );
+
+  orchestrator = instance;
+  return instance;
+}
+
+function buildContext(
+  userId: string,
+  courseId?: string | null,
+  isTeacher?: boolean
+): SAMContext {
+  return createDefaultContext({
+    user: {
+      id: userId,
+      role: isTeacher ? 'teacher' : 'student',
+      preferences: {},
+      capabilities: [],
+    },
+    page: {
+      type: courseId ? 'course-detail' : 'dashboard',
+      path: courseId ? `/courses/${courseId}` : '/dashboard',
+      entityId: courseId ?? undefined,
+      capabilities: [],
+      breadcrumb: [],
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
@@ -26,23 +87,21 @@ export async function POST(request: NextRequest) {
     // Determine interaction type from message
     const interactionType = determineInteractionType(message);
 
-    // Get enhanced response from SAM with engine integration
-    const enhancedResponse = includeEngineInsights
-      ? await samMasterIntegration.processSAMQuery(
-          user.id,
-          courseId,
-          message,
-          interactionType
-        )
-      : null;
-
-    // Generate SAM's conversational response
-    const samResponse = await generateSAMResponse(
-      message,
-      user,
+    const samContext = buildContext(
+      user.id,
       courseId,
-      enhancedResponse
+      (user as { isTeacher?: boolean }).isTeacher
     );
+    const result = await getOrchestrator().orchestrate(samContext, message, {
+      parallel: true,
+    });
+
+    const samResponse = {
+      message: result.response.message,
+      suggestions: result.response.suggestions ?? [],
+      actions: result.response.actions ?? [],
+      insights: includeEngineInsights ? result.response.insights ?? {} : {},
+    };
 
     // Store the interaction
     await storeInteraction(
@@ -51,7 +110,7 @@ export async function POST(request: NextRequest) {
       message,
       samResponse,
       interactionType,
-      enhancedResponse
+      includeEngineInsights ? result : null
     );
 
     // Return the enhanced response
@@ -62,7 +121,7 @@ export async function POST(request: NextRequest) {
         suggestions: samResponse.suggestions,
         actions: samResponse.actions,
         insights: samResponse.insights,
-        engineData: enhancedResponse?.context?.engineData,
+        engineData: includeEngineInsights ? result.results : undefined,
         conversationId,
       },
     });
@@ -135,78 +194,6 @@ function determineInteractionType(message: string): string {
 }
 
 /**
- * Generate SAM's conversational response with engine insights
- */
-async function generateSAMResponse(
-  message: string,
-  user: any,
-  courseId: string | null,
-  engineResponse: any
-): Promise<any> {
-  const response: any = {
-    message: '',
-    suggestions: [],
-    actions: [],
-    insights: [],
-  };
-
-  // Base response generation (your existing SAM logic)
-  // This is where you'd integrate with your existing SAM response generation
-  
-  // Enhance with engine insights
-  if (engineResponse) {
-    // Add engine-based message enhancement
-    response.message = enhanceMessageWithEngineData(
-      message,
-      engineResponse,
-      user.role
-    );
-    
-    // Add engine suggestions
-    response.suggestions = engineResponse.suggestions || [];
-    
-    // Add actionable items
-    response.actions = engineResponse.actions || [];
-    
-    // Add insights
-    response.insights = engineResponse.insights || [];
-  } else {
-    // Fallback to basic response
-    response.message = "I'm here to help! What would you like to know?";
-  }
-
-  return response;
-}
-
-/**
- * Enhance message with engine data
- */
-function enhanceMessageWithEngineData(
-  originalMessage: string,
-  engineResponse: any,
-  userRole: string
-): string {
-  let enhancedMessage = engineResponse.message || '';
-  
-  // Add role-specific enhancements
-  if (userRole === 'USER') {
-    // Student-specific enhancements
-    const progress = engineResponse.context?.engineData?.bloomsAnalysis?.studentProgress;
-    if (progress && progress.weaknessAreas.length > 0) {
-      enhancedMessage += ` I notice you could use some practice with ${progress.weaknessAreas[0]} skills.`;
-    }
-  } else if (userRole === 'ADMIN') {
-    // Teacher-specific enhancements
-    const courseGuide = engineResponse.context?.engineData?.courseGuide;
-    if (courseGuide && courseGuide.criticalActions > 0) {
-      enhancedMessage += ` You have ${courseGuide.criticalActions} critical actions that need attention.`;
-    }
-  }
-  
-  return enhancedMessage;
-}
-
-/**
  * Store the interaction with engine data
  */
 async function storeInteraction(
@@ -222,11 +209,11 @@ async function storeInteraction(
       data: {
         userId,
         courseId,
-        interactionType: interactionType as any, // Map to your enum
+        interactionType: mapInteractionType(interactionType),
         context: {
           message,
           engineIntegration: !!engineResponse,
-          enginesUsed: engineResponse ? getUsedEngines(engineResponse) : [],
+          enginesUsed: engineResponse ? getUsedEngines(engineResponse.results) : [],
           result: {
             response: response.message,
             suggestions: response.suggestions,
@@ -244,17 +231,34 @@ async function storeInteraction(
 /**
  * Get list of engines used in the response
  */
-function getUsedEngines(engineResponse: any): string[] {
-  const engines = [];
-  const engineData = engineResponse.context?.engineData;
-  
-  if (engineData?.marketAnalysis) engines.push('market');
-  if (engineData?.bloomsAnalysis) engines.push('blooms');
-  if (engineData?.examInsights) engines.push('exam');
-  if (engineData?.courseGuide) engines.push('guide');
-  if (engineData?.learningProfile) engines.push('profile');
+function getUsedEngines(engineResults: Record<string, unknown> | undefined): string[] {
+  const engines: string[] = [];
+
+  if (!engineResults) return engines;
+
+  if (engineResults.context) engines.push('context');
+  if (engineResults.blooms) engines.push('blooms');
+  if (engineResults.content) engines.push('content');
+  if (engineResults.personalization) engines.push('personalization');
+  if (engineResults.assessment) engines.push('assessment');
+  if (engineResults.response) engines.push('response');
   
   return engines;
+}
+
+function mapInteractionType(value: string) {
+  switch (value) {
+    case 'CONTENT_GENERATE':
+      return 'CONTENT_GENERATE';
+    case 'MARKET_ANALYSIS':
+    case 'PROGRESS_CHECK':
+    case 'EXAM_HELP':
+    case 'COURSE_HELP':
+      return 'LEARNING_ASSISTANCE';
+    case 'QUESTION_ASKED':
+    default:
+      return 'CHAT_MESSAGE';
+  }
 }
 
 // GET endpoint to retrieve conversation history with engine insights

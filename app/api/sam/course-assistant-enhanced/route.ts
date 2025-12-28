@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import Anthropic from '@anthropic-ai/sdk';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 export async function POST(request: NextRequest) {
   try {
@@ -134,13 +130,11 @@ Return response as JSON:
 }`;
 
   try {
-    const response = await anthropic.messages.create({
+    const content = await runSAMChat({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }]
+      maxTokens: 1500,
+      messages: [{ role: 'user', content: prompt }],
     });
-
-    const content = response.content[0].type === 'text' ? response.content[0].text : '';
     
     try {
       const parsed = JSON.parse(content);

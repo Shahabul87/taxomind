@@ -25,68 +25,70 @@ import type {
 // ============================================================================
 
 /**
- * Minimal Prisma client interface required by SAM adapters.
- * Your Prisma client must implement these methods for the required models.
+ * Internal Prisma model interface for type-safe adapter implementation.
+ * Uses flexible types that work with our internal calls.
  */
-export interface PrismaClientLike {
-  user: PrismaModelLike<UserRecord>;
-  course: PrismaModelLike<CourseRecord>;
-  chapter: PrismaModelLike<ChapterRecord>;
-  section: PrismaModelLike<SectionRecord>;
-  questionBank?: PrismaModelLike<QuestionRecord>;
-  studentBloomsProgress?: PrismaModelLike<BloomsProgressRecord>;
-  cognitiveSkillProgress?: PrismaModelLike<CognitiveProgressRecord>;
-  sAMInteraction?: PrismaModelLike<InteractionRecord>;
-  courseBloomsAnalysis?: PrismaModelLike<CourseAnalysisRecord>;
+interface InternalPrismaModelLike<T> {
+  findUnique: (args: { where: Record<string, unknown>; select?: Record<string, boolean | object>; include?: Record<string, boolean | object> }) => Promise<T | null>;
+  findMany: (args?: { where?: Record<string, unknown>; take?: number; skip?: number; orderBy?: Record<string, unknown> | Array<Record<string, unknown>>; select?: Record<string, boolean | object>; include?: Record<string, boolean | object> }) => Promise<T[]>;
+  create: (args: { data: Record<string, unknown> }) => Promise<T>;
+  update: (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<T>;
+  upsert: (args: { where: Record<string, unknown>; create: Record<string, unknown>; update: Record<string, unknown> }) => Promise<T>;
+  delete: (args: { where: Record<string, unknown> }) => Promise<T>;
+  count: (args?: { where?: Record<string, unknown> }) => Promise<number>;
+}
+
+/**
+ * Internal Prisma client type used by the adapter implementation.
+ */
+interface InternalPrismaClient {
+  user: InternalPrismaModelLike<UserRecord>;
+  course: InternalPrismaModelLike<CourseRecord>;
+  chapter: InternalPrismaModelLike<ChapterRecord>;
+  section: InternalPrismaModelLike<SectionRecord>;
+  questionBank?: InternalPrismaModelLike<QuestionRecord>;
+  studentBloomsProgress?: InternalPrismaModelLike<BloomsProgressRecord>;
+  cognitiveSkillProgress?: InternalPrismaModelLike<CognitiveProgressRecord>;
+  sAMInteraction?: InternalPrismaModelLike<InteractionRecord>;
+  courseBloomsAnalysis?: InternalPrismaModelLike<CourseAnalysisRecord>;
   $queryRaw: <T>(query: TemplateStringsArray) => Promise<T>;
 }
 
-interface PrismaModelLike<T> {
-  findUnique: (args: FindUniqueArgs) => Promise<T | null>;
-  findMany: (args: FindManyArgs) => Promise<T[]>;
-  create: (args: CreateArgs) => Promise<T>;
-  update: (args: UpdateArgs) => Promise<T>;
-  upsert: (args: UpsertArgs) => Promise<T>;
-  delete: (args: DeleteArgs) => Promise<T>;
-  count: (args?: CountArgs) => Promise<number>;
+/**
+ * Minimal Prisma model delegate interface.
+ * Uses bivariant method syntax to be compatible with Prisma's generic methods.
+ */
+interface PrismaModelDelegate {
+  // Using method syntax instead of property syntax for bivariance
+  findUnique(args: never): Promise<object | null>;
+  findMany(args?: never): Promise<object[]>;
+  create(args: never): Promise<object>;
+  update(args: never): Promise<object>;
+  upsert(args: never): Promise<object>;
+  delete(args: never): Promise<object>;
+  count(args?: never): Promise<number>;
 }
 
-interface FindUniqueArgs {
-  where: Record<string, unknown>;
-  select?: Record<string, boolean>;
-  include?: Record<string, boolean | object>;
-}
-
-interface FindManyArgs {
-  where?: Record<string, unknown>;
-  take?: number;
-  skip?: number;
-  orderBy?: Record<string, 'asc' | 'desc'> | Array<Record<string, 'asc' | 'desc'>>;
-  select?: Record<string, boolean>;
-  include?: Record<string, boolean | object>;
-}
-
-interface CreateArgs {
-  data: Record<string, unknown>;
-}
-
-interface UpdateArgs {
-  where: Record<string, unknown>;
-  data: Record<string, unknown>;
-}
-
-interface UpsertArgs {
-  where: Record<string, unknown>;
-  create: Record<string, unknown>;
-  update: Record<string, unknown>;
-}
-
-interface DeleteArgs {
-  where: Record<string, unknown>;
-}
-
-interface CountArgs {
-  where?: Record<string, unknown>;
+/**
+ * Minimal type constraint for any Prisma client that has the required models.
+ *
+ * Your Prisma client must have these models:
+ * - user, course, chapter, section (required)
+ * - questionBank, studentBloomsProgress, cognitiveSkillProgress, sAMInteraction, courseBloomsAnalysis (optional)
+ *
+ * This is a structural type that accepts any Prisma client with the required models.
+ */
+export interface PrismaClientLike {
+  user: PrismaModelDelegate;
+  course: PrismaModelDelegate;
+  chapter: PrismaModelDelegate;
+  section: PrismaModelDelegate;
+  questionBank?: PrismaModelDelegate;
+  studentBloomsProgress?: PrismaModelDelegate;
+  cognitiveSkillProgress?: PrismaModelDelegate;
+  sAMInteraction?: PrismaModelDelegate;
+  courseBloomsAnalysis?: PrismaModelDelegate;
+  $queryRaw: <T>(query: TemplateStringsArray) => Promise<T>;
 }
 
 // ============================================================================
@@ -238,11 +240,13 @@ export interface PrismaSAMAdapterConfig {
  * ```
  */
 export class PrismaSAMAdapter implements SAMDatabaseAdapter {
-  private prisma: PrismaClientLike;
+  private prisma: InternalPrismaClient;
   private debug: boolean;
 
   constructor(config: PrismaSAMAdapterConfig) {
-    this.prisma = config.prisma;
+    // Cast the external Prisma client to our internal type
+    // This is safe because PrismaClientLike is a structural subtype that accepts any Prisma client
+    this.prisma = config.prisma as unknown as InternalPrismaClient;
     this.debug = config.debug ?? false;
   }
 

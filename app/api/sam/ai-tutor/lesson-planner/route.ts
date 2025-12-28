@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,6 +62,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function runLessonPlannerChat(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: { maxTokens?: number; temperature?: number; model?: string }
+): Promise<string> {
+  return runSAMChat({
+    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+    maxTokens: options?.maxTokens ?? 2500,
+    temperature: options?.temperature ?? 0.7,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+}
+
 async function generateDetailedLessonPlan(
   subject: string,
   topic: string,
@@ -112,18 +122,11 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 
 Make the plan practical, engaging, and aligned with modern educational best practices.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 3000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a detailed lesson plan for ${topic} in ${subject}.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const planText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const planText = await runLessonPlannerChat(
+    systemPrompt,
+    `Create a detailed lesson plan for ${topic} in ${subject}.`,
+    { maxTokens: 3000, temperature: 0.7 }
+  );
 
   return {
     type: 'detailed_lesson',
@@ -191,18 +194,11 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 
 Create a cohesive unit that builds understanding progressively and engages students throughout.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 3000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a comprehensive unit plan for ${topic} in ${subject}.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const planText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const planText = await runLessonPlannerChat(
+    systemPrompt,
+    `Create a comprehensive unit plan for ${topic} in ${subject}.`,
+    { maxTokens: 3000, temperature: 0.7 }
+  );
 
   return {
     type: 'unit_plan',
@@ -268,18 +264,11 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 
 Create activities that are engaging, educational, and practically feasible for the classroom.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 2000,
-    temperature: 0.8,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create engaging activities for ${topic} in ${subject}.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const planText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const planText = await runLessonPlannerChat(
+    systemPrompt,
+    `Create engaging activities for ${topic} in ${subject}.`,
+    { maxTokens: 2000, temperature: 0.8 }
+  );
 
   return {
     type: 'activity_plan',
@@ -344,18 +333,11 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 
 Create assessments that are fair, comprehensive, and aligned with learning objectives.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 2500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create comprehensive assessment strategies for ${topic} in ${subject}.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const planText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const planText = await runLessonPlannerChat(
+    systemPrompt,
+    `Create comprehensive assessment strategies for ${topic} in ${subject}.`,
+    { maxTokens: 2500, temperature: 0.7 }
+  );
 
   return {
     type: 'assessment_plan',
@@ -420,18 +402,11 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 
 Create a plan that ensures all students can access and engage with the content at their level.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 2500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a differentiated lesson plan for ${topic} in ${subject}.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const planText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const planText = await runLessonPlannerChat(
+    systemPrompt,
+    `Create a differentiated lesson plan for ${topic} in ${subject}.`,
+    { maxTokens: 2500, temperature: 0.7 }
+  );
 
   return {
     type: 'differentiated_plan',

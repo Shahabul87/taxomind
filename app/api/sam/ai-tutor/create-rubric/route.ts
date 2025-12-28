@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,18 +43,15 @@ Each criterion should have:
 - levels: Object with descriptors for each performance level
 - pointsRange: Point range for this criterion`;
 
-    const response = await anthropic.messages.create({
+    const rubricText = await runSAMChat({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2000,
+      maxTokens: 2000,
       temperature: 0.7,
+      systemPrompt,
       messages: [
-        { role: 'user', content: `System Instructions: ${systemPrompt}` },
         { role: 'user', content: `Create a comprehensive rubric for this assignment: ${JSON.stringify(assignment)}` }
-      ]
+      ],
     });
-
-    const aiResponse = response.content[0];
-    let rubricText = aiResponse.type === 'text' ? aiResponse.text : '';
 
     // Try to parse as JSON, fallback to structured parsing
     let rubric;

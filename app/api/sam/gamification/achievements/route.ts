@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getSAMBadges } from '@/lib/sam/utils/sam-database';
-import { TEACHER_ACHIEVEMENTS } from '@/lib/sam/utils/sam-achievements';
 import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
@@ -14,20 +13,15 @@ export async function GET(req: NextRequest) {
 
     const badges = await getSAMBadges(session.user.id);
     
-    // Map badges to achievement format
-    const achievements = badges.map(badge => {
-      const achievementDef = TEACHER_ACHIEVEMENTS.find(a => a.id === badge.description);
-      
-      return {
-        id: badge.description,
-        name: achievementDef?.name || 'Unknown Achievement',
-        description: achievementDef?.description || badge.description,
-        icon: achievementDef?.icon || '🏆',
-        level: badge.level,
-        unlockedAt: badge.earnedAt,
-        points: achievementDef?.points || 0,
-      };
-    });
+    const achievements = badges.map((badge) => ({
+      id: badge.id,
+      name: badge.name ?? badge.badgeType,
+      description: badge.description ?? badge.badgeType,
+      icon: badge.iconUrl ?? '🏆',
+      level: badge.level,
+      unlockedAt: badge.earnedAt,
+      points: badge.pointsRequired ?? 0,
+    }));
 
     return NextResponse.json({
       success: true,

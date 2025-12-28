@@ -142,8 +142,8 @@ sam-ai-tutor/
 
 #### Architecture Documentation (11 files)
 
-**From**: `docs/architecture/sam-ai-tutor/`
-**To**: `sam-ai-tutor/docs/architecture/`
+**From**: `docs/features/sam-ai-system/architecture/`
+**To**: `docs/features/sam-ai-system/architecture/`
 
 - ✅ `00-OVERVIEW.md`
 - ✅ `01-ARCHITECTURE.md`
@@ -159,8 +159,8 @@ sam-ai-tutor/
 
 #### Implementation Guides (13 files)
 
-**From**: `docs/sam-implementation/`
-**To**: `sam-ai-tutor/docs/implementation/`
+**From**: `docs/features/sam-ai-system/implementation/`
+**To**: `docs/features/sam-ai-system/implementation/`
 
 - ✅ `COMPLETE_SAM_FIXES_SUMMARY.md`
 - ✅ `CONTEXT_AWARE_SAM_IMPLEMENTATION.md`
@@ -180,8 +180,8 @@ sam-ai-tutor/
 
 #### User & Developer Guides (15 files)
 
-**From**: `docs/sam-ai-system/`
-**To**: `sam-ai-tutor/docs/guides/`
+**From**: `docs/features/sam-ai-system/guides/`
+**To**: `docs/features/sam-ai-system/guides/`
 
 - ✅ `SAM_AI_ASSISTANT_DOCUMENTATION.md`
 - ✅ `SAM_AI_FRONTEND_INTEGRATION_GUIDE.md`
@@ -199,23 +199,23 @@ sam-ai-tutor/
 
 #### API Reference (3 files)
 
-**From**: `docs/sam-ai-system/`
-**To**: `sam-ai-tutor/docs/api-reference/`
+**From**: `docs/features/sam-ai-system/api-reference/`
+**To**: `docs/features/sam-ai-system/api-reference/`
 
 - ✅ `SAM_API_DOCUMENTATION.md`
 - ✅ `SAM_AI_TUTOR_API_REFERENCE.md`
 
 #### Troubleshooting (1 file)
 
-**From**: `docs/sam-ai-system/`
-**To**: `sam-ai-tutor/docs/troubleshooting/`
+**From**: `docs/features/sam-ai-system/troubleshooting/`
+**To**: `docs/features/sam-ai-system/troubleshooting/`
 
 - ✅ `SAM_AI_TUTOR_TROUBLESHOOTING.md`
 
 #### Analysis Reports (5 files)
 
 **From**: Root and `docs/`
-**To**: `sam-ai-tutor/docs/reports/`
+**To**: `docs/features/sam-ai-system/reports/`
 
 - ✅ `SAM_AI_TEACHER_POWER_ANALYSIS_REPORT.md`
 - ✅ `SAM_AI_ENGINE_COMPREHENSIVE_ARCHITECTURE.md`

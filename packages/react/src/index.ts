@@ -45,6 +45,8 @@ export type {
   // Provider types
   SAMProviderConfig,
   SAMProviderState,
+  SAMApiTransportOptions,
+  SAMApiTransportResponse,
 
   // Hook return types
   UseSAMReturn,

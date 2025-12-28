@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +66,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function runContentCompanionChat(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: { maxTokens?: number; temperature?: number; model?: string }
+): Promise<string> {
+  return runSAMChat({
+    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+    maxTokens: options?.maxTokens ?? 1000,
+    temperature: options?.temperature ?? 0.7,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+}
+
 async function handleVideoTimestampHelp(
   contentContext: any,
   userInput: any,
@@ -96,18 +106,11 @@ Provide contextual help that:
 4. Provides visual or practical examples if helpful
 5. Offers interactive exercises related to this concept`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Student question at ${timestamp}: "${userQuestion}"` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `Student question at ${timestamp}: "${userQuestion}"`,
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'video_help',
@@ -146,18 +149,11 @@ Provide:
 5. Related programming concepts to explore
 6. Step-by-step breakdown if complex`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Explain this code line: "${codeSnippet}" (line ${lineNumber})` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `Explain this code line: "${codeSnippet}" (line ${lineNumber})`,
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'code_explanation',
@@ -197,18 +193,11 @@ Provide:
 5. Visual representations if helpful
 6. Related concepts to explore`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Please clarify this concept: "${concept}" from the text: "${textSegment}"` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `Please clarify this concept: "${concept}" from the text: "${textSegment}"`,
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'concept_clarification',
@@ -248,18 +237,11 @@ Provide:
 5. Suggestions for related visual materials
 6. Connections to broader concepts`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Student is asking about "${annotationPoint}" in the image. Question: "${userQuestion}"` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `Student is asking about "${annotationPoint}" in the image. Question: "${userQuestion}"`,
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'image_annotation',
@@ -301,18 +283,11 @@ Based on the assistance level, provide:
 
 Always encourage independent thinking and learning.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 800,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Student needs ${assistanceLevel} help with: "${question}". Their current answer: "${studentAnswer}"` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `Student needs ${assistanceLevel} help with: "${question}". Their current answer: "${studentAnswer}"`,
+    { maxTokens: 800, temperature: 0.7 }
+  );
 
   return {
     type: 'quiz_hint',
@@ -352,18 +327,11 @@ Provide:
 5. How to organize their findings
 6. Study schedule suggestions`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 800,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Help me navigate this ${documentType} to find: "${navigationQuery}"` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `Help me navigate this ${documentType} to find: "${navigationQuery}"`,
+    { maxTokens: 800, temperature: 0.7 }
+  );
 
   return {
     type: 'document_navigation',
@@ -403,18 +371,11 @@ Provide:
 5. Other concepts that relate to both
 6. Interactive exercises to reinforce the connection`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Help me understand the ${connectionType} connection between "${concept1}" and "${concept2}"` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `Help me understand the ${connectionType} connection between "${concept1}" and "${concept2}"`,
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'concept_connection',
@@ -456,18 +417,11 @@ Provide:
 5. Motivation and focus techniques
 6. Suggestions for next session`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `I have ${timeAvailable} to study ${contentType}. My energy level is ${energyLevel} and I want to ${sessionGoals}` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const responseText = await runContentCompanionChat(
+    systemPrompt,
+    `I have ${timeAvailable} to study ${contentType}. My energy level is ${energyLevel} and I want to ${sessionGoals}`,
+    { maxTokens: 1000, temperature: 0.7 }
+  );
 
   return {
     type: 'study_session_guidance',

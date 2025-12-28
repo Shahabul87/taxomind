@@ -1,22 +1,113 @@
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { randomUUID } from 'crypto';
+import {
+  BadgeLevel,
+  SAMBadgeType,
+  SAMInteractionType,
+  SAMLearningStyle,
+  SAMMessageType,
+  SAMPointsCategory,
+  SAMStreakType,
+} from '@prisma/client';
 
 /**
- * SAM Database Utilities - Stub Implementation
- * This is a minimal stub for backward compatibility
- * Actual database operations should use the main db instance
+ * SAM Database Utilities
+ * Backed by Prisma models defined in prisma/schema.prisma
  */
 
-/**
- * Initialize SAM database tables (stub)
- */
-export async function initializeSamDatabase(): Promise<void> {
-  logger.info('SAM Database initialized (stub)');
-  // Stub implementation - database is managed by Prisma
+const messageTypeMap: Record<string, SAMMessageType> = {
+  user: 'USER',
+  assistant: 'SAM',
+  sam: 'SAM',
+  system: 'SYSTEM',
+  action: 'ACTION',
+};
+
+function normalizeMessageType(role: string): SAMMessageType {
+  const normalized = role?.toLowerCase?.() ?? '';
+  return messageTypeMap[normalized] ?? 'USER';
+}
+
+function normalizeInteractionType(value?: string): SAMInteractionType {
+  if (!value) return 'CHAT_MESSAGE';
+  const upper = value.toUpperCase();
+  if ((Object.values(SAMInteractionType) as string[]).includes(upper)) {
+    return upper as SAMInteractionType;
+  }
+
+  const map: Record<string, SAMInteractionType> = {
+    chat: 'CHAT_MESSAGE',
+    message: 'CHAT_MESSAGE',
+    form: 'FORM_POPULATE',
+    submit: 'FORM_SUBMIT',
+    validate: 'FORM_VALIDATE',
+    generate: 'CONTENT_GENERATE',
+    navigation: 'NAVIGATION',
+    quick: 'QUICK_ACTION',
+    analytics: 'ANALYTICS_VIEW',
+    gamification: 'GAMIFICATION_ACTION',
+    learning: 'LEARNING_ASSISTANCE',
+  };
+
+  return map[upper.toLowerCase()] ?? 'CHAT_MESSAGE';
+}
+
+function normalizePointsCategory(value?: string): SAMPointsCategory {
+  if (!value) return 'CHAT_ENGAGEMENT';
+  const upper = value.toUpperCase();
+  if ((Object.values(SAMPointsCategory) as string[]).includes(upper)) {
+    return upper as SAMPointsCategory;
+  }
+
+  const map: Record<string, SAMPointsCategory> = {
+    chat: 'CHAT_ENGAGEMENT',
+    engagement: 'CHAT_ENGAGEMENT',
+    form: 'FORM_INTERACTION',
+    content: 'CONTENT_CREATION',
+    achievement: 'ACHIEVEMENT_UNLOCK',
+    daily: 'DAILY_ACTIVITY',
+    progress: 'LEARNING_PROGRESS',
+    teaching: 'TEACHING_ACTIVITY',
+    collaboration: 'COLLABORATION',
+  };
+
+  return map[upper.toLowerCase()] ?? 'CHAT_ENGAGEMENT';
+}
+
+function normalizeLearningStyle(style?: string): SAMLearningStyle {
+  if (!style) return 'MIXED';
+  const normalized = style.toUpperCase().replace(/[-\s]/g, '_');
+  if ((Object.values(SAMLearningStyle) as string[]).includes(normalized)) {
+    return normalized as SAMLearningStyle;
+  }
+
+  if (normalized === 'READING') return 'READING_WRITING';
+  return 'MIXED';
+}
+
+function normalizeStreakType(value?: string): SAMStreakType {
+  if (!value) return 'DAILY_INTERACTION';
+  const upper = value.toUpperCase();
+  if ((Object.values(SAMStreakType) as string[]).includes(upper)) {
+    return upper as SAMStreakType;
+  }
+  return 'DAILY_INTERACTION';
+}
+
+function calculateLevel(points: number): number {
+  return Math.floor(points / 100) + 1;
 }
 
 /**
- * Store SAM interaction
+ * Initialize SAM database tables (no-op)
+ */
+export async function initializeSamDatabase(): Promise<void> {
+  logger.info('SAM Database initialized');
+}
+
+/**
+ * Store SAM interaction (legacy helper)
  */
 export async function storeSamInteraction(data: {
   userId: string;
@@ -25,8 +116,17 @@ export async function storeSamInteraction(data: {
   context?: Record<string, unknown>;
 }): Promise<void> {
   try {
-    logger.info('SAM Interaction stored (stub)', { userId: data.userId });
-    // Stub implementation - could be extended to store in database
+    await db.sAMInteraction.create({
+      data: {
+        userId: data.userId,
+        interactionType: 'CHAT_MESSAGE',
+        context: {
+          message: data.message,
+          response: data.response,
+          ...data.context,
+        },
+      },
+    });
   } catch (error) {
     logger.error('Error storing SAM interaction', error);
   }
@@ -40,74 +140,198 @@ export interface ConversationMessage {
 }
 
 /**
- * Get SAM conversation history
+ * Get SAM conversation history (latest conversation)
  */
 export async function getSamConversationHistory(
   userId: string,
   limit: number = 10
 ): Promise<ConversationMessage[]> {
-  logger.info('SAM Conversation history retrieved (stub)', { userId, limit });
-  // Stub implementation - return empty array
-  return [];
+  const conversation = await db.sAMConversation.findFirst({
+    where: { userId },
+    orderBy: { startedAt: 'desc' },
+    select: { id: true },
+  });
+
+  if (!conversation) return [];
+
+  const messages = await db.sAMMessage.findMany({
+    where: { conversationId: conversation.id },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return messages.map((msg) => ({
+    id: msg.id,
+    role: msg.messageType === 'USER' ? 'user' : 'assistant',
+    content: msg.content,
+    timestamp: msg.createdAt,
+  }));
 }
 
 /**
  * Clear SAM conversation history
  */
 export async function clearSamConversationHistory(userId: string): Promise<void> {
-  logger.info('SAM Conversation history cleared (stub)', { userId });
-  // Stub implementation
+  const conversations = await db.sAMConversation.findMany({
+    where: { userId },
+    select: { id: true },
+  });
+
+  const conversationIds = conversations.map((c) => c.id);
+  if (!conversationIds.length) return;
+
+  await db.sAMMessage.deleteMany({
+    where: { conversationId: { in: conversationIds } },
+  });
+
+  await db.sAMConversation.updateMany({
+    where: { id: { in: conversationIds } },
+    data: {
+      isActive: false,
+      endedAt: new Date(),
+      totalMessages: 0,
+    },
+  });
 }
 
 /**
- * Record SAM interaction (stub)
+ * Record SAM interaction
  */
 export async function recordSAMInteraction(data: {
   userId: string;
   type?: string;
   interactionType?: string;
-  context?: string;
+  context?: string | Record<string, unknown>;
   result?: string;
   courseId?: string;
   chapterId?: string;
   sectionId?: string;
   metadata?: { [key: string]: string | number | boolean };
-}): Promise<void> {
-  const interactionType = data.interactionType || data.type || 'unknown';
-  logger.info('SAM Interaction recorded (stub)', { userId: data.userId, interactionType, courseId: data.courseId });
-  // Stub implementation
+}): Promise<SAMInteraction> {
+  const interactionType = normalizeInteractionType(data.interactionType ?? data.type);
+  const context =
+    typeof data.context === 'string' ? { message: data.context } : data.context ?? {};
+
+  const interaction = await db.sAMInteraction.create({
+    data: {
+      userId: data.userId,
+      interactionType,
+      context,
+      actionTaken: data.result,
+      formData: data.metadata ?? undefined,
+      courseId: data.courseId,
+      chapterId: data.chapterId,
+      sectionId: data.sectionId,
+    },
+  });
+
+  return {
+    id: interaction.id,
+    userId: interaction.userId,
+    interactionType: interaction.interactionType,
+    context: JSON.stringify(interaction.context),
+    result: interaction.actionTaken ?? undefined,
+    courseId: interaction.courseId ?? undefined,
+    chapterId: interaction.chapterId ?? undefined,
+    sectionId: interaction.sectionId ?? undefined,
+    createdAt: interaction.createdAt,
+  };
 }
 
 /**
- * Award SAM points (stub)
+ * Award SAM points
  */
 export async function awardSAMPoints(
   userId: string,
-  data: number | {
-    points: number;
-    reason?: string;
-    source?: string;
-    courseId?: string;
-    chapterId?: string;
-    sectionId?: string;
-  }
-): Promise<void> {
+  data:
+    | number
+    | {
+        points: number;
+        reason?: string;
+        source?: string;
+        courseId?: string;
+        chapterId?: string;
+        sectionId?: string;
+      }
+): Promise<{ points: number; level: number }> {
   const points = typeof data === 'number' ? data : data.points;
-  logger.info('SAM Points awarded (stub)', { userId, points });
-  // Stub implementation
+  const reason = typeof data === 'number' ? 'Manual award' : data.reason ?? 'Manual award';
+  const source = typeof data === 'number' ? undefined : data.source;
+  const category = normalizePointsCategory(source);
+
+  await db.sAMPoints.create({
+    data: {
+      userId,
+      points,
+      reason,
+      category,
+      context: source ? { source } : undefined,
+      courseId: typeof data === 'number' ? undefined : data.courseId,
+      chapterId: typeof data === 'number' ? undefined : data.chapterId,
+      sectionId: typeof data === 'number' ? undefined : data.sectionId,
+    },
+  });
+
+  const user = await db.user.update({
+    where: { id: userId },
+    data: { samTotalPoints: { increment: points } },
+    select: { samTotalPoints: true, samLevel: true },
+  });
+
+  const nextLevel = calculateLevel(user.samTotalPoints);
+  if (nextLevel !== user.samLevel) {
+    await db.user.update({
+      where: { id: userId },
+      data: { samLevel: nextLevel },
+    });
+  }
+
+  return { points: user.samTotalPoints, level: nextLevel };
 }
 
 /**
- * Unlock SAM badge (stub)
+ * Unlock SAM badge
  */
-export async function unlockSAMBadge(userId: string, badgeData: Record<string, unknown> | string): Promise<void> {
-  const badgeId = typeof badgeData === 'string' ? badgeData : (badgeData.badgeType as string || 'unknown');
-  logger.info('SAM Badge unlocked (stub)', { userId, badgeId });
-  // Stub implementation
+export async function unlockSAMBadge(
+  userId: string,
+  badgeData: Record<string, unknown> | string
+): Promise<{ id: string; badgeId: string }> {
+  const data = typeof badgeData === 'string' ? { badgeType: badgeData } : badgeData;
+  const badgeType = (data.badgeType as SAMBadgeType) ?? 'FIRST_INTERACTION';
+  const level = (data.level as BadgeLevel) ?? 'BRONZE';
+  const badgeId = data.badgeId ? String(data.badgeId) : `${badgeType}:${level}`;
+  const name = (data.name as string) ?? badgeType.replace(/_/g, ' ');
+  const description = (data.description as string) ?? 'SAM achievement unlocked';
+
+  const badge = await db.sAMBadge.upsert({
+    where: { userId_badgeId: { userId, badgeId } },
+    update: {
+      level,
+      name,
+      description,
+      context: data.requirements as Record<string, unknown> | undefined,
+      courseId: (data.courseId as string | undefined) ?? undefined,
+    },
+    create: {
+      userId,
+      badgeId,
+      badgeType,
+      name,
+      description,
+      level,
+      pointsRequired: (data.pointsRequired as number | undefined) ?? 0,
+      iconUrl: (data.iconUrl as string | undefined) ?? undefined,
+      context: data.requirements as Record<string, unknown> | undefined,
+      courseId: (data.courseId as string | undefined) ?? undefined,
+    },
+    select: { id: true, badgeId: true },
+  });
+
+  return badge;
 }
 
 /**
- * Get user SAM stats (stub)
+ * Get user SAM stats
  */
 export async function getUserSAMStats(
   userId: string,
@@ -118,12 +342,21 @@ export async function getUserSAMStats(
   badges: number;
   streak: number;
 }> {
-  logger.info('SAM Stats retrieved (stub)', { userId, courseId });
+  const [pointsAgg, badgesCount, streak] = await Promise.all([
+    db.sAMPoints.aggregate({
+      where: { userId, ...(courseId ? { courseId } : {}) },
+      _sum: { points: true },
+    }),
+    db.sAMBadge.count({ where: { userId, ...(courseId ? { courseId } : {}) } }),
+    db.sAMStreak.findUnique({ where: { userId } }),
+  ]);
+
+  const points = pointsAgg._sum.points ?? 0;
   return {
-    points: 0,
-    level: 1,
-    badges: 0,
-    streak: 0
+    points,
+    level: calculateLevel(points),
+    badges: badgesCount,
+    streak: streak?.currentStreak ?? 0,
   };
 }
 
@@ -161,21 +394,55 @@ export interface SAMBadge {
   level: string;
   description?: string;
   earnedAt: Date;
+  name?: string;
+  iconUrl?: string | null;
+  pointsRequired?: number;
 }
 
 /**
- * Get SAM conversations (stub)
+ * Get SAM conversations
  */
 export async function getSAMConversations(
   userId: string,
   options?: { courseId?: string; chapterId?: string; limit?: number }
 ): Promise<SAMConversation[]> {
-  logger.info('SAM Conversations retrieved (stub)', { userId, options });
-  return [];
+  const conversations = await db.sAMConversation.findMany({
+    where: {
+      userId,
+      ...(options?.courseId ? { courseId: options.courseId } : {}),
+      ...(options?.chapterId ? { chapterId: options.chapterId } : {}),
+    },
+    orderBy: { startedAt: 'desc' },
+    take: options?.limit ?? 20,
+    include: {
+      messages: {
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      },
+    },
+  });
+
+  return conversations.map((conv) => ({
+    id: conv.id,
+    userId: conv.userId,
+    courseId: conv.courseId ?? undefined,
+    chapterId: conv.chapterId ?? undefined,
+    sectionId: conv.sectionId ?? undefined,
+    createdAt: conv.startedAt,
+    updatedAt: conv.startedAt,
+    startedAt: conv.startedAt,
+    messages: conv.messages.map((msg) => ({
+      id: msg.id,
+      conversationId: msg.conversationId,
+      content: msg.content,
+      createdAt: msg.createdAt,
+      role: msg.messageType === 'USER' ? 'user' : 'assistant',
+    })),
+  }));
 }
 
 /**
- * Create SAM conversation (stub)
+ * Create SAM conversation
  */
 export async function createSAMConversation(
   userId: string,
@@ -186,12 +453,22 @@ export async function createSAMConversation(
     sectionId?: string;
   }
 ): Promise<string> {
-  logger.info('SAM Conversation created (stub)', { userId, data });
-  return `conv_${Date.now()}`;
+  const conversation = await db.sAMConversation.create({
+    data: {
+      userId,
+      sessionId: randomUUID(),
+      courseId: data?.courseId,
+      chapterId: data?.chapterId,
+      sectionId: data?.sectionId,
+      startedAt: new Date(),
+    },
+    select: { id: true },
+  });
+  return conversation.id;
 }
 
 /**
- * Add SAM message (stub)
+ * Add SAM message
  */
 export async function addSAMMessage(
   conversationId: string,
@@ -202,16 +479,53 @@ export async function addSAMMessage(
     metadata?: { [key: string]: string | number | boolean };
     parentMessageId?: string;
   }
-): Promise<void> {
-  logger.info('SAM Message added (stub)', { conversationId, role: data.role });
+): Promise<SAMMessage> {
+  const messageType = normalizeMessageType(data.role);
+
+  const message = await db.sAMMessage.create({
+    data: {
+      conversationId,
+      messageType,
+      content: data.content,
+      context: data.analysis ?? undefined,
+      metadata: data.metadata ?? undefined,
+    },
+  });
+
+  await db.sAMConversation.update({
+    where: { id: conversationId },
+    data: { totalMessages: { increment: 1 } },
+  });
+
+  return {
+    id: message.id,
+    conversationId: message.conversationId,
+    content: message.content,
+    createdAt: message.createdAt,
+    role: message.messageType === 'USER' ? 'user' : 'assistant',
+  };
 }
 
 /**
- * Get SAM badges (stub)
+ * Get SAM badges
  */
 export async function getSAMBadges(userId: string): Promise<SAMBadge[]> {
-  logger.info('SAM Badges retrieved (stub)', { userId });
-  return [];
+  const badges = await db.sAMBadge.findMany({
+    where: { userId },
+    orderBy: { earnedAt: 'desc' },
+  });
+
+  return badges.map((badge) => ({
+    id: badge.id,
+    userId: badge.userId,
+    badgeType: badge.badgeType,
+    level: badge.level,
+    description: badge.description,
+    earnedAt: badge.earnedAt,
+    name: badge.name,
+    iconUrl: badge.iconUrl,
+    pointsRequired: badge.pointsRequired,
+  }));
 }
 
 export interface SAMLearningProfile {
@@ -237,28 +551,98 @@ export interface SAMLearningProfile {
 }
 
 /**
- * Get SAM learning profile (stub)
+ * Get SAM learning profile
  */
 export async function getSAMLearningProfile(
   userId: string,
-  courseId?: string
+  _courseId?: string
 ): Promise<SAMLearningProfile | null> {
-  logger.info('SAM Learning Profile retrieved (stub)', { userId, courseId });
-  return null;
+  const profile = await db.sAMLearningProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!profile) return null;
+
+  const learningStyle =
+    profile.learningStyle === 'READING_WRITING'
+      ? 'reading'
+      : profile.learningStyle === 'MIXED'
+        ? undefined
+        : profile.learningStyle.toLowerCase();
+
+  const preferences = (profile.preferences ?? {}) as Record<string, unknown>;
+  return {
+    userId: profile.userId,
+    learningStyle: learningStyle as SAMLearningProfile['learningStyle'] | undefined,
+    preferredDifficulty: preferences.preferredDifficulty as SAMLearningProfile['preferredDifficulty'],
+    strengths: preferences.strengths as string[] | undefined,
+    weaknesses: preferences.weaknesses as string[] | undefined,
+    interests: preferences.interests as string[] | undefined,
+    goals: preferences.goals as string[] | undefined,
+    progress: preferences.progress as Record<string, number> | undefined,
+    interactionPreferences: preferences.interactionPreferences as SAMLearningProfile['interactionPreferences'],
+    adaptiveSettings: preferences.adaptiveSettings as SAMLearningProfile['adaptiveSettings'],
+  };
 }
 
 /**
- * Update SAM learning profile (stub)
+ * Update SAM learning profile
  */
 export async function updateSAMLearningProfile(
   userId: string,
   data: Partial<SAMLearningProfile>
-): Promise<void> {
-  logger.info('SAM Learning Profile updated (stub)', { userId });
+): Promise<SAMLearningProfile | null> {
+  const existing = await db.sAMLearningProfile.findUnique({
+    where: { userId },
+  });
+
+  const preferenceUpdates = {
+    preferredDifficulty: data.preferredDifficulty,
+    strengths: data.strengths,
+    weaknesses: data.weaknesses,
+    interests: data.interests,
+    goals: data.goals,
+    progress: data.progress,
+    interactionPreferences: data.interactionPreferences,
+    adaptiveSettings: data.adaptiveSettings,
+  };
+
+  const nextPreferences = {
+    ...(existing?.preferences as Record<string, unknown> ?? {}),
+    ...preferenceUpdates,
+  };
+
+  const nextLearningStyle = data.learningStyle
+    ? normalizeLearningStyle(data.learningStyle)
+    : existing?.learningStyle ?? 'MIXED';
+
+  if (existing) {
+    await db.sAMLearningProfile.update({
+      where: { userId },
+      data: {
+        learningStyle: nextLearningStyle,
+        preferences: nextPreferences,
+        lastUpdated: new Date(),
+      },
+    });
+  } else {
+    await db.sAMLearningProfile.create({
+      data: {
+        userId,
+        learningStyle: nextLearningStyle,
+        preferredTone: 'ENCOURAGING',
+        teachingMethod: 'SOCRATIC',
+        responseStyle: 'DETAILED',
+        preferences: nextPreferences,
+      },
+    });
+  }
+
+  return getSAMLearningProfile(userId);
 }
 
 /**
- * Update SAM streak (stub)
+ * Update SAM streak
  */
 export async function updateSAMStreak(
   userId: string,
@@ -270,8 +654,29 @@ export async function updateSAMStreak(
     longestStreak?: number;
   }
 ): Promise<number> {
-  logger.info('SAM Streak updated (stub)', { userId, courseId: data?.courseId, streakType: data?.streakType });
-  return data?.currentStreak ?? 1;
+  const currentStreak = data?.currentStreak ?? 1;
+  const longestStreak = data?.longestStreak ?? currentStreak;
+  const streakType = normalizeStreakType(data?.streakType);
+
+  const streak = await db.sAMStreak.upsert({
+    where: { userId },
+    update: {
+      currentStreak,
+      longestStreak,
+      streakType,
+      lastActivityDate: new Date(),
+    },
+    create: {
+      userId,
+      currentStreak,
+      longestStreak,
+      streakType,
+      lastActivityDate: new Date(),
+    },
+    select: { currentStreak: true },
+  });
+
+  return streak.currentStreak;
 }
 
 export interface SAMInteraction {
@@ -306,7 +711,7 @@ export interface SAMAnalytics {
 }
 
 /**
- * Get SAM interactions (stub)
+ * Get SAM interactions
  */
 export async function getSAMInteractions(
   userId: string,
@@ -316,13 +721,31 @@ export async function getSAMInteractions(
     offset?: number;
   }
 ): Promise<SAMInteraction[]> {
-  logger.info('SAM Interactions retrieved (stub)', { userId, options });
-  return [];
+  const interactions = await db.sAMInteraction.findMany({
+    where: {
+      userId,
+      ...(options?.courseId ? { courseId: options.courseId } : {}),
+    },
+    orderBy: { createdAt: 'desc' },
+    take: options?.limit ?? 50,
+    skip: options?.offset ?? 0,
+  });
+
+  return interactions.map((interaction) => ({
+    id: interaction.id,
+    userId: interaction.userId,
+    interactionType: interaction.interactionType,
+    context: JSON.stringify(interaction.context),
+    result: interaction.actionTaken ?? undefined,
+    courseId: interaction.courseId ?? undefined,
+    chapterId: interaction.chapterId ?? undefined,
+    sectionId: interaction.sectionId ?? undefined,
+    createdAt: interaction.createdAt,
+  }));
 }
 
 /**
- * Get SAM analytics (stub)
- * Note: Now always returns an array for consistency
+ * Get SAM analytics (aggregated)
  */
 export async function getSAMAnalytics(
   userId: string,
@@ -332,45 +755,65 @@ export async function getSAMAnalytics(
     endDate?: Date;
   }
 ): Promise<SAMAnalytics[]> {
-  logger.info('SAM Analytics retrieved (stub)', { userId, options });
-
-  const analyticsData = {
+  const where = {
     userId,
-    totalInteractions: 0,
-    coursesCreated: 0,
-    achievementsUnlocked: 0,
-    currentStreak: 0,
-    longestStreak: 0,
-    totalPoints: 0,
-    lastActive: new Date()
+    ...(options?.courseId ? { courseId: options.courseId } : {}),
+    ...(options?.startDate || options?.endDate
+      ? {
+          createdAt: {
+            ...(options?.startDate ? { gte: options.startDate } : {}),
+            ...(options?.endDate ? { lte: options.endDate } : {}),
+          },
+        }
+      : {}),
   };
 
-  // Always return array for consistency
-  return [analyticsData];
+  const [interactionCount, pointsAgg, badgeCount, streak, lastInteraction] =
+    await Promise.all([
+      db.sAMInteraction.count({ where }),
+      db.sAMPoints.aggregate({
+        where,
+        _sum: { points: true },
+      }),
+      db.sAMBadge.count({ where: { userId } }),
+      db.sAMStreak.findUnique({ where: { userId } }),
+      db.sAMInteraction.findFirst({
+        where,
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+    ]);
+
+  const coursesCreated = await db.course.count({ where: { userId } });
+
+  return [
+    {
+      userId,
+      totalInteractions: interactionCount,
+      coursesCreated,
+      achievementsUnlocked: badgeCount,
+      currentStreak: streak?.currentStreak ?? 0,
+      longestStreak: streak?.longestStreak ?? 0,
+      totalPoints: pointsAgg._sum.points ?? 0,
+      lastActive: lastInteraction?.createdAt ?? new Date(),
+      courseId: options?.courseId,
+    },
+  ];
 }
 
 /**
- * Get single SAM analytics record (stub)
+ * Get single SAM analytics record
  */
 export async function getSAMAnalyticsForUser(userId: string): Promise<SAMAnalytics> {
-  logger.info('SAM Analytics for user retrieved (stub)', { userId });
-  return {
-    userId,
-    totalInteractions: 0,
-    coursesCreated: 0,
-    achievementsUnlocked: 0,
-    currentStreak: 0,
-    longestStreak: 0,
-    totalPoints: 0,
-    lastActive: new Date()
-  };
+  const analytics = await getSAMAnalytics(userId);
+  return analytics[0];
 }
 
 /**
- * Record SAM analytics (stub)
+ * Record SAM analytics (no-op helper)
  */
-export async function recordSAMAnalytics(data: Partial<SAMAnalytics>): Promise<void> {
-  logger.info('SAM Analytics recorded (stub)', { userId: data.userId });
+export async function recordSAMAnalytics(_data: Partial<SAMAnalytics>): Promise<void> {
+  logger.info('SAM Analytics recorded');
 }
 
 // Re-export main database instance for convenience

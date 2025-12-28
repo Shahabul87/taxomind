@@ -12,7 +12,6 @@
   },
   "exclude": [
     "node_modules",
-    "_archive/**",
     "packages/**",
     "playwright.config.ts",
     "e2e/**",

@@ -25,9 +25,9 @@ Code Standards:          /docs/enterprise/
 
 ### SAM AI System
 ```
-SAM Overview:            /docs/sam-ai-system/
-SAM Integration:         /docs/sam-ai-system/integration/
-SAM Implementation:      /docs/sam-implementation/
+SAM Overview:            /docs/features/sam-ai-system/
+SAM Integration:         /docs/features/sam-ai-system/integration/
+SAM Implementation:      /docs/features/sam-ai-system/implementation/
 SAM Tutor Code:          /sam-ai-tutor/
 ```
 
@@ -82,8 +82,8 @@ Quick Wins:             /docs/phases/quick-wins/
 3. [`/docs/troubleshooting/`](./troubleshooting/)
 
 #### Implement SAM AI Features
-1. [`/docs/sam-ai-system/`](./sam-ai-system/)
-2. [`/docs/sam-implementation/`](./sam-implementation/)
+1. [`/docs/features/sam-ai-system/`](./features/sam-ai-system/)
+2. [`/docs/features/sam-ai-system/implementation/`](./features/sam-ai-system/implementation/)
 3. [`/sam-ai-tutor/`](../sam-ai-tutor/)
 
 #### Work on UI Components
@@ -120,7 +120,7 @@ Quick Wins:             /docs/phases/quick-wins/
 ls docs/phases/
 
 # SAM AI
-ls docs/sam-ai-system/
+ls docs/features/sam-ai-system/
 
 # Features
 ls docs/features/
@@ -179,9 +179,11 @@ find docs/phases/phase-1/ -name "*.md"
 │   ├── design/                 # Design system
 │   ├── enterprise/             # Enterprise patterns
 │   ├── features/               # Feature documentation
-│   │   └── responsive-design/  # Responsive UI
-│   │       ├── headers/        # Header components
-│   │       └── icons/          # Icon system
+│   │   ├── responsive-design/  # Responsive UI
+│   │   │   ├── headers/        # Header components
+│   │   │   └── icons/          # Icon system
+│   │   └── sam-ai-system/      # SAM docs + implementation
+│   │       └── implementation/ # SAM implementation
 │   ├── fixes/                  # Bugfixes
 │   ├── implementation/         # Implementation guides
 │   ├── misc/                   # Miscellaneous
@@ -189,9 +191,6 @@ find docs/phases/phase-1/ -name "*.md"
 │   │   ├── phase-1/           # Phase 1
 │   │   │   └── weekly-summaries/ # Weekly progress
 │   │   └── quick-wins/        # Quick wins
-│   ├── sam-ai-system/         # SAM AI documentation
-│   │   └── integration/       # SAM integration
-│   ├── sam-implementation/    # SAM implementation
 │   ├── setup/                 # Setup guides
 │   ├── system-architecture/   # System design
 │   ├── testing/               # Testing guides

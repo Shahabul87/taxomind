@@ -552,7 +552,7 @@ The analytics system integrates with existing pages:
 
 ## Related Documentation
 
-- [SAM AI Evaluation Engine](./sam-ai-system/SAM_EVALUATION_ENGINE.md)
+- [SAM Evaluation Standards](./sam-ai-system/guides/SAM_EVALUATION_STANDARDS_DOCUMENTATION.md)
 - [Exam Evaluation System](./EXAM_EVALUATION_SYSTEM_PLAN.md)
 - [Course Creator Dashboard](../implementation/DASHBOARD_IMPLEMENTATION_COMPLETE.md)
 

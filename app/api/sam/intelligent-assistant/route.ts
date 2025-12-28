@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import getAnthropicClient from '@/lib/anthropic-client';
 import { logger } from '@/lib/logger';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 // Bloom's Taxonomy levels and verbs
 const BLOOMS_TAXONOMY = {
@@ -139,21 +139,13 @@ Generate the chapters now:`;
       { role: "user" as const, content: userPrompt }
     ];
 
-    const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
+    const aiResponse = await runSAMChat({
       model: "claude-sonnet-4-5-20250929",
-      max_tokens: 1500,
+      maxTokens: 1500,
       temperature: 0.7,
-      system: systemPrompt,
-      messages: messages
+      systemPrompt,
+      messages,
     });
-
-    const aiContent = response.content[0];
-    if (aiContent.type !== 'text') {
-      throw new Error('Unexpected response type from Anthropic API');
-    }
-    
-    const aiResponse = aiContent.text || "I couldn't generate a response.";
 
     // Generate action based on intent
     let action = null;

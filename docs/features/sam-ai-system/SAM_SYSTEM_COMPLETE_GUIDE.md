@@ -356,19 +356,6 @@ taxomind/
     └── SAM_UNIFICATION_PLAN.md           # Original plan
 ```
 
-### Deprecated Files (Reference Only)
-
-```
-sam_ai_deprecated/                        # DO NOT USE
-├── README.md                             # Explains contents
-├── sam-ai-tutor-legacy/                  # Old engines (40+ files)
-├── teacher-sam-components/               # Old providers
-├── old-providers/                        # Additional old providers
-└── old-docs/                             # Old documentation
-```
-
----
-
 ## Data Flow
 
 ### SAMContext Structure

@@ -526,10 +526,10 @@ hooks/use-sam-cache.ts
 - [ ] `docs/architecture/sam-ai-tutor/*.md` → `docs/architecture/`
 
 **Implementation**:
-- [ ] `docs/sam-implementation/*.md` → `docs/implementation/`
+- [ ] `docs/features/sam-ai-system/implementation/*.md` → `docs/implementation/`
 
 **Guides**:
-- [ ] `docs/sam-ai-system/*.md` → `docs/guides/` or `docs/api-reference/`
+- [ ] `docs/features/sam-ai-system/*.md` → `docs/guides/` or `docs/api-reference/`
 
 **Reports**:
 - [ ] `SAM_AI_TEACHER_POWER_ANALYSIS_REPORT.md` → `docs/reports/`

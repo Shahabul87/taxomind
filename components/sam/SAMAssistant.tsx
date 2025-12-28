@@ -29,6 +29,14 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { SAMProvider, useSAM } from '@sam-ai/react';
+import type {
+  SAMContext,
+  SAMFormContext,
+  SAMFormField,
+  SAMMessage,
+  SAMPageType,
+} from '@sam-ai/core';
 
 // Import SAM utilities
 import {
@@ -118,15 +126,10 @@ import {
 // TYPES
 // ============================================================================
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  isStreaming?: boolean;
+type Message = SAMMessage & {
   targetField?: string; // Field this content was generated for
   userQuery?: string; // Original user query that generated this response
-}
+};
 
 interface SAMSuggestion {
   id: string;
@@ -185,6 +188,47 @@ interface SAMAssistantProps {
   enableGamification?: boolean;
 }
 
+function buildUnifiedRequest(input: {
+  message: string;
+  context: SAMContext;
+  history: SAMMessage[];
+}) {
+  const { message, context, history } = input;
+  const metadata = context.page.metadata ?? {};
+  const formFields = context.form
+    ? Object.fromEntries(
+        Object.entries(context.form.fields).map(([name, field]) => [name, field.value])
+      )
+    : undefined;
+
+  return {
+    message,
+    pageContext: {
+      type: context.page.type,
+      path: context.page.path,
+      entityId: context.page.entityId,
+      parentEntityId: context.page.parentEntityId,
+      grandParentEntityId: context.page.grandParentEntityId,
+      capabilities: context.page.capabilities,
+      breadcrumb: context.page.breadcrumb,
+      entityData: metadata.entityData,
+      entityType: metadata.entityType,
+    },
+    formContext: context.form
+      ? {
+          formId: context.form.formId,
+          formName: context.form.formName,
+          fields: formFields,
+          isDirty: context.form.isDirty,
+        }
+      : undefined,
+    conversationHistory: history.map((msg) => ({
+      role: msg.role,
+      content: msg.content,
+    })),
+  };
+}
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -200,9 +244,8 @@ interface SAMAssistantProps {
  * - Bloom's taxonomy visualization
  * - Intelligent suggestions and actions
  */
-export function SAMAssistant({
+function SAMAssistantInner({
   className,
-  enableStreaming = true,
   enableGamification = true,
 }: SAMAssistantProps) {
   const { data: session } = useSession();
@@ -212,13 +255,32 @@ export function SAMAssistant({
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [suggestions, setSuggestions] = useState<SAMSuggestion[]>([]);
-  const [actions, setActions] = useState<SAMAction[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [insights, setInsights] = useState<SAMInsights | null>(null);
-  const [enginesInfo, setEnginesInfo] = useState<{ run: string[]; time: number } | null>(null);
+  const {
+    messages: samMessages,
+    sendMessage: samSendMessage,
+    clearMessages: clearSamMessages,
+    suggestions,
+    actions,
+    isProcessing,
+    isStreaming,
+    lastResult,
+    updateContext,
+  } = useSAM();
+  const messages = samMessages as Message[];
+
+  const insights = useMemo(() => {
+    const responseInsights = lastResult?.response.insights as SAMInsights | undefined;
+    return responseInsights ?? null;
+  }, [lastResult]);
+
+  const enginesInfo = useMemo(() => {
+    if (!lastResult?.metadata) return null;
+    return {
+      run: lastResult.metadata.enginesExecuted ?? [],
+      time: lastResult.metadata.totalExecutionTime ?? 0,
+    };
+  }, [lastResult]);
 
   // Form actions state
   const [detectedForms, setDetectedForms] = useState<Record<string, FormFieldInfo>>({});
@@ -243,7 +305,6 @@ export function SAMAssistant({
   const [insertedMessageId, setInsertedMessageId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Initialize gamification engine
   useEffect(() => {
@@ -380,6 +441,91 @@ export function SAMAssistant({
     return {};
   }, []);
 
+  const buildContextUpdate = useCallback(() => {
+    const effectiveEntityContext = windowEntityContext.entityData
+      ? windowEntityContext
+      : getWindowEntityContext();
+
+    const enrichedFormContext =
+      Object.keys(detectedForms).length > 0 || effectiveEntityContext.entityData
+        ? {
+            formId: 'detected-form',
+            formName: 'Page Form',
+            fields: {
+              ...detectedForms,
+              ...(effectiveEntityContext.entityData?.title && {
+                _courseTitle: {
+                  name: '_courseTitle',
+                  type: 'text',
+                  value: effectiveEntityContext.entityData.title,
+                  label: 'Course Title',
+                },
+              }),
+              ...(effectiveEntityContext.entityData?.description && {
+                _courseDescription: {
+                  name: '_courseDescription',
+                  type: 'textarea',
+                  value: effectiveEntityContext.entityData.description,
+                  label: 'Course Description',
+                },
+              }),
+            },
+            isDirty: false,
+          }
+        : undefined;
+
+    const samFormFields: Record<string, SAMFormField> = {};
+    if (enrichedFormContext?.fields) {
+      for (const [name, field] of Object.entries(enrichedFormContext.fields)) {
+        samFormFields[name] = {
+          name: field.name ?? name,
+          type: field.type ?? 'text',
+          value: field.value,
+          label: field.label,
+          placeholder: 'placeholder' in field ? String(field.placeholder) : undefined,
+          required: 'required' in field ? Boolean(field.required) : undefined,
+        };
+      }
+    }
+
+    const samFormContext: SAMFormContext | null = enrichedFormContext
+      ? {
+          formId: enrichedFormContext.formId,
+          formName: enrichedFormContext.formName,
+          fields: samFormFields,
+          isDirty: Boolean(enrichedFormContext.isDirty),
+          isSubmitting: false,
+          isValid: true,
+          errors: {},
+          touchedFields: new Set<string>(),
+          lastUpdated: new Date(),
+        }
+      : null;
+
+    return { effectiveEntityContext, samFormContext };
+  }, [detectedForms, getWindowEntityContext, windowEntityContext]);
+
+  useEffect(() => {
+    const { effectiveEntityContext, samFormContext } = buildContextUpdate();
+
+    updateContext({
+      page: {
+        type: pageContext.pageType as SAMPageType,
+        path: pageContext.path,
+        entityId: pageContext.entityId,
+        parentEntityId: pageContext.parentEntityId,
+        grandParentEntityId: pageContext.grandParentEntityId,
+        capabilities: pageContext.capabilities,
+        breadcrumb: pageContext.breadcrumbs,
+        metadata: {
+          entityData: effectiveEntityContext.entityData,
+          entityType: effectiveEntityContext.entityType,
+        },
+      },
+      form: samFormContext,
+    });
+  }, [buildContextUpdate, pageContext, updateContext]);
+
   // Detect forms on the page when SAM opens
   useEffect(() => {
     if (isOpen && typeof document !== 'undefined') {
@@ -406,32 +552,11 @@ export function SAMAssistant({
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Cleanup event source on unmount
-  useEffect(() => {
-    const eventSource = eventSourceRef.current;
-    return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-    };
-  }, []);
-
-  // Send message with streaming support
+  // Send message (API transport via @sam-ai/react)
   const sendMessage = async (content: string) => {
     if (!content.trim() || isProcessing) return;
-
-    const userMessage: Message = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: content.trim(),
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setIsProcessing(true);
     setError(null);
-    setInsights(null);
 
     // Award XP for asking question
     if (gamificationEngine) {
@@ -443,16 +568,7 @@ export function SAMAssistant({
       gamificationEngine.checkStreak();
     }
 
-    const conversationHistory = messages.map(m => ({
-      role: m.role,
-      content: m.content
-    }));
-
-    // Use state-tracked entity context (populated by SimpleCourseContext event listener)
-    // Also check window directly as a fallback
-    const effectiveEntityContext = windowEntityContext.entityData
-      ? windowEntityContext
-      : getWindowEntityContext();
+    const { effectiveEntityContext } = buildContextUpdate();
 
     console.log('[SAMAssistant] Sending message with entity context:', {
       hasEntityData: !!effectiveEntityContext.entityData,
@@ -461,237 +577,25 @@ export function SAMAssistant({
       fromState: !!windowEntityContext.entityData,
     });
 
-    // Merge form fields with entity context data for better awareness
-    const enrichedFormContext = Object.keys(detectedForms).length > 0 || effectiveEntityContext.entityData ? {
-      formId: 'detected-form',
-      formName: 'Page Form',
-      fields: {
-        ...detectedForms,
-        // Add entity data as pseudo-form fields for context
-        ...(effectiveEntityContext.entityData?.title && {
-          _courseTitle: {
-            name: '_courseTitle',
-            type: 'text',
-            value: effectiveEntityContext.entityData.title,
-            label: 'Course Title',
-          },
-        }),
-        ...(effectiveEntityContext.entityData?.description && {
-          _courseDescription: {
-            name: '_courseDescription',
-            type: 'textarea',
-            value: effectiveEntityContext.entityData.description,
-            label: 'Course Description',
-          },
-        }),
-      },
-      isDirty: false,
-    } : undefined;
+    const result = await samSendMessage(content.trim());
 
-    const requestBody = {
-      message: content.trim(),
-      pageContext: {
-        type: pageContext.pageType,
-        path: pageContext.path,
-        entityId: pageContext.entityId,
-        parentEntityId: pageContext.parentEntityId,
-        grandParentEntityId: pageContext.grandParentEntityId,
-        capabilities: pageContext.capabilities,
-        breadcrumb: pageContext.breadcrumbs,
-        // Include entity data for full context awareness
-        entityData: effectiveEntityContext.entityData,
-        entityType: effectiveEntityContext.entityType,
-      },
-      formContext: enrichedFormContext,
-      conversationHistory,
-    };
-
-    if (enableStreaming) {
-      await sendStreamingMessage(requestBody);
-    } else {
-      await sendRegularMessage(requestBody);
+    if (!result) {
+      handleError(new Error('Failed to get response'));
+      return;
     }
-  };
 
-  // Streaming message handler
-  const sendStreamingMessage = async (requestBody: Record<string, unknown>) => {
-    try {
-      // Create assistant message placeholder
-      const assistantMessageId = `msg-${Date.now() + 1}`;
-      const assistantMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        isStreaming: true,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-
-      const response = await fetch('/api/sam/unified/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to connect to streaming API');
+    // Award XP for content generation if applicable
+    if (gamificationEngine) {
+      const msg = content.trim().toLowerCase();
+      if (msg.includes('generate') || msg.includes('create') || msg.includes('write')) {
+        gamificationEngine.awardXP('content_generated');
       }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            const eventType = line.slice(7);
-            continue;
-          }
-
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            try {
-              const parsed = JSON.parse(data);
-              handleStreamEvent(assistantMessageId, parsed, line);
-            } catch {
-              // Skip invalid JSON
-            }
-          }
-        }
-      }
-
-      // Mark message as complete
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === assistantMessageId ? { ...m, isStreaming: false } : m
-        )
-      );
-
-      // Award XP for content generation if applicable
-      if (gamificationEngine && requestBody.message) {
-        const msg = String(requestBody.message).toLowerCase();
-        if (msg.includes('generate') || msg.includes('create') || msg.includes('write')) {
-          gamificationEngine.awardXP('content_generated');
-        }
-      }
-
-    } catch (err) {
-      handleError(err as Error);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Handle stream events
-  const handleStreamEvent = (messageId: string, data: Record<string, unknown>, rawLine: string) => {
-    // Check event type from the line before data
-    if (rawLine.includes('"text"')) {
-      // Content chunk
-      const text = data.text as string;
-      if (text) {
-        setMessages(prev =>
-          prev.map(m =>
-            m.id === messageId ? { ...m, content: m.content + text } : m
-          )
-        );
-      }
-    } else if ('blooms' in data || 'content' in data || 'personalization' in data) {
-      // Insights
-      setInsights(data as SAMInsights);
-    } else if (Array.isArray(data) && data[0]?.id && data[0]?.text) {
-      // Suggestions
-      setSuggestions(data as SAMSuggestion[]);
-    } else if (Array.isArray(data) && data[0]?.id && data[0]?.type) {
-      // Actions
-      setActions(data as SAMAction[]);
-    } else if ('enginesRun' in data || 'metadata' in data) {
-      // Completion metadata
-      const metadata = (data.metadata || data) as { enginesRun?: string[]; totalTime?: number };
-      if (metadata.enginesRun) {
-        setEnginesInfo({
-          run: metadata.enginesRun,
-          time: metadata.totalTime || 0,
-        });
-      }
-    }
-  };
-
-  // Regular (non-streaming) message handler
-  const sendRegularMessage = async (requestBody: Record<string, unknown>) => {
-    try {
-      const response = await fetch('/api/sam/unified', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get response');
-      }
-
-      const assistantMessage: Message = {
-        id: `msg-${Date.now() + 1}`,
-        role: 'assistant',
-        content: data.response || 'I apologize, I could not process your request.',
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-
-      if (data.suggestions?.length > 0) {
-        setSuggestions(data.suggestions);
-      } else {
-        setSuggestions([]);
-      }
-
-      if (data.actions?.length > 0) {
-        setActions(data.actions);
-      } else {
-        setActions([]);
-      }
-
-      if (data.insights) {
-        setInsights(data.insights);
-      }
-
-      if (data.metadata) {
-        setEnginesInfo({
-          run: data.metadata.enginesRun,
-          time: data.metadata.totalTime,
-        });
-      }
-
-    } catch (err) {
-      handleError(err as Error);
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   // Error handler
   const handleError = (err: Error) => {
-    const errorMessage: Message = {
-      id: `msg-${Date.now() + 1}`,
-      role: 'assistant',
-      content: 'I apologize, something went wrong. Please try again.',
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, errorMessage]);
+    console.error('[SAMAssistant] Error:', err);
     setError(err.message);
   };
 
@@ -845,12 +749,8 @@ export function SAMAssistant({
 
   // Clear conversation
   const clearMessages = () => {
-    setMessages([]);
-    setSuggestions([]);
-    setActions([]);
+    clearSamMessages();
     setError(null);
-    setInsights(null);
-    setEnginesInfo(null);
     setXpNotifications([]);
   };
 
@@ -1143,8 +1043,11 @@ export function SAMAssistant({
               const targetField = userQuery
                 ? detectTargetField(userQuery, detectedForms)
                 : undefined;
+              const isMessageStreaming = isStreaming &&
+                message.role === 'assistant' &&
+                messageIndex === messages.length - 1;
               const showActions = message.role === 'assistant' &&
-                !message.isStreaming &&
+                !isMessageStreaming &&
                 isInsertableContent(message.content, userQuery);
 
               return (
@@ -1165,7 +1068,7 @@ export function SAMAssistant({
                   >
                     <p className="text-sm whitespace-pre-wrap">
                       {message.content}
-                      {message.isStreaming && (
+                      {isMessageStreaming && (
                         <span className="inline-block w-2 h-4 ml-1 bg-purple-500 animate-pulse" />
                       )}
                     </p>
@@ -1322,6 +1225,24 @@ export function SAMAssistant({
         </>
       )}
     </div>
+  );
+}
+
+export function SAMAssistant(props: SAMAssistantProps) {
+  const { enableStreaming = true } = props;
+  const apiOptions = useMemo(
+    () => ({
+      endpoint: '/api/sam/unified',
+      streamEndpoint: enableStreaming ? '/api/sam/unified/stream' : undefined,
+      buildRequest: buildUnifiedRequest,
+    }),
+    [enableStreaming]
+  );
+
+  return (
+    <SAMProvider transport="api" api={apiOptions}>
+      <SAMAssistantInner {...props} />
+    </SAMProvider>
   );
 }
 

@@ -22,6 +22,7 @@ export { CollaborationEngine, createCollaborationEngine } from './collaboration-
 export { SocialEngine, createSocialEngine } from './social-engine';
 export { InnovationEngine, createInnovationEngine } from './innovation-engine';
 export { MarketEngine, createMarketEngine } from './market-engine';
+export { EnhancedDepthAnalysisEngine, createEnhancedDepthAnalysisEngine, enhancedDepthEngine } from './enhanced-depth-engine';
 
 // Unified Bloom's Engine (Priority 1: Unified Bloom's Engine)
 export { UnifiedBloomsEngine, createUnifiedBloomsEngine } from './unified-blooms-engine';

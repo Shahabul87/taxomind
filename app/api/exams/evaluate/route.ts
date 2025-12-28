@@ -10,8 +10,7 @@ import { logger } from '@/lib/logger';
 import {
   wrapEvaluationWithSafety,
   type SafeEvaluationResult,
-} from '@/lib/sam/safety/safe-evaluation-wrapper';
-// Memory and Spaced Repetition persistence (Priority 7)
+} from '@sam-ai/safety';
 import {
   createMasteryTracker,
   createSpacedRepetitionScheduler,
@@ -19,7 +18,7 @@ import {
   getDefaultReviewScheduleStore,
   type MasteryTracker,
   type EvaluationOutcome,
-} from '@/lib/sam/memory';
+} from '@sam-ai/memory';
 
 // Create engine singletons with portable packages
 let evaluationEngine: ReturnType<typeof createEvaluationEngine> | null = null;

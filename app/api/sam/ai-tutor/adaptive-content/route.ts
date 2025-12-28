@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,18 +15,15 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = buildAdaptiveContentPrompt(format, learningStyle, personality, context);
 
-    const response = await anthropic.messages.create({
+    const content = await runSAMChat({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1500,
+      maxTokens: 1500,
       temperature: 0.7,
+      systemPrompt,
       messages: [
-        { role: 'user', content: `System Instructions: ${systemPrompt}` },
         { role: 'user', content: `Create ${format} content about: ${topic}` }
-      ]
+      ],
     });
-
-    const aiResponse = response.content[0];
-    const content = aiResponse.type === 'text' ? aiResponse.text : '';
 
     return NextResponse.json({
       content: content.trim(),

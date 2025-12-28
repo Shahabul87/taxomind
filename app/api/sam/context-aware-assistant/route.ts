@@ -1,8 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import getAnthropicClient from '@/lib/anthropic-client';
+import { createAnthropicAdapter } from '@sam-ai/core';
 import { logger } from '@/lib/logger';
 import { applyRateLimit, samConversationLimiter } from '@/lib/sam/config/sam-rate-limiter';
+
+let aiAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
+
+function getAIAdapter() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+  }
+  if (!aiAdapter) {
+    aiAdapter = createAnthropicAdapter({
+      apiKey,
+      model: 'claude-sonnet-4-5-20250929',
+      timeout: 60000,
+      maxRetries: 2,
+    });
+  }
+  return aiAdapter;
+}
 
 // Redact potentially sensitive values from pageContext before sending to LLM
 function scrubDataContext(dataContext: any) {
@@ -144,21 +162,15 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
       { role: 'user' as const, content: message }
     ];
 
-    const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 1500,
+    const response = await getAIAdapter().chat({
+      model: 'claude-sonnet-4-5-20250929',
+      maxTokens: 1500,
       temperature: 0.7,
-      system: systemPrompt,
-      messages: messages
+      systemPrompt,
+      messages,
     });
 
-    const aiContent = response.content[0];
-    if (aiContent.type !== 'text') {
-      throw new Error('Unexpected response type from Anthropic API');
-    }
-    
-    const aiResponse = aiContent.text || "I couldn't generate a response.";
+    const aiResponse = response.content || "I couldn't generate a response.";
 
     // Generate contextual suggestions based on page type
     const suggestions = generateContextualSuggestions(pageContext.pageType, message);

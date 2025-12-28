@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import Anthropic from '@anthropic-ai/sdk';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export const runtime = 'nodejs';
 
@@ -223,19 +219,14 @@ Return ONLY valid JSON in this format:
 Focus on actionable feedback that will help create a more successful course.`;
 
   try {
-    const response = await anthropic.messages.create({
+    const responseText = await runSAMChat({
       model: "claude-3-5-haiku-20241022",
-      max_tokens: 1000,
+      maxTokens: 1000,
       temperature: 0.3,
-      messages: [{ role: "user", content: prompt }]
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type');
-    }
-
-    return JSON.parse(content.text);
+    return JSON.parse(responseText);
   } catch (error) {
     logger.error('Title validation error:', error);
     return getBasicTitleValidation(title);
@@ -282,19 +273,14 @@ EVALUATION CRITERIA:
 Return ONLY valid JSON with validation results and specific suggestions for improvement.`;
 
   try {
-    const response = await anthropic.messages.create({
+    const responseText = await runSAMChat({
       model: "claude-3-5-haiku-20241022",
-      max_tokens: 1200,
+      maxTokens: 1200,
       temperature: 0.3,
-      messages: [{ role: "user", content: prompt }]
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type');
-    }
-
-    return JSON.parse(content.text);
+    return JSON.parse(responseText);
   } catch (error) {
     logger.error('Overview validation error:', error);
     return getBasicOverviewValidation(overview);
@@ -340,19 +326,14 @@ ANALYSIS:
 Return JSON with validation score, issues, and suggestions for improvement.`;
 
   try {
-    const response = await anthropic.messages.create({
+    const responseText = await runSAMChat({
       model: "claude-3-5-haiku-20241022",
-      max_tokens: 800,
+      maxTokens: 800,
       temperature: 0.3,
-      messages: [{ role: "user", content: prompt }]
+      messages: [{ role: "user", content: prompt }],
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type');
-    }
-
-    return JSON.parse(content.text);
+    return JSON.parse(responseText);
   } catch (error) {
     logger.error('Audience validation error:', error);
     return getBasicAudienceValidation(audience);

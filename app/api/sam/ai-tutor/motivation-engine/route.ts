@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +66,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function runMotivationChat(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: { maxTokens?: number; temperature?: number; model?: string }
+): Promise<string> {
+  return runSAMChat({
+    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+    maxTokens: options?.maxTokens ?? 400,
+    temperature: options?.temperature ?? 0.7,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+}
+
 async function generateDailyMotivation(learningContext: any, userState: any) {
   const systemPrompt = `You are SAM, an AI tutor providing daily motivation. Generate an inspiring, personalized daily motivation message based on the user's learning context and current state.
 
@@ -87,18 +97,11 @@ ${JSON.stringify(userState, null, 2)}
 - Keep it concise but impactful (2-3 sentences)
 - Include relevant emojis to make it engaging`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 300,
-    temperature: 0.8,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Generate a daily motivation message for me.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'Generate a daily motivation message for me.',
+    { maxTokens: 300, temperature: 0.8 }
+  );
 
   return {
     type: 'daily_boost',
@@ -135,18 +138,11 @@ ${JSON.stringify(recentActivity, null, 2)}
 - Be warm, supportive, and understanding
 - Include growth mindset principles`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 400,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'I\'m struggling with this topic and feeling frustrated.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'I\'m struggling with this topic and feeling frustrated.',
+    { maxTokens: 400, temperature: 0.7 }
+  );
 
   return {
     type: 'struggle_support',
@@ -191,18 +187,11 @@ ${JSON.stringify(recentAchievements, null, 2)}
 - Use celebratory language and emojis
 - Make it feel special and rewarding`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 300,
-    temperature: 0.8,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'I just completed a major milestone in my learning journey!' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'I just completed a major milestone in my learning journey!',
+    { maxTokens: 300, temperature: 0.8 }
+  );
 
   return {
     type: 'achievement_celebration',
@@ -245,18 +234,11 @@ ${JSON.stringify(streakData, null, 2)}
 - Keep the tone encouraging and motivational
 - Include streak-related imagery and language`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 300,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'I want to maintain my learning streak and stay motivated.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'I want to maintain my learning streak and stay motivated.',
+    { maxTokens: 300, temperature: 0.7 }
+  );
 
   return {
     type: 'streak_encouragement',
@@ -299,18 +281,11 @@ ${JSON.stringify(goals, null, 2)}
 - Keep the tone motivational and focused
 - Connect daily actions to bigger picture`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 300,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Help me stay focused on my learning goals.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'Help me stay focused on my learning goals.',
+    { maxTokens: 300, temperature: 0.7 }
+  );
 
   return {
     type: 'goal_reminder',
@@ -354,18 +329,11 @@ ${JSON.stringify(peerData, null, 2)}
 - Use inspiring peer examples
 - Maintain positive, inclusive tone`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 300,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'I want to be inspired by what others are achieving in their learning.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'I want to be inspired by what others are achieving in their learning.',
+    { maxTokens: 300, temperature: 0.7 }
+  );
 
   return {
     type: 'peer_inspiration',
@@ -409,18 +377,11 @@ ${JSON.stringify(inactivityData, null, 2)}
 - Rebuild confidence and momentum
 - Keep the tone positive and supportive`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 300,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'I\'ve been away from learning for a while and want to get back into it.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'I\'ve been away from learning for a while and want to get back into it.',
+    { maxTokens: 300, temperature: 0.7 }
+  );
 
   return {
     type: 'comeback_motivation',
@@ -462,18 +423,11 @@ ${JSON.stringify(personalityProfile, null, 2)}
 - Make it feel deeply personal and relevant
 - Use language that resonates with their values`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 400,
-    temperature: 0.8,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Give me a personalized motivation message that speaks to who I am as a learner.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const motivationText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const motivationText = await runMotivationChat(
+    systemPrompt,
+    'Give me a personalized motivation message that speaks to who I am as a learner.',
+    { maxTokens: 400, temperature: 0.8 }
+  );
 
   return {
     type: 'personalized_message',

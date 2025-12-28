@@ -13,6 +13,7 @@ import type {
   OrchestrationResult,
   BloomsAnalysis,
   SAMState,
+  OrchestrationMetadata,
 } from '@sam-ai/core';
 
 // ============================================================================
@@ -21,7 +22,11 @@ import type {
 
 export interface SAMProviderConfig {
   /** Core SAM configuration */
-  config: SAMConfig;
+  config?: SAMConfig;
+  /** Transport mode for chat execution */
+  transport?: 'orchestrator' | 'api';
+  /** API transport options (used when transport === 'api') */
+  api?: SAMApiTransportOptions;
   /** Initial context (optional) */
   initialContext?: Partial<SAMContext>;
   /** Enable auto-context detection from URL/DOM */
@@ -32,6 +37,32 @@ export interface SAMProviderConfig {
   onStateChange?: (state: SAMState) => void;
   /** Callback when error occurs */
   onError?: (error: Error) => void;
+}
+
+export interface SAMApiTransportOptions {
+  /** API endpoint for chat requests */
+  endpoint: string;
+  /** Optional streaming endpoint for SSE responses */
+  streamEndpoint?: string;
+  /** Extra headers to include */
+  headers?: Record<string, string>;
+  /** Custom request builder for API payloads */
+  buildRequest?: (input: {
+    message: string;
+    context: SAMContext;
+    history: SAMMessage[];
+  }) => unknown;
+  /** Custom response parser */
+  parseResponse?: (payload: unknown) => SAMApiTransportResponse | null;
+}
+
+export interface SAMApiTransportResponse {
+  message: string;
+  suggestions?: SAMSuggestion[];
+  actions?: SAMAction[];
+  insights?: Record<string, unknown>;
+  blooms?: BloomsAnalysis;
+  metadata?: Partial<OrchestrationMetadata>;
 }
 
 export interface SAMProviderState {

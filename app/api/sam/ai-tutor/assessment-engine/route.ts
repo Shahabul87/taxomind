@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { runSAMChat } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,6 +73,20 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function runAssessmentChat(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: { maxTokens?: number; temperature?: number; model?: string }
+): Promise<string> {
+  return runSAMChat({
+    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+    maxTokens: options?.maxTokens ?? 2000,
+    temperature: options?.temperature ?? 0.7,
+    systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }],
+  });
+}
+
 async function generateAssessment(
   assessmentType: string,
   subject: string,
@@ -124,18 +134,11 @@ For each question, provide:
 
 Create a balanced assessment that challenges students appropriately while providing comprehensive evaluation of their understanding.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 4000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a comprehensive ${assessmentType} assessment for ${topic} in ${subject}.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const assessmentText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const assessmentText = await runAssessmentChat(
+    systemPrompt,
+    `Create a comprehensive ${assessmentType} assessment for ${topic} in ${subject}.`,
+    { maxTokens: 4000, temperature: 0.7 }
+  );
 
   const questions = extractQuestions(assessmentText);
   const metadata = extractAssessmentMetadata(assessmentText);
@@ -202,18 +205,11 @@ async function generateAdaptiveQuestion(
 
 Create a question that optimally challenges the student while supporting their learning journey.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.8,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Generate an adaptive question for this student based on their performance patterns.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const questionText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const questionText = await runAssessmentChat(
+    systemPrompt,
+    'Generate an adaptive question for this student based on their performance patterns.',
+    { maxTokens: 1500, temperature: 0.8 }
+  );
 
   const question = parseAdaptiveQuestion(questionText);
 
@@ -261,18 +257,11 @@ ${JSON.stringify(assessmentData, null, 2)}
 
 Provide actionable insights that can guide personalized learning interventions.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 2000,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Analyze these student responses and provide comprehensive learning insights.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const analysisText = await runAssessmentChat(
+    systemPrompt,
+    'Analyze these student responses and provide comprehensive learning insights.',
+    { maxTokens: 2000, temperature: 0.7 }
+  );
 
   const performanceMetrics = calculatePerformanceMetrics(studentResponses);
   const skillAnalysis = analyzeSkillMastery(studentResponses, assessmentData);
@@ -329,18 +318,11 @@ For each criterion, provide:
 
 Create a rubric that promotes fair, consistent, and meaningful assessment.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 2500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: `Create a comprehensive rubric for evaluating ${assessmentType} assessments in ${subject} on ${topic}.` }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const rubricText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const rubricText = await runAssessmentChat(
+    systemPrompt,
+    `Create a comprehensive rubric for evaluating ${assessmentType} assessments in ${subject} on ${topic}.`,
+    { maxTokens: 2500, temperature: 0.7 }
+  );
 
   const rubricData = parseRubricData(rubricText);
 
@@ -390,18 +372,11 @@ ${JSON.stringify(assessmentData, null, 2)}
 
 Create feedback that empowers students to take ownership of their learning journey.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 2000,
-    temperature: 0.8,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Generate detailed, personalized feedback for this student based on their assessment responses.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const feedbackText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const feedbackText = await runAssessmentChat(
+    systemPrompt,
+    'Generate detailed, personalized feedback for this student based on their assessment responses.',
+    { maxTokens: 2000, temperature: 0.8 }
+  );
 
   const performanceData = calculateDetailedPerformance(studentResponses);
   const learningInsights = generateLearningInsights(studentResponses, assessmentData);
@@ -1126,18 +1101,11 @@ ${JSON.stringify(assessmentData, null, 2)}
 
 Provide specific recommendations for difficulty adjustment including question types, cognitive levels, and support strategies.`;
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 1500,
-    temperature: 0.7,
-    messages: [
-      { role: 'user', content: `System Instructions: ${systemPrompt}` },
-      { role: 'user', content: 'Analyze performance and recommend difficulty adjustments for optimal learning.' }
-    ]
-  });
-
-  const aiResponse = response.content[0];
-  const adjustmentText = aiResponse.type === 'text' ? aiResponse.text : '';
+  const adjustmentText = await runAssessmentChat(
+    systemPrompt,
+    'Analyze performance and recommend difficulty adjustments for optimal learning.',
+    { maxTokens: 1500, temperature: 0.7 }
+  );
 
   return {
     currentDifficulty,

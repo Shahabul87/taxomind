@@ -1,11 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { createAnthropicAdapter } from '@sam-ai/core';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+let aiAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
+
+function getAIAdapter() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+  }
+  if (!aiAdapter) {
+    aiAdapter = createAnthropicAdapter({
+      apiKey,
+      model: 'claude-sonnet-4-5-20250929',
+      timeout: 60000,
+      maxRetries: 2,
+    });
+  }
+  return aiAdapter;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,16 +56,15 @@ export async function POST(request: NextRequest) {
     ];
 
     // Call Anthropic API
-    const response = await anthropic.messages.create({
+    const response = await getAIAdapter().chat({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2000,
+      maxTokens: 2000,
       temperature: 0.7,
-      system: systemPrompt,
-      messages: messages as any
+      systemPrompt,
+      messages,
     });
 
-    const aiResponse = response.content[0];
-    const responseText = aiResponse.type === 'text' ? aiResponse.text : '';
+    const responseText = response.content ?? '';
 
     // Parse response for actions and suggestions
     const parsedResponse = parseAIResponse(responseText, learningContext, pageData);
