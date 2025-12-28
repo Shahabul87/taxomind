@@ -3,9 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { logCourseUpdate, logCourseDeletion } from '@/lib/audit/course-audit';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
+
+// Helper to extract request metadata
+function getRequestMetadata(request: NextRequest) {
+  return {
+    ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               request.headers.get('x-real-ip') ||
+               'unknown',
+    userAgent: request.headers.get('user-agent') || 'unknown',
+  };
+}
 
 // Enhanced DELETE route with detailed error handling - v2.0
 export async function DELETE(
@@ -74,8 +85,21 @@ export async function DELETE(
       }
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    // Audit logging - track course deletion for compliance
+    const { ipAddress, userAgent } = getRequestMetadata(request);
+    await logCourseDeletion(courseId, {
+      userId: user.id,
+      ipAddress,
+      userAgent,
+    }, {
+      deletedTitle: course.title,
+      deletedAt: new Date().toISOString(),
+    }).catch(err => {
+      logger.warn("[COURSE_DELETE] Audit logging failed", { error: err });
+    });
+
+    return NextResponse.json({
+      success: true,
       message: "Course deleted successfully",
       deletedCourse: {
         id: course.id,
@@ -195,6 +219,26 @@ export async function PATCH(
           userId: user.id,
         },
         data: updateData,
+      });
+
+      // Audit logging - track course update for compliance
+      const { ipAddress, userAgent } = getRequestMetadata(request);
+      await logCourseUpdate(courseId, {
+        userId: user.id,
+        ipAddress,
+        userAgent,
+      }, {
+        fieldsUpdated: Object.keys(updateData),
+        previousValues: {
+          title: existingCourse.title,
+          isPublished: existingCourse.isPublished,
+        },
+        newValues: {
+          title: updateData.title ?? existingCourse.title,
+          isPublished: updateData.isPublished ?? existingCourse.isPublished,
+        },
+      }).catch(err => {
+        logger.warn("[COURSE_PATCH] Audit logging failed", { error: err });
       });
 
       return NextResponse.json(course);

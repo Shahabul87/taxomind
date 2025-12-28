@@ -123,6 +123,43 @@ export async function logCourseDeletion(
 }
 
 /**
+ * Log course image upload (uses UPDATE action type)
+ */
+export async function logCourseImageUpload(
+  courseId: string,
+  options: AuditLogOptions,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  try {
+    await db.auditLog.create({
+      data: {
+        userId: options.userId,
+        action: 'UPDATE',
+        entityType: 'COURSE',
+        entityId: courseId,
+        resourceType: 'COURSE',
+        resourceId: courseId,
+        metadata: JSON.stringify({
+          ...metadata,
+          operationType: 'IMAGE_UPLOAD',
+          ipAddress: options.ipAddress,
+          userAgent: options.userAgent,
+        }),
+        timestamp: new Date(),
+      },
+    });
+
+    logger.info('Course image upload logged', { courseId, userId: options.userId });
+  } catch (error) {
+    logger.error('Failed to log course image upload', {
+      courseId,
+      userId: options.userId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
  * Log course publishing/unpublishing
  */
 export async function logCoursePublishChange(

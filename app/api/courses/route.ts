@@ -1,105 +1,229 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { z, ZodError } from "zod";
 
 import { currentUser } from "@/lib/auth";
 import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 import { db } from "@/lib/db";
-import { 
-  cacheInvalidation 
+import {
+  cacheInvalidation
 } from '@/lib/db/query-optimizer';
 import { logger } from '@/lib/logger';
+import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
+import {
+  ApiError,
+  createSuccessResponse as createApiSuccess,
+  createErrorResponse as createApiError,
+} from '@/lib/api/api-responses';
+import { logCourseCreation } from '@/lib/audit/course-audit';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-export async function POST(req: Request): Promise<NextResponse> {
+// =============================================================================
+// Course Creation Schema - Flexible for initial creation
+// =============================================================================
+const CreateCourseRequestSchema = z.object({
+  title: z
+    .string()
+    .min(3, 'Title must be at least 3 characters')
+    .max(200, 'Title must not exceed 200 characters')
+    .transform(val => val.trim()),
+  description: z
+    .string()
+    .max(5000, 'Description must not exceed 5000 characters')
+    .optional()
+    .nullable(),
+  learningObjectives: z
+    .array(z.string().max(500))
+    .max(20, 'Maximum 20 learning objectives allowed')
+    .optional(),
+  categoryId: z.string().uuid('Invalid category ID').optional(),
+});
+
+type CreateCourseRequest = z.infer<typeof CreateCourseRequestSchema>;
+
+// =============================================================================
+// Rate Limit Configuration
+// =============================================================================
+const COURSE_CREATION_RATE_LIMIT = {
+  limit: 10,           // 10 courses
+  windowMs: 3600000,   // per hour
+};
+
+// =============================================================================
+// POST - Create Course (Enterprise-Grade)
+// =============================================================================
+export async function POST(req: Request): Promise<Response> {
+  const startTime = Date.now();
+
   try {
-
-    // Get current user
+    // 1. Authentication Check
     const user = await currentUser();
-    console.log("[COURSES] Full user object:", JSON.stringify(user, null, 2));
-    
-    if (!user?.id) {
 
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (!user?.id) {
+      logger.warn("[COURSES] Unauthorized course creation attempt");
+      return createApiError(ApiError.unauthorized('Authentication required'));
     }
-    
-    // Verify user exists in database
+
+    // 2. Rate Limiting
+    const clientId = getClientIdentifier(req, user.id);
+    const rateLimitResult = await rateLimit(
+      `course-creation:${clientId}`,
+      COURSE_CREATION_RATE_LIMIT.limit,
+      COURSE_CREATION_RATE_LIMIT.windowMs
+    );
+
+    if (!rateLimitResult.success) {
+      logger.warn("[COURSES] Rate limit exceeded for user", { userId: user.id });
+      return createApiError(
+        ApiError.tooManyRequests(
+          `Course creation limit reached. Try again in ${rateLimitResult.retryAfter} seconds.`
+        ),
+        {
+          'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          'Retry-After': rateLimitResult.retryAfter?.toString() || '3600',
+        }
+      );
+    }
+
+    // 3. Verify user exists in database
     const dbUser = await db.user.findUnique({
       where: { id: user.id },
       select: { id: true, email: true, isTeacher: true }
     });
-    console.log("[COURSES] Database user:", JSON.stringify(dbUser, null, 2));
 
     if (!dbUser) {
-      return new NextResponse("User not found", { status: 404 });
+      logger.error("[COURSES] User not found in database", { userId: user.id });
+      return createApiError(ApiError.notFound('User account not found'));
     }
 
-    // All authenticated users can create courses (both regular users and teachers)
-
-    // Parse request body
-    const body = await req.json();
-    const { title, description, learningObjectives } = body;
-
-    if (!title || title.trim().length === 0) {
-
-      return new NextResponse("Title is required", { status: 400 });
-    }
-
-    // Handle learning objectives - convert array to string for courseGoals or use whatYouWillLearn array
-    let courseGoalsString = null;
-    let whatYouWillLearnArray = [];
-    
-    if (learningObjectives && Array.isArray(learningObjectives)) {
-      // Use whatYouWillLearn for the array of objectives
-      whatYouWillLearnArray = learningObjectives;
-      // Create a summary string for courseGoals
-      courseGoalsString = `This course includes ${learningObjectives.length} learning objectives covering the key concepts and practical skills needed.`;
-    }
-    
-    // Create course with AI-generated data
-    const course = await db.course.create({
-      data: {
-        userId: user.id,
-        title: title.trim(),
-        description: description || null,
-        courseGoals: courseGoalsString,
-        whatYouWillLearn: whatYouWillLearnArray,
-        isPublished: false,
+    // 4. Parse and validate request body with Zod
+    let validatedData: CreateCourseRequest;
+    try {
+      const body = await req.json();
+      validatedData = CreateCourseRequestSchema.parse(body);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const validationErrors = error.errors.map(e => ({
+          field: e.path.join('.'),
+          message: e.message,
+        }));
+        logger.warn("[COURSES] Validation failed", { errors: validationErrors });
+        return createApiError(
+          ApiError.validation('Invalid course data', { errors: validationErrors })
+        );
       }
+      throw error;
+    }
+
+    // 5. Prepare learning objectives data
+    let courseGoalsString: string | null = null;
+    let whatYouWillLearnArray: string[] = [];
+
+    if (validatedData.learningObjectives && validatedData.learningObjectives.length > 0) {
+      whatYouWillLearnArray = validatedData.learningObjectives;
+      courseGoalsString = `This course includes ${validatedData.learningObjectives.length} learning objectives covering the key concepts and practical skills needed.`;
+    }
+
+    // 6. Create course using transaction for atomicity
+    const course = await db.$transaction(async (tx) => {
+      const newCourse = await tx.course.create({
+        data: {
+          userId: user.id,
+          title: validatedData.title,
+          description: validatedData.description || null,
+          categoryId: validatedData.categoryId || null,
+          courseGoals: courseGoalsString,
+          whatYouWillLearn: whatYouWillLearnArray,
+          isPublished: false,
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          categoryId: true,
+          isPublished: true,
+          createdAt: true,
+          userId: true,
+        }
+      });
+
+      return newCourse;
     });
 
-    // Invalidate relevant caches after course creation
+    // 7. Audit logging - track course creation for compliance
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                      req.headers.get('x-real-ip') ||
+                      'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
+
+    await logCourseCreation(course.id, {
+      userId: user.id,
+      ipAddress,
+      userAgent,
+    }, {
+      title: validatedData.title,
+      hasDescription: !!validatedData.description,
+      hasLearningObjectives: whatYouWillLearnArray.length > 0,
+      objectivesCount: whatYouWillLearnArray.length,
+      categoryId: validatedData.categoryId || null,
+    }).catch(err => {
+      // Don't fail the request if audit logging fails
+      logger.warn("[COURSES] Audit logging failed", { error: err });
+    });
+
+    // 8. Invalidate relevant caches after successful creation
     await Promise.all([
       cacheInvalidation.invalidateUser(user.id),
       cacheInvalidation.invalidateSearch(),
       redisCache.invalidatePattern(`${CACHE_PREFIXES.COURSE}*`),
-    ]);
+    ]).catch(err => {
+      // Don't fail the request if cache invalidation fails
+      logger.warn("[COURSES] Cache invalidation failed", { error: err });
+    });
 
-    return NextResponse.json(course);
-    
+    // 9. Log success (without sensitive data)
+    const responseTime = Date.now() - startTime;
+    logger.info("[COURSES] Course created successfully", {
+      courseId: course.id,
+      userId: user.id,
+      responseTime,
+    });
+
+    // 10. Return standardized success response
+    return createApiSuccess(course, 201, undefined, {
+      'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+      'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+    });
+
   } catch (error) {
-    logger.error("[COURSES] Error creating course:", error);
-    
-    if (error instanceof Error) {
-      logger.error("[COURSES] Error message:", error.message);
-      logger.error("[COURSES] Error stack:", error.stack);
-      
-      // Check for specific Prisma errors
-      if (error.message.includes('Foreign key constraint')) {
-        return new NextResponse("Database constraint error", { status: 400 });
+    const responseTime = Date.now() - startTime;
+    logger.error("[COURSES] Error creating course", {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      responseTime,
+    });
+
+    // Handle Prisma-specific errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return createApiError(
+          ApiError.conflict('A course with this title already exists')
+        );
       }
-      
-      if (error.message.includes('Unique constraint')) {
-        return new NextResponse("Duplicate course title", { status: 409 });
-      }
-      
-      if (error.message.includes('connect')) {
-        return new NextResponse("Database connection error", { status: 503 });
+      if (error.code === 'P2003') {
+        return createApiError(
+          ApiError.badRequest('Invalid category reference')
+        );
       }
     }
-    
-    return new NextResponse("Internal Server Error", { status: 500 });
+
+    // Generic error - don't leak internal details
+    return createApiError(
+      ApiError.internal('Unable to create course. Please try again.')
+    );
   }
 }
 
