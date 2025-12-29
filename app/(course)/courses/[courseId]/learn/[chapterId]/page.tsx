@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { CourseNavbar } from "../_components/course-navbar";
-import { CourseSidebar } from "../_components/course-sidebar";
-import { ChapterContent } from "../_components/course-content";
-import ConditionalHeader from "@/app/(homepage)/user-header";
+import { EnterpriseChapterView } from "./_components/enterprise/enterprise-chapter-view";
 import { getCourse } from "@/actions/get-course";
 import { logger } from '@/lib/logger';
 
@@ -56,30 +53,11 @@ const ChapterIdPage = async (props: ChapterPageProps) => {
   }
 
   return (
-    <>
-      <ConditionalHeader user={user as any} />
-      <div className="h-full">
-        <div className="hidden md:flex h-full w-80 flex-col fixed inset-y-0 z-50" style={{ top: 'var(--sticky-offset, 64px)' }}>
-          <CourseSidebar
-            course={course}
-            currentChapterId={params.chapterId}
-          />
-        </div>
-        <div className="md:ml-80 h-full">
-          <div className="h-full flex flex-col">
-            <div className="h-full flex flex-col">
-              <main className="md:pl-75 h-full" style={{ paddingTop: 'var(--sticky-offset, 64px)' }}>
-                <ChapterContent 
-                  chapter={chapter}
-                  course={course}
-                  userId={user.id}
-                />
-              </main>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+    <EnterpriseChapterView
+      chapter={chapter as any}
+      course={course as any}
+      userId={user.id}
+    />
   );
 };
 

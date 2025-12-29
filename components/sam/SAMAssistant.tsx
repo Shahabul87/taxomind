@@ -524,10 +524,21 @@ function SAMAssistantInner({
     return { effectiveEntityContext, samFormContext };
   }, [detectedForms, getWindowEntityContext, windowEntityContext]);
 
+  // Use ref to track last context key to prevent infinite loops
+  const lastContextKeyRef = useRef<string>('');
+
   useEffect(() => {
+    // Create a stable key from primitive values to detect actual changes
+    const contextKey = `${pageContext.pageType}:${pageContext.path}:${pageContext.entityId}:${pageContext.parentEntityId}`;
+
+    // Skip if we've already updated for this context
+    if (lastContextKeyRef.current === contextKey) {
+      return;
+    }
+    lastContextKeyRef.current = contextKey;
+
     const { effectiveEntityContext, samFormContext } = buildContextUpdate();
     const nextMetadata = {
-      ...(samContext.page.metadata ?? {}),
       entityData: effectiveEntityContext.entityData,
       entityType: effectiveEntityContext.entityType,
     };
@@ -551,7 +562,13 @@ function SAMAssistantInner({
     updateContext(contextUpdate);
   }, [
     buildContextUpdate,
-    pageContext,
+    pageContext.pageType,
+    pageContext.path,
+    pageContext.entityId,
+    pageContext.parentEntityId,
+    pageContext.grandParentEntityId,
+    pageContext.capabilities,
+    pageContext.breadcrumbs,
     samContext.form,
     updateContext,
   ]);

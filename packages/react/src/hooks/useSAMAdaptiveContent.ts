@@ -173,16 +173,6 @@ export function useSAMAdaptiveContent(
   }, [cacheKey, profileCacheDuration]);
 
   /**
-   * Auto-detect learning style
-   */
-  useEffect(() => {
-    if (!userId || !autoDetectStyle || hasTriedAutoDetect.current || learnerProfile) return;
-
-    hasTriedAutoDetect.current = true;
-    detectStyle();
-  }, [userId, autoDetectStyle, learnerProfile]);
-
-  /**
    * Get or create learner profile
    */
   const getProfile = useCallback(async (): Promise<AdaptiveLearnerProfile | null> => {
@@ -285,6 +275,16 @@ export function useSAMAdaptiveContent(
       setIsLoadingProfile(false);
     }
   }, [apiEndpoint, userId, courseId, cacheKey, onStyleDetected]);
+
+  /**
+   * Auto-detect learning style
+   */
+  useEffect(() => {
+    if (!userId || !autoDetectStyle || hasTriedAutoDetect.current || learnerProfile) return;
+
+    hasTriedAutoDetect.current = true;
+    detectStyle();
+  }, [userId, autoDetectStyle, learnerProfile, detectStyle]);
 
   /**
    * Adapt content for the user

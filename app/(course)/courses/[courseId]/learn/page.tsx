@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
-import { CourseLearningDashboard } from "./_components/course-learning-dashboard";
+import { EnterpriseLearningDashboard } from "./_components/enterprise/enterprise-learning-dashboard";
 
 const CourseLearningPage = async (
   props: {
@@ -119,7 +119,7 @@ const CourseLearningPage = async (
   const progressPercentage = totalSections > 0 ? (completedSections / totalSections) * 100 : 0;
 
   return (
-    <CourseLearningDashboard 
+    <EnterpriseLearningDashboard
       course={enrollment.Course as any}
       user={{ ...user, id: user.id! }}
       progressPercentage={progressPercentage}
