@@ -38,3 +38,15 @@ export * from './unified-blooms.types';
 export * from './practice-problems.types';
 export * from './adaptive-content.types';
 export * from './socratic-teaching.types';
+
+// Knowledge Graph Engine (New)
+export * from './knowledge-graph.types';
+
+// Microlearning Engine (New)
+export * from './microlearning.types';
+
+// Metacognition Engine (New)
+export * from './metacognition.types';
+
+// Competency Engine (New)
+export * from './competency.types';

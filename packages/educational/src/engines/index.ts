@@ -32,3 +32,15 @@ export { UnifiedBloomsAdapterEngine, createUnifiedBloomsAdapterEngine } from './
 export { PracticeProblemsEngine, createPracticeProblemsEngine } from './practice-problems-engine';
 export { AdaptiveContentEngine, createAdaptiveContentEngine } from './adaptive-content-engine';
 export { SocraticTeachingEngine, createSocraticTeachingEngine } from './socratic-teaching-engine';
+
+// Knowledge Graph Engine (New)
+export { KnowledgeGraphEngine, createKnowledgeGraphEngine } from './knowledge-graph-engine';
+
+// Microlearning Engine (New)
+export { MicrolearningEngine, createMicrolearningEngine } from './microlearning-engine';
+
+// Metacognition Engine (New)
+export { MetacognitionEngine, createMetacognitionEngine } from './metacognition-engine';
+
+// Competency Engine (New)
+export { CompetencyEngine, createCompetencyEngine } from './competency-engine';
