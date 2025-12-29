@@ -561,95 +561,9 @@ export default function AICreatorPage() {
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left: Progress Steps (Desktop) */}
-            <aside className="hidden lg:block lg:col-span-3">
-              <div className="sticky top-8 p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
-                <div className="mb-5 pb-4 border-b border-slate-200/50 dark:border-slate-700/50">
-                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    Progress
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Step {step} of {totalSteps}
-                  </p>
-                  {/* Progress bar */}
-                  <div className="mt-3 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full transition-all duration-500"
-                      style={{ width: `${(step / totalSteps) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Steps list */}
-                <div className="space-y-2">
-                  {STEPS.map((s, index) => {
-                    const Icon = s.icon;
-                    const isCompleted = index + 1 < step;
-                    const isCurrent = index + 1 === step;
-                    const isClickable = isCompleted;
-
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          if (isClickable) {
-                            let currentStep = step;
-                            while (currentStep > index + 1) {
-                              handleBack();
-                              currentStep--;
-                            }
-                          }
-                        }}
-                        disabled={!isClickable && !isCurrent}
-                        className={cn(
-                          "w-full p-3 rounded-xl text-left transition-all duration-200",
-                          isCurrent && "bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/50 dark:to-purple-950/50 border border-violet-200 dark:border-violet-800",
-                          isCompleted && "hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer",
-                          !isCompleted && !isCurrent && "opacity-50"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={cn(
-                              "w-9 h-9 rounded-lg flex items-center justify-center transition-all",
-                              isCurrent && "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg",
-                              isCompleted && "bg-emerald-500 text-white",
-                              !isCompleted && !isCurrent && "bg-slate-200 dark:bg-slate-700 text-slate-400"
-                            )}
-                          >
-                            {isCompleted ? (
-                              <CheckCircle2 className="h-4 w-4" />
-                            ) : (
-                              <Icon className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className={cn(
-                                "text-sm font-medium truncate",
-                                isCurrent && "text-violet-900 dark:text-violet-100",
-                                isCompleted && "text-slate-700 dark:text-slate-300",
-                                !isCompleted && !isCurrent && "text-slate-400 dark:text-slate-500"
-                              )}
-                            >
-                              {s.title}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                              {s.description}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </aside>
-
-            {/* Center: Main Content */}
-            <main className="lg:col-span-9 space-y-5">
+          {/* Main Content - Single Column */}
+          <div className="max-w-4xl mx-auto">
+            <main className="space-y-5">
               {/* Step Header */}
               <div className="p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
                 <div className="flex items-center gap-4">
@@ -689,8 +603,8 @@ export default function AICreatorPage() {
                 </div>
               </div>
 
-              {/* Desktop Navigation */}
-              <div className="hidden lg:flex items-center justify-between gap-4 p-5 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
+              {/* Navigation */}
+              <div className="hidden sm:flex items-center justify-between gap-4 p-5 rounded-2xl bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50">
                 <Button
                   variant="outline"
                   onClick={handleBack}
@@ -761,7 +675,7 @@ export default function AICreatorPage() {
               </div>
 
               {!canProceed && (
-                <div className="hidden lg:flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50 text-sm text-amber-700 dark:text-amber-300">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50 text-sm text-amber-700 dark:text-amber-300">
                   <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                   Complete all required fields to continue
                 </div>
