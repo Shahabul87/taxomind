@@ -4,7 +4,7 @@
  */
 
 import { createHash } from 'crypto';
-import type { BloomsLevel } from '@sam-ai/core';
+import type { BloomsLevel, SAMConfig } from '@sam-ai/core';
 import {
   BloomsDistribution,
   WebbDOKDistribution,
@@ -91,9 +91,16 @@ export interface CourseDepthAnalysisStore {
 }
 
 export interface EnhancedDepthAnalysisEngineOptions {
+  /** Optional SAMConfig for AI-enhanced analysis */
+  samConfig?: SAMConfig;
+  /** Storage adapter for caching and persistence */
   storage?: CourseDepthAnalysisStore;
+  /** Logger for debugging and monitoring */
   logger?: DepthAnalysisLogger;
+  /** Custom content hasher function */
   contentHasher?: (courseData: CourseData) => string;
+  /** Enable AI-enhanced recommendations (requires samConfig) */
+  enableAIEnhancements?: boolean;
 }
 
 const noopLogger: DepthAnalysisLogger = {
@@ -213,14 +220,32 @@ interface AttachmentData {
 
 export class EnhancedDepthAnalysisEngine {
   private startTime: number = 0;
+  private readonly samConfig?: SAMConfig;
   private readonly storage?: CourseDepthAnalysisStore;
   private readonly logger: DepthAnalysisLogger;
   private readonly contentHasher: (courseData: CourseData) => string;
+  private readonly enableAIEnhancements: boolean;
 
   constructor(options: EnhancedDepthAnalysisEngineOptions = {}) {
+    this.samConfig = options.samConfig;
     this.storage = options.storage;
     this.logger = options.logger ?? noopLogger;
     this.contentHasher = options.contentHasher ?? generateCourseContentHash;
+    this.enableAIEnhancements = options.enableAIEnhancements ?? false;
+  }
+
+  /**
+   * Check if AI-enhanced analysis is available
+   */
+  hasAICapabilities(): boolean {
+    return !!(this.samConfig && this.enableAIEnhancements);
+  }
+
+  /**
+   * Get the SAMConfig (for subclasses or testing)
+   */
+  protected getSAMConfig(): SAMConfig | undefined {
+    return this.samConfig;
   }
 
   /**

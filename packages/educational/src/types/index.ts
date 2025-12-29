@@ -56,3 +56,6 @@ export * from './peer-learning.types';
 
 // Multimodal Input Engine (New)
 export * from './multimodal-input.types';
+
+// Note: depth-analysis.types are exported directly from the enhanced-depth-engine
+// to avoid naming conflicts with blooms.types and other type files.
