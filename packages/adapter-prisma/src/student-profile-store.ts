@@ -110,7 +110,6 @@ export interface StudentProfileStore {
 // ============================================================================
 
 export interface PrismaStudentProfileStoreConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma: any;
   profileTableName?: string;
   masteryTableName?: string;
@@ -148,7 +147,6 @@ function calculateConfidence(assessmentCount: number): number {
 // ============================================================================
 
 export class PrismaStudentProfileStore implements StudentProfileStore {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private prisma: any;
   private profileTableName: string;
   private masteryTableName: string;
@@ -339,7 +337,6 @@ export class PrismaStudentProfileStore implements StudentProfileStore {
     await this.prisma[this.profileTableName].delete({ where: { id: studentId } });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToProfile(result: any): StudentProfile {
     const masteryByTopic: Record<string, TopicMastery> = {};
     for (const m of result.masteryRecords ?? []) {
@@ -362,7 +359,6 @@ export class PrismaStudentProfileStore implements StudentProfileStore {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToMastery(result: any): TopicMastery {
     return {
       topicId: result.topicId,
@@ -377,7 +373,6 @@ export class PrismaStudentProfileStore implements StudentProfileStore {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToPathway(result: any): LearningPathway {
     return {
       id: result.id,

@@ -461,7 +461,7 @@ export const SamCourseCreatorModal = ({
     } finally {
       setIsLoadingTitleSuggestions(false);
     }
-  }, [formData.courseCategory, formData.difficulty, formData.targetAudience, isLoadingTitleSuggestions]);
+  }, [formData, isLoadingTitleSuggestions]);
 
   // Generate overview suggestions using SAM AI Tutor
   const generateOverviewSuggestions = useCallback(async (currentTitle: string) => {
@@ -501,7 +501,7 @@ export const SamCourseCreatorModal = ({
     } finally {
       setIsLoadingOverviewSuggestions(false);
     }
-  }, [formData.courseCategory, formData.difficulty, formData.targetAudience, isLoadingOverviewSuggestions]);
+  }, [formData, isLoadingOverviewSuggestions]);
 
   // Debounced title suggestions
   useEffect(() => {

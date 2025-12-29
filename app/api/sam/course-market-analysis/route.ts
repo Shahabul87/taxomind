@@ -13,8 +13,7 @@ function getMarketEngine() {
   if (!marketEngine) {
     marketEngine = createMarketEngine({
       aiProvider: 'anthropic',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      databaseAdapter: createMarketAdapter(db as any),
+      databaseAdapter: createMarketAdapter(db),
     });
   }
   return marketEngine;

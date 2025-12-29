@@ -5,7 +5,6 @@
  * to the Taxomind Prisma schema. Each engine has its own adapter interface.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type {
   TrendsDatabaseAdapter,
@@ -34,7 +33,6 @@ import type {
 
 // Use a generic type for Prisma client to support extended clients
 // This allows both regular PrismaClient and extended versions (with metrics, etc.)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PrismaLike = {
   sAMInteraction: any;
   course: any;

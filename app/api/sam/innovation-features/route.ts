@@ -13,8 +13,7 @@ function getInnovationEngine() {
   if (!innovationEngine) {
     innovationEngine = createInnovationEngine({
       aiProvider: 'anthropic',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      databaseAdapter: createInnovationAdapter(db as any),
+      databaseAdapter: createInnovationAdapter(db),
     });
   }
   return innovationEngine;

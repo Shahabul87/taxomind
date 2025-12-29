@@ -241,7 +241,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
   // ========================================
 
   // Helper to find or create category (POST API handles both cases)
-  const getOrCreateCategoryId = async (categoryName: string, parentId?: string | null): Promise<string | null> => {
+  const getOrCreateCategoryId = useCallback(async (categoryName: string, parentId?: string | null): Promise<string | null> => {
     if (!categoryName) return null;
 
     try {
@@ -265,9 +265,9 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
       logger.warn('Failed to get/create category:', categoryName);
       return null;
     }
-  };
+  }, []);
 
-  const createCourseInDB = async (courseContext: CourseContext): Promise<string> => {
+  const createCourseInDB = useCallback(async (courseContext: CourseContext): Promise<string> => {
     // Look up category and subcategory IDs
     let categoryId: string | null = null;
     let subcategoryId: string | null = null;
@@ -300,9 +300,9 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
     const result = await response.json();
     return result.data?.id || result.id;
-  };
+  }, [getOrCreateCategoryId]);
 
-  const createChapterInDB = async (
+  const createChapterInDB = useCallback(async (
     courseId: string,
     chapter: GeneratedChapter
   ): Promise<string> => {
@@ -339,9 +339,9 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     }
 
     return chapterId;
-  };
+  }, []);
 
-  const createSectionInDB = async (
+  const createSectionInDB = useCallback(async (
     courseId: string,
     chapterId: string,
     section: GeneratedSection
@@ -362,9 +362,9 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
 
     const createResult = await createResponse.json();
     return createResult.data?.id || createResult.id;
-  };
+  }, []);
 
-  const updateSectionDetailsInDB = async (
+  const updateSectionDetailsInDB = useCallback(async (
     courseId: string,
     chapterId: string,
     sectionId: string,
@@ -388,7 +388,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
     if (!response.ok) {
       logger.warn('Failed to update section details:', section.title);
     }
-  };
+  }, []);
 
   // ========================================
   // Main Creation Flow
@@ -751,7 +751,7 @@ export function useSequentialCreation(): UseSequentialCreationReturn {
         error: errorMessage,
       };
     }
-  }, [router, updateProgress, progress]);
+  }, [router, updateProgress, progress, createCourseInDB, createChapterInDB, createSectionInDB, updateSectionDetailsInDB]);
 
   // ========================================
   // Cancel and Reset

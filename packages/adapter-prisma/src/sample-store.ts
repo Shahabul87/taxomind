@@ -75,7 +75,6 @@ export interface CalibrationSampleStore {
 // ============================================================================
 
 export interface PrismaSampleStoreConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma: any;
   tableName?: string;
 }
@@ -85,7 +84,6 @@ export interface PrismaSampleStoreConfig {
 // ============================================================================
 
 export class PrismaSampleStore implements CalibrationSampleStore {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private prisma: any;
   private tableName: string;
 
@@ -205,7 +203,6 @@ export class PrismaSampleStore implements CalibrationSampleStore {
     return result.count;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToSample(result: any): CalibrationSample {
     return {
       id: result.id,

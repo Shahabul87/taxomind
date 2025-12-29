@@ -27,8 +27,7 @@ function getTrendsEngine() {
   if (!trendsEngine) {
     trendsEngine = createTrendsEngine({
       samConfig: getSAMConfig(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      database: createTrendsAdapter(db as any),
+      database: createTrendsAdapter(db),
     });
   }
   return trendsEngine;

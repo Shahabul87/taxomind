@@ -39,13 +39,11 @@ export interface GoldenTestStore {
 }
 
 export interface PrismaGoldenTestStoreConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma: any;
   tableName?: string;
 }
 
 export class PrismaGoldenTestStore implements GoldenTestStore {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private prisma: any;
   private tableName: string;
 

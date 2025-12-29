@@ -4,6 +4,15 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+interface Chapter {
+  id: string;
+  title: string;
+  sections: Array<{
+    id: string;
+    title: string;
+  }>;
+}
+
 interface AIMLHeroProps {
   course: {
     title: string;
@@ -27,6 +36,7 @@ interface AIMLHeroProps {
     reviews?: {
       rating: number;
     }[];
+    chapters?: Chapter[];
   };
   models?: string[];
   isEnrolled?: boolean;
@@ -38,6 +48,11 @@ export function AIMLHero({ course, models = [], isEnrolled = false, onEnroll }: 
   const secureImageUrl = course.imageUrl
     ? course.imageUrl.replace(/^http:\/\//i, 'https://')
     : null;
+
+  // Calculate dynamic stats from chapters data
+  const modules = course.chapters?.length ?? 0;
+  const lessons = course.chapters?.reduce((acc, ch) => acc + (ch.sections?.length ?? 0), 0) ?? 0;
+  const resources = Math.max(lessons * 2, 10); // Estimate: ~2 resources per lesson
 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-indigo-900 to-pink-900">
@@ -120,23 +135,23 @@ export function AIMLHero({ course, models = [], isEnrolled = false, onEnroll }: 
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-cyan-400">
                   <Brain className="h-4 w-4" />
-                  <span className="text-xs uppercase tracking-wide">Models</span>
+                  <span className="text-xs uppercase tracking-wide">Modules</span>
                 </div>
-                <p className="text-2xl font-bold text-white">15+</p>
+                <p className="text-2xl font-bold text-white">{modules}</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-pink-400">
                   <Cpu className="h-4 w-4" />
-                  <span className="text-xs uppercase tracking-wide">Datasets</span>
+                  <span className="text-xs uppercase tracking-wide">Lessons</span>
                 </div>
-                <p className="text-2xl font-bold text-white">30+</p>
+                <p className="text-2xl font-bold text-white">{lessons}</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-purple-400">
                   <Network className="h-4 w-4" />
-                  <span className="text-xs uppercase tracking-wide">Projects</span>
+                  <span className="text-xs uppercase tracking-wide">Resources</span>
                 </div>
-                <p className="text-2xl font-bold text-white">20+</p>
+                <p className="text-2xl font-bold text-white">{resources}+</p>
               </div>
             </div>
           </div>

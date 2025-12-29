@@ -215,7 +215,6 @@ export interface PrismaSampleStoreConfig {
   /**
    * Prisma client instance (type any to avoid tight coupling)
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma: any;
 
   /**
@@ -229,7 +228,6 @@ export interface PrismaSampleStoreConfig {
  * Ready for database integration
  */
 export class PrismaSampleStore implements CalibrationSampleStore {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private prisma: any;
   private tableName: string;
 
@@ -394,7 +392,6 @@ export class PrismaSampleStore implements CalibrationSampleStore {
     const avgDrift =
       reviewedWithScores.length > 0
         ? reviewedWithScores.reduce(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (sum: number, s: any) =>
               sum + Math.abs(s.aiScore - (s.humanScore ?? s.aiScore)),
             0
@@ -409,7 +406,6 @@ export class PrismaSampleStore implements CalibrationSampleStore {
 
     // Build content type counts
     const byContentType: Record<string, number> = {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     for (const item of contentTypeCounts as any[]) {
       const type = item.context?.contentType ?? 'unknown';
       byContentType[type] = (byContentType[type] ?? 0) + item._count;
@@ -447,7 +443,6 @@ export class PrismaSampleStore implements CalibrationSampleStore {
   /**
    * Map database result to CalibrationSample
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToSample(result: any): CalibrationSample {
     return {
       id: result.id,

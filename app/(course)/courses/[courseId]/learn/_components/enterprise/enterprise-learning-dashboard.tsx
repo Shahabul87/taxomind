@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -10,14 +10,10 @@ import {
   BarChart3,
   Play,
   ArrowRight,
-  Video,
-  FileText,
   Brain,
-  ChevronRight,
   Sparkles,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 import { DashboardHero } from "./dashboard-hero";
@@ -28,6 +24,18 @@ import { LearningPath } from "../learning-path";
 import { SmartSidebar } from "../smart-sidebar";
 import { StreakTracker } from "../streak-tracker";
 import { SmartPredictions } from "../smart-predictions";
+import { SectionErrorBoundary } from "./learn-error-boundary";
+import {
+  ProgressAnalyticsSkeleton,
+  AchievementsPanelSkeleton,
+  CourseContentSkeleton,
+  LearningPathSkeleton,
+  SmartSidebarSkeleton,
+  StreakTrackerSkeleton,
+  SmartPredictionsSkeleton,
+} from "./loading-skeletons";
+import { MobileNavigationDrawer } from "./mobile-navigation-drawer";
+import { useCurrentStreak } from "../../_hooks/use-streak-data";
 
 interface Course {
   id: string;
@@ -94,6 +102,51 @@ export function EnterpriseLearningDashboard({
   completedSections,
 }: EnterpriseLearningDashboardProps) {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const [announcement, setAnnouncement] = useState("");
+
+  // Fetch real streak data
+  const { currentStreak } = useCurrentStreak(course.id);
+
+  // Keyboard navigation for tabs
+  const handleTabKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+      const tabCount = TABS.length;
+      let newIndex: number | null = null;
+
+      switch (event.key) {
+        case "ArrowRight":
+          event.preventDefault();
+          newIndex = (currentIndex + 1) % tabCount;
+          break;
+        case "ArrowLeft":
+          event.preventDefault();
+          newIndex = (currentIndex - 1 + tabCount) % tabCount;
+          break;
+        case "Home":
+          event.preventDefault();
+          newIndex = 0;
+          break;
+        case "End":
+          event.preventDefault();
+          newIndex = tabCount - 1;
+          break;
+      }
+
+      if (newIndex !== null) {
+        tabsRef.current[newIndex]?.focus();
+        setActiveTab(TABS[newIndex].id);
+        setAnnouncement(`${TABS[newIndex].label} tab selected`);
+      }
+    },
+    []
+  );
+
+  // Announce tab changes to screen readers
+  const handleTabSelect = useCallback((tabId: TabId, label: string) => {
+    setActiveTab(tabId);
+    setAnnouncement(`${label} tab selected`);
+  }, []);
 
   // Find next incomplete section
   const findNextSection = () => {
@@ -129,6 +182,16 @@ export function EnterpriseLearningDashboard({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      {/* Screen reader announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {announcement}
+      </div>
+
       {/* Cinematic Hero Section */}
       <DashboardHero
         course={course}
@@ -137,13 +200,13 @@ export function EnterpriseLearningDashboard({
         completedSections={completedSections}
         totalSections={totalSections}
         nextSection={nextSection}
-        streakDays={3} // This would come from actual data
+        streakDays={currentStreak}
       />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 -mt-8 relative z-20">
         {/* Quick Actions Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <section aria-label="Quick actions" className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {/* Continue Learning Card */}
           {nextSection && !isCompleted && (
             <motion.div
@@ -153,12 +216,14 @@ export function EnterpriseLearningDashboard({
             >
               <Link
                 href={`/courses/${course.id}/learn/${nextSection.chapter.id}/sections/${nextSection.section.id}`}
+                aria-label={`Continue learning: ${nextSection.section.title} in ${nextSection.chapter.title}`}
+                className="block focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 rounded-xl"
               >
                 <Card className="group bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-0 shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 cursor-pointer h-full">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Play className="h-6 w-6" />
+                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform" aria-hidden="true">
+                        <Play className="h-6 w-6" aria-hidden="true" />
                       </div>
                       <div>
                         <h3 className="font-bold text-lg">Continue Learning</h3>
@@ -173,7 +238,7 @@ export function EnterpriseLearningDashboard({
                     <p className="text-emerald-100 text-sm truncate">
                       {nextSection.section.title}
                     </p>
-                    <ArrowRight className="h-5 w-5 mt-3 group-hover:translate-x-2 transition-transform" />
+                    <ArrowRight className="h-5 w-5 mt-3 group-hover:translate-x-2 transition-transform" aria-hidden="true" />
                   </CardContent>
                 </Card>
               </Link>
@@ -181,61 +246,63 @@ export function EnterpriseLearningDashboard({
           )}
 
           {/* Course Stats Card */}
-          <motion.div
+          <motion.article
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
+            aria-labelledby="course-stats-heading"
           >
             <Card className="bg-white dark:bg-slate-800 border-slate-200/50 dark:border-slate-700/50 shadow-xl h-full">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                    <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center" aria-hidden="true">
+                    <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">
+                    <h3 id="course-stats-heading" className="font-bold text-slate-900 dark:text-white">
                       Course Content
                     </h3>
                     <p className="text-slate-500 text-sm">Browse all chapters</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <dl className="grid grid-cols-2 gap-4 text-sm">
                   <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                    <p className="text-slate-500 dark:text-slate-400">Chapters</p>
-                    <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    <dt className="text-slate-500 dark:text-slate-400">Chapters</dt>
+                    <dd className="text-xl font-bold text-slate-900 dark:text-white">
                       {course.chapters.length}
-                    </p>
+                    </dd>
                   </div>
                   <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                    <p className="text-slate-500 dark:text-slate-400">Content</p>
-                    <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    <dt className="text-slate-500 dark:text-slate-400">Content</dt>
+                    <dd className="text-xl font-bold text-slate-900 dark:text-white">
                       {totalContent}
-                    </p>
+                    </dd>
                   </div>
-                </div>
+                </dl>
               </CardContent>
             </Card>
-          </motion.div>
+          </motion.article>
 
           {/* AI Insights Card */}
-          <motion.div
+          <motion.article
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            aria-labelledby="ai-insights-heading"
           >
             <Card className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white border-0 shadow-xl h-full">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                    <Brain className="h-6 w-6" />
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center" aria-hidden="true">
+                    <Brain className="h-6 w-6" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">AI Insights</h3>
+                    <h3 id="ai-insights-heading" className="font-bold text-lg">AI Insights</h3>
                     <p className="text-purple-100 text-sm">Personalized tips</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2 p-3 bg-white/10 backdrop-blur-sm rounded-lg">
-                  <Sparkles className="h-4 w-4 text-yellow-300 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-2 p-3 bg-white/10 backdrop-blur-sm rounded-lg" role="note">
+                  <Sparkles className="h-4 w-4 text-yellow-300 flex-shrink-0 mt-0.5" aria-hidden="true" />
                   <p className="text-sm text-purple-100">
                     {progressPercentage < 25
                       ? "Great start! Focus on completing one section at a time."
@@ -248,103 +315,171 @@ export function EnterpriseLearningDashboard({
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
-        </div>
+          </motion.article>
+        </section>
 
         {/* Navigation Tabs */}
-        <motion.div
+        <motion.nav
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className="mb-8"
+          aria-label="Course dashboard navigation"
         >
-          <div className="flex flex-wrap gap-2 p-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50">
-            {TABS.map((tab) => (
+          <div
+            role="tablist"
+            aria-label="Dashboard sections"
+            className="flex flex-wrap gap-2 p-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50"
+          >
+            {TABS.map((tab, index) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                ref={(el) => { tabsRef.current[index] = el; }}
+                role="tab"
+                id={`tab-${tab.id}`}
+                aria-selected={activeTab === tab.id}
+                aria-controls={`tabpanel-${tab.id}`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                onClick={() => handleTabSelect(tab.id, tab.label)}
+                onKeyDown={(e) => handleTabKeyDown(e, index)}
                 className={cn(
                   "flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2",
                   activeTab === tab.id
                     ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700"
                 )}
               >
-                <tab.icon className="h-4 w-4" />
+                <tab.icon className="h-4 w-4" aria-hidden="true" />
                 {tab.label}
               </button>
             ))}
           </div>
-        </motion.div>
+        </motion.nav>
 
         {/* Main Layout */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Content Area */}
-          <div className="xl:col-span-3">
+          <main id="main-content" className="xl:col-span-3">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
+                role="tabpanel"
+                id={`tabpanel-${activeTab}`}
+                aria-labelledby={`tab-${activeTab}`}
+                tabIndex={0}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
+                className="focus:outline-none"
               >
                 {activeTab === "overview" && (
                   <div className="space-y-8">
                     {/* Progress Analytics */}
-                    <ProgressAnalytics
-                      course={course}
-                      progressPercentage={progressPercentage}
-                      totalSections={totalSections}
-                      completedSections={completedSections}
-                    />
+                    <SectionErrorBoundary
+                      componentName="ProgressAnalytics"
+                      fallbackMessage="Failed to load progress analytics"
+                    >
+                      <Suspense fallback={<ProgressAnalyticsSkeleton />}>
+                        <ProgressAnalytics
+                          course={course}
+                          progressPercentage={progressPercentage}
+                          totalSections={totalSections}
+                          completedSections={completedSections}
+                        />
+                      </Suspense>
+                    </SectionErrorBoundary>
 
                     {/* Two Column Layout for Overview */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       {/* Smart Predictions */}
-                      <SmartPredictions
-                        course={course as any}
-                        userId={user.id}
-                        progressPercentage={progressPercentage}
-                        totalSections={totalSections}
-                        completedSections={completedSections}
-                      />
+                      <SectionErrorBoundary
+                        componentName="SmartPredictions"
+                        fallbackMessage="Failed to load predictions"
+                      >
+                        <Suspense fallback={<SmartPredictionsSkeleton />}>
+                          <SmartPredictions courseId={course.id} />
+                        </Suspense>
+                      </SectionErrorBoundary>
 
                       {/* Streak Tracker */}
-                      <StreakTracker courseId={course.id} userId={user.id} />
+                      <SectionErrorBoundary
+                        componentName="StreakTracker"
+                        fallbackMessage="Failed to load streak tracker"
+                      >
+                        <Suspense fallback={<StreakTrackerSkeleton />}>
+                          <StreakTracker courseId={course.id} userId={user.id} />
+                        </Suspense>
+                      </SectionErrorBoundary>
                     </div>
                   </div>
                 )}
 
                 {activeTab === "content" && (
-                  <CourseContentNavigation course={course as any} />
+                  <SectionErrorBoundary
+                    componentName="CourseContentNavigation"
+                    fallbackMessage="Failed to load course content"
+                  >
+                    <Suspense fallback={<CourseContentSkeleton />}>
+                      <CourseContentNavigation course={course as any} />
+                    </Suspense>
+                  </SectionErrorBoundary>
                 )}
 
                 {activeTab === "progress" && (
-                  <LearningPath course={course as any} detailed />
+                  <SectionErrorBoundary
+                    componentName="LearningPath"
+                    fallbackMessage="Failed to load learning path"
+                  >
+                    <Suspense fallback={<LearningPathSkeleton />}>
+                      <LearningPath course={course as any} detailed />
+                    </Suspense>
+                  </SectionErrorBoundary>
                 )}
 
                 {activeTab === "achievements" && (
-                  <AchievementsPanel
-                    courseId={course.id}
-                    userId={user.id}
-                    progressPercentage={progressPercentage}
-                    completedSections={completedSections}
-                    totalSections={totalSections}
-                  />
+                  <SectionErrorBoundary
+                    componentName="AchievementsPanel"
+                    fallbackMessage="Failed to load achievements"
+                  >
+                    <Suspense fallback={<AchievementsPanelSkeleton />}>
+                      <AchievementsPanel courseId={course.id} />
+                    </Suspense>
+                  </SectionErrorBoundary>
                 )}
               </motion.div>
             </AnimatePresence>
-          </div>
+          </main>
 
           {/* Sidebar */}
-          <div className="xl:col-span-1 hidden xl:block">
+          <aside
+            className="xl:col-span-1 hidden xl:block"
+            aria-label="Learning tools and quick navigation"
+          >
             <div className="sticky top-24">
-              <SmartSidebar course={course as any} userId={user.id} />
+              <SectionErrorBoundary
+                componentName="SmartSidebar"
+                fallbackMessage="Failed to load sidebar"
+              >
+                <Suspense fallback={<SmartSidebarSkeleton />}>
+                  <SmartSidebar course={course as any} userId={user.id} />
+                </Suspense>
+              </SectionErrorBoundary>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      <MobileNavigationDrawer
+        course={course as any}
+        userId={user.id}
+        currentSectionId={nextSection?.section.id}
+        progressPercentage={progressPercentage}
+        completedSections={completedSections}
+        totalSections={totalSections}
+      />
     </div>
   );
 }

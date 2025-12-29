@@ -2,20 +2,23 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star } from 'lucide-react';
+import { Star, Loader2 } from 'lucide-react';
 import type { Course } from '@prisma/client';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface StickyMiniHeaderProps {
   course: Course & {
     reviews?: { id: string; rating: number }[];
     _count?: { Enrollment?: number; enrollments?: number };
+    isFree?: boolean;
   };
   isEnrolled?: boolean;
 }
 
 export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEnrolled = false }) => {
   const [visible, setVisible] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
   const router = useRouter();
 
   React.useEffect(() => {
@@ -34,21 +37,76 @@ export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEn
     : '0.0';
   const totalReviews = course.reviews?.length ?? 0;
 
-  const handleEnrollClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleEnrollClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    // First, try to scroll to the main enroll button in the hero
-    const el = document.getElementById('enroll-card');
-    if (el) {
-      const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      el.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
-      return;
-    }
+    if (isLoading) return;
+    setIsLoading(true);
 
-    // If enroll card not found, navigate to checkout page
-    // The checkout page will handle creating the Stripe session
-    if (course?.id) {
-      router.push(`/courses/${course.id}/checkout`);
+    // Check if course is free
+    const isFree = course.isFree === true || (course.price ?? 0) === 0;
+
+    if (isFree) {
+      // Free course - enroll directly via API
+      try {
+        toast.loading('Enrolling you in the course...');
+
+        const response = await fetch(`/api/courses/${course.id}/enroll`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          toast.dismiss();
+          toast.success('Successfully enrolled! Redirecting to course...');
+          setTimeout(() => {
+            router.push(`/courses/${course.id}/learn`);
+            router.refresh();
+          }, 1500);
+        } else {
+          toast.dismiss();
+          toast.error(data.error?.message || 'Failed to enroll');
+        }
+      } catch (error) {
+        toast.dismiss();
+        toast.error('An error occurred. Please try again.');
+        console.error('[ENROLL_ERROR]', error);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // Paid course - create Stripe checkout session
+      try {
+        toast.loading('Redirecting to checkout...');
+
+        const response = await fetch(`/api/courses/${course.id}/checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.url) {
+          toast.dismiss();
+          window.location.href = data.url;
+        } else {
+          toast.dismiss();
+          toast.error('Failed to create checkout session. Please try again.');
+          setIsLoading(false);
+        }
+      } catch (error) {
+        toast.dismiss();
+        toast.error('An error occurred. Please try again.');
+        console.error('[CHECKOUT_ERROR]', error);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -83,9 +141,17 @@ export const StickyMiniHeader: React.FC<StickyMiniHeaderProps> = ({ course, isEn
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleEnrollClick}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 active:bg-purple-800 transition-colors"
+                  disabled={isLoading}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 active:bg-purple-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Enroll Now
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Enroll Now'
+                  )}
                 </button>
               </div>
             </div>

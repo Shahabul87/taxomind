@@ -454,7 +454,6 @@ export interface PrismaStudentProfileStoreConfig {
   /**
    * Prisma client instance
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma: any;
 
   /**
@@ -478,7 +477,6 @@ export interface PrismaStudentProfileStoreConfig {
  * Ready for database integration
  */
 export class PrismaStudentProfileStore implements StudentProfileStore {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private prisma: any;
   private profileTableName: string;
   private masteryTableName: string;
@@ -752,7 +750,6 @@ export class PrismaStudentProfileStore implements StudentProfileStore {
   /**
    * Map database result to StudentProfile
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToProfile(result: any): StudentProfile {
     const masteryByTopic: Record<string, TopicMastery> = {};
     for (const m of result.masteryRecords ?? []) {
@@ -778,7 +775,6 @@ export class PrismaStudentProfileStore implements StudentProfileStore {
   /**
    * Map database result to TopicMastery
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToMastery(result: any): TopicMastery {
     return {
       topicId: result.topicId,
@@ -796,7 +792,6 @@ export class PrismaStudentProfileStore implements StudentProfileStore {
   /**
    * Map database result to LearningPathway
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapToPathway(result: any): LearningPathway {
     return {
       id: result.id,

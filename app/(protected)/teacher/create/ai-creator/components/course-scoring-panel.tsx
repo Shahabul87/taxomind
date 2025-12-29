@@ -329,7 +329,7 @@ Return ONLY valid JSON array, no other text.`,
     } finally {
       setIsGeneratingOverviews(false);
     }
-  }, [formData.courseTitle, formData.courseShortOverview, formData.courseCategory, formData.courseSubcategory, formData.courseIntent, formData.targetAudience, isGeneratingOverviews]);
+  }, [formData, isGeneratingOverviews]);
 
   const copyTitle = (title: string) => {
     onUpdateFormData((prev: any) => ({ ...prev, courseTitle: title }));

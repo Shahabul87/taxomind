@@ -10,17 +10,17 @@ import {
   CheckCircle2,
   Calendar,
   Zap,
-  Star,
   BookOpen,
   Video,
   FileText,
   Code,
   Brain,
+  Loader2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useWeeklyActivity } from "../../_hooks/use-progress-analytics";
 
 interface Chapter {
   id: string;
@@ -56,6 +56,10 @@ export function ProgressAnalytics({
   totalSections,
   completedSections,
 }: ProgressAnalyticsProps) {
+  // Fetch real weekly activity data
+  const { weeklyActivity, isLoading: isLoadingActivity } = useWeeklyActivity(
+    course.id
+  );
   // Calculate chapter-wise progress
   const chapterProgress = useMemo(() => {
     return course.chapters.map((chapter, index) => {
@@ -167,7 +171,7 @@ export function ProgressAnalytics({
   };
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6" aria-labelledby="analytics-title">
       {/* Main Analytics Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -179,11 +183,11 @@ export function ProgressAnalytics({
           <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <BarChart3 className="h-6 w-6 text-white" />
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center" aria-hidden="true">
+                  <BarChart3 className="h-6 w-6 text-white" aria-hidden="true" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">
+                  <h2 id="analytics-title" className="text-xl font-bold text-white">
                     Learning Analytics
                   </h2>
                   <p className="text-white/70 text-sm">
@@ -191,7 +195,8 @@ export function ProgressAnalytics({
                   </p>
                 </div>
               </div>
-              <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">
+              <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm" role="status">
+                <span className="sr-only">Progress: </span>
                 {Math.round(progressPercentage)}% Complete
               </Badge>
             </div>
@@ -199,7 +204,7 @@ export function ProgressAnalytics({
 
           <CardContent className="p-6 space-y-8">
             {/* Progress Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <dl className="grid grid-cols-1 md:grid-cols-3 gap-4" aria-label="Progress overview">
               {/* Completed */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -207,20 +212,22 @@ export function ProgressAnalytics({
                 transition={{ delay: 0.1 }}
                 className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-8 translate-x-8" aria-hidden="true" />
                 <div className="relative">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <CheckCircle2 className="h-5 w-5" />
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center" aria-hidden="true">
+                      <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
                     </div>
-                    <span className="text-emerald-100 font-medium">
+                    <dt className="text-emerald-100 font-medium">
                       Completed
-                    </span>
+                    </dt>
                   </div>
-                  <p className="text-4xl font-bold">{completedSections}</p>
-                  <p className="text-emerald-100 text-sm mt-1">
-                    sections finished
-                  </p>
+                  <dd>
+                    <span className="text-4xl font-bold">{completedSections}</span>
+                    <span className="text-emerald-100 text-sm mt-1 block">
+                      sections finished
+                    </span>
+                  </dd>
                 </div>
               </motion.div>
 
@@ -231,18 +238,20 @@ export function ProgressAnalytics({
                 transition={{ delay: 0.2 }}
                 className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-8 translate-x-8" aria-hidden="true" />
                 <div className="relative">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <Target className="h-5 w-5" />
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center" aria-hidden="true">
+                      <Target className="h-5 w-5" aria-hidden="true" />
                     </div>
-                    <span className="text-blue-100 font-medium">Remaining</span>
+                    <dt className="text-blue-100 font-medium">Remaining</dt>
                   </div>
-                  <p className="text-4xl font-bold">
-                    {totalSections - completedSections}
-                  </p>
-                  <p className="text-blue-100 text-sm mt-1">sections to go</p>
+                  <dd>
+                    <span className="text-4xl font-bold">
+                      {totalSections - completedSections}
+                    </span>
+                    <span className="text-blue-100 text-sm mt-1 block">sections to go</span>
+                  </dd>
                 </div>
               </motion.div>
 
@@ -253,37 +262,39 @@ export function ProgressAnalytics({
                 transition={{ delay: 0.3 }}
                 className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 p-6 text-white"
               >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+                <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-8 translate-x-8" aria-hidden="true" />
                 <div className="relative">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                      <Clock className="h-5 w-5" />
+                    <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center" aria-hidden="true">
+                      <Clock className="h-5 w-5" aria-hidden="true" />
                     </div>
-                    <span className="text-purple-100 font-medium">
+                    <dt className="text-purple-100 font-medium">
                       Time Left
-                    </span>
+                    </dt>
                   </div>
-                  <p className="text-4xl font-bold">
-                    {formatTime(timeStats.remainingMinutes)}
-                  </p>
-                  <p className="text-purple-100 text-sm mt-1">to complete</p>
+                  <dd>
+                    <span className="text-4xl font-bold">
+                      {formatTime(timeStats.remainingMinutes)}
+                    </span>
+                    <span className="text-purple-100 text-sm mt-1 block">to complete</span>
+                  </dd>
                 </div>
               </motion.div>
-            </div>
+            </dl>
 
             {/* Content Types */}
             {contentTypeItems.length > 0 && (
-              <div className="space-y-4">
+              <section className="space-y-4" aria-labelledby="content-breakdown-title">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  <h3 id="content-breakdown-title" className="text-lg font-semibold text-slate-900 dark:text-white">
                     Content Breakdown
                   </h3>
-                  <span className="text-sm text-slate-500">
+                  <span className="text-sm text-slate-500" aria-live="polite">
                     {contentTypeItems.reduce((acc, item) => acc + item.count, 0)}{" "}
                     total items
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   {contentTypeItems.map((item, index) => (
                     <motion.div
                       key={item.type}
@@ -297,35 +308,36 @@ export function ProgressAnalytics({
                           "w-10 h-10 rounded-lg flex items-center justify-center",
                           item.bgColor
                         )}
+                        aria-hidden="true"
                       >
-                        <item.icon className={cn("h-5 w-5", item.color)} />
+                        <item.icon className={cn("h-5 w-5", item.color)} aria-hidden="true" />
                       </div>
                       <div>
-                        <p className="text-xl font-bold text-slate-900 dark:text-white">
+                        <dd className="text-xl font-bold text-slate-900 dark:text-white">
                           {item.count}
-                        </p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                        </dd>
+                        <dt className="text-xs text-slate-500 dark:text-slate-400">
                           {item.type}
-                        </p>
+                        </dt>
                       </div>
                     </motion.div>
                   ))}
-                </div>
-              </div>
+                </dl>
+              </section>
             )}
 
             {/* Chapter Progress */}
-            <div className="space-y-4">
+            <section className="space-y-4" aria-labelledby="chapter-progress-title">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-emerald-500" />
+                <h3 id="chapter-progress-title" className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-emerald-500" aria-hidden="true" />
                   Chapter Progress
                 </h3>
               </div>
 
-              <div className="space-y-3">
+              <ol className="space-y-3" aria-label="Chapter progress list">
                 {chapterProgress.map((chapter, index) => (
-                  <motion.div
+                  <motion.li
                     key={chapter.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -343,9 +355,10 @@ export function ProgressAnalytics({
                               ? "bg-blue-500 text-white"
                               : "bg-slate-200 dark:bg-slate-700 text-slate-500"
                         )}
+                        aria-hidden="true"
                       >
                         {chapter.isComplete ? (
-                          <CheckCircle2 className="h-5 w-5" />
+                          <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
                         ) : (
                           chapter.position
                         )}
@@ -356,12 +369,22 @@ export function ProgressAnalytics({
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium text-slate-900 dark:text-white truncate pr-4">
                             {chapter.title}
+                            {chapter.isComplete && (
+                              <span className="sr-only"> (Completed)</span>
+                            )}
                           </h4>
-                          <span className="text-sm text-slate-500 whitespace-nowrap">
+                          <span className="text-sm text-slate-500 whitespace-nowrap" aria-label={`${chapter.completed} of ${chapter.total} sections completed`}>
                             {chapter.completed}/{chapter.total}
                           </span>
                         </div>
-                        <div className="relative h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="relative h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden"
+                          role="progressbar"
+                          aria-valuenow={Math.round(chapter.percentage)}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label={`${chapter.title} progress: ${Math.round(chapter.percentage)}%`}
+                        >
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${chapter.percentage}%` }}
@@ -381,7 +404,7 @@ export function ProgressAnalytics({
                       </div>
 
                       {/* Percentage */}
-                      <div className="text-right">
+                      <div className="text-right" aria-hidden="true">
                         <span
                           className={cn(
                             "text-lg font-bold",
@@ -394,53 +417,75 @@ export function ProgressAnalytics({
                         </span>
                       </div>
                     </div>
-                  </motion.div>
+                  </motion.li>
                 ))}
-              </div>
-            </div>
+              </ol>
+            </section>
 
-            {/* Weekly Activity (Placeholder) */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-500" />
+            {/* Weekly Activity */}
+            <section className="space-y-4" aria-labelledby="weekly-activity-title">
+              <h3 id="weekly-activity-title" className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-500" aria-hidden="true" />
                 This Week&apos;s Activity
               </h3>
-              <div className="grid grid-cols-7 gap-2">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
-                  (day, index) => {
-                    const activity = Math.random() > 0.3;
+              {isLoadingActivity ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-7 gap-2" role="list" aria-label="Weekly activity calendar">
+                  {(weeklyActivity.length > 0
+                    ? weeklyActivity
+                    : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                        (day) => ({
+                          day,
+                          date: "",
+                          minutesStudied: 0,
+                          sectionsCompleted: 0,
+                          isActive: false,
+                        })
+                      )
+                  ).map((dayData, index) => {
                     return (
                       <motion.div
-                        key={day}
+                        key={dayData.day}
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ delay: 0.05 * index }}
                         className="text-center"
+                        role="listitem"
+                        aria-label={`${dayData.day}: ${dayData.isActive ? `Active - ${dayData.minutesStudied} minutes studied` : "No activity"}`}
                       >
                         <div
                           className={cn(
                             "aspect-square rounded-lg flex items-center justify-center text-sm font-medium mb-1 transition-colors",
-                            activity
+                            dayData.isActive
                               ? "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
                               : "bg-slate-100 dark:bg-slate-800 text-slate-400"
                           )}
+                          aria-hidden="true"
                         >
-                          {activity ? (
-                            <Zap className="h-4 w-4" />
+                          {dayData.isActive ? (
+                            <Zap className="h-4 w-4" aria-hidden="true" />
                           ) : (
-                            <span className="text-xs">{day[0]}</span>
+                            <span className="text-xs">{dayData.day[0]}</span>
                           )}
                         </div>
-                        <span className="text-xs text-slate-500">{day}</span>
+                        <span className="text-xs text-slate-500">{dayData.day}</span>
+                        {dayData.isActive && dayData.minutesStudied > 0 && (
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 block">
+                            {dayData.minutesStudied}m
+                          </span>
+                        )}
                       </motion.div>
                     );
-                  }
-                )}
-              </div>
-            </div>
+                  })}
+                </div>
+              )}
+            </section>
           </CardContent>
         </Card>
       </motion.div>
-    </div>
+    </section>
   );
 }

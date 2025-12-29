@@ -125,9 +125,15 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
   });
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6" aria-labelledby="course-content-title">
+      <h2 id="course-content-title" className="sr-only">Course Content Navigation</h2>
+
       {/* Filter Tabs */}
-      <div className="flex gap-1 p-1 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg border border-slate-200/50 dark:border-slate-700/50 w-fit">
+      <div
+        role="tablist"
+        aria-label="Filter chapters"
+        className="flex gap-1 p-1 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-lg border border-slate-200/50 dark:border-slate-700/50 w-fit"
+      >
         {[
           { id: 'all', label: 'All Chapters' },
           { id: 'completed', label: 'Completed' },
@@ -135,8 +141,11 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
         ].map((tab) => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={filter === tab.id}
+            aria-controls="chapters-list"
             onClick={() => setFilter(tab.id as any)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
               filter === tab.id
                 ? 'bg-blue-500 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -148,7 +157,7 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
       </div>
 
       {/* Course Content */}
-      <div className="space-y-4">
+      <div id="chapters-list" role="tabpanel" className="space-y-4">
         {filteredChapters.map((chapter, chapterIndex) => {
           const completedSections = chapter.sections.filter(
             section => section.user_progress?.some(p => p.isCompleted)
@@ -159,38 +168,44 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
           const isExpanded = expandedChapters.includes(chapter.id);
 
           return (
-            <motion.div
+            <motion.article
               key={chapter.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: chapterIndex * 0.1 }}
+              aria-labelledby={`chapter-title-${chapter.id}`}
             >
               <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
                 {/* Chapter Header */}
-                <div 
-                  className="p-6 cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors"
+                <button
+                  className="w-full p-6 cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                   onClick={() => toggleChapter(chapter.id)}
+                  aria-expanded={isExpanded}
+                  aria-controls={`chapter-content-${chapter.id}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg font-semibold text-sm">
+                        <div className="flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg font-semibold text-sm" aria-hidden="true">
                           {chapter.position}
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                        <h3 id={`chapter-title-${chapter.id}`} className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                           {chapter.title}
                         </h3>
                         {progressPercentage === 100 && (
-                          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          <>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" aria-hidden="true" />
+                            <span className="sr-only">(Completed)</span>
+                          </>
                         )}
                       </div>
-                      
+
                       {chapter.description && (
                         <p className="text-slate-600 dark:text-slate-400 text-sm mb-3 ml-11">
                           {stripHtmlTags(chapter.description)}
                         </p>
                       )}
-                      
+
                       <div className="flex items-center gap-4 ml-11">
                         <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                           <span>{chapter.sections.length} sections</span>
@@ -199,34 +214,40 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
                           <span>{completedSections} completed</span>
                         </div>
                         <div className="flex-1 max-w-xs">
-                          <Progress value={progressPercentage} className="h-2" />
+                          <Progress
+                            value={progressPercentage}
+                            className="h-2"
+                            aria-label={`${chapter.title} progress: ${Math.round(progressPercentage)}%`}
+                          />
                         </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300" aria-hidden="true">
                           {Math.round(progressPercentage)}%
                         </span>
                       </div>
                     </div>
-                    
+
                     <motion.div
                       animate={{ rotate: isExpanded ? 90 : 0 }}
                       transition={{ duration: 0.2 }}
+                      aria-hidden="true"
                     >
                       <ChevronRight className="w-5 h-5 text-slate-400" />
                     </motion.div>
                   </div>
-                </div>
+                </button>
 
                 {/* Chapter Sections */}
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
+                      id={`chapter-content-${chapter.id}`}
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
                       className="border-t border-slate-200/50 dark:border-slate-700/50"
                     >
-                      <div className="p-4 space-y-2">
+                      <ul className="p-4 space-y-2" role="list" aria-label={`Sections in ${chapter.title}`}>
                         {chapter.sections.map((section, sectionIndex) => {
                           const isCompleted = section.user_progress?.some(p => p.isCompleted) || false;
                           const ContentIcon = getContentIcon(section);
@@ -240,37 +261,38 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
                             section.codeExplanations.length;
 
                           return (
-                            <motion.div
+                            <motion.li
                               key={section.id}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: sectionIndex * 0.05 }}
                             >
-                              <Link 
+                              <Link
                                 href={`/courses/${course.id}/learn/${chapter.id}/sections/${section.id}`}
-                                className="block"
+                                className="block focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-lg"
+                                aria-label={`${section.title}${isCompleted ? ' (Completed)' : ''}${section.duration ? ` - ${section.duration} minutes` : ''}`}
                               >
                                 <div className={cn(
                                   "p-4 rounded-lg border transition-all duration-200 group hover:shadow-md",
-                                  isCompleted 
-                                    ? "bg-emerald-50/80 border-emerald-200/50 dark:bg-emerald-900/20 dark:border-emerald-800/30" 
+                                  isCompleted
+                                    ? "bg-emerald-50/80 border-emerald-200/50 dark:bg-emerald-900/20 dark:border-emerald-800/30"
                                     : "bg-slate-50/80 border-slate-200/50 dark:bg-slate-700/30 dark:border-slate-600/30 hover:bg-slate-100/80 dark:hover:bg-slate-700/50"
                                 )}>
                                   <div className="flex items-center gap-3">
-                                    <div className={cn("p-2 rounded-lg", iconColorClass)}>
-                                      <ContentIcon className="w-4 h-4" />
+                                    <div className={cn("p-2 rounded-lg", iconColorClass)} aria-hidden="true">
+                                      <ContentIcon className="w-4 h-4" aria-hidden="true" />
                                     </div>
-                                    
+
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-1">
                                         <h4 className="font-medium text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                           {section.title}
                                         </h4>
                                         {isCompleted && (
-                                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                          <CheckCircle2 className="w-4 h-4 text-emerald-500" aria-hidden="true" />
                                         )}
                                       </div>
-                                      
+
                                       <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
                                         {section.type && (
                                           <Badge variant="outline" className="text-xs">
@@ -279,56 +301,56 @@ export const CourseContentNavigation = ({ course }: CourseContentNavigationProps
                                         )}
                                         {section.duration && (
                                           <div className="flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
+                                            <Clock className="w-3 h-3" aria-hidden="true" />
                                             <span>{section.duration} min</span>
                                           </div>
                                         )}
                                         {totalContentItems > 0 && (
                                           <div className="flex items-center gap-1">
-                                            <Eye className="w-3 h-3" />
+                                            <Eye className="w-3 h-3" aria-hidden="true" />
                                             <span>{totalContentItems} items</span>
                                           </div>
                                         )}
-                                        <div className="flex items-center justify-center w-6 h-6 bg-slate-200 dark:bg-slate-600 rounded-full text-slate-600 dark:text-slate-400 font-semibold text-xs">
+                                        <div className="flex items-center justify-center w-6 h-6 bg-slate-200 dark:bg-slate-600 rounded-full text-slate-600 dark:text-slate-400 font-semibold text-xs" aria-hidden="true">
                                           {section.position}
                                         </div>
                                       </div>
                                     </div>
-                                    
-                                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+
+                                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" aria-hidden="true" />
                                   </div>
                                 </div>
                               </Link>
-                            </motion.div>
+                            </motion.li>
                           );
                         })}
-                      </div>
+                      </ul>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </Card>
-            </motion.div>
+            </motion.article>
           );
         })}
       </div>
 
       {/* Empty State */}
       {filteredChapters.length === 0 && (
-        <div className="text-center py-12">
-          <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+        <div className="text-center py-12" role="status">
+          <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4" aria-hidden="true" />
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
             No chapters found
           </h3>
           <p className="text-slate-600 dark:text-slate-400">
-            {filter === 'completed' 
-              ? "You haven't completed any chapters yet."
+            {filter === 'completed'
+              ? "You haven&apos;t completed any chapters yet."
               : filter === 'incomplete'
               ? "All chapters are completed!"
-              : "This course doesn't have any chapters yet."
+              : "This course doesn&apos;t have any chapters yet."
             }
           </p>
         </div>
       )}
-    </div>
+    </section>
   );
 }; 

@@ -12,8 +12,7 @@ let collaborationEngine: ReturnType<typeof createCollaborationEngine> | null = n
 function getCollaborationEngine() {
   if (!collaborationEngine) {
     collaborationEngine = createCollaborationEngine({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      databaseAdapter: createCollaborationAdapter(db as any),
+      databaseAdapter: createCollaborationAdapter(db),
     });
   }
   return collaborationEngine;

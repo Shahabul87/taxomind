@@ -26,13 +26,11 @@ export interface ReviewScheduleStore {
 }
 
 export interface PrismaReviewScheduleStoreConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma: any;
   tableName?: string;
 }
 
 export class PrismaReviewScheduleStore implements ReviewScheduleStore {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private prisma: any;
   private tableName: string;
 

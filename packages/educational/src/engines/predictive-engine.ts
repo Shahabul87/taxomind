@@ -280,7 +280,6 @@ export class PredictiveEngine implements IPredictiveEngine {
 
   private calculateBasePrediction(
     student: PredictiveStudentProfile,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _historicalData: unknown
   ): number {
     // Base prediction based on simple metrics
@@ -545,7 +544,6 @@ export class PredictiveEngine implements IPredictiveEngine {
 
   private predictCompletionDate(
     student: PredictiveStudentProfile,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _historicalData: unknown
   ): Date {
     const remainingProgress = 1 - student.performanceMetrics.overallProgress;
@@ -834,7 +832,6 @@ export class PredictiveEngine implements IPredictiveEngine {
 
   private selectInterventions(
     riskAssessment: { riskLevel: string },
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _learningStyle: unknown,
     available: Array<{ type: string; effectiveness: number; cost: string }>
   ): Array<{ type: string; effectiveness: number; cost: string }> {
@@ -920,7 +917,6 @@ export class PredictiveEngine implements IPredictiveEngine {
   }
 
   private createInterventionTimeline(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _interventions: PlannedIntervention[]
   ): InterventionTimeline {
     const start = new Date();
@@ -1220,7 +1216,6 @@ export class PredictiveEngine implements IPredictiveEngine {
 
   private identifyContributingFactors(
     features: Record<string, unknown>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _prediction: { probability: number }
   ): { positive: string[]; negative: string[] } {
     const factors = { positive: [] as string[], negative: [] as string[] };

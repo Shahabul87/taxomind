@@ -26,13 +26,11 @@ export interface MemoryStore {
 }
 
 export interface PrismaMemoryStoreConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma: any;
   tableName?: string;
 }
 
 export class PrismaMemoryStore implements MemoryStore {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private prisma: any;
   private tableName: string;
 

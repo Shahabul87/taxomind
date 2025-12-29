@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Brain,
@@ -11,158 +10,118 @@ import {
   Zap,
   AlertCircle,
   CheckCircle2,
-  Activity
+  Activity,
+  Loader2,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-interface Course {
-  id: string;
-  chapters: Array<{
-    sections: Array<{
-      id: string;
-      duration?: number | null;
-      user_progress: Array<{
-        isCompleted: boolean;
-      }>;
-    }>;
-  }>;
-}
+import { usePredictions } from "../_hooks/use-predictions";
 
 interface SmartPredictionsProps {
-  course: Course;
-  userId: string;
-  progressPercentage: number;
-  totalSections: number;
-  completedSections: number;
+  courseId: string;
 }
 
-export const SmartPredictions = ({
-  course,
-  userId,
-  progressPercentage,
-  totalSections,
-  completedSections
-}: SmartPredictionsProps) => {
-  const [predictions, setPredictions] = useState({
-    completionDate: new Date(),
-    daysToComplete: 0,
-    recommendedDailyTime: 30, // minutes
-    optimalStudyTimes: ['9:00 AM', '2:00 PM'],
-    learningVelocity: 0, // sections per day
-    burnoutRisk: 'low' as 'low' | 'medium' | 'high',
-    confidence: 85, // percentage
-  });
-
-  const calculatePredictions = useCallback(() => {
-    // Get learning history from localStorage
-    const historyKey = `learning_history_${course.id}_${userId}`;
-    const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-
-    // Calculate average sections per day
-    const daysActive = Math.max(1, Math.ceil(history.length / 7));
-    const velocity = completedSections / daysActive;
-
-    // Calculate remaining time
-    const remainingSections = totalSections - completedSections;
-    const daysToComplete = Math.ceil(remainingSections / Math.max(velocity, 0.5));
-
-    // Calculate completion date
-    const completionDate = new Date();
-    completionDate.setDate(completionDate.getDate() + daysToComplete);
-
-    // Calculate recommended daily time
-    const avgSectionDuration = course.chapters.reduce((acc, chapter) => {
-      return acc + chapter.sections.reduce((sAcc, section) => {
-        return sAcc + (section.duration || 10);
-      }, 0);
-    }, 0) / totalSections;
-
-    const recommendedDailyTime = Math.ceil(velocity * avgSectionDuration);
-
-    // Determine optimal study times based on historical patterns
-    const optimalStudyTimes = determineOptimalStudyTimes(history);
-
-    // Assess burnout risk
-    const burnoutRisk = assessBurnoutRisk(velocity, daysActive);
-
-    // Calculate confidence level
-    const confidence = calculateConfidence(history.length, daysActive);
-
-    setPredictions({
-      completionDate,
-      daysToComplete,
-      recommendedDailyTime: Math.max(15, Math.min(120, recommendedDailyTime)),
-      optimalStudyTimes,
-      learningVelocity: velocity,
-      burnoutRisk,
-      confidence,
-    });
-
-    function determineOptimalStudyTimes(history: any[]): string[] {
-      // Simple heuristic - in production, this would use actual user data
-      const morningProductivity = Math.random();
-      const afternoonProductivity = Math.random();
-      const eveningProductivity = Math.random();
-
-      const times = [
-        { time: '9:00 AM', score: morningProductivity },
-        { time: '2:00 PM', score: afternoonProductivity },
-        { time: '7:00 PM', score: eveningProductivity },
-      ];
-
-      return times
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 2)
-        .map(t => t.time);
-    }
-
-    function assessBurnoutRisk(velocity: number, daysActive: number): 'low' | 'medium' | 'high' {
-      if (velocity > 3 && daysActive > 14) return 'high';
-      if (velocity > 2 || daysActive > 30) return 'medium';
-      return 'low';
-    }
-
-    function calculateConfidence(historyLength: number, daysActive: number): number {
-      const dataQuality = Math.min(100, (historyLength / 30) * 100);
-      const timeQuality = Math.min(100, (daysActive / 14) * 100);
-      return Math.round((dataQuality + timeQuality) / 2);
-    }
-  }, [course, completedSections, totalSections, userId]);
-
-  useEffect(() => {
-    // Calculate smart predictions
-    calculatePredictions();
-  }, [calculatePredictions]);
+export const SmartPredictions = ({ courseId }: SmartPredictionsProps) => {
+  // Fetch predictions from API
+  const { data: predictions, isLoading, error, refetch } = usePredictions(courseId);
 
   const getBurnoutColor = (risk: string) => {
     switch (risk) {
-      case 'high': return 'text-red-500 bg-red-100 dark:bg-red-900/30';
-      case 'medium': return 'text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30';
-      default: return 'text-green-500 bg-green-100 dark:bg-green-900/30';
+      case "high":
+        return "text-red-500 bg-red-100 dark:bg-red-900/30";
+      case "medium":
+        return "text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30";
+      default:
+        return "text-green-500 bg-green-100 dark:bg-green-900/30";
     }
   };
 
   const getBurnoutIcon = (risk: string) => {
     switch (risk) {
-      case 'high': return AlertCircle;
-      case 'medium': return Activity;
-      default: return CheckCircle2;
+      case "high":
+        return AlertCircle;
+      case "medium":
+        return Activity;
+      default:
+        return CheckCircle2;
     }
   };
 
-  const BurnoutIcon = getBurnoutIcon(predictions.burnoutRisk);
-
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     const options: Intl.DateTimeFormatOptions = {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     };
-    return date.toLocaleDateString('en-US', options);
+    return date.toLocaleDateString("en-US", options);
   };
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case "improving":
+        return { icon: TrendingUp, color: "text-emerald-500" };
+      case "declining":
+        return { icon: TrendingUp, color: "text-red-500 rotate-180" };
+      default:
+        return { icon: Activity, color: "text-blue-500" };
+    }
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
+        <CardContent className="flex items-center justify-center py-16">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-500 mx-auto mb-3" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Analyzing your learning patterns...
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              {error}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No data fallback
+  if (!predictions) {
+    return null;
+  }
+
+  const BurnoutIcon = getBurnoutIcon(predictions.burnoutRisk);
+  const trendInfo = getTrendIcon(predictions.insights.weeklyTrend);
+  const TrendIcon = trendInfo.icon;
 
   return (
     <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
@@ -202,6 +161,12 @@ export const SmartPredictions = ({
           <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
             {formatDate(predictions.completionDate)}
           </p>
+          {predictions.daysToComplete === 0 && (
+            <Badge className="bg-emerald-500 text-white border-0 mb-2">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Course Completed!
+            </Badge>
+          )}
 
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             <Clock className="w-4 h-4" />
@@ -249,23 +214,23 @@ export const SmartPredictions = ({
               </h4>
             </div>
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-              {predictions.recommendedDailyTime} min
+              {predictions.recommendedDailyMinutes} min
             </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
             {[15, 30, 60].map((minutes) => (
-              <button
+              <div
                 key={minutes}
                 className={cn(
-                  "p-2 rounded-lg text-sm font-medium transition-all duration-200",
-                  predictions.recommendedDailyTime === minutes
+                  "p-2 rounded-lg text-sm font-medium text-center transition-all duration-200",
+                  Math.abs(predictions.recommendedDailyMinutes - minutes) < 15
                     ? "bg-blue-500 text-white shadow-md"
-                    : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600"
+                    : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400"
                 )}
               >
                 {minutes}m
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -328,12 +293,64 @@ export const SmartPredictions = ({
           </div>
         </motion.div>
 
+        {/* Learning Insights */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-500" />
+            <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100">
+              Learning Insights
+            </h4>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Most Productive Day
+              </p>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
+                {predictions.insights.mostProductiveDay}
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Study Consistency
+              </p>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
+                {predictions.insights.studyConsistency}%
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Avg Session Length
+              </p>
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
+                {predictions.insights.averageSessionLength} min
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Weekly Trend
+              </p>
+              <div className="flex items-center gap-1">
+                <TrendIcon className={cn("w-4 h-4", trendInfo.color)} />
+                <p className="font-semibold text-slate-900 dark:text-slate-100 capitalize">
+                  {predictions.insights.weeklyTrend}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* AI Note */}
         <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg border border-purple-200/50 dark:border-purple-800/30">
           <p className="text-xs text-slate-600 dark:text-slate-400 flex items-start gap-2">
             <Brain className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
             <span>
-              These predictions improve as you learn more. The system adapts to your unique learning patterns.
+              These predictions improve as you learn more. The system adapts to
+              your unique learning patterns.
             </span>
           </p>
         </div>

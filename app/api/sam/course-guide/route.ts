@@ -12,8 +12,7 @@ function getCourseGuideEngine() {
   if (!courseGuideEngine) {
     courseGuideEngine = createCourseGuideEngine({
       aiProvider: 'anthropic',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      databaseAdapter: createCourseGuideAdapter(db as any),
+      databaseAdapter: createCourseGuideAdapter(db),
     });
   }
   return courseGuideEngine;

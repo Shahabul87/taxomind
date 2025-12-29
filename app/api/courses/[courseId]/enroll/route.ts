@@ -1,6 +1,6 @@
 /**
  * Free Course Enrollment API - Enterprise Implementation
- * Uses job queue for reliable enrollment processing
+ * Creates enrollment directly in database for immediate feedback
  */
 
 import { NextResponse } from "next/server";
@@ -8,7 +8,6 @@ import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
-import { queueManager } from "@/lib/queue/queue-manager";
 
 // Validation schema
 const enrollmentSchema = z.object({
@@ -96,27 +95,27 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
       );
     }
 
-    // Add enrollment job to queue for async processing
-    await queueManager.addJob(
-      "enrollment",
-      "process-enrollment",
-      {
+    // Create enrollment directly in database
+    const enrollment = await db.enrollment.create({
+      data: {
+        id: crypto.randomUUID(),
         userId: user.id,
         courseId: params.courseId,
+        status: "ACTIVE",
         enrollmentType: "FREE",
-        metadata: validatedData.metadata,
+        updatedAt: new Date(),
       },
-      { priority: 100 } // High priority
-    );
+    });
 
-    logger.info(`[COURSE_ENROLL] Queued enrollment for user ${user.id} in course ${params.courseId}`);
+    logger.info(`[COURSE_ENROLL] Successfully enrolled user ${user.id} in course ${params.courseId}`);
 
     // Return success response
     return NextResponse.json(
       {
         success: true,
         data: {
-          message: "Enrollment is being processed",
+          message: "Successfully enrolled in course",
+          enrollmentId: enrollment.id,
           courseId: course.id,
           courseTitle: course.title,
           userId: user.id,
@@ -127,7 +126,7 @@ export async function POST(req: Request, props: { params: Promise<{ courseId: st
           version: "1.0.0",
         },
       },
-      { status: 202 } // Accepted - processing asynchronously
+      { status: 201 } // Created - enrollment successful
     );
   } catch (error) {
     logger.error("[COURSE_ENROLL]", error);
