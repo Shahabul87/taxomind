@@ -50,3 +50,6 @@ export * from './metacognition.types';
 
 // Competency Engine (New)
 export * from './competency.types';
+
+// Peer Learning Engine (New)
+export * from './peer-learning.types';

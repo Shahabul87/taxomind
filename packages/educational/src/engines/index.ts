@@ -44,3 +44,6 @@ export { MetacognitionEngine, createMetacognitionEngine } from './metacognition-
 
 // Competency Engine (New)
 export { CompetencyEngine, createCompetencyEngine } from './competency-engine';
+
+// Peer Learning Engine (New)
+export { PeerLearningEngine, createPeerLearningEngine } from './peer-learning-engine';

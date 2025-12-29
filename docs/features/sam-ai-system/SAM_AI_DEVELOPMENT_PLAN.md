@@ -1,6 +1,6 @@
 # SAM AI Development Plan
 
-> **Version**: 2.5.0
+> **Version**: 2.6.0
 > **Created**: December 2024
 > **Updated**: December 29, 2024
 > **Status**: Active Development
@@ -57,7 +57,7 @@
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │ │
 │  │  │ @sam-ai/    │ │ @sam-ai/    │ │ @sam-ai/    │        │ │
 │  │  │ core        │ │ educational │ │ sam-engine  │        │ │
-│  │  │ (AIAdapter) │ │ (28 engines)│ │ (orchestr.) │        │ │
+│  │  │ (AIAdapter) │ │ (29 engines)│ │ (orchestr.) │        │ │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘        │ │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐        │ │
 │  │  │ @sam-ai/    │ │ @sam-ai/    │ │ @sam-ai/    │        │ │
@@ -105,7 +105,7 @@ export async function runSAMChat(options: {
 | Package | Purpose | Dependencies | Status |
 |---------|---------|--------------|--------|
 | `@sam-ai/core` | Types, interfaces, adapters | None | ✅ Ready |
-| `@sam-ai/educational` | 27 learning engines | `@sam-ai/core` | ✅ Ready |
+| `@sam-ai/educational` | 29 learning engines | `@sam-ai/core` | ✅ Ready |
 | `@sam-ai/pedagogy` | Pedagogical validators | `@sam-ai/core` | ✅ Ready |
 | `@sam-ai/memory` | Learning context | `@sam-ai/core` | ✅ Ready |
 | `@sam-ai/quality` | Quality gates | `@sam-ai/core` | ✅ Ready |
@@ -133,9 +133,9 @@ export async function runSAMChat(options: {
 
 ## Current State
 
-### Implemented Engines (31 Total)
+### Implemented Engines (32 Total)
 
-#### Educational Engines (15) ✅
+#### Educational Engines (16) ✅
 - [x] ExamEngine - Exam generation with Bloom's alignment
 - [x] EvaluationEngine - AI grading (subjective + objective)
 - [x] BloomsAnalysisEngine - Taxonomy analysis
@@ -150,7 +150,8 @@ export async function runSAMChat(options: {
 - [x] **KnowledgeGraphEngine** - Concept extraction, prerequisites, learning paths ✅
 - [x] **MicrolearningEngine** - 5-minute modules, content chunking, spaced delivery, mobile optimization ✅
 - [x] **MetacognitionEngine** - Self-reflection, study habits, learning strategies, goal tracking ✅
-- [x] **CompetencyEngine** - Skill trees, job mapping, career paths, portfolio building ✅ NEW
+- [x] **CompetencyEngine** - Skill trees, job mapping, career paths, portfolio building ✅
+- [x] **PeerLearningEngine** - Peer matching, study groups, mentoring, reviews, projects ✅ NEW
 
 #### Analytics & Intelligence Engines (7) ✅
 - [x] AnalyticsEngine - Learning metrics
@@ -196,7 +197,7 @@ export async function runSAMChat(options: {
 | 6 | **MetacognitionEngine** | Self-reflection & learning awareness | `@sam-ai/educational` | ✅ Implemented |
 | 7 | **MultimodalInputEngine** | Image/voice/handwriting processing | `@sam-ai/educational` | ❌ Not Started |
 | 8 | **CompetencyEngine** | Skill trees & job mapping | `@sam-ai/educational` | ✅ Implemented |
-| 9 | **PeerLearningEngine** | Intelligent peer matching | `@sam-ai/educational` | ❌ Not Started |
+| 9 | **PeerLearningEngine** | Intelligent peer matching | `@sam-ai/educational` | ✅ Implemented |
 
 ### P2 - Medium Priority (Enhancements)
 
