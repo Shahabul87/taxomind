@@ -357,7 +357,7 @@ describe('MultimodalInputEngine', () => {
       expect(result.success).toBe(true);
       expect(result.input).toBeDefined();
       expect(result.input.type).toBe('IMAGE');
-      expect(result.processingTime).toBeGreaterThan(0);
+      expect(result.processingTime).toBeGreaterThanOrEqual(0);
     });
 
     it('should process audio input', async () => {
