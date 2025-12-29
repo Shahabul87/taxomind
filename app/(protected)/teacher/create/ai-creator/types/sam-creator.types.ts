@@ -9,10 +9,61 @@ export interface CourseCreationRequest {
   duration: string;
   chapterCount: number;
   sectionsPerChapter: number;
+  // Learning objectives configuration
+  learningObjectivesPerChapter: number;
+  learningObjectivesPerSection: number;
   courseGoals: string[];
   includeAssessments: boolean;
   bloomsFocus: string[];
   preferredContentTypes: string[];
+}
+
+/**
+ * SAM Action types that can be returned by the API
+ */
+export interface SamActionDetails {
+  // form_populate
+  formId?: string;
+  data?: Record<string, unknown>;
+  field?: string;
+  value?: unknown;
+
+  // course_creation_action
+  action?: string;
+  topic?: string;
+  audience?: string;
+  difficulty?: string;
+  chapters?: number;
+  level?: string;
+  courseData?: string;
+  bloomLevels?: string[];
+  category?: string;
+  apiEndpoint?: string;
+
+  // navigation
+  url?: string;
+  description?: string;
+
+  // gamification_action
+  points?: number;
+  reason?: string;
+}
+
+export interface SamApiAction {
+  type:
+    | 'form_populate'
+    | 'course_creation_action'
+    | 'navigation'
+    | 'gamification_action'
+    | 'form_update';
+  details: SamActionDetails;
+}
+
+export interface SamActionResult {
+  success: boolean;
+  message: string;
+  fieldsUpdated?: string[];
+  actionType: string;
 }
 
 export interface SamSuggestion {
@@ -21,7 +72,12 @@ export interface SamSuggestion {
   type: 'encouragement' | 'suggestion' | 'validation' | 'warning' | 'tip';
   actionable: boolean;
   confidence: number;
+  /** @deprecated Use actionData for API actions */
   action?: () => void;
+  /** API action data from SAM response */
+  actionData?: SamApiAction;
+  /** Results from processing SAM actions */
+  actionResults?: SamActionResult[];
   autoApplyable?: boolean;
   timestamp?: number;
   context?: string;

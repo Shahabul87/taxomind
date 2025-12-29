@@ -1,39 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAnthropicAdapter } from '@sam-ai/core';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-
-let aiAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
-
-function getAIAdapter() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-  }
-  if (!aiAdapter) {
-    aiAdapter = createAnthropicAdapter({
-      apiKey,
-      model: 'claude-sonnet-4-5-20250929',
-      timeout: 60000,
-      maxRetries: 2,
-    });
-  }
-  return aiAdapter;
-}
 
 async function runAIAnalysis(
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number
 ): Promise<string> {
-  const response = await getAIAdapter().chat({
+  return await runSAMChat({
     model: 'claude-sonnet-4-5-20250929',
     maxTokens,
     temperature: 0.7,
     systemPrompt,
     messages: [{ role: 'user', content: userPrompt }],
   });
-  return response.content ?? '';
 }
 
 export async function POST(request: NextRequest) {

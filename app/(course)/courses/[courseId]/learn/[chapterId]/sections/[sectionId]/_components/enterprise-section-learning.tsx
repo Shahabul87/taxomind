@@ -24,6 +24,11 @@ import {
   AlertCircle,
   Info,
   PanelLeftClose,
+  Brain,
+  Heart,
+  Sparkles,
+  X,
+  Lightbulb,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -33,6 +38,8 @@ import { SafeHtmlRenderer } from "./safe-html-renderer";
 import { DiscussionForum } from "@/components/learning/discussion-forum";
 import { FloatingKeyboardShortcuts } from "@/components/learning/keyboard-shortcuts-guide";
 import { logger } from "@/lib/logger";
+import { useEmotionDetection, getEmotionSupportMessage } from "@/hooks/use-emotion-detection";
+import { useLearningStyle, getStyleAdaptations } from "@/hooks/use-learning-style";
 import type {
   UserWithRelations,
   CourseWithChapters,
@@ -90,6 +97,48 @@ export function EnterpriseSectionLearning({
     sectionId,
     contentType: "section",
   });
+
+  // Initialize SAM AI emotion detection
+  const {
+    emotionState,
+    showNotification: showEmotionNotification,
+    dismissNotification: dismissEmotionNotification,
+    recordInteraction,
+  } = useEmotionDetection({
+    userId: user?.id,
+    courseId,
+    sectionId,
+    autoDetect: canTrackProgress,
+    onNegativeEmotion: (state) => {
+      // Log emotion for analytics
+      analytics.trackEvent("EMOTION_DETECTED", {
+        emotion: state.currentEmotion,
+        confidence: state.confidence,
+      });
+    },
+  });
+
+  // Initialize SAM AI learning style detection
+  const {
+    learningStyle,
+    isDetected: isLearningStyleDetected,
+    getContentRecommendations,
+  } = useLearningStyle({
+    userId: user?.id,
+    courseId,
+    autoDetect: canTrackProgress,
+  });
+
+  // State for showing learning style tips
+  const [showLearningStyleTip, setShowLearningStyleTip] = useState(false);
+
+  // Show learning style tip when first detected
+  useEffect(() => {
+    if (isLearningStyleDetected && learningStyle && !localStorage.getItem(`learning-style-tip-shown-${user?.id}`)) {
+      setShowLearningStyleTip(true);
+      localStorage.setItem(`learning-style-tip-shown-${user?.id}`, "true");
+    }
+  }, [isLearningStyleDetected, learningStyle, user?.id]);
 
   // Handle client-side mounting
   useEffect(() => {
@@ -491,6 +540,131 @@ export function EnterpriseSectionLearning({
 
       {/* Floating Keyboard Shortcuts Button */}
       <FloatingKeyboardShortcuts />
+
+      {/* SAM AI Emotion Support Notification */}
+      <AnimatePresence>
+        {showEmotionNotification && emotionState && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 50, x: "-50%" }}
+            className="fixed bottom-24 left-1/2 z-50 max-w-md w-full mx-4"
+          >
+            <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-purple-200 dark:border-purple-800 shadow-xl">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/50">
+                    <Heart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+                        SAM AI Assistant
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {emotionState.currentEmotion}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {emotionState.recommendation ?? getEmotionSupportMessage(emotionState.currentEmotion)}
+                    </p>
+                    {emotionState.suggestedAction && emotionState.suggestedAction.type !== "none" && (
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="text-xs"
+                          onClick={() => {
+                            if (emotionState.suggestedAction?.type === "take_break") {
+                              toast.info("Taking a 5-minute break. We will remind you to come back!");
+                            } else if (emotionState.suggestedAction?.type === "show_help") {
+                              setActiveTab("overview");
+                            }
+                            dismissEmotionNotification();
+                          }}
+                        >
+                          {emotionState.suggestedAction.message}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={dismissEmotionNotification}
+                        >
+                          Dismiss
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={dismissEmotionNotification}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* SAM AI Learning Style Tip */}
+      <AnimatePresence>
+        {showLearningStyleTip && learningStyle && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed bottom-24 right-4 z-50 max-w-sm"
+          >
+            <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border-blue-200 dark:border-blue-800 shadow-xl">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                    <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        Your Learning Style Detected!
+                      </span>
+                      <Sparkles className="h-4 w-4 text-yellow-500" />
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+                      You appear to be a <strong className="text-blue-600 dark:text-blue-400 capitalize">{learningStyle.primaryStyle}</strong> learner.
+                    </p>
+                    <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-2 mb-3">
+                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        <Lightbulb className="h-3 w-3" />
+                        Personalized Tips:
+                      </div>
+                      <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+                        {getContentRecommendations("general").slice(0, 2).map((rec, idx) => (
+                          <li key={idx} className="flex items-start gap-1">
+                            <span className="text-blue-500">•</span>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-full text-xs"
+                      onClick={() => setShowLearningStyleTip(false)}
+                    >
+                      Got it, thanks!
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating Sidebar Toggle Button - Shows when sidebar is collapsed */}
       <AnimatePresence>

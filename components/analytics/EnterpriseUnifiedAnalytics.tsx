@@ -91,6 +91,12 @@ const AIInsightsPanel = dynamic(
   { loading: () => <TabLoadingSkeleton />, ssr: false }
 );
 
+// SAM AI Unified Analytics Dashboard - Full SAM engine integration
+const SAMInsightsDashboard = dynamic(
+  () => import("./SAMInsightsDashboard").then(mod => ({ default: mod.SAMInsightsDashboard })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
+
 // Storage utilities
 import { getStoredTab, getStoredPeriod, storeTab, storePeriod } from "./storage-utils";
 
@@ -104,10 +110,11 @@ interface EnterpriseUnifiedAnalyticsProps {
 }
 
 /**
- * Consolidated tab structure - reduced from 11 to 5 main tabs
+ * Consolidated tab structure - 6 main tabs with SAM AI integration
  */
 const CONSOLIDATED_TABS = [
   { id: "overview", label: "Overview", icon: "📊" },
+  { id: "sam-ai", label: "SAM AI", icon: "🧠" },
   { id: "learning", label: "Learning", icon: "📚" },
   { id: "insights", label: "Insights", icon: "💡" },
   { id: "activity", label: "Activity", icon: "⚡" },
@@ -118,6 +125,13 @@ const CONSOLIDATED_TABS = [
  * Sub-tab mappings for consolidated navigation
  */
 const SUB_TABS: Record<string, { id: string; label: string }[]> = {
+  "sam-ai": [
+    { id: "sam-dashboard", label: "Dashboard" },
+    { id: "sam-practice", label: "Practice" },
+    { id: "sam-style", label: "Learning Style" },
+    { id: "sam-predictions", label: "Predictions" },
+    { id: "sam-achievements", label: "Achievements" },
+  ],
   learning: [
     { id: "my-progress", label: "My Progress" },
     { id: "courses", label: "Courses" },
@@ -169,6 +183,14 @@ export function EnterpriseUnifiedAnalytics({
     // Map old tab names to new structure
     const tabMapping: Record<string, { main: string; sub?: string }> = {
       overview: { main: "overview" },
+      // SAM AI tab mappings
+      "sam-ai": { main: "sam-ai", sub: "sam-dashboard" },
+      "sam-dashboard": { main: "sam-ai", sub: "sam-dashboard" },
+      "sam-practice": { main: "sam-ai", sub: "sam-practice" },
+      "sam-style": { main: "sam-ai", sub: "sam-style" },
+      "sam-predictions": { main: "sam-ai", sub: "sam-predictions" },
+      "sam-achievements": { main: "sam-ai", sub: "sam-achievements" },
+      // Learning tab mappings
       "my-progress": { main: "learning", sub: "my-progress" },
       performance: { main: "learning", sub: "performance" },
       cognitive: { main: "learning", sub: "cognitive" },
@@ -425,6 +447,16 @@ export function EnterpriseUnifiedAnalytics({
                 performance={performance}
                 pulse={pulse}
               />
+            </TabsContent>
+
+            {/* SAM AI Tab - Full SAM Engine Integration */}
+            <TabsContent value="sam-ai" className="mt-0">
+              {activeSubTab === "sam-dashboard" && <SAMInsightsDashboard />}
+              {activeSubTab === "sam-practice" && <SAMInsightsDashboard />}
+              {activeSubTab === "sam-style" && <SAMInsightsDashboard />}
+              {activeSubTab === "sam-predictions" && <SAMInsightsDashboard />}
+              {activeSubTab === "sam-achievements" && <SAMInsightsDashboard />}
+              {!activeSubTab && <SAMInsightsDashboard />}
             </TabsContent>
 
             {/* Learning Tab */}

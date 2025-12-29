@@ -9,6 +9,7 @@ import type {
   SAMAction,
   SAMSuggestion,
   SAMFormField,
+  SAMFormContext,
   SAMPageType,
   OrchestrationResult,
   BloomsAnalysis,
@@ -142,6 +143,105 @@ export interface UseSAMFormReturn {
   syncFormToSAM: (formElement: HTMLFormElement) => void;
   autoFillField: (fieldName: string, value: unknown) => void;
   getFieldSuggestions: (fieldName: string) => Promise<string[]>;
+}
+
+export interface SAMPageLink {
+  href: string;
+  text?: string;
+  ariaLabel?: string;
+  title?: string;
+  rel?: string;
+  target?: string;
+}
+
+export interface UseSAMPageLinksOptions {
+  enabled?: boolean;
+  selector?: string;
+  maxLinks?: number;
+  includeHidden?: boolean;
+  includeText?: boolean;
+  includeAriaLabel?: boolean;
+  includeTitle?: boolean;
+  includeRel?: boolean;
+  includeTarget?: boolean;
+  dedupe?: boolean;
+  throttleMs?: number;
+  onLinks?: (links: SAMPageLink[]) => void;
+}
+
+export interface UseSAMPageLinksReturn {
+  links: SAMPageLink[];
+  refresh: () => void;
+}
+
+export interface UseSAMFormDataSyncOptions {
+  formName?: string;
+  metadata?: Record<string, unknown>;
+  fieldMeta?: Record<
+    string,
+    {
+      label?: string;
+      placeholder?: string;
+      type?: string;
+      required?: boolean;
+      disabled?: boolean;
+      readOnly?: boolean;
+    }
+  >;
+  debounceMs?: number;
+  maxDepth?: number;
+  enabled?: boolean;
+  formType?: string;
+  isDirty?: boolean;
+  isValid?: boolean;
+}
+
+export interface UseSAMFormDataSyncReturn {
+  sync: () => void;
+}
+
+export interface SAMFormDataEventDetail {
+  formId: string;
+  formData: Record<string, unknown>;
+  options?: UseSAMFormDataSyncOptions;
+  emittedAt?: string;
+}
+
+export interface UseSAMFormDataEventsOptions {
+  enabled?: boolean;
+  defaultOptions?: UseSAMFormDataSyncOptions;
+  target?: EventTarget;
+}
+
+export interface UseSAMFormDataEventsReturn {
+  lastPayload: SAMFormDataEventDetail | null;
+}
+
+export interface UseSAMFormAutoDetectOptions {
+  enabled?: boolean;
+  selector?: string;
+  includeHidden?: boolean;
+  maxFields?: number;
+  debounceMs?: number;
+  preferFocused?: boolean;
+  overrideExisting?: boolean;
+  metadata?: Record<string, unknown>;
+  formType?: string;
+}
+
+export interface UseSAMFormAutoDetectReturn {
+  formContext: SAMFormContext | null;
+  refresh: () => void;
+}
+
+export interface UseSAMFormAutoFillOptions {
+  triggerEvents?: boolean;
+  onFill?: (fieldName: string, value: unknown) => void;
+}
+
+export interface UseSAMFormAutoFillReturn {
+  fillField: (target: string, value: unknown) => boolean;
+  resolveField: (target: string) => string | null;
 }
 
 export interface UseSAMAnalysisReturn {

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import clsx from "clsx";
+import { Suspense } from 'react';
 import { logger } from '@/lib/logger';
 
 // Editorial Typography - Google Fonts for Blog Pages
@@ -128,10 +129,12 @@ export default async function RootLayout({
           </a>
           <ConfettiProvider />
           <ClientToaster />
-          {/* All pages handle their own navigation and layout */}
-          <div className="min-h-screen" suppressHydrationWarning>
-            {children}
-          </div>
+          {/* Suspense boundary for consistent server/client structure during streaming */}
+          <Suspense fallback={null}>
+            <div className="min-h-screen" suppressHydrationWarning>
+              {children}
+            </div>
+          </Suspense>
 
           {/* SAM AI Assistant - Context-aware floating assistant */}
           <SAMAssistant />

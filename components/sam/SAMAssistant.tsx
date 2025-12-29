@@ -29,7 +29,14 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { SAMProvider, useSAM } from '@sam-ai/react';
+import {
+  SAMProvider,
+  useSAM,
+  useSAMFormAutoDetect,
+  useSAMFormAutoFill,
+  useSAMFormDataEvents,
+  useSAMPageLinks,
+} from '@sam-ai/react';
 import type {
   SAMContext,
   SAMFormContext,
@@ -257,6 +264,7 @@ function SAMAssistantInner({
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const {
+    context: samContext,
     messages: samMessages,
     sendMessage: samSendMessage,
     clearMessages: clearSamMessages,
@@ -268,6 +276,17 @@ function SAMAssistantInner({
     updateContext,
   } = useSAM();
   const messages = samMessages as Message[];
+
+  useSAMPageLinks({ enabled: true, maxLinks: 120, throttleMs: 1000 });
+  useSAMFormDataEvents({ enabled: true });
+  useSAMFormAutoDetect({
+    enabled: isOpen,
+    overrideExisting: false,
+    maxFields: 120,
+    debounceMs: 250,
+    preferFocused: true,
+  });
+  const { fillField } = useSAMFormAutoFill({ triggerEvents: true });
 
   const insights = useMemo(() => {
     const responseInsights = lastResult?.response.insights as SAMInsights | undefined;
@@ -507,8 +526,12 @@ function SAMAssistantInner({
 
   useEffect(() => {
     const { effectiveEntityContext, samFormContext } = buildContextUpdate();
-
-    updateContext({
+    const nextMetadata = {
+      ...(samContext.page.metadata ?? {}),
+      entityData: effectiveEntityContext.entityData,
+      entityType: effectiveEntityContext.entityType,
+    };
+    const contextUpdate: Partial<SAMContext> = {
       page: {
         type: pageContext.pageType as SAMPageType,
         path: pageContext.path,
@@ -517,14 +540,21 @@ function SAMAssistantInner({
         grandParentEntityId: pageContext.grandParentEntityId,
         capabilities: pageContext.capabilities,
         breadcrumb: pageContext.breadcrumbs,
-        metadata: {
-          entityData: effectiveEntityContext.entityData,
-          entityType: effectiveEntityContext.entityType,
-        },
+        metadata: nextMetadata,
       },
-      form: samFormContext,
-    });
-  }, [buildContextUpdate, pageContext, updateContext]);
+    };
+
+    if (!samContext.form && samFormContext) {
+      contextUpdate.form = samFormContext;
+    }
+
+    updateContext(contextUpdate);
+  }, [
+    buildContextUpdate,
+    pageContext,
+    samContext.form,
+    updateContext,
+  ]);
 
   // Detect forms on the page when SAM opens
   useEffect(() => {
@@ -619,7 +649,12 @@ function SAMAssistantInner({
     } else if (action.type === 'page_action' && action.payload?.action === 'refresh') {
       window.location.reload();
     } else if (action.type === 'form_fill' && action.payload?.field) {
-      executeFormFill(action.payload.field as string, action.payload.value);
+      const field = action.payload.field as string;
+      const value = action.payload.value;
+      const filled = fillField(field, value);
+      if (!filled) {
+        executeFormFill(field, value);
+      }
     } else if (action.payload?.action) {
       executeFormAction(action.payload.action as string, action.payload);
     }
@@ -712,7 +747,7 @@ function SAMAssistantInner({
 
     // Fallback: try direct DOM insertion
     if (targetField) {
-      const success = executeFormFill(targetField, content);
+      const success = fillField(targetField, content) || executeFormFill(targetField, content);
       if (success) {
         setInsertedMessageId(messageId);
         setTimeout(() => setInsertedMessageId(null), 2000);

@@ -27,3 +27,8 @@ export { EnhancedDepthAnalysisEngine, createEnhancedDepthAnalysisEngine, enhance
 // Unified Bloom's Engine (Priority 1: Unified Bloom's Engine)
 export { UnifiedBloomsEngine, createUnifiedBloomsEngine } from './unified-blooms-engine';
 export { UnifiedBloomsAdapterEngine, createUnifiedBloomsAdapterEngine } from './unified-blooms-adapter';
+
+// Phase 2 Engines - Practice Problems, Adaptive Content, Socratic Teaching
+export { PracticeProblemsEngine, createPracticeProblemsEngine } from './practice-problems-engine';
+export { AdaptiveContentEngine, createAdaptiveContentEngine } from './adaptive-content-engine';
+export { SocraticTeachingEngine, createSocraticTeachingEngine } from './socratic-teaching-engine';

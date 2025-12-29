@@ -18,12 +18,12 @@ import {
   Bot,
   ChevronRight,
   CheckCircle2,
-  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { AICreatorLayout } from "./_components/AICreatorLayout";
+import { createSamContext } from "@/lib/sam/utils/form-data-to-sam-context";
 
 // Import modular components
 import { useSamWizard } from "./hooks/use-sam-wizard";
@@ -35,9 +35,12 @@ import { CourseBasicsStep } from "./components/steps/course-basics-step";
 import { TargetAudienceStep } from "./components/steps/target-audience-step";
 import { CourseStructureStep } from "./components/steps/course-structure-step";
 import { AdvancedSettingsStep } from "./components/steps/advanced-settings-step";
-import { CourseScoringPanel } from "./components/course-scoring-panel";
-import { SamLearningDesignAssistance } from "./components/sam-learning-design-assistance";
 import { MobileStepNav } from "./components/navigation/MobileStepNav";
+import { SAMCompleteGenerationModal } from "./components/sam-complete-generation-modal";
+import { useSAMCourseCreationOrchestrator } from "@/hooks/use-sam-course-creation-orchestrator";
+import { CourseCreationProgress } from "@/components/sam/course-creation-progress";
+import { SequentialCreationModal } from "@/components/sam/sequential-creation-modal";
+import { useSequentialCreation } from "@/hooks/use-sam-sequential-creation";
 
 const STEPS = [
   {
@@ -70,44 +73,11 @@ const STEPS = [
   },
 ];
 
-const STEP_TIPS: Record<number, { title: string; tips: string[] }> = {
-  1: {
-    title: "Foundation Tips",
-    tips: [
-      "Use specific, outcome-focused titles",
-      "Highlight the transformation students will experience",
-      "Choose categories where your ideal students search",
-    ],
-  },
-  2: {
-    title: "Audience Tips",
-    tips: [
-      "Be specific about who this course is for",
-      "Consider prerequisite knowledge needed",
-      "Match difficulty to your target learners",
-    ],
-  },
-  3: {
-    title: "Design Tips",
-    tips: [
-      "Set 3-5 clear, measurable learning objectives",
-      "Use Bloom's taxonomy for cognitive progression",
-      "Balance theory with practical application",
-    ],
-  },
-  4: {
-    title: "Final Check",
-    tips: [
-      "Review all sections for completeness",
-      "Ensure objectives align with content",
-      "SAM will generate chapters based on your inputs",
-    ],
-  },
-};
 
 export default function AICreatorPage() {
   const router = useRouter();
-  const [isCreatingCourse, setIsCreatingCourse] = React.useState(false);
+  const [isGenerationModalOpen, setIsGenerationModalOpen] = React.useState(false);
+  const [showCreationProgress, setShowCreationProgress] = React.useState(false);
 
   const {
     step,
@@ -123,8 +93,36 @@ export default function AICreatorPage() {
     resetWizard,
   } = useSamWizard();
 
-  const { generateCompleteStructure } = useSamCompleteGeneration();
+  const {
+    isGenerating,
+    progress,
+    error,
+    generateCompleteStructure,
+    resetGeneration,
+  } = useSamCompleteGeneration();
   const { gatherSamContext } = useSamContextGathering();
+
+  // SAM Course Creation Orchestrator (legacy)
+  const {
+    progress: creationProgress,
+    quality: creationQuality,
+    isCreating: isCreatingCourse,
+    error: creationError,
+    createCourse: orchestrateCreation,
+    reset: resetOrchestrator,
+    cancel: cancelCreation,
+  } = useSAMCourseCreationOrchestrator();
+
+  // NEW: Sequential Creation (3-Stage Process)
+  const [isSequentialModalOpen, setIsSequentialModalOpen] = React.useState(false);
+  const {
+    progress: sequentialProgress,
+    isCreating: isSequentialCreating,
+    error: sequentialError,
+    startCreation: startSequentialCreation,
+    cancel: cancelSequentialCreation,
+    reset: resetSequentialCreation,
+  } = useSequentialCreation();
 
   // Step validation
   const isStepValid = (): boolean => {
@@ -164,111 +162,205 @@ export default function AICreatorPage() {
     }
   };
 
-  // Course generation handler
-  const handleGenerateCourse = React.useCallback(async () => {
-    setIsCreatingCourse(true);
+  // Open the generation modal
+  const handleOpenGenerationModal = React.useCallback(() => {
+    resetGeneration();
+    setIsGenerationModalOpen(true);
+  }, [resetGeneration]);
 
+  // Close the generation modal
+  const handleCloseGenerationModal = React.useCallback(() => {
+    if (!isGenerating) {
+      setIsGenerationModalOpen(false);
+      resetGeneration();
+    }
+  }, [isGenerating, resetGeneration]);
+
+  // NEW: Open sequential creation modal
+  const handleOpenSequentialModal = React.useCallback(() => {
+    resetSequentialCreation();
+    setIsSequentialModalOpen(true);
+  }, [resetSequentialCreation]);
+
+  // NEW: Close sequential creation modal
+  const handleCloseSequentialModal = React.useCallback(() => {
+    if (!isSequentialCreating) {
+      setIsSequentialModalOpen(false);
+      resetSequentialCreation();
+    }
+  }, [isSequentialCreating, resetSequentialCreation]);
+
+  // NEW: Start sequential creation process
+  const handleStartSequentialCreation = React.useCallback(async () => {
     try {
-      const courseData = {
-        title: formData.courseTitle,
-        description: formData.courseShortOverview,
-        learningObjectives: formData.courseGoals || [],
-      };
+      logger.info('[AI-CREATOR] Starting sequential course creation');
 
-      const courseResponse = await fetch("/api/courses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(courseData),
+      const result = await startSequentialCreation({
+        courseTitle: formData.courseTitle || '',
+        courseDescription: formData.courseShortOverview || '',
+        targetAudience: formData.targetAudience || '',
+        difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+        totalChapters: formData.chapterCount || 8,
+        sectionsPerChapter: formData.sectionsPerChapter || 3,
+        learningObjectivesPerChapter: formData.learningObjectivesPerChapter || 5,
+        learningObjectivesPerSection: formData.learningObjectivesPerSection || 3,
+        courseGoals: formData.courseGoals || [],
+        bloomsFocus: formData.bloomsFocus || ['UNDERSTAND', 'APPLY', 'ANALYZE'],
+        preferredContentTypes: formData.preferredContentTypes || ['video', 'reading', 'quiz'],
+        category: formData.courseCategory,
+        subcategory: formData.courseSubcategory,
       });
 
-      if (!courseResponse.ok) {
-        const errorText = await courseResponse.text();
-        throw new Error(`Failed to create course: ${courseResponse.status}`);
-      }
+      if (result.success && result.courseId) {
+        logger.info('[AI-CREATOR] Sequential creation completed successfully', {
+          courseId: result.courseId,
+          chaptersCreated: result.chaptersCreated,
+          sectionsCreated: result.sectionsCreated,
+        });
 
-      const course = await courseResponse.json();
+        toast.success('Course created successfully!', {
+          description: `${result.chaptersCreated} chapters and ${result.sectionsCreated} sections created.`,
+        });
 
-      // Generate chapters using SAM AI
-      const chaptersResponse = await fetch("/api/sam/ai-tutor/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: `Generate ${formData.chapterCount || 5} comprehensive chapter titles for: "${formData.courseTitle}"
-
-Course Details:
-- Description: ${formData.courseShortOverview}
-- Category: ${formData.courseCategory}
-- Target Audience: ${formData.targetAudience}
-- Difficulty: ${formData.difficulty}
-- Learning Objectives: ${formData.courseGoals?.join(", ") || "Not specified"}
-
-Generate exactly ${formData.chapterCount || 5} chapter titles that follow a logical progression.
-
-Format as:
-1. [Chapter Title]
-2. [Chapter Title]
-etc.`,
-          context: {
-            pageData: { pageType: "course_creation", title: "Chapter Generation", forms: [] },
-            learningContext: { userRole: "teacher", courseCreationMode: true },
-            gamificationState: {},
-            tutorPersonality: { tone: "encouraging", teachingMethod: "direct" },
-            emotion: "engaged",
-          },
-        }),
-      });
-
-      let successfulChapters: unknown[] = [];
-
-      if (chaptersResponse.ok) {
-        const chaptersResult = await chaptersResponse.json();
-        const chapterMatches = chaptersResult.response.match(/\d+\.\s*(.+)/g);
-
-        if (chapterMatches && chapterMatches.length > 0) {
-          const chapterPromises = chapterMatches
-            .slice(0, formData.chapterCount || 5)
-            .map(async (match: string, index: number) => {
-              const title = match.replace(/^\d+\.\s*/, "").trim();
-              try {
-                const chapterResponse = await fetch(`/api/courses/${course.id}/chapters`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ title, position: index + 1 }),
-                });
-                if (chapterResponse.ok) return await chapterResponse.json();
-              } catch (error) {
-                logger.error(`Error creating chapter: ${title}`, error);
-              }
-              return null;
-            });
-
-          const createdChapters = await Promise.all(chapterPromises);
-          successfulChapters = createdChapters.filter((chapter) => chapter !== null);
-        }
-      }
-
-      // Save to SAM memory
-      if (typeof window !== "undefined") {
-        import("@/lib/sam/utils/sam-memory-system").then(({ samMemory }) => {
-          samMemory.saveGeneratedStructure({
-            courseDescription: formData.courseShortOverview,
-            enhancedObjectives: formData.courseGoals || [],
-            chapters: [],
-            generationMethod: "manual",
+        // Save to SAM memory
+        if (typeof window !== 'undefined') {
+          import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
+            samMemory.incrementSuccessfulGenerations();
           });
-          samMemory.incrementSuccessfulGenerations();
+        }
+      } else {
+        logger.error('[AI-CREATOR] Sequential creation failed:', result.error);
+        toast.error('Course creation failed', {
+          description: result.error || 'An unexpected error occurred',
         });
       }
-
-      toast.success(`Course "${course.title}" created with ${successfulChapters.length} chapters!`);
-      router.push(`/teacher/courses/${course.id}`);
     } catch (error) {
-      logger.error("Error creating course:", error);
-      toast.error("Failed to create course. Please try again.");
-    } finally {
-      setIsCreatingCourse(false);
+      logger.error('[AI-CREATOR] Error in sequential creation:', error);
+      toast.error('Failed to create course');
     }
-  }, [formData, router]);
+  }, [formData, startSequentialCreation]);
+
+  // NEW: Handle retry for sequential creation
+  const handleRetrySequentialCreation = React.useCallback(() => {
+    resetSequentialCreation();
+    handleStartSequentialCreation();
+  }, [resetSequentialCreation, handleStartSequentialCreation]);
+
+  // Gather SAM context for the modal
+  const samContext = React.useMemo(() => {
+    return gatherSamContext(formData, samSuggestion?.message ?? '');
+  }, [formData, samSuggestion, gatherSamContext]);
+
+  // Handle complete generation from modal - using orchestrator for quality-assured creation
+  const handleCompleteGeneration = React.useCallback(async () => {
+    try {
+      await generateCompleteStructure({
+        formData,
+        samContext,
+        onFormDataUpdate: setFormData,
+        onGenerationComplete: async (result) => {
+          // After structure is generated, use orchestrator for quality-controlled creation
+          setIsGenerationModalOpen(false);
+          setShowCreationProgress(true);
+
+          try {
+            // Prepare form data for orchestrator
+            // Note: result.chapters may not have learningOutcomes/isFree - use optional access
+            const orchestratorFormData = {
+              courseTitle: formData.courseTitle || '',
+              courseDescription: result.courseDescription || formData.courseShortOverview || '',
+              courseShortOverview: formData.courseShortOverview || '',
+              courseCategory: formData.courseCategory,
+              courseSubcategory: formData.courseSubcategory,
+              targetAudience: formData.targetAudience || '',
+              difficulty: (formData.difficulty?.toLowerCase() || 'intermediate') as 'beginner' | 'intermediate' | 'advanced' | 'expert',
+              courseIntent: formData.courseIntent,
+              courseGoals: formData.courseGoals || [],
+              whatYouWillLearn: result.learningObjectives,
+              bloomsFocus: formData.bloomsFocus || ['UNDERSTAND', 'APPLY', 'ANALYZE'],
+              preferredContentTypes: formData.preferredContentTypes || ['video', 'reading', 'quiz'],
+              chapterCount: formData.chapterCount || 8,
+              sectionsPerChapter: formData.sectionsPerChapter || 3,
+              learningObjectivesPerChapter: formData.learningObjectivesPerChapter || 5,
+              learningObjectivesPerSection: formData.learningObjectivesPerSection || 3,
+              includeAssessments: formData.includeAssessments || true,
+              chapters: result.chapters?.map((ch: Record<string, unknown>, idx: number) => ({
+                title: ch.title as string,
+                description: ch.description as string,
+                learningOutcomes: (ch.learningOutcomes as string) || (ch.description as string),
+                bloomsLevel: (ch.bloomsLevel as string) || formData.bloomsFocus?.[idx % (formData.bloomsFocus?.length || 1)] || 'UNDERSTAND',
+                position: ch.position as number,
+                isFree: (ch.isFree as boolean) ?? idx === 0,
+                sections: (ch.sections as Array<Record<string, unknown>>)?.map((s: Record<string, unknown>, sIdx: number) => ({
+                  title: s.title as string,
+                  description: s.description as string,
+                  learningObjectives: (s.learningObjectives as string) || (s.description as string),
+                  contentType: (s.contentType as string) || 'reading',
+                  estimatedDuration: (s.estimatedDuration as string) || '20 minutes',
+                  position: s.position as number,
+                  isFree: (s.isFree as boolean) ?? (idx === 0 && sIdx === 0),
+                })) || [],
+              })) || [],
+            };
+
+            // Prepare generated structure for orchestrator
+            const generatedStructure = {
+              courseDescription: result.courseDescription || formData.courseShortOverview || '',
+              learningObjectives: result.learningObjectives || formData.courseGoals || [],
+              chapters: result.chapters?.map((ch: Record<string, unknown>, idx: number) => ({
+                title: ch.title as string,
+                description: ch.description as string,
+                learningOutcomes: (ch.learningOutcomes as string) || (ch.description as string),
+                bloomsLevel: (ch.bloomsLevel as string) || 'UNDERSTAND',
+                position: (ch.position as number) || idx + 1,
+                isFree: ch.isFree as boolean | undefined,
+                sections: (ch.sections as Array<Record<string, unknown>>)?.map((s: Record<string, unknown>, sIdx: number) => ({
+                  title: s.title as string,
+                  description: s.description as string,
+                  learningObjectives: (s.learningObjectives as string) || (s.description as string),
+                  contentType: (s.contentType as string) || 'reading',
+                  estimatedDuration: (s.estimatedDuration as string) || '20 minutes',
+                  position: (s.position as number) || sIdx + 1,
+                  isFree: s.isFree as boolean | undefined,
+                })) || [],
+              })) || [],
+            };
+
+            // Use orchestrator for quality-assured creation
+            const creationResult = await orchestrateCreation(orchestratorFormData, generatedStructure);
+
+            if (creationResult.success) {
+              // Save to SAM memory with full structure
+              if (typeof window !== 'undefined') {
+                import('@/lib/sam/utils/sam-memory-system').then(({ samMemory }) => {
+                  samMemory.saveGeneratedStructure({
+                    courseDescription: result.courseDescription,
+                    enhancedObjectives: result.learningObjectives,
+                    chapters: result.chapters,
+                    generationMethod: 'sam_orchestrated',
+                  });
+                  samMemory.incrementSuccessfulGenerations();
+                });
+              }
+            } else {
+              logger.error('Orchestrated course creation failed:', creationResult.error);
+            }
+          } catch (dbError) {
+            logger.error('Error in orchestrated course creation:', dbError);
+            toast.error('Failed to create course. Please try again.');
+          }
+        },
+      });
+    } catch (genError) {
+      logger.error('Error in complete generation:', genError);
+    }
+  }, [formData, samContext, generateCompleteStructure, setFormData, orchestrateCreation]);
+
+  // Legacy handler for direct creation (fallback)
+  const handleGenerateCourse = React.useCallback(async () => {
+    // Open the SAM Complete Generation Modal for enhanced generation
+    handleOpenGenerationModal();
+  }, [handleOpenGenerationModal]);
 
   // SAM Memory Integration
   React.useEffect(() => {
@@ -306,30 +398,26 @@ etc.`,
   const isLastStep = step === totalSteps;
   const currentStep = STEPS[step - 1];
   const StepIcon = currentStep.icon;
-  const currentTips = STEP_TIPS[step];
 
   // Keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
+      const isInputFocused =
         document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA"
-      ) {
-        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-          e.preventDefault();
-          if (canProceed && !isLastStep) handleNext();
-          else if (canProceed && isLastStep && !isCreatingCourse) handleGenerateCourse();
+        document.activeElement?.tagName === "TEXTAREA";
+
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (canProceed && !isLastStep) {
+          handleNext();
+        } else if (canProceed && isLastStep && !isSequentialCreating && !isCreatingCourse) {
+          handleOpenSequentialModal();
+          handleStartSequentialCreation();
         }
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-        e.preventDefault();
-        if (canProceed && !isLastStep) handleNext();
-        else if (canProceed && isLastStep && !isCreatingCourse) handleGenerateCourse();
-      }
-
-      if (e.key === "Escape" && step > 1) {
+      if (!isInputFocused && e.key === "Escape" && step > 1) {
         e.preventDefault();
         handleBack();
       }
@@ -337,7 +425,7 @@ etc.`,
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [step, canProceed, isLastStep, isCreatingCourse, handleNext, handleBack, handleGenerateCourse]);
+  }, [step, canProceed, isLastStep, isSequentialCreating, isCreatingCourse, handleNext, handleBack, handleOpenSequentialModal, handleStartSequentialCreation]);
 
   const renderStepContent = () => {
     const stepProps = {
@@ -362,9 +450,67 @@ etc.`,
     }
   };
 
+  // Handle retry from progress component
+  const handleRetryCreation = React.useCallback(() => {
+    resetOrchestrator();
+    setShowCreationProgress(false);
+    handleOpenGenerationModal();
+  }, [resetOrchestrator, handleOpenGenerationModal]);
+
+  // Handle cancel from progress component
+  const handleCancelCreation = React.useCallback(() => {
+    cancelCreation();
+  }, [cancelCreation]);
+
   return (
     <AICreatorLayout>
       <SamErrorBoundary>
+        {/* SAM Complete Generation Modal (Legacy) */}
+        <SAMCompleteGenerationModal
+          isOpen={isGenerationModalOpen}
+          onClose={handleCloseGenerationModal}
+          isGenerating={isGenerating}
+          progress={progress}
+          error={error}
+          onGenerate={handleCompleteGeneration}
+          formData={formData}
+          samContext={samContext}
+        />
+
+        {/* NEW: Sequential Creation Modal (3-Stage Process) */}
+        <SequentialCreationModal
+          isOpen={isSequentialModalOpen}
+          onClose={handleCloseSequentialModal}
+          progress={sequentialProgress}
+          isCreating={isSequentialCreating}
+          error={sequentialError}
+          onCancel={cancelSequentialCreation}
+          onRetry={handleRetrySequentialCreation}
+          formData={{
+            courseTitle: formData.courseTitle || '',
+            targetAudience: formData.targetAudience,
+            difficulty: formData.difficulty,
+            chapterCount: formData.chapterCount,
+            sectionsPerChapter: formData.sectionsPerChapter,
+          }}
+        />
+
+        {/* Course Creation Progress Overlay */}
+        {showCreationProgress && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="w-full max-w-2xl mx-4 p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl">
+              <CourseCreationProgress
+                progress={creationProgress}
+                quality={creationQuality}
+                isCreating={isCreatingCourse}
+                error={creationError}
+                onCancel={handleCancelCreation}
+                onRetry={handleRetryCreation}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Simplified Background */}
         <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800" />
 
@@ -503,7 +649,7 @@ etc.`,
             </aside>
 
             {/* Center: Main Content */}
-            <main className="lg:col-span-6 space-y-5">
+            <main className="lg:col-span-9 space-y-5">
               {/* Step Header */}
               <div className="p-5 sm:p-6 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
                 <div className="flex items-center gap-4">
@@ -556,30 +702,46 @@ etc.`,
                 </Button>
 
                 {isLastStep ? (
-                  <Button
-                    onClick={handleGenerateCourse}
-                    disabled={!canProceed || isCreatingCourse}
-                    className={cn(
-                      "h-11 px-6 rounded-xl font-semibold",
-                      "bg-gradient-to-r from-violet-600 to-purple-600",
-                      "hover:from-violet-700 hover:to-purple-700",
-                      "shadow-lg shadow-purple-500/25",
-                      "disabled:opacity-50"
-                    )}
-                  >
-                    {isCreatingCourse ? (
-                      <>
-                        <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Create Course
-                        <ChevronRight className="h-4 w-4 ml-1" />
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {/* Primary: Sequential Creation */}
+                    <Button
+                      onClick={() => {
+                        handleOpenSequentialModal();
+                        handleStartSequentialCreation();
+                      }}
+                      disabled={!canProceed || isSequentialCreating || isCreatingCourse}
+                      className={cn(
+                        "h-11 px-6 rounded-xl font-semibold",
+                        "bg-gradient-to-r from-violet-600 to-purple-600",
+                        "hover:from-violet-700 hover:to-purple-700",
+                        "shadow-lg shadow-purple-500/25",
+                        "disabled:opacity-50"
+                      )}
+                    >
+                      {isSequentialCreating ? (
+                        <>
+                          <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Brain className="h-4 w-4 mr-2" />
+                          Create with SAM
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </>
+                      )}
+                    </Button>
+                    {/* Secondary: Legacy Quick Generation */}
+                    <Button
+                      variant="outline"
+                      onClick={handleGenerateCourse}
+                      disabled={!canProceed || isCreatingCourse || isSequentialCreating}
+                      className="h-11 px-4 rounded-xl"
+                      title="Quick generation (legacy)"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ) : (
                   <Button
                     onClick={handleNext}
@@ -605,62 +767,6 @@ etc.`,
                 </div>
               )}
             </main>
-
-            {/* Right: Contextual Help */}
-            <aside className="lg:col-span-3 space-y-5">
-              <div className="lg:sticky lg:top-8 space-y-5">
-                {/* Scoring Panel for Step 1 */}
-                {step === 1 && (
-                  <CourseScoringPanel formData={formData} onUpdateFormData={setFormData} />
-                )}
-
-                {/* Learning Design for Step 3 */}
-                {step === 3 && (
-                  <SamLearningDesignAssistance formData={formData} onUpdateFormData={setFormData} />
-                )}
-
-                {/* Contextual Tips */}
-                <div className="p-5 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/50 shadow-xl">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50">
-                      <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                      {currentTips.title}
-                    </h4>
-                  </div>
-                  <ul className="space-y-2.5">
-                    {currentTips.tips.map((tip, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-slate-400">
-                        <ChevronRight className="h-4 w-4 mt-0.5 text-amber-500 flex-shrink-0" />
-                        <span>{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Keyboard Shortcuts */}
-                <div className="hidden xl:block p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50">
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-                    Keyboard shortcuts
-                  </p>
-                  <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
-                    <div className="flex items-center justify-between">
-                      <span>Next step</span>
-                      <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded text-[10px] font-mono border">
-                        ⌘↵
-                      </kbd>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>Go back</span>
-                      <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-700 rounded text-[10px] font-mono border">
-                        Esc
-                      </kbd>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </aside>
           </div>
 
           {/* Mobile Navigation */}
@@ -669,10 +775,13 @@ etc.`,
             totalSteps={totalSteps}
             canProceed={canProceed}
             isLastStep={isLastStep}
-            isGenerating={isCreatingCourse}
+            isGenerating={isSequentialCreating || isCreatingCourse}
             onBack={handleBack}
             onNext={handleNext}
-            onGenerate={handleGenerateCourse}
+            onGenerate={() => {
+              handleOpenSequentialModal();
+              handleStartSequentialCreation();
+            }}
             nextStepTitle={STEPS[step]?.title}
           />
         </div>

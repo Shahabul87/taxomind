@@ -17,41 +17,49 @@ export async function POST(req: Request) {
     // Parse request body
     const body = await req.json();
 
-    const { name } = body;
-    
+    const { name, parentId } = body;
+
     if (!name || typeof name !== "string") {
 
       return new NextResponse("Name is required", { status: 400 });
     }
-    
+
     // Check if category already exists
     try {
 
+      // For subcategories, check if it exists under the same parent
       const existingCategory = await db.category.findFirst({
         where: {
-          name: { 
-            equals: name, 
+          name: {
+            equals: name,
             mode: 'insensitive' // Case insensitive search
-          }
+          },
+          parentId: parentId || null, // Check under the same parent
         }
       });
-      
+
       if (existingCategory) {
 
         // If the category already exists, just return it
         return NextResponse.json(existingCategory);
       }
-      
-      // Create slug from name
-      const slug = name
-        .toLowerCase()
-        .replace(/[^\w\s]/gi, '') // Remove special characters
-        .replace(/\s+/g, '-'); // Replace spaces with hyphens
 
-      // Create a new category
+      // If parentId is provided, verify the parent exists
+      if (parentId) {
+        const parentCategory = await db.category.findUnique({
+          where: { id: parentId }
+        });
+
+        if (!parentCategory) {
+          return new NextResponse("Parent category not found", { status: 404 });
+        }
+      }
+
+      // Create a new category (or subcategory if parentId is provided)
       const category = await db.category.create({
         data: {
           name,
+          parentId: parentId || null,
         }
       });
 
@@ -71,12 +79,23 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
+    // Get all top-level categories (those without a parent)
     const categories = await db.category.findMany({
+      where: {
+        parentId: null, // Only get top-level categories
+      },
       orderBy: {
         name: "asc"
+      },
+      include: {
+        children: {
+          orderBy: {
+            name: "asc"
+          }
+        }
       }
     });
-    
+
     return NextResponse.json(categories);
   } catch (error) {
     logger.error("[CATEGORIES_GET]", error);

@@ -24,6 +24,15 @@ export {
   useSAMAnalysis,
   useSAMForm,
   useSAMFormSync,
+  useSAMPageLinks,
+  useSAMFormDataSync,
+  useSAMFormDataEvents,
+  useSAMFormAutoDetect,
+  useSAMFormAutoFill,
+  // Phase 2 Hooks
+  useSAMPracticeProblems,
+  useSAMAdaptiveContent,
+  useSAMSocraticDialogue,
 } from './hooks';
 
 // ============================================================================
@@ -35,6 +44,8 @@ export {
   contextDetector,
   getCapabilities,
   hasCapability,
+  SAM_FORM_DATA_EVENT,
+  emitSAMFormData,
 } from './utils';
 
 // ============================================================================
@@ -55,6 +66,18 @@ export type {
   UseSAMActionsReturn,
   UseSAMFormReturn,
   UseSAMAnalysisReturn,
+  SAMPageLink,
+  UseSAMPageLinksOptions,
+  UseSAMPageLinksReturn,
+  UseSAMFormDataSyncOptions,
+  UseSAMFormDataSyncReturn,
+  SAMFormDataEventDetail,
+  UseSAMFormDataEventsOptions,
+  UseSAMFormDataEventsReturn,
+  UseSAMFormAutoDetectOptions,
+  UseSAMFormAutoDetectReturn,
+  UseSAMFormAutoFillOptions,
+  UseSAMFormAutoFillReturn,
 
   // Context detection types
   PageContextDetection,
@@ -64,6 +87,16 @@ export type {
   FormSyncOptions,
   FormAutoFillOptions,
 } from './types';
+
+// Phase 2 Hook types
+export type {
+  UseSAMPracticeProblemsOptions,
+  UseSAMPracticeProblemsReturn,
+  UseSAMAdaptiveContentOptions,
+  UseSAMAdaptiveContentReturn,
+  UseSAMSocraticDialogueOptions,
+  UseSAMSocraticDialogueReturn,
+} from './hooks';
 
 // ============================================================================
 // RE-EXPORT CORE TYPES (for convenience)

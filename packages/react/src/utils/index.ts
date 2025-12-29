@@ -8,3 +8,5 @@ export {
   getCapabilities,
   hasCapability,
 } from './contextDetector';
+
+export { SAM_FORM_DATA_EVENT, emitSAMFormData } from './formDataEvents';

@@ -2,6 +2,29 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
 
+/**
+ * Parse duration string like "20 minutes" or "1 hour" to minutes as integer
+ */
+function parseDurationToMinutes(duration: string | undefined | null): number | null {
+  if (!duration) return null;
+
+  const str = duration.toLowerCase().trim();
+
+  // Try to extract number
+  const match = str.match(/(\d+)/);
+  if (!match) return null;
+
+  const num = parseInt(match[1], 10);
+
+  // Check for hours
+  if (str.includes('hour')) {
+    return num * 60;
+  }
+
+  // Default to minutes
+  return num;
+}
+
 interface SAMCompleteGenerationState {
   isGenerating: boolean;
   progress: {
@@ -20,15 +43,34 @@ interface GenerationResult {
     description: string;
     bloomsLevel: string;
     position: number;
+    learningOutcomes?: string[];  // Bloom's-aligned learning objectives for chapter
+    keyTopics?: string[];
+    practicalApplications?: string[];
+    skillsDeveloped?: string[];
+    estimatedTime?: string;
+    prerequisites?: string;
     sections: Array<{
       title: string;
       description: string;
       contentType: string;
       estimatedDuration: string;
       position: number;
+      learningObjectives?: string[];  // Bloom's-aligned learning objectives for section
+      keyConceptsCovered?: string[];
+      practicalActivity?: string;
     }>;
   }>;
-  metadata: any;
+  metadata: {
+    totalChapters: number;
+    totalSections: number;
+    bloomsLevelsUsed: string[];
+    contentTypesUsed?: string[];
+    contextSources?: {
+      samInteractions: number;
+      existingObjectives: number;
+      bloomsFocus: number;
+    };
+  };
 }
 
 export function useSamCompleteGeneration() {
@@ -87,7 +129,10 @@ export function useSamCompleteGeneration() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate course structure');
+        const errorMessage = errorData.details
+          ? `${errorData.error}: ${errorData.details}`
+          : errorData.error || 'Failed to generate course structure';
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
@@ -124,19 +169,37 @@ export function useSamCompleteGeneration() {
       updateProgress('chapters', 'SAM is creating Bloom\'s-focused chapters...', 80);
       
       // Transform chapters to match form structure
+      // Map estimatedDuration to duration (API expects 'duration' not 'estimatedDuration')
+      // Include all AI-generated content including learning objectives
       const formattedChapters = courseStructure.chapters.map((chapter: any, index: number) => ({
         id: `temp-${Date.now()}-${index}`, // Temporary ID for form
         title: chapter.title,
         description: chapter.description,
         bloomsLevel: chapter.bloomsLevel,
         position: chapter.position,
+        // Include chapter learning objectives from AI generation
+        learningOutcomes: chapter.learningOutcomes || [],
+        courseGoals: chapter.courseGoals,
+        estimatedTime: chapter.estimatedTime,
+        difficulty: chapter.difficulty,
+        prerequisites: chapter.prerequisites,
+        keyTopics: chapter.keyTopics,
+        practicalApplications: chapter.practicalApplications,
+        skillsDeveloped: chapter.skillsDeveloped,
         sections: chapter.sections.map((section: any, sIndex: number) => ({
           id: `temp-section-${Date.now()}-${index}-${sIndex}`,
           title: section.title,
           description: section.description,
-          contentType: section.contentType,
-          estimatedDuration: section.estimatedDuration,
+          type: section.contentType, // Map contentType to type
+          contentType: section.contentType, // Keep original for orchestrator
+          duration: parseDurationToMinutes(section.estimatedDuration), // Convert to minutes integer
+          estimatedDuration: section.estimatedDuration, // Keep original for orchestrator
           position: section.position,
+          // Include section learning objectives from AI generation
+          learningObjectives: section.learningObjectives || [],
+          keyConceptsCovered: section.keyConceptsCovered,
+          practicalActivity: section.practicalActivity,
+          bloomsLevel: chapter.bloomsLevel, // Inherit from chapter
           isPublished: false
         })),
         isPublished: false

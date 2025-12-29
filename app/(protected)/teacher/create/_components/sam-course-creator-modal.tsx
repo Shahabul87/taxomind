@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { createSamContext } from "@/lib/sam/utils/form-data-to-sam-context";
 
 interface CourseCreationRequest {
   courseTitle: string;
@@ -352,21 +353,14 @@ export const SamCourseCreatorModal = ({
         },
         body: JSON.stringify({
           message: `Provide contextual suggestions for course creation step ${step}. Context: ${context}. Current course data: ${JSON.stringify(currentFormData)}. Give helpful advice and suggestions.`,
-          context: {
-            pageData: { 
-              pageType: 'course_creation',
-              title: 'Course Creator - Suggestions',
-              forms: []
-            },
-            learningContext: { 
-              userRole: 'teacher',
-              courseCreationMode: true,
-              currentStep: step
-            },
-            gamificationState: {},
-            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-            emotion: 'engaged'
-          }
+          context: createSamContext({
+            formData: currentFormData as unknown as Record<string, unknown>,
+            pageType: 'course_creation',
+            pageTitle: 'Course Creator - Suggestions',
+            userRole: 'teacher',
+            currentStep: step,
+            totalSteps,
+          })
         }),
       });
 
@@ -399,21 +393,14 @@ export const SamCourseCreatorModal = ({
         },
         body: JSON.stringify({
           message: `Validate course creation form data for step ${step}. Check for completeness, quality, and provide improvement suggestions. Form data: ${JSON.stringify(formDataRef.current)}`,
-          context: {
-            pageData: { 
-              pageType: 'course_creation',
-              title: 'Course Creator - Validation',
-              forms: []
-            },
-            learningContext: { 
-              userRole: 'teacher',
-              courseCreationMode: true,
-              currentStep: step
-            },
-            gamificationState: {},
-            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-            emotion: 'engaged'
-          }
+          context: createSamContext({
+            formData: formDataRef.current as unknown as Record<string, unknown>,
+            pageType: 'course_creation',
+            pageTitle: 'Course Creator - Validation',
+            userRole: 'teacher',
+            currentStep: step,
+            totalSteps,
+          })
         }),
       });
 
@@ -449,20 +436,12 @@ export const SamCourseCreatorModal = ({
         },
         body: JSON.stringify({
           message: `Generate 5 compelling course titles for: "${currentTitle}". Category: ${formData.courseCategory}, Difficulty: ${formData.difficulty}, Audience: ${formData.targetAudience}. [ACTION:GENERATE_TITLES|${currentTitle}|${formData.targetAudience}|${formData.difficulty}]`,
-          context: {
-            pageData: { 
-              pageType: 'course_creation',
-              title: 'Course Creator',
-              forms: []
-            },
-            learningContext: { 
-              userRole: 'teacher',
-              courseCreationMode: true
-            },
-            gamificationState: {},
-            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-            emotion: 'engaged'
-          }
+          context: createSamContext({
+            formData: formData as unknown as Record<string, unknown>,
+            pageType: 'course_creation',
+            pageTitle: 'Course Creator - Title Suggestions',
+            userRole: 'teacher',
+          })
         }),
       });
 
@@ -497,20 +476,12 @@ export const SamCourseCreatorModal = ({
         },
         body: JSON.stringify({
           message: `Generate 3 compelling course overviews for course titled: "${currentTitle}". Category: ${formData.courseCategory}, Difficulty: ${formData.difficulty}, Audience: ${formData.targetAudience}. Focus on benefits and outcomes.`,
-          context: {
-            pageData: { 
-              pageType: 'course_creation',
-              title: 'Course Creator - Overview Generation',
-              forms: []
-            },
-            learningContext: { 
-              userRole: 'teacher',
-              courseCreationMode: true
-            },
-            gamificationState: {},
-            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-            emotion: 'engaged'
-          }
+          context: createSamContext({
+            formData: formData as unknown as Record<string, unknown>,
+            pageType: 'course_creation',
+            pageTitle: 'Course Creator - Overview Generation',
+            userRole: 'teacher',
+          })
         }),
       });
 

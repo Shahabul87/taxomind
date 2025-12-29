@@ -33,3 +33,8 @@ export * from './social.types';
 export * from './innovation.types';
 export * from './market.types';
 export * from './unified-blooms.types';
+
+// Phase 2 Engines
+export * from './practice-problems.types';
+export * from './adaptive-content.types';
+export * from './socratic-teaching.types';

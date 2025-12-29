@@ -14,6 +14,8 @@ import { ExamQuizComponent } from "./exam-quiz-component";
 import { ResourceDownloads } from "./resource-downloads";
 import { CompletionCertificate } from "./completion-certificate";
 import { SafeHtmlRenderer } from "./safe-html-renderer";
+import { SAMPracticeProblems } from "@/components/learning/sam-practice-problems";
+import { SAMSocraticDialogue } from "@/components/learning/sam-socratic-dialogue";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -31,6 +33,8 @@ import {
   AlertCircle,
   ExternalLink,
   Award,
+  Brain,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -138,7 +142,7 @@ export function SectionContentTabs({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full scroll-smooth">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 mb-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm sticky top-[73px] z-30">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 mb-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm sticky top-[73px] z-30">
             <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -208,6 +212,22 @@ export function SectionContentTabs({
               <TabsTrigger value="certificate" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-400 data-[state=active]:to-amber-500 data-[state=active]:text-slate-900 data-[state=active]:shadow-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200">
                 <Award className="h-4 w-4" />
                 <span className="hidden sm:inline">Certificate</span>
+              </TabsTrigger>
+            )}
+
+            {/* SAM AI Practice Tab - Always show for enrolled/learning users */}
+            {(isEnrolled || isTeacher) && (
+              <TabsTrigger value="practice" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200">
+                <Brain className="h-4 w-4" />
+                <span className="hidden sm:inline">Practice</span>
+              </TabsTrigger>
+            )}
+
+            {/* SAM AI Tutor Tab - Socratic Dialogue */}
+            {(isEnrolled || isTeacher) && (
+              <TabsTrigger value="tutor" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200">
+                <MessageCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">AI Tutor</span>
               </TabsTrigger>
             )}
           </TabsList>
@@ -593,6 +613,53 @@ export function SectionContentTabs({
                 }}
                 courseId={courseId}
                 userId={userProgress?.userId}
+              />
+            </TabsContent>
+          )}
+
+          {/* SAM AI Practice Tab Content */}
+          {(isEnrolled || isTeacher) && (
+            <TabsContent
+              value="practice"
+              className="space-y-4 animate-in fade-in-50 duration-200 slide-in-from-bottom-2"
+              forceMount={activeTab === "practice" ? true : undefined}
+              hidden={activeTab !== "practice"}
+            >
+              <SAMPracticeProblems
+                topic={section.title}
+                sectionId={sectionId}
+                userId={userProgress?.userId || "anonymous"}
+                bloomsLevel="APPLY"
+                difficulty="intermediate"
+                onComplete={(stats) => {
+                  toast.success(`Practice complete! Score: ${Math.round(stats.score)}%`);
+                  if (stats.correct === stats.total) {
+                    markItemComplete(`practice_${sectionId}`, "practice");
+                  }
+                }}
+              />
+            </TabsContent>
+          )}
+
+          {/* SAM AI Tutor (Socratic Dialogue) Tab Content */}
+          {(isEnrolled || isTeacher) && (
+            <TabsContent
+              value="tutor"
+              className="space-y-4 animate-in fade-in-50 duration-200 slide-in-from-bottom-2"
+              forceMount={activeTab === "tutor" ? true : undefined}
+              hidden={activeTab !== "tutor"}
+            >
+              <SAMSocraticDialogue
+                topic={section.title}
+                userId={userProgress?.userId || "anonymous"}
+                learningObjective={section.description || `Master the concepts in ${section.title}`}
+                targetBloomsLevel="ANALYZE"
+                onComplete={(performance) => {
+                  toast.success(`Great dialogue! Insight rate: ${Math.round(performance.insightRate * 100)}%`);
+                  if (performance.avgQuality > 0.7) {
+                    markItemComplete(`dialogue_${sectionId}`, "dialogue");
+                  }
+                }}
               />
             </TabsContent>
           )}

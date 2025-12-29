@@ -1,24 +1,123 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAnthropicAdapter } from '@sam-ai/core';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { createUnifiedBloomsEngine } from '@sam-ai/educational';
+import type { UnifiedBloomsResult } from '@sam-ai/educational';
+import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 
-let aiAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
+let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
 
-function getAIAdapter() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-  }
-  if (!aiAdapter) {
-    aiAdapter = createAnthropicAdapter({
-      apiKey,
-      model: 'claude-sonnet-4-5-20250929',
-      timeout: 60000,
-      maxRetries: 2,
+function getUnifiedBloomsEngine() {
+  if (!unifiedBloomsEngine) {
+    unifiedBloomsEngine = createUnifiedBloomsEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+      defaultMode: 'standard',
+      confidenceThreshold: 0.7,
+      enableCache: true,
+      cacheTTL: 900,
     });
   }
-  return aiAdapter;
+  return unifiedBloomsEngine;
+}
+
+function formatFieldValue(value: unknown): string {
+  if (Array.isArray(value)) return value.map((item) => String(item)).join(', ');
+  if (value === null || value === undefined) return '';
+  return String(value);
+}
+
+function buildBloomsAnalysisContent(
+  message: string,
+  context: {
+    pageData?: Record<string, any>;
+    learningContext?: Record<string, any>;
+  }
+): string {
+  const parts: string[] = [];
+  const pageData = context.pageData ?? {};
+  const learningContext = context.learningContext ?? {};
+
+  if (message?.trim()) {
+    parts.push(`User message: ${message}`);
+  }
+
+  if (pageData.pageType) parts.push(`Page type: ${pageData.pageType}`);
+  if (pageData.title) parts.push(`Page title: ${pageData.title}`);
+  if (pageData.pageUrl) parts.push(`Page url: ${pageData.pageUrl}`);
+
+  if (learningContext.userRole) parts.push(`User role: ${learningContext.userRole}`);
+  if (learningContext.currentCourse?.title) {
+    parts.push(`Course: ${learningContext.currentCourse.title}`);
+  }
+  if (learningContext.currentChapter?.title) {
+    parts.push(`Chapter: ${learningContext.currentChapter.title}`);
+  }
+
+  if (Array.isArray(pageData.forms) && pageData.forms.length > 0) {
+    const formLines = pageData.forms
+      .filter((field: any) => field && field.value !== undefined && field.value !== null)
+      .slice(0, 30)
+      .map((field: any) => {
+        const label = field.label || field.name || 'Field';
+        const value = formatFieldValue(field.value);
+        return value ? `${label}: ${value}` : '';
+      })
+      .filter(Boolean);
+
+    if (formLines.length > 0) {
+      parts.push(`Form data:\n${formLines.join('\n')}`);
+    }
+  }
+
+  const links = Array.isArray(pageData.links)
+    ? pageData.links
+    : Array.isArray(pageData.pageLinks)
+      ? pageData.pageLinks
+      : [];
+
+  if (links.length > 0) {
+    const linkLines = links
+      .slice(0, 20)
+      .map((link: any) => {
+        if (typeof link === 'string') return link;
+        if (link?.href && link?.text) return `${link.text} (${link.href})`;
+        if (link?.href) return link.href;
+        return '';
+      })
+      .filter(Boolean);
+
+    if (linkLines.length > 0) {
+      parts.push(`Page links:\n${linkLines.join('\n')}`);
+    }
+  }
+
+  return parts.join('\n');
+}
+
+async function analyzeBloomsForChat(
+  message: string,
+  context: {
+    pageData?: Record<string, any>;
+    learningContext?: Record<string, any>;
+  }
+): Promise<UnifiedBloomsResult | null> {
+  const content = buildBloomsAnalysisContent(message, context);
+  if (!content.trim()) return null;
+
+  const truncated = content.length > 6000 ? `${content.slice(0, 6000)}...` : content;
+
+  try {
+    const engine = getUnifiedBloomsEngine();
+    return await engine.analyze(truncated, {
+      mode: 'standard',
+      confidenceThreshold: 0.7,
+    });
+  } catch (error) {
+    logger.warn('Blooms analysis failed for chat request.', error);
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -35,13 +134,18 @@ export async function POST(request: NextRequest) {
       conversationHistory = []
     } = await request.json();
 
+    // Destructure with defaults to prevent undefined errors
     const {
-      pageData,
-      learningContext,
-      gamificationState,
-      tutorPersonality,
-      emotion
-    } = context;
+      pageData = {},
+      learningContext = {},
+      gamificationState = {},
+      tutorPersonality = {
+        tone: 'professional',
+        teachingMethod: 'structured',
+        responseStyle: 'concise',
+      },
+      emotion = 'neutral'
+    } = context || {};
 
     // Build context-aware system prompt
     const systemPrompt = buildSystemPrompt(learningContext, tutorPersonality, pageData);
@@ -55,16 +159,17 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: message }
     ];
 
-    // Call Anthropic API
-    const response = await getAIAdapter().chat({
+    const [responseText, bloomsAnalysis] = await Promise.all([
+      // Call Anthropic API via centralized adapter
+      runSAMChat({
       model: 'claude-sonnet-4-5-20250929',
       maxTokens: 2000,
       temperature: 0.7,
       systemPrompt,
       messages,
-    });
-
-    const responseText = response.content ?? '';
+      }),
+      analyzeBloomsForChat(message, { pageData, learningContext }),
+    ]);
 
     // Parse response for actions and suggestions
     const parsedResponse = parseAIResponse(responseText, learningContext, pageData);
@@ -72,17 +177,36 @@ export async function POST(request: NextRequest) {
     // Determine appropriate emotional tone
     const responseEmotion = determineResponseEmotion(emotion, message, learningContext);
 
+    const bloomsInsights = bloomsAnalysis
+      ? {
+          dominantLevel: bloomsAnalysis.dominantLevel,
+          distribution: bloomsAnalysis.distribution,
+          cognitiveDepth: bloomsAnalysis.cognitiveDepth,
+          balance: bloomsAnalysis.balance,
+          confidence: bloomsAnalysis.confidence,
+          gaps: bloomsAnalysis.gaps,
+          recommendations: bloomsAnalysis.recommendations.map((rec) => ({
+            level: rec.level,
+            action: rec.action,
+            priority: rec.priority,
+          })),
+        }
+      : null;
+
     return NextResponse.json({
       response: parsedResponse.content,
       emotion: responseEmotion,
       suggestions: parsedResponse.suggestions,
       action: parsedResponse.action,
+      blooms: bloomsInsights,
+      insights: bloomsInsights ? { blooms: bloomsInsights } : undefined,
       metadata: {
         processingTime: Date.now(),
         contextUsed: {
           userRole: learningContext.userRole,
           pageType: pageData.pageType,
-          emotionDetected: emotion
+          emotionDetected: emotion,
+          bloomsAnalyzed: Boolean(bloomsAnalysis),
         }
       }
     });
@@ -97,15 +221,22 @@ export async function POST(request: NextRequest) {
 }
 
 function buildSystemPrompt(learningContext: any, tutorPersonality: any, pageData: any): string {
+  // Ensure tutorPersonality has all required properties with defaults
+  const personality = {
+    tone: tutorPersonality?.tone || 'professional',
+    teachingMethod: tutorPersonality?.teachingMethod || 'structured',
+    responseStyle: tutorPersonality?.responseStyle || 'concise',
+  };
+
   const basePrompt = `You are SAM (Smart Assistant Module), an advanced AI tutor and teaching assistant. You are intelligent, helpful, and adaptive to different learning styles and contexts.
 
 **Your Core Identity:**
 - You are encouraging, supportive, and patient
 - You adapt your teaching style to the user's needs
 - You use pedagogical best practices
-- You maintain a ${tutorPersonality.tone} tone
-- You prefer ${tutorPersonality.teachingMethod} teaching methods
-- You respond in a ${tutorPersonality.responseStyle} style
+- You maintain a ${personality.tone} tone
+- You prefer ${personality.teachingMethod} teaching methods
+- You respond in a ${personality.responseStyle} style
 
 **Current Context:**
 - User Role: ${learningContext.userRole || 'unknown'}

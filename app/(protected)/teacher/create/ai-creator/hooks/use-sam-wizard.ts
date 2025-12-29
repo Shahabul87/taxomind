@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { CourseCreationRequest, SamSuggestion, SamWizardState, SamWizardActions } from '../types/sam-creator.types';
@@ -8,6 +8,8 @@ import { useProgressiveCourseCreation } from '@/hooks/use-progressive-course-cre
 import { trackAIFeatureUsage, trackFormProgress, trackGenerationStart, trackGenerationEnd } from '@/lib/analytics-tracker';
 import { logger } from '@/lib/logger';
 import { useIntelligentSAMSync } from '@/hooks/use-sam-intelligent-sync';
+import { createSamContext, getCourseWizardFieldMeta } from '@/lib/sam/utils/form-data-to-sam-context';
+import { useSamActionHandler, type SamAction } from './use-sam-action-handler';
 
 const TOTAL_STEPS = 4;
 
@@ -22,6 +24,9 @@ const initialFormData: CourseCreationRequest = {
   duration: '4-6 weeks',
   chapterCount: 5,
   sectionsPerChapter: 3,
+  // Learning objectives configuration - Bloom's taxonomy aligned
+  learningObjectivesPerChapter: 5,  // 5 objectives per chapter (minimum for proper coverage)
+  learningObjectivesPerSection: 3,  // 3 objectives per section (focused learning)
   courseGoals: [],
   includeAssessments: true,
   bloomsFocus: ['UNDERSTAND', 'APPLY'],
@@ -46,6 +51,31 @@ export function useSamWizard() {
   const samCache = useSamCache({ ttl: 5 * 60 * 1000, maxSize: 100 });
   const { disclosureState, completeStep } = useProgressiveCourseCreation();
 
+  // SAM Action Handler - processes actions from API responses and auto-fills form
+  const { processApiResponse, processAction } = useSamActionHandler(setFormData, {
+    onActionProcessed: (result) => {
+      logger.info('[SAMWizard] Action processed:', result);
+      if (result.success && result.fieldsUpdated && result.fieldsUpdated.length > 0) {
+        // Track form auto-fill usage
+        trackAIFeatureUsage('sam_form_autofill', {
+          fieldsUpdated: result.fieldsUpdated,
+          actionType: result.actionType,
+        });
+      }
+    },
+    onNavigate: (url) => {
+      // Handle navigation suggestions from SAM
+      router.push(url);
+    },
+    onCourseCreationAction: (action, details) => {
+      // Handle course creation actions (generate titles, create structure, etc.)
+      logger.info('[SAMWizard] Course creation action:', { action, details });
+      trackAIFeatureUsage('sam_course_action', { action, ...details });
+    },
+  });
+
+  const fieldMeta = useMemo(() => getCourseWizardFieldMeta(), []);
+
   // Intelligent SAM sync - automatically detects ALL form changes without hardcoding
   useIntelligentSAMSync('ai-course-creator-wizard', formData, {
     formName: 'AI Course Creator Wizard',
@@ -55,6 +85,8 @@ export function useSamWizard() {
       pageUrl: '/teacher/create/ai-creator',
       wizardMode: true,
     },
+    fieldMeta,
+    formType: 'course-creator-wizard',
   });
 
   // Auto-save functionality
@@ -112,32 +144,36 @@ export function useSamWizard() {
             },
             body: JSON.stringify({
               message: `Provide contextual suggestions for course creation step ${step}. Context: ${context}. Current course data: ${JSON.stringify(formData)}. Give helpful advice and suggestions.`,
-              context: {
-                pageData: { 
-                  pageType: 'course_creation',
-                  title: 'AI Course Creator - Suggestions',
-                  forms: []
-                },
-                learningContext: { 
-                  userRole: 'teacher',
-                  courseCreationMode: true,
-                  currentStep: step
-                },
-                gamificationState: {},
-                tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-                emotion: 'engaged'
-              }
+              context: createSamContext({
+                formData: formData as unknown as Record<string, unknown>,
+                pageType: 'course_creation',
+                pageTitle: 'AI Course Creator - Suggestions',
+                userRole: 'teacher',
+                currentStep: step,
+                totalSteps: TOTAL_STEPS,
+              })
             }),
           });
 
           if (response.ok) {
             const data = await response.json();
+
+            // Process any actions from the API response (form auto-fill, navigation, etc.)
+            const actionResults = processApiResponse({
+              action: data.action as SamAction | null,
+              actions: data.actions as SamAction[] | undefined,
+            });
+
+            // Determine if we have actionable content based on action results
+            const hasSuccessfulActions = actionResults.some(r => r.success);
+
             setSamSuggestion({
               message: data.response,
               type: 'suggestion',
               actionable: true,
-              confidence: 0.85,
-              action: undefined
+              confidence: data.metadata?.confidence ?? 0.85,
+              actionData: data.action || undefined,
+              actionResults: hasSuccessfulActions ? actionResults : undefined,
             });
           } else {
             throw new Error(`Sam suggestion failed: ${response.status}`);
@@ -156,7 +192,7 @@ export function useSamWizard() {
       },
       delay: 1500
     });
-  }, [formData, step, isLoadingSuggestion, debouncedCall]);
+  }, [formData, step, isLoadingSuggestion, debouncedCall, processApiResponse]);
 
   const validateForm = useCallback(async () => {
     if (isValidating) return;
@@ -173,34 +209,37 @@ export function useSamWizard() {
             },
             body: JSON.stringify({
               message: `Validate course creation form data for step ${step}. Check for completeness, quality, and provide improvement suggestions. Form data: ${JSON.stringify(formData)}`,
-              context: {
-                pageData: { 
-                  pageType: 'course_creation',
-                  title: 'AI Course Creator - Validation',
-                  forms: []
-                },
-                learningContext: { 
-                  userRole: 'teacher',
-                  courseCreationMode: true,
-                  currentStep: step
-                },
-                gamificationState: {},
-                tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-                emotion: 'engaged'
-              }
+              context: createSamContext({
+                formData: formData as unknown as Record<string, unknown>,
+                pageType: 'course_creation',
+                pageTitle: 'AI Course Creator - Validation',
+                userRole: 'teacher',
+                currentStep: step,
+                totalSteps: TOTAL_STEPS,
+              })
             }),
           });
 
           if (response.ok) {
             const data = await response.json();
+
+            // Process any actions from the validation response
+            const actionResults = processApiResponse({
+              action: data.action as SamAction | null,
+              actions: data.actions as SamAction[] | undefined,
+            });
+
+            const hasSuccessfulActions = actionResults.some(r => r.success);
+
             // Clear previous errors and show SAM's validation feedback
             setValidationErrors({});
             setSamSuggestion({
               message: data.response,
               type: 'validation',
               actionable: true,
-              confidence: 0.9,
-              action: undefined
+              confidence: data.metadata?.confidence ?? 0.9,
+              actionData: data.action || undefined,
+              actionResults: hasSuccessfulActions ? actionResults : undefined,
             });
           } else {
             throw new Error(`Sam validation failed: ${response.status}`);
@@ -213,7 +252,7 @@ export function useSamWizard() {
       },
       delay: 2000
     });
-  }, [formData, step, isValidating, debouncedCall, setValidationErrors]);
+  }, [formData, step, isValidating, debouncedCall, setValidationErrors, processApiResponse]);
 
   const applySamSuggestion = (suggestion: SamSuggestion) => {
     // Apply smart defaults or other actions
@@ -420,14 +459,18 @@ export function useSamWizard() {
     setFormData,
     showStreamingModal,
     setShowStreamingModal,
-    
+
     // Actions
     ...actions,
     handleStreamingComplete,
     handleStreamingError,
-    
+
     // Utilities
     samCache,
-    setSamSuggestion
+    setSamSuggestion,
+
+    // SAM Action Handler - for manual action processing
+    processAction,
+    processApiResponse,
   };
 }

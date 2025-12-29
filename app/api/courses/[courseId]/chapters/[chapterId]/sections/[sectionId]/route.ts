@@ -21,7 +21,11 @@ const SectionUpdateSchema = z.object({
   // Metadata
   position: z.number().int("Position must be an integer").min(0, "Position must be non-negative").optional(),
   duration: z.number().int("Duration must be an integer").min(0, "Duration must be non-negative").optional().nullable(),
+  // Allow estimatedDuration as alias for duration (AI generators use this field name)
+  estimatedDuration: z.union([z.string(), z.number()]).optional().nullable(),
   type: z.string().max(50, "Type must be 50 characters or less").optional().nullable(),
+  // Allow contentType as alias for type (AI generators use this field name)
+  contentType: z.string().max(50).optional().nullable(),
 
   // Access control
   isFree: z.boolean().optional(),
@@ -31,7 +35,7 @@ const SectionUpdateSchema = z.object({
   // Status
   completionStatus: z.string().max(50, "Completion status must be 50 characters or less").optional().nullable(),
   resourceUrls: z.string().optional().nullable(),
-}).strict(); // Reject unknown fields to prevent mass assignment attacks
+}); // Removed .strict() to allow AI-generated fields that get mapped
 
 export async function PATCH(
   req: Request,
@@ -81,8 +85,29 @@ export async function PATCH(
     if (values.learningObjectives !== undefined) updateData.learningObjectives = values.learningObjectives;
     if (values.videoUrl !== undefined) updateData.videoUrl = values.videoUrl === "" ? null : values.videoUrl;
     if (values.position !== undefined) updateData.position = values.position;
-    if (values.duration !== undefined) updateData.duration = values.duration;
-    if (values.type !== undefined) updateData.type = values.type;
+
+    // Handle duration - prefer direct duration, fallback to estimatedDuration
+    if (values.duration !== undefined) {
+      updateData.duration = values.duration;
+    } else if (values.estimatedDuration !== undefined && values.estimatedDuration !== null) {
+      // Convert estimatedDuration string/number to minutes integer
+      if (typeof values.estimatedDuration === 'number') {
+        updateData.duration = values.estimatedDuration;
+      } else if (typeof values.estimatedDuration === 'string') {
+        const match = values.estimatedDuration.match(/(\d+)/);
+        if (match) {
+          updateData.duration = parseInt(match[1], 10);
+        }
+      }
+    }
+
+    // Handle type - prefer direct type, fallback to contentType
+    if (values.type !== undefined) {
+      updateData.type = values.type;
+    } else if (values.contentType !== undefined) {
+      updateData.type = values.contentType;
+    }
+
     if (values.isFree !== undefined) updateData.isFree = values.isFree;
     if (values.isPublished !== undefined) updateData.isPublished = values.isPublished;
     if (values.isPreview !== undefined) updateData.isPreview = values.isPreview;

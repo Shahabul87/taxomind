@@ -106,6 +106,14 @@ export {
   createUnifiedBloomsEngine,
   UnifiedBloomsAdapterEngine,
   createUnifiedBloomsAdapterEngine,
+
+  // Phase 2 Engines - Practice Problems, Adaptive Content, Socratic Teaching
+  PracticeProblemsEngine,
+  createPracticeProblemsEngine,
+  AdaptiveContentEngine,
+  createAdaptiveContentEngine,
+  SocraticTeachingEngine,
+  createSocraticTeachingEngine,
 } from './engines';
 
 // ============================================================================
@@ -645,6 +653,60 @@ export type {
   CacheEntry,
   CacheStats,
   UnifiedBloomsEngine as IUnifiedBloomsEngine,
+
+  // Practice Problems Engine Types
+  PracticeProblemType,
+  ProblemDifficulty,
+  HintType,
+  PracticeProblemConfig,
+  PracticeProblemInput,
+  PracticeProblem,
+  ProblemHint,
+  ProblemOption,
+  CodeTestCase,
+  SolutionStep,
+  ProblemAttempt,
+  ProblemEvaluation,
+  PracticeSessionStats,
+  DifficultyRecommendation,
+  SpacedRepetitionSchedule,
+  PracticeProblemOutput,
+  PracticeProblemDatabaseAdapter,
+  PracticeProblemsEngine as IPracticeProblemsEngine,
+
+  // Adaptive Content Engine Types
+  AdaptiveLearningStyle,
+  ContentFormat,
+  ContentComplexity,
+  ReadingPace,
+  AdaptiveContentConfig,
+  AdaptiveLearnerProfile,
+  ContentToAdapt,
+  AdaptationOptions,
+  AdaptedChunk,
+  EmbeddedKnowledgeCheck,
+  SupplementaryResource,
+  AdaptedContent,
+  ContentInteractionData,
+  StyleDetectionResult,
+  AdaptiveContentDatabaseAdapter,
+  AdaptiveContentEngine as IAdaptiveContentEngine,
+
+  // Socratic Teaching Engine Types
+  SocraticQuestionType,
+  DialogueState,
+  SocraticTeachingConfig,
+  SocraticQuestion,
+  SocraticStudentResponse,
+  ResponseAnalysis,
+  SocraticDialogue,
+  DialogueExchange,
+  DialoguePerformance,
+  StartDialogueInput,
+  SocraticResponse,
+  ContinueDialogueInput,
+  SocraticDatabaseAdapter,
+  SocraticTeachingEngine as ISocraticTeachingEngine,
 } from './types';
 
 // ============================================================================

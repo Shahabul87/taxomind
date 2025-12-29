@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { StepComponentProps, COURSE_CATEGORIES, COURSE_INTENTS } from '../../types/sam-creator.types';
 import { EnhancedInput, EnhancedTextarea, FormFieldWrapper } from '../ui/FormField';
 import { BookOpen, Layers, Target, Lightbulb, CheckCircle2, Sparkles, Wand2, ArrowRight } from 'lucide-react';
+import { SAMTitleGeneratorModal } from '@/components/ai/sam-title-generator-modal';
+import { SAMOverviewGeneratorModal } from '@/components/ai/sam-overview-generator-modal';
 
 export function CourseBasicsStep({ formData, setFormData, validationErrors }: StepComponentProps) {
   const titleIsValid = (formData.courseTitle?.length || 0) >= 10;
@@ -129,6 +131,20 @@ export function CourseBasicsStep({ formData, setFormData, validationErrors }: St
             maxChars={100}
             successMessage="Great title length!"
           />
+
+          {/* AI Title Generator Button */}
+          <div className="flex justify-end mt-3">
+            <SAMTitleGeneratorModal
+              currentTitle={formData.courseTitle || ''}
+              courseOverview={formData.courseShortOverview}
+              courseCategory={formData.courseCategory}
+              courseSubcategory={formData.courseSubcategory}
+              courseIntent={formData.courseIntent}
+              targetAudience={formData.targetAudience}
+              onSelectTitle={(title) => setFormData(prev => ({ ...prev, courseTitle: title }))}
+              disabled={!formData.courseTitle || formData.courseTitle.length < 5}
+            />
+          </div>
         </div>
       </div>
 
@@ -158,6 +174,20 @@ export function CourseBasicsStep({ formData, setFormData, validationErrors }: St
             successMessage="Excellent overview!"
             className="min-h-[160px]"
           />
+
+          {/* AI Overview Generator Button */}
+          <div className="flex justify-end mt-3">
+            <SAMOverviewGeneratorModal
+              courseTitle={formData.courseTitle || ''}
+              currentOverview={formData.courseShortOverview}
+              courseCategory={formData.courseCategory}
+              courseSubcategory={formData.courseSubcategory}
+              courseIntent={formData.courseIntent}
+              targetAudience={formData.targetAudience}
+              onSelectOverview={(overview) => setFormData(prev => ({ ...prev, courseShortOverview: overview }))}
+              disabled={!formData.courseTitle || formData.courseTitle.length < 5}
+            />
+          </div>
         </div>
       </div>
 

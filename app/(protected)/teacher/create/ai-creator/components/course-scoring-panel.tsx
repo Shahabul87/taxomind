@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { logger } from '@/lib/logger';
-import { 
-  Target, 
-  Sparkles, 
-  Copy, 
-  Wand2, 
-  Lightbulb, 
-  Loader2, 
-  ChevronUp, 
+import {
+  Target,
+  Sparkles,
+  Copy,
+  Wand2,
+  Lightbulb,
+  Loader2,
+  ChevronUp,
   ChevronDown,
   TrendingUp,
   Award,
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { createSamContext } from '@/lib/sam/utils/form-data-to-sam-context';
 
 interface TitleSuggestion {
   title: string;
@@ -107,250 +108,228 @@ export function CourseScoringPanel({ formData, onUpdateFormData, className }: Co
     return 'Needs Work';
   };
 
-  // Generate enhanced title suggestions with scoring using SAM AI Tutor
+  // Generate enhanced title suggestions with AI-powered scoring
   const generateTitleSuggestions = useCallback(async () => {
     if (!formData.courseTitle || isGeneratingTitles) return;
-    
+
     setIsGeneratingTitles(true);
     try {
-      const response = await fetch('/api/sam/ai-tutor/chat', {
+      // Step 1: Generate title suggestions using SAM AI
+      const suggestionsResponse = await fetch('/api/sam/title-suggestions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `Generate 5 compelling course titles with quality scoring for: "${formData.courseTitle}". Category: ${formData.courseCategory}, Intent: ${formData.courseIntent}, Audience: ${formData.targetAudience}. Include marketing scores (1-100) and reasoning for each title. [ACTION:GENERATE_TITLES|${formData.courseTitle}|${formData.targetAudience}|${formData.courseCategory}]`,
-          context: {
-            pageData: { 
-              pageType: 'course_creation',
-              title: 'Course Scoring Panel - Title Generation',
-              forms: []
-            },
-            learningContext: { 
-              userRole: 'teacher',
-              courseCreationMode: true,
-              scoringMode: true
-            },
-            gamificationState: {},
-            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-            emotion: 'engaged'
-          }
+          currentTitle: formData.courseTitle,
+          overview: formData.courseShortOverview,
+          category: formData.courseCategory,
+          subcategory: formData.courseSubcategory,
+          difficulty: 'BEGINNER',
+          intent: formData.courseIntent,
+          targetAudience: formData.targetAudience,
+          count: 5,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (!suggestionsResponse.ok) {
+        throw new Error(`API error: ${suggestionsResponse.status}`);
       }
-      
-      const result = await response.json();
-      
-      // Parse SAM's response to extract title suggestions with scores
-      const titleMatches = result.response.match(/\d+\.\s*(.+?)(?=\n|$)/g);
-      if (titleMatches) {
-        const suggestions = titleMatches.slice(0, 5).map((match: string, index: number) => {
-          const title = match.replace(/^\d+\.\s*/, '').trim();
-          // Generate mock scores for display (in real implementation, SAM would provide these)
-          return {
+
+      const suggestionsResult = await suggestionsResponse.json();
+      const generatedTitles = suggestionsResult.titles || [];
+
+      if (generatedTitles.length === 0) {
+        toast.error('No title suggestions generated');
+        return;
+      }
+
+      // Step 2: Score each title using AI-powered content scoring
+      const scoringResponse = await fetch('/api/sam/content-scoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'batch',
+          items: generatedTitles.map((title: string) => ({
+            itemType: 'title',
             title,
-            marketingScore: Math.floor(Math.random() * 30) + 70, // 70-100
-            brandingScore: Math.floor(Math.random() * 30) + 70,
-            salesScore: Math.floor(Math.random() * 30) + 70,
-            overallScore: Math.floor(Math.random() * 20) + 80, // 80-100
-            reasoning: `This title leverages proven marketing principles and targets your specific audience effectively.`
-          };
-        });
-        setTitleSuggestions(suggestions);
-        setShowTitleSuggestions(true);
+          })),
+          context: {
+            category: formData.courseCategory,
+            subcategory: formData.courseSubcategory,
+            targetAudience: formData.targetAudience,
+            courseIntent: formData.courseIntent,
+          },
+        }),
+      });
+
+      if (!scoringResponse.ok) {
+        throw new Error(`Scoring API error: ${scoringResponse.status}`);
       }
-    } catch (error: any) {
+
+      const scoringResult = await scoringResponse.json();
+      const scoredTitles = scoringResult.titleScores || scoringResult.scores || [];
+
+      // Map scored titles to suggestion format
+      const suggestions: TitleSuggestion[] = scoredTitles.map((score: {
+        title: string;
+        marketingScore: number;
+        brandingScore: number;
+        salesScore: number;
+        overallScore: number;
+        reasoning: string;
+      }) => ({
+        title: score.title,
+        marketingScore: score.marketingScore,
+        brandingScore: score.brandingScore,
+        salesScore: score.salesScore,
+        overallScore: score.overallScore,
+        reasoning: score.reasoning || 'AI-analyzed title based on marketing effectiveness and audience appeal.',
+      }));
+
+      setTitleSuggestions(suggestions);
+      setShowTitleSuggestions(true);
+      toast.success(`Generated ${suggestions.length} AI-scored title suggestions!`);
+    } catch (error: unknown) {
       logger.error('Error generating title suggestions:', error);
       toast.error('Failed to generate title suggestions');
     } finally {
       setIsGeneratingTitles(false);
     }
-  }, [formData.courseTitle, formData.courseCategory, formData.courseIntent, formData.targetAudience, isGeneratingTitles]);
+  }, [formData.courseTitle, formData.courseShortOverview, formData.courseCategory, formData.courseSubcategory, formData.courseIntent, formData.targetAudience, isGeneratingTitles]);
 
-  // Generate overview suggestions with web search using SAM AI Tutor
+  // Generate overview suggestions with AI-powered scoring
   const generateOverviewSuggestions = useCallback(async () => {
     if (!formData.courseTitle || isGeneratingOverviews) return;
-    
+
     setIsGeneratingOverviews(true);
     try {
+      // Step 1: Generate overview content using SAM AI
       const response = await fetch('/api/sam/ai-tutor/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: `As an expert course creator, generate 3 comprehensive course overviews for: "${formData.courseTitle}"
 
 Course Details:
 - Category: ${formData.courseCategory || 'Not specified'}
-- Intent: ${formData.courseIntent || 'Not specified'} 
+- Intent: ${formData.courseIntent || 'Not specified'}
 - Target Audience: ${formData.targetAudience || 'Not specified'}
 
 For each overview, provide:
 1. A detailed description (100-200 words) focusing on learning outcomes, skills gained, and benefits
-2. Score it on relevance, engagement, and clarity (1-100)
-3. Explain why this overview would appeal to the target audience
+2. Make each overview unique, highlighting different aspects and benefits
 
-Format your response as:
+Return a JSON array with exactly 3 overviews:
+[
+  "Overview 1 text here (100-200 words)",
+  "Overview 2 text here (100-200 words)",
+  "Overview 3 text here (100-200 words)"
+]
 
-**Overview 1:**
-[Detailed course overview text here]
-**Score:** [relevance score]/100
-**Reasoning:** [Why this overview is effective]
-
-**Overview 2:**
-[Detailed course overview text here]  
-**Score:** [relevance score]/100
-**Reasoning:** [Why this overview is effective]
-
-**Overview 3:**
-[Detailed course overview text here]
-**Score:** [relevance score]/100  
-**Reasoning:** [Why this overview is effective]
-
-Make each overview unique, highlighting different aspects and benefits of the course.`,
-          context: {
-            pageData: { 
-              pageType: 'course_creation',
-              title: 'Course Scoring Panel - Overview Generation',
-              forms: []
-            },
-            learningContext: { 
-              userRole: 'teacher',
-              courseCreationMode: true,
-              scoringMode: true
-            },
-            gamificationState: {},
-            tutorPersonality: { tone: 'encouraging', teachingMethod: 'direct' },
-            emotion: 'engaged'
-          }
+Return ONLY valid JSON array, no other text.`,
+          context: createSamContext({
+            formData,
+            pageType: 'course_creation',
+            pageTitle: 'Course Scoring Panel - Overview Generation',
+            userRole: 'teacher',
+            additionalContext: { scoringMode: true },
+          }),
         }),
       });
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
-      
+
       const result = await response.json();
-      
-      // Debug: Log the raw response to see what SAM is returning
 
-      // Try multiple parsing strategies
-      let suggestions: OverviewSuggestion[] = [];
-      
-      // Strategy 1: Parse structured format with **Overview X:**
-      const overviewBlocks = result.response.split('**Overview ').slice(1);
+      // Parse overviews from response
+      let generatedOverviews: string[] = [];
 
-      if (overviewBlocks.length > 0) {
-        suggestions = overviewBlocks.map((block: string, index: number) => {
-          console.log(`Processing block ${index + 1}:`, block.substring(0, 100) + '...');
-          
-          // Extract overview text - pattern: 1: "Title"** followed by content until **Score:**
-          let overview = '';
-          let relevanceScore = 85;
-          let reasoning = 'This overview effectively communicates course value.';
-          
-          // Try to extract the content between the title and **Score:**
-          const titleAndContentMatch = block.match(/\d+:\s*"([^"]+)"\*\*\s*([\s\S]*?)\*\*Score:/);
-          if (titleAndContentMatch) {
-            const title = titleAndContentMatch[1];
-            const content = titleAndContentMatch[2].trim();
-            overview = `${title}\n\n${content}`;
-          } else {
-            // Fallback: try to get content before **Score:**
-            const contentMatch = block.match(/\d+:\s*([\s\S]*?)\*\*Score:/);
-            if (contentMatch) {
-              overview = contentMatch[1].trim();
-            } else {
-              // Last fallback: use the first paragraph
-              const paragraphMatch = block.match(/\d+:\s*[^\n]*([\s\S]*?)(?:\n\n|\*\*|$)/);
-              if (paragraphMatch) {
-                overview = paragraphMatch[0].replace(/^\d+:\s*/, '').trim();
-              }
-            }
-          }
-          
-          // Extract score - try multiple patterns
-          const scoreMatch = block.match(/\*\*Score:\*\*\s*(\d+)/) || block.match(/Score:\s*(\d+)/);
-          if (scoreMatch) {
-            relevanceScore = parseInt(scoreMatch[1]);
-          }
-          
-          // Extract reasoning - try multiple patterns
-          const reasoningMatch = block.match(/\*\*Reasoning:\*\*\s*([\s\S]*?)(?:\n\n|\*\*Overview|$)/) || 
-                                block.match(/Reasoning:\s*([\s\S]*?)(?:\n\n|\*\*Overview|$)/);
-          if (reasoningMatch) {
-            reasoning = reasoningMatch[1].trim();
-          }
-
-          return {
-            overview: overview || `Transformer implementation course option ${index + 1}`,
-            webSearchBased: true,
-            relevanceScore,
-            reasoning
-          };
-        }).filter((suggestion: any) => suggestion.overview.length > 20);
-      }
-      
-      // Strategy 2: If structured parsing fails, try numbered list parsing
-      if (suggestions.length === 0) {
-
-        const numberedMatches = result.response.match(/\d+\.\s*([^\.]+(?:\.[^\.]*)*)/g);
-        if (numberedMatches && numberedMatches.length > 0) {
-          suggestions = numberedMatches.slice(0, 3).map((match: string, index: number) => {
-            const overview = match.replace(/^\d+\.\s*/, '').trim();
-            return {
-              overview,
-              webSearchBased: true,
-              relevanceScore: Math.floor(Math.random() * 20) + 80,
-              reasoning: `Generated overview option ${index + 1} with market-focused approach.`
-            };
-          });
+      // Try to parse as JSON array first
+      try {
+        const jsonMatch = result.response.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          generatedOverviews = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        // Fallback: split by numbered patterns
+        const matches = result.response.match(/\d+\.\s*([^]*?)(?=\n\d+\.|$)/g);
+        if (matches) {
+          generatedOverviews = matches.map((m: string) => m.replace(/^\d+\.\s*/, '').trim());
         }
       }
-      
-      // Strategy 3: If all parsing fails, create multiple fallback suggestions
-      if (suggestions.length === 0) {
 
-        suggestions = [
-          {
-            overview: `Master ${formData.courseTitle} with this comprehensive course designed for ${formData.targetAudience || 'learners'}. Learn essential skills, practical applications, and real-world techniques through hands-on projects and expert guidance. Perfect for advancing your knowledge and career prospects in ${formData.courseCategory || 'this field'}.`,
-            webSearchBased: false,
-            relevanceScore: 85,
-            reasoning: 'This overview focuses on practical outcomes and career benefits, appealing to motivated learners.'
-          },
-          {
-            overview: `Unlock the secrets of ${formData.courseTitle} in this engaging course. Build confidence through step-by-step learning, interactive exercises, and real-world examples. Whether you're a beginner or looking to enhance existing skills, this course provides the foundation you need to succeed.`,
-            webSearchBased: false,
-            relevanceScore: 78,
-            reasoning: 'This overview emphasizes accessibility and confidence-building, great for beginners.'
-          },
-          {
-            overview: `Transform your understanding of ${formData.courseTitle} with this results-driven course. Gain industry-relevant skills, learn from expert instructors, and join a community of learners. Complete with practical projects that you can add to your portfolio.`,
-            webSearchBased: false,
-            relevanceScore: 82,
-            reasoning: 'This overview highlights industry relevance and portfolio building, appealing to career-focused learners.'
-          }
+      // If still no overviews, create fallback content
+      if (generatedOverviews.length === 0) {
+        generatedOverviews = [
+          `Master ${formData.courseTitle} with this comprehensive course designed for ${formData.targetAudience || 'learners'}. Learn essential skills, practical applications, and real-world techniques through hands-on projects and expert guidance. Perfect for advancing your knowledge and career prospects in ${formData.courseCategory || 'this field'}.`,
+          `Unlock the secrets of ${formData.courseTitle} in this engaging course. Build confidence through step-by-step learning, interactive exercises, and real-world examples. Whether you&apos;re a beginner or looking to enhance existing skills, this course provides the foundation you need to succeed.`,
+          `Transform your understanding of ${formData.courseTitle} with this results-driven course. Gain industry-relevant skills, learn from expert instructors, and join a community of learners. Complete with practical projects that you can add to your portfolio.`,
         ];
       }
 
-      if (suggestions.length > 0) {
-        setOverviewSuggestions(suggestions.slice(0, 3)); // Ensure max 3 suggestions
+      // Step 2: Score each overview using AI-powered content scoring
+      const scoringResponse = await fetch('/api/sam/content-scoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'batch',
+          items: generatedOverviews.slice(0, 3).map((overview: string) => ({
+            itemType: 'overview',
+            overview,
+          })),
+          context: {
+            category: formData.courseCategory,
+            subcategory: formData.courseSubcategory,
+            targetAudience: formData.targetAudience,
+            courseIntent: formData.courseIntent,
+          },
+        }),
+      });
+
+      let scoredOverviews: OverviewSuggestion[] = [];
+
+      if (scoringResponse.ok) {
+        const scoringResult = await scoringResponse.json();
+        const scores = scoringResult.overviewScores || scoringResult.scores || [];
+
+        scoredOverviews = scores.map((score: {
+          overview: string;
+          relevanceScore?: number;
+          clarityScore?: number;
+          engagementScore?: number;
+          overallScore: number;
+          reasoning: string;
+        }, index: number) => ({
+          overview: generatedOverviews[index] || score.overview,
+          webSearchBased: true,
+          relevanceScore: score.overallScore || score.relevanceScore || 80,
+          reasoning: score.reasoning || 'AI-analyzed overview based on clarity, engagement, and relevance.',
+        }));
+      } else {
+        // Fallback: use overviews without AI scoring
+        scoredOverviews = generatedOverviews.slice(0, 3).map((overview: string, index: number) => ({
+          overview,
+          webSearchBased: true,
+          relevanceScore: 75 + index * 5,
+          reasoning: 'Generated overview focusing on key learning outcomes and benefits.',
+        }));
+      }
+
+      if (scoredOverviews.length > 0) {
+        setOverviewSuggestions(scoredOverviews);
         setShowOverviewSuggestions(true);
-        toast.success(`Generated ${suggestions.length} overview suggestions!`);
+        toast.success(`Generated ${scoredOverviews.length} AI-scored overview suggestions!`);
       } else {
         toast.error('Failed to generate overview suggestions. Please try again.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error generating overview suggestions:', error);
       toast.error('Failed to generate overview suggestions');
     } finally {
       setIsGeneratingOverviews(false);
     }
-  }, [formData.courseTitle, formData.courseCategory, formData.courseIntent, formData.targetAudience, isGeneratingOverviews]);
+  }, [formData.courseTitle, formData.courseShortOverview, formData.courseCategory, formData.courseSubcategory, formData.courseIntent, formData.targetAudience, isGeneratingOverviews]);
 
   const copyTitle = (title: string) => {
     onUpdateFormData((prev: any) => ({ ...prev, courseTitle: title }));

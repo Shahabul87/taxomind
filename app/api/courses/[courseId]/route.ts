@@ -158,7 +158,7 @@ export async function PATCH(
           let category = await db.category.findUnique({
             where: { id: values.categoryId }
           });
-          
+
           if (!category) {
             const categoryName = values.categoryId
               .split('-')
@@ -173,7 +173,7 @@ export async function PATCH(
                 }
               }
             });
-            
+
             if (!category) {
               category = await db.category.create({
                 data: {
@@ -184,14 +184,36 @@ export async function PATCH(
 
             }
           }
-          
+
           updateData.categoryId = category.id;
 
-        } catch (categoryError: any) {
+        } catch (categoryError: unknown) {
           logger.error("[COURSE_PATCH] Error handling category:", categoryError);
         }
       } else {
         updateData.categoryId = null;
+      }
+    }
+
+    // Handle subcategoryId
+    if (values.subcategoryId !== undefined) {
+      if (values.subcategoryId) {
+        try {
+          // Verify the subcategory exists
+          const subcategory = await db.category.findUnique({
+            where: { id: values.subcategoryId }
+          });
+
+          if (subcategory) {
+            updateData.subcategoryId = subcategory.id;
+          } else {
+            logger.warn("[COURSE_PATCH] Subcategory not found:", values.subcategoryId);
+          }
+        } catch (subcategoryError: unknown) {
+          logger.error("[COURSE_PATCH] Error handling subcategory:", subcategoryError);
+        }
+      } else {
+        updateData.subcategoryId = null;
       }
     }
 

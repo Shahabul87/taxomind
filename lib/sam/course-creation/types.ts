@@ -1,0 +1,365 @@
+/**
+ * SAM Sequential Course Creation Types
+ *
+ * This module defines all types for the 3-stage course creation process:
+ * Stage 1: Chapter Generation
+ * Stage 2: Section Generation
+ * Stage 3: Detail Generation
+ */
+
+// ============================================================================
+// Bloom's Taxonomy Reference
+// ============================================================================
+
+export const BLOOMS_LEVELS = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'] as const;
+export type BloomsLevel = (typeof BLOOMS_LEVELS)[number];
+
+export const BLOOMS_TAXONOMY: Record<BloomsLevel, {
+  level: number;
+  verbs: string[];
+  description: string;
+  cognitiveProcess: string;
+}> = {
+  REMEMBER: {
+    level: 1,
+    verbs: ['Define', 'List', 'Recall', 'Identify', 'Name', 'State', 'Recognize', 'Describe', 'Retrieve', 'Label'],
+    description: 'Retrieving relevant knowledge from long-term memory',
+    cognitiveProcess: 'Recognition, recall of facts and basic concepts',
+  },
+  UNDERSTAND: {
+    level: 2,
+    verbs: ['Explain', 'Summarize', 'Interpret', 'Classify', 'Compare', 'Discuss', 'Distinguish', 'Illustrate', 'Paraphrase', 'Predict'],
+    description: 'Constructing meaning from instructional messages',
+    cognitiveProcess: 'Interpreting, exemplifying, classifying, summarizing',
+  },
+  APPLY: {
+    level: 3,
+    verbs: ['Apply', 'Demonstrate', 'Implement', 'Execute', 'Use', 'Solve', 'Practice', 'Calculate', 'Operate', 'Show'],
+    description: 'Carrying out or using a procedure in a given situation',
+    cognitiveProcess: 'Executing, implementing procedures to solve problems',
+  },
+  ANALYZE: {
+    level: 4,
+    verbs: ['Analyze', 'Differentiate', 'Organize', 'Examine', 'Investigate', 'Categorize', 'Deconstruct', 'Contrast', 'Diagram', 'Outline'],
+    description: 'Breaking material into parts and determining relationships',
+    cognitiveProcess: 'Differentiating, organizing, attributing causes',
+  },
+  EVALUATE: {
+    level: 5,
+    verbs: ['Evaluate', 'Judge', 'Assess', 'Critique', 'Justify', 'Recommend', 'Validate', 'Prioritize', 'Defend', 'Argue'],
+    description: 'Making judgments based on criteria and standards',
+    cognitiveProcess: 'Checking, critiquing based on standards',
+  },
+  CREATE: {
+    level: 6,
+    verbs: ['Create', 'Design', 'Develop', 'Construct', 'Produce', 'Formulate', 'Compose', 'Generate', 'Invent', 'Build'],
+    description: 'Putting elements together to form a coherent whole',
+    cognitiveProcess: 'Generating, planning, producing original work',
+  },
+};
+
+// ============================================================================
+// Content Types
+// ============================================================================
+
+export const CONTENT_TYPES = ['video', 'reading', 'assignment', 'quiz', 'project', 'discussion'] as const;
+export type ContentType = (typeof CONTENT_TYPES)[number];
+
+// ============================================================================
+// Stage 1: Course Context (Input to Chapter Generation)
+// ============================================================================
+
+export interface CourseContext {
+  // Core course information (from wizard)
+  courseTitle: string;
+  courseDescription: string;
+  courseCategory: string;
+  courseSubcategory?: string;
+  targetAudience: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  courseLearningObjectives: string[];
+
+  // Structure preferences
+  totalChapters: number;
+  sectionsPerChapter: number;
+  bloomsFocus: BloomsLevel[];
+
+  // Quality settings
+  learningObjectivesPerChapter: number;
+  learningObjectivesPerSection: number;
+
+  // Optional
+  courseIntent?: string;
+  includeAssessments?: boolean;
+  preferredContentTypes?: ContentType[];
+}
+
+// ============================================================================
+// Stage 1: Chapter Generation
+// ============================================================================
+
+export interface Stage1Input {
+  courseContext: CourseContext;
+  currentChapterNumber: number;
+  previousChapters: GeneratedChapter[];
+}
+
+export interface GeneratedChapter {
+  position: number;
+  title: string;
+  description: string;
+  bloomsLevel: BloomsLevel;
+  learningObjectives: string[];
+  keyTopics: string[];
+  prerequisites: string;
+  estimatedTime: string;
+  topicsToExpand: string[]; // Topics that become sections in Stage 2
+}
+
+export interface Stage1Output {
+  chapter: GeneratedChapter;
+  thinking: string; // SAM's reasoning for transparency
+  qualityScore: number;
+}
+
+// ============================================================================
+// Stage 2: Section Generation
+// ============================================================================
+
+export interface Stage2Input {
+  courseContext: CourseContext;
+  allChapters: GeneratedChapter[];
+  currentChapter: GeneratedChapter & { id: string };
+  currentSectionNumber: number;
+  previousSections: GeneratedSection[];
+  allExistingSectionTitles: string[]; // For uniqueness check
+}
+
+export interface GeneratedSection {
+  position: number;
+  title: string;
+  contentType: ContentType;
+  estimatedDuration: string;
+  topicFocus: string; // Specific topic from chapter
+  parentChapterContext: {
+    title: string;
+    bloomsLevel: BloomsLevel;
+    relevantObjectives: string[];
+  };
+}
+
+export interface Stage2Output {
+  section: GeneratedSection;
+  thinking: string;
+  qualityScore: number;
+  uniquenessValidated: boolean;
+}
+
+// ============================================================================
+// Stage 3: Detail Generation
+// ============================================================================
+
+export interface Stage3Input {
+  courseContext: CourseContext;
+  chapter: GeneratedChapter & { id: string };
+  chapterSections: GeneratedSection[];
+  currentSection: GeneratedSection & { id: string };
+}
+
+export interface SectionDetails {
+  description: string;
+  learningObjectives: string[];
+  keyConceptsCovered: string[];
+  practicalActivity: string;
+  resources?: string[];
+}
+
+export interface Stage3Output {
+  details: SectionDetails;
+  thinking: string;
+  qualityScore: number;
+}
+
+// ============================================================================
+// Creation State Machine
+// ============================================================================
+
+export type CreationStage = 1 | 2 | 3;
+export type CreationPhase =
+  | 'idle'
+  | 'creating_course'
+  | 'generating_chapter'
+  | 'saving_chapter'
+  | 'generating_section'
+  | 'saving_section'
+  | 'generating_details'
+  | 'saving_details'
+  | 'complete'
+  | 'error';
+
+export interface CreationState {
+  stage: CreationStage;
+  phase: CreationPhase;
+  currentChapter: number;
+  totalChapters: number;
+  currentSection: number;
+  totalSections: number;
+  error?: string;
+}
+
+export interface CreationProgress {
+  state: CreationState;
+  percentage: number;
+  message: string;
+  currentItem?: string;
+  thinking?: string;
+  completedItems: {
+    chapters: { position: number; title: string; id?: string; qualityScore?: number }[];
+    sections: { chapterPosition: number; position: number; title: string; id?: string; qualityScore?: number }[];
+  };
+}
+
+// ============================================================================
+// SSE Event Types
+// ============================================================================
+
+export type SSEEventType =
+  | 'stage_start'
+  | 'stage_complete'
+  | 'item_generating'
+  | 'item_saving'
+  | 'item_complete'
+  | 'thinking'
+  | 'progress'
+  | 'error'
+  | 'complete';
+
+export interface SSEEvent {
+  type: SSEEventType;
+  timestamp: string;
+  data: {
+    stage?: CreationStage;
+    chapter?: number;
+    section?: number;
+    title?: string;
+    message?: string;
+    thinking?: string;
+    percentage?: number;
+    error?: string;
+    result?: unknown;
+  };
+}
+
+// ============================================================================
+// Quality Validation
+// ============================================================================
+
+export interface QualityScore {
+  uniqueness: number;      // 0-100: How unique across course
+  specificity: number;     // 0-100: How specific (not generic)
+  bloomsAlignment: number; // 0-100: Proper verb usage
+  completeness: number;    // 0-100: Has all required fields
+  overall: number;         // Weighted average
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  score: QualityScore;
+  issues: string[];
+  suggestions: string[];
+}
+
+// ============================================================================
+// API Request/Response Types
+// ============================================================================
+
+export interface Stage1Request {
+  courseContext: CourseContext;
+  previousChapters?: GeneratedChapter[];
+}
+
+export interface Stage1Response {
+  success: boolean;
+  chapter?: GeneratedChapter;
+  thinking?: string;
+  qualityScore?: number;
+  error?: string;
+}
+
+export interface Stage2Request {
+  courseId: string;
+  chapterId: string;
+  courseContext: CourseContext;
+  allChapters: GeneratedChapter[];
+  currentChapter: GeneratedChapter;
+  previousSections?: GeneratedSection[];
+  allExistingSectionTitles?: string[];
+}
+
+export interface Stage2Response {
+  success: boolean;
+  section?: GeneratedSection;
+  thinking?: string;
+  qualityScore?: number;
+  uniquenessValidated?: boolean;
+  error?: string;
+}
+
+export interface Stage3Request {
+  courseId: string;
+  chapterId: string;
+  sectionId: string;
+  courseContext: CourseContext;
+  chapter: GeneratedChapter;
+  chapterSections: GeneratedSection[];
+  currentSection: GeneratedSection;
+}
+
+export interface Stage3Response {
+  success: boolean;
+  details?: SectionDetails;
+  thinking?: string;
+  qualityScore?: number;
+  error?: string;
+}
+
+// ============================================================================
+// Orchestration Types
+// ============================================================================
+
+export interface SequentialCreationConfig {
+  // Simplified config (can be used directly from form)
+  courseTitle: string;
+  courseDescription: string;
+  targetAudience: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  totalChapters: number;
+  sectionsPerChapter: number;
+  learningObjectivesPerChapter: number;
+  learningObjectivesPerSection: number;
+  courseGoals: string[];
+  bloomsFocus: string[];
+  preferredContentTypes: string[];
+  category?: string;
+  subcategory?: string;
+
+  // Optional callbacks
+  onProgress?: (progress: CreationProgress) => void;
+  onThinking?: (thinking: string) => void;
+  onStageComplete?: (stage: CreationStage, items: unknown[]) => void;
+  onError?: (error: string, canRetry: boolean) => void;
+}
+
+export interface SequentialCreationResult {
+  success: boolean;
+  courseId?: string;
+  chaptersCreated?: number;
+  sectionsCreated?: number;
+  stats?: {
+    totalChapters: number;
+    totalSections: number;
+    totalTime: number;
+    averageQualityScore: number;
+  };
+  error?: string;
+}

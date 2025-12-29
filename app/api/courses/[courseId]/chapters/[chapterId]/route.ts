@@ -103,11 +103,13 @@ export async function PATCH(
   try {
     const user = await currentUser();
     const userId = user?.id;
-    const { isPublished, ...values } = await req.json();
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const rawValues = await req.json();
+    const { isPublished, ...values } = rawValues;
 
     // Await params to get courseId and chapterId
     const { courseId, chapterId } = await params;
@@ -124,34 +126,59 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Update the chapter with the provided values
+    // Explicit field mapping to ensure all chapter fields are properly updated
+    // This prevents mass assignment vulnerabilities and ensures field name compatibility
+    const updateData: Record<string, unknown> = {};
+
+    // Core content fields
+    if (values.title !== undefined) updateData.title = values.title;
+    if (values.description !== undefined) updateData.description = values.description;
+    if (values.courseGoals !== undefined) updateData.courseGoals = values.courseGoals;
+    if (values.learningOutcomes !== undefined) updateData.learningOutcomes = values.learningOutcomes;
+
+    // Metadata fields
+    if (values.position !== undefined) updateData.position = values.position;
+    if (values.estimatedTime !== undefined) updateData.estimatedTime = values.estimatedTime;
+    if (values.difficulty !== undefined) updateData.difficulty = values.difficulty;
+    if (values.prerequisites !== undefined) updateData.prerequisites = values.prerequisites;
+    if (values.resources !== undefined) updateData.resources = values.resources;
+    if (values.status !== undefined) updateData.status = values.status;
+
+    // Access control fields
+    if (values.isFree !== undefined) updateData.isFree = values.isFree;
+    if (isPublished !== undefined) updateData.isPublished = isPublished;
+
+    // Numeric fields
+    if (values.sectionCount !== undefined) updateData.sectionCount = values.sectionCount;
+    if (values.totalDuration !== undefined) updateData.totalDuration = values.totalDuration;
+
+    logger.info('[CHAPTER_UPDATE]', {
+      chapterId,
+      fieldsUpdated: Object.keys(updateData),
+      hasDescription: !!updateData.description,
+      hasLearningOutcomes: !!updateData.learningOutcomes,
+    });
+
+    // Update the chapter with explicitly mapped values
     const chapter = await db.chapter.update({
       where: {
         id: chapterId,
         courseId,
       },
-      data: {
-        ...values,
-      }
+      data: updateData,
     });
 
-    // If the publishing status was provided, handle that separately
-    if (isPublished !== undefined) {
-      await db.chapter.update({
-        where: {
-          id: chapterId,
-          courseId,
-        },
-        data: {
-          isPublished
-        }
-      });
-    }
-
-    return NextResponse.json(chapter);
+    return NextResponse.json({
+      success: true,
+      data: chapter,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        fieldsUpdated: Object.keys(updateData),
+      },
+    });
   } catch (error) {
     logger.error("[CHAPTER_ID_PATCH]", error);
-    
+
     // Enhanced error handling for production
     if (error instanceof Error) {
       if (error.message.includes('connect') || error.message.includes('timeout')) {
@@ -161,7 +188,7 @@ export async function PATCH(
         return new NextResponse("Authentication error", { status: 401 });
       }
     }
-    
+
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

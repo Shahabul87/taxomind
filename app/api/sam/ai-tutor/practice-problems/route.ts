@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAnthropicAdapter } from '@sam-ai/core';
+import { runSAMChat } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import {
@@ -7,24 +7,6 @@ import {
   type GeneratedContent,
   type DifficultyLevel,
 } from '@sam-ai/quality';
-
-let aiAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
-
-function getAIAdapter() {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-  }
-  if (!aiAdapter) {
-    aiAdapter = createAnthropicAdapter({
-      apiKey,
-      model: 'claude-sonnet-4-5-20250929',
-      timeout: 60000,
-      maxRetries: 2,
-    });
-  }
-  return aiAdapter;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,7 +46,7 @@ Return a JSON array of problems, each with:
 - explanation: Why this is the correct answer
 - bloomsLevel: Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation`;
 
-    const response = await getAIAdapter().chat({
+    const problemsText = await runSAMChat({
       model: 'claude-sonnet-4-5-20250929',
       maxTokens: 2000,
       temperature: 0.8,
@@ -76,8 +58,6 @@ Return a JSON array of problems, each with:
         },
       ],
     });
-
-    let problemsText = response.content ?? '';
 
     // Try to parse as JSON, fallback to structured parsing
     let problems;

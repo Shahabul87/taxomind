@@ -64,9 +64,15 @@ interface CourseWithRelations extends Course {
   category?: Category | null;
 }
 
+interface CategoryOption {
+  label: string;
+  value: string;
+  subcategories?: { label: string; value: string }[];
+}
+
 interface EnterpriseCourseSetupClientProps {
   course: CourseWithRelations;
-  categories: { label: string; value: string }[];
+  categories: CategoryOption[];
   userId: string;
   completionStatus: {
     titleDesc: boolean;

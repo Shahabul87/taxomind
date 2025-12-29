@@ -24,6 +24,9 @@ const nextConfig = {
   reactStrictMode: true,
   trailingSlash: false,
 
+  // Disable Next.js development indicator (N icon in bottom-left corner)
+  devIndicators: false,
+
   // Turbopack configuration (Next.js 15+)
   // Migrated from experimental.turbo to top-level turbopack
   turbopack: {

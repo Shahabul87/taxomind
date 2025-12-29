@@ -46,9 +46,20 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
 
   //console.log(course)
 
+  // Fetch main categories (those without a parent)
   const categories = await db.category.findMany({
+   where: {
+     parentId: null, // Only get top-level categories
+   },
    orderBy: {
      name: "asc",
+   },
+   include: {
+     children: {
+       orderBy: {
+         name: "asc",
+       },
+     },
    },
  });
 
@@ -73,6 +84,10 @@ export default async function CourseIdPage({ params: paramsPromise }: CourseIdPa
       categories={categories.map((category) => ({
         label: category.name,
         value: category.id,
+        subcategories: category.children?.map((sub) => ({
+          label: sub.name,
+          value: sub.id,
+        })) || [],
       }))}
       userId={userId}
       completionStatus={completionStatus}

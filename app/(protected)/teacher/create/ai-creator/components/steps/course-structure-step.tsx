@@ -23,6 +23,7 @@ import {
   ClipboardCheck,
   Sparkles
 } from 'lucide-react';
+import { SAMLearningObjectivesGeneratorModal } from '@/components/ai/sam-learning-objectives-generator-modal';
 
 export function CourseStructureStep({ formData, setFormData, validationErrors }: StepComponentProps) {
   const [newGoal, setNewGoal] = useState('');
@@ -34,6 +35,19 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
         courseGoals: [...(prev.courseGoals || []), goal.trim()]
       }));
       setNewGoal('');
+    }
+  };
+
+  const addMultipleGoals = (goals: string[]) => {
+    const existingGoals = formData.courseGoals || [];
+    const newGoals = goals.filter(goal =>
+      goal.trim() && !existingGoals.includes(goal.trim())
+    );
+    if (newGoals.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        courseGoals: [...(prev.courseGoals || []), ...newGoals]
+      }));
     }
   };
 
@@ -208,9 +222,96 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
         </div>
       </div>
 
+      {/* Learning Objectives Count Configuration */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Learning Objectives per Chapter */}
+        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/50">
+              <Target className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Objectives per chapter
+              </Label>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Learning outcomes for each chapter
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                {formData.learningObjectivesPerChapter || 5}
+              </span>
+            </div>
+          </div>
+
+          <Slider
+            value={[formData.learningObjectivesPerChapter || 5]}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, learningObjectivesPerChapter: value[0] }))}
+            max={10}
+            min={3}
+            step={1}
+            className="w-full mb-3"
+          />
+
+          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <span>3 (Focused)</span>
+            <span>5 (Standard)</span>
+            <span>10 (Comprehensive)</span>
+          </div>
+
+          <div className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded-lg border border-emerald-200/50 dark:border-emerald-800/50">
+            <Lightbulb className="h-3 w-3 inline mr-1.5" />
+            Uses Bloom&apos;s Taxonomy verbs for measurable outcomes
+          </div>
+        </div>
+
+        {/* Learning Objectives per Section */}
+        <div className="p-5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-cyan-100 dark:bg-cyan-900/50">
+              <FileText className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <div className="flex-1">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Objectives per section
+              </Label>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Specific goals for each lesson
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 tabular-nums">
+                {formData.learningObjectivesPerSection || 3}
+              </span>
+            </div>
+          </div>
+
+          <Slider
+            value={[formData.learningObjectivesPerSection || 3]}
+            onValueChange={(value) => setFormData(prev => ({ ...prev, learningObjectivesPerSection: value[0] }))}
+            max={5}
+            min={2}
+            step={1}
+            className="w-full mb-3"
+          />
+
+          <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <span>2 (Brief)</span>
+            <span>3 (Standard)</span>
+            <span>5 (Detailed)</span>
+          </div>
+
+          <div className="text-xs text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/30 p-2.5 rounded-lg border border-cyan-200/50 dark:border-cyan-800/50">
+            <Lightbulb className="h-3 w-3 inline mr-1.5" />
+            Aligned with chapter&apos;s Bloom&apos;s level for consistency
+          </div>
+        </div>
+      </div>
+
       {/* Course Preview Stats */}
       <div className="p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-800/50 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">
               {formData.chapterCount}
@@ -222,6 +323,12 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
               {totalLessons}
             </div>
             <div className="text-xs text-slate-500 dark:text-slate-400">Total lessons</div>
+          </div>
+          <div className="border-r border-slate-200 dark:border-slate-700">
+            <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+              {formData.chapterCount * (formData.learningObjectivesPerChapter || 5)}
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Chapter objectives</div>
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">
@@ -276,9 +383,22 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
             </button>
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Press Enter or click Add to add each objective (minimum 2 required)
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Press Enter or click Add to add each objective (minimum 2 required)
+            </p>
+            {/* AI Learning Objectives Generator Button */}
+            <SAMLearningObjectivesGeneratorModal
+              courseTitle={formData.courseTitle || ''}
+              courseOverview={formData.courseShortOverview}
+              courseCategory={formData.courseCategory}
+              targetAudience={formData.targetAudience}
+              difficulty={formData.difficulty}
+              existingObjectives={formData.courseGoals || []}
+              onAddObjectives={addMultipleGoals}
+              disabled={!formData.courseTitle || formData.courseTitle.length < 5}
+            />
+          </div>
 
           {formData.courseGoals.length > 0 && (
             <div className="space-y-2 mt-4">

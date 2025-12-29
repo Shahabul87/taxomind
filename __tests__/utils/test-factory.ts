@@ -152,7 +152,7 @@ export class TestDataFactory {
   /**
    * Create test category data
    */
-  static createCategory(name?: string): Omit<Category, 'id' | 'createdAt' | 'updatedAt'> {
+  static createCategory(name?: string): Omit<Category, 'id'> {
     return {
       name: name || faker.helpers.arrayElement([
         'Programming',
@@ -164,6 +164,8 @@ export class TestDataFactory {
         'Music',
         'Languages',
       ]),
+      description: null,
+      parentId: null,
     };
   }
 

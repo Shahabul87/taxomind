@@ -13,15 +13,6 @@ type ThemeContextType = {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function getSystemPrefersDark(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  } catch {
-    return false;
-  }
-}
-
 function applyThemeClass(theme: Theme) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
@@ -33,20 +24,22 @@ function applyThemeClass(theme: Theme) {
 }
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  // Initialize theme from localStorage with light as default
-  // This matches the blocking script in layout.tsx that sets the class before hydration
-  const getInitialTheme = (): Theme => {
-    if (typeof window === "undefined") return "light"; // SSR default
+  // IMPORTANT: Always initialize with "light" to match server render
+  // The blocking script in layout.tsx handles the visual theme before hydration
+  // We sync the state from localStorage in useEffect to avoid hydration mismatch
+  const [theme, setThemeState] = useState<Theme>("light");
+
+  // Sync theme from localStorage after hydration
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("theme") as Theme | null;
-      // Default to light theme on first visit (no system preference check)
-      return saved ?? "light";
+      if (saved && (saved === "light" || saved === "dark")) {
+        setThemeState(saved);
+      }
     } catch {
-      return "light";
+      // localStorage not available
     }
-  };
-
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  }, []);
 
   // Apply theme class on mount to ensure consistency
   useEffect(() => {

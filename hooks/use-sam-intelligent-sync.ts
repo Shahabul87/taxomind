@@ -26,11 +26,19 @@
 import { useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { useFormRegistry } from '@/lib/stores/form-registry-store';
+import { emitSAMFormData } from '@sam-ai/react';
+import type { UseSAMFormDataSyncOptions } from '@sam-ai/react';
 
 export interface IntelligentSyncOptions {
   formName?: string;
   metadata?: Record<string, unknown>;
   debounce?: number; // Optional debounce in ms
+  fieldMeta?: UseSAMFormDataSyncOptions['fieldMeta'];
+  formType?: string;
+  maxDepth?: number;
+  isDirty?: boolean;
+  isValid?: boolean;
+  enabled?: boolean;
 }
 
 /**
@@ -46,10 +54,11 @@ export function useIntelligentSAMSync<T = any>(
 
   // Register form on mount
   useEffect(() => {
+    if (options.enabled === false) return;
     registerForm(formId, {
       purpose: options.formName || formId,
       pageUrl: pathname,
-      formType: 'intelligent-auto-detect',
+      formType: options.formType ?? 'intelligent-auto-detect',
       ...options.metadata,
     });
 
@@ -62,8 +71,13 @@ export function useIntelligentSAMSync<T = any>(
   // Memoize the serialized form data for deep comparison
   const serializedFormData = useMemo(() => JSON.stringify(formData), [formData]);
 
+  // Memoize the serialized options for deep comparison (prevents infinite loops)
+  const serializedMetadata = useMemo(() => JSON.stringify(options.metadata), [options.metadata]);
+  const serializedFieldMeta = useMemo(() => JSON.stringify(options.fieldMeta), [options.fieldMeta]);
+
   // Intelligent field extraction and sync
   useEffect(() => {
+    if (options.enabled === false) return;
     if (!formData) return;
 
     const fields: Record<string, { value: unknown; type: string }> = {};
@@ -154,6 +168,24 @@ export function useIntelligentSAMSync<T = any>(
     // Update SAM registry with all auto-detected fields
     updateMultipleFields(formId, fields);
 
+    emitSAMFormData({
+      formId,
+      formData: formData as Record<string, unknown>,
+      options: {
+        formName: options.formName ?? formId,
+        metadata: {
+          pageUrl: pathname,
+          ...options.metadata,
+        },
+        fieldMeta: options.fieldMeta,
+        debounceMs: options.debounce,
+        maxDepth: options.maxDepth,
+        formType: options.formType ?? 'intelligent-auto-detect',
+        isDirty: options.isDirty,
+        isValid: options.isValid,
+      },
+    });
+
     // Debounce if requested
     if (options.debounce) {
       const timeoutId = setTimeout(() => {
@@ -164,8 +196,23 @@ export function useIntelligentSAMSync<T = any>(
     }
 
     // Deep comparison via serialized data ensures ALL changes are detected
+    // Using serialized versions of objects prevents infinite loops from new object references
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedFormData, formId, updateMultipleFields, options.debounce]);
+  }, [
+    serializedFormData,
+    serializedMetadata,
+    serializedFieldMeta,
+    formId,
+    options.debounce,
+    options.enabled,
+    options.formName,
+    options.formType,
+    options.isDirty,
+    options.isValid,
+    options.maxDepth,
+    pathname,
+    updateMultipleFields,
+  ]);
 }
 
 /**
