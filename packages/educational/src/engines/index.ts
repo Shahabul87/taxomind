@@ -47,3 +47,6 @@ export { CompetencyEngine, createCompetencyEngine } from './competency-engine';
 
 // Peer Learning Engine (New)
 export { PeerLearningEngine, createPeerLearningEngine } from './peer-learning-engine';
+
+// Multimodal Input Engine (New)
+export { MultimodalInputEngine, createMultimodalInputEngine } from './multimodal-input-engine';

@@ -53,3 +53,6 @@ export * from './competency.types';
 
 // Peer Learning Engine (New)
 export * from './peer-learning.types';
+
+// Multimodal Input Engine (New)
+export * from './multimodal-input.types';
