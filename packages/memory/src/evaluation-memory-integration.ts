@@ -191,7 +191,7 @@ export class InMemoryMemoryStore implements MemoryStore {
  * Configuration for EvaluationMemoryIntegrationImpl
  */
 export interface EvaluationMemoryIntegrationImplConfig
-  extends MemoryIntegrationConfig {
+  extends Partial<MemoryIntegrationConfig> {
   /**
    * Student profile store
    */

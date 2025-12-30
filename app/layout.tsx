@@ -38,6 +38,7 @@ import ClientToaster from '@/components/client-toaster';
 // SAM AI Assistant - Context-aware assistant
 import { SAMAssistant } from '@/components/sam/SAMAssistant';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
+import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 
 // Use auto dynamic rendering (Next.js will determine optimal rendering)
 // export const dynamic = 'force-dynamic'; // Commented out to fix SSR bailout issue
@@ -92,6 +93,14 @@ export default async function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+        {/* PWA Configuration */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#667eea" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Taxomind" />
+        <meta name="mobile-web-app-capable" content="yes" />
         {/* Color scheme meta tag for instant dark mode support */}
         <meta name="color-scheme" content="light dark" />
         {/* Prevent theme flash by applying theme class before React hydrates */}
@@ -141,6 +150,9 @@ export default async function RootLayout({
 
           {/* CSS Error Monitor - Only in development */}
           <CSSErrorMonitorClient />
+
+          {/* PWA Service Worker Registration */}
+          <ServiceWorkerRegistration />
         </Providers>
       </body>
     </html>

@@ -26,6 +26,9 @@
     "dev": "tsup src/index.ts src/depth-analysis.ts --format cjs,esm --dts --watch",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
@@ -34,8 +37,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.5.5",
+    "@vitest/coverage-v8": "^2.1.9",
     "tsup": "^8.2.4",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.8"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": ">=0.27.3"

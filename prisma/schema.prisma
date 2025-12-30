@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2025-12-28T00:45:15.973Z
+// Generated: 2025-12-29T19:23:53.142Z
 // Source: 19 domain files
 // ==========================================
 
@@ -1698,14 +1698,7 @@ model EmailLog {
 model Category {
   id            String         @id @default(uuid())
   name          String         @unique
-  description   String?
-  // Self-referencing for parent-child hierarchy (subcategories)
-  parentId      String?
-  parent        Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children      Category[]     @relation("CategoryHierarchy")
-  // Relations
   courses       Course[]
-  subcourses    Course[]       @relation("CourseSubcategory")
   Group         Group[]
   learningPaths LearningPath[]
 }
@@ -1720,7 +1713,6 @@ model Course {
   isPublished                  Boolean                        @default(false)
   courseGoals                  String?
   categoryId                   String?
-  subcategoryId                String?
   courseRatings                String?
   activeLearners               Int?
   userId                       String
@@ -1747,7 +1739,6 @@ model Course {
   certifications               Certification[]
   chapters                     Chapter[]
   category                     Category?                      @relation(fields: [categoryId], references: [id])
-  subcategory                  Category?                      @relation("CourseSubcategory", fields: [subcategoryId], references: [id])
   organization                 Organization?                  @relation("OrganizationCourses", fields: [organizationId], references: [id])
   user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   CourseBloomsAnalysis         CourseBloomsAnalysis?

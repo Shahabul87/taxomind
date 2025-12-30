@@ -4079,6 +4079,958 @@ interface UnifiedBloomsEngine$1 {
 }
 
 /**
+ * @sam-ai/educational - Practice Problems Engine Types
+ * Types for generating adaptive practice problems and exercises
+ */
+
+/**
+ * Types of practice problems
+ */
+type PracticeProblemType = 'multiple_choice' | 'short_answer' | 'coding' | 'essay' | 'fill_blank' | 'matching' | 'ordering' | 'diagram' | 'calculation' | 'case_study';
+/**
+ * Difficulty levels for practice problems
+ */
+type ProblemDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+/**
+ * Hint types for guided practice
+ */
+type HintType = 'conceptual' | 'procedural' | 'example' | 'partial_solution' | 'resource_link';
+/**
+ * Configuration for practice problem generation
+ */
+interface PracticeProblemConfig {
+    /** AI adapter for generation */
+    aiAdapter?: {
+        chat(params: {
+            messages: {
+                role: string;
+                content: string;
+            }[];
+        }): Promise<{
+            content: string;
+        }>;
+    };
+    /** Database adapter for storing problems */
+    database?: PracticeProblemDatabaseAdapter;
+    /** Maximum number of hints per problem */
+    maxHintsPerProblem?: number;
+    /** Enable adaptive difficulty */
+    adaptiveDifficulty?: boolean;
+    /** Enable spaced repetition */
+    spacedRepetition?: boolean;
+    /** Time limit defaults in minutes */
+    defaultTimeLimit?: number;
+}
+/**
+ * Input for generating practice problems
+ */
+interface PracticeProblemInput {
+    /** Topic or concept to practice */
+    topic: string;
+    /** Bloom's taxonomy level */
+    bloomsLevel?: BloomsLevel$1;
+    /** Difficulty level */
+    difficulty?: ProblemDifficulty;
+    /** Types of problems to generate */
+    problemTypes?: PracticeProblemType[];
+    /** Number of problems to generate */
+    count?: number;
+    /** User's current skill level (0-100) */
+    userSkillLevel?: number;
+    /** Previous problem IDs to avoid repetition */
+    excludeProblemIds?: string[];
+    /** Course context */
+    courseId?: string;
+    /** Section context */
+    sectionId?: string;
+    /** Learning objectives to align with */
+    learningObjectives?: string[];
+    /** Time limit for the problem set in minutes */
+    timeLimit?: number;
+}
+/**
+ * A single hint for a practice problem
+ */
+interface ProblemHint {
+    /** Hint ID */
+    id: string;
+    /** Type of hint */
+    type: HintType;
+    /** Hint content */
+    content: string;
+    /** Order in which to reveal */
+    order: number;
+    /** Points deducted for using this hint */
+    penaltyPoints?: number;
+}
+/**
+ * Answer option for multiple choice problems
+ */
+interface ProblemOption {
+    /** Option ID */
+    id: string;
+    /** Option text */
+    text: string;
+    /** Whether this is the correct answer */
+    isCorrect: boolean;
+    /** Explanation for why this is correct/incorrect */
+    explanation?: string;
+}
+/**
+ * Test case for coding problems
+ */
+interface CodeTestCase {
+    /** Test case ID */
+    id: string;
+    /** Input values */
+    input: string;
+    /** Expected output */
+    expectedOutput: string;
+    /** Whether this test is visible to the student */
+    isVisible: boolean;
+    /** Description of what this test checks */
+    description?: string;
+}
+/**
+ * Solution step for worked examples
+ */
+interface SolutionStep {
+    /** Step number */
+    step: number;
+    /** Step description */
+    description: string;
+    /** Detailed explanation */
+    explanation: string;
+    /** Code or formula if applicable */
+    code?: string;
+}
+/**
+ * A generated practice problem
+ */
+interface PracticeProblem {
+    /** Unique problem ID */
+    id: string;
+    /** Problem type */
+    type: PracticeProblemType;
+    /** Problem title */
+    title: string;
+    /** Problem statement */
+    statement: string;
+    /** Difficulty level */
+    difficulty: ProblemDifficulty;
+    /** Bloom's taxonomy level */
+    bloomsLevel: BloomsLevel$1;
+    /** Points value */
+    points: number;
+    /** Time limit in minutes */
+    timeLimit?: number;
+    /** Options for multiple choice */
+    options?: ProblemOption[];
+    /** Correct answer (for non-MCQ) */
+    correctAnswer?: string;
+    /** Test cases for coding problems */
+    testCases?: CodeTestCase[];
+    /** Starter code for coding problems */
+    starterCode?: string;
+    /** Hints for guided practice */
+    hints: ProblemHint[];
+    /** Worked solution steps */
+    solution?: SolutionStep[];
+    /** Detailed explanation of the solution */
+    solutionExplanation: string;
+    /** Related concepts */
+    relatedConcepts: string[];
+    /** Prerequisite skills */
+    prerequisites: string[];
+    /** Tags for categorization */
+    tags: string[];
+    /** Learning objectives this problem addresses */
+    learningObjectives: string[];
+    /** Created timestamp */
+    createdAt: Date;
+    /** Metadata */
+    metadata?: Record<string, unknown>;
+}
+/**
+ * Result of a practice problem attempt
+ */
+interface ProblemAttempt {
+    /** Attempt ID */
+    id: string;
+    /** Problem ID */
+    problemId: string;
+    /** User ID */
+    userId: string;
+    /** User's answer */
+    userAnswer: string;
+    /** Whether the answer was correct */
+    isCorrect: boolean;
+    /** Partial credit score (0-1) */
+    partialCredit: number;
+    /** Points earned */
+    pointsEarned: number;
+    /** Hints used */
+    hintsUsed: string[];
+    /** Time spent in seconds */
+    timeSpent: number;
+    /** Attempt timestamp */
+    attemptedAt: Date;
+    /** Feedback provided */
+    feedback?: string;
+}
+/**
+ * Evaluation of a problem attempt
+ */
+interface ProblemEvaluation {
+    /** Whether the answer is correct */
+    isCorrect: boolean;
+    /** Partial credit score (0-1) */
+    partialCredit: number;
+    /** Points earned */
+    pointsEarned: number;
+    /** Detailed feedback */
+    feedback: string;
+    /** Specific errors identified */
+    errors: string[];
+    /** Suggestions for improvement */
+    suggestions: string[];
+    /** Related concepts to review */
+    conceptsToReview: string[];
+    /** Next recommended problem difficulty */
+    nextDifficulty?: ProblemDifficulty;
+    /** Next recommended Bloom's level */
+    nextBloomsLevel?: BloomsLevel$1;
+}
+/**
+ * Practice session statistics
+ */
+interface PracticeSessionStats {
+    /** Total problems attempted */
+    totalAttempts: number;
+    /** Correct answers */
+    correctAnswers: number;
+    /** Average score */
+    averageScore: number;
+    /** Total points earned */
+    totalPoints: number;
+    /** Total time spent in minutes */
+    totalTime: number;
+    /** Hints used count */
+    hintsUsed: number;
+    /** Performance by difficulty */
+    byDifficulty: Record<ProblemDifficulty, {
+        attempts: number;
+        correct: number;
+    }>;
+    /** Performance by Bloom's level */
+    byBloomsLevel: Record<BloomsLevel$1, {
+        attempts: number;
+        correct: number;
+    }>;
+    /** Performance by problem type */
+    byProblemType: Record<PracticeProblemType, {
+        attempts: number;
+        correct: number;
+    }>;
+    /** Concepts mastered */
+    masteredConcepts: string[];
+    /** Concepts needing review */
+    conceptsNeedingReview: string[];
+    /** Current streak */
+    currentStreak: number;
+    /** Best streak */
+    bestStreak: number;
+}
+/**
+ * Adaptive difficulty recommendation
+ */
+interface DifficultyRecommendation {
+    /** Recommended difficulty */
+    recommended: ProblemDifficulty;
+    /** Recommended Bloom's level */
+    bloomsLevel: BloomsLevel$1;
+    /** Confidence score (0-1) */
+    confidence: number;
+    /** Reasoning for recommendation */
+    reasoning: string;
+    /** Performance trend */
+    trend: 'improving' | 'stable' | 'declining';
+}
+/**
+ * Spaced repetition schedule
+ */
+interface SpacedRepetitionSchedule {
+    /** Problem ID */
+    problemId: string;
+    /** Next review date */
+    nextReviewDate: Date;
+    /** Current interval in days */
+    intervalDays: number;
+    /** Ease factor */
+    easeFactor: number;
+    /** Review count */
+    reviewCount: number;
+    /** Last review performance (0-5 scale) */
+    lastPerformance: number;
+}
+/**
+ * Output from practice problem generation
+ */
+interface PracticeProblemOutput {
+    /** Generated problems */
+    problems: PracticeProblem[];
+    /** Total count */
+    totalCount: number;
+    /** Estimated time to complete */
+    estimatedTime: number;
+    /** Difficulty distribution */
+    difficultyDistribution: Record<ProblemDifficulty, number>;
+    /** Bloom's level distribution */
+    bloomsDistribution: Record<BloomsLevel$1, number>;
+    /** Covered learning objectives */
+    coveredObjectives: string[];
+    /** Generation metadata */
+    metadata: {
+        generatedAt: Date;
+        topic: string;
+        model?: string;
+    };
+}
+/**
+ * Database adapter for practice problems
+ */
+interface PracticeProblemDatabaseAdapter {
+    /** Get problems for a topic */
+    getProblems(topic: string, options?: {
+        difficulty?: ProblemDifficulty;
+        bloomsLevel?: BloomsLevel$1;
+        limit?: number;
+    }): Promise<PracticeProblem[]>;
+    /** Save a generated problem */
+    saveProblem(problem: PracticeProblem): Promise<string>;
+    /** Save multiple problems */
+    saveProblems(problems: PracticeProblem[]): Promise<string[]>;
+    /** Get user attempts for a problem */
+    getAttempts(userId: string, problemId: string): Promise<ProblemAttempt[]>;
+    /** Save an attempt */
+    saveAttempt(attempt: Omit<ProblemAttempt, 'id'>): Promise<string>;
+    /** Get user session stats */
+    getSessionStats(userId: string, sessionId?: string): Promise<PracticeSessionStats>;
+    /** Get spaced repetition schedule */
+    getRepetitionSchedule(userId: string): Promise<SpacedRepetitionSchedule[]>;
+    /** Update spaced repetition schedule */
+    updateRepetitionSchedule(userId: string, problemId: string, schedule: Partial<SpacedRepetitionSchedule>): Promise<void>;
+}
+/**
+ * Practice Problems Engine interface
+ */
+interface PracticeProblemsEngine$1 {
+    /** Generate practice problems */
+    generateProblems(input: PracticeProblemInput): Promise<PracticeProblemOutput>;
+    /** Evaluate a problem attempt */
+    evaluateAttempt(problem: PracticeProblem, userAnswer: string, options?: {
+        partialCredit?: boolean;
+    }): Promise<ProblemEvaluation>;
+    /** Get next hint for a problem */
+    getNextHint(problem: PracticeProblem, hintsUsed: string[]): ProblemHint | null;
+    /** Get adaptive difficulty recommendation */
+    getAdaptiveDifficulty(userId: string, topic: string): Promise<DifficultyRecommendation>;
+    /** Update spaced repetition based on attempt */
+    updateSpacedRepetition(userId: string, problemId: string, performance: number): Promise<SpacedRepetitionSchedule>;
+    /** Get problems due for review */
+    getProblemsForReview(userId: string, limit?: number): Promise<PracticeProblem[]>;
+    /** Get session statistics */
+    getSessionStats(userId: string, sessionId?: string): Promise<PracticeSessionStats>;
+}
+
+/**
+ * @sam-ai/educational - Adaptive Content Engine Types
+ * Types for personalized content adaptation based on learning styles and progress
+ */
+
+/**
+ * Learning style types based on VARK model
+ */
+type AdaptiveLearningStyle = 'visual' | 'auditory' | 'reading' | 'kinesthetic' | 'multimodal';
+/**
+ * Content format types
+ */
+type ContentFormat = 'text' | 'video' | 'audio' | 'diagram' | 'infographic' | 'interactive' | 'simulation' | 'quiz' | 'code_example' | 'case_study';
+/**
+ * Content complexity levels
+ */
+type ContentComplexity = 'simplified' | 'standard' | 'detailed' | 'expert';
+/**
+ * Reading pace preferences
+ */
+type ReadingPace = 'slow' | 'moderate' | 'fast';
+/**
+ * Configuration for the Adaptive Content Engine
+ */
+interface AdaptiveContentConfig {
+    /** AI adapter for content transformation */
+    aiAdapter?: {
+        chat(params: {
+            messages: {
+                role: string;
+                content: string;
+            }[];
+        }): Promise<{
+            content: string;
+        }>;
+    };
+    /** Database adapter for storing preferences and history */
+    database?: AdaptiveContentDatabaseAdapter;
+    /** Enable automatic style detection */
+    autoDetectStyle?: boolean;
+    /** Minimum interactions before adapting */
+    minInteractionsForAdaptation?: number;
+    /** Enable content caching */
+    enableCaching?: boolean;
+    /** Cache TTL in seconds */
+    cacheTTL?: number;
+}
+/**
+ * User's learning profile for content adaptation
+ */
+interface AdaptiveLearnerProfile {
+    /** User ID */
+    userId: string;
+    /** Primary learning style */
+    primaryStyle: AdaptiveLearningStyle;
+    /** Secondary learning style */
+    secondaryStyle?: AdaptiveLearningStyle;
+    /** Style scores (0-100) */
+    styleScores: {
+        visual: number;
+        auditory: number;
+        reading: number;
+        kinesthetic: number;
+    };
+    /** Preferred content formats */
+    preferredFormats: ContentFormat[];
+    /** Preferred complexity level */
+    preferredComplexity: ContentComplexity;
+    /** Reading pace */
+    readingPace: ReadingPace;
+    /** Preferred session duration in minutes */
+    preferredSessionDuration: number;
+    /** Best learning time (0-23 hour) */
+    bestLearningTime?: number;
+    /** Known concepts (for scaffolding) */
+    knownConcepts: string[];
+    /** Concepts in progress */
+    conceptsInProgress: string[];
+    /** Struggling areas */
+    strugglingAreas: string[];
+    /** Detection confidence (0-1) */
+    confidence: number;
+    /** Last updated */
+    lastUpdated: Date;
+}
+/**
+ * Content to be adapted
+ */
+interface ContentToAdapt {
+    /** Original content ID */
+    id: string;
+    /** Content type */
+    type: 'lesson' | 'section' | 'concept' | 'explanation' | 'example';
+    /** Original content */
+    content: string;
+    /** Content title */
+    title?: string;
+    /** Topic */
+    topic: string;
+    /** Bloom's level */
+    bloomsLevel?: BloomsLevel$1;
+    /** Current format */
+    currentFormat: ContentFormat;
+    /** Associated concepts */
+    concepts: string[];
+    /** Prerequisites */
+    prerequisites: string[];
+    /** Metadata */
+    metadata?: Record<string, unknown>;
+}
+/**
+ * Adaptation options
+ */
+interface AdaptationOptions {
+    /** Target learning style */
+    targetStyle?: AdaptiveLearningStyle;
+    /** Target complexity */
+    targetComplexity?: ContentComplexity;
+    /** Target format */
+    targetFormat?: ContentFormat;
+    /** Include supplementary content */
+    includeSupplementary?: boolean;
+    /** Include knowledge checks */
+    includeKnowledgeChecks?: boolean;
+    /** Personalize examples */
+    personalizeExamples?: boolean;
+    /** Add scaffolding for prerequisites */
+    addScaffolding?: boolean;
+    /** Maximum content length */
+    maxLength?: number;
+}
+/**
+ * Adapted content chunk
+ */
+interface AdaptedChunk {
+    /** Chunk ID */
+    id: string;
+    /** Chunk type */
+    type: 'main' | 'summary' | 'example' | 'diagram_description' | 'practice' | 'scaffold';
+    /** Chunk content */
+    content: string;
+    /** Content format */
+    format: ContentFormat;
+    /** Order in sequence */
+    order: number;
+    /** Estimated reading time in minutes */
+    estimatedTime: number;
+    /** Whether this is essential or supplementary */
+    isEssential: boolean;
+}
+/**
+ * Knowledge check question embedded in content
+ */
+interface EmbeddedKnowledgeCheck {
+    /** Check ID */
+    id: string;
+    /** Question */
+    question: string;
+    /** Correct answer */
+    correctAnswer: string;
+    /** Options for MCQ */
+    options?: string[];
+    /** Concept being checked */
+    concept: string;
+    /** Position in content (after which chunk) */
+    afterChunkId: string;
+}
+/**
+ * Supplementary resource suggestion
+ */
+interface SupplementaryResource {
+    /** Resource ID */
+    id: string;
+    /** Resource type */
+    type: 'video' | 'article' | 'interactive' | 'practice';
+    /** Resource title */
+    title: string;
+    /** Resource description */
+    description: string;
+    /** Resource URL or content */
+    resource: string;
+    /** Relevance score (0-1) */
+    relevance: number;
+    /** Target learning style */
+    targetStyle: AdaptiveLearningStyle;
+}
+/**
+ * Result of content adaptation
+ */
+interface AdaptedContent {
+    /** Original content ID */
+    originalId: string;
+    /** Adapted chunks */
+    chunks: AdaptedChunk[];
+    /** Adaptation summary */
+    summary: string;
+    /** Key takeaways */
+    keyTakeaways: string[];
+    /** Knowledge checks */
+    knowledgeChecks: EmbeddedKnowledgeCheck[];
+    /** Supplementary resources */
+    supplementaryResources: SupplementaryResource[];
+    /** Scaffolding for prerequisites */
+    scaffolding?: {
+        concept: string;
+        explanation: string;
+        examples: string[];
+    }[];
+    /** Total estimated time in minutes */
+    estimatedTotalTime: number;
+    /** Adaptation metadata */
+    adaptationInfo: {
+        targetStyle: AdaptiveLearningStyle;
+        targetComplexity: ContentComplexity;
+        adaptedAt: Date;
+        confidence: number;
+    };
+}
+/**
+ * Interaction data for style detection
+ */
+interface ContentInteractionData {
+    /** Interaction ID */
+    id: string;
+    /** User ID */
+    userId: string;
+    /** Content ID */
+    contentId: string;
+    /** Content format */
+    format: ContentFormat;
+    /** Time spent in seconds */
+    timeSpent: number;
+    /** Scroll depth (0-100) */
+    scrollDepth: number;
+    /** Replay count (for video/audio) */
+    replayCount?: number;
+    /** Pause count */
+    pauseCount?: number;
+    /** Notes taken */
+    notesTaken?: boolean;
+    /** Completion status */
+    completed: boolean;
+    /** Quiz/check performance (0-100) */
+    checkPerformance?: number;
+    /** Timestamp */
+    timestamp: Date;
+}
+/**
+ * Style detection result
+ */
+interface StyleDetectionResult {
+    /** Detected primary style */
+    primaryStyle: AdaptiveLearningStyle;
+    /** Detected secondary style */
+    secondaryStyle?: AdaptiveLearningStyle;
+    /** Style scores */
+    scores: {
+        visual: number;
+        auditory: number;
+        reading: number;
+        kinesthetic: number;
+    };
+    /** Detection confidence (0-1) */
+    confidence: number;
+    /** Evidence for detection */
+    evidence: {
+        factor: string;
+        weight: number;
+        contribution: AdaptiveLearningStyle;
+    }[];
+    /** Recommendations */
+    recommendations: string[];
+}
+/**
+ * Database adapter for adaptive content
+ */
+interface AdaptiveContentDatabaseAdapter {
+    /** Get learner profile */
+    getLearnerProfile(userId: string): Promise<AdaptiveLearnerProfile | null>;
+    /** Save or update learner profile */
+    saveLearnerProfile(profile: AdaptiveLearnerProfile): Promise<void>;
+    /** Record content interaction */
+    recordInteraction(interaction: Omit<ContentInteractionData, 'id'>): Promise<string>;
+    /** Get user interactions */
+    getInteractions(userId: string, options?: {
+        contentId?: string;
+        limit?: number;
+        since?: Date;
+    }): Promise<ContentInteractionData[]>;
+    /** Get cached adapted content */
+    getCachedContent(originalId: string, style: AdaptiveLearningStyle): Promise<AdaptedContent | null>;
+    /** Cache adapted content */
+    cacheContent(content: AdaptedContent): Promise<void>;
+}
+/**
+ * Adaptive Content Engine interface
+ */
+interface AdaptiveContentEngine$1 {
+    /** Adapt content for a user */
+    adaptContent(content: ContentToAdapt, profile: AdaptiveLearnerProfile, options?: AdaptationOptions): Promise<AdaptedContent>;
+    /** Detect learning style from interactions */
+    detectLearningStyle(userId: string): Promise<StyleDetectionResult>;
+    /** Get or create learner profile */
+    getLearnerProfile(userId: string): Promise<AdaptiveLearnerProfile>;
+    /** Update learner profile from interactions */
+    updateProfileFromInteractions(userId: string): Promise<AdaptiveLearnerProfile>;
+    /** Record a content interaction */
+    recordInteraction(interaction: Omit<ContentInteractionData, 'id'>): Promise<void>;
+    /** Get content recommendations based on profile */
+    getContentRecommendations(profile: AdaptiveLearnerProfile, currentTopic: string, count?: number): Promise<SupplementaryResource[]>;
+    /** Get style-specific tips */
+    getStyleTips(style: AdaptiveLearningStyle): string[];
+}
+
+/**
+ * @sam-ai/educational - Socratic Teaching Engine Types
+ * Types for guided discovery learning through questioning
+ */
+
+/**
+ * Types of Socratic questions
+ */
+type SocraticQuestionType = 'clarifying' | 'probing_assumptions' | 'probing_reasons' | 'questioning_viewpoints' | 'probing_implications' | 'questioning_the_question';
+/**
+ * Dialogue state in Socratic conversation
+ */
+type DialogueState = 'introduction' | 'exploration' | 'clarification' | 'challenge' | 'synthesis' | 'conclusion';
+/**
+ * Configuration for the Socratic Teaching Engine
+ */
+interface SocraticTeachingConfig {
+    /** AI adapter for generating questions */
+    aiAdapter?: {
+        chat(params: {
+            messages: {
+                role: string;
+                content: string;
+            }[];
+        }): Promise<{
+            content: string;
+        }>;
+    };
+    /** Database adapter for storing dialogues */
+    database?: SocraticDatabaseAdapter;
+    /** Maximum questions before conclusion */
+    maxQuestions?: number;
+    /** Enable hint system */
+    enableHints?: boolean;
+    /** Patience level (how long to wait before giving hints) */
+    patienceLevel?: 'low' | 'medium' | 'high';
+    /** Enable encouraging feedback */
+    encouragingMode?: boolean;
+}
+/**
+ * A Socratic question
+ */
+interface SocraticQuestion {
+    /** Question ID */
+    id: string;
+    /** Question type */
+    type: SocraticQuestionType;
+    /** The question text */
+    question: string;
+    /** Purpose of this question */
+    purpose: string;
+    /** Expected direction of thought */
+    expectedDirection: string;
+    /** Bloom's level this targets */
+    bloomsLevel: BloomsLevel$1;
+    /** Follow-up questions if student struggles */
+    fallbackQuestions: string[];
+    /** Hints if student is stuck */
+    hints: string[];
+    /** Key insights to draw out */
+    keyInsights: string[];
+}
+/**
+ * Student response to a Socratic question
+ */
+interface SocraticStudentResponse {
+    /** Response ID */
+    id: string;
+    /** Question ID this responds to */
+    questionId: string;
+    /** The response text */
+    response: string;
+    /** Response timestamp */
+    timestamp: Date;
+    /** Time taken to respond in seconds */
+    responseTime: number;
+    /** Whether student asked for hint */
+    usedHint: boolean;
+}
+/**
+ * Analysis of a student response
+ */
+interface ResponseAnalysis {
+    /** Quality score (0-100) */
+    qualityScore: number;
+    /** Depth of thinking (0-100) */
+    thinkingDepth: number;
+    /** Evidence of understanding */
+    understandingIndicators: string[];
+    /** Misconceptions detected */
+    misconceptions: string[];
+    /** Gaps in reasoning */
+    reasoningGaps: string[];
+    /** Strengths identified */
+    strengths: string[];
+    /** Whether the key insight was reached */
+    reachedInsight: boolean;
+    /** Recommended next question type */
+    recommendedNextType: SocraticQuestionType;
+    /** Bloom's level demonstrated */
+    demonstratedBloomsLevel: BloomsLevel$1;
+}
+/**
+ * Socratic dialogue session
+ */
+interface SocraticDialogue {
+    /** Dialogue ID */
+    id: string;
+    /** User ID */
+    userId: string;
+    /** Topic being explored */
+    topic: string;
+    /** Learning objective */
+    learningObjective: string;
+    /** Current dialogue state */
+    state: DialogueState;
+    /** Question-response pairs */
+    exchanges: DialogueExchange[];
+    /** Key insights discovered */
+    discoveredInsights: string[];
+    /** Remaining insights to discover */
+    remainingInsights: string[];
+    /** Session started at */
+    startedAt: Date;
+    /** Session ended at */
+    endedAt?: Date;
+    /** Final synthesis */
+    synthesis?: string;
+    /** Overall performance */
+    performance?: DialoguePerformance;
+}
+/**
+ * A question-response exchange
+ */
+interface DialogueExchange {
+    /** Exchange order */
+    order: number;
+    /** The question asked */
+    question: SocraticQuestion;
+    /** The student's response */
+    response?: SocraticStudentResponse;
+    /** Analysis of the response */
+    analysis?: ResponseAnalysis;
+    /** Tutor's feedback */
+    feedback?: string;
+}
+/**
+ * Performance metrics for a dialogue
+ */
+interface DialoguePerformance {
+    /** Total exchanges */
+    totalExchanges: number;
+    /** Average response quality */
+    averageQuality: number;
+    /** Average thinking depth */
+    averageDepth: number;
+    /** Insights discovered percentage */
+    insightDiscoveryRate: number;
+    /** Time to complete in minutes */
+    completionTime: number;
+    /** Hints used */
+    hintsUsed: number;
+    /** Highest Bloom's level achieved */
+    highestBloomsLevel: BloomsLevel$1;
+    /** Growth indicators */
+    growth: {
+        factor: string;
+        description: string;
+    }[];
+    /** Areas for improvement */
+    improvementAreas: string[];
+}
+/**
+ * Input to start a Socratic dialogue
+ */
+interface StartDialogueInput {
+    /** User ID */
+    userId: string;
+    /** Topic to explore */
+    topic: string;
+    /** Specific learning objective */
+    learningObjective?: string;
+    /** User's current understanding (for calibration) */
+    priorKnowledge?: string;
+    /** Target Bloom's level to reach */
+    targetBloomsLevel?: BloomsLevel$1;
+    /** Preferred question style */
+    preferredStyle?: 'gentle' | 'challenging' | 'balanced';
+    /** Maximum session duration in minutes */
+    maxDuration?: number;
+}
+/**
+ * Response from the engine for next step
+ */
+interface SocraticResponse {
+    /** Current dialogue state */
+    state: DialogueState;
+    /** The question to ask (if in questioning state) */
+    question?: SocraticQuestion;
+    /** Feedback on previous response */
+    feedback?: string;
+    /** Encouragement message */
+    encouragement?: string;
+    /** Synthesis (if in conclusion state) */
+    synthesis?: string;
+    /** Key insights discovered so far */
+    discoveredInsights: string[];
+    /** Progress percentage */
+    progress: number;
+    /** Suggested hints (if struggling) */
+    availableHints?: string[];
+    /** Whether the dialogue is complete */
+    isComplete: boolean;
+}
+/**
+ * Input for continuing a dialogue
+ */
+interface ContinueDialogueInput {
+    /** Dialogue ID */
+    dialogueId: string;
+    /** Student's response */
+    response: string;
+    /** Whether student requested a hint */
+    requestedHint?: boolean;
+    /** Whether student wants to skip this question */
+    skipQuestion?: boolean;
+}
+/**
+ * Database adapter for Socratic dialogues
+ */
+interface SocraticDatabaseAdapter {
+    /** Create a new dialogue */
+    createDialogue(dialogue: Omit<SocraticDialogue, 'id'>): Promise<string>;
+    /** Get a dialogue by ID */
+    getDialogue(dialogueId: string): Promise<SocraticDialogue | null>;
+    /** Update a dialogue */
+    updateDialogue(dialogueId: string, updates: Partial<SocraticDialogue>): Promise<void>;
+    /** Get user's dialogue history */
+    getUserDialogues(userId: string, options?: {
+        limit?: number;
+        topic?: string;
+    }): Promise<SocraticDialogue[]>;
+    /** Save an exchange */
+    saveExchange(dialogueId: string, exchange: DialogueExchange): Promise<void>;
+}
+/**
+ * Socratic Teaching Engine interface
+ */
+interface SocraticTeachingEngine$1 {
+    /** Start a new Socratic dialogue */
+    startDialogue(input: StartDialogueInput): Promise<SocraticResponse>;
+    /** Continue an existing dialogue */
+    continueDialogue(input: ContinueDialogueInput): Promise<SocraticResponse>;
+    /** Get hint for current question */
+    getHint(dialogueId: string, hintIndex?: number): Promise<string>;
+    /** End dialogue and get summary */
+    endDialogue(dialogueId: string): Promise<{
+        synthesis: string;
+        performance: DialoguePerformance;
+    }>;
+    /** Get dialogue by ID */
+    getDialogue(dialogueId: string): Promise<SocraticDialogue | null>;
+    /** Get user's dialogue history */
+    getUserDialogues(userId: string, limit?: number): Promise<SocraticDialogue[]>;
+    /** Generate question for a topic */
+    generateQuestion(topic: string, type: SocraticQuestionType, context?: {
+        previousQuestions?: string[];
+        currentUnderstanding?: string;
+    }): Promise<SocraticQuestion>;
+    /** Analyze a response */
+    analyzeResponse(question: SocraticQuestion, response: string): Promise<ResponseAnalysis>;
+}
+
+/**
  * @sam-ai/educational - ExamEngine
  * Portable exam generation engine using adapter pattern
  */
@@ -5555,6 +6507,258 @@ declare class UnifiedBloomsAdapterEngine extends BaseEngine<UnifiedBloomsAdapter
 declare function createUnifiedBloomsAdapterEngine(config: UnifiedBloomsAdapterConfig): UnifiedBloomsAdapterEngine;
 
 /**
+ * @sam-ai/educational - Practice Problems Engine
+ * Generates adaptive practice problems with hints, spaced repetition, and evaluation
+ */
+
+/**
+ * PracticeProblemsEngine - Generates and manages adaptive practice problems
+ *
+ * Features:
+ * - AI-powered problem generation aligned with Bloom's Taxonomy
+ * - Adaptive difficulty based on user performance
+ * - Progressive hints system
+ * - Spaced repetition scheduling
+ * - Detailed evaluation and feedback
+ * - Session statistics and analytics
+ */
+declare class PracticeProblemsEngine {
+    private config;
+    private database?;
+    private aiAdapter?;
+    constructor(config?: PracticeProblemConfig);
+    /**
+     * Generate practice problems for a topic
+     */
+    generateProblems(input: PracticeProblemInput): Promise<PracticeProblemOutput>;
+    /**
+     * Generate problems using AI
+     */
+    private generateWithAI;
+    /**
+     * Evaluate a problem attempt
+     */
+    evaluateAttempt(problem: PracticeProblem, userAnswer: string, options?: {
+        partialCredit?: boolean;
+    }): Promise<ProblemEvaluation>;
+    /**
+     * Evaluate using AI
+     */
+    private evaluateWithAI;
+    /**
+     * Get the next hint for a problem
+     */
+    getNextHint(problem: PracticeProblem, hintsUsed: string[]): ProblemHint | null;
+    /**
+     * Get adaptive difficulty recommendation
+     */
+    getAdaptiveDifficulty(userId: string, topic: string): Promise<DifficultyRecommendation>;
+    /**
+     * Update spaced repetition schedule based on attempt
+     */
+    updateSpacedRepetition(userId: string, problemId: string, performance: number): Promise<SpacedRepetitionSchedule>;
+    /**
+     * Calculate next review using SM-2 algorithm
+     */
+    private calculateNextReview;
+    /**
+     * Get problems due for review
+     */
+    getProblemsForReview(userId: string, limit?: number): Promise<PracticeProblem[]>;
+    /**
+     * Get session statistics
+     */
+    getSessionStats(userId: string, sessionId?: string): Promise<PracticeSessionStats>;
+    private buildGenerationPrompt;
+    private parseGeneratedProblems;
+    private generateTemplateProblem;
+    private getTemplatesForType;
+    private distributeTypes;
+    private adjustDifficulty;
+    private increaseDifficulty;
+    private increaseBloomsLevel;
+    private getPointsForDifficulty;
+    private calculateSimilarity;
+    private countByDifficulty;
+    private countByBlooms;
+    private generateDifficultyReasoning;
+    private extractJson;
+    private getDefaultStats;
+}
+/**
+ * Factory function to create a PracticeProblemsEngine instance
+ */
+declare function createPracticeProblemsEngine(config?: PracticeProblemConfig): PracticeProblemsEngine;
+
+/**
+ * @sam-ai/educational - Adaptive Content Engine
+ * Personalizes content based on learning styles and user progress
+ */
+
+/**
+ * AdaptiveContentEngine - Personalizes content based on learning styles
+ *
+ * Features:
+ * - Learning style detection from user interactions
+ * - Content adaptation for different learning styles
+ * - Complexity adjustment based on user level
+ * - Scaffolding for prerequisite concepts
+ * - Embedded knowledge checks
+ * - Supplementary resource recommendations
+ */
+declare class AdaptiveContentEngine {
+    private config;
+    private database?;
+    private aiAdapter?;
+    private cache;
+    constructor(config?: AdaptiveContentConfig);
+    /**
+     * Adapt content for a specific learner profile
+     */
+    adaptContent(content: ContentToAdapt, profile: AdaptiveLearnerProfile, options?: AdaptationOptions): Promise<AdaptedContent>;
+    /**
+     * Adapt content using AI
+     */
+    private adaptWithAI;
+    /**
+     * Detect learning style from user interactions
+     */
+    detectLearningStyle(userId: string): Promise<StyleDetectionResult>;
+    /**
+     * Get or create learner profile
+     */
+    getLearnerProfile(userId: string): Promise<AdaptiveLearnerProfile>;
+    /**
+     * Update learner profile from recent interactions
+     */
+    updateProfileFromInteractions(userId: string): Promise<AdaptiveLearnerProfile>;
+    /**
+     * Record a content interaction
+     */
+    recordInteraction(interaction: Omit<ContentInteractionData, 'id'>): Promise<void>;
+    /**
+     * Get content recommendations based on profile
+     */
+    getContentRecommendations(profile: AdaptiveLearnerProfile, currentTopic: string, count?: number): Promise<SupplementaryResource[]>;
+    /**
+     * Get style-specific tips
+     */
+    getStyleTips(style: AdaptiveLearningStyle): string[];
+    private createAdaptedChunks;
+    private transformForStyle;
+    private simplifyContent;
+    private expandContent;
+    private addTechnicalDetails;
+    private addVisualCues;
+    private addAuditoryGuidance;
+    private addActionPoints;
+    private generateSummary;
+    private extractKeyTakeaways;
+    private generateKnowledgeChecks;
+    private generatePracticalExample;
+    private generatePracticeActivity;
+    private getSupplementaryForStyle;
+    private createScaffolding;
+    private analyzeFormatPreferences;
+    private analyzeBehaviorIndicators;
+    private calculateStyleScores;
+    private generateStyleEvidence;
+    private getFormatsForStyle;
+    private getStyleRecommendations;
+    private estimateReadingTime;
+    private getDefaultStyleResult;
+    private buildAdaptationPrompt;
+    private parseAdaptedContent;
+}
+/**
+ * Factory function to create an AdaptiveContentEngine instance
+ */
+declare function createAdaptiveContentEngine(config?: AdaptiveContentConfig): AdaptiveContentEngine;
+
+/**
+ * @sam-ai/educational - Socratic Teaching Engine
+ * Guides discovery learning through strategic questioning
+ */
+
+/**
+ * SocraticTeachingEngine - Guides learning through discovery questioning
+ *
+ * Features:
+ * - Strategic question generation based on Socratic method
+ * - Response analysis for understanding and misconceptions
+ * - Progressive dialogue management
+ * - Hint system for struggling learners
+ * - Synthesis and insight tracking
+ * - Performance analytics
+ */
+declare class SocraticTeachingEngine {
+    private config;
+    private database?;
+    private aiAdapter?;
+    private dialogueCache;
+    constructor(config?: SocraticTeachingConfig);
+    /**
+     * Start a new Socratic dialogue
+     */
+    startDialogue(input: StartDialogueInput): Promise<SocraticResponse>;
+    /**
+     * Continue an existing dialogue
+     */
+    continueDialogue(input: ContinueDialogueInput): Promise<SocraticResponse>;
+    /**
+     * Get hint for current question
+     */
+    getHint(dialogueId: string, hintIndex?: number): Promise<string>;
+    /**
+     * End dialogue and get summary
+     */
+    endDialogue(dialogueId: string): Promise<{
+        synthesis: string;
+        performance: DialoguePerformance;
+    }>;
+    /**
+     * Get dialogue by ID
+     */
+    getDialogue(dialogueId: string): Promise<SocraticDialogue | null>;
+    /**
+     * Get user's dialogue history
+     */
+    getUserDialogues(userId: string, limit?: number): Promise<SocraticDialogue[]>;
+    /**
+     * Generate a Socratic question
+     */
+    generateQuestion(topic: string, type: SocraticQuestionType, context?: {
+        previousQuestions?: string[];
+        currentUnderstanding?: string;
+    }): Promise<SocraticQuestion>;
+    /**
+     * Analyze a student response
+     */
+    analyzeResponse(question: SocraticQuestion, response: string): Promise<ResponseAnalysis>;
+    private generateQuestionWithAI;
+    private generateTemplateQuestion;
+    private analyzeWithAI;
+    private analyzeWithRules;
+    private generateKeyInsights;
+    private generateSynthesis;
+    private calculatePerformance;
+    private calculateProgress;
+    private shouldConclude;
+    private concludeDialogue;
+    private moveToNextQuestion;
+    private getNextQuestionType;
+    private determineDialogueState;
+    private generateFeedback;
+    private getIntroductionMessage;
+    private getEncouragement;
+    private extractJson;
+}
+/**
+ * Factory function to create a SocraticTeachingEngine instance
+ */
+declare function createSocraticTeachingEngine(config?: SocraticTeachingConfig): SocraticTeachingEngine;
+
+/**
  * @sam-ai/educational - Validation Schemas
  * Zod schemas for strict AI response validation
  */
@@ -5577,10 +6781,10 @@ declare const SubjectiveEvaluationResponseSchema: z.ZodEffects<z.ZodObject<{
     score: number;
     relevance?: number | undefined;
     depth?: number | undefined;
+    feedback?: string | undefined;
     strengths?: string[] | undefined;
     accuracy?: number | undefined;
     completeness?: number | undefined;
-    feedback?: string | undefined;
     improvements?: string[] | undefined;
     nextSteps?: string[] | undefined;
     demonstratedBloomsLevel?: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE" | undefined;
@@ -5589,10 +6793,10 @@ declare const SubjectiveEvaluationResponseSchema: z.ZodEffects<z.ZodObject<{
     score: number;
     relevance?: number | undefined;
     depth?: number | undefined;
+    feedback?: string | undefined;
     strengths?: string[] | undefined;
     accuracy?: number | undefined;
     completeness?: number | undefined;
-    feedback?: string | undefined;
     improvements?: string[] | undefined;
     nextSteps?: string[] | undefined;
     demonstratedBloomsLevel?: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE" | undefined;
@@ -5613,10 +6817,10 @@ declare const SubjectiveEvaluationResponseSchema: z.ZodEffects<z.ZodObject<{
     score: number;
     relevance?: number | undefined;
     depth?: number | undefined;
+    feedback?: string | undefined;
     strengths?: string[] | undefined;
     accuracy?: number | undefined;
     completeness?: number | undefined;
-    feedback?: string | undefined;
     improvements?: string[] | undefined;
     nextSteps?: string[] | undefined;
     demonstratedBloomsLevel?: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE" | undefined;
@@ -5783,6 +6987,7 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     text: string;
     id?: string | undefined;
+    explanation?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -5794,12 +6999,12 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
 }, {
     text: string;
     id?: string | undefined;
+    explanation?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -5811,7 +7016,6 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
 }>, {
@@ -5834,6 +7038,7 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
 }, {
     text: string;
     id?: string | undefined;
+    explanation?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -5845,7 +7050,6 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
 }>;
@@ -5882,6 +7086,8 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     bloomsLevel: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE";
     difficulty: "EASY" | "MEDIUM" | "HARD";
     id?: string | undefined;
+    explanation?: string | undefined;
+    learningObjective?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -5890,16 +7096,16 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
-    learningObjective?: string | undefined;
 }, {
     text: string;
     questionType: string;
     bloomsLevel: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE";
     difficulty: "EASY" | "MEDIUM" | "HARD";
     id?: string | undefined;
+    explanation?: string | undefined;
+    learningObjective?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -5908,10 +7114,8 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
-    learningObjective?: string | undefined;
 }>, "many">, {
     id: string | undefined;
     text: string;
@@ -5936,6 +7140,8 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     bloomsLevel: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE";
     difficulty: "EASY" | "MEDIUM" | "HARD";
     id?: string | undefined;
+    explanation?: string | undefined;
+    learningObjective?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -5944,10 +7150,8 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
-    learningObjective?: string | undefined;
 }[]>;
 type AssessmentQuestionsResponse = z.output<typeof AssessmentQuestionsResponseSchema>;
 declare const ContentAnalysisResponseSchema: z.ZodEffects<z.ZodObject<{
@@ -6113,6 +7317,8 @@ declare const AssessmentQuestionSchema: z.ZodObject<{
     bloomsLevel: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE";
     difficulty: "EASY" | "MEDIUM" | "HARD";
     id?: string | undefined;
+    explanation?: string | undefined;
+    learningObjective?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -6121,16 +7327,16 @@ declare const AssessmentQuestionSchema: z.ZodObject<{
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
-    learningObjective?: string | undefined;
 }, {
     text: string;
     questionType: string;
     bloomsLevel: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE";
     difficulty: "EASY" | "MEDIUM" | "HARD";
     id?: string | undefined;
+    explanation?: string | undefined;
+    learningObjective?: string | undefined;
     options?: {
         text: string;
         id: string;
@@ -6139,10 +7345,8 @@ declare const AssessmentQuestionSchema: z.ZodObject<{
     points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
-    explanation?: string | undefined;
     hints?: string[] | undefined;
     timeEstimate?: number | undefined;
-    learningObjective?: string | undefined;
 }>;
 declare const BloomsDistributionSchema: z.ZodObject<{
     REMEMBER: z.ZodOptional<z.ZodNumber>;
@@ -6310,4 +7514,4 @@ declare function validateAssessmentQuestionsResponse(content: string): Validatio
  */
 declare function validateContentAnalysisResponse(content: string): ValidationResult<ContentAnalysisResponse>;
 
-export { type AIAnalysisDetails, type AIDetectionResult, type AIIndicator, type AccessibilityCompliance, type AccessibilityIssue, type AccessibilityReport, type Achievement, type AchievementCategory, type AchievementContext, type AchievementDatabaseAdapter, AchievementEngine, type AchievementEngineConfig, type AchievementProgress, type AchievementSummary, type AchievementTrackingResult, type AchievementUnlockConditions, type ActivityAnalysis, type ActivitySuggestion, type AdaptiveQuestionRequest, type AdaptiveQuestionResponse, AdaptiveQuestionResponseSchema, type AdaptiveQuestionResult, type AdaptiveQuestionSettings, type AdaptiveRule, type AdaptiveSettings, AdvancedExamEngine, type AlternativePath, type AlternativeResource, type AnalysisMetadata, type AnalysisOptions, type AnalyticsBehaviorPatterns, type AnalyticsContentInsights, AnalyticsEngine, type AnalyticsEngineConfig, type AnalyticsLearningMetrics, type AnalyticsOptions, type AnalyticsPersonalizedInsights, type AnalyticsSessionData, type AnalyticsTrends, type AncestralPattern, type AssessmentGenerationConfig, type AssessmentMetadata, type AssessmentOutput, AssessmentQuestionSchema, type AssessmentQuestionsResponse, AssessmentQuestionsResponseSchema, type AssessmentRecommendation, type AssessmentRecord, type AssessmentRubric, type AssessmentType, type AtRiskStudent, type AudioAnalysis, type AudioContent, type BloomsAnalysisConfig, BloomsAnalysisEngine, type BloomsAnalysisResult, type BloomsComparison, type BloomsDistribution, BloomsDistributionSchema, type BloomsLevel, BloomsLevelSchema, type BloomsLevelUpdate, type BloomsRecommendation, type BrandingAnalysis, type BuddyAdjustment, type BuddyAvatar, type BuddyCapability, type BuddyEffectiveness, type BuddyInteraction, type BuddyInteractionType, type BuddyPersonality, type BuddyPersonalityType, type BuddyPreferences, type BuddyRelationship, type BundleOption, type CacheEntry, type CacheStats, type CareerPath, type Challenge, type ChallengeCategory, type ChallengeDifficulty, type ChallengeRequirementType, type ChallengeRequirements, type ChallengeRewards, type ChapterBloomsAnalysis, type ChapterInput, type ChapterOutlineOutput, type CognitiveDimension, type CognitiveDimensionName, type CognitiveFitness, type CognitivePath, type CognitiveProfile, type CognitiveProgressInput, type CognitiveProgressResult, type CognitiveProgressUpdate, type CognitiveStage, type CollaborationActivity, type CollaborationActivityType, type CollaborationAnalytics, type CollaborationCentralityScore, type CollaborationCommunity, type CollaborationConnection, type CollaborationContentAnalytics, type CollaborationContribution, type CollaborationContributionType, type CollaborationDatabaseAdapter, type CollaborationEngagementBucket, CollaborationEngine, type CollaborationEngineConfig, type CollaborationHotspot, type CollaborationInsights, type CollaborationNetworkAnalytics, type CollaborationNode, type CollaborationParticipant, type CollaborationParticipantAnalytics, type CollaborationParticipantMetric, type CollaborationPattern, type CollaborationReaction, type CollaborationReactionType, type CollaborationRealTimeMetrics, type CollaborationRoleMetric, type CollaborationSession, type CollaborationSessionAnalytics, type CollaborationSessionMetrics, type CollaborationSharedResource, type CollaborationTopic, type CollaborationTrendData, type ComparisonAnalysis, ComparisonToExpectedSchema, type CompetitionAnalysis, type CompetitorAnalysis, type CompetitorPricing, type ComprehensiveAnalytics, type ConceptInput, type ConsistencyResult, type ContentAdaptation, type ContentAnalysisResponse, ContentAnalysisResponseSchema, ContentGenerationEngine, type ContentGenerationEngineConfig, type ContentInput, type ContentInteraction, type ContentRecommendation, type CorpusEntry, type CostBreakdown, type CostCategory, type CourseAnalysisInput, type CourseAnalysisOptions, type CourseBloomsAnalysisResult, type CourseComparison, type CourseContentOutput, type CourseForStudyGuide, type CourseGuideActionItem, type CourseGuideChapter, type CourseGuideContentRecommendation, type CourseGuideDatabaseAdapter, type CourseGuideDepthMetrics, type CourseGuideEngagementMetrics, type CourseGuideEngagementRecommendation, CourseGuideEngine, type CourseGuideEngineConfig, type CourseGuideEnrollment, type CourseGuideInput, type CourseGuideInsightItem, type CourseGuideMarketMetrics, type CourseGuideMetrics, type CourseGuidePurchase, type CourseGuideResponse, type CourseGuideReview, type CourseGuideSection, type CourseOutlineOutput, type CourseProfitability, type CourseRecommendations, type CourseSuccessPrediction, DEFAULT_RETRY_CONFIG, type DNAMutation, type DNASegment, type DNASequence, type DailyGoal, type DateRange, type DemographicData, type DeviceUsage, type DiscountRule, type EmotionIndicator, type EmotionalState, type EnhancedQuestion, type EntanglementEffect, type EnvironmentFactors, type EvaluationContext, SAMEvaluationEngine as EvaluationEngine, type EvaluationEngineConfig, type EvaluationResult, type EvaluationRubric, type EvaluationSettings, type EvaluationType, type EvolutionStage, type ExamEngine, type ExamEngineConfig, type ExamGenerationConfig, type ExamGenerationDefaults, type ExamGenerationResponse, type ExamInput, type ExamMetadata, type ExerciseOutput, type ExerciseType, type ExternalResource, type FinancialAnalytics, FinancialEngine, type FinancialEngineConfig, type FinancialForecasts, type FinancialRecommendation, type FitnessExercise, type FitnessMilestone, type FitnessProgress, type FitnessRecommendation, type FitnessSession, type Forecast, type GeneratedAssessment, type GeneratedQuestion, type GenerationConfig, type GenerationDefaults, type GenerationDepth, type GenerationStyle, type GlossaryTermOutput, type GradingAssistance, type GradingAssistanceResponse, GradingAssistanceResponseSchema, type GrowthMetrics, type GrowthProjection, type AchievementEngine$1 as IAchievementEngine, type AnalyticsEngine$1 as IAnalyticsEngine, type BloomsAnalysisEngine$1 as IBloomsAnalysisEngine, type CollaborationEngine$1 as ICollaborationEngine, type ContentGenerationEngine$1 as IContentGenerationEngine, type CourseGuideEngine$1 as ICourseGuideEngine, type EvaluationEngine as IEvaluationEngine, type FinancialEngine$1 as IFinancialEngine, type InnovationEngine$1 as IInnovationEngine, type IntegrityEngine$1 as IIntegrityEngine, type MarketEngine$1 as IMarketEngine, type MemoryEngine$1 as IMemoryEngine, type MultimediaEngine$1 as IMultimediaEngine, type PredictiveEngine$1 as IPredictiveEngine, type ResearchEngine$1 as IResearchEngine, type ResourceEngine$1 as IResourceEngine, type SocialEngine$1 as ISocialEngine, type TrendsEngine$1 as ITrendsEngine, type UnifiedBloomsEngine$1 as IUnifiedBloomsEngine, type IndustryTrendReport, type InnovationAdaptation, type InnovationCapability, type InnovationDatabaseAdapter, InnovationEngine, type InnovationEngineConfig, type InnovationLearningData, type InnovationLimitation, type IntegrityCheckConfig, type IntegrityCheckOptions, type IntegrityDatabaseAdapter, IntegrityEngine, type IntegrityEngineConfig, type IntegrityReport, type IntegrityRiskLevel, type IntegritySubmission, type Interaction, type InteractiveAnalysis, type InteractiveContent, type InteractiveElement, type Intervention, type InterventionMilestone, type InterventionPlan, type InterventionRecommendation, type InterventionTimeline, type JsonExtractionOptions, type JsonExtractionResult, type KeyMoment, type KeyTopicOutput, type LanguageInput, type LearningBehavior, type LearningDNA, type LearningEdge, type LearningGap, type LearningHeritage, type LearningHistory, type LearningNode, type LearningObjectiveInput, type LearningPathway, type LearningPhenotype, type LearningRecommendation, type LearningStyle, type LearningStyleProfile, type LearningTrait, type LevelUpInfo, type LicenseStatus, type LicenseType, type LocalizedContentOutput, type MarketAnalysisRequest, type MarketAnalysisResponse, type MarketAnalysisType, type MarketCourseData, type MarketDatabaseAdapter, MarketEngine, type MarketEngineConfig, type MarketGrowthLevel, type MarketPricingAnalysis, type MarketRecommendations, type MarketTrendAnalysis, type MarketValueAssessment, type MarketingRecommendation, type MemoryConversationContext, type MemoryConversationHistory, type MemoryConversationSummary, type MemoryDatabaseAdapter, MemoryEngine, type MemoryEngineConfig, type MemoryEntry, type MemoryHistoryOptions, type MemoryInitOptions, type MemoryMessage, type MemoryPersonalizedContext, type MemorySAMConversation, type MemorySAMLearningProfile, type MemorySAMMessage, type MotivationFactor, type MotivationProfile, type MultiModalAnalysis, type MultiModalContentTypes, MultimediaEngine, type MultimediaEngineConfig, type ObjectiveAnswer, type ObservationImpact, type OptimizedContent, type OutcomeDistribution, type OutcomePrediction, type PartialCreditItem, type PathCollapse, type PathEntanglement, type PathObservation, type PathObservationType, type PathProbability, type PathSuperposition, type PathwayStage, type PerformanceAnalysis, type PerformanceThreshold, type PersonalityTrait, type PersonalizationContext, PersonalizationEngine, type PersonalizationEngineConfig, type PersonalizationInsight, type PersonalizationResult, type PersonalizedPath, type PlagiarismResult, type PlannedIntervention, type PotentialArea, type PredictiveAction, type PredictiveBehaviorPatterns, type PredictiveCourseContext, PredictiveEngine, type PredictiveEngineConfig, type PredictiveLearningContext, type PredictiveLearningHistory, type PredictiveLearningSchedule, type PredictivePerformanceMetrics, type PredictiveRiskFactor, type PredictiveStudentProfile, type PricingAnalysis, type PricingExperiment, type PricingRecommendation, type PricingStrategy, type ProbabilityScore, type ProfitabilityAnalysis, type ProgressRecommendation, type QualityFactor, type QualityScore, type QuantumLearningNode, type QuantumPath, type QuantumPotentialOutcome, type QuantumProperties, type QuantumState, type QuestionBankEntry, type QuestionBankQuery, type QuestionBankStats, type QuestionDifficulty, type QuestionInput, type QuestionMetadata, type QuestionOption, QuestionOptionSchema, type QuestionType, type ROIAnalysis, type RegionPrice, type ResearchApplication, type ResearchAuthor, type ResearchCategory, type ResearchCodeRepository, type ResearchCollaborationInfo, type ResearchDatabaseAdapter, type ResearchDataset, type ResearchEducationalMetrics, ResearchEngine, type ResearchEngineConfig, type ResearchFinding, type ResearchFundingInfo, type ResearchLiteratureReview, type ResearchMetrics, type ResearchPaper, type ResearchPublication, type ResearchQuery, type ResearchReadingList, type ResearchReview, type ResearchTimeline, type ResearchTrend, type Resource, type ResourceCost, type ResourceDiscoveryConfig, ResourceEngine, type ResourceEngineConfig, type ResourceOutput, type ResourceRecommendation, type ResourceType, type RetryConfig, type RetryOptions, type RevenueMetrics, type RevenueSource, type RiskAnalysis, RubricAlignmentSchema, type RubricCriterion, type RubricLevel, type RubricScore, SAMEvaluationEngine, type ScenarioAnalysis, type ScoringGuide, type SectionBloomsAnalysis, type SectionInput, type SectionOutlineOutput, type SessionPattern, type SharedExperience, type SimilarCourse, type SimilarityMatch, type Skill, type SkillDeveloped, type SocialActivityMetrics, type SocialCommunicationAnalysis, type SocialCommunicationPattern, type SocialCommunity, type SocialConflictAnalysis, type SocialDatabaseAdapter, type SocialDynamicsAnalysis, type SocialDynamicsRecommendation, type SocialEffectivenessFactor, type SocialEffectivenessScore, type SocialEngagementMetrics, type SocialEngagementTrend, SocialEngine, type SocialEngineConfig, type SocialGroupMember, type SocialInteraction, type SocialLeadershipAnalysis, type SocialLearningGroup, type SocialLearningOutcome, type SocialMatchingFactor, type SocialMatchingResult, type SocialMentorshipActivity, type SocialNetworkEffect, type SocialSharingImpact, type SocialUser, type SpacedRepetitionInput, type SpacedRepetitionResult, type StoredMarketAnalysis, type StudentCohort, type StudentImpact, type StudentInfo, type StudentProfile, type StudentProfileInput, type StudentResourceProfile, type StudentResponse, type StudyBuddy, type StudyGuideOutput, type StyleAnomaly, type StyleMetrics, type SubjectiveEvaluationResponse, SubjectiveEvaluationResponseSchema, type SubjectiveEvaluationResult, type SubscriptionMetrics, type SuccessFactor, type SummaryOutput, type TargetAudience, type TargetAudienceDemographics, type TeacherInsights, type TestCaseOutput, type TierMetrics, type TimeDistribution, type TimePreference, type TopicForResource, type TopicInput, type TrendAnalysis, type TrendCategory, type TrendComparison, type TrendFilter, type TrendMarketSignal, type TrendPrediction, type TrendSource, type TrendsDatabaseAdapter, TrendsEngine, type TrendsEngineConfig, type UncertaintyMeasure, UnifiedBloomsAdapterEngine, type UnifiedBloomsConfig, UnifiedBloomsEngine, type UnifiedBloomsMode, type UnifiedBloomsRecommendation, type UnifiedBloomsResult, type ChapterAnalysis as UnifiedChapterAnalysis, type UnifiedCourseInput, type UnifiedCourseOptions, type CourseRecommendation as UnifiedCourseRecommendation, type UnifiedCourseResult, type UnifiedLearningPath, type UnifiedSpacedRepetitionInput, type UnifiedSpacedRepetitionResult, type UserSAMStats, type UserStats, type ValidationError, type ValidationResult, type VelocityOptimization, type VelocityRecommendation, type VideoAnalysis, type VideoContent, type VisualElement, createAchievementEngine, createAnalyticsEngine, createBloomsAnalysisEngine, createCollaborationEngine, createContentGenerationEngine, createCourseGuideEngine, createEvaluationEngine, createExamEngine, createFinancialEngine, createInnovationEngine, createIntegrityEngine, createMarketEngine, createMemoryEngine, createMultimediaEngine, createPartialSchema, createPersonalizationEngine, createPredictiveEngine, createResearchEngine, createResourceEngine, createRetryPrompt, createSocialEngine, createTrendsEngine, createUnifiedBloomsAdapterEngine, createUnifiedBloomsEngine, executeWithRetry, extractJson, extractJsonWithOptions, fixCommonJsonIssues, parseAndValidate, safeParseWithDefaults, validateAdaptiveQuestionResponse, validateAssessmentQuestionsResponse, validateContentAnalysisResponse, validateEvaluationResponse, validateGradingAssistanceResponse, validateSchema, validateWithDefaults };
+export { type AIAnalysisDetails, type AIDetectionResult, type AIIndicator, type AccessibilityCompliance, type AccessibilityIssue, type AccessibilityReport, type Achievement, type AchievementCategory, type AchievementContext, type AchievementDatabaseAdapter, AchievementEngine, type AchievementEngineConfig, type AchievementProgress, type AchievementSummary, type AchievementTrackingResult, type AchievementUnlockConditions, type ActivityAnalysis, type ActivitySuggestion, type AdaptationOptions, type AdaptedChunk, type AdaptedContent, type AdaptiveContentConfig, type AdaptiveContentDatabaseAdapter, AdaptiveContentEngine, type AdaptiveLearnerProfile, type AdaptiveLearningStyle, type AdaptiveQuestionRequest, type AdaptiveQuestionResponse, AdaptiveQuestionResponseSchema, type AdaptiveQuestionResult, type AdaptiveQuestionSettings, type AdaptiveRule, type AdaptiveSettings, AdvancedExamEngine, type AlternativePath, type AlternativeResource, type AnalysisMetadata, type AnalysisOptions, type AnalyticsBehaviorPatterns, type AnalyticsContentInsights, AnalyticsEngine, type AnalyticsEngineConfig, type AnalyticsLearningMetrics, type AnalyticsOptions, type AnalyticsPersonalizedInsights, type AnalyticsSessionData, type AnalyticsTrends, type AncestralPattern, type AssessmentGenerationConfig, type AssessmentMetadata, type AssessmentOutput, AssessmentQuestionSchema, type AssessmentQuestionsResponse, AssessmentQuestionsResponseSchema, type AssessmentRecommendation, type AssessmentRecord, type AssessmentRubric, type AssessmentType, type AtRiskStudent, type AudioAnalysis, type AudioContent, type BloomsAnalysisConfig, BloomsAnalysisEngine, type BloomsAnalysisResult, type BloomsComparison, type BloomsDistribution, BloomsDistributionSchema, type BloomsLevel, BloomsLevelSchema, type BloomsLevelUpdate, type BloomsRecommendation, type BrandingAnalysis, type BuddyAdjustment, type BuddyAvatar, type BuddyCapability, type BuddyEffectiveness, type BuddyInteraction, type BuddyInteractionType, type BuddyPersonality, type BuddyPersonalityType, type BuddyPreferences, type BuddyRelationship, type BundleOption, type CacheEntry, type CacheStats, type CareerPath, type Challenge, type ChallengeCategory, type ChallengeDifficulty, type ChallengeRequirementType, type ChallengeRequirements, type ChallengeRewards, type ChapterBloomsAnalysis, type ChapterInput, type ChapterOutlineOutput, type CodeTestCase, type CognitiveDimension, type CognitiveDimensionName, type CognitiveFitness, type CognitivePath, type CognitiveProfile, type CognitiveProgressInput, type CognitiveProgressResult, type CognitiveProgressUpdate, type CognitiveStage, type CollaborationActivity, type CollaborationActivityType, type CollaborationAnalytics, type CollaborationCentralityScore, type CollaborationCommunity, type CollaborationConnection, type CollaborationContentAnalytics, type CollaborationContribution, type CollaborationContributionType, type CollaborationDatabaseAdapter, type CollaborationEngagementBucket, CollaborationEngine, type CollaborationEngineConfig, type CollaborationHotspot, type CollaborationInsights, type CollaborationNetworkAnalytics, type CollaborationNode, type CollaborationParticipant, type CollaborationParticipantAnalytics, type CollaborationParticipantMetric, type CollaborationPattern, type CollaborationReaction, type CollaborationReactionType, type CollaborationRealTimeMetrics, type CollaborationRoleMetric, type CollaborationSession, type CollaborationSessionAnalytics, type CollaborationSessionMetrics, type CollaborationSharedResource, type CollaborationTopic, type CollaborationTrendData, type ComparisonAnalysis, ComparisonToExpectedSchema, type CompetitionAnalysis, type CompetitorAnalysis, type CompetitorPricing, type ComprehensiveAnalytics, type ConceptInput, type ConsistencyResult, type ContentAdaptation, type ContentAnalysisResponse, ContentAnalysisResponseSchema, type ContentComplexity, type ContentFormat, ContentGenerationEngine, type ContentGenerationEngineConfig, type ContentInput, type ContentInteraction, type ContentInteractionData, type ContentRecommendation, type ContentToAdapt, type ContinueDialogueInput, type CorpusEntry, type CostBreakdown, type CostCategory, type CourseAnalysisInput, type CourseAnalysisOptions, type CourseBloomsAnalysisResult, type CourseComparison, type CourseContentOutput, type CourseForStudyGuide, type CourseGuideActionItem, type CourseGuideChapter, type CourseGuideContentRecommendation, type CourseGuideDatabaseAdapter, type CourseGuideDepthMetrics, type CourseGuideEngagementMetrics, type CourseGuideEngagementRecommendation, CourseGuideEngine, type CourseGuideEngineConfig, type CourseGuideEnrollment, type CourseGuideInput, type CourseGuideInsightItem, type CourseGuideMarketMetrics, type CourseGuideMetrics, type CourseGuidePurchase, type CourseGuideResponse, type CourseGuideReview, type CourseGuideSection, type CourseOutlineOutput, type CourseProfitability, type CourseRecommendations, type CourseSuccessPrediction, DEFAULT_RETRY_CONFIG, type DNAMutation, type DNASegment, type DNASequence, type DailyGoal, type DateRange, type DemographicData, type DeviceUsage, type DialogueExchange, type DialoguePerformance, type DialogueState, type DifficultyRecommendation, type DiscountRule, type EmbeddedKnowledgeCheck, type EmotionIndicator, type EmotionalState, type EnhancedQuestion, type EntanglementEffect, type EnvironmentFactors, type EvaluationContext, SAMEvaluationEngine as EvaluationEngine, type EvaluationEngineConfig, type EvaluationResult, type EvaluationRubric, type EvaluationSettings, type EvaluationType, type EvolutionStage, type ExamEngine, type ExamEngineConfig, type ExamGenerationConfig, type ExamGenerationDefaults, type ExamGenerationResponse, type ExamInput, type ExamMetadata, type ExerciseOutput, type ExerciseType, type ExternalResource, type FinancialAnalytics, FinancialEngine, type FinancialEngineConfig, type FinancialForecasts, type FinancialRecommendation, type FitnessExercise, type FitnessMilestone, type FitnessProgress, type FitnessRecommendation, type FitnessSession, type Forecast, type GeneratedAssessment, type GeneratedQuestion, type GenerationConfig, type GenerationDefaults, type GenerationDepth, type GenerationStyle, type GlossaryTermOutput, type GradingAssistance, type GradingAssistanceResponse, GradingAssistanceResponseSchema, type GrowthMetrics, type GrowthProjection, type HintType, type AchievementEngine$1 as IAchievementEngine, type AdaptiveContentEngine$1 as IAdaptiveContentEngine, type AnalyticsEngine$1 as IAnalyticsEngine, type BloomsAnalysisEngine$1 as IBloomsAnalysisEngine, type CollaborationEngine$1 as ICollaborationEngine, type ContentGenerationEngine$1 as IContentGenerationEngine, type CourseGuideEngine$1 as ICourseGuideEngine, type EvaluationEngine as IEvaluationEngine, type FinancialEngine$1 as IFinancialEngine, type InnovationEngine$1 as IInnovationEngine, type IntegrityEngine$1 as IIntegrityEngine, type MarketEngine$1 as IMarketEngine, type MemoryEngine$1 as IMemoryEngine, type MultimediaEngine$1 as IMultimediaEngine, type PracticeProblemsEngine$1 as IPracticeProblemsEngine, type PredictiveEngine$1 as IPredictiveEngine, type ResearchEngine$1 as IResearchEngine, type ResourceEngine$1 as IResourceEngine, type SocialEngine$1 as ISocialEngine, type SocraticTeachingEngine$1 as ISocraticTeachingEngine, type TrendsEngine$1 as ITrendsEngine, type UnifiedBloomsEngine$1 as IUnifiedBloomsEngine, type IndustryTrendReport, type InnovationAdaptation, type InnovationCapability, type InnovationDatabaseAdapter, InnovationEngine, type InnovationEngineConfig, type InnovationLearningData, type InnovationLimitation, type IntegrityCheckConfig, type IntegrityCheckOptions, type IntegrityDatabaseAdapter, IntegrityEngine, type IntegrityEngineConfig, type IntegrityReport, type IntegrityRiskLevel, type IntegritySubmission, type Interaction, type InteractiveAnalysis, type InteractiveContent, type InteractiveElement, type Intervention, type InterventionMilestone, type InterventionPlan, type InterventionRecommendation, type InterventionTimeline, type JsonExtractionOptions, type JsonExtractionResult, type KeyMoment, type KeyTopicOutput, type LanguageInput, type LearningBehavior, type LearningDNA, type LearningEdge, type LearningGap, type LearningHeritage, type LearningHistory, type LearningNode, type LearningObjectiveInput, type LearningPathway, type LearningPhenotype, type LearningRecommendation, type LearningStyle, type LearningStyleProfile, type LearningTrait, type LevelUpInfo, type LicenseStatus, type LicenseType, type LocalizedContentOutput, type MarketAnalysisRequest, type MarketAnalysisResponse, type MarketAnalysisType, type MarketCourseData, type MarketDatabaseAdapter, MarketEngine, type MarketEngineConfig, type MarketGrowthLevel, type MarketPricingAnalysis, type MarketRecommendations, type MarketTrendAnalysis, type MarketValueAssessment, type MarketingRecommendation, type MemoryConversationContext, type MemoryConversationHistory, type MemoryConversationSummary, type MemoryDatabaseAdapter, MemoryEngine, type MemoryEngineConfig, type MemoryEntry, type MemoryHistoryOptions, type MemoryInitOptions, type MemoryMessage, type MemoryPersonalizedContext, type MemorySAMConversation, type MemorySAMLearningProfile, type MemorySAMMessage, type MotivationFactor, type MotivationProfile, type MultiModalAnalysis, type MultiModalContentTypes, MultimediaEngine, type MultimediaEngineConfig, type ObjectiveAnswer, type ObservationImpact, type OptimizedContent, type OutcomeDistribution, type OutcomePrediction, type PartialCreditItem, type PathCollapse, type PathEntanglement, type PathObservation, type PathObservationType, type PathProbability, type PathSuperposition, type PathwayStage, type PerformanceAnalysis, type PerformanceThreshold, type PersonalityTrait, type PersonalizationContext, PersonalizationEngine, type PersonalizationEngineConfig, type PersonalizationInsight, type PersonalizationResult, type PersonalizedPath, type PlagiarismResult, type PlannedIntervention, type PotentialArea, type PracticeProblem, type PracticeProblemConfig, type PracticeProblemDatabaseAdapter, type PracticeProblemInput, type PracticeProblemOutput, type PracticeProblemType, PracticeProblemsEngine, type PracticeSessionStats, type PredictiveAction, type PredictiveBehaviorPatterns, type PredictiveCourseContext, PredictiveEngine, type PredictiveEngineConfig, type PredictiveLearningContext, type PredictiveLearningHistory, type PredictiveLearningSchedule, type PredictivePerformanceMetrics, type PredictiveRiskFactor, type PredictiveStudentProfile, type PricingAnalysis, type PricingExperiment, type PricingRecommendation, type PricingStrategy, type ProbabilityScore, type ProblemAttempt, type ProblemDifficulty, type ProblemEvaluation, type ProblemHint, type ProblemOption, type ProfitabilityAnalysis, type ProgressRecommendation, type QualityFactor, type QualityScore, type QuantumLearningNode, type QuantumPath, type QuantumPotentialOutcome, type QuantumProperties, type QuantumState, type QuestionBankEntry, type QuestionBankQuery, type QuestionBankStats, type QuestionDifficulty, type QuestionInput, type QuestionMetadata, type QuestionOption, QuestionOptionSchema, type QuestionType, type ROIAnalysis, type ReadingPace, type RegionPrice, type ResearchApplication, type ResearchAuthor, type ResearchCategory, type ResearchCodeRepository, type ResearchCollaborationInfo, type ResearchDatabaseAdapter, type ResearchDataset, type ResearchEducationalMetrics, ResearchEngine, type ResearchEngineConfig, type ResearchFinding, type ResearchFundingInfo, type ResearchLiteratureReview, type ResearchMetrics, type ResearchPaper, type ResearchPublication, type ResearchQuery, type ResearchReadingList, type ResearchReview, type ResearchTimeline, type ResearchTrend, type Resource, type ResourceCost, type ResourceDiscoveryConfig, ResourceEngine, type ResourceEngineConfig, type ResourceOutput, type ResourceRecommendation, type ResourceType, type ResponseAnalysis, type RetryConfig, type RetryOptions, type RevenueMetrics, type RevenueSource, type RiskAnalysis, RubricAlignmentSchema, type RubricCriterion, type RubricLevel, type RubricScore, SAMEvaluationEngine, type ScenarioAnalysis, type ScoringGuide, type SectionBloomsAnalysis, type SectionInput, type SectionOutlineOutput, type SessionPattern, type SharedExperience, type SimilarCourse, type SimilarityMatch, type Skill, type SkillDeveloped, type SocialActivityMetrics, type SocialCommunicationAnalysis, type SocialCommunicationPattern, type SocialCommunity, type SocialConflictAnalysis, type SocialDatabaseAdapter, type SocialDynamicsAnalysis, type SocialDynamicsRecommendation, type SocialEffectivenessFactor, type SocialEffectivenessScore, type SocialEngagementMetrics, type SocialEngagementTrend, SocialEngine, type SocialEngineConfig, type SocialGroupMember, type SocialInteraction, type SocialLeadershipAnalysis, type SocialLearningGroup, type SocialLearningOutcome, type SocialMatchingFactor, type SocialMatchingResult, type SocialMentorshipActivity, type SocialNetworkEffect, type SocialSharingImpact, type SocialUser, type SocraticDatabaseAdapter, type SocraticDialogue, type SocraticQuestion, type SocraticQuestionType, type SocraticResponse, type SocraticStudentResponse, type SocraticTeachingConfig, SocraticTeachingEngine, type SolutionStep, type SpacedRepetitionInput, type SpacedRepetitionResult, type SpacedRepetitionSchedule, type StartDialogueInput, type StoredMarketAnalysis, type StudentCohort, type StudentImpact, type StudentInfo, type StudentProfile, type StudentProfileInput, type StudentResourceProfile, type StudentResponse, type StudyBuddy, type StudyGuideOutput, type StyleAnomaly, type StyleDetectionResult, type StyleMetrics, type SubjectiveEvaluationResponse, SubjectiveEvaluationResponseSchema, type SubjectiveEvaluationResult, type SubscriptionMetrics, type SuccessFactor, type SummaryOutput, type SupplementaryResource, type TargetAudience, type TargetAudienceDemographics, type TeacherInsights, type TestCaseOutput, type TierMetrics, type TimeDistribution, type TimePreference, type TopicForResource, type TopicInput, type TrendAnalysis, type TrendCategory, type TrendComparison, type TrendFilter, type TrendMarketSignal, type TrendPrediction, type TrendSource, type TrendsDatabaseAdapter, TrendsEngine, type TrendsEngineConfig, type UncertaintyMeasure, UnifiedBloomsAdapterEngine, type UnifiedBloomsConfig, UnifiedBloomsEngine, type UnifiedBloomsMode, type UnifiedBloomsRecommendation, type UnifiedBloomsResult, type ChapterAnalysis as UnifiedChapterAnalysis, type UnifiedCourseInput, type UnifiedCourseOptions, type CourseRecommendation as UnifiedCourseRecommendation, type UnifiedCourseResult, type UnifiedLearningPath, type UnifiedSpacedRepetitionInput, type UnifiedSpacedRepetitionResult, type UserSAMStats, type UserStats, type ValidationError, type ValidationResult, type VelocityOptimization, type VelocityRecommendation, type VideoAnalysis, type VideoContent, type VisualElement, createAchievementEngine, createAdaptiveContentEngine, createAnalyticsEngine, createBloomsAnalysisEngine, createCollaborationEngine, createContentGenerationEngine, createCourseGuideEngine, createEvaluationEngine, createExamEngine, createFinancialEngine, createInnovationEngine, createIntegrityEngine, createMarketEngine, createMemoryEngine, createMultimediaEngine, createPartialSchema, createPersonalizationEngine, createPracticeProblemsEngine, createPredictiveEngine, createResearchEngine, createResourceEngine, createRetryPrompt, createSocialEngine, createSocraticTeachingEngine, createTrendsEngine, createUnifiedBloomsAdapterEngine, createUnifiedBloomsEngine, executeWithRetry, extractJson, extractJsonWithOptions, fixCommonJsonIssues, parseAndValidate, safeParseWithDefaults, validateAdaptiveQuestionResponse, validateAssessmentQuestionsResponse, validateContentAnalysisResponse, validateEvaluationResponse, validateGradingAssistanceResponse, validateSchema, validateWithDefaults };

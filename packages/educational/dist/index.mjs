@@ -15026,8 +15026,1957 @@ var UnifiedBloomsAdapterEngine = class extends BaseEngine {
 function createUnifiedBloomsAdapterEngine(config) {
   return new UnifiedBloomsAdapterEngine(config);
 }
+
+// src/engines/practice-problems-engine.ts
+var PracticeProblemsEngine = class {
+  constructor(config = {}) {
+    this.config = config;
+    this.database = config.database;
+    this.aiAdapter = config.aiAdapter;
+  }
+  database;
+  aiAdapter;
+  /**
+   * Generate practice problems for a topic
+   */
+  async generateProblems(input) {
+    const {
+      topic,
+      bloomsLevel = "APPLY",
+      difficulty = "intermediate",
+      problemTypes = ["multiple_choice", "short_answer"],
+      count = 5,
+      userSkillLevel = 50,
+      learningObjectives = [],
+      timeLimit
+    } = input;
+    if (this.aiAdapter) {
+      return this.generateWithAI(input);
+    }
+    const problems = [];
+    const typesToGenerate = this.distributeTypes(problemTypes, count);
+    for (let i = 0; i < count; i++) {
+      const problemType = typesToGenerate[i % typesToGenerate.length];
+      const adjustedDifficulty = this.adjustDifficulty(difficulty, userSkillLevel);
+      const problem = this.generateTemplateProblem({
+        topic,
+        type: problemType,
+        difficulty: adjustedDifficulty,
+        bloomsLevel,
+        index: i,
+        learningObjectives,
+        timeLimit: timeLimit ? Math.floor(timeLimit / count) : void 0
+      });
+      problems.push(problem);
+    }
+    if (this.database) {
+      await this.database.saveProblems(problems);
+    }
+    return {
+      problems,
+      totalCount: problems.length,
+      estimatedTime: problems.reduce((sum, p) => sum + (p.timeLimit || 5), 0),
+      difficultyDistribution: this.countByDifficulty(problems),
+      bloomsDistribution: this.countByBlooms(problems),
+      coveredObjectives: learningObjectives,
+      metadata: {
+        generatedAt: /* @__PURE__ */ new Date(),
+        topic
+      }
+    };
+  }
+  /**
+   * Generate problems using AI
+   */
+  async generateWithAI(input) {
+    const {
+      topic,
+      bloomsLevel = "APPLY",
+      difficulty = "intermediate",
+      problemTypes = ["multiple_choice", "short_answer"],
+      count = 5,
+      learningObjectives = [],
+      timeLimit
+    } = input;
+    const prompt = this.buildGenerationPrompt(input);
+    try {
+      const response = await this.aiAdapter.chat({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert educational content creator specializing in practice problems. Generate problems that are pedagogically sound, properly aligned with Bloom's Taxonomy, and include helpful hints and detailed solutions. Always respond with valid JSON.`
+          },
+          { role: "user", content: prompt }
+        ]
+      });
+      const problems = this.parseGeneratedProblems(response.content, {
+        topic,
+        bloomsLevel,
+        difficulty,
+        problemTypes,
+        count,
+        learningObjectives,
+        timeLimit
+      });
+      if (this.database) {
+        await this.database.saveProblems(problems);
+      }
+      return {
+        problems,
+        totalCount: problems.length,
+        estimatedTime: problems.reduce((sum, p) => sum + (p.timeLimit || 5), 0),
+        difficultyDistribution: this.countByDifficulty(problems),
+        bloomsDistribution: this.countByBlooms(problems),
+        coveredObjectives: learningObjectives,
+        metadata: {
+          generatedAt: /* @__PURE__ */ new Date(),
+          topic,
+          model: "ai-generated"
+        }
+      };
+    } catch (error) {
+      console.error("AI generation failed, falling back to templates:", error);
+      return this.generateProblems({ ...input });
+    }
+  }
+  /**
+   * Evaluate a problem attempt
+   */
+  async evaluateAttempt(problem, userAnswer, options = {}) {
+    const { partialCredit = true } = options;
+    if (problem.type === "multiple_choice" && problem.options) {
+      const correctOption = problem.options.find((o) => o.isCorrect);
+      const isCorrect2 = correctOption?.id === userAnswer || correctOption?.text === userAnswer;
+      return {
+        isCorrect: isCorrect2,
+        partialCredit: isCorrect2 ? 1 : 0,
+        pointsEarned: isCorrect2 ? problem.points : 0,
+        feedback: isCorrect2 ? "Correct! " + (correctOption?.explanation || problem.solutionExplanation) : `Incorrect. ${correctOption?.explanation || problem.solutionExplanation}`,
+        errors: isCorrect2 ? [] : ["Selected wrong answer"],
+        suggestions: isCorrect2 ? ["Try a more challenging problem"] : ["Review the concept and try again", "Use hints if available"],
+        conceptsToReview: isCorrect2 ? [] : problem.relatedConcepts,
+        nextDifficulty: isCorrect2 ? this.increaseDifficulty(problem.difficulty) : problem.difficulty,
+        nextBloomsLevel: isCorrect2 ? this.increaseBloomsLevel(problem.bloomsLevel) : problem.bloomsLevel
+      };
+    }
+    if (this.aiAdapter) {
+      return this.evaluateWithAI(problem, userAnswer, partialCredit);
+    }
+    const normalizedAnswer = userAnswer.trim().toLowerCase();
+    const normalizedCorrect = (problem.correctAnswer || "").trim().toLowerCase();
+    const isCorrect = normalizedAnswer === normalizedCorrect;
+    let partialScore = 0;
+    if (!isCorrect && partialCredit) {
+      partialScore = this.calculateSimilarity(normalizedAnswer, normalizedCorrect);
+    }
+    return {
+      isCorrect,
+      partialCredit: isCorrect ? 1 : partialScore,
+      pointsEarned: isCorrect ? problem.points : Math.round(problem.points * partialScore),
+      feedback: isCorrect ? "Correct! " + problem.solutionExplanation : `Not quite. ${problem.solutionExplanation}`,
+      errors: isCorrect ? [] : ["Answer does not match expected solution"],
+      suggestions: isCorrect ? ["Great job! Move on to more challenging problems"] : ["Review the solution steps", "Try using the hints"],
+      conceptsToReview: isCorrect ? [] : problem.relatedConcepts,
+      nextDifficulty: isCorrect ? this.increaseDifficulty(problem.difficulty) : problem.difficulty,
+      nextBloomsLevel: isCorrect ? this.increaseBloomsLevel(problem.bloomsLevel) : problem.bloomsLevel
+    };
+  }
+  /**
+   * Evaluate using AI
+   */
+  async evaluateWithAI(problem, userAnswer, partialCredit) {
+    const prompt = `
+Evaluate this student answer for the following practice problem:
+
+**Problem:**
+${problem.statement}
+
+**Correct Answer:**
+${problem.correctAnswer || problem.solutionExplanation}
+
+**Student Answer:**
+${userAnswer}
+
+**Evaluation Criteria:**
+- Correctness: Is the answer factually correct?
+- Completeness: Does it address all parts of the question?
+- Partial Credit: ${partialCredit ? "Award partial credit for partially correct answers" : "No partial credit"}
+
+Respond in JSON format:
+{
+  "isCorrect": boolean,
+  "partialCredit": number (0-1),
+  "feedback": "detailed feedback string",
+  "errors": ["list", "of", "errors"],
+  "suggestions": ["improvement", "suggestions"],
+  "conceptsToReview": ["concepts", "to", "review"]
+}
+`;
+    try {
+      const response = await this.aiAdapter.chat({
+        messages: [
+          { role: "system", content: "You are an expert grader. Evaluate student answers fairly and provide helpful feedback. Respond only with valid JSON." },
+          { role: "user", content: prompt }
+        ]
+      });
+      const result = JSON.parse(this.extractJson(response.content));
+      return {
+        isCorrect: result.isCorrect,
+        partialCredit: result.partialCredit,
+        pointsEarned: Math.round(problem.points * result.partialCredit),
+        feedback: result.feedback,
+        errors: result.errors || [],
+        suggestions: result.suggestions || [],
+        conceptsToReview: result.conceptsToReview || problem.relatedConcepts,
+        nextDifficulty: result.isCorrect ? this.increaseDifficulty(problem.difficulty) : problem.difficulty,
+        nextBloomsLevel: result.isCorrect ? this.increaseBloomsLevel(problem.bloomsLevel) : problem.bloomsLevel
+      };
+    } catch {
+      return this.evaluateAttempt(problem, userAnswer, { partialCredit: false });
+    }
+  }
+  /**
+   * Get the next hint for a problem
+   */
+  getNextHint(problem, hintsUsed) {
+    const unusedHints = problem.hints.filter((h) => !hintsUsed.includes(h.id)).sort((a, b) => a.order - b.order);
+    return unusedHints.length > 0 ? unusedHints[0] : null;
+  }
+  /**
+   * Get adaptive difficulty recommendation
+   */
+  async getAdaptiveDifficulty(userId, topic) {
+    if (!this.database) {
+      return {
+        recommended: "intermediate",
+        bloomsLevel: "APPLY",
+        confidence: 0.5,
+        reasoning: "No historical data available, starting with intermediate difficulty",
+        trend: "stable"
+      };
+    }
+    const stats = await this.database.getSessionStats(userId);
+    const difficultySuccess = stats.byDifficulty;
+    const currentSuccessRate = stats.totalAttempts > 0 ? stats.correctAnswers / stats.totalAttempts : 0.5;
+    let recommended = "intermediate";
+    let bloomsLevel = "APPLY";
+    let trend = "stable";
+    if (currentSuccessRate >= 0.8) {
+      recommended = this.increaseDifficulty("intermediate");
+      bloomsLevel = this.increaseBloomsLevel("APPLY");
+      trend = "improving";
+    } else if (currentSuccessRate < 0.5) {
+      recommended = "beginner";
+      bloomsLevel = "UNDERSTAND";
+      trend = "declining";
+    }
+    const advancedSuccess = difficultySuccess.advanced;
+    if (advancedSuccess && advancedSuccess.attempts > 3 && advancedSuccess.correct / advancedSuccess.attempts >= 0.7) {
+      recommended = "expert";
+      bloomsLevel = "EVALUATE";
+    }
+    return {
+      recommended,
+      bloomsLevel,
+      confidence: Math.min(0.9, 0.5 + stats.totalAttempts * 0.05),
+      reasoning: this.generateDifficultyReasoning(stats, recommended),
+      trend
+    };
+  }
+  /**
+   * Update spaced repetition schedule based on attempt
+   */
+  async updateSpacedRepetition(userId, problemId, performance) {
+    if (!this.database) {
+      return this.calculateNextReview(
+        {
+          problemId,
+          nextReviewDate: /* @__PURE__ */ new Date(),
+          intervalDays: 1,
+          easeFactor: 2.5,
+          reviewCount: 1,
+          lastPerformance: performance
+        },
+        performance
+      );
+    }
+    const schedules = await this.database.getRepetitionSchedule(userId);
+    const existing = schedules.find((s) => s.problemId === problemId);
+    const currentSchedule = existing || {
+      problemId,
+      nextReviewDate: /* @__PURE__ */ new Date(),
+      intervalDays: 1,
+      easeFactor: 2.5,
+      reviewCount: 0,
+      lastPerformance: 0
+    };
+    const newSchedule = this.calculateNextReview(currentSchedule, performance);
+    await this.database.updateRepetitionSchedule(userId, problemId, newSchedule);
+    return newSchedule;
+  }
+  /**
+   * Calculate next review using SM-2 algorithm
+   */
+  calculateNextReview(current, performance) {
+    const newEaseFactor = Math.max(
+      1.3,
+      current.easeFactor + (0.1 - (5 - performance) * (0.08 + (5 - performance) * 0.02))
+    );
+    let newInterval;
+    if (performance < 3) {
+      newInterval = 1;
+    } else if (current.reviewCount === 0) {
+      newInterval = 1;
+    } else if (current.reviewCount === 1) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(current.intervalDays * newEaseFactor);
+    }
+    const nextDate = /* @__PURE__ */ new Date();
+    nextDate.setDate(nextDate.getDate() + newInterval);
+    return {
+      problemId: current.problemId,
+      nextReviewDate: nextDate,
+      intervalDays: newInterval,
+      easeFactor: newEaseFactor,
+      reviewCount: current.reviewCount + 1,
+      lastPerformance: performance
+    };
+  }
+  /**
+   * Get problems due for review
+   */
+  async getProblemsForReview(userId, limit = 10) {
+    if (!this.database) {
+      return [];
+    }
+    const schedules = await this.database.getRepetitionSchedule(userId);
+    const now = /* @__PURE__ */ new Date();
+    const dueSchedules = schedules.filter((s) => s.nextReviewDate <= now).sort((a, b) => a.nextReviewDate.getTime() - b.nextReviewDate.getTime()).slice(0, limit);
+    const problems = [];
+    for (const schedule of dueSchedules) {
+      const topicProblems = await this.database.getProblems("review", { limit: 1 });
+      if (topicProblems.length > 0) {
+        problems.push(topicProblems[0]);
+      }
+    }
+    return problems;
+  }
+  /**
+   * Get session statistics
+   */
+  async getSessionStats(userId, sessionId) {
+    if (!this.database) {
+      return this.getDefaultStats();
+    }
+    return this.database.getSessionStats(userId, sessionId);
+  }
+  // Helper methods
+  buildGenerationPrompt(input) {
+    return `
+Generate ${input.count || 5} practice problems for the following specifications:
+
+**Topic:** ${input.topic}
+**Bloom's Taxonomy Level:** ${input.bloomsLevel || "apply"}
+**Difficulty:** ${input.difficulty || "intermediate"}
+**Problem Types:** ${(input.problemTypes || ["multiple_choice"]).join(", ")}
+**Learning Objectives:** ${input.learningObjectives?.join(", ") || "General understanding"}
+
+For each problem, provide:
+1. A clear problem statement
+2. For multiple choice: 4 options with one correct answer
+3. 3 progressive hints (conceptual \u2192 procedural \u2192 partial solution)
+4. A detailed solution explanation
+5. Related concepts
+6. Prerequisites
+
+Respond with a JSON array of problems following this structure:
+{
+  "problems": [
+    {
+      "title": "Problem Title",
+      "statement": "The problem statement",
+      "type": "multiple_choice",
+      "difficulty": "intermediate",
+      "bloomsLevel": "apply",
+      "points": 10,
+      "options": [
+        {"id": "a", "text": "Option A", "isCorrect": false, "explanation": "Why wrong"},
+        {"id": "b", "text": "Option B", "isCorrect": true, "explanation": "Why correct"}
+      ],
+      "hints": [
+        {"type": "conceptual", "content": "Think about...", "order": 1},
+        {"type": "procedural", "content": "First step is...", "order": 2},
+        {"type": "partial_solution", "content": "The answer starts with...", "order": 3}
+      ],
+      "solutionExplanation": "Detailed explanation",
+      "relatedConcepts": ["concept1", "concept2"],
+      "prerequisites": ["prereq1"]
+    }
+  ]
+}
+`;
+  }
+  parseGeneratedProblems(content, input) {
+    try {
+      const jsonContent = this.extractJson(content);
+      const parsed = JSON.parse(jsonContent);
+      const rawProblems = parsed.problems || parsed;
+      return rawProblems.map((p, index) => ({
+        id: `prob_${Date.now()}_${index}`,
+        type: p.type || "multiple_choice",
+        title: p.title || `Problem ${index + 1}`,
+        statement: p.statement || "",
+        difficulty: p.difficulty || input.difficulty || "intermediate",
+        bloomsLevel: p.bloomsLevel || input.bloomsLevel || "APPLY",
+        points: p.points || 10,
+        timeLimit: p.timeLimit || Math.floor((input.timeLimit || 25) / (input.count || 5)),
+        options: p.options,
+        correctAnswer: p.correctAnswer,
+        hints: (p.hints || []).map((h, i) => ({
+          id: `hint_${index}_${i}`,
+          type: h.type || "conceptual",
+          content: h.content || "",
+          order: h.order || i + 1,
+          penaltyPoints: 2
+        })),
+        solution: p.solution,
+        solutionExplanation: p.solutionExplanation || "Solution explanation not available",
+        relatedConcepts: p.relatedConcepts || [],
+        prerequisites: p.prerequisites || [],
+        tags: [input.topic, input.difficulty || "intermediate"],
+        learningObjectives: input.learningObjectives || [],
+        createdAt: /* @__PURE__ */ new Date(),
+        metadata: { source: "ai-generated" }
+      }));
+    } catch (error) {
+      console.error("Failed to parse AI-generated problems:", error);
+      return [];
+    }
+  }
+  generateTemplateProblem(params) {
+    const { topic, type, difficulty, bloomsLevel, index, learningObjectives, timeLimit } = params;
+    const templates = this.getTemplatesForType(type, topic, difficulty);
+    const template = templates[index % templates.length];
+    return {
+      id: `prob_${Date.now()}_${index}`,
+      type,
+      title: template.title,
+      statement: template.statement,
+      difficulty,
+      bloomsLevel,
+      points: this.getPointsForDifficulty(difficulty),
+      timeLimit: timeLimit || 5,
+      options: type === "multiple_choice" ? template.options : void 0,
+      correctAnswer: template.correctAnswer,
+      hints: [
+        { id: `hint_${index}_0`, type: "conceptual", content: template.hints[0], order: 1, penaltyPoints: 2 },
+        { id: `hint_${index}_1`, type: "procedural", content: template.hints[1], order: 2, penaltyPoints: 3 },
+        { id: `hint_${index}_2`, type: "partial_solution", content: template.hints[2], order: 3, penaltyPoints: 5 }
+      ],
+      solutionExplanation: template.solution,
+      relatedConcepts: [topic],
+      prerequisites: [],
+      tags: [topic, difficulty, bloomsLevel],
+      learningObjectives,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+  }
+  getTemplatesForType(type, topic, difficulty) {
+    const baseTemplates = [
+      {
+        title: `Understanding ${topic}`,
+        statement: `Explain the key concepts of ${topic} and how they relate to practical applications.`,
+        correctAnswer: `A comprehensive explanation covering the fundamentals of ${topic}.`,
+        hints: [
+          `Think about the core definition of ${topic}.`,
+          `Consider how ${topic} is used in real-world scenarios.`,
+          `The explanation should cover: definition, key components, and applications.`
+        ],
+        solution: `${topic} encompasses several key concepts that are fundamental to understanding the subject matter. The main components include the theoretical foundation, practical applications, and interconnections with related topics.`
+      },
+      {
+        title: `Applying ${topic}`,
+        statement: `Given a scenario involving ${topic}, describe how you would apply your knowledge to solve the problem.`,
+        correctAnswer: `A step-by-step approach to applying ${topic} principles.`,
+        hints: [
+          `Start by identifying the relevant aspects of ${topic}.`,
+          `Break down the problem into smaller components.`,
+          `Apply the principles systematically to each component.`
+        ],
+        solution: `To apply ${topic} effectively, first analyze the requirements, then select appropriate techniques, and finally implement the solution while considering best practices.`
+      }
+    ];
+    if (type === "multiple_choice") {
+      return [
+        {
+          ...baseTemplates[0],
+          statement: `Which of the following best describes a key aspect of ${topic}?`,
+          options: [
+            { id: "a", text: `A fundamental principle of ${topic}`, isCorrect: true, explanation: "This correctly describes a core concept." },
+            { id: "b", text: `An unrelated concept`, isCorrect: false, explanation: "This is not directly related to the topic." },
+            { id: "c", text: `A common misconception about ${topic}`, isCorrect: false, explanation: "This represents a misunderstanding." },
+            { id: "d", text: `A tangentially related idea`, isCorrect: false, explanation: "While related, this is not the best answer." }
+          ]
+        }
+      ];
+    }
+    return baseTemplates;
+  }
+  distributeTypes(types, count) {
+    const distributed = [];
+    for (let i = 0; i < count; i++) {
+      distributed.push(types[i % types.length]);
+    }
+    return distributed;
+  }
+  adjustDifficulty(base, skillLevel) {
+    if (skillLevel < 30) return "beginner";
+    if (skillLevel < 50) return base === "expert" ? "advanced" : base;
+    if (skillLevel > 80) return base === "beginner" ? "intermediate" : base;
+    return base;
+  }
+  increaseDifficulty(current) {
+    const order = ["beginner", "intermediate", "advanced", "expert"];
+    const idx = order.indexOf(current);
+    return order[Math.min(idx + 1, order.length - 1)];
+  }
+  increaseBloomsLevel(current) {
+    const order = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+    const idx = order.indexOf(current);
+    return order[Math.min(idx + 1, order.length - 1)];
+  }
+  getPointsForDifficulty(difficulty) {
+    switch (difficulty) {
+      case "beginner":
+        return 5;
+      case "intermediate":
+        return 10;
+      case "advanced":
+        return 15;
+      case "expert":
+        return 20;
+      default:
+        return 10;
+    }
+  }
+  calculateSimilarity(a, b) {
+    if (!a || !b) return 0;
+    const aWords = new Set(a.split(/\s+/));
+    const bWords = new Set(b.split(/\s+/));
+    let matches = 0;
+    aWords.forEach((word) => {
+      if (bWords.has(word)) matches++;
+    });
+    return matches / Math.max(aWords.size, bWords.size);
+  }
+  countByDifficulty(problems) {
+    const counts = { beginner: 0, intermediate: 0, advanced: 0, expert: 0 };
+    problems.forEach((p) => counts[p.difficulty]++);
+    return counts;
+  }
+  countByBlooms(problems) {
+    const counts = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    problems.forEach((p) => counts[p.bloomsLevel]++);
+    return counts;
+  }
+  generateDifficultyReasoning(stats, recommended) {
+    const successRate = stats.totalAttempts > 0 ? stats.correctAnswers / stats.totalAttempts : 0;
+    return `Based on ${stats.totalAttempts} attempts with ${Math.round(successRate * 100)}% success rate, ${recommended} difficulty is recommended.`;
+  }
+  extractJson(content) {
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
+    return jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+  }
+  getDefaultStats() {
+    return {
+      totalAttempts: 0,
+      correctAnswers: 0,
+      averageScore: 0,
+      totalPoints: 0,
+      totalTime: 0,
+      hintsUsed: 0,
+      byDifficulty: { beginner: { attempts: 0, correct: 0 }, intermediate: { attempts: 0, correct: 0 }, advanced: { attempts: 0, correct: 0 }, expert: { attempts: 0, correct: 0 } },
+      byBloomsLevel: { REMEMBER: { attempts: 0, correct: 0 }, UNDERSTAND: { attempts: 0, correct: 0 }, APPLY: { attempts: 0, correct: 0 }, ANALYZE: { attempts: 0, correct: 0 }, EVALUATE: { attempts: 0, correct: 0 }, CREATE: { attempts: 0, correct: 0 } },
+      byProblemType: { multiple_choice: { attempts: 0, correct: 0 }, short_answer: { attempts: 0, correct: 0 }, coding: { attempts: 0, correct: 0 }, essay: { attempts: 0, correct: 0 }, fill_blank: { attempts: 0, correct: 0 }, matching: { attempts: 0, correct: 0 }, ordering: { attempts: 0, correct: 0 }, diagram: { attempts: 0, correct: 0 }, calculation: { attempts: 0, correct: 0 }, case_study: { attempts: 0, correct: 0 } },
+      masteredConcepts: [],
+      conceptsNeedingReview: [],
+      currentStreak: 0,
+      bestStreak: 0
+    };
+  }
+};
+function createPracticeProblemsEngine(config) {
+  return new PracticeProblemsEngine(config);
+}
+
+// src/engines/adaptive-content-engine.ts
+var AdaptiveContentEngine = class {
+  constructor(config = {}) {
+    this.config = config;
+    this.database = config.database;
+    this.aiAdapter = config.aiAdapter;
+  }
+  database;
+  aiAdapter;
+  cache = /* @__PURE__ */ new Map();
+  /**
+   * Adapt content for a specific learner profile
+   */
+  async adaptContent(content, profile, options = {}) {
+    const {
+      targetStyle = profile.primaryStyle,
+      targetComplexity = profile.preferredComplexity,
+      targetFormat,
+      includeSupplementary = true,
+      includeKnowledgeChecks = true,
+      personalizeExamples = true,
+      addScaffolding = true
+    } = options;
+    const cacheKey = `${content.id}-${targetStyle}-${targetComplexity}`;
+    if (this.cache.has(cacheKey) && this.config.enableCaching) {
+      return this.cache.get(cacheKey);
+    }
+    if (this.aiAdapter) {
+      return this.adaptWithAI(content, profile, options);
+    }
+    const chunks = this.createAdaptedChunks(content, targetStyle, targetComplexity, targetFormat);
+    let scaffolding;
+    if (addScaffolding && content.prerequisites.length > 0) {
+      scaffolding = this.createScaffolding(content.prerequisites, profile.knownConcepts);
+    }
+    let knowledgeChecks = [];
+    if (includeKnowledgeChecks) {
+      knowledgeChecks = this.generateKnowledgeChecks(content, chunks);
+    }
+    let supplementaryResources = [];
+    if (includeSupplementary) {
+      supplementaryResources = this.getSupplementaryForStyle(content.topic, targetStyle);
+    }
+    const adaptedContent = {
+      originalId: content.id,
+      chunks,
+      summary: this.generateSummary(content, targetStyle),
+      keyTakeaways: this.extractKeyTakeaways(content),
+      knowledgeChecks,
+      supplementaryResources,
+      scaffolding,
+      estimatedTotalTime: chunks.reduce((sum, c) => sum + c.estimatedTime, 0),
+      adaptationInfo: {
+        targetStyle,
+        targetComplexity,
+        adaptedAt: /* @__PURE__ */ new Date(),
+        confidence: profile.confidence
+      }
+    };
+    if (this.config.enableCaching) {
+      this.cache.set(cacheKey, adaptedContent);
+    }
+    return adaptedContent;
+  }
+  /**
+   * Adapt content using AI
+   */
+  async adaptWithAI(content, profile, options) {
+    const prompt = this.buildAdaptationPrompt(content, profile, options);
+    try {
+      const response = await this.aiAdapter.chat({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert educational content adapter. Transform content to match the learner's style while maintaining accuracy and educational value. Always respond with valid JSON.`
+          },
+          { role: "user", content: prompt }
+        ]
+      });
+      return this.parseAdaptedContent(response.content, content, profile, options);
+    } catch (error) {
+      console.error("AI adaptation failed, using rule-based:", error);
+      return this.adaptContent(content, profile, { ...options });
+    }
+  }
+  /**
+   * Detect learning style from user interactions
+   */
+  async detectLearningStyle(userId) {
+    if (!this.database) {
+      return this.getDefaultStyleResult();
+    }
+    const interactions = await this.database.getInteractions(userId, { limit: 100 });
+    if (interactions.length < (this.config.minInteractionsForAdaptation || 5)) {
+      return this.getDefaultStyleResult();
+    }
+    const formatStats = this.analyzeFormatPreferences(interactions);
+    const behaviorIndicators = this.analyzeBehaviorIndicators(interactions);
+    const scores = this.calculateStyleScores(formatStats, behaviorIndicators);
+    const sortedStyles = Object.entries(scores).sort(([, a], [, b]) => b - a).map(([style]) => style);
+    const primaryStyle = sortedStyles[0];
+    const secondaryStyleKey = sortedStyles[1];
+    const secondaryStyle = secondaryStyleKey && scores[secondaryStyleKey] > 20 ? secondaryStyleKey : void 0;
+    const confidence = Math.min(0.95, 0.3 + interactions.length * 0.01);
+    const evidence = this.generateStyleEvidence(formatStats, behaviorIndicators);
+    return {
+      primaryStyle,
+      secondaryStyle,
+      scores,
+      confidence,
+      evidence,
+      recommendations: this.getStyleRecommendations(primaryStyle)
+    };
+  }
+  /**
+   * Get or create learner profile
+   */
+  async getLearnerProfile(userId) {
+    if (this.database) {
+      const existing = await this.database.getLearnerProfile(userId);
+      if (existing) return existing;
+    }
+    const styleResult = await this.detectLearningStyle(userId);
+    const profile = {
+      userId,
+      primaryStyle: styleResult.primaryStyle,
+      secondaryStyle: styleResult.secondaryStyle,
+      styleScores: styleResult.scores,
+      preferredFormats: this.getFormatsForStyle(styleResult.primaryStyle),
+      preferredComplexity: "standard",
+      readingPace: "moderate",
+      preferredSessionDuration: 25,
+      knownConcepts: [],
+      conceptsInProgress: [],
+      strugglingAreas: [],
+      confidence: styleResult.confidence,
+      lastUpdated: /* @__PURE__ */ new Date()
+    };
+    if (this.database) {
+      await this.database.saveLearnerProfile(profile);
+    }
+    return profile;
+  }
+  /**
+   * Update learner profile from recent interactions
+   */
+  async updateProfileFromInteractions(userId) {
+    const currentProfile = await this.getLearnerProfile(userId);
+    const newStyleResult = await this.detectLearningStyle(userId);
+    const blendedScores = {
+      visual: currentProfile.styleScores.visual * 0.3 + newStyleResult.scores.visual * 0.7,
+      auditory: currentProfile.styleScores.auditory * 0.3 + newStyleResult.scores.auditory * 0.7,
+      reading: currentProfile.styleScores.reading * 0.3 + newStyleResult.scores.reading * 0.7,
+      kinesthetic: currentProfile.styleScores.kinesthetic * 0.3 + newStyleResult.scores.kinesthetic * 0.7
+    };
+    const updatedProfile = {
+      ...currentProfile,
+      primaryStyle: newStyleResult.primaryStyle,
+      secondaryStyle: newStyleResult.secondaryStyle,
+      styleScores: blendedScores,
+      preferredFormats: this.getFormatsForStyle(newStyleResult.primaryStyle),
+      confidence: newStyleResult.confidence,
+      lastUpdated: /* @__PURE__ */ new Date()
+    };
+    if (this.database) {
+      await this.database.saveLearnerProfile(updatedProfile);
+    }
+    return updatedProfile;
+  }
+  /**
+   * Record a content interaction
+   */
+  async recordInteraction(interaction) {
+    if (this.database) {
+      await this.database.recordInteraction(interaction);
+    }
+  }
+  /**
+   * Get content recommendations based on profile
+   */
+  async getContentRecommendations(profile, currentTopic, count = 5) {
+    const resources = this.getSupplementaryForStyle(currentTopic, profile.primaryStyle);
+    if (profile.secondaryStyle) {
+      resources.push(...this.getSupplementaryForStyle(currentTopic, profile.secondaryStyle));
+    }
+    return resources.sort((a, b) => b.relevance - a.relevance).slice(0, count);
+  }
+  /**
+   * Get style-specific tips
+   */
+  getStyleTips(style) {
+    switch (style) {
+      case "visual":
+        return [
+          "Focus on diagrams, charts, and visual representations",
+          "Use color coding in your notes",
+          "Create mind maps to connect concepts",
+          "Watch video demonstrations before reading text",
+          "Draw flowcharts for processes"
+        ];
+      case "auditory":
+        return [
+          "Listen to explanations and discussions",
+          "Read content aloud to yourself",
+          "Join study groups for verbal exchange",
+          "Use text-to-speech for reading materials",
+          "Record yourself explaining concepts"
+        ];
+      case "reading":
+        return [
+          "Read detailed documentation and articles",
+          "Take comprehensive written notes",
+          "Create written summaries in your own words",
+          "Use highlighted text and annotations",
+          "Write practice questions for yourself"
+        ];
+      case "kinesthetic":
+        return [
+          "Practice with hands-on exercises immediately",
+          "Build projects to apply concepts",
+          "Take breaks and move while studying",
+          "Use interactive simulations",
+          "Teach concepts to others through demonstration"
+        ];
+      case "multimodal":
+      default:
+        return [
+          "Combine multiple learning methods",
+          "Switch between videos, text, and practice",
+          "Find what works best for each topic",
+          "Use variety to maintain engagement",
+          "Adapt your approach based on content type"
+        ];
+    }
+  }
+  // Private helper methods
+  createAdaptedChunks(content, style, complexity, targetFormat) {
+    const chunks = [];
+    const format = targetFormat || this.getFormatsForStyle(style)[0];
+    chunks.push({
+      id: `chunk_main_${Date.now()}`,
+      type: "main",
+      content: this.transformForStyle(content.content, style, complexity),
+      format,
+      order: 1,
+      estimatedTime: this.estimateReadingTime(content.content, style),
+      isEssential: true
+    });
+    if (style === "visual" || style === "reading") {
+      chunks.push({
+        id: `chunk_summary_${Date.now()}`,
+        type: "summary",
+        content: this.generateSummary(content, style),
+        format: style === "visual" ? "infographic" : "text",
+        order: 2,
+        estimatedTime: 2,
+        isEssential: true
+      });
+    }
+    if (style === "kinesthetic") {
+      chunks.push({
+        id: `chunk_example_${Date.now()}`,
+        type: "example",
+        content: this.generatePracticalExample(content),
+        format: "interactive",
+        order: 2,
+        estimatedTime: 5,
+        isEssential: true
+      });
+    }
+    chunks.push({
+      id: `chunk_practice_${Date.now()}`,
+      type: "practice",
+      content: this.generatePracticeActivity(content, style),
+      format: "interactive",
+      order: chunks.length + 1,
+      estimatedTime: 5,
+      isEssential: false
+    });
+    return chunks;
+  }
+  transformForStyle(content, style, complexity) {
+    let transformed = content;
+    switch (complexity) {
+      case "simplified":
+        transformed = this.simplifyContent(transformed);
+        break;
+      case "detailed":
+        transformed = this.expandContent(transformed);
+        break;
+      case "expert":
+        transformed = this.addTechnicalDetails(transformed);
+        break;
+    }
+    switch (style) {
+      case "visual":
+        transformed = this.addVisualCues(transformed);
+        break;
+      case "auditory":
+        transformed = this.addAuditoryGuidance(transformed);
+        break;
+      case "kinesthetic":
+        transformed = this.addActionPoints(transformed);
+        break;
+    }
+    return transformed;
+  }
+  simplifyContent(content) {
+    return content.replace(/furthermore/gi, "also").replace(/however/gi, "but").replace(/consequently/gi, "so").replace(/utilize/gi, "use").replace(/implement/gi, "do").replace(/demonstrate/gi, "show");
+  }
+  expandContent(content) {
+    return `${content}
+
+**Additional Details:**
+This concept builds on fundamental principles and has several practical applications. Understanding the nuances helps in applying it effectively in real-world scenarios.`;
+  }
+  addTechnicalDetails(content) {
+    return `${content}
+
+**Technical Depth:**
+For advanced practitioners, consider the underlying mechanisms, edge cases, and optimization strategies related to this topic.`;
+  }
+  addVisualCues(content) {
+    return `\u{1F4CA} **Visual Guide:**
+
+${content}
+
+\u{1F4A1} **Key Visual:** Imagine this concept as a flowchart or diagram connecting the main ideas.`;
+  }
+  addAuditoryGuidance(content) {
+    return `\u{1F3A7} **Listen & Learn:**
+
+${content}
+
+\u{1F5E3}\uFE0F **Try This:** Read the key points aloud to reinforce understanding.`;
+  }
+  addActionPoints(content) {
+    return `\u{1F527} **Hands-On Learning:**
+
+${content}
+
+\u270B **Take Action:** Try applying this concept immediately with a small exercise or example.`;
+  }
+  generateSummary(content, style) {
+    const baseContent = content.content.substring(0, 500);
+    switch (style) {
+      case "visual":
+        return `\u{1F4CC} **Quick Overview:**
+
+\u2022 Topic: ${content.topic}
+\u2022 Key Focus: ${content.title || "Understanding core concepts"}
+\u2022 Visual Tip: Create a mind map of the main ideas`;
+      case "auditory":
+        return `\u{1F3AF} **Summary to Read Aloud:**
+
+This section covers ${content.topic}. The main takeaway is understanding how the concepts connect and apply to real situations.`;
+      case "kinesthetic":
+        return `\u{1F3AF} **Action Summary:**
+
+After learning about ${content.topic}, try:
+1. Apply one concept immediately
+2. Create a small project
+3. Teach it to someone else`;
+      default:
+        return `\u{1F4DD} **Summary:**
+
+${baseContent}...`;
+    }
+  }
+  extractKeyTakeaways(content) {
+    return [
+      `Understanding ${content.topic} is foundational for advanced concepts`,
+      `Key concepts: ${content.concepts.slice(0, 3).join(", ")}`,
+      `Prerequisites include: ${content.prerequisites.slice(0, 2).join(", ") || "None"}`
+    ];
+  }
+  generateKnowledgeChecks(content, chunks) {
+    const mainChunk = chunks.find((c) => c.type === "main");
+    if (!mainChunk) return [];
+    return content.concepts.slice(0, 2).map((concept, idx) => ({
+      id: `check_${Date.now()}_${idx}`,
+      question: `Can you explain the key aspect of ${concept} in your own words?`,
+      correctAnswer: `A correct answer would demonstrate understanding of ${concept} and its role in ${content.topic}.`,
+      concept,
+      afterChunkId: mainChunk.id
+    }));
+  }
+  generatePracticalExample(content) {
+    return `**Practical Exercise for ${content.topic}:**
+
+1. Start with a simple task
+2. Apply the concept step by step
+3. Verify your understanding
+4. Try a more complex variation`;
+  }
+  generatePracticeActivity(content, style) {
+    switch (style) {
+      case "visual":
+        return `Create a diagram or visual representation of ${content.topic}. Include the main concepts and their relationships.`;
+      case "auditory":
+        return `Explain ${content.topic} out loud as if you were teaching it to someone. Record yourself and listen back.`;
+      case "reading":
+        return `Write a short summary (100-150 words) of ${content.topic} in your own words. Include examples.`;
+      case "kinesthetic":
+        return `Build a small project or exercise that demonstrates ${content.topic}. Focus on hands-on application.`;
+      default:
+        return `Review ${content.topic} using your preferred method. Quiz yourself on the key concepts.`;
+    }
+  }
+  getSupplementaryForStyle(topic, style) {
+    const resources = [];
+    switch (style) {
+      case "visual":
+        resources.push({
+          id: `supp_visual_${Date.now()}`,
+          type: "video",
+          title: `Video Explanation: ${topic}`,
+          description: "Visual walkthrough of key concepts",
+          resource: `https://example.com/video/${topic}`,
+          relevance: 0.9,
+          targetStyle: "visual"
+        });
+        break;
+      case "auditory":
+        resources.push({
+          id: `supp_audio_${Date.now()}`,
+          type: "article",
+          title: `Podcast Discussion: ${topic}`,
+          description: "Audio discussion of the topic",
+          resource: `https://example.com/podcast/${topic}`,
+          relevance: 0.9,
+          targetStyle: "auditory"
+        });
+        break;
+      case "kinesthetic":
+        resources.push({
+          id: `supp_interactive_${Date.now()}`,
+          type: "interactive",
+          title: `Interactive Lab: ${topic}`,
+          description: "Hands-on practice exercises",
+          resource: `https://example.com/lab/${topic}`,
+          relevance: 0.9,
+          targetStyle: "kinesthetic"
+        });
+        break;
+      default:
+        resources.push({
+          id: `supp_article_${Date.now()}`,
+          type: "article",
+          title: `Deep Dive: ${topic}`,
+          description: "Comprehensive article on the topic",
+          resource: `https://example.com/article/${topic}`,
+          relevance: 0.8,
+          targetStyle: "reading"
+        });
+    }
+    return resources;
+  }
+  createScaffolding(prerequisites, knownConcepts) {
+    const unknownPrereqs = prerequisites.filter((p) => !knownConcepts.includes(p));
+    return unknownPrereqs.map((concept) => ({
+      concept,
+      explanation: `Before continuing, it's helpful to understand ${concept}. This forms the foundation for what you're about to learn.`,
+      examples: [
+        `Think of ${concept} as a building block for more complex ideas`,
+        `In practice, ${concept} is used when...`
+      ]
+    }));
+  }
+  analyzeFormatPreferences(interactions) {
+    const stats = /* @__PURE__ */ new Map();
+    interactions.forEach((i) => {
+      const current = stats.get(i.format) || { count: 0, totalTime: 0, completed: 0 };
+      stats.set(i.format, {
+        count: current.count + 1,
+        totalTime: current.totalTime + i.timeSpent,
+        completed: current.completed + (i.completed ? 1 : 0)
+      });
+    });
+    const result = /* @__PURE__ */ new Map();
+    stats.forEach((value, key) => {
+      result.set(key, {
+        count: value.count,
+        avgTime: value.totalTime / value.count,
+        completion: value.completed / value.count
+      });
+    });
+    return result;
+  }
+  analyzeBehaviorIndicators(interactions) {
+    let notesTaken = 0;
+    let replays = 0;
+    let pauses = 0;
+    let highScroll = 0;
+    interactions.forEach((i) => {
+      if (i.notesTaken) notesTaken++;
+      if (i.replayCount && i.replayCount > 0) replays++;
+      if (i.pauseCount && i.pauseCount > 2) pauses++;
+      if (i.scrollDepth > 80) highScroll++;
+    });
+    return { notesTaken, replays, pauses, highScroll };
+  }
+  calculateStyleScores(formatStats, behaviors) {
+    let visual = 25;
+    let auditory = 25;
+    let reading = 25;
+    let kinesthetic = 25;
+    const videoStats = formatStats.get("video");
+    const textStats = formatStats.get("text");
+    const interactiveStats = formatStats.get("interactive");
+    const audioStats = formatStats.get("audio");
+    if (videoStats && videoStats.completion > 0.7) visual += 20;
+    if (textStats && textStats.completion > 0.7) reading += 20;
+    if (interactiveStats && interactiveStats.completion > 0.7) kinesthetic += 20;
+    if (audioStats && audioStats.completion > 0.7) auditory += 20;
+    if (behaviors.notesTaken > 5) reading += 10;
+    if (behaviors.replays > 3) auditory += 10;
+    if (behaviors.highScroll > 5) reading += 5;
+    const total = visual + auditory + reading + kinesthetic;
+    return {
+      visual: Math.round(visual / total * 100),
+      auditory: Math.round(auditory / total * 100),
+      reading: Math.round(reading / total * 100),
+      kinesthetic: Math.round(kinesthetic / total * 100)
+    };
+  }
+  generateStyleEvidence(formatStats, behaviors) {
+    const evidence = [];
+    const videoStats = formatStats.get("video");
+    if (videoStats && videoStats.completion > 0.6) {
+      evidence.push({ factor: "High video completion rate", weight: 0.8, contribution: "visual" });
+    }
+    if (behaviors.notesTaken > 3) {
+      evidence.push({ factor: "Frequent note-taking", weight: 0.7, contribution: "reading" });
+    }
+    if (behaviors.replays > 2) {
+      evidence.push({ factor: "Content replay behavior", weight: 0.6, contribution: "auditory" });
+    }
+    return evidence;
+  }
+  getFormatsForStyle(style) {
+    switch (style) {
+      case "visual":
+        return ["video", "diagram", "infographic"];
+      case "auditory":
+        return ["audio", "video", "text"];
+      case "reading":
+        return ["text", "code_example", "case_study"];
+      case "kinesthetic":
+        return ["interactive", "simulation", "quiz"];
+      default:
+        return ["text", "video", "interactive"];
+    }
+  }
+  getStyleRecommendations(style) {
+    return this.getStyleTips(style);
+  }
+  estimateReadingTime(content, style) {
+    const wordCount = content.split(/\s+/).length;
+    const baseTime = wordCount / 200;
+    switch (style) {
+      case "visual":
+        return Math.ceil(baseTime * 1.2);
+      // Visual learners may take longer with text
+      case "reading":
+        return Math.ceil(baseTime * 0.8);
+      // Reading learners are faster
+      default:
+        return Math.ceil(baseTime);
+    }
+  }
+  getDefaultStyleResult() {
+    return {
+      primaryStyle: "multimodal",
+      scores: { visual: 25, auditory: 25, reading: 25, kinesthetic: 25 },
+      confidence: 0.3,
+      evidence: [],
+      recommendations: this.getStyleTips("multimodal")
+    };
+  }
+  buildAdaptationPrompt(content, profile, options) {
+    return `
+Adapt the following educational content for a ${profile.primaryStyle} learner at ${profile.preferredComplexity} complexity level.
+
+**Original Content:**
+${content.content}
+
+**Topic:** ${content.topic}
+**Learner Profile:**
+- Primary Style: ${profile.primaryStyle}
+- Secondary Style: ${profile.secondaryStyle || "None"}
+- Preferred Complexity: ${profile.preferredComplexity}
+- Known Concepts: ${profile.knownConcepts.join(", ") || "None specified"}
+
+**Adaptation Requirements:**
+- Include supplementary resources: ${options.includeSupplementary}
+- Include knowledge checks: ${options.includeKnowledgeChecks}
+- Add scaffolding for prerequisites: ${options.addScaffolding}
+
+Respond with JSON:
+{
+  "chunks": [
+    {"type": "main", "content": "adapted content", "format": "text", "estimatedTime": 5}
+  ],
+  "summary": "brief summary",
+  "keyTakeaways": ["takeaway1", "takeaway2"],
+  "knowledgeChecks": [{"question": "...", "correctAnswer": "...", "concept": "..."}]
+}
+`;
+  }
+  parseAdaptedContent(response, content, profile, options) {
+    try {
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : response);
+      return {
+        originalId: content.id,
+        chunks: (parsed.chunks || []).map((c, i) => ({
+          id: `chunk_${Date.now()}_${i}`,
+          type: c.type || "main",
+          content: c.content || "",
+          format: c.format || "text",
+          order: i + 1,
+          estimatedTime: c.estimatedTime || 5,
+          isEssential: c.type === "main"
+        })),
+        summary: parsed.summary || "",
+        keyTakeaways: parsed.keyTakeaways || [],
+        knowledgeChecks: (parsed.knowledgeChecks || []).map((k, i) => ({
+          id: `check_${Date.now()}_${i}`,
+          question: k.question || "",
+          correctAnswer: k.correctAnswer || "",
+          concept: k.concept || "",
+          afterChunkId: `chunk_${Date.now()}_0`
+        })),
+        supplementaryResources: this.getSupplementaryForStyle(content.topic, profile.primaryStyle),
+        estimatedTotalTime: parsed.chunks?.reduce((sum, c) => sum + (c.estimatedTime || 5), 0) || 10,
+        adaptationInfo: {
+          targetStyle: options.targetStyle || profile.primaryStyle,
+          targetComplexity: options.targetComplexity || profile.preferredComplexity,
+          adaptedAt: /* @__PURE__ */ new Date(),
+          confidence: profile.confidence
+        }
+      };
+    } catch {
+      return {
+        originalId: content.id,
+        chunks: this.createAdaptedChunks(
+          content,
+          options.targetStyle || profile.primaryStyle,
+          options.targetComplexity || profile.preferredComplexity,
+          options.targetFormat
+        ),
+        summary: this.generateSummary(content, options.targetStyle || profile.primaryStyle),
+        keyTakeaways: this.extractKeyTakeaways(content),
+        knowledgeChecks: [],
+        supplementaryResources: this.getSupplementaryForStyle(content.topic, profile.primaryStyle),
+        estimatedTotalTime: 10,
+        adaptationInfo: {
+          targetStyle: options.targetStyle || profile.primaryStyle,
+          targetComplexity: options.targetComplexity || profile.preferredComplexity,
+          adaptedAt: /* @__PURE__ */ new Date(),
+          confidence: profile.confidence
+        }
+      };
+    }
+  }
+};
+function createAdaptiveContentEngine(config) {
+  return new AdaptiveContentEngine(config);
+}
+
+// src/engines/socratic-teaching-engine.ts
+var SocraticTeachingEngine = class {
+  constructor(config = {}) {
+    this.config = config;
+    this.database = config.database;
+    this.aiAdapter = config.aiAdapter;
+  }
+  database;
+  aiAdapter;
+  dialogueCache = /* @__PURE__ */ new Map();
+  /**
+   * Start a new Socratic dialogue
+   */
+  async startDialogue(input) {
+    const {
+      userId,
+      topic,
+      learningObjective = `Understand the key concepts and implications of ${topic}`,
+      priorKnowledge,
+      targetBloomsLevel = "ANALYZE",
+      preferredStyle = "balanced"
+    } = input;
+    const keyInsights = await this.generateKeyInsights(topic, learningObjective);
+    const dialogue = {
+      id: `dialogue_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      userId,
+      topic,
+      learningObjective,
+      state: "introduction",
+      exchanges: [],
+      discoveredInsights: [],
+      remainingInsights: keyInsights,
+      startedAt: /* @__PURE__ */ new Date()
+    };
+    this.dialogueCache.set(dialogue.id, dialogue);
+    if (this.database) {
+      await this.database.createDialogue(dialogue);
+    }
+    const openingQuestion = await this.generateQuestion(topic, "clarifying", {
+      currentUnderstanding: priorKnowledge
+    });
+    const exchange = {
+      order: 1,
+      question: openingQuestion
+    };
+    dialogue.exchanges.push(exchange);
+    dialogue.state = "exploration";
+    this.dialogueCache.set(dialogue.id, dialogue);
+    return {
+      state: dialogue.state,
+      question: openingQuestion,
+      feedback: this.getIntroductionMessage(topic, preferredStyle),
+      encouragement: this.getEncouragement("start"),
+      discoveredInsights: [],
+      progress: 0,
+      availableHints: openingQuestion.hints,
+      isComplete: false
+    };
+  }
+  /**
+   * Continue an existing dialogue
+   */
+  async continueDialogue(input) {
+    const { dialogueId, response, requestedHint, skipQuestion } = input;
+    let dialogue = this.dialogueCache.get(dialogueId);
+    if (!dialogue && this.database) {
+      dialogue = await this.database.getDialogue(dialogueId) || void 0;
+    }
+    if (!dialogue) {
+      throw new Error(`Dialogue ${dialogueId} not found`);
+    }
+    const currentExchange = dialogue.exchanges[dialogue.exchanges.length - 1];
+    const currentQuestion = currentExchange.question;
+    if (requestedHint) {
+      const hintIndex = currentExchange.response?.usedHint ? 1 : 0;
+      const hint = currentQuestion.hints[hintIndex] || currentQuestion.hints[0];
+      return {
+        state: dialogue.state,
+        question: currentQuestion,
+        feedback: `\u{1F4A1} Here's a hint: ${hint}`,
+        discoveredInsights: dialogue.discoveredInsights,
+        progress: this.calculateProgress(dialogue),
+        availableHints: currentQuestion.hints.slice(hintIndex + 1),
+        isComplete: false
+      };
+    }
+    if (skipQuestion) {
+      return this.moveToNextQuestion(dialogue, null);
+    }
+    const analysis = await this.analyzeResponse(currentQuestion, response);
+    currentExchange.response = {
+      id: `resp_${Date.now()}`,
+      questionId: currentQuestion.id,
+      response,
+      timestamp: /* @__PURE__ */ new Date(),
+      responseTime: 0,
+      usedHint: false
+    };
+    currentExchange.analysis = analysis;
+    currentExchange.feedback = this.generateFeedback(analysis, this.config.encouragingMode ?? true);
+    if (analysis.reachedInsight) {
+      const discoveredInsight = currentQuestion.keyInsights[0];
+      if (discoveredInsight && !dialogue.discoveredInsights.includes(discoveredInsight)) {
+        dialogue.discoveredInsights.push(discoveredInsight);
+        dialogue.remainingInsights = dialogue.remainingInsights.filter(
+          (i) => i !== discoveredInsight
+        );
+      }
+    }
+    this.dialogueCache.set(dialogueId, dialogue);
+    if (this.database) {
+      await this.database.saveExchange(dialogueId, currentExchange);
+    }
+    if (this.shouldConclude(dialogue, analysis)) {
+      return this.concludeDialogue(dialogue);
+    }
+    return this.moveToNextQuestion(dialogue, analysis);
+  }
+  /**
+   * Get hint for current question
+   */
+  async getHint(dialogueId, hintIndex = 0) {
+    const dialogue = this.dialogueCache.get(dialogueId);
+    if (!dialogue) {
+      throw new Error(`Dialogue ${dialogueId} not found`);
+    }
+    const currentExchange = dialogue.exchanges[dialogue.exchanges.length - 1];
+    const hints = currentExchange.question.hints;
+    return hints[hintIndex] || hints[0] || "Try to think about the fundamental principles involved.";
+  }
+  /**
+   * End dialogue and get summary
+   */
+  async endDialogue(dialogueId) {
+    const dialogue = this.dialogueCache.get(dialogueId);
+    if (!dialogue) {
+      throw new Error(`Dialogue ${dialogueId} not found`);
+    }
+    dialogue.endedAt = /* @__PURE__ */ new Date();
+    dialogue.state = "conclusion";
+    const synthesis = await this.generateSynthesis(dialogue);
+    const performance = this.calculatePerformance(dialogue);
+    dialogue.synthesis = synthesis;
+    dialogue.performance = performance;
+    this.dialogueCache.set(dialogueId, dialogue);
+    if (this.database) {
+      await this.database.updateDialogue(dialogueId, {
+        state: "conclusion",
+        endedAt: dialogue.endedAt,
+        synthesis,
+        performance
+      });
+    }
+    return { synthesis, performance };
+  }
+  /**
+   * Get dialogue by ID
+   */
+  async getDialogue(dialogueId) {
+    let dialogue = this.dialogueCache.get(dialogueId);
+    if (!dialogue && this.database) {
+      dialogue = await this.database.getDialogue(dialogueId) || void 0;
+    }
+    return dialogue || null;
+  }
+  /**
+   * Get user's dialogue history
+   */
+  async getUserDialogues(userId, limit = 10) {
+    if (this.database) {
+      return this.database.getUserDialogues(userId, { limit });
+    }
+    return Array.from(this.dialogueCache.values()).filter((d) => d.userId === userId).slice(0, limit);
+  }
+  /**
+   * Generate a Socratic question
+   */
+  async generateQuestion(topic, type, context) {
+    if (this.aiAdapter) {
+      return this.generateQuestionWithAI(topic, type, context);
+    }
+    return this.generateTemplateQuestion(topic, type, context);
+  }
+  /**
+   * Analyze a student response
+   */
+  async analyzeResponse(question, response) {
+    if (this.aiAdapter) {
+      return this.analyzeWithAI(question, response);
+    }
+    return this.analyzeWithRules(question, response);
+  }
+  // Private helper methods
+  async generateQuestionWithAI(topic, type, context) {
+    const prompt = `
+Generate a Socratic ${type} question about "${topic}".
+
+Question Type Explanation:
+- clarifying: Asks for clearer definitions or examples
+- probing_assumptions: Challenges underlying assumptions
+- probing_reasons: Asks for evidence or reasoning
+- questioning_viewpoints: Explores alternative perspectives
+- probing_implications: Explores consequences
+- questioning_the_question: Examines why the question matters
+
+${context?.previousQuestions?.length ? `Previous questions asked: ${context.previousQuestions.join(", ")}` : ""}
+${context?.currentUnderstanding ? `Current student understanding: ${context.currentUnderstanding}` : ""}
+
+Respond with JSON:
+{
+  "question": "The Socratic question",
+  "purpose": "Why this question helps learning",
+  "expectedDirection": "Where this should lead the student's thinking",
+  "bloomsLevel": "remember|understand|apply|analyze|evaluate|create",
+  "fallbackQuestions": ["simpler follow-up if student struggles"],
+  "hints": ["hint 1", "hint 2", "hint 3"],
+  "keyInsights": ["the insight this question aims to reveal"]
+}
+`;
+    try {
+      const response = await this.aiAdapter.chat({
+        messages: [
+          {
+            role: "system",
+            content: "You are a Socratic teacher. Generate thought-provoking questions that guide students to discover insights themselves. Respond only with valid JSON."
+          },
+          { role: "user", content: prompt }
+        ]
+      });
+      const parsed = JSON.parse(this.extractJson(response.content));
+      return {
+        id: `q_${Date.now()}`,
+        type,
+        question: parsed.question,
+        purpose: parsed.purpose,
+        expectedDirection: parsed.expectedDirection,
+        bloomsLevel: parsed.bloomsLevel?.toUpperCase() || "ANALYZE",
+        fallbackQuestions: parsed.fallbackQuestions || [],
+        hints: parsed.hints || [],
+        keyInsights: parsed.keyInsights || []
+      };
+    } catch {
+      return this.generateTemplateQuestion(topic, type, context);
+    }
+  }
+  generateTemplateQuestion(topic, type, context) {
+    const templates = {
+      clarifying: (t) => ({
+        id: `q_${Date.now()}`,
+        type: "clarifying",
+        question: `What do you mean when you say "${t}"? Can you give a specific example?`,
+        purpose: "To ensure clear understanding of the concept",
+        expectedDirection: "Student should provide concrete examples",
+        bloomsLevel: "UNDERSTAND",
+        fallbackQuestions: [`Can you describe ${t} in your own words?`],
+        hints: [
+          "Think about a specific situation where this applies",
+          "Try to break it down into simpler parts",
+          "What is the most essential aspect?"
+        ],
+        keyInsights: [`Clear definition and practical examples of ${t}`]
+      }),
+      probing_assumptions: (t) => ({
+        id: `q_${Date.now()}`,
+        type: "probing_assumptions",
+        question: `What assumptions are you making about ${t}? Are these always true?`,
+        purpose: "To challenge underlying assumptions",
+        expectedDirection: "Student should identify hidden assumptions",
+        bloomsLevel: "ANALYZE",
+        fallbackQuestions: [`What do you take for granted about ${t}?`],
+        hints: [
+          "Consider what must be true for your view to hold",
+          "Think about edge cases or exceptions",
+          "What would need to change for this not to work?"
+        ],
+        keyInsights: [`Recognition of assumptions underlying ${t}`]
+      }),
+      probing_reasons: (t) => ({
+        id: `q_${Date.now()}`,
+        type: "probing_reasons",
+        question: `Why do you think ${t} works this way? What evidence supports this?`,
+        purpose: "To explore reasoning and evidence",
+        expectedDirection: "Student should provide reasoning and evidence",
+        bloomsLevel: "ANALYZE",
+        fallbackQuestions: [`What makes you believe this about ${t}?`],
+        hints: [
+          "Think about cause and effect relationships",
+          "What observations support this?",
+          "How could you test this?"
+        ],
+        keyInsights: [`Understanding the reasoning behind ${t}`]
+      }),
+      questioning_viewpoints: (t) => ({
+        id: `q_${Date.now()}`,
+        type: "questioning_viewpoints",
+        question: `How might someone with a different perspective view ${t}? What would they say?`,
+        purpose: "To explore alternative viewpoints",
+        expectedDirection: "Student should consider other perspectives",
+        bloomsLevel: "EVALUATE",
+        fallbackQuestions: [`What's an alternative way to think about ${t}?`],
+        hints: [
+          "Consider the opposite viewpoint",
+          "Think about different contexts or fields",
+          "What would a critic say?"
+        ],
+        keyInsights: [`Multiple perspectives on ${t}`]
+      }),
+      probing_implications: (t) => ({
+        id: `q_${Date.now()}`,
+        type: "probing_implications",
+        question: `If ${t} is true, what are the consequences? What else must follow?`,
+        purpose: "To explore implications and consequences",
+        expectedDirection: "Student should trace logical consequences",
+        bloomsLevel: "EVALUATE",
+        fallbackQuestions: [`What happens if we apply ${t} broadly?`],
+        hints: [
+          "Think about both immediate and long-term effects",
+          "Consider unintended consequences",
+          "What chains of events might this trigger?"
+        ],
+        keyInsights: [`Implications and consequences of ${t}`]
+      }),
+      questioning_the_question: (t) => ({
+        id: `q_${Date.now()}`,
+        type: "questioning_the_question",
+        question: `Why is understanding ${t} important? What problem does it solve?`,
+        purpose: "To examine the significance of the topic",
+        expectedDirection: "Student should reflect on importance and relevance",
+        bloomsLevel: "EVALUATE",
+        fallbackQuestions: [`Who benefits from understanding ${t}?`],
+        hints: [
+          "Think about practical applications",
+          "Consider what would be lost without this knowledge",
+          "How does this connect to larger goals?"
+        ],
+        keyInsights: [`Significance and relevance of ${t}`]
+      })
+    };
+    return templates[type](topic);
+  }
+  async analyzeWithAI(question, response) {
+    const prompt = `
+Analyze this student response to a Socratic question:
+
+**Question:** ${question.question}
+**Expected Direction:** ${question.expectedDirection}
+**Key Insights to Discover:** ${question.keyInsights.join(", ")}
+
+**Student Response:** ${response}
+
+Analyze and respond with JSON:
+{
+  "qualityScore": 0-100,
+  "thinkingDepth": 0-100,
+  "understandingIndicators": ["what they understood"],
+  "misconceptions": ["any misconceptions"],
+  "reasoningGaps": ["gaps in reasoning"],
+  "strengths": ["strong points"],
+  "reachedInsight": true/false,
+  "recommendedNextType": "clarifying|probing_assumptions|probing_reasons|questioning_viewpoints|probing_implications|questioning_the_question",
+  "demonstratedBloomsLevel": "remember|understand|apply|analyze|evaluate|create"
+}
+`;
+    try {
+      const aiResponse = await this.aiAdapter.chat({
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert at analyzing student responses in Socratic dialogues. Be constructive and identify both strengths and areas for growth. Respond only with valid JSON."
+          },
+          { role: "user", content: prompt }
+        ]
+      });
+      const parsed = JSON.parse(this.extractJson(aiResponse.content));
+      return {
+        qualityScore: parsed.qualityScore || 50,
+        thinkingDepth: parsed.thinkingDepth || 50,
+        understandingIndicators: parsed.understandingIndicators || [],
+        misconceptions: parsed.misconceptions || [],
+        reasoningGaps: parsed.reasoningGaps || [],
+        strengths: parsed.strengths || [],
+        reachedInsight: parsed.reachedInsight || false,
+        recommendedNextType: parsed.recommendedNextType || "probing_reasons",
+        demonstratedBloomsLevel: parsed.demonstratedBloomsLevel?.toUpperCase() || "UNDERSTAND"
+      };
+    } catch {
+      return this.analyzeWithRules(question, response);
+    }
+  }
+  analyzeWithRules(question, response) {
+    const wordCount = response.split(/\s+/).length;
+    const hasExamples = /for example|such as|like|instance/i.test(response);
+    const hasReasoning = /because|therefore|since|thus|so|as a result/i.test(response);
+    const hasQuestion = /\?/.test(response);
+    let qualityScore = 50;
+    let thinkingDepth = 50;
+    const understandingIndicators = [];
+    const misconceptions = [];
+    const reasoningGaps = [];
+    const strengths = [];
+    if (wordCount > 50) {
+      qualityScore += 10;
+      thinkingDepth += 10;
+      strengths.push("Provided a detailed response");
+    } else if (wordCount < 10) {
+      qualityScore -= 20;
+      reasoningGaps.push("Response was too brief");
+    }
+    if (hasExamples) {
+      qualityScore += 15;
+      understandingIndicators.push("Used concrete examples");
+      strengths.push("Connected concepts to real examples");
+    }
+    if (hasReasoning) {
+      thinkingDepth += 15;
+      understandingIndicators.push("Showed causal reasoning");
+      strengths.push("Demonstrated logical thinking");
+    }
+    if (hasQuestion) {
+      thinkingDepth += 10;
+      strengths.push("Engaged with curiosity");
+    }
+    const keyTermsFound = question.keyInsights.some(
+      (insight) => response.toLowerCase().includes(insight.toLowerCase().split(" ")[0])
+    );
+    const reachedInsight = keyTermsFound && qualityScore > 60;
+    if (reachedInsight) {
+      qualityScore += 10;
+      understandingIndicators.push("Approached the key insight");
+    }
+    let recommendedNextType = "probing_reasons";
+    if (qualityScore < 40) {
+      recommendedNextType = "clarifying";
+    } else if (qualityScore > 70 && hasReasoning) {
+      recommendedNextType = "probing_implications";
+    }
+    let demonstratedBloomsLevel = "UNDERSTAND";
+    if (hasExamples && hasReasoning) {
+      demonstratedBloomsLevel = "APPLY";
+    }
+    if (qualityScore > 80 && thinkingDepth > 70) {
+      demonstratedBloomsLevel = "ANALYZE";
+    }
+    return {
+      qualityScore: Math.min(100, Math.max(0, qualityScore)),
+      thinkingDepth: Math.min(100, Math.max(0, thinkingDepth)),
+      understandingIndicators,
+      misconceptions,
+      reasoningGaps,
+      strengths,
+      reachedInsight,
+      recommendedNextType,
+      demonstratedBloomsLevel
+    };
+  }
+  async generateKeyInsights(topic, objective) {
+    if (this.aiAdapter) {
+      try {
+        const response = await this.aiAdapter.chat({
+          messages: [
+            {
+              role: "system",
+              content: "Generate 3-5 key insights a student should discover about a topic. Respond with a JSON array of strings."
+            },
+            {
+              role: "user",
+              content: `Topic: ${topic}
+Learning Objective: ${objective}
+
+Generate key insights as a JSON array.`
+            }
+          ]
+        });
+        const parsed = JSON.parse(this.extractJson(response.content));
+        return Array.isArray(parsed) ? parsed : parsed.insights || [];
+      } catch {
+      }
+    }
+    return [
+      `Core definition and characteristics of ${topic}`,
+      `How ${topic} relates to broader concepts`,
+      `Practical applications of ${topic}`,
+      `Common misconceptions about ${topic}`
+    ];
+  }
+  async generateSynthesis(dialogue) {
+    const discoveredInsights = dialogue.discoveredInsights;
+    const topic = dialogue.topic;
+    if (this.aiAdapter) {
+      try {
+        const exchanges = dialogue.exchanges.map((e) => `Q: ${e.question.question}
+A: ${e.response?.response || "No response"}`).join("\n\n");
+        const response = await this.aiAdapter.chat({
+          messages: [
+            {
+              role: "system",
+              content: "Synthesize the key learnings from a Socratic dialogue. Be encouraging and highlight growth."
+            },
+            {
+              role: "user",
+              content: `Topic: ${topic}
+Discovered Insights: ${discoveredInsights.join(", ")}
+
+Dialogue:
+${exchanges}
+
+Provide a synthesis of what was learned.`
+            }
+          ]
+        });
+        return response.content;
+      } catch {
+      }
+    }
+    return `Through our Socratic exploration of "${topic}", you've discovered several key insights:
+
+${discoveredInsights.map((i, idx) => `${idx + 1}. ${i}`).join("\n")}
+
+This journey of questioning and discovery has deepened your understanding. Keep questioning and exploring!`;
+  }
+  calculatePerformance(dialogue) {
+    const exchanges = dialogue.exchanges;
+    const totalExchanges = exchanges.length;
+    const exchangesWithResponses = exchanges.filter((e) => e.response);
+    const avgQuality = exchangesWithResponses.reduce((sum, e) => sum + (e.analysis?.qualityScore || 0), 0) / (exchangesWithResponses.length || 1);
+    const avgDepth = exchangesWithResponses.reduce((sum, e) => sum + (e.analysis?.thinkingDepth || 0), 0) / (exchangesWithResponses.length || 1);
+    const totalInsights = dialogue.discoveredInsights.length + dialogue.remainingInsights.length;
+    const insightDiscoveryRate = totalInsights > 0 ? dialogue.discoveredInsights.length / totalInsights : 0;
+    const completionTime = dialogue.endedAt ? (dialogue.endedAt.getTime() - dialogue.startedAt.getTime()) / 6e4 : 0;
+    const hintsUsed = exchanges.filter((e) => e.response?.usedHint).length;
+    const bloomsOrder = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+    let highestBloomsLevel = "REMEMBER";
+    exchangesWithResponses.forEach((e) => {
+      const level = e.analysis?.demonstratedBloomsLevel;
+      if (level && bloomsOrder.indexOf(level) > bloomsOrder.indexOf(highestBloomsLevel)) {
+        highestBloomsLevel = level;
+      }
+    });
+    const growth = [];
+    if (avgQuality > 70) {
+      growth.push({ factor: "Strong Responses", description: "Consistently provided thoughtful answers" });
+    }
+    if (insightDiscoveryRate > 0.5) {
+      growth.push({ factor: "Insight Discovery", description: "Successfully uncovered key insights" });
+    }
+    const improvementAreas = [];
+    if (avgQuality < 50) {
+      improvementAreas.push("Develop more detailed responses");
+    }
+    if (hintsUsed > totalExchanges / 2) {
+      improvementAreas.push("Work on independent problem-solving");
+    }
+    return {
+      totalExchanges,
+      averageQuality: Math.round(avgQuality),
+      averageDepth: Math.round(avgDepth),
+      insightDiscoveryRate,
+      completionTime,
+      hintsUsed,
+      highestBloomsLevel,
+      growth,
+      improvementAreas
+    };
+  }
+  calculateProgress(dialogue) {
+    const total = dialogue.discoveredInsights.length + dialogue.remainingInsights.length;
+    if (total === 0) return 0;
+    return Math.round(dialogue.discoveredInsights.length / total * 100);
+  }
+  shouldConclude(dialogue, analysis) {
+    const maxQuestions = this.config.maxQuestions || 10;
+    if (dialogue.exchanges.length >= maxQuestions) return true;
+    if (dialogue.remainingInsights.length === 0) return true;
+    if (dialogue.exchanges.length >= 5 && analysis.qualityScore > 80 && analysis.demonstratedBloomsLevel === "EVALUATE") {
+      return true;
+    }
+    return false;
+  }
+  concludeDialogue(dialogue) {
+    dialogue.state = "conclusion";
+    dialogue.endedAt = /* @__PURE__ */ new Date();
+    const synthesis = `You've made excellent progress exploring "${dialogue.topic}"! You discovered these key insights:
+
+${dialogue.discoveredInsights.map((i, idx) => `${idx + 1}. ${i}`).join("\n")}`;
+    return {
+      state: "conclusion",
+      synthesis,
+      feedback: "Great work on this Socratic dialogue!",
+      encouragement: this.getEncouragement("completion"),
+      discoveredInsights: dialogue.discoveredInsights,
+      progress: 100,
+      isComplete: true
+    };
+  }
+  async moveToNextQuestion(dialogue, analysis) {
+    const nextType = analysis?.recommendedNextType || this.getNextQuestionType(dialogue);
+    const previousQuestions = dialogue.exchanges.map((e) => e.question.question);
+    const nextQuestion = await this.generateQuestion(dialogue.topic, nextType, {
+      previousQuestions,
+      currentUnderstanding: analysis ? `Quality: ${analysis.qualityScore}%, Depth: ${analysis.thinkingDepth}%` : void 0
+    });
+    const exchange = {
+      order: dialogue.exchanges.length + 1,
+      question: nextQuestion
+    };
+    dialogue.exchanges.push(exchange);
+    dialogue.state = this.determineDialogueState(dialogue);
+    this.dialogueCache.set(dialogue.id, dialogue);
+    return {
+      state: dialogue.state,
+      question: nextQuestion,
+      feedback: analysis ? this.generateFeedback(analysis, this.config.encouragingMode ?? true) : void 0,
+      encouragement: this.getEncouragement(dialogue.state),
+      discoveredInsights: dialogue.discoveredInsights,
+      progress: this.calculateProgress(dialogue),
+      availableHints: nextQuestion.hints,
+      isComplete: false
+    };
+  }
+  getNextQuestionType(dialogue) {
+    const exchangeCount = dialogue.exchanges.length;
+    if (exchangeCount <= 2) return "clarifying";
+    if (exchangeCount <= 4) return "probing_reasons";
+    if (exchangeCount <= 6) return "probing_assumptions";
+    if (exchangeCount <= 8) return "questioning_viewpoints";
+    return "probing_implications";
+  }
+  determineDialogueState(dialogue) {
+    const progress = this.calculateProgress(dialogue);
+    const exchangeCount = dialogue.exchanges.length;
+    if (exchangeCount <= 1) return "introduction";
+    if (exchangeCount <= 3) return "exploration";
+    if (progress < 50) return "clarification";
+    if (progress < 75) return "challenge";
+    if (progress < 100) return "synthesis";
+    return "conclusion";
+  }
+  generateFeedback(analysis, encouraging) {
+    let feedback = "";
+    if (analysis.strengths.length > 0) {
+      feedback += `\u2713 ${analysis.strengths[0]}. `;
+    }
+    if (analysis.misconceptions.length > 0) {
+      feedback += `Consider: ${analysis.misconceptions[0]}. `;
+    } else if (analysis.reasoningGaps.length > 0) {
+      feedback += `To deepen your thinking: ${analysis.reasoningGaps[0]}. `;
+    }
+    if (encouraging && analysis.qualityScore < 50) {
+      feedback += `Keep exploring - you're on the right track!`;
+    } else if (analysis.qualityScore > 70) {
+      feedback += `Excellent thinking!`;
+    }
+    return feedback || "Interesting perspective. Let us explore further.";
+  }
+  getIntroductionMessage(topic, style) {
+    switch (style) {
+      case "gentle":
+        return `Let's explore "${topic}" together through a dialogue. There are no wrong answers - just opportunities to deepen our understanding.`;
+      case "challenging":
+        return `Today we'll rigorously examine "${topic}". I'll challenge your assumptions and push your thinking. Are you ready?`;
+      default:
+        return `Welcome to our Socratic exploration of "${topic}". I'll guide you through questions designed to help you discover key insights yourself.`;
+    }
+  }
+  getEncouragement(context) {
+    const encouragements = {
+      start: ["Great! Let's begin our journey of discovery.", "I'm excited to explore this with you!"],
+      introduction: ["You're off to a good start!", "Interesting first thoughts!"],
+      exploration: ["Keep questioning!", "You're digging deeper!"],
+      clarification: ["Let's sharpen our understanding.", "Good - clarity leads to insight."],
+      challenge: ["Now we're really thinking!", "You're challenging your own assumptions!"],
+      synthesis: ["You're connecting the dots!", "Beautiful synthesis emerging!"],
+      conclusion: ["What a journey of discovery!", "You've grown through this dialogue!"],
+      completion: ["Congratulations on completing this dialogue!", "Excellent work!"]
+    };
+    const options = encouragements[context] || encouragements.exploration;
+    return options[Math.floor(Math.random() * options.length)];
+  }
+  extractJson(content) {
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/) || content.match(/\[[\s\S]*\]/);
+    return jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
+  }
+};
+function createSocraticTeachingEngine(config) {
+  return new SocraticTeachingEngine(config);
+}
 export {
   AchievementEngine,
+  AdaptiveContentEngine,
   AdaptiveQuestionResponseSchema,
   AdvancedExamEngine,
   AnalyticsEngine,
@@ -15052,6 +17001,7 @@ export {
   MemoryEngine,
   MultimediaEngine,
   PersonalizationEngine,
+  PracticeProblemsEngine,
   PredictiveEngine,
   QuestionOptionSchema,
   ResearchEngine,
@@ -15059,11 +17009,13 @@ export {
   RubricAlignmentSchema,
   SAMEvaluationEngine,
   SocialEngine,
+  SocraticTeachingEngine,
   SubjectiveEvaluationResponseSchema,
   TrendsEngine,
   UnifiedBloomsAdapterEngine,
   UnifiedBloomsEngine,
   createAchievementEngine,
+  createAdaptiveContentEngine,
   createAnalyticsEngine,
   createBloomsAnalysisEngine,
   createCollaborationEngine,
@@ -15080,11 +17032,13 @@ export {
   createMultimediaEngine,
   createPartialSchema,
   createPersonalizationEngine,
+  createPracticeProblemsEngine,
   createPredictiveEngine,
   createResearchEngine,
   createResourceEngine,
   createRetryPrompt,
   createSocialEngine,
+  createSocraticTeachingEngine,
   createTrendsEngine,
   createUnifiedBloomsAdapterEngine,
   createUnifiedBloomsEngine,
