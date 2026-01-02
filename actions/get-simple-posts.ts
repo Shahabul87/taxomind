@@ -69,9 +69,15 @@ export const getSimplePostsForBlog = async (): Promise<SimplePost[]> => {
 
     return transformedPosts;
     
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // During build time, database may not be available - return empty array gracefully
+    const isBuildTime = process.env.SKIP_ENV_VALIDATION === 'true';
+    if (isBuildTime) {
+      logger.warn("⚠️ [SIMPLE_POSTS] Database not available during build, returning empty array");
+      return [];
+    }
     logger.error("💥 [SIMPLE_POSTS] Error fetching posts:", error);
-    // Throw error for Next.js error boundary to catch
-    throw new Error("Unable to load blog posts. Please try again later.");
+    // Return empty array instead of throwing to prevent page errors
+    return [];
   }
 };

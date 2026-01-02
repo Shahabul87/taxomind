@@ -125,7 +125,6 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
     }
 
     const interactions = await db.sAMInteraction.findMany({
-      // @ts-expect-error - Complex where clause type
       where,
       orderBy: { createdAt: 'desc' },
       skip: options?.offset,
@@ -241,7 +240,6 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
     }
 
     return db.sAMInteraction.count({
-      // @ts-expect-error - Complex where clause type
       where,
     });
   }
