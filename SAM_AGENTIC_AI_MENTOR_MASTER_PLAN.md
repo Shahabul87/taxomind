@@ -87,6 +87,19 @@ This document provides a comprehensive implementation plan to transform SAM (Sma
 
 ---
 
+## Implementation Update (Current Codebase)
+
+This repository already includes partial delivery of the plan:
+
+- Agentic bridge is wired into `app/api/sam/unified/route.ts` and `app/api/sam/unified/stream/route.ts` for confidence scoring, session recording, and intervention checks.
+- Agentic API routes exist under `app/api/sam/agentic` for goals, plans, behavior, check-ins, analytics, recommendations, skills, and notifications.
+- Frontend integrations exist via `packages/react/src/hooks/useAgentic.ts` and `components/sam/SAMAssistant.tsx` (event tracking + agentic insights display).
+- Prisma store adapters live in `lib/sam/stores` for goals, plans, behavior events, interventions, and check-ins.
+
+Remaining gaps include tool execution wiring, external vector store/knowledge graph integration, and persistent analytics stores beyond in-memory defaults.
+
+---
+
 ## Target State Vision
 
 ### The Agentic SAM

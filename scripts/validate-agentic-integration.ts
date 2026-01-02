@@ -377,6 +377,188 @@ function validateUseAgenticHookTests(): ValidationResult {
 }
 
 // ============================================================================
+// PRISMA & DATA PERSISTENCE VALIDATIONS
+// ============================================================================
+
+function validatePrismaAgenticDomainExists(): ValidationResult {
+  const exists = fileExists('prisma/domains/17-sam-agentic.prisma');
+  return {
+    name: 'SAM Agentic Prisma domain file exists',
+    passed: exists,
+    details: exists
+      ? 'Domain file found at prisma/domains/17-sam-agentic.prisma'
+      : 'Missing prisma/domains/17-sam-agentic.prisma - create Prisma models',
+    severity: 'critical',
+  };
+}
+
+function validatePrismaAgenticModels(): ValidationResult {
+  const domainFile = 'prisma/domains/17-sam-agentic.prisma';
+  const requiredModels = [
+    'SAMLearningGoal',
+    'SAMSubGoal',
+    'SAMExecutionPlan',
+    'SAMPlanStep',
+    'SAMPlanState',
+    'SAMCheckpoint',
+    'SAMScheduledCheckIn',
+    'SAMCheckInResponse',
+    'SAMBehaviorEvent',
+    'SAMBehaviorPattern',
+    'SAMIntervention',
+    'SAMTopicProgress',
+    'SAMLearningGap',
+    'SAMSkillAssessment',
+    'SAMRecommendation',
+  ];
+
+  const existingModels: string[] = [];
+  const missingModels: string[] = [];
+
+  for (const model of requiredModels) {
+    if (fileContains(domainFile, `model ${model}`)) {
+      existingModels.push(model);
+    } else {
+      missingModels.push(model);
+    }
+  }
+
+  const passed = missingModels.length === 0;
+  return {
+    name: 'All SAM Agentic Prisma models defined',
+    passed,
+    details: passed
+      ? `All ${requiredModels.length} models found`
+      : `Missing models: ${missingModels.join(', ')}`,
+    severity: 'critical',
+  };
+}
+
+function validatePrismaAgenticEnums(): ValidationResult {
+  const enumsFile = 'prisma/domains/01-enums.prisma';
+  const requiredEnums = [
+    'SAMGoalPriority',
+    'SAMGoalStatus',
+    'SAMPlanStatus',
+    'SAMStepStatus',
+    'SAMStepType',
+    'SAMMasteryLevel',
+    'SAMCheckpointType',
+    'SAMCheckInType',
+    'SAMCheckInStatus',
+    'SAMBehaviorEventType',
+    'SAMPatternType',
+    'SAMInterventionType',
+    'SAMGapSeverity',
+    'SAMRecommendationType',
+  ];
+
+  const existingEnums: string[] = [];
+  const missingEnums: string[] = [];
+
+  for (const enumName of requiredEnums) {
+    if (fileContains(enumsFile, `enum ${enumName}`)) {
+      existingEnums.push(enumName);
+    } else {
+      missingEnums.push(enumName);
+    }
+  }
+
+  const passed = missingEnums.length === 0;
+  return {
+    name: 'All SAM Agentic enums defined',
+    passed,
+    details: passed
+      ? `All ${requiredEnums.length} enums found`
+      : `Missing enums: ${missingEnums.join(', ')}`,
+    severity: 'critical',
+  };
+}
+
+function validateGoalStoreUsesPrisma(): ValidationResult {
+  const filePath = 'lib/sam/stores/prisma-goal-store.ts';
+  const usesPrismaDb = fileContains(filePath, "import { db } from '@/lib/db'");
+  const usesSAMLearningGoal = fileContains(filePath, 'db.sAMLearningGoal');
+  const hasNoInMemoryMap = !fileContains(filePath, /private\s+goals\s*=\s*new\s+Map/);
+
+  const passed = usesPrismaDb && usesSAMLearningGoal && hasNoInMemoryMap;
+  return {
+    name: 'GoalStore uses Prisma (not in-memory)',
+    passed,
+    details: passed
+      ? 'GoalStore correctly uses Prisma db.sAMLearningGoal'
+      : `Issues: ${!usesPrismaDb ? 'No db import. ' : ''}${!usesSAMLearningGoal ? 'Not using sAMLearningGoal. ' : ''}${!hasNoInMemoryMap ? 'Still has in-memory Map.' : ''}`,
+    severity: 'critical',
+  };
+}
+
+function validatePlanStoreUsesPrisma(): ValidationResult {
+  const filePath = 'lib/sam/stores/prisma-plan-store.ts';
+  const usesPrismaDb = fileContains(filePath, "import { db } from '@/lib/db'");
+  const usesSAMExecutionPlan = fileContains(filePath, 'db.sAMExecutionPlan');
+  const hasNoInMemoryMap = !fileContains(filePath, /private\s+plans\s*=\s*new\s+Map/);
+
+  const passed = usesPrismaDb && usesSAMExecutionPlan && hasNoInMemoryMap;
+  return {
+    name: 'PlanStore uses Prisma (not in-memory)',
+    passed,
+    details: passed
+      ? 'PlanStore correctly uses Prisma db.sAMExecutionPlan'
+      : `Issues: ${!usesPrismaDb ? 'No db import. ' : ''}${!usesSAMExecutionPlan ? 'Not using sAMExecutionPlan. ' : ''}${!hasNoInMemoryMap ? 'Still has in-memory Map.' : ''}`,
+    severity: 'critical',
+  };
+}
+
+function validateUserModelHasAgenticRelations(): ValidationResult {
+  const authFile = 'prisma/domains/02-auth.prisma';
+  const requiredRelations = [
+    'samLearningGoals',
+    'samExecutionPlans',
+    'samScheduledCheckIns',
+    'samBehaviorEvents',
+    'samBehaviorPatterns',
+    'samInterventions',
+  ];
+
+  const existingRelations: string[] = [];
+  const missingRelations: string[] = [];
+
+  for (const relation of requiredRelations) {
+    if (fileContains(authFile, relation)) {
+      existingRelations.push(relation);
+    } else {
+      missingRelations.push(relation);
+    }
+  }
+
+  const passed = missingRelations.length === 0;
+  return {
+    name: 'User model has SAM Agentic relations',
+    passed,
+    details: passed
+      ? `All ${requiredRelations.length} relations found on User model`
+      : `Missing relations: ${missingRelations.join(', ')}`,
+    severity: 'critical',
+  };
+}
+
+function validateSchemaGenerated(): ValidationResult {
+  const schemaFile = 'prisma/schema.prisma';
+  const hasSAMLearningGoal = fileContains(schemaFile, 'model SAMLearningGoal');
+  const hasSAMExecutionPlan = fileContains(schemaFile, 'model SAMExecutionPlan');
+
+  const passed = hasSAMLearningGoal && hasSAMExecutionPlan;
+  return {
+    name: 'Generated schema includes SAM Agentic models',
+    passed,
+    details: passed
+      ? 'Schema merged with SAM Agentic models (run npm run schema:merge if not)'
+      : 'Run npm run schema:merge && npx prisma generate',
+    severity: 'critical',
+  };
+}
+
+// ============================================================================
 // MAIN VALIDATION
 // ============================================================================
 
@@ -386,6 +568,15 @@ function runAllValidations(): ValidationReport {
     validateAgenticPackageExists(),
     validateAgenticBridgeExists(),
     validateAgenticPackageInDependencies(),
+
+    // Prisma & Data Persistence (CRITICAL for portability)
+    validatePrismaAgenticDomainExists(),
+    validatePrismaAgenticModels(),
+    validatePrismaAgenticEnums(),
+    validateGoalStoreUsesPrisma(),
+    validatePlanStoreUsesPrisma(),
+    validateUserModelHasAgenticRelations(),
+    validateSchemaGenerated(),
 
     // API Routes
     validateUnifiedRouteUsesAgenticBridge(),

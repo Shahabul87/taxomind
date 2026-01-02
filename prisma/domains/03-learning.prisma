@@ -12,9 +12,15 @@
 model Category {
   id            String         @id @default(uuid())
   name          String         @unique
+  parentId      String?
+  parent        Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      Category[]     @relation("CategoryHierarchy")
   courses       Course[]
   Group         Group[]
   learningPaths LearningPath[]
+  subcategoryCourses Course[]  @relation("SubcategoryCourses")
+
+  @@index([parentId])
 }
 
 model Course {
@@ -53,6 +59,8 @@ model Course {
   certifications               Certification[]
   chapters                     Chapter[]
   category                     Category?                      @relation(fields: [categoryId], references: [id])
+  subcategoryId                String?
+  subcategory                  Category?                      @relation("SubcategoryCourses", fields: [subcategoryId], references: [id])
   organization                 Organization?                  @relation("OrganizationCourses", fields: [organizationId], references: [id])
   user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   CourseBloomsAnalysis         CourseBloomsAnalysis?
@@ -80,6 +88,10 @@ model Course {
   samConversations             SAMConversation[]              @relation("SAMCourseSessions")
   samInteractions              SAMInteraction[]               @relation("SAMCourseInteractions")
   samPoints                    SAMPoints[]                    @relation("SAMCoursePoints")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals             SAMLearningGoal[]              @relation("SAMGoalCourses")
+
   study_streaks                study_streaks[]
   user_achievements            user_achievements[]
   user_progress                user_progress[]
@@ -158,6 +170,10 @@ model Chapter {
   samConversations    SAMConversation[]     @relation("SAMChapterSessions")
   samInteractions     SAMInteraction[]      @relation("SAMChapterInteractions")
   samPoints           SAMPoints[]           @relation("SAMChapterPoints")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals    SAMLearningGoal[]     @relation("SAMGoalChapters")
+
   user_progress       user_progress[]
 
   // User Progress relations
@@ -198,6 +214,10 @@ model Section {
   samConversations     SAMConversation[]     @relation("SAMSectionSessions")
   samInteractions      SAMInteraction[]      @relation("SAMSectionInteractions")
   samPoints            SAMPoints[]           @relation("SAMSectionPoints")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals     SAMLearningGoal[]     @relation("SAMGoalSections")
+
   user_progress        user_progress[]
 
   // User Progress relations

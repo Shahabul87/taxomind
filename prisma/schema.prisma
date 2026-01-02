@@ -10,8 +10,8 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-02T00:15:24.804Z
-// Source: 19 domain files
+// Generated: 2026-01-02T20:48:02.815Z
+// Source: 20 domain files
 // ==========================================
 
 
@@ -939,6 +939,241 @@ enum MasteryLevel {
   MASTERED
 }
 
+// ==========================================
+// SAM Agentic AI Mentor Enums
+// ==========================================
+
+// Goal priority levels
+enum SAMGoalPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Goal status
+enum SAMGoalStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+// Sub-goal types
+enum SAMSubGoalType {
+  LEARN
+  PRACTICE
+  ASSESS
+  REVIEW
+  REFLECT
+  CREATE
+}
+
+// Plan status
+enum SAMPlanStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Step status
+enum SAMStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  SKIPPED
+  BLOCKED
+}
+
+// Step types
+enum SAMStepType {
+  READ_CONTENT
+  WATCH_VIDEO
+  COMPLETE_EXERCISE
+  TAKE_QUIZ
+  REFLECT
+  PRACTICE_PROBLEM
+  SOCRATIC_DIALOGUE
+  SPACED_REVIEW
+  CREATE_SUMMARY
+  PEER_DISCUSSION
+  PROJECT_WORK
+  RESEARCH
+}
+
+// Mastery levels for agentic
+enum SAMMasteryLevel {
+  NOVICE
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// Difficulty levels
+enum SAMDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// Checkpoint types
+enum SAMCheckpointType {
+  PROGRESS
+  MILESTONE
+  ASSESSMENT
+}
+
+// Check-in types
+enum SAMCheckInType {
+  DAILY_REMINDER
+  PROGRESS_CHECK
+  STRUGGLE_DETECTION
+  MILESTONE_CELEBRATION
+  INACTIVITY_REENGAGEMENT
+  GOAL_REVIEW
+  WEEKLY_SUMMARY
+  STREAK_RISK
+  ENCOURAGEMENT
+}
+
+// Check-in status
+enum SAMCheckInStatus {
+  SCHEDULED
+  PENDING
+  SENT
+  RESPONDED
+  EXPIRED
+  CANCELLED
+}
+
+// Notification channels
+enum SAMNotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+  SMS
+}
+
+// Check-in priority
+enum SAMCheckInPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Behavior event types
+enum SAMBehaviorEventType {
+  PAGE_VIEW
+  CONTENT_INTERACTION
+  ASSESSMENT_ATTEMPT
+  HINT_REQUEST
+  QUESTION_ASKED
+  FRUSTRATION_SIGNAL
+  SUCCESS_SIGNAL
+  SESSION_START
+  SESSION_END
+  GOAL_SET
+  GOAL_ABANDONED
+  CONTENT_SKIPPED
+  HELP_REQUESTED
+  BREAK_TAKEN
+}
+
+// Pattern types
+enum SAMPatternType {
+  LEARNING_HABIT
+  STRUGGLE_PATTERN
+  SUCCESS_PATTERN
+  TIME_PREFERENCE
+  CONTENT_PREFERENCE
+  ENGAGEMENT_CYCLE
+  FATIGUE_PATTERN
+  HELP_SEEKING
+}
+
+// Intervention types for agentic
+enum SAMInterventionType {
+  ENCOURAGEMENT
+  DIFFICULTY_ADJUSTMENT
+  CONTENT_RECOMMENDATION
+  BREAK_SUGGESTION
+  GOAL_REVISION
+  PEER_CONNECTION
+  MENTOR_ESCALATION
+  PROGRESS_CELEBRATION
+  STREAK_REMINDER
+}
+
+// Intervention priority
+enum SAMInterventionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  URGENT
+}
+
+// Trend direction
+enum SAMTrendDirection {
+  IMPROVING
+  STABLE
+  DECLINING
+  FLUCTUATING
+}
+
+// Gap severity
+enum SAMGapSeverity {
+  MINOR
+  MODERATE
+  CRITICAL
+}
+
+// Assessment source
+enum SAMAssessmentSource {
+  QUIZ
+  EXERCISE
+  PROJECT
+  PEER_REVIEW
+  SELF_ASSESSMENT
+  AI_EVALUATION
+}
+
+// Recommendation content types
+enum SAMRecommendationType {
+  VIDEO
+  ARTICLE
+  EXERCISE
+  QUIZ
+  PROJECT
+  TUTORIAL
+  DOCUMENTATION
+}
+
+// Recommendation priority
+enum SAMRecommendationPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// Recommendation reasons
+enum SAMRecommendationReason {
+  KNOWLEDGE_GAP
+  SKILL_DECAY
+  PREREQUISITE
+  REINFORCEMENT
+  EXPLORATION
+  CHALLENGE
+  REVIEW
+}
+
 
 // ==========================================
 // Source: 02-auth.prisma
@@ -1121,6 +1356,20 @@ model User {
   samLearningProfile                      SAMLearningProfile?                  @relation("SAMLearningProfiles")
   samPoints                               SAMPoints[]                          @relation("SAMPoints")
   samStreak                               SAMStreak?                           @relation("SAMStreaks")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals                        SAMLearningGoal[]                    @relation("SAMLearningGoals")
+  samExecutionPlans                       SAMExecutionPlan[]                   @relation("SAMExecutionPlans")
+  samScheduledCheckIns                    SAMScheduledCheckIn[]                @relation("SAMScheduledCheckIns")
+  samBehaviorEvents                       SAMBehaviorEvent[]                   @relation("SAMBehaviorEvents")
+  samBehaviorPatterns                     SAMBehaviorPattern[]                 @relation("SAMBehaviorPatterns")
+  samInterventions                        SAMIntervention[]                    @relation("SAMInterventions")
+  samTopicProgress                        SAMTopicProgress[]                   @relation("SAMTopicProgress")
+  samLearningGaps                         SAMLearningGap[]                     @relation("SAMLearningGaps")
+  samSkillAssessments                     SAMSkillAssessment[]                 @relation("SAMSkillAssessments")
+  samRecommendations                      SAMRecommendation[]                  @relation("SAMRecommendations")
+  samAgenticSessions                      SAMAgenticSession[]                  @relation("SAMAgenticSessions")
+
   authSessions                            AuthSession[]
   study_streaks                           study_streaks[]
   user_achievements                       user_achievements[]
@@ -1698,9 +1947,15 @@ model EmailLog {
 model Category {
   id            String         @id @default(uuid())
   name          String         @unique
+  parentId      String?
+  parent        Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children      Category[]     @relation("CategoryHierarchy")
   courses       Course[]
   Group         Group[]
   learningPaths LearningPath[]
+  subcategoryCourses Course[]  @relation("SubcategoryCourses")
+
+  @@index([parentId])
 }
 
 model Course {
@@ -1739,6 +1994,8 @@ model Course {
   certifications               Certification[]
   chapters                     Chapter[]
   category                     Category?                      @relation(fields: [categoryId], references: [id])
+  subcategoryId                String?
+  subcategory                  Category?                      @relation("SubcategoryCourses", fields: [subcategoryId], references: [id])
   organization                 Organization?                  @relation("OrganizationCourses", fields: [organizationId], references: [id])
   user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   CourseBloomsAnalysis         CourseBloomsAnalysis?
@@ -1766,6 +2023,10 @@ model Course {
   samConversations             SAMConversation[]              @relation("SAMCourseSessions")
   samInteractions              SAMInteraction[]               @relation("SAMCourseInteractions")
   samPoints                    SAMPoints[]                    @relation("SAMCoursePoints")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals             SAMLearningGoal[]              @relation("SAMGoalCourses")
+
   study_streaks                study_streaks[]
   user_achievements            user_achievements[]
   user_progress                user_progress[]
@@ -1844,6 +2105,10 @@ model Chapter {
   samConversations    SAMConversation[]     @relation("SAMChapterSessions")
   samInteractions     SAMInteraction[]      @relation("SAMChapterInteractions")
   samPoints           SAMPoints[]           @relation("SAMChapterPoints")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals    SAMLearningGoal[]     @relation("SAMGoalChapters")
+
   user_progress       user_progress[]
 
   // User Progress relations
@@ -1884,6 +2149,10 @@ model Section {
   samConversations     SAMConversation[]     @relation("SAMSectionSessions")
   samInteractions      SAMInteraction[]      @relation("SAMSectionInteractions")
   samPoints            SAMPoints[]           @relation("SAMSectionPoints")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals     SAMLearningGoal[]     @relation("SAMGoalSections")
+
   user_progress        user_progress[]
 
   // User Progress relations
@@ -6994,6 +7263,511 @@ model DiscussionVote {
 enum VoteType {
   UPVOTE
   DOWNVOTE
+}
+
+// ==========================================
+// Source: 17-sam-agentic.prisma
+// ==========================================
+
+// ==========================================
+// SAM Agentic AI Mentor Domain
+// ==========================================
+// Autonomous goal planning, execution, behavior
+// monitoring, and proactive interventions
+//
+// Total Models: 15
+// Priority: 9
+// ==========================================
+
+// ==========================================
+// GOAL PLANNING MODELS
+// ==========================================
+
+model SAMLearningGoal {
+  id           String               @id @default(cuid())
+  userId       String
+  title        String
+  description  String?
+  targetDate   DateTime?
+  priority     SAMGoalPriority      @default(MEDIUM)
+  status       SAMGoalStatus        @default(DRAFT)
+
+  // Context
+  courseId     String?
+  chapterId    String?
+  sectionId    String?
+  topicIds     String[]             @default([])
+  skillIds     String[]             @default([])
+
+  // Mastery
+  currentMastery SAMMasteryLevel?
+  targetMastery  SAMMasteryLevel?
+
+  // Metadata
+  tags         String[]             @default([])
+  metadata     Json?
+
+  // Timestamps
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  completedAt  DateTime?
+
+  // Relations
+  user         User                 @relation("SAMLearningGoals", fields: [userId], references: [id], onDelete: Cascade)
+  course       Course?              @relation("SAMGoalCourses", fields: [courseId], references: [id], onDelete: Cascade)
+  chapter      Chapter?             @relation("SAMGoalChapters", fields: [chapterId], references: [id], onDelete: Cascade)
+  section      Section?             @relation("SAMGoalSections", fields: [sectionId], references: [id], onDelete: Cascade)
+  subGoals     SAMSubGoal[]
+  plans        SAMExecutionPlan[]
+
+  @@index([userId, status])
+  @@index([userId, priority])
+  @@index([courseId])
+  @@map("sam_learning_goals")
+}
+
+model SAMSubGoal {
+  id               String          @id @default(cuid())
+  goalId           String
+  title            String
+  description      String?
+  type             SAMSubGoalType  @default(LEARN)
+  order            Int             @default(0)
+
+  // Effort estimation
+  estimatedMinutes Int             @default(30)
+  difficulty       SAMDifficulty   @default(MEDIUM)
+
+  // Dependencies
+  prerequisites    String[]        @default([])
+  successCriteria  String[]        @default([])
+
+  // Status
+  status           SAMStepStatus   @default(PENDING)
+  completedAt      DateTime?
+
+  // Metadata
+  metadata         Json?
+
+  // Relations
+  goal             SAMLearningGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  steps            SAMPlanStep[]
+
+  @@index([goalId, order])
+  @@map("sam_sub_goals")
+}
+
+model SAMExecutionPlan {
+  id              String          @id @default(cuid())
+  goalId          String
+  userId          String
+
+  // Schedule
+  startDate       DateTime?
+  targetDate      DateTime?
+
+  // Progress
+  currentStepId   String?
+  overallProgress Float           @default(0)
+
+  // State
+  status          SAMPlanStatus   @default(DRAFT)
+  pausedAt        DateTime?
+
+  // Checkpoint data for resumability
+  checkpointData  Json?
+
+  // Schedule breakdown (JSON for flexibility)
+  schedule        Json?
+
+  // Fallback strategies (JSON array)
+  fallbackStrategies Json?
+
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  completedAt     DateTime?
+
+  // Relations
+  goal            SAMLearningGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user            User            @relation("SAMExecutionPlans", fields: [userId], references: [id], onDelete: Cascade)
+  steps           SAMPlanStep[]
+  checkpoints     SAMCheckpoint[]
+  state           SAMPlanState?
+
+  @@index([goalId])
+  @@index([userId, status])
+  @@map("sam_execution_plans")
+}
+
+model SAMPlanStep {
+  id               String          @id @default(cuid())
+  planId           String
+  subGoalId        String?
+
+  type             SAMStepType     @default(READ_CONTENT)
+  title            String
+  description      String?
+  order            Int             @default(0)
+
+  // Execution
+  status           SAMStepStatus   @default(PENDING)
+  startedAt        DateTime?
+  completedAt      DateTime?
+
+  // Time tracking
+  estimatedMinutes Int             @default(15)
+  actualMinutes    Int?
+
+  // Retry handling
+  retryCount       Int             @default(0)
+  maxRetries       Int             @default(3)
+  lastError        String?
+
+  // Input/Output (JSON for flexibility)
+  inputs           Json?
+  outputs          Json?
+
+  // Execution context
+  executionContext Json?
+
+  // Metadata
+  metadata         Json?
+
+  // Relations
+  plan             SAMExecutionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  subGoal          SAMSubGoal?     @relation(fields: [subGoalId], references: [id], onDelete: SetNull)
+
+  @@index([planId, order])
+  @@index([status])
+  @@map("sam_plan_steps")
+}
+
+model SAMPlanState {
+  id                  String           @id @default(cuid())
+  planId              String           @unique
+  goalId              String
+  userId              String
+
+  // Current position
+  currentStepId       String?
+  currentStepProgress Float            @default(0)
+
+  // Completed work
+  completedSteps      String[]         @default([])
+  failedSteps         String[]         @default([])
+  skippedSteps        String[]         @default([])
+
+  // Timing
+  startedAt           DateTime         @default(now())
+  pausedAt            DateTime?
+  lastActiveAt        DateTime         @default(now())
+  totalActiveTime     Int              @default(0)
+
+  // Context (JSON for flexibility)
+  context             Json?
+
+  // Checkpoint data
+  checkpointData      Json?
+
+  // Session info
+  sessionCount        Int              @default(0)
+  currentSessionStart DateTime?
+
+  // Timestamps
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  // Relations
+  plan                SAMExecutionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([userId, lastActiveAt])
+  @@map("sam_plan_states")
+}
+
+model SAMCheckpoint {
+  id          String           @id @default(cuid())
+  planId      String
+  stepId      String
+  name        String
+  description String?
+  type        SAMCheckpointType @default(PROGRESS)
+  targetDate  DateTime?
+  achieved    Boolean          @default(false)
+  achievedAt  DateTime?
+
+  // Relations
+  plan        SAMExecutionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@map("sam_checkpoints")
+}
+
+// ==========================================
+// PROACTIVE INTERVENTION MODELS
+// ==========================================
+
+model SAMScheduledCheckIn {
+  id               String              @id @default(cuid())
+  userId           String
+  type             SAMCheckInType      @default(DAILY_REMINDER)
+  scheduledTime    DateTime
+  status           SAMCheckInStatus    @default(SCHEDULED)
+
+  // Content
+  message          String
+  questions        Json?
+  suggestedActions Json?
+
+  // Channel
+  channel          SAMNotificationChannel @default(IN_APP)
+
+  // Context
+  planId           String?
+  courseId         String?
+  priority         SAMCheckInPriority  @default(MEDIUM)
+  expiresAt        DateTime?
+
+  // Trigger conditions (JSON array)
+  triggerConditions Json?
+
+  // Timestamps
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  // Relations
+  user             User                @relation("SAMScheduledCheckIns", fields: [userId], references: [id], onDelete: Cascade)
+  responses        SAMCheckInResponse[]
+
+  @@index([userId, status])
+  @@index([scheduledTime])
+  @@map("sam_scheduled_check_ins")
+}
+
+model SAMCheckInResponse {
+  id            String              @id @default(cuid())
+  checkInId     String
+  respondedAt   DateTime            @default(now())
+  answers       Json?
+  selectedActions String[]          @default([])
+  feedback      String?
+  emotionalState String?
+
+  // Relations
+  checkIn       SAMScheduledCheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+
+  @@index([checkInId])
+  @@map("sam_check_in_responses")
+}
+
+model SAMBehaviorEvent {
+  id           String               @id @default(cuid())
+  userId       String
+  sessionId    String
+  timestamp    DateTime             @default(now())
+
+  type         SAMBehaviorEventType @default(PAGE_VIEW)
+  data         Json
+
+  // Context (JSON for flexibility)
+  pageContext  Json?
+  emotionalSignals Json?
+
+  // Processing status
+  processed    Boolean              @default(false)
+  processedAt  DateTime?
+
+  // Relations
+  user         User                 @relation("SAMBehaviorEvents", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([sessionId])
+  @@index([processed])
+  @@map("sam_behavior_events")
+}
+
+model SAMBehaviorPattern {
+  id              String           @id @default(cuid())
+  userId          String
+  type            SAMPatternType   @default(LEARNING_HABIT)
+  name            String
+  description     String?
+
+  // Pattern details
+  frequency       Float            @default(0)
+  duration        Float            @default(0)
+  confidence      Float            @default(0)
+
+  // Context (JSON array)
+  contexts        Json?
+
+  // Tracking
+  firstObservedAt DateTime         @default(now())
+  lastObservedAt  DateTime         @default(now())
+  occurrences     Int              @default(0)
+
+  // Relations
+  user            User             @relation("SAMBehaviorPatterns", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("sam_behavior_patterns")
+}
+
+model SAMIntervention {
+  id              String                @id @default(cuid())
+  userId          String
+  type            SAMInterventionType   @default(ENCOURAGEMENT)
+  priority        SAMInterventionPriority @default(MEDIUM)
+  message         String
+  suggestedActions Json?
+
+  // Timing (JSON for flexibility)
+  timing          Json?
+
+  // Execution
+  createdAt       DateTime              @default(now())
+  executedAt      DateTime?
+
+  // Result (JSON for flexibility)
+  result          Json?
+
+  // Relations
+  user            User                  @relation("SAMInterventions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type])
+  @@map("sam_interventions")
+}
+
+// ==========================================
+// LEARNING ANALYTICS MODELS
+// ==========================================
+
+model SAMTopicProgress {
+  id                   String           @id @default(cuid())
+  topicId              String
+  topicName            String
+  userId               String
+
+  masteryLevel         SAMMasteryLevel  @default(NOVICE)
+  masteryScore         Float            @default(0)
+  completionPercentage Float            @default(0)
+  timeSpent            Int              @default(0)
+  sessionsCount        Int              @default(0)
+  lastAccessedAt       DateTime         @default(now())
+  startedAt            DateTime         @default(now())
+
+  // Concepts tracking
+  conceptsLearned      String[]         @default([])
+  conceptsInProgress   String[]         @default([])
+  conceptsNotStarted   String[]         @default([])
+
+  // Trend
+  trend                SAMTrendDirection @default(STABLE)
+  trendScore           Float            @default(0)
+
+  // Relations
+  user                 User             @relation("SAMTopicProgress", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+  @@index([userId, masteryLevel])
+  @@map("sam_topic_progress")
+}
+
+model SAMLearningGap {
+  id              String              @id @default(cuid())
+  userId          String
+  conceptId       String
+  conceptName     String
+  topicId         String
+  severity        SAMGapSeverity      @default(MODERATE)
+  detectedAt      DateTime            @default(now())
+  evidence        Json?
+  suggestedActions String[]           @default([])
+  isResolved      Boolean             @default(false)
+  resolvedAt      DateTime?
+
+  // Relations
+  user            User                @relation("SAMLearningGaps", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isResolved])
+  @@index([topicId])
+  @@map("sam_learning_gaps")
+}
+
+model SAMSkillAssessment {
+  id            String             @id @default(cuid())
+  userId        String
+  skillId       String
+  skillName     String
+  level         SAMMasteryLevel    @default(NOVICE)
+  score         Float              @default(0)
+  confidence    Float              @default(0)
+  source        SAMAssessmentSource @default(AI_EVALUATION)
+  evidence      Json?
+  assessedAt    DateTime           @default(now())
+  validUntil    DateTime?
+  previousLevel SAMMasteryLevel?
+  previousScore Float?
+
+  // Relations
+  user          User               @relation("SAMSkillAssessments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, skillId])
+  @@index([assessedAt])
+  @@map("sam_skill_assessments")
+}
+
+model SAMRecommendation {
+  id              String                    @id @default(cuid())
+  userId          String
+  type            SAMRecommendationType     @default(ARTICLE)
+  priority        SAMRecommendationPriority @default(MEDIUM)
+  reason          SAMRecommendationReason   @default(KNOWLEDGE_GAP)
+  title           String
+  description     String?
+  targetSkillId   String?
+  targetConceptId String?
+  estimatedDuration Int                     @default(15)
+  difficulty      SAMDifficulty             @default(MEDIUM)
+  confidence      Float                     @default(0.5)
+  resourceUrl     String?
+  resourceId      String?
+  prerequisites   String[]                  @default([])
+  createdAt       DateTime                  @default(now())
+  expiresAt       DateTime?
+  isViewed        Boolean                   @default(false)
+  isCompleted     Boolean                   @default(false)
+  userRating      Int?
+
+  // Relations
+  user            User                      @relation("SAMRecommendations", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isViewed, isCompleted])
+  @@index([priority])
+  @@map("sam_recommendations")
+}
+
+model SAMAgenticSession {
+  id                String   @id @default(cuid())
+  userId            String
+  topicId           String?
+  topicName         String?
+  startTime         DateTime @default(now())
+  endTime           DateTime?
+  duration          Int      @default(0)
+  activitiesCompleted Int    @default(0)
+  questionsAnswered Int      @default(0)
+  correctAnswers    Int      @default(0)
+  conceptsCovered   String[] @default([])
+  focusScore        Float?
+
+  // Relations
+  user              User     @relation("SAMAgenticSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startTime])
+  @@index([topicId])
+  @@map("sam_agentic_sessions")
 }
 
 // ==========================================

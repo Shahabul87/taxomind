@@ -896,3 +896,238 @@ enum MasteryLevel {
   MASTERED
 }
 
+// ==========================================
+// SAM Agentic AI Mentor Enums
+// ==========================================
+
+// Goal priority levels
+enum SAMGoalPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Goal status
+enum SAMGoalStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+// Sub-goal types
+enum SAMSubGoalType {
+  LEARN
+  PRACTICE
+  ASSESS
+  REVIEW
+  REFLECT
+  CREATE
+}
+
+// Plan status
+enum SAMPlanStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Step status
+enum SAMStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  SKIPPED
+  BLOCKED
+}
+
+// Step types
+enum SAMStepType {
+  READ_CONTENT
+  WATCH_VIDEO
+  COMPLETE_EXERCISE
+  TAKE_QUIZ
+  REFLECT
+  PRACTICE_PROBLEM
+  SOCRATIC_DIALOGUE
+  SPACED_REVIEW
+  CREATE_SUMMARY
+  PEER_DISCUSSION
+  PROJECT_WORK
+  RESEARCH
+}
+
+// Mastery levels for agentic
+enum SAMMasteryLevel {
+  NOVICE
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// Difficulty levels
+enum SAMDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// Checkpoint types
+enum SAMCheckpointType {
+  PROGRESS
+  MILESTONE
+  ASSESSMENT
+}
+
+// Check-in types
+enum SAMCheckInType {
+  DAILY_REMINDER
+  PROGRESS_CHECK
+  STRUGGLE_DETECTION
+  MILESTONE_CELEBRATION
+  INACTIVITY_REENGAGEMENT
+  GOAL_REVIEW
+  WEEKLY_SUMMARY
+  STREAK_RISK
+  ENCOURAGEMENT
+}
+
+// Check-in status
+enum SAMCheckInStatus {
+  SCHEDULED
+  PENDING
+  SENT
+  RESPONDED
+  EXPIRED
+  CANCELLED
+}
+
+// Notification channels
+enum SAMNotificationChannel {
+  IN_APP
+  PUSH
+  EMAIL
+  SMS
+}
+
+// Check-in priority
+enum SAMCheckInPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Behavior event types
+enum SAMBehaviorEventType {
+  PAGE_VIEW
+  CONTENT_INTERACTION
+  ASSESSMENT_ATTEMPT
+  HINT_REQUEST
+  QUESTION_ASKED
+  FRUSTRATION_SIGNAL
+  SUCCESS_SIGNAL
+  SESSION_START
+  SESSION_END
+  GOAL_SET
+  GOAL_ABANDONED
+  CONTENT_SKIPPED
+  HELP_REQUESTED
+  BREAK_TAKEN
+}
+
+// Pattern types
+enum SAMPatternType {
+  LEARNING_HABIT
+  STRUGGLE_PATTERN
+  SUCCESS_PATTERN
+  TIME_PREFERENCE
+  CONTENT_PREFERENCE
+  ENGAGEMENT_CYCLE
+  FATIGUE_PATTERN
+  HELP_SEEKING
+}
+
+// Intervention types for agentic
+enum SAMInterventionType {
+  ENCOURAGEMENT
+  DIFFICULTY_ADJUSTMENT
+  CONTENT_RECOMMENDATION
+  BREAK_SUGGESTION
+  GOAL_REVISION
+  PEER_CONNECTION
+  MENTOR_ESCALATION
+  PROGRESS_CELEBRATION
+  STREAK_REMINDER
+}
+
+// Intervention priority
+enum SAMInterventionPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+  URGENT
+}
+
+// Trend direction
+enum SAMTrendDirection {
+  IMPROVING
+  STABLE
+  DECLINING
+  FLUCTUATING
+}
+
+// Gap severity
+enum SAMGapSeverity {
+  MINOR
+  MODERATE
+  CRITICAL
+}
+
+// Assessment source
+enum SAMAssessmentSource {
+  QUIZ
+  EXERCISE
+  PROJECT
+  PEER_REVIEW
+  SELF_ASSESSMENT
+  AI_EVALUATION
+}
+
+// Recommendation content types
+enum SAMRecommendationType {
+  VIDEO
+  ARTICLE
+  EXERCISE
+  QUIZ
+  PROJECT
+  TUTORIAL
+  DOCUMENTATION
+}
+
+// Recommendation priority
+enum SAMRecommendationPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// Recommendation reasons
+enum SAMRecommendationReason {
+  KNOWLEDGE_GAP
+  SKILL_DECAY
+  PREREQUISITE
+  REINFORCEMENT
+  EXPLORATION
+  CHALLENGE
+  REVIEW
+}
+

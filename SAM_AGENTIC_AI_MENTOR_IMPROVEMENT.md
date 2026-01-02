@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 **Created**: January 2026
-**Status**: Gap Analysis Complete - Implementation Required
+**Status**: Core Integration Complete - Remaining Gaps Tracked
 **Authors**: AI-Assisted Analysis
 
 ---
@@ -13,7 +13,7 @@ This document provides an evidence-based assessment of the SAM Agentic AI Mentor
 
 ### Key Finding
 
-> **The `@sam-ai/agentic` package contains ~15,000+ lines of production-ready code that is effectively dormant - built but never called.**
+> **The `@sam-ai/agentic` package is now partially integrated (unified routes + agentic APIs). Remaining gaps are tool execution wiring, persistent analytics stores, and external memory integrations.**
 
 ---
 
@@ -45,7 +45,7 @@ This document provides an evidence-based assessment of the SAM Agentic AI Mentor
 | `@sam-ai/react` | ~6,000 | Good | **Partially Integrated** |
 | `@sam-ai/api` | ~5,000 | Good | **Fully Integrated** |
 | `@sam-ai/adapter-prisma` | ~4,000 | 5 test files | **Fully Integrated** |
-| `@sam-ai/agentic` | **~15,000** | 22 test files | **NOT INTEGRATED** |
+| `@sam-ai/agentic` | **~15,000** | 22 test files | **PARTIALLY INTEGRATED** |
 
 ### 1.2 Agentic Package - Subsystem Status
 
@@ -53,12 +53,12 @@ The `packages/agentic/` directory contains 6 fully-implemented subsystems:
 
 | Subsystem | Files | Status | Used in App |
 |-----------|-------|--------|-------------|
-| Goal Planning | 6 files | Built | **NO** |
+| Goal Planning | 6 files | Built | **YES** (goals + plans + state machine routes) |
 | Tool Registry | 8 files | Built | **NO** |
 | Long-Term Memory | 5 files | Built | **NO** |
-| Proactive Interventions | 4 files | Built | **NO** |
-| Self-Evaluation | 4 files | Built | **NO** |
-| Learning Analytics | 3 files | Built | **NO** |
+| Proactive Interventions | 4 files | Built | **YES** (behavior + check-ins) |
+| Self-Evaluation | 4 files | Built | **YES** (confidence scoring in unified routes) |
+| Learning Analytics | 3 files | Built | **PARTIAL** (session recording, analytics endpoints use DB) |
 
 ---
 
@@ -68,26 +68,26 @@ The `packages/agentic/` directory contains 6 fully-implemented subsystems:
 
 | Documented Claim | Evidence Found | Reality |
 |------------------|----------------|---------|
-| "Agentic bridge provides unified interface" | `lib/sam/agentic-bridge.ts` exists (780 LOC) | **Bridge is never imported in any route** |
-| "Goal decomposition endpoint" | `app/api/sam/agentic/goals/[goalId]/decompose/route.ts` exists | **Uses Prisma directly, not `GoalDecomposer` class** |
-| "Tool execution with permissions" | `packages/agentic/src/tool-registry/` exists | **ToolRegistry never instantiated in app** |
-| "Behavior monitoring" | `packages/agentic/src/proactive-intervention/` exists | **BehaviorMonitor never called** |
-| "Confidence scoring on responses" | `packages/agentic/src/self-evaluation/` exists | **ConfidenceScorer not in unified API flow** |
+| "Agentic bridge provides unified interface" | `app/api/sam/unified/route.ts` + `app/api/sam/unified/stream/route.ts` import `createSAMAgenticBridge` | **Integrated in unified routes** |
+| "Goal decomposition endpoint" | `app/api/sam/agentic/goals/[goalId]/decompose/route.ts` uses `createGoalDecomposer` | **Uses agentic GoalDecomposer** |
+| "Tool execution with permissions" | `packages/agentic/src/tool-registry/` exists | **ToolRegistry not wired to API/runtime yet** |
+| "Behavior monitoring" | `app/api/sam/agentic/behavior/*` + `app/api/sam/agentic/events/route.ts` | **BehaviorMonitor wired with Prisma stores** |
+| "Confidence scoring on responses" | `app/api/sam/unified/route.ts` and `/stream` call `scoreConfidence()` | **Confidence included in unified response flow** |
 
 ### 2.2 Code Search Evidence
 
 ```bash
 # Search: @sam-ai/agentic imports in app/
-grep -r "from.*@sam-ai/agentic" app/
-# Result: NO MATCHES
+rg -n "from.*@sam-ai/agentic" app/
+# Result: Matches in unified routes and agentic APIs (e.g. app/api/sam/unified/route.ts)
 
 # Search: Bridge usage in API routes
-grep -r "SAMAgenticBridge\|createSAMAgenticBridge" app/
-# Result: NO MATCHES
+rg -n "SAMAgenticBridge|createSAMAgenticBridge" app/
+# Result: Matches in app/api/sam/unified/route.ts and app/api/sam/unified/stream/route.ts
 
 # Search: Agentic components in frontend
-grep -r "agentic\|goalManager\|behaviorMonitor" components/sam/
-# Result: NO MATCHES
+rg -n "agentic|goal|behavior" components/sam/
+# Result: Matches in components/sam/SAMAssistant.tsx (agentic insights + event tracking)
 ```
 
 ### 2.3 Route Implementation Analysis
@@ -95,17 +95,13 @@ grep -r "agentic\|goalManager\|behaviorMonitor" components/sam/
 **File**: `app/api/sam/agentic/goals/[goalId]/decompose/route.ts`
 
 ```typescript
-// EXPECTED (per documentation):
-import { GoalDecomposer } from '@sam-ai/agentic';
-const decomposed = await goalDecomposer.decompose(goalId);
+import { createGoalDecomposer } from '@sam-ai/agentic';
 
-// ACTUAL IMPLEMENTATION:
-import { db } from '@/lib/db';
-const goal = await db.sAMLearningGoal.findFirst({ ... });
-const subGoals = await generateSubGoals(goal, options); // Local helper, not agentic package
+const decomposer = getGoalDecomposer();
+const decomposition = await decomposer.decompose(goal, options);
 ```
 
-**Verdict**: API routes are CRUD wrappers, not using agentic logic.
+**Verdict**: Goal decomposition uses agentic logic; persistence for sub-goals is still pending.
 
 ---
 
@@ -115,15 +111,15 @@ const subGoals = await generateSubGoals(goal, options); // Local helper, not age
 
 | Gap ID | Gap Description | Severity | Effort | Impact |
 |--------|-----------------|----------|--------|--------|
-| **G-01** | Agentic bridge not imported in unified API | CRITICAL | Medium | High |
-| **G-02** | ConfidenceScorer not in response pipeline | CRITICAL | Low | High |
-| **G-03** | BehaviorMonitor has no event sources | CRITICAL | Medium | High |
+| **G-01** | Agentic bridge not imported in unified API (RESOLVED) | CRITICAL | Medium | High |
+| **G-02** | ConfidenceScorer not in response pipeline (RESOLVED) | CRITICAL | Low | High |
+| **G-03** | BehaviorMonitor has no event sources (RESOLVED) | CRITICAL | Medium | High |
 | **G-04** | ToolRegistry not wired to any actions | HIGH | Medium | Medium |
 | **G-05** | VectorStore using InMemory only (no Pinecone) | HIGH | High | High |
 | **G-06** | KnowledgeGraph not connected to content | HIGH | High | High |
-| **G-07** | Goal routes use Prisma, not GoalManager | MEDIUM | Low | Medium |
-| **G-08** | Plan routes use Prisma, not PlanExecutor | MEDIUM | Low | Medium |
-| **G-09** | Frontend has no agentic hooks | MEDIUM | Medium | Medium |
+| **G-07** | Goal routes use Prisma, not GoalManager (RESOLVED via GoalStore) | MEDIUM | Low | Medium |
+| **G-08** | Plan routes use Prisma, not PlanExecutor (RESOLVED via PlanBuilder/StateMachine) | MEDIUM | Low | Medium |
+| **G-09** | Frontend has no agentic hooks (PARTIAL: `useAgentic` + SAMAssistant) | MEDIUM | Medium | Medium |
 | **G-10** | No WebSocket/real-time integration | LOW | High | Medium |
 
 ### 3.2 Dependency Chain
@@ -135,13 +131,15 @@ SAMAssistant.tsx → /api/sam/unified → SAMOrchestrator → 6 Core Engines
                                     ↳ Pedagogy Pipeline
                                     ↳ Memory Tracking
                                     ↳ Safety Validation
-                                    ❌ NO AGENTIC INTEGRATION
+                                    ↳ AgenticBridge.scoreConfidence()
+                                    ↳ AgenticBridge.recordSession()
+                                    ↳ AgenticBridge.checkForInterventions()
 
 Required Flow:
 SAMAssistant.tsx → /api/sam/unified → SAMOrchestrator → 6 Core Engines
-                                    ↳ AgenticBridge.analyzeResponse()
-                                    ↳ ConfidenceScorer.score()
-                                    ↳ BehaviorMonitor.trackEvent()
+                                    ↳ ToolRegistry.execute()
+                                    ↳ VectorStore.retrieve()
+                                    ↳ KnowledgeGraph.expand()
                                     ↳ RecommendationEngine.suggest()
 ```
 
@@ -153,10 +151,10 @@ SAMAssistant.tsx → /api/sam/unified → SAMOrchestrator → 6 Core Engines
 
 | Capability | Package Export | API Endpoint | Route Uses Package | UI Component | Overall |
 |------------|----------------|--------------|-------------------|--------------|---------|
-| **Goal Creation** | `GoalManager` | `/agentic/goals` POST | ❌ Prisma only | ❌ None | **5%** |
-| **Goal Decomposition** | `GoalDecomposer` | `/agentic/goals/[id]/decompose` | ❌ Prisma only | ❌ None | **5%** |
-| **Plan Creation** | `PlanExecutor` | `/agentic/plans` POST | ❌ Prisma only | ❌ None | **5%** |
-| **Plan Start/Pause/Resume** | `AgentStateMachine` | `/agentic/plans/[id]/*` | ❌ Prisma only | ❌ None | **5%** |
+| **Goal Creation** | `GoalStore` | `/agentic/goals` POST | ✅ GoalStore adapter | ✅ GoalPlanner/useAgentic | **70%** |
+| **Goal Decomposition** | `GoalDecomposer` | `/agentic/goals/[id]/decompose` | ✅ GoalDecomposer | ✅ GoalPlanner/useAgentic | **70%** |
+| **Plan Creation** | `PlanBuilder` | `/agentic/plans` POST | ✅ PlanBuilder | PARTIAL (hooks) | **50%** |
+| **Plan Start/Pause/Resume** | `AgentStateMachine` | `/agentic/plans/[id]/*` | ✅ State machine | PARTIAL (hooks) | **50%** |
 | **Tool Registry** | `ToolRegistry` | ❌ None | ❌ Not wired | ❌ None | **0%** |
 | **Tool Execution** | `ToolExecutor` | ❌ None | ❌ Not wired | ❌ None | **0%** |
 | **Permission Manager** | `PermissionManager` | ❌ None | ❌ Not wired | ❌ None | **0%** |
@@ -164,15 +162,15 @@ SAMAssistant.tsx → /api/sam/unified → SAMOrchestrator → 6 Core Engines
 | **Vector Store** | `VectorStore` | ❌ None | ❌ InMemory only | ❌ None | **0%** |
 | **Knowledge Graph** | `KnowledgeGraph` | ❌ None | ❌ Not wired | ❌ None | **0%** |
 | **Cross-Session Context** | `CrossSessionContext` | ❌ None | ❌ Not wired | ❌ None | **0%** |
-| **Behavior Monitor** | `BehaviorMonitor` | ❌ None | ❌ Not wired | ❌ None | **0%** |
-| **Check-In Scheduler** | `CheckInScheduler` | ❌ None | ❌ Not wired | ❌ None | **0%** |
-| **Intervention Trigger** | `MultiSessionPlanTracker` | ❌ None | ❌ Not wired | ❌ None | **0%** |
-| **Confidence Scorer** | `ConfidenceScorer` | ❌ None | ❌ Not wired | ❌ None | **0%** |
+| **Behavior Monitor** | `BehaviorMonitor` | `/agentic/behavior` + `/agentic/events` | ✅ Prisma stores | ✅ SAMAssistant events | **60%** |
+| **Check-In Scheduler** | `CheckInScheduler` | `/agentic/checkins` | ✅ Prisma store | ✅ SAMAssistant check-ins | **60%** |
+| **Intervention Trigger** | `MultiSessionPlanTracker` | ❌ None | PARTIAL (BehaviorMonitor only) | ✅ SAMAssistant display | **40%** |
+| **Confidence Scorer** | `ConfidenceScorer` | ❌ None | ✅ Unified routes | ✅ SAMAssistant display | **70%** |
 | **Response Verifier** | `ResponseVerifier` | ❌ None | ❌ Not wired | ❌ None | **0%** |
 | **Quality Tracker** | `QualityTracker` | ❌ None | ❌ Not wired | ❌ None | **0%** |
-| **Progress Analyzer** | `ProgressAnalyzer` | ❌ None | ❌ Not wired | Dashboard partial | **10%** |
-| **Skill Assessor** | `SkillAssessor` | ❌ None | ❌ Not wired | ❌ None | **0%** |
-| **Recommendation Engine** | `RecommendationEngine` | ❌ None | ❌ Not wired | ❌ None | **0%** |
+| **Progress Analyzer** | `ProgressAnalyzer` | `/agentic/analytics/progress` (custom) | PARTIAL (in-memory sessions) | PARTIAL (hooks + dashboard) | **30%** |
+| **Skill Assessor** | `SkillAssessor` | `/agentic/skills` (custom) | ❌ Not wired | ✅ Hook + UI | **30%** |
+| **Recommendation Engine** | `RecommendationEngine` | `/agentic/recommendations` (custom) | ❌ Not wired | ✅ RecommendationWidget | **30%** |
 
 ### 4.2 Overall Utilization Score
 
@@ -181,9 +179,9 @@ SAMAssistant.tsx → /api/sam/unified → SAMOrchestrator → 6 Core Engines
 | Core SAM | 6 engines | 6 engines | **100%** |
 | Educational | 40+ engines | ~25 engines | **60%** |
 | Quality/Safety | 12 validators | 12 validators | **100%** |
-| Agentic | 20 capabilities | ~1 partial | **~5%** |
+| Agentic | 20 capabilities | ~8 partial/complete | **~40%** |
 
-**Overall Agentic Utilization: 5%**
+**Overall Agentic Utilization: ~40%**
 
 ---
 
@@ -192,35 +190,37 @@ SAMAssistant.tsx → /api/sam/unified → SAMOrchestrator → 6 Core Engines
 ### 5.1 Phase Overview
 
 ```
-Phase 1: Core Integration (Weeks 1-4)
-└── Wire ConfidenceScorer to unified API response flow
-└── Wire BehaviorMonitor to track user events
-└── Import and use AgenticBridge in unified route
+Phase 1: Core Integration (COMPLETED)
+└── ConfidenceScorer wired into unified response flow
+└── BehaviorMonitor event tracking in agentic APIs
+└── AgenticBridge integrated in unified + stream routes
 
-Phase 2: Goal & Plan Integration (Weeks 5-8)
-└── Refactor goal routes to use GoalManager
-└── Refactor plan routes to use PlanExecutor
-└── Add state machine for resumable execution
+Phase 2: Goal & Plan Integration (COMPLETED)
+└── Goal routes use GoalStore + GoalDecomposer
+└── Plan routes use PlanBuilder + AgentStateMachine
+└── Resumable execution endpoints live
 
-Phase 3: Memory Integration (Weeks 9-12)
+Phase 3: Memory Integration (IN PROGRESS)
 └── Add Pinecone/Weaviate adapter for VectorStore
 └── Wire KnowledgeGraph to course content
 └── Implement CrossSessionContext persistence
 
-Phase 4: Proactive Features (Weeks 13-16)
-└── Wire BehaviorMonitor to frontend events
-└── Implement CheckInScheduler cron job
-└── Add notification integration
+Phase 4: Proactive Features (MOSTLY COMPLETE)
+└── BehaviorMonitor wired to frontend events
+└── CheckInScheduler cron job implemented
+└── Notification APIs integrated
 
-Phase 5: Frontend Integration (Weeks 17-20)
-└── Create useAgentic() hook
-└── Add goal planning UI
-└── Add recommendation display widget
+Phase 5: Frontend Integration (COMPLETED)
+└── useAgentic() hook available
+└── Goal planning UI exists
+└── Recommendation widget exists
 ```
 
 ---
 
 ## 6. Implementation Phases
+
+**Note**: Phase 1/2/4/5 items below are already implemented in the current codebase. The remaining work is primarily Phase 3 (memory integrations) and tool execution wiring.
 
 ### 6.1 Phase 1: Core Integration (HIGH PRIORITY)
 
@@ -655,17 +655,17 @@ packages/agentic/src/index.ts                   # Export adapters
 
 **Week 1 Quick Wins** (Highest ROI):
 
-- [ ] Import `createSAMAgenticBridge` in `/api/sam/unified/route.ts`
-- [ ] Call `agenticBridge.scoreConfidence()` on every response
-- [ ] Include confidence level in API response JSON
-- [ ] Add `confidence` field to frontend response display
-- [ ] Log all interactions to ProgressAnalyzer
+- [x] Import `createSAMAgenticBridge` in `/api/sam/unified/route.ts`
+- [x] Call `agenticBridge.scoreConfidence()` on every response
+- [x] Include confidence level in API response JSON
+- [x] Add `confidence` field to frontend response display
+- [x] Log all interactions to ProgressAnalyzer
 
 **Week 2 Quick Wins**:
 
-- [ ] Add `/api/sam/agentic/events` endpoint for frontend events
-- [ ] Track session start/end in SAMAssistant component
-- [ ] Create `useAgentic` hook with basic goal fetching
+- [x] Add `/api/sam/agentic/events` endpoint for frontend events
+- [x] Track session start/end in SAMAssistant component
+- [x] Create `useAgentic` hook with basic goal fetching
 - [ ] Add recommendations to SAMAssistant suggestions
 
 ---
@@ -676,13 +676,13 @@ The following documentation files contain outdated or aspirational claims:
 
 | Document | Issue | Fix Required |
 |----------|-------|--------------|
-| `packages/agentic/docs/INTEGRATION.md` | Claims routes use agentic package | Update to reflect current CRUD-only state |
-| `SAM_AGENTIC_AI_MENTOR_MASTER_PLAN.md` | Lists agentic as "in development" | Update status to "built, not integrated" |
-| `docs/features/sam-ai-system/guides/SAM_AI_ASSISTANT_DOCUMENTATION.md` | Claims enterprise-grade agentic | Clarify that agentic is pending integration |
+| `packages/agentic/docs/INTEGRATION.md` | Needs updates for tool execution + memory integrations | Document remaining gaps |
+| `SAM_AGENTIC_AI_MENTOR_MASTER_PLAN.md` | Outdated status | Updated in current repo |
+| `docs/features/sam-ai-system/guides/SAM_AI_ASSISTANT_DOCUMENTATION.md` | Likely outdated integration status | Review and align with current capabilities |
 
 ---
 
 **Document Version**: 1.0.0
 **Last Updated**: January 2026
-**Status**: Ready for Implementation
-**Next Review**: After Phase 1 completion
+**Status**: Partially Implemented
+**Next Review**: After Phase 3 completion

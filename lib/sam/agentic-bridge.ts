@@ -49,6 +49,8 @@ import {
   type LearningPlan,
   type TriggeredCheckIn,
   type Intervention,
+  type BehaviorMonitorConfig,
+  type CheckInSchedulerConfig,
   NotificationChannel,
 
   // Self-Evaluation
@@ -240,10 +242,11 @@ export class SAMAgenticBridge {
     if (this.usePrismaStores) {
       const planStore = createPrismaPlanStore();
       // Initialize only the components that don't require AIAdapter
-      this.planBuilder = createPlanBuilder({ logger: console });
-      this.stateMachine = createAgentStateMachine({ planStore, logger: console });
+      const samLogger = this.createSamLogger();
+      this.planBuilder = createPlanBuilder({ logger: samLogger });
+      this.stateMachine = createAgentStateMachine({ planStore, logger: samLogger });
     } else {
-      this.planBuilder = createPlanBuilder();
+      this.planBuilder = createPlanBuilder({ logger: this.createSamLogger() });
       // State machine requires planStore, so we can't initialize it without one
     }
     this.logger.debug('Goal Planning initialized (partial - no AIAdapter)', { usePrismaStores: this.usePrismaStores });
@@ -257,31 +260,65 @@ export class SAMAgenticBridge {
   }
 
   private initProactiveInterventions(): void {
-    // Note: The Prisma stores (PrismaPlanStore, etc.) are for goal-planning ExecutionPlans,
-    // not for proactive-intervention LearningPlans. These are different interfaces.
-    // Until proper LearningPlanStore, CheckInStore, etc. adapters are created,
-    // we use in-memory stores for proactive interventions.
-    this.planTracker = createMultiSessionPlanTracker({ logger: console });
-    this.checkInScheduler = createCheckInScheduler({
-      logger: console,
-      defaultChannel: NotificationChannel.IN_APP,
-    });
-    this.behaviorMonitor = createBehaviorMonitor({ logger: console });
-    this.logger.debug('Proactive Interventions initialized (in-memory stores)');
+    const proactiveLogger = this.logger;
+    let behaviorConfig: BehaviorMonitorConfig = { logger: proactiveLogger };
+    let checkInConfig: CheckInSchedulerConfig = { logger: proactiveLogger, defaultChannel: NotificationChannel.IN_APP };
+
+    if (this.usePrismaStores) {
+      try {
+        const eventStore = createPrismaBehaviorEventStore();
+        const patternStore = createPrismaPatternStore();
+        const interventionStore = createPrismaInterventionStore();
+        const checkInStore = createPrismaCheckInStore();
+
+        behaviorConfig = {
+          eventStore,
+          patternStore,
+          interventionStore,
+          logger: proactiveLogger,
+        };
+        checkInConfig = {
+          store: checkInStore,
+          logger: proactiveLogger,
+          defaultChannel: NotificationChannel.IN_APP,
+        };
+      } catch (error) {
+        this.logger.warn('Failed to initialize Prisma proactive stores, falling back to in-memory', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    // LearningPlanStore adapter does not exist yet, so keep plan tracker in-memory.
+    this.planTracker = createMultiSessionPlanTracker({ logger: proactiveLogger });
+    this.checkInScheduler = createCheckInScheduler(checkInConfig);
+    this.behaviorMonitor = createBehaviorMonitor(behaviorConfig);
+    this.logger.debug('Proactive Interventions initialized', { usePrismaStores: this.usePrismaStores });
   }
 
   private initSelfEvaluation(): void {
-    this.confidenceScorer = createConfidenceScorer();
-    this.responseVerifier = createResponseVerifier();
-    this.qualityTracker = createQualityTracker();
+    const logger = this.logger;
+    this.confidenceScorer = createConfidenceScorer({ logger });
+    this.responseVerifier = createResponseVerifier({ logger });
+    this.qualityTracker = createQualityTracker({ logger });
     this.logger.debug('Self-Evaluation initialized');
   }
 
   private initLearningAnalytics(): void {
-    this.progressAnalyzer = createProgressAnalyzer();
-    this.skillAssessor = createSkillAssessor();
-    this.recommendationEngine = createRecommendationEngine();
+    const logger = this.logger;
+    this.progressAnalyzer = createProgressAnalyzer({ logger });
+    this.skillAssessor = createSkillAssessor({ logger });
+    this.recommendationEngine = createRecommendationEngine({ logger });
     this.logger.debug('Learning Analytics initialized');
+  }
+
+  private createSamLogger() {
+    return {
+      debug: (message: string, ...args: unknown[]) => this.logger.debug(message, { args }),
+      info: (message: string, ...args: unknown[]) => this.logger.info(message, { args }),
+      warn: (message: string, ...args: unknown[]) => this.logger.warn(message, { args }),
+      error: (message: string, ...args: unknown[]) => this.logger.error(message, { args }),
+    };
   }
 
   // ============================================================================

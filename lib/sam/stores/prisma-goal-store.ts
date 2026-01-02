@@ -1,9 +1,10 @@
 /**
  * Goal Store - Implements GoalStore interface from @sam-ai/agentic
- * Uses in-memory storage until SAMLearningGoal Prisma model is added
- * TODO: Convert to Prisma when model is added to schema
+ * Uses Prisma with SAMLearningGoal model for persistent storage
  */
 
+import { db } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import {
   type GoalStore,
   type GoalQueryOptions,
@@ -14,52 +15,186 @@ import {
 } from '@sam-ai/agentic';
 
 /**
- * In-memory implementation of GoalStore
- * Stores goals in memory for now - will be replaced with Prisma when model exists
+ * Map Prisma enum values to agentic package types
+ */
+const mapPrismaPriority = (
+  priority: string
+): 'low' | 'medium' | 'high' | 'critical' => {
+  const map: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
+    LOW: 'low',
+    MEDIUM: 'medium',
+    HIGH: 'high',
+    CRITICAL: 'critical',
+  };
+  return map[priority] || 'medium';
+};
+
+const mapPrismaStatus = (
+  status: string
+): 'draft' | 'active' | 'paused' | 'completed' | 'abandoned' => {
+  const map: Record<
+    string,
+    'draft' | 'active' | 'paused' | 'completed' | 'abandoned'
+  > = {
+    DRAFT: 'draft',
+    ACTIVE: 'active',
+    PAUSED: 'paused',
+    COMPLETED: 'completed',
+    ABANDONED: 'abandoned',
+  };
+  return map[status] || 'draft';
+};
+
+const mapPrismaMastery = (
+  mastery: string | null
+): 'novice' | 'beginner' | 'intermediate' | 'advanced' | 'expert' | undefined => {
+  if (!mastery) return undefined;
+  const map: Record<
+    string,
+    'novice' | 'beginner' | 'intermediate' | 'advanced' | 'expert'
+  > = {
+    NOVICE: 'novice',
+    BEGINNER: 'beginner',
+    INTERMEDIATE: 'intermediate',
+    ADVANCED: 'advanced',
+    EXPERT: 'expert',
+  };
+  return map[mastery];
+};
+
+const mapAgenticPriority = (
+  priority: string
+): 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' => {
+  const map: Record<string, 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'> = {
+    low: 'LOW',
+    medium: 'MEDIUM',
+    high: 'HIGH',
+    critical: 'CRITICAL',
+  };
+  return map[priority] || 'MEDIUM';
+};
+
+const mapAgenticStatus = (
+  status: string
+): 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED' => {
+  const map: Record<
+    string,
+    'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED'
+  > = {
+    draft: 'DRAFT',
+    active: 'ACTIVE',
+    paused: 'PAUSED',
+    completed: 'COMPLETED',
+    abandoned: 'ABANDONED',
+  };
+  return map[status] || 'DRAFT';
+};
+
+const mapAgenticMastery = (
+  mastery: string | undefined
+): 'NOVICE' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT' | null => {
+  if (!mastery) return null;
+  const map: Record<
+    string,
+    'NOVICE' | 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT'
+  > = {
+    novice: 'NOVICE',
+    beginner: 'BEGINNER',
+    intermediate: 'INTERMEDIATE',
+    advanced: 'ADVANCED',
+    expert: 'EXPERT',
+  };
+  return map[mastery] || null;
+};
+
+/**
+ * Convert Prisma goal to agentic LearningGoal type
+ */
+const toAgenticGoal = (prismaGoal: {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  targetDate: Date | null;
+  priority: string;
+  status: string;
+  courseId: string | null;
+  chapterId: string | null;
+  sectionId: string | null;
+  topicIds: string[];
+  skillIds: string[];
+  currentMastery: string | null;
+  targetMastery: string | null;
+  tags: string[];
+  metadata: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
+}): LearningGoal => ({
+  id: prismaGoal.id,
+  userId: prismaGoal.userId,
+  title: prismaGoal.title,
+  description: prismaGoal.description ?? undefined,
+  targetDate: prismaGoal.targetDate ?? undefined,
+  priority: mapPrismaPriority(prismaGoal.priority),
+  status: mapPrismaStatus(prismaGoal.status),
+  context: {
+    courseId: prismaGoal.courseId ?? undefined,
+    chapterId: prismaGoal.chapterId ?? undefined,
+    sectionId: prismaGoal.sectionId ?? undefined,
+    topicIds: prismaGoal.topicIds,
+    skillIds: prismaGoal.skillIds,
+  },
+  currentMastery: mapPrismaMastery(prismaGoal.currentMastery),
+  targetMastery: mapPrismaMastery(prismaGoal.targetMastery),
+  tags: prismaGoal.tags,
+  metadata: prismaGoal.metadata as Record<string, unknown> | undefined,
+  createdAt: prismaGoal.createdAt,
+  updatedAt: prismaGoal.updatedAt,
+  completedAt: prismaGoal.completedAt ?? undefined,
+});
+
+/**
+ * Prisma implementation of GoalStore
+ * Uses SAMLearningGoal model for persistent storage
  */
 export class PrismaGoalStore implements GoalStore {
-  private goals: Map<string, LearningGoal> = new Map();
-
-  private generateId(): string {
-    return `goal_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-  }
-
   /**
    * Create a new learning goal
    */
   async create(input: CreateGoalInput): Promise<LearningGoal> {
-    const now = new Date();
-    const goal: LearningGoal = {
-      id: this.generateId(),
-      userId: input.userId,
-      title: input.title,
-      description: input.description,
-      targetDate: input.targetDate,
-      priority: input.priority ?? 'medium',
-      status: GoalStatus.DRAFT,
-      context: {
+    const goal = await db.sAMLearningGoal.create({
+      data: {
+        userId: input.userId,
+        title: input.title,
+        description: input.description,
+        targetDate: input.targetDate,
+        priority: mapAgenticPriority(input.priority ?? 'medium'),
+        status: 'DRAFT',
         courseId: input.context?.courseId,
         chapterId: input.context?.chapterId,
         sectionId: input.context?.sectionId,
         topicIds: input.context?.topicIds ?? [],
         skillIds: input.context?.skillIds ?? [],
+        currentMastery: mapAgenticMastery(input.currentMastery),
+        targetMastery: mapAgenticMastery(input.targetMastery),
+        tags: input.tags ?? [],
       },
-      currentMastery: input.currentMastery,
-      targetMastery: input.targetMastery,
-      tags: input.tags ?? [],
-      createdAt: now,
-      updatedAt: now,
-    };
+    });
 
-    this.goals.set(goal.id, goal);
-    return goal;
+    return toAgenticGoal(goal);
   }
 
   /**
    * Get a goal by ID
    */
   async get(goalId: string): Promise<LearningGoal | null> {
-    return this.goals.get(goalId) ?? null;
+    const goal = await db.sAMLearningGoal.findUnique({
+      where: { id: goalId },
+    });
+
+    if (!goal) return null;
+    return toAgenticGoal(goal);
   }
 
   /**
@@ -69,90 +204,83 @@ export class PrismaGoalStore implements GoalStore {
     userId: string,
     options?: GoalQueryOptions
   ): Promise<LearningGoal[]> {
-    let goals = Array.from(this.goals.values()).filter(
-      (goal) => goal.userId === userId
-    );
+    const whereClause: Prisma.SAMLearningGoalWhereInput = { userId };
 
     if (options?.status?.length) {
-      goals = goals.filter((g) => options.status?.includes(g.status));
+      whereClause.status = {
+        in: options.status.map((s) => mapAgenticStatus(s)),
+      };
     }
 
     if (options?.priority?.length) {
-      goals = goals.filter((g) => options.priority?.includes(g.priority));
+      whereClause.priority = {
+        in: options.priority.map((p) => mapAgenticPriority(p)),
+      };
     }
 
     if (options?.courseId) {
-      goals = goals.filter((g) => g.context.courseId === options.courseId);
+      whereClause.courseId = options.courseId;
     }
 
-    // Sort
-    const orderBy = options?.orderBy ?? 'createdAt';
-    const orderDir = options?.orderDir ?? 'desc';
-    goals.sort((a, b) => {
-      const aVal = a[orderBy as keyof LearningGoal];
-      const bVal = b[orderBy as keyof LearningGoal];
-      if (aVal === undefined || bVal === undefined) return 0;
-      if (aVal < bVal) return orderDir === 'asc' ? -1 : 1;
-      if (aVal > bVal) return orderDir === 'asc' ? 1 : -1;
-      return 0;
+    const goals = await db.sAMLearningGoal.findMany({
+      where: whereClause,
+      orderBy: {
+        [options?.orderBy ?? 'createdAt']: options?.orderDir ?? 'desc',
+      },
+      skip: options?.offset ?? 0,
+      take: options?.limit,
     });
 
-    // Pagination
-    const offset = options?.offset ?? 0;
-    const limit = options?.limit ?? goals.length;
-    return goals.slice(offset, offset + limit);
+    return goals.map(toAgenticGoal);
   }
 
   /**
    * Update a goal
    */
   async update(goalId: string, input: UpdateGoalInput): Promise<LearningGoal> {
-    const goal = this.goals.get(goalId);
-    if (!goal) {
-      throw new Error(`Goal not found: ${goalId}`);
+    const updateData: Record<string, unknown> = {};
+
+    if (input.title !== undefined) updateData.title = input.title;
+    if (input.description !== undefined)
+      updateData.description = input.description;
+    if (input.targetDate !== undefined) updateData.targetDate = input.targetDate;
+    if (input.priority !== undefined)
+      updateData.priority = mapAgenticPriority(input.priority);
+    if (input.status !== undefined)
+      updateData.status = mapAgenticStatus(input.status);
+    if (input.targetMastery !== undefined)
+      updateData.targetMastery = mapAgenticMastery(input.targetMastery);
+    if (input.tags !== undefined) updateData.tags = input.tags;
+
+    // Handle context updates
+    if (input.context) {
+      if (input.context.courseId !== undefined)
+        updateData.courseId = input.context.courseId;
+      if (input.context.chapterId !== undefined)
+        updateData.chapterId = input.context.chapterId;
+      if (input.context.sectionId !== undefined)
+        updateData.sectionId = input.context.sectionId;
+      if (input.context.topicIds !== undefined)
+        updateData.topicIds = input.context.topicIds;
+      if (input.context.skillIds !== undefined)
+        updateData.skillIds = input.context.skillIds;
     }
 
-    const updated: LearningGoal = {
-      ...goal,
-      ...(input.title !== undefined && { title: input.title }),
-      ...(input.description !== undefined && { description: input.description }),
-      ...(input.targetDate !== undefined && { targetDate: input.targetDate }),
-      ...(input.priority !== undefined && { priority: input.priority }),
-      ...(input.status !== undefined && { status: input.status }),
-      ...(input.targetMastery !== undefined && {
-        targetMastery: input.targetMastery,
-      }),
-      ...(input.tags !== undefined && { tags: input.tags }),
-      context: {
-        ...goal.context,
-        ...(input.context?.courseId !== undefined && {
-          courseId: input.context.courseId,
-        }),
-        ...(input.context?.chapterId !== undefined && {
-          chapterId: input.context.chapterId,
-        }),
-        ...(input.context?.sectionId !== undefined && {
-          sectionId: input.context.sectionId,
-        }),
-        ...(input.context?.topicIds !== undefined && {
-          topicIds: input.context.topicIds,
-        }),
-        ...(input.context?.skillIds !== undefined && {
-          skillIds: input.context.skillIds,
-        }),
-      },
-      updatedAt: new Date(),
-    };
+    const goal = await db.sAMLearningGoal.update({
+      where: { id: goalId },
+      data: updateData,
+    });
 
-    this.goals.set(goalId, updated);
-    return updated;
+    return toAgenticGoal(goal);
   }
 
   /**
    * Delete a goal
    */
   async delete(goalId: string): Promise<void> {
-    this.goals.delete(goalId);
+    await db.sAMLearningGoal.delete({
+      where: { id: goalId },
+    });
   }
 
   /**
@@ -173,20 +301,15 @@ export class PrismaGoalStore implements GoalStore {
    * Complete a goal
    */
   async complete(goalId: string): Promise<LearningGoal> {
-    const goal = this.goals.get(goalId);
-    if (!goal) {
-      throw new Error(`Goal not found: ${goalId}`);
-    }
+    const goal = await db.sAMLearningGoal.update({
+      where: { id: goalId },
+      data: {
+        status: 'COMPLETED',
+        completedAt: new Date(),
+      },
+    });
 
-    const updated: LearningGoal = {
-      ...goal,
-      status: GoalStatus.COMPLETED,
-      completedAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    this.goals.set(goalId, updated);
-    return updated;
+    return toAgenticGoal(goal);
   }
 
   /**

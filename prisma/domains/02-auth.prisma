@@ -176,6 +176,20 @@ model User {
   samLearningProfile                      SAMLearningProfile?                  @relation("SAMLearningProfiles")
   samPoints                               SAMPoints[]                          @relation("SAMPoints")
   samStreak                               SAMStreak?                           @relation("SAMStreaks")
+
+  // SAM Agentic AI Relations (added January 2026)
+  samLearningGoals                        SAMLearningGoal[]                    @relation("SAMLearningGoals")
+  samExecutionPlans                       SAMExecutionPlan[]                   @relation("SAMExecutionPlans")
+  samScheduledCheckIns                    SAMScheduledCheckIn[]                @relation("SAMScheduledCheckIns")
+  samBehaviorEvents                       SAMBehaviorEvent[]                   @relation("SAMBehaviorEvents")
+  samBehaviorPatterns                     SAMBehaviorPattern[]                 @relation("SAMBehaviorPatterns")
+  samInterventions                        SAMIntervention[]                    @relation("SAMInterventions")
+  samTopicProgress                        SAMTopicProgress[]                   @relation("SAMTopicProgress")
+  samLearningGaps                         SAMLearningGap[]                     @relation("SAMLearningGaps")
+  samSkillAssessments                     SAMSkillAssessment[]                 @relation("SAMSkillAssessments")
+  samRecommendations                      SAMRecommendation[]                  @relation("SAMRecommendations")
+  samAgenticSessions                      SAMAgenticSession[]                  @relation("SAMAgenticSessions")
+
   authSessions                            AuthSession[]
   study_streaks                           study_streaks[]
   user_achievements                       user_achievements[]
