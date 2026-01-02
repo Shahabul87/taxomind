@@ -25,6 +25,7 @@ on:
 
 env:
   NODE_VERSION: '20.x'
+  PNPM_VERSION: '8'
   PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
   DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
@@ -36,17 +37,22 @@ jobs:
       cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Generate cache key
         id: cache-key
-        run: echo "key=${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
-      
+        run: echo "key=${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+
       - name: Cache dependencies
         uses: actions/cache@v4
         id: cache
@@ -57,17 +63,17 @@ jobs:
           key: ${{ steps.cache-key.outputs.key }}
           restore-keys: |
             ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
-      
+
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
-        run: npm ci
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Install Playwright browsers
         if: steps.cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-      
+        run: pnpm exec playwright install --with-deps
+
       - name: Build application
-        run: npm run build
+        run: pnpm run build
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL || 'postgresql://test_user:test_pass@localhost:5432/test_db' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-build-only' }}
@@ -100,13 +106,18 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -114,29 +125,29 @@ jobs:
             node_modules
             ~/.cache/ms-playwright
           key: ${{ needs.setup.outputs.cache-key }}
-      
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-      
+
       - name: Setup test database
         run: |
-          npm run test:db:setup
+          pnpm run test:db:setup
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-      
+
       - name: Start application
         run: |
-          npm run start &
-          npx wait-on http://localhost:3000
+          pnpm run start &
+          pnpm exec wait-on http://localhost:3000
         env:
           NODE_ENV: test
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-      
+
       - name: Run E2E tests
         run: |
-          npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+          pnpm exec playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/${{ strategy.job-total }}
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           CI: true
@@ -164,16 +175,21 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     name: Performance Tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -181,29 +197,29 @@ jobs:
             node_modules
             ~/.cache/ms-playwright
           key: ${{ needs.setup.outputs.cache-key }}
-      
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-      
+
       - name: Start application
         run: |
-          npm run start &
-          npx wait-on http://localhost:3000
+          pnpm run start &
+          pnpm exec wait-on http://localhost:3000
         env:
           NODE_ENV: production
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-      
+
       - name: Run Lighthouse CI
         run: |
-          npm install -g @lhci/cli
+          pnpm add -g @lhci/cli
           lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
-      
+
       - name: Run performance tests
-        run: npx playwright test e2e/tests/performance.spec.ts
+        run: pnpm exec playwright test e2e/tests/performance.spec.ts
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
       
@@ -248,16 +264,21 @@ jobs:
     runs-on: ubuntu-latest
     name: Visual Regression Tests
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -265,22 +286,22 @@ jobs:
             node_modules
             ~/.cache/ms-playwright
           key: ${{ needs.setup.outputs.cache-key }}
-      
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-      
+
       - name: Start application
         run: |
-          npm run start &
-          npx wait-on http://localhost:3000
+          pnpm run start &
+          pnpm exec wait-on http://localhost:3000
         env:
           NODE_ENV: test
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-      
+
       - name: Run visual regression tests
-        run: npx percy exec -- npx playwright test e2e/visual-regression
+        run: pnpm exec percy exec -- pnpm exec playwright test e2e/visual-regression
         env:
           PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
           PLAYWRIGHT_BASE_URL: http://localhost:3000
@@ -298,16 +319,21 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     name: Accessibility Tests
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Restore cache
         uses: actions/cache@v4
         with:
@@ -315,29 +341,29 @@ jobs:
             node_modules
             ~/.cache/ms-playwright
           key: ${{ needs.setup.outputs.cache-key }}
-      
+
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-      
+
       - name: Start application
         run: |
-          npm run start &
-          npx wait-on http://localhost:3000
+          pnpm run start &
+          pnpm exec wait-on http://localhost:3000
         env:
           NODE_ENV: test
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-      
+
       - name: Run accessibility tests
-        run: npx playwright test --grep @accessibility
+        run: pnpm exec playwright test --grep @accessibility
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
-      
+
       - name: Generate accessibility report
         if: always()
         run: |
-          npm run test:accessibility:report
+          pnpm run test:accessibility:report
       
       - name: Upload accessibility results
         if: always()
@@ -368,8 +394,8 @@ jobs:
       
       - name: Merge test results
         run: |
-          npm install --no-save @playwright/test
-          npx playwright merge-reports --reporter html ./all-results
+          pnpm add --save-dev @playwright/test
+          pnpm exec playwright merge-reports --reporter html ./all-results
       
       - name: Upload merged report
         uses: actions/upload-artifact@v4

@@ -8,6 +8,7 @@ on:
 
 env:
   NODE_VERSION: '20.x'
+  PNPM_VERSION: '8'
   DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
   NEXTAUTH_SECRET: ${{ secrets.STAGING_NEXTAUTH_SECRET }}
   NEXTAUTH_URL: ${{ secrets.STAGING_NEXTAUTH_URL }}
@@ -21,23 +22,28 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+          cache: 'pnpm'
+
       - name: 📚 Install Dependencies
-        run: npm ci --prefer-offline --no-audit
-        
+        run: pnpm install --frozen-lockfile
+
       - name: 🔍 Lint Check
-        run: NODE_OPTIONS='--max-old-space-size=8192' npm run lint -- --max-warnings=0
-        
+        run: NODE_OPTIONS='--max-old-space-size=8192' pnpm run lint -- --max-warnings=0
+
       - name: 🎯 TypeScript Check
         run: |
           NODE_OPTIONS='--max-old-space-size=8192' \
-          npx tsc --noEmit --skipLibCheck --incremental false
+          pnpm exec tsc --noEmit --skipLibCheck --incremental false
         continue-on-error: true
 
   # 🧪 Optimized Testing with Chunking
@@ -67,28 +73,33 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+          cache: 'pnpm'
+
       - name: 📚 Install Dependencies
-        run: npm ci --prefer-offline --no-audit
-        
+        run: pnpm install --frozen-lockfile
+
       - name: 🗄️ Database Setup
         run: |
-          npx prisma generate
-          npx prisma db push --skip-generate
+          pnpm exec prisma generate
+          pnpm exec prisma db push --skip-generate
         env:
           DATABASE_URL: postgresql://postgres:test@localhost:5432/test_db
-          
+
       - name: 🧪 Run Test Chunk
         run: |
           # Set memory limits
           export NODE_OPTIONS="--max-old-space-size=2048"
-          
+
           # Find test files and split into chunks
           TEST_FILES=$(find . -path ./node_modules -prune -o \
             -path ./.next -prune -o \
@@ -97,19 +108,19 @@ jobs:
             grep -v ".performance." | \
             grep -v ".stress." | \
             sort)
-          
+
           # Calculate chunk
           TOTAL_FILES=$(echo "$TEST_FILES" | wc -l)
           CHUNK_SIZE=$((($TOTAL_FILES + 3) / 4))
           START=$(( (${{ matrix.chunk }} - 1) * $CHUNK_SIZE + 1 ))
           END=$(( ${{ matrix.chunk }} * $CHUNK_SIZE ))
-          
+
           # Get files for this chunk
           CHUNK_FILES=$(echo "$TEST_FILES" | sed -n "${START},${END}p" | tr '\n' ' ')
-          
+
           if [ -n "$CHUNK_FILES" ]; then
             echo "Running chunk ${{ matrix.chunk }} with $(echo $CHUNK_FILES | wc -w) files"
-            npx jest \
+            pnpm exec jest \
               --config=jest.config.ci.js \
               --runInBand \
               --no-cache \
@@ -133,28 +144,32 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+          cache: 'pnpm'
+
       - name: 📚 Install Production Dependencies
-        run: |
-          npm ci --prefer-offline --no-audit --production=false
-          
+        run: pnpm install --frozen-lockfile
+
       - name: 🔧 Prisma Generate
-        run: npx prisma generate
-        
+        run: pnpm exec prisma generate
+
       - name: 🏗️ Fast Build
         run: |
           # Use swc for faster builds
           export NEXT_TELEMETRY_DISABLED=1
           export NODE_OPTIONS="--max-old-space-size=3072"
-          
+
           # Build with optimizations
-          npx next build --experimental-build-mode=compile
+          pnpm exec next build --experimental-build-mode=compile
         env:
           NODE_ENV: production
           SKIP_ENV_VALIDATION: true

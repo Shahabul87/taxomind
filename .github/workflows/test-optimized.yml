@@ -9,6 +9,7 @@ on:
 
 env:
   NODE_VERSION: '20.x'
+  PNPM_VERSION: '8'
   DATABASE_URL: postgresql://test:test@localhost:5432/test_db
   NODE_ENV: test
   CI: true
@@ -21,13 +22,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      - run: npm ci --prefer-offline --no-audit
-      - run: NODE_OPTIONS='--max-old-space-size=8192' npm run lint -- --max-warnings=0
-      - run: npx tsc --noEmit --skipLibCheck
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: NODE_OPTIONS='--max-old-space-size=8192' pnpm run lint -- --max-warnings=0
+      - run: NODE_OPTIONS='--max-old-space-size=8192' pnpm exec tsc --noEmit --skipLibCheck
 
   # Lightweight unit tests
   unit-tests:
@@ -35,30 +39,35 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-check
     timeout-minutes: 10
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Generate Prisma Client
-        run: npx prisma generate
-      
+        run: pnpm exec prisma generate
+
       - name: Run unit tests with memory limits
         run: |
           NODE_OPTIONS='--max-old-space-size=1536' \
-          npm run test:ci:optimized
+          pnpm run test:ci:optimized
         env:
           SKIP_COVERAGE: true
           TEST_TIMEOUT: 30000
-      
+
       - name: Upload test results on failure
         if: failure()
         uses: actions/upload-artifact@v3
@@ -75,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-check
     timeout-minutes: 15
-    
+
     services:
       postgres:
         image: postgres:15-alpine
@@ -90,36 +99,41 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Setup database
         run: |
-          npx prisma generate
-          npx prisma db push --skip-generate
+          pnpm exec prisma generate
+          pnpm exec prisma db push --skip-generate
         timeout-minutes: 3
-      
+
       - name: Run integration tests
         run: |
           NODE_OPTIONS='--max-old-space-size=2048' \
-          jest --config jest.config.ci.js \
+          pnpm exec jest --config jest.config.ci.js \
                --testNamePattern="(integration|api|database)" \
                --ci \
                --maxWorkers=2 \
                --bail
         timeout-minutes: 10
         continue-on-error: true
-      
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v3
@@ -136,37 +150,42 @@ jobs:
     runs-on: ubuntu-latest
     needs: pre-check
     timeout-minutes: 15
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
+          cache: 'pnpm'
+
       - name: Install dependencies
-        run: npm ci --prefer-offline --no-audit
-      
+        run: pnpm install --frozen-lockfile
+
       - name: Create minimal .env
         run: |
           echo "DATABASE_URL=${{ env.DATABASE_URL }}" > .env
           echo "NEXTAUTH_URL=http://localhost:3000" >> .env
           echo "AUTH_SECRET=test_secret" >> .env
-      
+
       - name: Generate Prisma Client
-        run: npx prisma generate
-      
+        run: pnpm exec prisma generate
+
       - name: Build with memory limits
         run: |
           NODE_OPTIONS='--max-old-space-size=3072' \
-          npm run build:ci
+          pnpm run build:ci
         timeout-minutes: 12
         env:
           SKIP_ENV_VALIDATION: true
           NEXT_TELEMETRY_DISABLED: 1
-      
+
       - name: Check build output
         run: |
           if [ -d ".next" ]; then
@@ -184,7 +203,7 @@ jobs:
     needs: [unit-tests, integration-tests, build-check]
     if: always()
     timeout-minutes: 2
-    
+
     steps:
       - name: Check test results
         run: |
@@ -193,11 +212,11 @@ jobs:
             echo "❌ Critical tests failed"
             exit 1
           fi
-          
+
           if [ "${{ needs.integration-tests.result }}" == "failure" ]; then
             echo "⚠️ Integration tests failed (non-blocking)"
           fi
-          
+
           echo "✅ Test suite completed successfully"
 
 # Concurrency settings to prevent multiple runs

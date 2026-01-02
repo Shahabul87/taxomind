@@ -8,6 +8,7 @@ on:
 
 env:
   NODE_VERSION: '20.x'
+  PNPM_VERSION: '8'
   NODE_OPTIONS: '--max-old-space-size=8192'
   DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
   NEXTAUTH_SECRET: ${{ secrets.STAGING_NEXTAUTH_SECRET }}
@@ -21,21 +22,26 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+          cache: 'pnpm'
+
       - name: 📚 Install Dependencies
-        run: npm ci
-        
+        run: pnpm install --frozen-lockfile
+
       - name: 🔍 Lint Check
-        run: NODE_OPTIONS='--max-old-space-size=8192' npm run lint
-        
+        run: NODE_OPTIONS='--max-old-space-size=8192' pnpm run lint
+
       - name: 🎯 TypeScript Check
-        run: NODE_OPTIONS='--max-old-space-size=8192' npx tsc --noEmit --skipLibCheck --incremental false
+        run: NODE_OPTIONS='--max-old-space-size=8192' pnpm exec tsc --noEmit --skipLibCheck --incremental false
         continue-on-error: true
         
       # Skip security audit and bundle analysis for faster builds
@@ -62,29 +68,34 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-          
+
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+          cache: 'pnpm'
+
       - name: 📚 Install Dependencies
-        run: npm ci
-        
+        run: pnpm install --frozen-lockfile
+
       - name: 🗄️ Database Setup
         run: |
-          npx prisma generate
-          npx prisma db push
+          pnpm exec prisma generate
+          pnpm exec prisma db push
         env:
           DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/taxomind_test
-          
+
       - name: 🧪 Run Tests
-        run: npm run test:ci
+        run: pnpm run test:ci
         env:
           DATABASE_URL: postgresql://postgres:test_password_123@localhost:5432/taxomind_test
           
@@ -100,21 +111,26 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - name: 📦 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          
+          cache: 'pnpm'
+
       - name: 📚 Install Dependencies
-        run: npm ci
-        
+        run: pnpm install --frozen-lockfile
+
       - name: 🔧 Prisma Generate
-        run: npx prisma generate
-        
+        run: pnpm exec prisma generate
+
       - name: 🏗️ Production Build
-        run: npm run build:fast
+        run: pnpm run build:fast
         env:
           NODE_ENV: production
           SKIP_BUILD_STATIC_GENERATION: true
@@ -135,14 +151,14 @@ jobs:
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
-        
+
       - name: 🚀 Deploy to Railway Staging
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
         run: |
           echo "Installing Railway CLI..."
-          npm install -g @railway/cli
-          
+          pnpm add -g @railway/cli
+
           echo "Deploying to Railway staging environment..."
           railway up --service taxomind-staging --environment staging --detach
           
