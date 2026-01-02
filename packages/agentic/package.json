@@ -1,0 +1,76 @@
+{
+  "name": "@sam-ai/agentic",
+  "version": "0.1.0",
+  "description": "Agentic AI capabilities for SAM - autonomous goal planning, tool execution, long-term memory, proactive intervention, and self-evaluation",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@sam-ai/core": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.5",
+    "tsup": "^8.2.4",
+    "typescript": "^5.6.2",
+    "vitest": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@anthropic-ai/sdk": ">=0.27.3"
+  },
+  "peerDependenciesMeta": {
+    "@anthropic-ai/sdk": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "ai",
+    "agentic",
+    "autonomous",
+    "goal-planning",
+    "tool-execution",
+    "long-term-memory",
+    "proactive",
+    "self-evaluation",
+    "sam",
+    "education",
+    "mentor"
+  ],
+  "author": "Taxomind <dev@taxomind.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taxomind/sam-ai.git",
+    "directory": "packages/agentic"
+  },
+  "bugs": {
+    "url": "https://github.com/taxomind/sam-ai/issues"
+  },
+  "homepage": "https://github.com/taxomind/sam-ai/tree/main/packages/agentic#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

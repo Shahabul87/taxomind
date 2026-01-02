@@ -10,11 +10,12 @@ const paramsSchema = z.object({
 });
 
 // Achievement definitions matching the UI
+// Uses valid AchievementType enum values from Prisma schema
 const ACHIEVEMENT_DEFINITIONS = [
   // Progress-based achievements
   {
     id: "first_step",
-    achievementType: AchievementType.FIRST_LESSON,
+    achievementType: AchievementType.CHAPTER_COMPLETION,
     title: "First Step",
     description: "Complete your first section",
     requirement: 1,
@@ -25,7 +26,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: "getting_started",
-    achievementType: AchievementType.LESSON_STREAK,
+    achievementType: AchievementType.STUDY_STREAK,
     title: "Getting Started",
     description: "Complete 5 sections",
     requirement: 5,
@@ -36,7 +37,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: "making_progress",
-    achievementType: AchievementType.QUIZ_MASTER,
+    achievementType: AchievementType.PERFECT_QUIZ,
     title: "Making Progress",
     description: "Complete 10 sections",
     requirement: 10,
@@ -47,7 +48,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: "halfway_hero",
-    achievementType: AchievementType.HALFWAY_THERE,
+    achievementType: AchievementType.SKILL_MASTERY,
     title: "Halfway Hero",
     description: "Complete 50% of the course",
     requirement: 50,
@@ -58,7 +59,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: "almost_there",
-    achievementType: AchievementType.KNOWLEDGE_SEEKER,
+    achievementType: AchievementType.THOROUGH_LEARNER,
     title: "Almost There",
     description: "Complete 75% of the course",
     requirement: 75,
@@ -92,7 +93,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: "week_warrior",
-    achievementType: AchievementType.PERFECT_WEEK,
+    achievementType: AchievementType.CONSISTENT_LEARNER,
     title: "Week Warrior",
     description: "Maintain a 7-day learning streak",
     requirement: 7,
@@ -114,7 +115,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: "unstoppable",
-    achievementType: AchievementType.MASTERY_LEVEL,
+    achievementType: AchievementType.SKILL_MASTERY,
     title: "Unstoppable",
     description: "Maintain a 30-day learning streak",
     requirement: 30,
@@ -137,7 +138,7 @@ const ACHIEVEMENT_DEFINITIONS = [
   },
   {
     id: "dedicated_time",
-    achievementType: AchievementType.SPEED_LEARNER,
+    achievementType: AchievementType.FAST_LEARNER,
     title: "Dedicated Time",
     description: "Study for 2 hours total",
     requirement: 120,
@@ -354,7 +355,7 @@ async function getProgressData(userId: string, courseId: string) {
   const chapters = await db.chapter.findMany({
     where: { courseId },
     include: {
-      Section: {
+      sections: {
         where: { isPublished: true },
         select: { id: true },
       },
@@ -362,7 +363,7 @@ async function getProgressData(userId: string, courseId: string) {
   });
 
   const totalSections = chapters.reduce(
-    (acc, chapter) => acc + chapter.Section.length,
+    (acc, chapter) => acc + chapter.sections.length,
     0
   );
 

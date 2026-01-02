@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
     // Get user from session
     const user = await currentUser();
-    
+
     if (!user?.id) {
 
       return new NextResponse("Unauthorized", { status: 401 });
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     // Parse request body
     const body = await req.json();
 
-    const { name, parentId } = body;
+    const { name } = body;
 
     if (!name || typeof name !== "string") {
 
@@ -27,14 +27,12 @@ export async function POST(req: Request) {
     // Check if category already exists
     try {
 
-      // For subcategories, check if it exists under the same parent
       const existingCategory = await db.category.findFirst({
         where: {
           name: {
             equals: name,
             mode: 'insensitive' // Case insensitive search
           },
-          parentId: parentId || null, // Check under the same parent
         }
       });
 
@@ -44,22 +42,10 @@ export async function POST(req: Request) {
         return NextResponse.json(existingCategory);
       }
 
-      // If parentId is provided, verify the parent exists
-      if (parentId) {
-        const parentCategory = await db.category.findUnique({
-          where: { id: parentId }
-        });
-
-        if (!parentCategory) {
-          return new NextResponse("Parent category not found", { status: 404 });
-        }
-      }
-
-      // Create a new category (or subcategory if parentId is provided)
+      // Create a new category
       const category = await db.category.create({
         data: {
           name,
-          parentId: parentId || null,
         }
       });
 
@@ -79,21 +65,11 @@ export async function POST(req: Request) {
 
 export async function GET() {
   try {
-    // Get all top-level categories (those without a parent)
+    // Get all categories
     const categories = await db.category.findMany({
-      where: {
-        parentId: null, // Only get top-level categories
-      },
       orderBy: {
         name: "asc"
       },
-      include: {
-        children: {
-          orderBy: {
-            name: "asc"
-          }
-        }
-      }
     });
 
     return NextResponse.json(categories);
@@ -101,4 +77,4 @@ export async function GET() {
     logger.error("[CATEGORIES_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
-} 
+}

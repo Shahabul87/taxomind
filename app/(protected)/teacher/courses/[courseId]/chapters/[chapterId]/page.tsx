@@ -2,6 +2,7 @@ import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { EnterpriseChapterPageClient } from "./_components/enterprise-chapter-page-client";
+import { SimpleChapterContext } from "../../../../_components/simple-chapter-context";
 import { logger } from '@/lib/logger';
 
 const ChapterIdPage = async (
@@ -49,7 +50,34 @@ const ChapterIdPage = async (
     return redirect("/");
   }
 
-  return <EnterpriseChapterPageClient chapter={chapter} params={params} />;
+  return (
+    <>
+      <SimpleChapterContext
+        chapter={{
+          id: chapter.id,
+          title: chapter.title,
+          description: chapter.description,
+          isPublished: chapter.isPublished,
+          isFree: chapter.isFree,
+          position: chapter.position,
+          courseId: params.courseId,
+          courseTitle: chapter.course?.title,
+          sections: chapter.sections?.map(s => ({
+            id: s.id,
+            title: s.title,
+            isPublished: s.isPublished,
+            position: s.position,
+            type: s.type,
+          })),
+        }}
+        completionStatus={{
+          titleDesc: !!(chapter.title && chapter.description),
+          sections: (chapter.sections?.length ?? 0) > 0,
+        }}
+      />
+      <EnterpriseChapterPageClient chapter={chapter} params={params} />
+    </>
+  );
 }
  
 export default ChapterIdPage;

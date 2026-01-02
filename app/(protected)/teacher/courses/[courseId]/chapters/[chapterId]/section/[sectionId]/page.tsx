@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { Suspense } from "react";
 import { EnterpriseSectionPageClient } from "./_components/enterprise-section-page-client";
+import { SimpleSectionContext } from "../../../../../../_components/simple-section-context";
 import { logger } from '@/lib/logger';
 import { z } from "zod";
 import { type SectionData } from "./_components/enterprise-section-types";
@@ -246,11 +247,36 @@ async function SectionContent(props: {
     const serializedSection = serializeDates(section) as SectionData;
 
     return (
-      <EnterpriseSectionPageClient
-        section={serializedSection}
-        chapter={serializedSection.chapter}
-        params={params}
-      />
+      <>
+        <SimpleSectionContext
+          section={{
+            id: serializedSection.id,
+            title: serializedSection.title,
+            description: serializedSection.description,
+            content: serializedSection.description, // Use description as content preview
+            contentType: serializedSection.videoUrl ? 'video' : 'text',
+            videoUrl: serializedSection.videoUrl,
+            isPublished: serializedSection.isPublished,
+            isFree: serializedSection.isFree,
+            position: serializedSection.position,
+            chapterId: serializedSection.chapterId,
+            chapterTitle: serializedSection.chapter?.title,
+            courseId: serializedSection.chapter?.course?.id ?? '',
+            courseTitle: serializedSection.chapter?.course?.title,
+          }}
+          completionStatus={{
+            title: !!serializedSection.title,
+            description: !!serializedSection.description,
+            content: !!serializedSection.description || !!serializedSection.videoUrl,
+            video: !!serializedSection.videoUrl,
+          }}
+        />
+        <EnterpriseSectionPageClient
+          section={serializedSection}
+          chapter={serializedSection.chapter}
+          params={params}
+        />
+      </>
     );
   } catch (error) {
     // Log detailed error for debugging (shows in server logs)

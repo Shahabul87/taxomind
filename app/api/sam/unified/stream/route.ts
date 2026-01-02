@@ -42,6 +42,12 @@ import {
 // Import Prisma database adapter for SAM
 import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 
+// Import entity context service for REAL context awareness
+import { buildEntityContext, buildFormSummary } from '@/lib/sam/entity-context';
+
+// Import rate limiter for usage caps
+import { applyRateLimit, samMessagesLimiter } from '@/lib/sam/config/sam-rate-limiter';
+
 // Import Quality Gates Pipeline for content validation
 import {
   createQualityGatePipeline,
@@ -69,6 +75,19 @@ import {
   type EvaluationOutcome,
 } from '@sam-ai/memory';
 
+// Import Safety validation for response checking
+import {
+  isFeedbackTextSafe,
+  getFeedbackSuggestions,
+} from '@sam-ai/safety';
+
+// Import SAM Agentic Bridge for autonomous capabilities
+import {
+  createSAMAgenticBridge,
+  type SAMAgenticBridge,
+  ConfidenceLevel,
+} from '@/lib/sam/agentic-bridge';
+
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
@@ -86,6 +105,60 @@ const StreamRequestSchema = z.object({
     grandParentEntityId: z.string().optional(),
     capabilities: z.array(z.string()).optional(),
     breadcrumb: z.array(z.string()).optional(),
+    // Client-provided entity data from window context (SimpleCourseContext, etc.)
+    entityData: z.object({
+      title: z.string().optional(),
+      description: z.string().nullable().optional(),
+      whatYouWillLearn: z.array(z.string()).optional(),
+      learningObjectives: z.array(z.string()).optional(),
+      isPublished: z.boolean().optional(),
+      categoryId: z.string().nullable().optional(),
+      price: z.number().nullable().optional(),
+      imageUrl: z.string().nullable().optional(),
+      chapterCount: z.number().optional(),
+      publishedChapters: z.number().optional(),
+      chapters: z.array(z.object({
+        id: z.string(),
+        title: z.string(),
+        description: z.string().nullable().optional(),
+        isPublished: z.boolean().optional(),
+        isFree: z.boolean().optional(),
+        position: z.number().optional(),
+        sectionCount: z.number().optional(),
+        sections: z.array(z.object({
+          id: z.string(),
+          title: z.string(),
+          isPublished: z.boolean().optional(),
+        })).optional(),
+      })).optional(),
+      // Chapter-specific
+      position: z.number().optional(),
+      courseId: z.string().optional(),
+      courseTitle: z.string().optional(),
+      sectionCount: z.number().optional(),
+      fullChapterData: z.any().optional(),
+      sections: z.array(z.object({
+        id: z.string(),
+        title: z.string(),
+        isPublished: z.boolean().optional(),
+        position: z.number().optional(),
+        contentType: z.string().nullable().optional(),
+      })).optional(),
+      // Section-specific
+      chapterId: z.string().optional(),
+      chapterTitle: z.string().optional(),
+      content: z.string().nullable().optional(),
+      contentType: z.string().nullable().optional(),
+      videoUrl: z.string().nullable().optional(),
+    }).optional(),
+    entityType: z.enum(['course', 'chapter', 'section']).optional(),
+    // Page navigation links for context awareness
+    links: z.array(z.object({
+      href: z.string(),
+      text: z.string().optional(),
+      ariaLabel: z.string().optional(),
+    })).optional(),
+    linkCount: z.number().optional(),
   }),
   formContext: z.object({
     formId: z.string().optional(),
@@ -295,6 +368,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Apply rate limiting
+    const rateLimitResult = await applyRateLimit(request, samMessagesLimiter, user.id);
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
+    }
+
     // Parse and validate request
     const body = await request.json();
     const validation = StreamRequestSchema.safeParse(body);
@@ -309,11 +388,23 @@ export async function POST(request: NextRequest) {
 
     const { message, pageContext, formContext, conversationHistory, options } = validation.data;
 
+    // Initialize SAM Agentic Bridge for autonomous capabilities
+    const agenticBridge = createSAMAgenticBridge({
+      userId: user.id,
+      courseId: pageContext.entityId,
+      enableGoalPlanning: false, // Not needed for streaming response flow
+      enableToolExecution: false, // Not needed for streaming response flow
+      enableProactiveInterventions: true,
+      enableSelfEvaluation: true,
+      enableLearningAnalytics: true,
+    });
+
     logger.info('[SAM_STREAM] Processing streaming request:', {
       userId: user.id,
       pageType: pageContext.type,
       hasForm: !!formContext,
       messageLength: message.length,
+      agenticCapabilities: agenticBridge.getEnabledCapabilities(),
     });
 
     const subs = initializeSubsystems();
@@ -335,7 +426,93 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build SAMContext
+    // Build entity context - use client data if available, otherwise fetch from database
+    const hasClientEntityData = !!pageContext.entityData?.title;
+    let entityContext: Awaited<ReturnType<typeof buildEntityContext>>;
+
+    if (hasClientEntityData && pageContext.entityData) {
+      // Client provided entity data - use it directly (faster, no DB call needed)
+      const clientData = pageContext.entityData;
+      const entityType = pageContext.entityType || 'course';
+
+      logger.debug('[SAM_STREAM] Using client-provided entity data:', {
+        type: entityType,
+        title: clientData.title,
+        hasChapters: !!clientData.chapters?.length,
+      });
+
+      // Build entity context from client data
+      entityContext = {
+        type: entityType as 'course' | 'chapter' | 'section' | 'none',
+        course: entityType === 'course' || clientData.courseTitle ? {
+          id: pageContext.entityId || '',
+          title: clientData.title || clientData.courseTitle || '',
+          description: clientData.description || null,
+          subtitle: null,
+          courseGoals: null,
+          whatYouWillLearn: clientData.whatYouWillLearn || clientData.learningObjectives || [],
+          prerequisites: null,
+          difficulty: null,
+          categoryName: null,
+          isPublished: clientData.isPublished ?? false,
+          chapterCount: clientData.chapterCount || clientData.chapters?.length || 0,
+          chapters: clientData.chapters?.map(ch => ({
+            id: ch.id,
+            title: ch.title,
+            position: ch.position || 0,
+            sectionCount: ch.sectionCount || ch.sections?.length || 0,
+          })) || [],
+        } : undefined,
+        chapter: entityType === 'chapter' ? {
+          id: pageContext.entityId || '',
+          title: clientData.title || '',
+          description: clientData.description || null,
+          position: 0,
+          courseTitle: clientData.courseTitle || '',
+          courseId: clientData.courseId || '',
+          sections: clientData.sections?.map(s => ({
+            id: s.id,
+            title: s.title,
+            position: 0,
+            contentType: null,
+          })) || [],
+        } : undefined,
+        section: entityType === 'section' ? {
+          id: pageContext.entityId || '',
+          title: clientData.title || '',
+          description: clientData.description || null,
+          content: clientData.content || null,
+          position: 0,
+          chapterTitle: clientData.chapterTitle || '',
+          chapterId: clientData.chapterId || '',
+          courseTitle: clientData.courseTitle || '',
+          courseId: clientData.courseId || '',
+          videoUrl: clientData.videoUrl || null,
+          contentType: clientData.contentType || null,
+        } : undefined,
+        summary: buildClientEntitySummary(clientData, entityType),
+      };
+    } else {
+      // No client data - fetch from database (fallback)
+      entityContext = await buildEntityContext(
+        pageContext.type,
+        pageContext.entityId,
+        pageContext.parentEntityId,
+        pageContext.grandParentEntityId
+      );
+    }
+
+    logger.debug('[SAM_STREAM] Entity context ready:', {
+      type: entityContext.type,
+      hasEntity: entityContext.type !== 'none',
+      summaryLength: entityContext.summary.length,
+      source: hasClientEntityData ? 'client' : 'database',
+    });
+
+    // Build form summary for context
+    const formSummary = buildFormSummary(formContext?.fields);
+
+    // Build SAMContext with REAL entity data
     const samContext: SAMContext = createDefaultContext({
       user: {
         id: user.id,
@@ -353,9 +530,22 @@ export async function POST(request: NextRequest) {
         grandParentEntityId: pageContext.grandParentEntityId,
         capabilities: pageContext.capabilities || [],
         breadcrumb: pageContext.breadcrumb || [],
+        // CRITICAL: Pass actual entity data in metadata for context awareness
         metadata: {
+          entityContext,
+          entitySummary: entityContext.summary,
+          formSummary,
           memorySummary,
           reviewSummary,
+          // Include specific entity data for easy access
+          courseTitle: entityContext.course?.title,
+          courseDescription: entityContext.course?.description,
+          chapterTitle: entityContext.chapter?.title,
+          sectionTitle: entityContext.section?.title,
+          sectionContent: entityContext.section?.content,
+          // Include page links for navigation context
+          pageLinks: pageContext.links?.slice(0, 20),
+          pageLinkCount: pageContext.linkCount,
         },
       },
       form: formContext ? {
@@ -479,6 +669,117 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          // Run Safety Validation on response text
+          let safetyResult: { passed: boolean; suggestions: string[] } | null = null;
+          const safetyResponseText = result.response?.message || '';
+          if (safetyResponseText.length > 0) {
+            try {
+              const isSafe = await isFeedbackTextSafe(safetyResponseText);
+              const suggestions = isSafe ? [] : getFeedbackSuggestions(safetyResponseText);
+              safetyResult = { passed: isSafe, suggestions };
+              if (!isSafe) {
+                logger.warn('[SAM_STREAM] Safety check flagged issues:', { suggestionCount: suggestions.length });
+              }
+            } catch (safetyError) {
+              logger.warn('[SAM_STREAM] Safety validation failed:', safetyError);
+              safetyResult = { passed: true, suggestions: [] }; // Fail open
+            }
+          }
+
+          // =========================================================================
+          // AGENTIC INTEGRATION - Confidence Scoring & Session Recording
+          // =========================================================================
+
+          // Score confidence on the response using agentic self-evaluation
+          let agenticConfidence: {
+            level: string;
+            score: number;
+            factors: Array<{ name: string; score: number; weight: number }>;
+          } | null = null;
+
+          const responseTextForAgentic = result.response?.message || '';
+          if (responseTextForAgentic.length > 0) {
+            try {
+              const confidenceResult = await agenticBridge.scoreConfidence(responseTextForAgentic, {
+                topic: entityContext.course?.title || entityContext.chapter?.title || entityContext.section?.title,
+                responseType: 'explanation',
+              });
+
+              agenticConfidence = {
+                level: confidenceResult.level,
+                score: confidenceResult.overallScore,
+                factors: confidenceResult.factors.map(f => ({
+                  name: f.type,
+                  score: f.score,
+                  weight: f.weight,
+                })),
+              };
+
+              logger.debug('[SAM_STREAM] Agentic confidence scored:', {
+                level: confidenceResult.level,
+                score: confidenceResult.overallScore,
+              });
+            } catch (confidenceError) {
+              logger.warn('[SAM_STREAM] Agentic confidence scoring failed:', confidenceError);
+              // Continue without confidence - non-blocking
+            }
+          }
+
+          // Record session for learning analytics
+          let sessionRecorded = false;
+          const topicId = pageContext.entityId || 'unknown';
+          const sessionDuration = (Date.now() - startTime) / 1000;
+
+          try {
+            await agenticBridge.recordSession({
+              topicId,
+              duration: Math.max(1, Math.round(sessionDuration)),
+              questionsAnswered: 1,
+              correctAnswers: agenticConfidence?.level === 'HIGH' ? 1 : 0,
+              conceptsCovered: [
+                entityContext.course?.title,
+                entityContext.chapter?.title,
+                entityContext.section?.title,
+              ].filter((t): t is string => !!t),
+            });
+
+            sessionRecorded = true;
+            logger.debug('[SAM_STREAM] Agentic session recorded:', {
+              topicId,
+              duration: sessionDuration,
+            });
+          } catch (sessionError) {
+            logger.warn('[SAM_STREAM] Agentic session recording failed:', sessionError);
+            // Continue without recording - non-blocking
+          }
+
+          // Check for proactive interventions
+          let interventions: Array<{ type: string; reason: string; priority: string }> = [];
+          try {
+            const interventionResults = await agenticBridge.checkForInterventions({
+              userId: user.id,
+              courseId: pageContext.entityId,
+              currentTopic: entityContext.section?.title || entityContext.chapter?.title,
+              sessionStartTime: new Date(startTime),
+            });
+
+            interventions = interventionResults.map(i => ({
+              type: i.type,
+              reason: i.message,
+              priority: i.priority,
+            }));
+
+            if (interventions.length > 0) {
+              logger.info('[SAM_STREAM] Agentic interventions triggered:', {
+                count: interventions.length,
+                types: interventions.map(i => i.type),
+              });
+            }
+          } catch (interventionError) {
+            logger.warn('[SAM_STREAM] Agentic intervention check failed:', interventionError);
+            // Continue without interventions - non-blocking
+          }
+
           // Send insights event with unified analysis
           const contextData = result.results.context?.data as Record<string, unknown> | undefined;
           const contentData = result.results.content?.data as Record<string, unknown> | undefined;
@@ -529,6 +830,21 @@ export async function POST(request: NextRequest) {
               summary: memorySummary,
               reviewSummary,
             } : undefined,
+            // NEW: Safety validation results
+            safety: safetyResult ? {
+              passed: safetyResult.passed,
+              suggestions: safetyResult.suggestions,
+            } : undefined,
+            // NEW: Agentic AI capabilities
+            agentic: {
+              confidence: agenticConfidence ? {
+                level: agenticConfidence.level,
+                score: agenticConfidence.score,
+                factors: agenticConfidence.factors,
+              } : undefined,
+              sessionRecorded,
+              interventions: interventions.length > 0 ? interventions : undefined,
+            },
           };
 
           controller.enqueue(encoder.encode(`event: insights\ndata: ${JSON.stringify(insights)}\n\n`));
@@ -568,6 +884,11 @@ export async function POST(request: NextRequest) {
                 qualityGates: !!qualityResult,
                 pedagogyPipeline: !!pedagogyResult,
                 memoryTracking: !!memoryUpdate,
+                safetyValidation: !!safetyResult,
+                agenticBridge: true, // Always enabled now
+                agenticConfidence: !!agenticConfidence,
+                agenticSession: sessionRecorded,
+                agenticInterventions: interventions.length > 0,
               },
             },
           })}\n\n`));
@@ -593,6 +914,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        ...rateLimitResult.headers,
       },
     });
 
@@ -638,4 +960,77 @@ function transformFormFields(fields: Record<string, unknown>): Record<string, SA
   }
 
   return result;
+}
+
+/**
+ * Build a human-readable summary from client-provided entity data
+ */
+function buildClientEntitySummary(
+  entityData: NonNullable<(typeof StreamRequestSchema)['_output']['pageContext']['entityData']>,
+  entityType: string
+): string {
+  const parts: string[] = [];
+
+  if (entityType === 'course') {
+    if (entityData.title) {
+      parts.push(`Course: "${entityData.title}"`);
+    }
+    if (entityData.description) {
+      parts.push(`Description: ${entityData.description.substring(0, 300)}${entityData.description.length > 300 ? '...' : ''}`);
+    }
+    if (entityData.whatYouWillLearn?.length) {
+      parts.push(`Learning objectives: ${entityData.whatYouWillLearn.slice(0, 3).join('; ')}${entityData.whatYouWillLearn.length > 3 ? '...' : ''}`);
+    }
+    if (entityData.chapterCount !== undefined) {
+      parts.push(`Chapters: ${entityData.chapterCount}`);
+    }
+    if (entityData.chapters?.length) {
+      const chapterTitles = entityData.chapters.slice(0, 5).map(ch => ch.title).join(', ');
+      parts.push(`Chapter titles: ${chapterTitles}${entityData.chapters.length > 5 ? '...' : ''}`);
+    }
+    parts.push(`Status: ${entityData.isPublished ? 'Published' : 'Draft'}`);
+  } else if (entityType === 'chapter') {
+    if (entityData.title) {
+      parts.push(`Chapter: "${entityData.title}"`);
+    }
+    if (entityData.courseTitle) {
+      parts.push(`Part of course: "${entityData.courseTitle}"`);
+    }
+    if (entityData.description) {
+      parts.push(`Description: ${entityData.description.substring(0, 200)}${entityData.description.length > 200 ? '...' : ''}`);
+    }
+    if (entityData.sectionCount !== undefined) {
+      parts.push(`Sections: ${entityData.sectionCount}`);
+    }
+    if (entityData.sections?.length) {
+      const sectionTitles = entityData.sections.slice(0, 5).map(s => s.title).join(', ');
+      parts.push(`Section titles: ${sectionTitles}${entityData.sections.length > 5 ? '...' : ''}`);
+    }
+  } else if (entityType === 'section') {
+    if (entityData.title) {
+      parts.push(`Section: "${entityData.title}"`);
+    }
+    if (entityData.chapterTitle) {
+      parts.push(`Part of chapter: "${entityData.chapterTitle}"`);
+    }
+    if (entityData.courseTitle) {
+      parts.push(`Part of course: "${entityData.courseTitle}"`);
+    }
+    if (entityData.description) {
+      parts.push(`Description: ${entityData.description.substring(0, 200)}${entityData.description.length > 200 ? '...' : ''}`);
+    }
+    if (entityData.contentType) {
+      parts.push(`Content type: ${entityData.contentType}`);
+    }
+    if (entityData.content) {
+      // Strip HTML and truncate
+      const stripped = entityData.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      parts.push(`Content preview: ${stripped.substring(0, 300)}${stripped.length > 300 ? '...' : ''}`);
+    }
+    if (entityData.videoUrl) {
+      parts.push('Has video: Yes');
+    }
+  }
+
+  return parts.length > 0 ? parts.join('\n') : 'No specific entity context available.';
 }

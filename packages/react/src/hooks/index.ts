@@ -23,3 +23,21 @@ export type { UseSAMAdaptiveContentOptions, UseSAMAdaptiveContentReturn } from '
 
 export { useSAMSocraticDialogue } from './useSAMSocraticDialogue';
 export type { UseSAMSocraticDialogueOptions, UseSAMSocraticDialogueReturn } from './useSAMSocraticDialogue';
+
+// Phase 5 Hooks - Agentic AI Capabilities
+export { useAgentic } from './useAgentic';
+export type {
+  UseAgenticOptions,
+  UseAgenticReturn,
+  Goal,
+  SubGoal,
+  Plan,
+  PlanStep,
+  Recommendation,
+  RecommendationBatch,
+  ProgressReport,
+  SkillAssessment,
+  CheckIn,
+  CreateGoalData,
+  CheckInResponse,
+} from './useAgentic';

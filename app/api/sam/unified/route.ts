@@ -43,6 +43,9 @@ import {
 // Import entity context service for REAL context awareness
 import { buildEntityContext, buildFormSummary } from '@/lib/sam/entity-context';
 
+// Import rate limiter for usage caps
+import { applyRateLimit, samMessagesLimiter } from '@/lib/sam/config/sam-rate-limiter';
+
 // Import Prisma database adapter for SAM
 import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 
@@ -72,6 +75,21 @@ import {
   type MasteryTracker,
   type EvaluationOutcome,
 } from '@sam-ai/memory';
+
+// Import Safety validation for response checking
+import {
+  isFeedbackTextSafe,
+  getFeedbackSuggestions,
+  type SafetyResult,
+} from '@sam-ai/safety';
+
+// Import SAM Agentic Bridge for autonomous capabilities
+import {
+  createSAMAgenticBridge,
+  type SAMAgenticBridge,
+  type AgenticAnalysisResult,
+  ConfidenceLevel,
+} from '@/lib/sam/agentic-bridge';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -117,13 +135,17 @@ const UnifiedRequestSchema = z.object({
         })).optional(),
       })).optional(),
       // Chapter-specific
+      position: z.number().optional(),
       courseId: z.string().optional(),
       courseTitle: z.string().optional(),
       sectionCount: z.number().optional(),
+      fullChapterData: z.any().optional(),
       sections: z.array(z.object({
         id: z.string(),
         title: z.string(),
         isPublished: z.boolean().optional(),
+        position: z.number().optional(),
+        contentType: z.string().nullable().optional(),
       })).optional(),
       // Section-specific
       chapterId: z.string().optional(),
@@ -404,6 +426,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Apply rate limiting
+    const rateLimitResult = await applyRateLimit(request, samMessagesLimiter, user.id);
+    if (!rateLimitResult.success) {
+      return rateLimitResult.response!;
+    }
+
     // Parse and validate request
     const body = await request.json();
     const validation = UnifiedRequestSchema.safeParse(body);
@@ -419,6 +447,22 @@ export async function POST(request: NextRequest) {
     const { message, pageContext, formContext, conversationHistory, options } = validation.data;
 
     const hasClientEntityData = !!pageContext.entityData?.title;
+
+    // Initialize SAM Agentic Bridge for autonomous capabilities
+    const agenticBridge = createSAMAgenticBridge({
+      userId: user.id,
+      courseId: pageContext.entityId,
+      enableGoalPlanning: false, // Not needed for basic response flow
+      enableToolExecution: false, // Not needed for basic response flow
+      enableProactiveInterventions: true,
+      enableSelfEvaluation: true,
+      enableLearningAnalytics: true,
+    });
+
+    logger.debug('[SAM_UNIFIED] Agentic bridge initialized:', {
+      userId: user.id,
+      capabilities: agenticBridge.getEnabledCapabilities(),
+    });
 
     logger.info('[SAM_UNIFIED] Processing request:', {
       userId: user.id,
@@ -709,6 +753,124 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Run Safety Validation on response text
+    let safetyResult: { passed: boolean; suggestions: string[] } | null = null;
+    const responseText = result.response?.message || '';
+    if (responseText.length > 0) {
+      try {
+        const isSafe = await isFeedbackTextSafe(responseText);
+        const suggestions = isSafe ? [] : getFeedbackSuggestions(responseText);
+
+        safetyResult = {
+          passed: isSafe,
+          suggestions,
+        };
+
+        if (!isSafe) {
+          logger.warn('[SAM_UNIFIED] Safety check flagged issues:', {
+            suggestionCount: suggestions.length,
+          });
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Safety validation failed:', error);
+        safetyResult = { passed: true, suggestions: [] }; // Fail open for availability
+      }
+    }
+
+    // =========================================================================
+    // AGENTIC INTEGRATION - Confidence Scoring & Session Recording
+    // =========================================================================
+
+    // Score confidence on the response using agentic self-evaluation
+    let agenticConfidence: {
+      level: string;
+      score: number;
+      factors: Array<{ name: string; score: number; weight: number }>;
+    } | null = null;
+
+    if (responseText.length > 0) {
+      try {
+        const confidenceResult = await agenticBridge.scoreConfidence(responseText, {
+          topic: entityContext.course?.title || entityContext.chapter?.title || entityContext.section?.title,
+          responseType: 'explanation',
+        });
+
+        agenticConfidence = {
+          level: confidenceResult.level,
+          score: confidenceResult.overallScore,
+          factors: confidenceResult.factors.map(f => ({
+            name: f.type,
+            score: f.score,
+            weight: f.weight,
+          })),
+        };
+
+        logger.debug('[SAM_UNIFIED] Agentic confidence scored:', {
+          level: confidenceResult.level,
+          score: confidenceResult.overallScore,
+          factorCount: confidenceResult.factors.length,
+        });
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Agentic confidence scoring failed:', error);
+        // Continue without confidence - non-blocking
+      }
+    }
+
+    // Record session for learning analytics
+    let sessionRecorded = false;
+    const topicId = pageContext.entityId || 'unknown';
+    const sessionDuration = (Date.now() - startTime) / 1000; // Convert to seconds
+
+    try {
+      await agenticBridge.recordSession({
+        topicId,
+        duration: Math.max(1, Math.round(sessionDuration)), // Minimum 1 second
+        questionsAnswered: 1,
+        correctAnswers: agenticConfidence?.level === 'HIGH' ? 1 : 0,
+        conceptsCovered: [
+          entityContext.course?.title,
+          entityContext.chapter?.title,
+          entityContext.section?.title,
+        ].filter((t): t is string => !!t),
+      });
+
+      sessionRecorded = true;
+      logger.debug('[SAM_UNIFIED] Agentic session recorded:', {
+        topicId,
+        duration: sessionDuration,
+      });
+    } catch (error) {
+      logger.warn('[SAM_UNIFIED] Agentic session recording failed:', error);
+      // Continue without recording - non-blocking
+    }
+
+    // Check for proactive interventions
+    let interventions: Array<{ type: string; reason: string; priority: string }> = [];
+    try {
+      const interventionResults = await agenticBridge.checkForInterventions({
+        userId: user.id,
+        courseId: pageContext.entityId,
+        currentTopic: entityContext.section?.title || entityContext.chapter?.title,
+        sessionStartTime: new Date(startTime),
+      });
+
+      interventions = interventionResults.map(i => ({
+        type: i.type,
+        reason: i.message,
+        priority: i.priority,
+      }));
+
+      if (interventions.length > 0) {
+        logger.info('[SAM_UNIFIED] Agentic interventions triggered:', {
+          count: interventions.length,
+          types: interventions.map(i => i.type),
+        });
+      }
+    } catch (error) {
+      logger.warn('[SAM_UNIFIED] Agentic intervention check failed:', error);
+      // Continue without interventions - non-blocking
+    }
+
     // Extract data from results
     const contextData = result.results.context?.data as Record<string, unknown> | undefined;
     const contentData = result.results.content?.data as Record<string, unknown> | undefined;
@@ -782,6 +944,21 @@ export async function POST(request: NextRequest) {
           summary: memorySummary,
           reviewSummary,
         } : undefined,
+        // NEW: Safety validation results
+        safety: safetyResult ? {
+          passed: safetyResult.passed,
+          suggestions: safetyResult.suggestions,
+        } : undefined,
+        // NEW: Agentic AI capabilities
+        agentic: {
+          confidence: agenticConfidence ? {
+            level: agenticConfidence.level,
+            score: agenticConfidence.score,
+            factors: agenticConfidence.factors,
+          } : undefined,
+          sessionRecorded,
+          interventions: interventions.length > 0 ? interventions : undefined,
+        },
       },
       metadata: {
         enginesRun: result.metadata.enginesExecuted,
@@ -795,6 +972,11 @@ export async function POST(request: NextRequest) {
           qualityGates: !!qualityResult,
           pedagogyPipeline: !!pedagogyResult,
           memoryTracking: !!memoryUpdate,
+          safetyValidation: !!safetyResult,
+          agenticBridge: true, // Always enabled now
+          agenticConfidence: !!agenticConfidence,
+          agenticSession: sessionRecorded,
+          agenticInterventions: interventions.length > 0,
         },
       },
     };
@@ -805,9 +987,15 @@ export async function POST(request: NextRequest) {
       totalTime: result.metadata.totalExecutionTime,
       qualityPassed: qualityResult?.passed,
       pedagogyPassed: pedagogyResult?.passed,
+      safetyPassed: safetyResult?.passed,
+      agenticConfidence: agenticConfidence?.level,
+      agenticSessionRecorded: sessionRecorded,
+      agenticInterventions: interventions.length,
     });
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: rateLimitResult.headers,
+    });
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

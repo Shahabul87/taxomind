@@ -14,9 +14,7 @@ import type {
   ProblemHint,
   PracticeSessionStats,
   DifficultyRecommendation,
-  ProblemDifficulty,
 } from '@sam-ai/educational';
-import type { BloomsLevel } from '@sam-ai/core';
 
 /**
  * Options for the practice problems hook

@@ -3,41 +3,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-
-interface Chapter {
-  id: string;
-  title: string;
-  sections: Array<{
-    id: string;
-    title: string;
-  }>;
-}
+import type { BaseCourse } from '../../_types/course.types';
 
 interface DesignHeroProps {
-  course: {
-    title: string;
-    description?: string | null;
-    imageUrl?: string | null;
-    subtitle?: string | null;
-    difficulty?: string | null;
-    category?: {
-      name: string;
-      subcategory?: string | null;
-    } | null;
-    user?: {
-      id: string;
-      name: string | null;
-      image: string | null;
-    } | null;
-    _count?: {
-      enrollments?: number;
-      Enrollment?: number;
-    };
-    reviews?: {
-      rating: number;
-    }[];
-    chapters?: Chapter[];
-  };
+  course: BaseCourse;
   tools?: string[];
   isEnrolled?: boolean;
   onEnroll?: () => void;
@@ -205,7 +174,7 @@ export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }:
                 <div className="flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-rose-400" />
                   <span className="text-sm font-medium text-white">
-                    {(course._count?.Enrollment ?? course._count?.enrollments ?? 0).toLocaleString()}
+                    {(course._count?.Enrollment ?? 0).toLocaleString()}
                   </span>
                   <span className="text-sm text-pink-200/70">Students</span>
                 </div>

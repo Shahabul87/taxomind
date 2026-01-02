@@ -223,6 +223,7 @@
     "@radix-ui/react-toast": "^1.2.13",
     "@radix-ui/react-tooltip": "^1.1.4",
     "@sam-ai/adapter-prisma": "workspace:*",
+    "@sam-ai/agentic": "workspace:*",
     "@sam-ai/api": "workspace:*",
     "@sam-ai/core": "workspace:*",
     "@sam-ai/educational": "workspace:*",

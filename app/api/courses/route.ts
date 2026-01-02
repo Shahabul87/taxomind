@@ -39,7 +39,6 @@ const CreateCourseRequestSchema = z.object({
     .max(20, 'Maximum 20 learning objectives allowed')
     .optional(),
   categoryId: z.string().uuid('Invalid category ID').optional(),
-  subcategoryId: z.string().uuid('Invalid subcategory ID').optional(),
 });
 
 type CreateCourseRequest = z.infer<typeof CreateCourseRequestSchema>;
@@ -137,7 +136,6 @@ export async function POST(req: Request): Promise<Response> {
           title: validatedData.title,
           description: validatedData.description || null,
           categoryId: validatedData.categoryId || null,
-          subcategoryId: validatedData.subcategoryId || null,
           courseGoals: courseGoalsString,
           whatYouWillLearn: whatYouWillLearnArray,
           isPublished: false,
@@ -147,7 +145,6 @@ export async function POST(req: Request): Promise<Response> {
           title: true,
           description: true,
           categoryId: true,
-          subcategoryId: true,
           isPublished: true,
           createdAt: true,
           userId: true,
@@ -173,7 +170,6 @@ export async function POST(req: Request): Promise<Response> {
       hasLearningObjectives: whatYouWillLearnArray.length > 0,
       objectivesCount: whatYouWillLearnArray.length,
       categoryId: validatedData.categoryId || null,
-      subcategoryId: validatedData.subcategoryId || null,
     }).catch(err => {
       // Don't fail the request if audit logging fails
       logger.warn("[COURSES] Audit logging failed", { error: err });

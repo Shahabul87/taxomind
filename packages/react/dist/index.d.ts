@@ -1,8 +1,9 @@
 import * as react_jsx_runtime from 'react/jsx-runtime';
 import * as react from 'react';
 import { ReactNode } from 'react';
-import { SAMConfig, SAMContext as SAMContext$1, SAMMessage, SAMSuggestion, SAMAction, BloomsAnalysis, OrchestrationMetadata, SAMState, OrchestrationResult, SAMFormField, SAMPageType, SAMAgentOrchestrator, SAMStateMachine } from '@sam-ai/core';
+import { SAMConfig, SAMContext as SAMContext$1, SAMMessage, SAMSuggestion, SAMAction, BloomsAnalysis, OrchestrationMetadata, SAMState, OrchestrationResult, SAMFormField, SAMFormContext, SAMPageType, SAMAgentOrchestrator, SAMStateMachine } from '@sam-ai/core';
 export { BloomsAnalysis, BloomsLevel, OrchestrationResult, SAMAction, SAMConfig, SAMContext as SAMContextType, SAMFormField, SAMMessage, SAMPageType, SAMState, SAMSuggestion } from '@sam-ai/core';
+import { PracticeProblem, ProblemEvaluation, PracticeSessionStats, DifficultyRecommendation, PracticeProblemInput, PracticeProblemOutput, ProblemHint, StyleDetectionResult, AdaptedContent, AdaptiveLearnerProfile, ContentToAdapt, AdaptationOptions, ContentInteractionData, SupplementaryResource, SocraticDialogue, SocraticQuestion, DialoguePerformance, DialogueState, SocraticResponse, StartDialogueInput } from '@sam-ai/educational';
 
 /**
  * @sam-ai/react - Types
@@ -111,6 +112,90 @@ interface UseSAMFormReturn {
     syncFormToSAM: (formElement: HTMLFormElement) => void;
     autoFillField: (fieldName: string, value: unknown) => void;
     getFieldSuggestions: (fieldName: string) => Promise<string[]>;
+}
+interface SAMPageLink {
+    href: string;
+    text?: string;
+    ariaLabel?: string;
+    title?: string;
+    rel?: string;
+    target?: string;
+}
+interface UseSAMPageLinksOptions {
+    enabled?: boolean;
+    selector?: string;
+    maxLinks?: number;
+    includeHidden?: boolean;
+    includeText?: boolean;
+    includeAriaLabel?: boolean;
+    includeTitle?: boolean;
+    includeRel?: boolean;
+    includeTarget?: boolean;
+    dedupe?: boolean;
+    throttleMs?: number;
+    onLinks?: (links: SAMPageLink[]) => void;
+}
+interface UseSAMPageLinksReturn {
+    links: SAMPageLink[];
+    refresh: () => void;
+}
+interface UseSAMFormDataSyncOptions {
+    formName?: string;
+    metadata?: Record<string, unknown>;
+    fieldMeta?: Record<string, {
+        label?: string;
+        placeholder?: string;
+        type?: string;
+        required?: boolean;
+        disabled?: boolean;
+        readOnly?: boolean;
+    }>;
+    debounceMs?: number;
+    maxDepth?: number;
+    enabled?: boolean;
+    formType?: string;
+    isDirty?: boolean;
+    isValid?: boolean;
+}
+interface UseSAMFormDataSyncReturn {
+    sync: () => void;
+}
+interface SAMFormDataEventDetail {
+    formId: string;
+    formData: Record<string, unknown>;
+    options?: UseSAMFormDataSyncOptions;
+    emittedAt?: string;
+}
+interface UseSAMFormDataEventsOptions {
+    enabled?: boolean;
+    defaultOptions?: UseSAMFormDataSyncOptions;
+    target?: EventTarget;
+}
+interface UseSAMFormDataEventsReturn {
+    lastPayload: SAMFormDataEventDetail | null;
+}
+interface UseSAMFormAutoDetectOptions {
+    enabled?: boolean;
+    selector?: string;
+    includeHidden?: boolean;
+    maxFields?: number;
+    debounceMs?: number;
+    preferFocused?: boolean;
+    overrideExisting?: boolean;
+    metadata?: Record<string, unknown>;
+    formType?: string;
+}
+interface UseSAMFormAutoDetectReturn {
+    formContext: SAMFormContext | null;
+    refresh: () => void;
+}
+interface UseSAMFormAutoFillOptions {
+    triggerEvents?: boolean;
+    onFill?: (fieldName: string, value: unknown) => void;
+}
+interface UseSAMFormAutoFillReturn {
+    fillField: (target: string, value: unknown) => boolean;
+    resolveField: (target: string) => string | null;
 }
 interface UseSAMAnalysisReturn {
     analyze: (query?: string) => Promise<OrchestrationResult | null>;
@@ -371,6 +456,599 @@ declare function useSAMForm(): UseSAMFormReturn;
 declare function useSAMFormSync(options: FormSyncOptions): void;
 
 /**
+ * @sam-ai/react - useSAMPageLinks Hook
+ * Collects visible page links and stores them in SAM page metadata.
+ */
+
+declare function useSAMPageLinks(options?: UseSAMPageLinksOptions): UseSAMPageLinksReturn;
+
+/**
+ * @sam-ai/react - useSAMFormDataSync Hook
+ * Syncs structured form state (objects/arrays) into SAM form context.
+ */
+
+declare function useSAMFormDataSync<T = Record<string, unknown>>(formId: string, formData: T, options?: UseSAMFormDataSyncOptions): UseSAMFormDataSyncReturn;
+
+/**
+ * @sam-ai/react - useSAMFormDataEvents Hook
+ * Listens for form data events and syncs them into SAM context.
+ */
+
+declare function useSAMFormDataEvents(options?: UseSAMFormDataEventsOptions): UseSAMFormDataEventsReturn;
+
+/**
+ * @sam-ai/react - useSAMFormAutoDetect Hook
+ * Auto-detects the most relevant form on the page and syncs it into SAM context.
+ */
+
+declare function useSAMFormAutoDetect(options?: UseSAMFormAutoDetectOptions): UseSAMFormAutoDetectReturn;
+
+/**
+ * @sam-ai/react - useSAMFormAutoFill Hook
+ * Resolves fields by name/label and fills DOM inputs + SAM context.
+ */
+
+declare function useSAMFormAutoFill(options?: UseSAMFormAutoFillOptions): UseSAMFormAutoFillReturn;
+
+/**
+ * @sam-ai/react - useSAMPracticeProblems Hook
+ * React hook for practice problems generation and management
+ */
+
+/**
+ * Options for the practice problems hook
+ */
+interface UseSAMPracticeProblemsOptions {
+    /** API endpoint for practice problems */
+    apiEndpoint?: string;
+    /** User ID for personalization */
+    userId?: string;
+    /** Course ID for context */
+    courseId?: string;
+    /** Section ID for context */
+    sectionId?: string;
+    /** Enable adaptive difficulty */
+    adaptiveDifficulty?: boolean;
+    /** Enable spaced repetition */
+    spacedRepetition?: boolean;
+    /** Callback when a problem is completed */
+    onProblemComplete?: (problem: PracticeProblem, evaluation: ProblemEvaluation) => void;
+    /** Callback when session stats update */
+    onStatsUpdate?: (stats: PracticeSessionStats) => void;
+}
+/**
+ * Return type for the practice problems hook
+ */
+interface UseSAMPracticeProblemsReturn {
+    /** Current set of problems */
+    problems: PracticeProblem[];
+    /** Currently active problem */
+    currentProblem: PracticeProblem | null;
+    /** Current problem index */
+    currentIndex: number;
+    /** Whether problems are being generated */
+    isGenerating: boolean;
+    /** Whether an answer is being evaluated */
+    isEvaluating: boolean;
+    /** Last evaluation result */
+    lastEvaluation: ProblemEvaluation | null;
+    /** Session statistics */
+    sessionStats: PracticeSessionStats | null;
+    /** Difficulty recommendation */
+    difficultyRecommendation: DifficultyRecommendation | null;
+    /** Error message if any */
+    error: string | null;
+    /** Hints used for current problem */
+    hintsUsed: string[];
+    /** Generate new practice problems */
+    generateProblems: (input: PracticeProblemInput) => Promise<PracticeProblemOutput | null>;
+    /** Submit an answer for evaluation */
+    submitAnswer: (answer: string) => Promise<ProblemEvaluation | null>;
+    /** Get next hint for current problem */
+    getNextHint: () => ProblemHint | null;
+    /** Move to next problem */
+    nextProblem: () => void;
+    /** Move to previous problem */
+    previousProblem: () => void;
+    /** Go to specific problem */
+    goToProblem: (index: number) => void;
+    /** Skip current problem */
+    skipProblem: () => void;
+    /** Reset the session */
+    resetSession: () => void;
+    /** Get adaptive difficulty recommendation */
+    getRecommendedDifficulty: () => Promise<DifficultyRecommendation | null>;
+    /** Get problems due for review (spaced repetition) */
+    getReviewProblems: () => Promise<PracticeProblem[]>;
+}
+/**
+ * Hook for SAM AI Practice Problems
+ *
+ * @example
+ * ```tsx
+ * function PracticeComponent() {
+ *   const {
+ *     problems,
+ *     currentProblem,
+ *     isGenerating,
+ *     generateProblems,
+ *     submitAnswer,
+ *     getNextHint,
+ *     nextProblem,
+ *     sessionStats
+ *   } = useSAMPracticeProblems({
+ *     userId: user.id,
+ *     courseId,
+ *     adaptiveDifficulty: true
+ *   });
+ *
+ *   const handleGenerate = async () => {
+ *     await generateProblems({
+ *       topic: 'JavaScript Closures',
+ *       difficulty: 'intermediate',
+ *       count: 5
+ *     });
+ *   };
+ *
+ *   return (
+ *     <div>
+ *       {currentProblem && (
+ *         <div>
+ *           <h3>{currentProblem.title}</h3>
+ *           <p>{currentProblem.statement}</p>
+ *           <button onClick={getNextHint}>Get Hint</button>
+ *         </div>
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+declare function useSAMPracticeProblems(options?: UseSAMPracticeProblemsOptions): UseSAMPracticeProblemsReturn;
+
+/**
+ * @sam-ai/react - useSAMAdaptiveContent Hook
+ * React hook for adaptive content personalization
+ */
+
+/**
+ * Options for the adaptive content hook
+ */
+interface UseSAMAdaptiveContentOptions {
+    /** API endpoint for adaptive content */
+    apiEndpoint?: string;
+    /** User ID for personalization */
+    userId?: string;
+    /** Course ID for context */
+    courseId?: string;
+    /** Auto-detect learning style */
+    autoDetectStyle?: boolean;
+    /** Cache duration for profile in milliseconds */
+    profileCacheDuration?: number;
+    /** Callback when learning style is detected */
+    onStyleDetected?: (result: StyleDetectionResult) => void;
+    /** Callback when content is adapted */
+    onContentAdapted?: (content: AdaptedContent) => void;
+}
+/**
+ * Return type for the adaptive content hook
+ */
+interface UseSAMAdaptiveContentReturn {
+    /** User's learning profile */
+    learnerProfile: AdaptiveLearnerProfile | null;
+    /** Whether profile is being loaded */
+    isLoadingProfile: boolean;
+    /** Whether content is being adapted */
+    isAdapting: boolean;
+    /** Last adapted content */
+    adaptedContent: AdaptedContent | null;
+    /** Style detection result */
+    styleDetection: StyleDetectionResult | null;
+    /** Error message if any */
+    error: string | null;
+    /** Whether learning style has been detected */
+    isStyleDetected: boolean;
+    /** Get or create learner profile */
+    getProfile: () => Promise<AdaptiveLearnerProfile | null>;
+    /** Detect learning style from interactions */
+    detectStyle: () => Promise<StyleDetectionResult | null>;
+    /** Adapt content for the user */
+    adaptContent: (content: ContentToAdapt, options?: AdaptationOptions) => Promise<AdaptedContent | null>;
+    /** Record a content interaction */
+    recordInteraction: (interaction: Omit<ContentInteractionData, 'id' | 'userId' | 'timestamp'>) => Promise<void>;
+    /** Get content recommendations */
+    getRecommendations: (topic: string, count?: number) => Promise<SupplementaryResource[]>;
+    /** Get style-specific tips */
+    getStyleTips: () => string[];
+    /** Update profile manually */
+    updateProfile: (updates: Partial<AdaptiveLearnerProfile>) => Promise<void>;
+    /** Clear cached profile */
+    clearProfile: () => void;
+}
+/**
+ * Hook for SAM AI Adaptive Content
+ *
+ * @example
+ * ```tsx
+ * function LearningComponent() {
+ *   const {
+ *     learnerProfile,
+ *     adaptedContent,
+ *     isAdapting,
+ *     adaptContent,
+ *     detectStyle,
+ *     getStyleTips
+ *   } = useSAMAdaptiveContent({
+ *     userId: user.id,
+ *     autoDetectStyle: true,
+ *     onStyleDetected: (result) => {
+ *       console.log('Learning style:', result.primaryStyle);
+ *     }
+ *   });
+ *
+ *   const handleAdapt = async () => {
+ *     await adaptContent({
+ *       id: 'lesson-1',
+ *       type: 'lesson',
+ *       content: lessonContent,
+ *       topic: 'React Hooks',
+ *       currentFormat: 'text',
+ *       concepts: ['useState', 'useEffect'],
+ *       prerequisites: ['JavaScript basics']
+ *     });
+ *   };
+ *
+ *   return (
+ *     <div>
+ *       {learnerProfile && (
+ *         <p>Your learning style: {learnerProfile.primaryStyle}</p>
+ *       )}
+ *       {adaptedContent && (
+ *         <div>
+ *           {adaptedContent.chunks.map(chunk => (
+ *             <div key={chunk.id}>{chunk.content}</div>
+ *           ))}
+ *         </div>
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+declare function useSAMAdaptiveContent(options?: UseSAMAdaptiveContentOptions): UseSAMAdaptiveContentReturn;
+
+/**
+ * @sam-ai/react - useSAMSocraticDialogue Hook
+ * React hook for Socratic teaching dialogues
+ */
+
+/**
+ * Options for the Socratic dialogue hook
+ */
+interface UseSAMSocraticDialogueOptions {
+    /** API endpoint for Socratic dialogues */
+    apiEndpoint?: string;
+    /** User ID */
+    userId?: string;
+    /** Course ID for context */
+    courseId?: string;
+    /** Section ID for context */
+    sectionId?: string;
+    /** Preferred dialogue style */
+    preferredStyle?: 'gentle' | 'challenging' | 'balanced';
+    /** Callback when dialogue starts */
+    onDialogueStart?: (dialogue: SocraticDialogue) => void;
+    /** Callback when question is asked */
+    onQuestion?: (question: SocraticQuestion) => void;
+    /** Callback when insight is discovered */
+    onInsightDiscovered?: (insight: string) => void;
+    /** Callback when dialogue completes */
+    onDialogueComplete?: (performance: DialoguePerformance) => void;
+}
+/**
+ * Return type for the Socratic dialogue hook
+ */
+interface UseSAMSocraticDialogueReturn {
+    /** Current dialogue */
+    dialogue: SocraticDialogue | null;
+    /** Current question */
+    currentQuestion: SocraticQuestion | null;
+    /** Current dialogue state */
+    dialogueState: DialogueState | null;
+    /** Whether dialogue is active */
+    isActive: boolean;
+    /** Whether waiting for response */
+    isWaiting: boolean;
+    /** Whether dialogue is complete */
+    isComplete: boolean;
+    /** Last response from the engine */
+    lastResponse: SocraticResponse | null;
+    /** Discovered insights */
+    discoveredInsights: string[];
+    /** Progress percentage */
+    progress: number;
+    /** Feedback message */
+    feedback: string | null;
+    /** Encouragement message */
+    encouragement: string | null;
+    /** Available hints */
+    availableHints: string[];
+    /** Error message if any */
+    error: string | null;
+    /** Start a new dialogue */
+    startDialogue: (topic: string, options?: Partial<StartDialogueInput>) => Promise<SocraticResponse | null>;
+    /** Submit a response */
+    submitResponse: (response: string) => Promise<SocraticResponse | null>;
+    /** Request a hint */
+    requestHint: () => Promise<string | null>;
+    /** Skip current question */
+    skipQuestion: () => Promise<SocraticResponse | null>;
+    /** End dialogue early */
+    endDialogue: () => Promise<{
+        synthesis: string;
+        performance: DialoguePerformance;
+    } | null>;
+    /** Get dialogue history */
+    getHistory: (limit?: number) => Promise<SocraticDialogue[]>;
+    /** Reset dialogue state */
+    resetDialogue: () => void;
+}
+/**
+ * Hook for SAM AI Socratic Dialogues
+ *
+ * @example
+ * ```tsx
+ * function SocraticLearning() {
+ *   const {
+ *     dialogue,
+ *     currentQuestion,
+ *     isActive,
+ *     progress,
+ *     discoveredInsights,
+ *     feedback,
+ *     startDialogue,
+ *     submitResponse,
+ *     requestHint
+ *   } = useSAMSocraticDialogue({
+ *     userId: user.id,
+ *     preferredStyle: 'balanced',
+ *     onInsightDiscovered: (insight) => {
+ *       toast.success(`Insight discovered: ${insight}`);
+ *     }
+ *   });
+ *
+ *   const handleStart = async () => {
+ *     await startDialogue('JavaScript Closures', {
+ *       targetBloomsLevel: 'analyze'
+ *     });
+ *   };
+ *
+ *   return (
+ *     <div>
+ *       {currentQuestion && (
+ *         <div>
+ *           <p>{currentQuestion.question}</p>
+ *           <input onSubmit={(e) => submitResponse(e.target.value)} />
+ *           <button onClick={requestHint}>Get Hint</button>
+ *         </div>
+ *       )}
+ *       <progress value={progress} max={100} />
+ *       {feedback && <p>{feedback}</p>}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+declare function useSAMSocraticDialogue(options?: UseSAMSocraticDialogueOptions): UseSAMSocraticDialogueReturn;
+
+/**
+ * useAgentic Hook
+ * Provides React integration for SAM Agentic AI capabilities
+ *
+ * Phase 5: Frontend Integration
+ * - Goal management (create, list, update, decompose)
+ * - Learning recommendations
+ * - Progress tracking
+ * - Skill assessment
+ * - Check-in management
+ */
+interface Goal {
+    id: string;
+    userId: string;
+    title: string;
+    description?: string;
+    status: 'draft' | 'active' | 'paused' | 'completed' | 'abandoned';
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    targetDate?: string;
+    progress: number;
+    context: {
+        courseId?: string;
+        chapterId?: string;
+        sectionId?: string;
+        topicIds?: string[];
+        skillIds?: string[];
+    };
+    currentMastery?: string;
+    targetMastery?: string;
+    subGoals?: SubGoal[];
+    createdAt: string;
+    updatedAt: string;
+}
+interface SubGoal {
+    id: string;
+    goalId: string;
+    title: string;
+    description?: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'blocked';
+    order: number;
+    estimatedMinutes?: number;
+    completedAt?: string;
+}
+interface Plan {
+    id: string;
+    goalId: string;
+    userId: string;
+    status: 'draft' | 'active' | 'paused' | 'completed' | 'abandoned';
+    dailyMinutes: number;
+    startDate: string;
+    estimatedEndDate?: string;
+    steps: PlanStep[];
+    progress: number;
+    createdAt: string;
+    updatedAt: string;
+}
+interface PlanStep {
+    id: string;
+    planId: string;
+    title: string;
+    description?: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+    order: number;
+    estimatedMinutes: number;
+    scheduledDate?: string;
+    completedAt?: string;
+}
+interface Recommendation {
+    id: string;
+    type: 'content' | 'practice' | 'review' | 'assessment' | 'break' | 'goal';
+    title: string;
+    description: string;
+    reason: string;
+    priority: 'low' | 'medium' | 'high';
+    estimatedMinutes: number;
+    targetUrl?: string;
+    metadata?: Record<string, unknown>;
+}
+interface RecommendationBatch {
+    recommendations: Recommendation[];
+    totalEstimatedTime: number;
+    generatedAt: string;
+    context: {
+        availableTime?: number;
+        currentGoals?: string[];
+        recentTopics?: string[];
+    };
+}
+interface ProgressReport {
+    userId: string;
+    period: 'daily' | 'weekly' | 'monthly';
+    totalStudyTime: number;
+    sessionsCompleted: number;
+    topicsStudied: string[];
+    skillsImproved: string[];
+    goalsProgress: Array<{
+        goalId: string;
+        goalTitle: string;
+        progressDelta: number;
+        currentProgress: number;
+    }>;
+    strengths: string[];
+    areasForImprovement: string[];
+    streak: number;
+    generatedAt: string;
+}
+interface SkillAssessment {
+    skillId: string;
+    skillName: string;
+    level: 'novice' | 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    score: number;
+    confidence: number;
+    lastAssessedAt: string;
+    trend: 'improving' | 'stable' | 'declining';
+}
+interface CheckIn {
+    id: string;
+    userId: string;
+    type: string;
+    status: 'scheduled' | 'pending' | 'sent' | 'responded' | 'expired';
+    message: string;
+    questions?: Array<{
+        id: string;
+        question: string;
+        type: 'text' | 'single_choice' | 'multiple_choice' | 'scale' | 'yes_no' | 'emoji';
+        options?: string[];
+        required?: boolean;
+    }>;
+    suggestedActions?: Array<{
+        id: string;
+        title: string;
+        description: string;
+        type: string;
+        priority: string;
+    }>;
+    scheduledTime: string;
+    respondedAt?: string;
+}
+interface UseAgenticOptions {
+    /** Auto-fetch goals on mount */
+    autoFetchGoals?: boolean;
+    /** Auto-fetch recommendations on mount */
+    autoFetchRecommendations?: boolean;
+    /** Auto-fetch pending check-ins on mount */
+    autoFetchCheckIns?: boolean;
+    /** Available time for recommendations (minutes) */
+    availableTime?: number;
+    /** Refresh interval for recommendations (ms) */
+    recommendationRefreshInterval?: number;
+}
+interface UseAgenticReturn {
+    goals: Goal[];
+    isLoadingGoals: boolean;
+    fetchGoals: (status?: string) => Promise<void>;
+    createGoal: (data: CreateGoalData) => Promise<Goal | null>;
+    updateGoal: (goalId: string, data: Partial<CreateGoalData>) => Promise<Goal | null>;
+    decomposeGoal: (goalId: string) => Promise<Goal | null>;
+    deleteGoal: (goalId: string) => Promise<boolean>;
+    plans: Plan[];
+    isLoadingPlans: boolean;
+    fetchPlans: (goalId?: string) => Promise<void>;
+    createPlan: (goalId: string, dailyMinutes?: number) => Promise<Plan | null>;
+    startPlan: (planId: string) => Promise<boolean>;
+    pausePlan: (planId: string) => Promise<boolean>;
+    resumePlan: (planId: string) => Promise<boolean>;
+    recommendations: RecommendationBatch | null;
+    isLoadingRecommendations: boolean;
+    fetchRecommendations: (availableTime?: number) => Promise<void>;
+    dismissRecommendation: (recommendationId: string) => void;
+    progressReport: ProgressReport | null;
+    isLoadingProgress: boolean;
+    fetchProgressReport: (period?: 'daily' | 'weekly' | 'monthly') => Promise<void>;
+    skills: SkillAssessment[];
+    isLoadingSkills: boolean;
+    fetchSkillMap: () => Promise<void>;
+    checkIns: CheckIn[];
+    isLoadingCheckIns: boolean;
+    fetchCheckIns: (status?: string) => Promise<void>;
+    respondToCheckIn: (checkInId: string, response: CheckInResponse) => Promise<boolean>;
+    dismissCheckIn: (checkInId: string) => Promise<boolean>;
+    error: string | null;
+    clearError: () => void;
+}
+interface CreateGoalData {
+    title: string;
+    description?: string;
+    targetDate?: string;
+    priority?: 'low' | 'medium' | 'high' | 'critical';
+    courseId?: string;
+    chapterId?: string;
+    sectionId?: string;
+    topicIds?: string[];
+    skillIds?: string[];
+    currentMastery?: string;
+    targetMastery?: string;
+}
+interface CheckInResponse {
+    answers: Array<{
+        questionId: string;
+        answer: string | string[] | number | boolean;
+    }>;
+    selectedActions?: string[];
+    feedback?: string;
+    emotionalState?: string;
+}
+declare function useAgentic(options?: UseAgenticOptions): UseAgenticReturn;
+
+/**
  * @sam-ai/react - Context Detector Utilities
  * Auto-detection of page context from URL and DOM
  */
@@ -398,6 +1076,14 @@ declare const contextDetector: {
 };
 
 /**
+ * @sam-ai/react - Form data event utilities
+ * Lightweight event bridge for syncing external form state into SAM.
+ */
+
+declare const SAM_FORM_DATA_EVENT = "sam:form-data";
+declare function emitSAMFormData(detail: SAMFormDataEventDetail, target?: EventTarget): void;
+
+/**
  * @sam-ai/react
  * React hooks and providers for SAM AI Tutor
  *
@@ -406,4 +1092,4 @@ declare const contextDetector: {
 
 declare const VERSION = "0.1.0";
 
-export { type ContextDetectorOptions, type FormAutoFillOptions, type FormSyncOptions, type PageContextDetection, type SAMApiTransportOptions, type SAMApiTransportResponse, SAMContext, SAMProvider, type SAMProviderConfig, type SAMProviderState, type UseSAMActionsReturn, type UseSAMAnalysisReturn, type UseSAMChatReturn, type UseSAMContextReturn, type UseSAMFormReturn, type UseSAMReturn, VERSION, contextDetector, createContextDetector, getCapabilities, hasCapability, useSAM, useSAMActions, useSAMAnalysis, useSAMAutoContext, useSAMChat, useSAMContext, useSAMForm, useSAMFormSync, useSAMPageContext };
+export { type CheckIn, type CheckInResponse, type ContextDetectorOptions, type CreateGoalData, type FormAutoFillOptions, type FormSyncOptions, type Goal, type PageContextDetection, type Plan, type PlanStep, type ProgressReport, type Recommendation, type RecommendationBatch, type SAMApiTransportOptions, type SAMApiTransportResponse, SAMContext, type SAMFormDataEventDetail, type SAMPageLink, SAMProvider, type SAMProviderConfig, type SAMProviderState, SAM_FORM_DATA_EVENT, type SkillAssessment, type SubGoal, type UseAgenticOptions, type UseAgenticReturn, type UseSAMActionsReturn, type UseSAMAdaptiveContentOptions, type UseSAMAdaptiveContentReturn, type UseSAMAnalysisReturn, type UseSAMChatReturn, type UseSAMContextReturn, type UseSAMFormAutoDetectOptions, type UseSAMFormAutoDetectReturn, type UseSAMFormAutoFillOptions, type UseSAMFormAutoFillReturn, type UseSAMFormDataEventsOptions, type UseSAMFormDataEventsReturn, type UseSAMFormDataSyncOptions, type UseSAMFormDataSyncReturn, type UseSAMFormReturn, type UseSAMPageLinksOptions, type UseSAMPageLinksReturn, type UseSAMPracticeProblemsOptions, type UseSAMPracticeProblemsReturn, type UseSAMReturn, type UseSAMSocraticDialogueOptions, type UseSAMSocraticDialogueReturn, VERSION, contextDetector, createContextDetector, emitSAMFormData, getCapabilities, hasCapability, useAgentic, useSAM, useSAMActions, useSAMAdaptiveContent, useSAMAnalysis, useSAMAutoContext, useSAMChat, useSAMContext, useSAMForm, useSAMFormAutoDetect, useSAMFormAutoFill, useSAMFormDataEvents, useSAMFormDataSync, useSAMFormSync, useSAMPageContext, useSAMPageLinks, useSAMPracticeProblems, useSAMSocraticDialogue };

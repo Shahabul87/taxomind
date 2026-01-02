@@ -2,7 +2,20 @@ import { logger } from '@/lib/logger';
 
 /**
  * SAM Memory System - Stub Implementation
- * This is a minimal stub for backward compatibility
+ *
+ * @deprecated This stub is deprecated. Use @sam-ai/memory package instead:
+ * - MasteryTracker for mastery tracking
+ * - SpacedRepetitionScheduler for review scheduling
+ * - PathwayCalculator for learning pathways
+ *
+ * New mentor endpoints that use these packages:
+ * - POST /api/sam/mentor/plan for learning plans
+ * - GET/PATCH /api/sam/mentor/review-queue for spaced repetition
+ * - POST /api/sam/mentor/diagnostic for assessments
+ *
+ * This file is maintained for backward compatibility only.
+ *
+ * @see @sam-ai/memory package for the new implementation
  */
 
 type MemoryValue = string | number | boolean | object | null | undefined;

@@ -264,11 +264,7 @@ export const CourseLearningDashboard = ({
                   <div className="space-y-6">
                     {/* Smart Predictions - AI-Powered Learning Analytics */}
                     <SmartPredictions
-                      course={course}
-                      userId={user.id}
-                      progressPercentage={progressPercentage}
-                      totalSections={totalSections}
-                      completedSections={completedSections}
+                      courseId={course.id}
                     />
 
                     {/* Original Learning Stats */}

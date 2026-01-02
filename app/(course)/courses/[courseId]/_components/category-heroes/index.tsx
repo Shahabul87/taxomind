@@ -8,18 +8,8 @@ import { ProgrammingHero } from './programming-hero';
 import { AIMLHero } from './ai-ml-hero';
 import { DesignHero } from './design-hero';
 import { DefaultHero } from './default-hero';
-import { getCategoryLayout, CategoryLayoutVariant } from '../../_config/category-layouts';
-
-interface BaseCourse {
-  title: string;
-  description?: string | null;
-  imageUrl?: string | null;
-  subtitle?: string | null;
-  difficulty?: string | null;
-  category?: {
-    name: string;
-  } | null;
-}
+import { getCategoryLayout } from '../../_config/category-layouts';
+import type { BaseCourse } from '../../_types/course.types';
 
 interface CategoryHeroProps {
   course: BaseCourse;

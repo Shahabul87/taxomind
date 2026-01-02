@@ -146,7 +146,7 @@ async function getCourseData(courseId: string) {
     include: {
       chapters: {
         include: {
-          Section: {
+          sections: {
             where: { isPublished: true },
             select: {
               id: true,
@@ -176,7 +176,7 @@ function calculatePredictions(
   } | null,
   courseData: {
     chapters: Array<{
-      Section: Array<{
+      sections: Array<{
         id: string;
         duration: number | null;
       }>;
@@ -187,7 +187,7 @@ function calculatePredictions(
 
   // Calculate total sections and completed
   const totalSections =
-    courseData?.chapters.reduce((acc, ch) => acc + ch.Section.length, 0) || 0;
+    courseData?.chapters.reduce((acc, ch) => acc + ch.sections.length, 0) || 0;
   const completedSections = progressData.filter((p) => p.isCompleted).length;
   const remainingSections = totalSections - completedSections;
 
@@ -335,7 +335,7 @@ function calculateLearningVelocity(
 function calculateAverageSectionDuration(
   courseData: {
     chapters: Array<{
-      Section: Array<{
+      sections: Array<{
         duration: number | null;
       }>;
     }>;
@@ -347,7 +347,7 @@ function calculateAverageSectionDuration(
   let sectionCount = 0;
 
   for (const chapter of courseData.chapters) {
-    for (const section of chapter.Section) {
+    for (const section of chapter.sections) {
       totalDuration += section.duration || 15;
       sectionCount += 1;
     }

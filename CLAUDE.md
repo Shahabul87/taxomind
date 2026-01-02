@@ -353,7 +353,42 @@ ChartBar  // Use BarChart3
 
 ---
 
+## SAM Agentic AI Mentor Development
+
+**Master Plan**: `/SAM_AGENTIC_AI_MENTOR_MASTER_PLAN.md` (44-week implementation)
+
+### Current SAM Architecture (10 Packages)
+- `@sam-ai/core` - Orchestrator, StateMachine, 6 Core Engines
+- `@sam-ai/educational` - 40+ specialized engines
+- `@sam-ai/memory` - MasteryTracker, SpacedRepetition, Pathways
+- `@sam-ai/pedagogy` - Blooms, Scaffolding, ZPD
+- `@sam-ai/safety` - Bias, Fairness, Accessibility
+- `@sam-ai/quality` - 6 Quality Gates
+- `@sam-ai/react` - 11+ Hooks, Provider
+- `@sam-ai/api` - Route Handlers, Middleware
+- `@sam-ai/adapter-prisma` - Database Integration
+
+### Planned Agentic Packages (New)
+- `@sam-ai/agentic` - Goal planning, tool execution, self-evaluation
+- `@sam-ai/realtime` - WebSocket, presence, live collaboration
+- `@sam-ai/knowledge` - External knowledge integrations
+
+### Key Agentic Capabilities to Build
+1. **Goal Planning** - Task decomposition, resumable state machines
+2. **Tool Execution** - Registry, permissions, audit logging
+3. **Long-Term Memory** - Vector store, knowledge graph
+4. **Proactive Intervention** - Check-ins, behavior monitoring
+5. **Self-Evaluation** - Confidence scoring, source citations
+
+### Quick Links
+- Existing Plans: `docs/features/sam-ai-system/improvement-plan/`
+- Phase 4 Thinking: `docs/features/sam-ai-system/improvement-plan/phase-4-thinking/`
+- Gaps Analysis: `docs/features/sam-ai-system/reports/SAM_ENGINE_GAPS_AND_IMPROVEMENTS.md`
+- Test Plan: `docs/testing/SAM_AI_TESTING_PLAN.md`
+
+---
+
 **Quick Reference**: See `/Users/CLAUDE.md` for full enterprise standards. Always verify schema before database queries.
 
-*Last updated: January 2025*
+*Last updated: December 2024*
 *Stack: Next.js 15 + Prisma + PostgreSQL + NextAuth.js v5*

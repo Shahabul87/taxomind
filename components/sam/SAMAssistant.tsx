@@ -26,6 +26,15 @@ import {
   Copy,
   ClipboardCheck,
   ArrowDownToLine,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  Bell,
+  MessageSquare,
+  HandHeart,
+  ThumbsUp,
+  ThumbsDown,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -88,20 +97,26 @@ interface WindowCourseContext {
     }>;
     fullCourseData?: Record<string, unknown>;
     // Chapter-specific
+    position?: number;
     courseId?: string;
     courseTitle?: string;
     sectionCount?: number;
+    fullChapterData?: Record<string, unknown>;
     sections?: Array<{
       id: string;
       title: string;
       isPublished?: boolean;
+      position?: number;
+      contentType?: string | null;
     }>;
     // Section-specific
+    isFree?: boolean;
     chapterId?: string;
     chapterTitle?: string;
     content?: string | null;
     contentType?: string | null;
     videoUrl?: string | null;
+    fullSectionData?: Record<string, unknown>;
   };
   completionStatus?: Record<string, boolean>;
   workflow?: {
@@ -170,6 +185,57 @@ interface BloomsInsight {
   gaps?: string[];
 }
 
+interface AgenticInsight {
+  confidence?: {
+    level: string;
+    score: number;
+    factors?: Array<{ name: string; score: number; weight: number }>;
+  };
+  sessionRecorded?: boolean;
+  interventions?: Array<{ type: string; reason: string; priority: string }>;
+}
+
+// Proactive check-in and intervention types
+interface ProactiveCheckIn {
+  id: string;
+  type: string;
+  message: string;
+  priority: 'low' | 'medium' | 'high';
+  questions?: Array<{
+    id: string;
+    question: string;
+    type: 'text' | 'single_choice' | 'multiple_choice' | 'scale' | 'yes_no' | 'emoji';
+    options?: string[];
+    required?: boolean;
+  }>;
+  suggestedActions?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    type: string;
+    priority: string;
+  }>;
+  scheduledTime?: string;
+  status: 'pending' | 'scheduled' | 'sent' | 'responded' | 'expired';
+}
+
+interface ProactiveIntervention {
+  id: string;
+  type: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  suggestedActions?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    type: string;
+    targetUrl?: string;
+  }>;
+  timing: {
+    type: 'immediate' | 'scheduled' | 'on_next_session';
+  };
+}
+
 interface SAMInsights {
   blooms?: BloomsInsight;
   content?: {
@@ -187,6 +253,7 @@ interface SAMInsights {
     keywords?: string[];
     complexity?: string;
   };
+  agentic?: AgenticInsight;
 }
 
 interface SAMAssistantProps {
@@ -201,7 +268,7 @@ function buildUnifiedRequest(input: {
   history: SAMMessage[];
 }) {
   const { message, context, history } = input;
-  const metadata = context.page.metadata ?? {};
+  const metadata = context.page.metadata ?? {} as Record<string, unknown>;
   const formFields = context.form
     ? Object.fromEntries(
         Object.entries(context.form.fields).map(([name, field]) => [name, field.value])
@@ -220,6 +287,9 @@ function buildUnifiedRequest(input: {
       breadcrumb: context.page.breadcrumb,
       entityData: metadata.entityData,
       entityType: metadata.entityType,
+      // Include page links for navigation context (limit to 20)
+      links: Array.isArray(metadata.links) ? metadata.links.slice(0, 20) : undefined,
+      linkCount: typeof metadata.linkCount === 'number' ? metadata.linkCount : undefined,
     },
     formContext: context.form
       ? {
@@ -323,6 +393,13 @@ function SAMAssistantInner({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [insertedMessageId, setInsertedMessageId] = useState<string | null>(null);
 
+  // Proactive features state
+  const [pendingCheckIns, setPendingCheckIns] = useState<ProactiveCheckIn[]>([]);
+  const [pendingInterventions, setPendingInterventions] = useState<ProactiveIntervention[]>([]);
+  const [showCheckInPanel, setShowCheckInPanel] = useState(false);
+  const [activeCheckIn, setActiveCheckIn] = useState<ProactiveCheckIn | null>(null);
+  const [checkInResponses, setCheckInResponses] = useState<Record<string, unknown>>({});
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize gamification engine
@@ -346,9 +423,150 @@ function SAMAssistantInner({
     }
   }, [enableGamification, session?.user?.id]);
 
+  // Fetch proactive check-ins and interventions when SAM opens
+  useEffect(() => {
+    if (!isOpen || !session?.user?.id) return;
+
+    const fetchProactiveData = async () => {
+      try {
+        // Fetch pending check-ins
+        const checkInsRes = await fetch('/api/sam/agentic/checkins?status=pending');
+        if (checkInsRes.ok) {
+          const checkInsData = await checkInsRes.json();
+          if (checkInsData.success && checkInsData.data?.checkIns) {
+            setPendingCheckIns(checkInsData.data.checkIns);
+          }
+        }
+
+        // Fetch pending interventions
+        const interventionsRes = await fetch('/api/sam/agentic/behavior/interventions?pending=true');
+        if (interventionsRes.ok) {
+          const interventionsData = await interventionsRes.json();
+          if (interventionsData.success && interventionsData.data?.interventions) {
+            setPendingInterventions(interventionsData.data.interventions);
+          }
+        }
+
+        // Evaluate triggers to see if any new check-ins should be created
+        await fetch('/api/sam/agentic/checkins/evaluate', { method: 'POST' });
+      } catch (error) {
+        console.error('[SAMAssistant] Failed to fetch proactive data:', error);
+      }
+    };
+
+    fetchProactiveData();
+
+    // Refresh every 5 minutes while SAM is open
+    const interval = setInterval(fetchProactiveData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [isOpen, session?.user?.id]);
+
+  // ============================================================================
+  // PAGE CONTEXT DETECTION (moved before behavior tracking for dependency order)
+  // ============================================================================
+
+  // Detect page context from URL
+  const pageContext = useMemo((): PageContext => {
+    const path = pathname || '/';
+    const pageType = detectPageType(path);
+    const pageName = detectPageName(pageType);
+    const breadcrumbs = buildBreadcrumbs(path);
+    const capabilities = getPageCapabilities(pageType);
+
+    const courseMatch = path.match(/\/courses\/([^/]+)/);
+    const chapterMatch = path.match(/\/chapters\/([^/]+)/);
+    const sectionMatch = path.match(/\/section\/([^/]+)/);
+
+    return {
+      pageName,
+      pageType,
+      path,
+      breadcrumbs,
+      capabilities,
+      entityId: sectionMatch?.[1] || chapterMatch?.[1] || courseMatch?.[1],
+      parentEntityId: chapterMatch?.[1] || courseMatch?.[1],
+      grandParentEntityId: courseMatch?.[1],
+    };
+  }, [pathname]);
+
+  // ============================================================================
+  // BEHAVIOR EVENT TRACKING - Phase 4 Proactive Features
+  // ============================================================================
+
+  const sessionStartTimeRef = useRef<number | null>(null);
+
+  // Track behavior events to the agentic events API
+  const trackBehaviorEvent = useCallback(async (
+    type: 'session_start' | 'session_end' | 'page_view' | 'content_interaction' | 'help_requested' | 'frustration_signal',
+    data?: Record<string, unknown>
+  ) => {
+    if (!session?.user?.id) return;
+
+    try {
+      await fetch('/api/sam/agentic/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          data: {
+            ...data,
+            sessionDuration: sessionStartTimeRef.current
+              ? Math.round((Date.now() - sessionStartTimeRef.current) / 1000)
+              : undefined,
+          },
+          timestamp: new Date().toISOString(),
+          pageContext: {
+            type: pageContext.pageType,
+            path: pageContext.path,
+            entityId: pageContext.entityId,
+            entityType: windowEntityContext.entityType,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error('[SAMAssistant] Failed to track behavior event:', error);
+    }
+  }, [session?.user?.id, pageContext, windowEntityContext.entityType]);
+
+  // Track session start/end when SAM panel opens/closes
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    if (isOpen) {
+      // Session started
+      sessionStartTimeRef.current = Date.now();
+      trackBehaviorEvent('session_start', {
+        source: 'sam_panel_open',
+        pageName: pageContext.pageName,
+      });
+    } else if (sessionStartTimeRef.current) {
+      // Session ended
+      trackBehaviorEvent('session_end', {
+        source: 'sam_panel_close',
+        pageName: pageContext.pageName,
+        messageCount: messages.length,
+      });
+      sessionStartTimeRef.current = null;
+    }
+  }, [isOpen, session?.user?.id, pageContext.pageName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track page navigation while SAM is open
+  useEffect(() => {
+    if (!isOpen || !session?.user?.id) return;
+
+    trackBehaviorEvent('page_view', {
+      pageName: pageContext.pageName,
+      pageType: pageContext.pageType,
+      entityId: pageContext.entityId,
+    });
+  }, [pathname, isOpen, session?.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Listen for entity context from SimpleCourseContext and similar components
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Reset window entity context on navigation to avoid stale data
+    setWindowEntityContext({});
 
     // Check for existing context on mount
     const checkExistingContext = () => {
@@ -398,30 +616,6 @@ function SAMAssistantInner({
       window.removeEventListener('sam-context-update', handleContextUpdate as EventListener);
     };
   }, [pathname]); // Re-run when pathname changes
-
-  // Detect page context from URL
-  const pageContext = useMemo((): PageContext => {
-    const path = pathname || '/';
-    const pageType = detectPageType(path);
-    const pageName = detectPageName(pageType);
-    const breadcrumbs = buildBreadcrumbs(path);
-    const capabilities = getPageCapabilities(pageType);
-
-    const courseMatch = path.match(/\/courses\/([^/]+)/);
-    const chapterMatch = path.match(/\/chapters\/([^/]+)/);
-    const sectionMatch = path.match(/\/section\/([^/]+)/);
-
-    return {
-      pageName,
-      pageType,
-      path,
-      breadcrumbs,
-      capabilities,
-      entityId: sectionMatch?.[1] || chapterMatch?.[1] || courseMatch?.[1],
-      parentEntityId: chapterMatch?.[1] || courseMatch?.[1],
-      grandParentEntityId: courseMatch?.[1],
-    };
-  }, [pathname]);
 
   /**
    * Get entity context from window object (injected by SimpleCourseContext, etc.)
@@ -555,8 +749,13 @@ function SAMAssistantInner({
       },
     };
 
-    if (!samContext.form && samFormContext) {
+    // Always update form context to avoid staleness on navigation
+    // Previously only set when form was null, causing stale data
+    if (samFormContext) {
       contextUpdate.form = samFormContext;
+    } else {
+      // Explicitly clear form when no form context available
+      contextUpdate.form = null;
     }
 
     updateContext(contextUpdate);
@@ -628,8 +827,21 @@ function SAMAssistantInner({
 
     if (!result) {
       handleError(new Error('Failed to get response'));
+      // Track frustration signal on error
+      trackBehaviorEvent('frustration_signal', {
+        reason: 'message_failed',
+        messageLength: content.length,
+      });
       return;
     }
+
+    // Track successful content interaction
+    trackBehaviorEvent('content_interaction', {
+      messageType: 'user_question',
+      messageLength: content.length,
+      hasEntityContext: !!effectiveEntityContext.entityData,
+      entityType: effectiveEntityContext.entityType,
+    });
 
     // Award XP for content generation if applicable
     if (gamificationEngine) {
@@ -721,6 +933,111 @@ function SAMAssistantInner({
   // Handle form fill suggestion
   const handleFormFillClick = (suggestion: FormFillSuggestion) => {
     sendMessage(`Generate content for the ${suggestion.field} field`);
+  };
+
+  // Handle opening a check-in
+  const handleOpenCheckIn = (checkIn: ProactiveCheckIn) => {
+    setActiveCheckIn(checkIn);
+    setCheckInResponses({});
+    setShowCheckInPanel(true);
+  };
+
+  // Handle responding to a check-in
+  const handleRespondToCheckIn = async (checkInId: string) => {
+    if (!activeCheckIn) return;
+
+    try {
+      const response = await fetch(`/api/sam/agentic/checkins/${checkInId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers: Object.entries(checkInResponses).map(([questionId, answer]) => ({
+            questionId,
+            answer,
+          })),
+          selectedActions: [],
+          feedback: '',
+        }),
+      });
+
+      if (response.ok) {
+        // Remove from pending list
+        setPendingCheckIns(prev => prev.filter(c => c.id !== checkInId));
+        setActiveCheckIn(null);
+        setShowCheckInPanel(false);
+
+        // Award XP for responding to check-in
+        if (gamificationEngine) {
+          gamificationEngine.awardXP('question_asked');
+        }
+      }
+    } catch (error) {
+      console.error('[SAMAssistant] Failed to respond to check-in:', error);
+      setError('Failed to submit check-in response');
+    }
+  };
+
+  // Handle dismissing a check-in
+  const handleDismissCheckIn = async (checkInId: string) => {
+    try {
+      await fetch(`/api/sam/agentic/checkins/${checkInId}`, { method: 'DELETE' });
+      setPendingCheckIns(prev => prev.filter(c => c.id !== checkInId));
+      setActiveCheckIn(null);
+      setShowCheckInPanel(false);
+    } catch (error) {
+      console.error('[SAMAssistant] Failed to dismiss check-in:', error);
+    }
+  };
+
+  // Handle intervention action
+  const handleInterventionAction = async (intervention: ProactiveIntervention, actionId: string) => {
+    const action = intervention.suggestedActions?.find(a => a.id === actionId);
+    if (!action) return;
+
+    try {
+      // Record the intervention result
+      await fetch(`/api/sam/agentic/behavior/interventions?id=${intervention.id}&action=result`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: true,
+          userResponse: 'accepted',
+        }),
+      });
+
+      // Execute the action
+      if (action.targetUrl) {
+        window.location.href = action.targetUrl;
+      } else if (action.type === 'start_activity') {
+        sendMessage('Help me continue learning');
+      } else if (action.type === 'take_break') {
+        setPendingInterventions(prev => prev.filter(i => i.id !== intervention.id));
+      } else if (action.type === 'view_progress') {
+        sendMessage('Show me my learning progress');
+      }
+
+      // Remove from pending
+      setPendingInterventions(prev => prev.filter(i => i.id !== intervention.id));
+    } catch (error) {
+      console.error('[SAMAssistant] Failed to handle intervention:', error);
+    }
+  };
+
+  // Handle dismissing an intervention
+  const handleDismissIntervention = async (interventionId: string) => {
+    try {
+      await fetch(`/api/sam/agentic/behavior/interventions?id=${interventionId}&action=result`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: false,
+          userResponse: 'dismissed',
+        }),
+      });
+      setPendingInterventions(prev => prev.filter(i => i.id !== interventionId));
+    } catch (error) {
+      console.error('[SAMAssistant] Failed to dismiss intervention:', error);
+    }
   };
 
   // Handle copy content to clipboard
@@ -1047,6 +1364,279 @@ function SAMAssistantInner({
                   💡 {insights.blooms.recommendations[0]}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Agentic Confidence Panel */}
+          {insights?.agentic?.confidence && (
+            <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-100 dark:border-emerald-800 shrink-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
+                  {insights.agentic.confidence.level === 'HIGH' ? (
+                    <ShieldCheck className="h-3 w-3" />
+                  ) : insights.agentic.confidence.level === 'LOW' ? (
+                    <ShieldAlert className="h-3 w-3" />
+                  ) : (
+                    <Shield className="h-3 w-3" />
+                  )}
+                  AI Confidence
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "text-xs px-2 py-0.5 rounded-full font-medium",
+                    insights.agentic.confidence.level === 'HIGH' && "bg-emerald-200 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300",
+                    insights.agentic.confidence.level === 'MEDIUM' && "bg-yellow-200 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-300",
+                    insights.agentic.confidence.level === 'LOW' && "bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-300"
+                  )}>
+                    {insights.agentic.confidence.level}
+                  </span>
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400">
+                    {Math.round(insights.agentic.confidence.score * 100)}%
+                  </span>
+                </div>
+              </div>
+              {/* Confidence Score Bar */}
+              <div className="mt-1.5 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={cn(
+                    "h-full rounded-full transition-all",
+                    insights.agentic.confidence.level === 'HIGH' && "bg-emerald-500",
+                    insights.agentic.confidence.level === 'MEDIUM' && "bg-yellow-500",
+                    insights.agentic.confidence.level === 'LOW' && "bg-red-500"
+                  )}
+                  style={{ width: `${insights.agentic.confidence.score * 100}%` }}
+                />
+              </div>
+              {/* Intervention Alerts */}
+              {insights.agentic.interventions && insights.agentic.interventions.length > 0 && (
+                <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {insights.agentic.interventions[0].reason}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Proactive Check-Ins Panel */}
+          {pendingCheckIns.length > 0 && !activeCheckIn && (
+            <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                  <Bell className="h-3 w-3" />
+                  SAM Check-In ({pendingCheckIns.length})
+                </span>
+              </div>
+              <div className="space-y-2">
+                {pendingCheckIns.slice(0, 2).map((checkIn) => (
+                  <div
+                    key={checkIn.id}
+                    className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-amber-200 dark:border-amber-700"
+                  >
+                    <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">{checkIn.message}</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenCheckIn(checkIn)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded hover:bg-amber-200 dark:hover:bg-amber-800"
+                      >
+                        <MessageSquare className="h-3 w-3" />
+                        Respond
+                      </button>
+                      <button
+                        onClick={() => handleDismissCheckIn(checkIn.id)}
+                        className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      >
+                        Later
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Active Check-In Modal */}
+          {activeCheckIn && showCheckInPanel && (
+            <div className="px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                  <HandHeart className="h-4 w-4" />
+                  {activeCheckIn.type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+                <button
+                  onClick={() => setShowCheckInPanel(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{activeCheckIn.message}</p>
+
+              {/* Questions */}
+              {activeCheckIn.questions && activeCheckIn.questions.length > 0 && (
+                <div className="space-y-3 mb-3">
+                  {activeCheckIn.questions.map((q) => (
+                    <div key={q.id}>
+                      <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+                        {q.question}
+                      </label>
+                      {q.type === 'scale' && (
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button
+                              key={n}
+                              onClick={() => setCheckInResponses(prev => ({ ...prev, [q.id]: n }))}
+                              className={cn(
+                                'flex-1 py-1 text-xs rounded',
+                                checkInResponses[q.id] === n
+                                  ? 'bg-amber-500 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+                              )}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {q.type === 'yes_no' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setCheckInResponses(prev => ({ ...prev, [q.id]: true }))}
+                            className={cn(
+                              'flex-1 flex items-center justify-center gap-1 py-1.5 text-xs rounded',
+                              checkInResponses[q.id] === true
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+                            )}
+                          >
+                            <ThumbsUp className="h-3 w-3" /> Yes
+                          </button>
+                          <button
+                            onClick={() => setCheckInResponses(prev => ({ ...prev, [q.id]: false }))}
+                            className={cn(
+                              'flex-1 flex items-center justify-center gap-1 py-1.5 text-xs rounded',
+                              checkInResponses[q.id] === false
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+                            )}
+                          >
+                            <ThumbsDown className="h-3 w-3" /> No
+                          </button>
+                        </div>
+                      )}
+                      {q.type === 'emoji' && (
+                        <div className="flex gap-1">
+                          {['😞', '😕', '😐', '🙂', '😊'].map((emoji, i) => (
+                            <button
+                              key={emoji}
+                              onClick={() => setCheckInResponses(prev => ({ ...prev, [q.id]: i + 1 }))}
+                              className={cn(
+                                'flex-1 py-1 text-lg rounded',
+                                checkInResponses[q.id] === i + 1
+                                  ? 'bg-amber-100 dark:bg-amber-900'
+                                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                              )}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {(q.type === 'text' || q.type === 'single_choice') && q.options && (
+                        <div className="flex flex-wrap gap-1">
+                          {q.options.map((option) => (
+                            <button
+                              key={option}
+                              onClick={() => setCheckInResponses(prev => ({ ...prev, [q.id]: option }))}
+                              className={cn(
+                                'px-2 py-1 text-xs rounded',
+                                checkInResponses[q.id] === option
+                                  ? 'bg-amber-500 text-white'
+                                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+                              )}
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Suggested Actions */}
+              {activeCheckIn.suggestedActions && activeCheckIn.suggestedActions.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Suggested Actions:</p>
+                  {activeCheckIn.suggestedActions.slice(0, 3).map((action) => (
+                    <button
+                      key={action.id}
+                      onClick={() => {
+                        setCheckInResponses(prev => ({ ...prev, selectedAction: action.id }));
+                      }}
+                      className={cn(
+                        'w-full p-2 text-left text-xs rounded border transition-colors',
+                        checkInResponses.selectedAction === action.id
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-amber-300'
+                      )}
+                    >
+                      <span className="font-medium">{action.title}</span>
+                      <p className="text-gray-500 dark:text-gray-400">{action.description}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleRespondToCheckIn(activeCheckIn.id)}
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-xs bg-amber-500 text-white rounded hover:bg-amber-600"
+                >
+                  <Check className="h-3 w-3" />
+                  Submit
+                </button>
+                <button
+                  onClick={() => handleDismissCheckIn(activeCheckIn.id)}
+                  className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 rounded border border-gray-200"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Pending Interventions Panel */}
+          {pendingInterventions.length > 0 && (
+            <div className="px-4 py-2 bg-rose-50 dark:bg-rose-900/20 border-b border-rose-100 dark:border-rose-800 shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-1">
+                  <HandHeart className="h-3 w-3" />
+                  SAM Suggestion
+                </span>
+              </div>
+              {pendingInterventions.slice(0, 1).map((intervention) => (
+                <div key={intervention.id} className="space-y-2">
+                  <p className="text-xs text-gray-700 dark:text-gray-300">{intervention.message}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {intervention.suggestedActions?.slice(0, 2).map((action) => (
+                      <button
+                        key={action.id}
+                        onClick={() => handleInterventionAction(intervention, action.id)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 rounded hover:bg-rose-200 dark:hover:bg-rose-800"
+                      >
+                        {action.title}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => handleDismissIntervention(intervention.id)}
+                      className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

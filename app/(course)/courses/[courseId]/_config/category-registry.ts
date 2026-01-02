@@ -25,6 +25,8 @@ export interface HeroComponentProps {
   techStack?: string[];
   models?: string[];
   tools?: string[];
+  isEnrolled?: boolean;
+  onEnroll?: () => void;
 }
 
 export type HeroComponent = React.ComponentType<HeroComponentProps>;

@@ -14,7 +14,6 @@ import type {
   DialoguePerformance,
   DialogueState,
 } from '@sam-ai/educational';
-import type { BloomsLevel } from '@sam-ai/core';
 
 /**
  * Options for the Socratic dialogue hook

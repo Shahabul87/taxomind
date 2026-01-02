@@ -22,20 +22,31 @@ var index_exports = {};
 __export(index_exports, {
   SAMContext: () => SAMContext,
   SAMProvider: () => SAMProvider,
+  SAM_FORM_DATA_EVENT: () => SAM_FORM_DATA_EVENT,
   VERSION: () => VERSION,
   contextDetector: () => contextDetector,
   createContextDetector: () => createContextDetector,
+  emitSAMFormData: () => emitSAMFormData,
   getCapabilities: () => getCapabilities,
   hasCapability: () => hasCapability,
+  useAgentic: () => useAgentic,
   useSAM: () => useSAM,
   useSAMActions: () => useSAMActions,
+  useSAMAdaptiveContent: () => useSAMAdaptiveContent,
   useSAMAnalysis: () => useSAMAnalysis,
   useSAMAutoContext: () => useSAMAutoContext,
   useSAMChat: () => useSAMChat,
   useSAMContext: () => useSAMContext,
   useSAMForm: () => useSAMForm,
+  useSAMFormAutoDetect: () => useSAMFormAutoDetect,
+  useSAMFormAutoFill: () => useSAMFormAutoFill,
+  useSAMFormDataEvents: () => useSAMFormDataEvents,
+  useSAMFormDataSync: () => useSAMFormDataSync,
   useSAMFormSync: () => useSAMFormSync,
-  useSAMPageContext: () => useSAMPageContext
+  useSAMPageContext: () => useSAMPageContext,
+  useSAMPageLinks: () => useSAMPageLinks,
+  useSAMPracticeProblems: () => useSAMPracticeProblems,
+  useSAMSocraticDialogue: () => useSAMSocraticDialogue
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -1311,6 +1322,1732 @@ function useSAMFormSync(options) {
   }, [options.form, options.autoSync, options.debounceMs, syncFormToSAM]);
 }
 
+// src/hooks/useSAMPageLinks.ts
+var import_react6 = require("react");
+var DEFAULT_SELECTOR = "a[href]";
+function normalizeText(value) {
+  const text = value?.trim();
+  return text ? text.replace(/\s+/g, " ") : void 0;
+}
+function isHidden(element) {
+  if (element.getAttribute("aria-hidden") === "true") return true;
+  if (element.hidden) return true;
+  const rects = element.getClientRects();
+  return rects.length === 0;
+}
+function buildLink(element, options) {
+  if (!options.includeHidden && isHidden(element)) return null;
+  const href = element.getAttribute("href") || "";
+  if (!href) return null;
+  const link = {
+    href
+  };
+  if (options.includeText !== false) {
+    link.text = normalizeText(element.textContent);
+  }
+  if (options.includeAriaLabel !== false) {
+    link.ariaLabel = normalizeText(element.getAttribute("aria-label"));
+  }
+  if (options.includeTitle !== false) {
+    link.title = normalizeText(element.getAttribute("title"));
+  }
+  if (options.includeRel) {
+    link.rel = normalizeText(element.getAttribute("rel"));
+  }
+  if (options.includeTarget) {
+    link.target = normalizeText(element.getAttribute("target"));
+  }
+  return link;
+}
+function dedupeLinks(links) {
+  const seen = /* @__PURE__ */ new Set();
+  const output = [];
+  for (const link of links) {
+    const key = `${link.href}|${link.text ?? ""}|${link.ariaLabel ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(link);
+  }
+  return output;
+}
+function useSAMPageLinks(options = {}) {
+  const { context, updatePage } = useSAMContext();
+  const [links, setLinks] = (0, import_react6.useState)([]);
+  const optionsRef = (0, import_react6.useRef)(options);
+  optionsRef.current = options;
+  const contextRef = (0, import_react6.useRef)(context);
+  contextRef.current = context;
+  const updatePageRef = (0, import_react6.useRef)(updatePage);
+  updatePageRef.current = updatePage;
+  const refresh = (0, import_react6.useCallback)(() => {
+    if (typeof document === "undefined") return;
+    const opts = optionsRef.current;
+    const selector = opts.selector ?? DEFAULT_SELECTOR;
+    const maxLinks = opts.maxLinks ?? 80;
+    const elements = Array.from(document.querySelectorAll(selector));
+    const collected = [];
+    for (const element of elements) {
+      if (collected.length >= maxLinks) break;
+      const link = buildLink(element, opts);
+      if (link) collected.push(link);
+    }
+    const finalLinks = opts.dedupe === false ? collected : dedupeLinks(collected);
+    setLinks(finalLinks);
+    const currentMetadata = contextRef.current.page.metadata ?? {};
+    const nextMetadata = {
+      ...currentMetadata,
+      links: finalLinks,
+      linkCount: finalLinks.length
+    };
+    updatePageRef.current({ metadata: nextMetadata });
+    opts.onLinks?.(finalLinks);
+  }, []);
+  (0, import_react6.useEffect)(() => {
+    if (options.enabled === false) return;
+    let timeoutId = null;
+    const throttleMs = options.throttleMs ?? 500;
+    const schedule = () => {
+      if (timeoutId) return;
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        refresh();
+      }, throttleMs);
+    };
+    refresh();
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener("popstate", schedule);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("popstate", schedule);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [options.enabled, options.throttleMs, refresh]);
+  return { links, refresh };
+}
+
+// src/hooks/useSAMFormDataSync.ts
+var import_react7 = require("react");
+var DEFAULT_MAX_DEPTH = 6;
+function formatLabel(name) {
+  return name.replace(/([A-Z])/g, " $1").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim().replace(/^\w/, (c) => c.toUpperCase());
+}
+function toFieldType(value) {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  if (value instanceof Date) return "date";
+  return typeof value;
+}
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && value?.constructor === Object;
+}
+function extractFields(value, fields, fieldMeta, path, depth, maxDepth) {
+  if (depth > maxDepth) {
+    fields[path] = {
+      name: path,
+      value: "[Max depth reached]",
+      type: "error",
+      label: formatLabel(path)
+    };
+    return;
+  }
+  if (value === void 0) {
+    fields[path] = {
+      name: path,
+      value: void 0,
+      type: "undefined",
+      label: formatLabel(path)
+    };
+    return;
+  }
+  if (value === null) {
+    fields[path] = {
+      name: path,
+      value: null,
+      type: "null",
+      label: formatLabel(path)
+    };
+    return;
+  }
+  if (Array.isArray(value)) {
+    fields[path] = {
+      name: path,
+      value,
+      type: "array",
+      label: formatLabel(path)
+    };
+    value.forEach((item, index) => {
+      extractFields(item, fields, fieldMeta, `${path}[${index}]`, depth + 1, maxDepth);
+    });
+    return;
+  }
+  if (value instanceof Date) {
+    fields[path] = {
+      name: path,
+      value: value.toISOString(),
+      type: "date",
+      label: formatLabel(path)
+    };
+    return;
+  }
+  if (isPlainObject(value)) {
+    fields[path] = {
+      name: path,
+      value: JSON.stringify(value),
+      type: "object",
+      label: formatLabel(path)
+    };
+    Object.entries(value).forEach(([key, nested]) => {
+      const nextPath = path ? `${path}.${key}` : key;
+      extractFields(nested, fields, fieldMeta, nextPath, depth + 1, maxDepth);
+    });
+    return;
+  }
+  const meta = fieldMeta[path] ?? {};
+  fields[path] = {
+    name: path,
+    value,
+    type: meta.type ?? toFieldType(value),
+    label: meta.label ?? formatLabel(path),
+    placeholder: meta.placeholder,
+    required: meta.required,
+    disabled: meta.disabled,
+    readOnly: meta.readOnly
+  };
+}
+function buildFormContext(formId, formName, fields, options) {
+  return {
+    formId,
+    formName,
+    fields,
+    isDirty: options.isDirty ?? true,
+    isSubmitting: false,
+    isValid: options.isValid ?? true,
+    errors: {},
+    touchedFields: /* @__PURE__ */ new Set(),
+    lastUpdated: /* @__PURE__ */ new Date(),
+    metadata: {
+      formType: options.formType ?? "data-sync",
+      pageUrl: typeof window !== "undefined" ? window.location.pathname : void 0,
+      ...options.metadata
+    }
+  };
+}
+function useSAMFormDataSync(formId, formData, options = {}) {
+  const { context, updateContext } = useSAMContext();
+  const latestOptionsRef = (0, import_react7.useRef)(options);
+  latestOptionsRef.current = options;
+  const contextRef = (0, import_react7.useRef)(context);
+  contextRef.current = context;
+  const updateContextRef = (0, import_react7.useRef)(updateContext);
+  updateContextRef.current = updateContext;
+  const formDataRef = (0, import_react7.useRef)(formData);
+  formDataRef.current = formData;
+  const maxDepth = options.maxDepth ?? DEFAULT_MAX_DEPTH;
+  const serializedData = (0, import_react7.useMemo)(() => JSON.stringify(formData), [formData]);
+  const serializedOptions = (0, import_react7.useMemo)(() => JSON.stringify({
+    enabled: options.enabled,
+    formName: options.formName,
+    formType: options.formType,
+    isDirty: options.isDirty,
+    isValid: options.isValid,
+    maxDepth: options.maxDepth
+  }), [options.enabled, options.formName, options.formType, options.isDirty, options.isValid, options.maxDepth]);
+  const sync = (0, import_react7.useCallback)(() => {
+    const opts = latestOptionsRef.current;
+    if (!opts.enabled && opts.enabled !== void 0) return;
+    if (!formId) return;
+    const currentFormData = formDataRef.current;
+    const meta = opts.fieldMeta ?? {};
+    const fields = {};
+    if (isPlainObject(currentFormData)) {
+      Object.entries(currentFormData).forEach(([key, value]) => {
+        extractFields(value, fields, meta, key, 0, maxDepth);
+      });
+    } else {
+      extractFields(currentFormData, fields, meta, "value", 0, maxDepth);
+    }
+    const formName = opts.formName ?? formId;
+    const nextContext = buildFormContext(formId, formName, fields, opts);
+    const currentForm = contextRef.current.form;
+    updateContextRef.current({
+      form: currentForm?.formId === formId ? { ...currentForm, ...nextContext, fields } : nextContext
+    });
+  }, [formId, maxDepth]);
+  (0, import_react7.useEffect)(() => {
+    if (options.debounceMs && options.debounceMs > 0) {
+      const timeoutId = setTimeout(sync, options.debounceMs);
+      return () => clearTimeout(timeoutId);
+    }
+    sync();
+  }, [serializedData, serializedOptions, options.debounceMs, sync]);
+  return { sync };
+}
+
+// src/hooks/useSAMFormDataEvents.ts
+var import_react8 = require("react");
+
+// src/utils/formDataEvents.ts
+var SAM_FORM_DATA_EVENT = "sam:form-data";
+function emitSAMFormData(detail, target) {
+  if (!detail?.formId) return;
+  const eventTarget = target ?? (typeof window !== "undefined" ? window : void 0);
+  if (!eventTarget || typeof eventTarget.dispatchEvent !== "function") return;
+  const payload = {
+    ...detail,
+    emittedAt: detail.emittedAt ?? (/* @__PURE__ */ new Date()).toISOString()
+  };
+  const event = new CustomEvent(SAM_FORM_DATA_EVENT, {
+    detail: payload
+  });
+  eventTarget.dispatchEvent(event);
+}
+
+// src/hooks/useSAMFormDataEvents.ts
+var EMPTY_DATA = {};
+function useSAMFormDataEvents(options = {}) {
+  const [payload, setPayload] = (0, import_react8.useState)(null);
+  (0, import_react8.useEffect)(() => {
+    if (options.enabled === false) return;
+    if (typeof window === "undefined") return;
+    const target = options.target ?? window;
+    const handler = (event) => {
+      const customEvent = event;
+      const detail = customEvent.detail;
+      if (!detail?.formId) return;
+      setPayload(detail);
+    };
+    target.addEventListener(SAM_FORM_DATA_EVENT, handler);
+    return () => {
+      target.removeEventListener(SAM_FORM_DATA_EVENT, handler);
+    };
+  }, [options.enabled, options.target]);
+  const syncOptions = (0, import_react8.useMemo)(() => {
+    const baseOptions = options.defaultOptions ?? {};
+    const payloadOptions = payload?.options ?? {};
+    return {
+      ...baseOptions,
+      ...payloadOptions,
+      enabled: options.enabled ?? payloadOptions.enabled
+    };
+  }, [options.defaultOptions, options.enabled, payload]);
+  useSAMFormDataSync(
+    payload?.formId ?? "",
+    payload?.formData ?? EMPTY_DATA,
+    syncOptions
+  );
+  return { lastPayload: payload };
+}
+
+// src/hooks/useSAMFormAutoDetect.ts
+var import_react9 = require("react");
+function formatLabel2(name) {
+  return name.replace(/([A-Z])/g, " $1").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim().replace(/^\w/, (c) => c.toUpperCase());
+}
+function detectFieldType2(element) {
+  if (element instanceof HTMLTextAreaElement) return "textarea";
+  if (element instanceof HTMLSelectElement) return "select";
+  if (element instanceof HTMLInputElement) return element.type || "text";
+  return "text";
+}
+function getFieldLabel2(element) {
+  const name = element.name;
+  if (name && typeof document !== "undefined") {
+    const label = document.querySelector(`label[for="${CSS.escape(name)}"]`);
+    if (label) return label.textContent?.trim();
+  }
+  const parentLabel = element.closest("label");
+  if (parentLabel) {
+    const clone = parentLabel.cloneNode(true);
+    clone.querySelectorAll("input, textarea, select").forEach((input) => input.remove());
+    return clone.textContent?.trim();
+  }
+  return name ? formatLabel2(name) : void 0;
+}
+function getFieldValue2(element) {
+  if (element instanceof HTMLInputElement && element.type === "checkbox") {
+    return element.checked;
+  }
+  if (element instanceof HTMLInputElement && element.type === "number") {
+    return element.valueAsNumber;
+  }
+  if (element instanceof HTMLSelectElement && element.multiple) {
+    return Array.from(element.selectedOptions).map((option) => option.value);
+  }
+  return element.value;
+}
+function extractFormFields2(form, options) {
+  const fields = {};
+  const elements = form.querySelectorAll("input, textarea, select");
+  const maxFields = options.maxFields ?? 80;
+  let count = 0;
+  elements.forEach((element) => {
+    if (count >= maxFields) return;
+    const field = element;
+    if (!field.name) return;
+    if (!options.includeHidden && field.type === "hidden") return;
+    fields[field.name] = {
+      name: field.name,
+      type: detectFieldType2(field),
+      value: getFieldValue2(field),
+      label: getFieldLabel2(field),
+      placeholder: field instanceof HTMLSelectElement ? void 0 : field.placeholder,
+      required: field.required,
+      disabled: field.disabled,
+      readOnly: field instanceof HTMLSelectElement ? false : field.readOnly
+    };
+    count += 1;
+  });
+  return fields;
+}
+function detectPrimaryForm(forms, preferFocused) {
+  if (!forms.length) return null;
+  if (preferFocused && typeof document !== "undefined") {
+    const activeElement = document.activeElement;
+    if (activeElement) {
+      const activeForm = activeElement.closest("form");
+      if (activeForm instanceof HTMLFormElement) return activeForm;
+    }
+  }
+  return forms.slice().sort((a, b) => b.elements.length - a.elements.length)[0];
+}
+function buildFormContext2(form, fields, options) {
+  const formId = form.getAttribute("data-sam-form-id") || form.id || form.getAttribute("name") || "sam-auto-form";
+  const formName = form.getAttribute("data-sam-form-name") || form.getAttribute("aria-label") || formId;
+  const hasValue = Object.values(fields).some((field) => {
+    if (field.value === null || field.value === void 0) return false;
+    if (typeof field.value === "string") return field.value.trim().length > 0;
+    if (Array.isArray(field.value)) return field.value.length > 0;
+    return true;
+  });
+  return {
+    formId,
+    formName,
+    fields,
+    isDirty: hasValue,
+    isSubmitting: false,
+    isValid: true,
+    errors: {},
+    touchedFields: /* @__PURE__ */ new Set(),
+    lastUpdated: /* @__PURE__ */ new Date(),
+    metadata: {
+      formType: options.formType ?? "auto-detect",
+      pageUrl: typeof window !== "undefined" ? window.location.pathname : void 0,
+      ...options.metadata
+    }
+  };
+}
+function useSAMFormAutoDetect(options = {}) {
+  const { context, updateContext } = useSAMContext();
+  const [formContext, setFormContext] = (0, import_react9.useState)(null);
+  const optionsRef = (0, import_react9.useRef)(options);
+  optionsRef.current = options;
+  const detectAndSync = (0, import_react9.useCallback)(() => {
+    if (options.enabled === false) return;
+    if (typeof document === "undefined") return;
+    const selector = options.selector ?? "form";
+    const forms = Array.from(document.querySelectorAll(selector));
+    if (!forms.length) return;
+    const primaryForm = detectPrimaryForm(forms, options.preferFocused !== false);
+    if (!primaryForm) return;
+    const fields = extractFormFields2(primaryForm, options);
+    const nextContext = buildFormContext2(primaryForm, fields, options);
+    setFormContext(nextContext);
+    const shouldUpdate = options.overrideExisting || !context.form || context.form.formId === nextContext.formId;
+    if (shouldUpdate) {
+      updateContext({ form: nextContext });
+    }
+  }, [context.form, options, updateContext]);
+  (0, import_react9.useEffect)(() => {
+    if (options.enabled === false) return;
+    if (typeof document === "undefined") return;
+    let timeoutId = null;
+    const debounceMs = options.debounceMs ?? 300;
+    const schedule = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        detectAndSync();
+      }, debounceMs);
+    };
+    detectAndSync();
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true });
+    const onFocus = () => schedule();
+    window.addEventListener("focusin", onFocus, true);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("focusin", onFocus, true);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [detectAndSync, options.debounceMs, options.enabled]);
+  return { formContext, refresh: detectAndSync };
+}
+
+// src/hooks/useSAMFormAutoFill.ts
+var import_react10 = require("react");
+function normalize(value) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+function getFieldCandidates(fields) {
+  return Object.entries(fields);
+}
+function resolveFromContext(target, fields) {
+  const normalizedTarget = normalize(target);
+  const candidates = getFieldCandidates(fields);
+  for (const [name, field] of candidates) {
+    if (normalize(name) === normalizedTarget) return name;
+    if (field.label && normalize(field.label) === normalizedTarget) return name;
+    if (field.placeholder && normalize(field.placeholder) === normalizedTarget) return name;
+  }
+  for (const [name, field] of candidates) {
+    if (normalize(name).includes(normalizedTarget)) return name;
+    if (field.label && normalize(field.label).includes(normalizedTarget)) return name;
+    if (field.placeholder && normalize(field.placeholder).includes(normalizedTarget)) return name;
+  }
+  return null;
+}
+function findElementByField(fieldName) {
+  if (typeof document === "undefined") return null;
+  return document.querySelector(`[name="${CSS.escape(fieldName)}"]`) || document.getElementById(fieldName);
+}
+function applyElementValue(element, value, triggerEvents) {
+  if (element instanceof HTMLInputElement) {
+    if (element.type === "checkbox") {
+      element.checked = Boolean(value);
+    } else if (element.type === "radio") {
+      if (String(value) === element.value) {
+        element.checked = true;
+      }
+    } else {
+      element.value = String(value ?? "");
+    }
+  } else if (element instanceof HTMLTextAreaElement) {
+    element.value = String(value ?? "");
+  } else if (element instanceof HTMLSelectElement) {
+    if (element.multiple && Array.isArray(value)) {
+      const values = value.map(String);
+      Array.from(element.options).forEach((option) => {
+        option.selected = values.includes(option.value);
+      });
+    } else {
+      element.value = String(value ?? "");
+    }
+  }
+  if (triggerEvents) {
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
+function useSAMFormAutoFill(options = {}) {
+  const { context, updateContext } = useSAMContext();
+  const resolveField = (0, import_react10.useCallback)(
+    (target) => {
+      if (!target) return null;
+      const fields = context.form?.fields ?? {};
+      const resolved = resolveFromContext(target, fields);
+      if (resolved) return resolved;
+      const element = findElementByField(target);
+      if (element) return target;
+      return null;
+    },
+    [context.form?.fields]
+  );
+  const fillField = (0, import_react10.useCallback)(
+    (target, value) => {
+      const resolved = resolveField(target);
+      if (!resolved) return false;
+      const element = findElementByField(resolved);
+      if (element) {
+        applyElementValue(element, value, options.triggerEvents !== false);
+      }
+      if (context.form?.fields?.[resolved]) {
+        const updatedFields = {
+          ...context.form.fields,
+          [resolved]: {
+            ...context.form.fields[resolved],
+            value,
+            dirty: true
+          }
+        };
+        updateContext({
+          form: {
+            ...context.form,
+            fields: updatedFields,
+            lastUpdated: /* @__PURE__ */ new Date()
+          }
+        });
+      }
+      options.onFill?.(resolved, value);
+      return true;
+    },
+    [context.form, options, resolveField, updateContext]
+  );
+  return { fillField, resolveField };
+}
+
+// src/hooks/useSAMPracticeProblems.ts
+var import_react11 = require("react");
+function useSAMPracticeProblems(options = {}) {
+  const {
+    apiEndpoint = "/api/sam/practice-problems",
+    userId,
+    courseId,
+    sectionId,
+    adaptiveDifficulty = true,
+    onProblemComplete,
+    onStatsUpdate
+  } = options;
+  const [problems, setProblems] = (0, import_react11.useState)([]);
+  const [currentIndex, setCurrentIndex] = (0, import_react11.useState)(0);
+  const [isGenerating, setIsGenerating] = (0, import_react11.useState)(false);
+  const [isEvaluating, setIsEvaluating] = (0, import_react11.useState)(false);
+  const [lastEvaluation, setLastEvaluation] = (0, import_react11.useState)(null);
+  const [sessionStats, setSessionStats] = (0, import_react11.useState)(null);
+  const [difficultyRecommendation, setDifficultyRecommendation] = (0, import_react11.useState)(null);
+  const [error, setError] = (0, import_react11.useState)(null);
+  const [hintsUsed, setHintsUsed] = (0, import_react11.useState)([]);
+  const sessionIdRef = (0, import_react11.useRef)(`session_${Date.now()}`);
+  const currentProblem = problems[currentIndex] || null;
+  const generateProblems = (0, import_react11.useCallback)(
+    async (input) => {
+      setIsGenerating(true);
+      setError(null);
+      try {
+        const response = await fetch(`${apiEndpoint}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...input,
+            userId,
+            courseId,
+            sectionId
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to generate problems: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const output = data.data;
+          setProblems(output.problems);
+          setCurrentIndex(0);
+          setHintsUsed([]);
+          setLastEvaluation(null);
+          return output;
+        }
+        throw new Error(data.error?.message || "Failed to generate problems");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        return null;
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [apiEndpoint, userId, courseId, sectionId]
+  );
+  const submitAnswer = (0, import_react11.useCallback)(
+    async (answer) => {
+      if (!currentProblem) {
+        setError("No problem selected");
+        return null;
+      }
+      setIsEvaluating(true);
+      setError(null);
+      try {
+        const response = await fetch(`${apiEndpoint}/evaluate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            problemId: currentProblem.id,
+            problem: currentProblem,
+            userAnswer: answer,
+            hintsUsed,
+            userId,
+            sessionId: sessionIdRef.current
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Evaluation failed: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const evaluation = data.data;
+          setLastEvaluation(evaluation);
+          if (data.stats) {
+            setSessionStats(data.stats);
+            onStatsUpdate?.(data.stats);
+          }
+          onProblemComplete?.(currentProblem, evaluation);
+          return evaluation;
+        }
+        throw new Error(data.error?.message || "Evaluation failed");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        return null;
+      } finally {
+        setIsEvaluating(false);
+      }
+    },
+    [apiEndpoint, currentProblem, hintsUsed, userId, onProblemComplete, onStatsUpdate]
+  );
+  const getNextHint = (0, import_react11.useCallback)(() => {
+    if (!currentProblem) return null;
+    const unusedHints = currentProblem.hints.filter((h) => !hintsUsed.includes(h.id));
+    const sortedHints = unusedHints.sort((a, b) => a.order - b.order);
+    if (sortedHints.length > 0) {
+      const nextHint = sortedHints[0];
+      setHintsUsed((prev) => [...prev, nextHint.id]);
+      return nextHint;
+    }
+    return null;
+  }, [currentProblem, hintsUsed]);
+  const nextProblem = (0, import_react11.useCallback)(() => {
+    if (currentIndex < problems.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+      setHintsUsed([]);
+      setLastEvaluation(null);
+    }
+  }, [currentIndex, problems.length]);
+  const previousProblem = (0, import_react11.useCallback)(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+      setHintsUsed([]);
+      setLastEvaluation(null);
+    }
+  }, [currentIndex]);
+  const goToProblem = (0, import_react11.useCallback)(
+    (index) => {
+      if (index >= 0 && index < problems.length) {
+        setCurrentIndex(index);
+        setHintsUsed([]);
+        setLastEvaluation(null);
+      }
+    },
+    [problems.length]
+  );
+  const skipProblem = (0, import_react11.useCallback)(() => {
+    nextProblem();
+  }, [nextProblem]);
+  const resetSession = (0, import_react11.useCallback)(() => {
+    setProblems([]);
+    setCurrentIndex(0);
+    setHintsUsed([]);
+    setLastEvaluation(null);
+    setSessionStats(null);
+    setError(null);
+    sessionIdRef.current = `session_${Date.now()}`;
+  }, []);
+  const getRecommendedDifficulty = (0, import_react11.useCallback)(async () => {
+    if (!userId || !adaptiveDifficulty) return null;
+    try {
+      const response = await fetch(`${apiEndpoint}/difficulty-recommendation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, courseId })
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (data.success && data.data) {
+        setDifficultyRecommendation(data.data);
+        return data.data;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, [apiEndpoint, userId, courseId, adaptiveDifficulty]);
+  const getReviewProblems = (0, import_react11.useCallback)(async () => {
+    if (!userId) return [];
+    try {
+      const response = await fetch(`${apiEndpoint}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, limit: 10 })
+      });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.success ? data.data : [];
+    } catch {
+      return [];
+    }
+  }, [apiEndpoint, userId]);
+  return {
+    problems,
+    currentProblem,
+    currentIndex,
+    isGenerating,
+    isEvaluating,
+    lastEvaluation,
+    sessionStats,
+    difficultyRecommendation,
+    error,
+    hintsUsed,
+    generateProblems,
+    submitAnswer,
+    getNextHint,
+    nextProblem,
+    previousProblem,
+    goToProblem,
+    skipProblem,
+    resetSession,
+    getRecommendedDifficulty,
+    getReviewProblems
+  };
+}
+
+// src/hooks/useSAMAdaptiveContent.ts
+var import_react12 = require("react");
+var CACHE_KEY_PREFIX = "sam-adaptive-profile-";
+var DEFAULT_CACHE_DURATION = 7 * 24 * 60 * 60 * 1e3;
+function useSAMAdaptiveContent(options = {}) {
+  const {
+    apiEndpoint = "/api/sam/adaptive-content",
+    userId,
+    courseId,
+    autoDetectStyle = true,
+    profileCacheDuration = DEFAULT_CACHE_DURATION,
+    onStyleDetected,
+    onContentAdapted
+  } = options;
+  const [learnerProfile, setLearnerProfile] = (0, import_react12.useState)(null);
+  const [isLoadingProfile, setIsLoadingProfile] = (0, import_react12.useState)(false);
+  const [isAdapting, setIsAdapting] = (0, import_react12.useState)(false);
+  const [adaptedContent, setAdaptedContent] = (0, import_react12.useState)(null);
+  const [styleDetection, setStyleDetection] = (0, import_react12.useState)(null);
+  const [error, setError] = (0, import_react12.useState)(null);
+  const cacheKey = userId ? `${CACHE_KEY_PREFIX}${userId}` : null;
+  const hasTriedAutoDetect = (0, import_react12.useRef)(false);
+  (0, import_react12.useEffect)(() => {
+    if (!cacheKey) return;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const { profile, timestamp } = JSON.parse(cached);
+        const age = Date.now() - timestamp;
+        if (age < profileCacheDuration) {
+          setLearnerProfile(profile);
+        } else {
+          localStorage.removeItem(cacheKey);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading cached profile:", err);
+    }
+  }, [cacheKey, profileCacheDuration]);
+  const getProfile = (0, import_react12.useCallback)(async () => {
+    if (!userId) {
+      setError("User ID is required");
+      return null;
+    }
+    setIsLoadingProfile(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiEndpoint}/profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, courseId })
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to get profile: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        const profile = data.data;
+        setLearnerProfile(profile);
+        if (cacheKey) {
+          localStorage.setItem(
+            cacheKey,
+            JSON.stringify({ profile, timestamp: Date.now() })
+          );
+        }
+        return profile;
+      }
+      throw new Error(data.error?.message || "Failed to get profile");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      return null;
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [apiEndpoint, userId, courseId, cacheKey]);
+  const detectStyle = (0, import_react12.useCallback)(async () => {
+    if (!userId) {
+      setError("User ID is required");
+      return null;
+    }
+    setIsLoadingProfile(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiEndpoint}/detect-style`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, courseId })
+      });
+      if (!response.ok) {
+        throw new Error(`Style detection failed: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        const result = data.data;
+        setStyleDetection(result);
+        onStyleDetected?.(result);
+        if (data.profile) {
+          setLearnerProfile(data.profile);
+          if (cacheKey) {
+            localStorage.setItem(
+              cacheKey,
+              JSON.stringify({ profile: data.profile, timestamp: Date.now() })
+            );
+          }
+        }
+        return result;
+      }
+      throw new Error(data.error?.message || "Style detection failed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      return null;
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [apiEndpoint, userId, courseId, cacheKey, onStyleDetected]);
+  (0, import_react12.useEffect)(() => {
+    if (!userId || !autoDetectStyle || hasTriedAutoDetect.current || learnerProfile) return;
+    hasTriedAutoDetect.current = true;
+    detectStyle();
+  }, [userId, autoDetectStyle, learnerProfile, detectStyle]);
+  const adaptContent = (0, import_react12.useCallback)(
+    async (content, adaptOptions) => {
+      setIsAdapting(true);
+      setError(null);
+      try {
+        let profile = learnerProfile;
+        if (!profile) {
+          profile = await getProfile();
+        }
+        const response = await fetch(`${apiEndpoint}/adapt`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content,
+            profile,
+            options: adaptOptions,
+            userId,
+            courseId
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Content adaptation failed: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const adapted = data.data;
+          setAdaptedContent(adapted);
+          onContentAdapted?.(adapted);
+          return adapted;
+        }
+        throw new Error(data.error?.message || "Content adaptation failed");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        return null;
+      } finally {
+        setIsAdapting(false);
+      }
+    },
+    [apiEndpoint, userId, courseId, learnerProfile, getProfile, onContentAdapted]
+  );
+  const recordInteraction = (0, import_react12.useCallback)(
+    async (interaction) => {
+      if (!userId) return;
+      try {
+        await fetch(`${apiEndpoint}/interaction`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...interaction,
+            userId,
+            timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          })
+        });
+      } catch (err) {
+        console.error("Failed to record interaction:", err);
+      }
+    },
+    [apiEndpoint, userId]
+  );
+  const getRecommendations = (0, import_react12.useCallback)(
+    async (topic, count = 5) => {
+      if (!learnerProfile) return [];
+      try {
+        const response = await fetch(`${apiEndpoint}/recommendations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            topic,
+            count,
+            style: learnerProfile.primaryStyle
+          })
+        });
+        if (!response.ok) return [];
+        const data = await response.json();
+        return data.success ? data.data : [];
+      } catch {
+        return [];
+      }
+    },
+    [apiEndpoint, userId, learnerProfile]
+  );
+  const getStyleTips = (0, import_react12.useCallback)(() => {
+    const style = learnerProfile?.primaryStyle || "multimodal";
+    const tips = {
+      visual: [
+        "Focus on diagrams, charts, and visual representations",
+        "Use color coding in your notes",
+        "Create mind maps to connect concepts",
+        "Watch video demonstrations before reading text",
+        "Draw flowcharts for processes"
+      ],
+      auditory: [
+        "Listen to explanations and discussions",
+        "Read content aloud to yourself",
+        "Join study groups for verbal exchange",
+        "Use text-to-speech for reading materials",
+        "Record yourself explaining concepts"
+      ],
+      reading: [
+        "Read detailed documentation and articles",
+        "Take comprehensive written notes",
+        "Create written summaries in your own words",
+        "Use highlighted text and annotations",
+        "Write practice questions for yourself"
+      ],
+      kinesthetic: [
+        "Practice with hands-on exercises immediately",
+        "Build projects to apply concepts",
+        "Take breaks and move while studying",
+        "Use interactive simulations",
+        "Teach concepts to others through demonstration"
+      ],
+      multimodal: [
+        "Combine multiple learning methods",
+        "Switch between videos, text, and practice",
+        "Find what works best for each topic",
+        "Use variety to maintain engagement",
+        "Adapt your approach based on content type"
+      ]
+    };
+    return tips[style];
+  }, [learnerProfile]);
+  const updateProfile = (0, import_react12.useCallback)(
+    async (updates) => {
+      if (!userId || !learnerProfile) return;
+      try {
+        const response = await fetch(`${apiEndpoint}/profile/update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, updates })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setLearnerProfile(data.data);
+            if (cacheKey) {
+              localStorage.setItem(
+                cacheKey,
+                JSON.stringify({ profile: data.data, timestamp: Date.now() })
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to update profile:", err);
+      }
+    },
+    [apiEndpoint, userId, learnerProfile, cacheKey]
+  );
+  const clearProfile = (0, import_react12.useCallback)(() => {
+    if (cacheKey) {
+      localStorage.removeItem(cacheKey);
+    }
+    setLearnerProfile(null);
+    setStyleDetection(null);
+    hasTriedAutoDetect.current = false;
+  }, [cacheKey]);
+  return {
+    learnerProfile,
+    isLoadingProfile,
+    isAdapting,
+    adaptedContent,
+    styleDetection,
+    error,
+    isStyleDetected: styleDetection !== null || (learnerProfile?.confidence ?? 0) > 0.5,
+    getProfile,
+    detectStyle,
+    adaptContent,
+    recordInteraction,
+    getRecommendations,
+    getStyleTips,
+    updateProfile,
+    clearProfile
+  };
+}
+
+// src/hooks/useSAMSocraticDialogue.ts
+var import_react13 = require("react");
+function useSAMSocraticDialogue(options = {}) {
+  const {
+    apiEndpoint = "/api/sam/socratic",
+    userId,
+    courseId,
+    sectionId,
+    preferredStyle = "balanced",
+    onDialogueStart,
+    onQuestion,
+    onInsightDiscovered,
+    onDialogueComplete
+  } = options;
+  const [dialogue, setDialogue] = (0, import_react13.useState)(null);
+  const [currentQuestion, setCurrentQuestion] = (0, import_react13.useState)(null);
+  const [dialogueState, setDialogueState] = (0, import_react13.useState)(null);
+  const [isWaiting, setIsWaiting] = (0, import_react13.useState)(false);
+  const [lastResponse, setLastResponse] = (0, import_react13.useState)(null);
+  const [discoveredInsights, setDiscoveredInsights] = (0, import_react13.useState)([]);
+  const [progress, setProgress] = (0, import_react13.useState)(0);
+  const [feedback, setFeedback] = (0, import_react13.useState)(null);
+  const [encouragement, setEncouragement] = (0, import_react13.useState)(null);
+  const [availableHints, setAvailableHints] = (0, import_react13.useState)([]);
+  const [error, setError] = (0, import_react13.useState)(null);
+  const currentHintIndexRef = (0, import_react13.useRef)(0);
+  const previousInsightsRef = (0, import_react13.useRef)([]);
+  const isActive = dialogue !== null && dialogueState !== "conclusion";
+  const isComplete = dialogueState === "conclusion";
+  const startDialogue = (0, import_react13.useCallback)(
+    async (topic, startOptions) => {
+      if (!userId) {
+        setError("User ID is required");
+        return null;
+      }
+      setIsWaiting(true);
+      setError(null);
+      try {
+        const response = await fetch(`${apiEndpoint}/start`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId,
+            topic,
+            courseId,
+            sectionId,
+            preferredStyle,
+            ...startOptions
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to start dialogue: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const socraticResponse = data.data;
+          const newDialogue = data.dialogue;
+          setDialogue(newDialogue);
+          setDialogueState(socraticResponse.state);
+          setCurrentQuestion(socraticResponse.question || null);
+          setLastResponse(socraticResponse);
+          setDiscoveredInsights(socraticResponse.discoveredInsights);
+          setProgress(socraticResponse.progress);
+          setFeedback(socraticResponse.feedback || null);
+          setEncouragement(socraticResponse.encouragement || null);
+          setAvailableHints(socraticResponse.availableHints || []);
+          currentHintIndexRef.current = 0;
+          previousInsightsRef.current = [];
+          onDialogueStart?.(newDialogue);
+          if (socraticResponse.question) {
+            onQuestion?.(socraticResponse.question);
+          }
+          return socraticResponse;
+        }
+        throw new Error(data.error?.message || "Failed to start dialogue");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        return null;
+      } finally {
+        setIsWaiting(false);
+      }
+    },
+    [apiEndpoint, userId, courseId, sectionId, preferredStyle, onDialogueStart, onQuestion]
+  );
+  const submitResponse = (0, import_react13.useCallback)(
+    async (userResponse) => {
+      if (!dialogue) {
+        setError("No active dialogue");
+        return null;
+      }
+      setIsWaiting(true);
+      setError(null);
+      try {
+        const response = await fetch(`${apiEndpoint}/continue`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dialogueId: dialogue.id,
+            response: userResponse,
+            userId
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to submit response: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const socraticResponse = data.data;
+          setDialogueState(socraticResponse.state);
+          setCurrentQuestion(socraticResponse.question || null);
+          setLastResponse(socraticResponse);
+          setProgress(socraticResponse.progress);
+          setFeedback(socraticResponse.feedback || null);
+          setEncouragement(socraticResponse.encouragement || null);
+          setAvailableHints(socraticResponse.availableHints || []);
+          currentHintIndexRef.current = 0;
+          const newInsights = socraticResponse.discoveredInsights.filter(
+            (i) => !previousInsightsRef.current.includes(i)
+          );
+          if (newInsights.length > 0) {
+            newInsights.forEach((insight) => onInsightDiscovered?.(insight));
+            previousInsightsRef.current = socraticResponse.discoveredInsights;
+          }
+          setDiscoveredInsights(socraticResponse.discoveredInsights);
+          if (data.dialogue) {
+            setDialogue(data.dialogue);
+          }
+          if (socraticResponse.isComplete) {
+            if (data.performance) {
+              onDialogueComplete?.(data.performance);
+            }
+          }
+          if (socraticResponse.question) {
+            onQuestion?.(socraticResponse.question);
+          }
+          return socraticResponse;
+        }
+        throw new Error(data.error?.message || "Failed to submit response");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        return null;
+      } finally {
+        setIsWaiting(false);
+      }
+    },
+    [apiEndpoint, dialogue, userId, onQuestion, onInsightDiscovered, onDialogueComplete]
+  );
+  const requestHint = (0, import_react13.useCallback)(async () => {
+    if (!dialogue) {
+      setError("No active dialogue");
+      return null;
+    }
+    if (availableHints.length > currentHintIndexRef.current) {
+      const hint = availableHints[currentHintIndexRef.current];
+      currentHintIndexRef.current++;
+      return hint;
+    }
+    try {
+      const response = await fetch(`${apiEndpoint}/hint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dialogueId: dialogue.id,
+          hintIndex: currentHintIndexRef.current
+        })
+      });
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      if (data.success && data.hint) {
+        currentHintIndexRef.current++;
+        return data.hint;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, [apiEndpoint, dialogue, availableHints]);
+  const skipQuestion = (0, import_react13.useCallback)(async () => {
+    if (!dialogue) {
+      setError("No active dialogue");
+      return null;
+    }
+    setIsWaiting(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiEndpoint}/continue`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dialogueId: dialogue.id,
+          skipQuestion: true,
+          userId
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to skip question: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        const socraticResponse = data.data;
+        setDialogueState(socraticResponse.state);
+        setCurrentQuestion(socraticResponse.question || null);
+        setLastResponse(socraticResponse);
+        setProgress(socraticResponse.progress);
+        setFeedback(socraticResponse.feedback || null);
+        setEncouragement(socraticResponse.encouragement || null);
+        setAvailableHints(socraticResponse.availableHints || []);
+        currentHintIndexRef.current = 0;
+        if (socraticResponse.question) {
+          onQuestion?.(socraticResponse.question);
+        }
+        return socraticResponse;
+      }
+      throw new Error(data.error?.message || "Failed to skip question");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      return null;
+    } finally {
+      setIsWaiting(false);
+    }
+  }, [apiEndpoint, dialogue, userId, onQuestion]);
+  const endDialogue = (0, import_react13.useCallback)(async () => {
+    if (!dialogue) {
+      setError("No active dialogue");
+      return null;
+    }
+    setIsWaiting(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiEndpoint}/end`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dialogueId: dialogue.id })
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to end dialogue: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        setDialogueState("conclusion");
+        setCurrentQuestion(null);
+        onDialogueComplete?.(data.data.performance);
+        return data.data;
+      }
+      throw new Error(data.error?.message || "Failed to end dialogue");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      return null;
+    } finally {
+      setIsWaiting(false);
+    }
+  }, [apiEndpoint, dialogue, onDialogueComplete]);
+  const getHistory = (0, import_react13.useCallback)(
+    async (limit = 10) => {
+      if (!userId) return [];
+      try {
+        const response = await fetch(`${apiEndpoint}/history`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, limit })
+        });
+        if (!response.ok) return [];
+        const data = await response.json();
+        return data.success ? data.data : [];
+      } catch {
+        return [];
+      }
+    },
+    [apiEndpoint, userId]
+  );
+  const resetDialogue = (0, import_react13.useCallback)(() => {
+    setDialogue(null);
+    setCurrentQuestion(null);
+    setDialogueState(null);
+    setLastResponse(null);
+    setDiscoveredInsights([]);
+    setProgress(0);
+    setFeedback(null);
+    setEncouragement(null);
+    setAvailableHints([]);
+    setError(null);
+    currentHintIndexRef.current = 0;
+    previousInsightsRef.current = [];
+  }, []);
+  return {
+    dialogue,
+    currentQuestion,
+    dialogueState,
+    isActive,
+    isWaiting,
+    isComplete,
+    lastResponse,
+    discoveredInsights,
+    progress,
+    feedback,
+    encouragement,
+    availableHints,
+    error,
+    startDialogue,
+    submitResponse,
+    requestHint,
+    skipQuestion,
+    endDialogue,
+    getHistory,
+    resetDialogue
+  };
+}
+
+// src/hooks/useAgentic.ts
+var import_react14 = require("react");
+function useAgentic(options = {}) {
+  const {
+    autoFetchGoals = false,
+    autoFetchRecommendations = false,
+    autoFetchCheckIns = false,
+    availableTime = 60,
+    recommendationRefreshInterval
+  } = options;
+  const [goals, setGoals] = (0, import_react14.useState)([]);
+  const [plans, setPlans] = (0, import_react14.useState)([]);
+  const [recommendations, setRecommendations] = (0, import_react14.useState)(null);
+  const [progressReport, setProgressReport] = (0, import_react14.useState)(null);
+  const [skills, setSkills] = (0, import_react14.useState)([]);
+  const [checkIns, setCheckIns] = (0, import_react14.useState)([]);
+  const [error, setError] = (0, import_react14.useState)(null);
+  const [isLoadingGoals, setIsLoadingGoals] = (0, import_react14.useState)(false);
+  const [isLoadingPlans, setIsLoadingPlans] = (0, import_react14.useState)(false);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = (0, import_react14.useState)(false);
+  const [isLoadingProgress, setIsLoadingProgress] = (0, import_react14.useState)(false);
+  const [isLoadingSkills, setIsLoadingSkills] = (0, import_react14.useState)(false);
+  const [isLoadingCheckIns, setIsLoadingCheckIns] = (0, import_react14.useState)(false);
+  const mountedRef = (0, import_react14.useRef)(true);
+  const apiCall = (0, import_react14.useCallback)(async (url, options2) => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...options2?.headers
+        },
+        ...options2
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        return { success: false, error: result.error || "Request failed" };
+      }
+      return { success: true, data: result.data };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Network error";
+      return { success: false, error: message };
+    }
+  }, []);
+  const fetchGoals = (0, import_react14.useCallback)(async (status) => {
+    setIsLoadingGoals(true);
+    setError(null);
+    const url = status ? `/api/sam/agentic/goals?status=${status}` : "/api/sam/agentic/goals";
+    const result = await apiCall(url);
+    if (mountedRef.current) {
+      if (result.success && result.data) {
+        setGoals(result.data.goals);
+      } else {
+        setError(result.error || "Failed to fetch goals");
+      }
+      setIsLoadingGoals(false);
+    }
+  }, [apiCall]);
+  const createGoal = (0, import_react14.useCallback)(async (data) => {
+    setError(null);
+    const result = await apiCall("/api/sam/agentic/goals", {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+    if (result.success && result.data) {
+      setGoals((prev) => [result.data, ...prev]);
+      return result.data;
+    } else {
+      setError(result.error || "Failed to create goal");
+      return null;
+    }
+  }, [apiCall]);
+  const updateGoal = (0, import_react14.useCallback)(async (goalId, data) => {
+    setError(null);
+    const result = await apiCall(`/api/sam/agentic/goals/${goalId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data)
+    });
+    if (result.success && result.data) {
+      setGoals(
+        (prev) => prev.map((g) => g.id === goalId ? result.data : g)
+      );
+      return result.data;
+    } else {
+      setError(result.error || "Failed to update goal");
+      return null;
+    }
+  }, [apiCall]);
+  const decomposeGoal = (0, import_react14.useCallback)(async (goalId) => {
+    setError(null);
+    const result = await apiCall(`/api/sam/agentic/goals/${goalId}/decompose`, {
+      method: "POST"
+    });
+    if (result.success && result.data) {
+      setGoals(
+        (prev) => prev.map((g) => g.id === goalId ? result.data : g)
+      );
+      return result.data;
+    } else {
+      setError(result.error || "Failed to decompose goal");
+      return null;
+    }
+  }, [apiCall]);
+  const deleteGoal = (0, import_react14.useCallback)(async (goalId) => {
+    setError(null);
+    const result = await apiCall(`/api/sam/agentic/goals/${goalId}`, {
+      method: "DELETE"
+    });
+    if (result.success) {
+      setGoals((prev) => prev.filter((g) => g.id !== goalId));
+      return true;
+    } else {
+      setError(result.error || "Failed to delete goal");
+      return false;
+    }
+  }, [apiCall]);
+  const fetchPlans = (0, import_react14.useCallback)(async (goalId) => {
+    setIsLoadingPlans(true);
+    setError(null);
+    const url = goalId ? `/api/sam/agentic/plans?goalId=${goalId}` : "/api/sam/agentic/plans";
+    const result = await apiCall(url);
+    if (mountedRef.current) {
+      if (result.success && result.data) {
+        setPlans(result.data.plans);
+      } else {
+        setError(result.error || "Failed to fetch plans");
+      }
+      setIsLoadingPlans(false);
+    }
+  }, [apiCall]);
+  const createPlan = (0, import_react14.useCallback)(async (goalId, dailyMinutes = 30) => {
+    setError(null);
+    const result = await apiCall("/api/sam/agentic/plans", {
+      method: "POST",
+      body: JSON.stringify({ goalId, dailyMinutes })
+    });
+    if (result.success && result.data) {
+      setPlans((prev) => [result.data, ...prev]);
+      return result.data;
+    } else {
+      setError(result.error || "Failed to create plan");
+      return null;
+    }
+  }, [apiCall]);
+  const startPlan = (0, import_react14.useCallback)(async (planId) => {
+    const result = await apiCall(`/api/sam/agentic/plans/${planId}/start`, {
+      method: "POST"
+    });
+    return result.success;
+  }, [apiCall]);
+  const pausePlan = (0, import_react14.useCallback)(async (planId) => {
+    const result = await apiCall(`/api/sam/agentic/plans/${planId}/pause`, {
+      method: "POST"
+    });
+    return result.success;
+  }, [apiCall]);
+  const resumePlan = (0, import_react14.useCallback)(async (planId) => {
+    const result = await apiCall(`/api/sam/agentic/plans/${planId}/resume`, {
+      method: "POST"
+    });
+    return result.success;
+  }, [apiCall]);
+  const fetchRecommendations = (0, import_react14.useCallback)(async (time) => {
+    setIsLoadingRecommendations(true);
+    setError(null);
+    const timeParam = time ?? availableTime;
+    const result = await apiCall(
+      `/api/sam/agentic/recommendations?time=${timeParam}`
+    );
+    if (mountedRef.current) {
+      if (result.success && result.data) {
+        setRecommendations(result.data);
+      } else {
+        setError(result.error || "Failed to fetch recommendations");
+      }
+      setIsLoadingRecommendations(false);
+    }
+  }, [apiCall, availableTime]);
+  const dismissRecommendation = (0, import_react14.useCallback)((recommendationId) => {
+    setRecommendations((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        recommendations: prev.recommendations.filter((r) => r.id !== recommendationId)
+      };
+    });
+  }, []);
+  const fetchProgressReport = (0, import_react14.useCallback)(async (period = "weekly") => {
+    setIsLoadingProgress(true);
+    setError(null);
+    const result = await apiCall(
+      `/api/sam/agentic/analytics/progress?period=${period}`
+    );
+    if (mountedRef.current) {
+      if (result.success && result.data) {
+        setProgressReport(result.data);
+      } else {
+        setError(result.error || "Failed to fetch progress report");
+      }
+      setIsLoadingProgress(false);
+    }
+  }, [apiCall]);
+  const fetchSkillMap = (0, import_react14.useCallback)(async () => {
+    setIsLoadingSkills(true);
+    setError(null);
+    const result = await apiCall(
+      "/api/sam/agentic/skills"
+    );
+    if (mountedRef.current) {
+      if (result.success && result.data) {
+        setSkills(result.data.skills);
+      } else {
+        setError(result.error || "Failed to fetch skill map");
+      }
+      setIsLoadingSkills(false);
+    }
+  }, [apiCall]);
+  const fetchCheckIns = (0, import_react14.useCallback)(async (status) => {
+    setIsLoadingCheckIns(true);
+    setError(null);
+    const url = status ? `/api/sam/agentic/checkins?status=${status}` : "/api/sam/agentic/checkins";
+    const result = await apiCall(url);
+    if (mountedRef.current) {
+      if (result.success && result.data) {
+        setCheckIns(result.data.checkIns);
+      } else {
+        setError(result.error || "Failed to fetch check-ins");
+      }
+      setIsLoadingCheckIns(false);
+    }
+  }, [apiCall]);
+  const respondToCheckIn = (0, import_react14.useCallback)(async (checkInId, response) => {
+    setError(null);
+    const result = await apiCall(`/api/sam/agentic/checkins/${checkInId}`, {
+      method: "POST",
+      body: JSON.stringify(response)
+    });
+    if (result.success) {
+      setCheckIns(
+        (prev) => prev.map(
+          (c) => c.id === checkInId ? { ...c, status: "responded" } : c
+        )
+      );
+      return true;
+    } else {
+      setError(result.error || "Failed to respond to check-in");
+      return false;
+    }
+  }, [apiCall]);
+  const dismissCheckIn = (0, import_react14.useCallback)(async (checkInId) => {
+    setError(null);
+    const result = await apiCall(`/api/sam/agentic/checkins/${checkInId}`, {
+      method: "DELETE"
+    });
+    if (result.success) {
+      setCheckIns((prev) => prev.filter((c) => c.id !== checkInId));
+      return true;
+    } else {
+      setError(result.error || "Failed to dismiss check-in");
+      return false;
+    }
+  }, [apiCall]);
+  const clearError = (0, import_react14.useCallback)(() => {
+    setError(null);
+  }, []);
+  (0, import_react14.useEffect)(() => {
+    if (autoFetchGoals) {
+      fetchGoals();
+    }
+    if (autoFetchRecommendations) {
+      fetchRecommendations();
+    }
+    if (autoFetchCheckIns) {
+      fetchCheckIns("pending");
+    }
+  }, [
+    autoFetchGoals,
+    autoFetchRecommendations,
+    autoFetchCheckIns,
+    fetchGoals,
+    fetchRecommendations,
+    fetchCheckIns
+  ]);
+  (0, import_react14.useEffect)(() => {
+    if (!recommendationRefreshInterval) return;
+    const interval = setInterval(() => {
+      fetchRecommendations();
+    }, recommendationRefreshInterval);
+    return () => clearInterval(interval);
+  }, [recommendationRefreshInterval, fetchRecommendations]);
+  (0, import_react14.useEffect)(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  return {
+    // Goals
+    goals,
+    isLoadingGoals,
+    fetchGoals,
+    createGoal,
+    updateGoal,
+    decomposeGoal,
+    deleteGoal,
+    // Plans
+    plans,
+    isLoadingPlans,
+    fetchPlans,
+    createPlan,
+    startPlan,
+    pausePlan,
+    resumePlan,
+    // Recommendations
+    recommendations,
+    isLoadingRecommendations,
+    fetchRecommendations,
+    dismissRecommendation,
+    // Progress
+    progressReport,
+    isLoadingProgress,
+    fetchProgressReport,
+    // Skills
+    skills,
+    isLoadingSkills,
+    fetchSkillMap,
+    // Check-ins
+    checkIns,
+    isLoadingCheckIns,
+    fetchCheckIns,
+    respondToCheckIn,
+    dismissCheckIn,
+    // Utility
+    error,
+    clearError
+  };
+}
+
 // src/utils/contextDetector.ts
 var DEFAULT_ROUTE_PATTERNS = [
   // Teacher routes
@@ -1499,18 +3236,29 @@ var VERSION = "0.1.0";
 0 && (module.exports = {
   SAMContext,
   SAMProvider,
+  SAM_FORM_DATA_EVENT,
   VERSION,
   contextDetector,
   createContextDetector,
+  emitSAMFormData,
   getCapabilities,
   hasCapability,
+  useAgentic,
   useSAM,
   useSAMActions,
+  useSAMAdaptiveContent,
   useSAMAnalysis,
   useSAMAutoContext,
   useSAMChat,
   useSAMContext,
   useSAMForm,
+  useSAMFormAutoDetect,
+  useSAMFormAutoFill,
+  useSAMFormDataEvents,
+  useSAMFormDataSync,
   useSAMFormSync,
-  useSAMPageContext
+  useSAMPageContext,
+  useSAMPageLinks,
+  useSAMPracticeProblems,
+  useSAMSocraticDialogue
 });
