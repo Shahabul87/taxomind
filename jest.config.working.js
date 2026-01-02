@@ -55,18 +55,22 @@ const customJestConfig = {
   moduleNameMapper: {
     // Styles
     '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',
-    
+
     // Images
     '^.+\\.(png|jpg|jpeg|gif|webp|avif|ico|bmp|svg)$/i': '<rootDir>/__mocks__/fileMock.js',
-    
+
+    // Lucide React - Mock to avoid ESM issues
+    '^lucide-react$': '<rootDir>/__mocks__/lucide-react.js',
+    '^lucide-react/dist/esm/icons/(.*)$': '<rootDir>/__mocks__/lucide-react.js',
+
     // Prisma - Critical for fixing jsdom issues
     '@prisma/client': '<rootDir>/__mocks__/prisma.js',
     '^@/lib/db$': '<rootDir>/__mocks__/db.js',
-    
+
     // Next.js components
     '^next/image$': '<rootDir>/__mocks__/next-image.js',
     '^next/link$': '<rootDir>/__mocks__/next-link.js',
-    
+
     // Path aliases
     '^@/(.*)$': '<rootDir>/$1',
   },
