@@ -1,6 +1,7 @@
-import { google } from 'googleapis';
-import { Credentials } from 'google-auth-library';
+import { google, Auth } from 'googleapis';
 import { logger } from '@/lib/logger';
+
+type Credentials = Auth.Credentials;
 
 export class CalendarSync {
   private oauth2Client;
