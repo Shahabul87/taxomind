@@ -55,6 +55,10 @@ export type JobType =
   | 'optimize-database'
   | 'cleanup-failed-jobs'
 
+  // Agentic jobs
+  | 'sam-memory-ingestion'
+  | 'sam-analytics-rollup'
+
   // Payment & Enrollment jobs (Phase 3)
   | 'process-enrollment'
   | 'process-webhook'
@@ -117,6 +121,26 @@ export interface ProcessUserActivityData extends JobData {
   sessionId?: string;
   courseId?: string;
   chapterId?: string;
+}
+
+export interface SAMMemoryIngestionData extends JobData {
+  content: string;
+  sourceId: string;
+  sourceType: string;
+  userId?: string;
+  courseId?: string;
+  chapterId?: string;
+  sectionId?: string;
+  tags?: string[];
+  language?: string;
+  customMetadata?: Record<string, unknown>;
+  enableSummary?: boolean;
+  enableKnowledgeGraph?: boolean;
+}
+
+export interface SAMAnalyticsRollupData extends JobData {
+  userId: string;
+  period: 'daily' | 'weekly' | 'monthly';
 }
 
 export interface CalculateCourseAnalyticsData extends JobData {

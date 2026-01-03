@@ -39,6 +39,7 @@ export interface VectorPersistenceAdapter {
   saveBatch(embeddings: VectorEmbedding[]): Promise<void>;
   load(id: string): Promise<VectorEmbedding | null>;
   loadAll(filter?: VectorFilter): Promise<VectorEmbedding[]>;
+  searchByVector?(vector: number[], options: VectorSearchOptions): Promise<SimilarityResult[]>;
   delete(id: string): Promise<boolean>;
   deleteBatch(ids: string[]): Promise<number>;
   deleteByFilter(filter: VectorFilter): Promise<number>;
@@ -388,6 +389,9 @@ export class VectorStore implements VectorStoreInterface {
     vector: number[],
     options: VectorSearchOptions
   ): Promise<SimilarityResult[]> {
+    if (this.adapter.searchByVector) {
+      return this.adapter.searchByVector(vector, options);
+    }
     const allEmbeddings = await this.adapter.loadAll(options.filter);
 
     const results: SimilarityResult[] = [];

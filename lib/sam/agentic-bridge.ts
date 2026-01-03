@@ -94,6 +94,15 @@ import {
   createPrismaGoalStore,
   createPrismaPlanStore,
 } from './stores';
+import {
+  createPrismaLearningSessionStore,
+  createPrismaTopicProgressStore,
+  createPrismaLearningGapStore,
+  createPrismaSkillAssessmentStore,
+  createPrismaRecommendationStore,
+  createPrismaContentStore,
+} from './stores';
+import { ensureToolingInitialized } from './agentic-tooling';
 
 // ============================================================================
 // TYPES
@@ -253,10 +262,20 @@ export class SAMAgenticBridge {
   }
 
   private initToolExecution(): void {
-    // Note: ToolRegistry and ToolExecutor require multiple stores (toolStore, invocationStore,
-    // auditStore, permissionStore, confirmationStore) which we don't have configured.
-    // Tool execution is left uninitialized - the bridge will gracefully handle null checks.
-    this.logger.debug('Tool Execution skipped (stores not configured)');
+    void this.initializeTooling();
+  }
+
+  private async initializeTooling(): Promise<void> {
+    try {
+      const tooling = await ensureToolingInitialized();
+      this.toolRegistry = tooling.toolRegistry;
+      this.toolExecutor = tooling.toolExecutor;
+      this.logger.debug('Tool Execution initialized');
+    } catch (error) {
+      this.logger.warn('Failed to initialize tool execution', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private initProactiveInterventions(): void {
@@ -306,9 +325,25 @@ export class SAMAgenticBridge {
 
   private initLearningAnalytics(): void {
     const logger = this.logger;
-    this.progressAnalyzer = createProgressAnalyzer({ logger });
-    this.skillAssessor = createSkillAssessor({ logger });
-    this.recommendationEngine = createRecommendationEngine({ logger });
+    const sessionStore = createPrismaLearningSessionStore();
+    const progressStore = createPrismaTopicProgressStore();
+    const gapStore = createPrismaLearningGapStore();
+    const skillStore = createPrismaSkillAssessmentStore();
+    const recommendationStore = createPrismaRecommendationStore();
+    const contentStore = createPrismaContentStore();
+
+    this.progressAnalyzer = createProgressAnalyzer({
+      logger,
+      sessionStore,
+      progressStore,
+      gapStore,
+    });
+    this.skillAssessor = createSkillAssessor({ logger, store: skillStore });
+    this.recommendationEngine = createRecommendationEngine({
+      logger,
+      recommendationStore,
+      contentStore,
+    });
     this.logger.debug('Learning Analytics initialized');
   }
 
@@ -485,7 +520,27 @@ export class SAMAgenticBridge {
     const patterns = await this.behaviorMonitor.detectPatterns(this.userId);
 
     // Suggest interventions based on detected patterns
-    const interventions = await this.behaviorMonitor.suggestInterventions(patterns);
+    const suggestions = await this.behaviorMonitor.suggestInterventions(patterns);
+    const pending = await this.behaviorMonitor.getPendingInterventions(this.userId);
+    const pendingTypes = new Set(pending.map((intervention) => intervention.type));
+
+    const created: Intervention[] = [];
+
+    for (const suggestion of suggestions) {
+      if (pendingTypes.has(suggestion.type)) continue;
+      const intervention = await this.behaviorMonitor.createIntervention(this.userId, {
+        type: suggestion.type,
+        priority: suggestion.priority,
+        message: suggestion.message,
+        suggestedActions: suggestion.suggestedActions,
+        timing: suggestion.timing,
+        executedAt: suggestion.executedAt,
+        result: suggestion.result,
+      });
+      created.push(intervention);
+    }
+
+    const interventions = created.length > 0 ? created : pending;
 
     if (interventions.length > 0) {
       this.logger.info('Interventions triggered', {

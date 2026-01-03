@@ -35,6 +35,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   Clock,
+  Wrench,
+  Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -236,6 +238,55 @@ interface ProactiveIntervention {
   };
 }
 
+interface ToolSummary {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  version: string;
+  requiredPermissions: string[];
+  confirmationType: string;
+  timeoutMs?: number | null;
+  maxRetries?: number | null;
+  tags: string[];
+  enabled: boolean;
+  deprecated?: boolean;
+  deprecationMessage?: string | null;
+}
+
+interface ToolExecutionResult {
+  toolId: string;
+  invocationId?: string;
+  status: string;
+  awaitingConfirmation?: boolean;
+  confirmationId?: string;
+  result?: unknown;
+  updatedAt: string;
+}
+
+interface ToolConfirmationDetail {
+  label: string;
+  value: string;
+  type: 'text' | 'code' | 'json' | 'warning';
+}
+
+interface ToolConfirmation {
+  id: string;
+  invocationId: string;
+  toolId: string;
+  toolName: string;
+  title: string;
+  message: string;
+  details?: ToolConfirmationDetail[];
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  confirmText?: string;
+  cancelText?: string;
+  timeout?: number;
+  status: 'pending' | 'confirmed' | 'denied' | 'expired';
+  createdAt: string;
+}
+
 interface SAMInsights {
   blooms?: BloomsInsight;
   content?: {
@@ -400,6 +451,19 @@ function SAMAssistantInner({
   const [activeCheckIn, setActiveCheckIn] = useState<ProactiveCheckIn | null>(null);
   const [checkInResponses, setCheckInResponses] = useState<Record<string, unknown>>({});
 
+  // Tooling state
+  const [tools, setTools] = useState<ToolSummary[]>([]);
+  const [isLoadingTools, setIsLoadingTools] = useState(false);
+  const [toolsError, setToolsError] = useState<string | null>(null);
+  const [showToolsPanel, setShowToolsPanel] = useState(false);
+  const [selectedTool, setSelectedTool] = useState<ToolSummary | null>(null);
+  const [toolInput, setToolInput] = useState('{\n  \n}');
+  const [toolResult, setToolResult] = useState<ToolExecutionResult | null>(null);
+  const [toolStatus, setToolStatus] = useState<'idle' | 'running' | 'awaiting_confirmation' | 'completed' | 'failed'>('idle');
+  const [toolError, setToolError] = useState<string | null>(null);
+  const [toolConfirmations, setToolConfirmations] = useState<ToolConfirmation[]>([]);
+  const [toolConfirmationsError, setToolConfirmationsError] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize gamification engine
@@ -460,6 +524,57 @@ function SAMAssistantInner({
     const interval = setInterval(fetchProactiveData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [isOpen, session?.user?.id]);
+
+  const fetchTools = useCallback(async () => {
+    if (!session?.user?.id) return;
+    setIsLoadingTools(true);
+    setToolsError(null);
+
+    try {
+      const response = await fetch('/api/sam/agentic/tools');
+      if (!response.ok) {
+        throw new Error('Failed to load tools');
+      }
+
+      const data = await response.json();
+      if (data.success && data.data?.tools) {
+        setTools(data.data.tools as ToolSummary[]);
+      } else {
+        setTools([]);
+      }
+    } catch (fetchError) {
+      setToolsError((fetchError as Error).message);
+    } finally {
+      setIsLoadingTools(false);
+    }
+  }, [session?.user?.id]);
+
+  const fetchToolConfirmations = useCallback(async () => {
+    if (!session?.user?.id) return;
+    setToolConfirmationsError(null);
+
+    try {
+      const response = await fetch('/api/sam/agentic/tools/confirmations');
+      if (!response.ok) {
+        throw new Error('Failed to load confirmations');
+      }
+
+      const data = await response.json();
+      if (data.success && data.data?.confirmations) {
+        setToolConfirmations(data.data.confirmations as ToolConfirmation[]);
+      } else {
+        setToolConfirmations([]);
+      }
+    } catch (fetchError) {
+      setToolConfirmationsError((fetchError as Error).message);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!isOpen || !session?.user?.id) return;
+    fetchTools();
+    fetchToolConfirmations();
+  }, [isOpen, session?.user?.id, fetchTools, fetchToolConfirmations]);
 
   // ============================================================================
   // PAGE CONTEXT DETECTION (moved before behavior tracking for dependency order)
@@ -929,6 +1044,162 @@ function SAMAssistantInner({
       }
     }
   };
+
+  const deriveToolStatus = (status: string, awaitingConfirmation?: boolean) => {
+    if (awaitingConfirmation || status === 'awaiting_confirmation') return 'awaiting_confirmation';
+    if (status === 'success') return 'completed';
+    if (['failed', 'denied', 'cancelled', 'timeout'].includes(status)) return 'failed';
+    if (['pending', 'executing'].includes(status)) return 'running';
+    return 'completed';
+  };
+
+  const handleSelectTool = (tool: ToolSummary) => {
+    setSelectedTool(tool);
+    setToolInput('{\n  \n}');
+    setToolError(null);
+    setToolStatus('idle');
+    setToolResult(null);
+  };
+
+  const handleInvokeTool = useCallback(async (tool: ToolSummary) => {
+    if (!session?.user?.id) return;
+
+    if (!tool.enabled) {
+      setToolError('Tool is disabled.');
+      setToolStatus('failed');
+      return;
+    }
+
+    const sessionId = samContext?.metadata?.sessionId;
+    if (!sessionId) {
+      setToolError('SAM session not initialized yet.');
+      setToolStatus('failed');
+      return;
+    }
+
+    const trimmedInput = toolInput.trim();
+    let inputPayload: unknown = {};
+
+    if (trimmedInput) {
+      try {
+        inputPayload = JSON.parse(trimmedInput);
+      } catch {
+        setToolError('Tool input must be valid JSON.');
+        setToolStatus('failed');
+        return;
+      }
+    }
+
+    setToolStatus('running');
+    setToolError(null);
+    setToolResult(null);
+
+    try {
+      const { effectiveEntityContext } = buildContextUpdate();
+      const response = await fetch('/api/sam/agentic/tools', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolId: tool.id,
+          input: inputPayload,
+          sessionId,
+          metadata: {
+            pageContext: {
+              type: pageContext.pageType,
+              path: pageContext.path,
+              entityId: pageContext.entityId,
+              parentEntityId: pageContext.parentEntityId,
+              grandParentEntityId: pageContext.grandParentEntityId,
+            },
+            entityContext: effectiveEntityContext,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => null);
+        throw new Error(errorPayload?.error ?? 'Failed to invoke tool.');
+      }
+
+      const payload = await response.json();
+      if (!payload.success) {
+        throw new Error(payload.error ?? 'Failed to invoke tool.');
+      }
+
+      const execution = payload.data ?? {};
+      const status = typeof execution.status === 'string' ? execution.status : 'success';
+      const awaitingConfirmation = Boolean(execution.awaitingConfirmation);
+
+      setToolResult({
+        toolId: tool.id,
+        invocationId: execution.invocation?.id ?? execution.invocationId,
+        status,
+        awaitingConfirmation,
+        confirmationId: execution.confirmationId,
+        result: execution.result,
+        updatedAt: new Date().toISOString(),
+      });
+      setToolStatus(deriveToolStatus(status, awaitingConfirmation));
+
+      if (awaitingConfirmation) {
+        await fetchToolConfirmations();
+      }
+    } catch (invokeError) {
+      setToolError((invokeError as Error).message);
+      setToolStatus('failed');
+    }
+  }, [
+    buildContextUpdate,
+    fetchToolConfirmations,
+    pageContext.entityId,
+    pageContext.grandParentEntityId,
+    pageContext.pageType,
+    pageContext.parentEntityId,
+    pageContext.path,
+    samContext?.metadata?.sessionId,
+    session?.user?.id,
+    toolInput,
+  ]);
+
+  const handleToolConfirmation = useCallback(async (confirmationId: string, confirmed: boolean) => {
+    if (!session?.user?.id) return;
+    setToolConfirmationsError(null);
+
+    try {
+      const response = await fetch('/api/sam/agentic/tools/confirmations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmationId, confirmed }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => null);
+        throw new Error(errorPayload?.error ?? 'Failed to respond to confirmation.');
+      }
+
+      const payload = await response.json();
+      if (!payload.success) {
+        throw new Error(payload.error ?? 'Failed to respond to confirmation.');
+      }
+
+      const execution = payload.data ?? {};
+      const status = typeof execution.status === 'string' ? execution.status : (confirmed ? 'success' : 'denied');
+
+      setToolResult({
+        toolId: execution.invocation?.toolId ?? selectedTool?.id ?? 'tool',
+        invocationId: execution.invocation?.id ?? execution.invocationId,
+        status,
+        awaitingConfirmation: false,
+        result: execution.result,
+        updatedAt: new Date().toISOString(),
+      });
+      setToolStatus(deriveToolStatus(status, false));
+
+      await fetchToolConfirmations();
+    } catch (confirmError) {
+      setToolConfirmationsError((confirmError as Error).message);
+    }
+  }, [fetchToolConfirmations, selectedTool?.id, session?.user?.id]);
 
   // Handle form fill suggestion
   const handleFormFillClick = (suggestion: FormFillSuggestion) => {
@@ -1640,6 +1911,249 @@ function SAMAssistantInner({
             </div>
           )}
 
+          {/* Agentic Tools Panel */}
+          {(tools.length > 0 || isLoadingTools || toolsError || toolConfirmations.length > 0 || toolConfirmationsError) && (
+            <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/20 border-b border-slate-100 dark:border-slate-800 shrink-0">
+              <div
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => {
+                  const next = !showToolsPanel;
+                  setShowToolsPanel(next);
+                  if (next && tools.length === 0 && !isLoadingTools) {
+                    fetchTools();
+                    fetchToolConfirmations();
+                  }
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-3.5 w-3.5 text-slate-600" />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Mentor Tools {tools.length > 0 ? `(${tools.length})` : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {toolConfirmations.length > 0 && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300">
+                      {toolConfirmations.length} pending
+                    </span>
+                  )}
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      fetchTools();
+                      fetchToolConfirmations();
+                    }}
+                    className="p-1 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                    title="Refresh tools"
+                  >
+                    <RefreshCw className={cn('h-3 w-3', isLoadingTools && 'animate-spin')} />
+                  </button>
+                  <ChevronRight className={cn(
+                    "h-4 w-4 text-slate-500 transition-transform",
+                    showToolsPanel && "rotate-90"
+                  )} />
+                </div>
+              </div>
+
+              {showToolsPanel && (
+                <div className="mt-2 space-y-3">
+                  {toolsError && (
+                    <p className="text-xs text-red-600 dark:text-red-400">{toolsError}</p>
+                  )}
+                  {toolConfirmationsError && (
+                    <p className="text-xs text-red-600 dark:text-red-400">{toolConfirmationsError}</p>
+                  )}
+
+                  {toolConfirmations.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                        Pending confirmations
+                      </p>
+                      {toolConfirmations.slice(0, 2).map((confirmation) => (
+                        <div
+                          key={confirmation.id}
+                          className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              {confirmation.toolName}
+                            </span>
+                            <span className={cn(
+                              'text-[10px] px-2 py-0.5 rounded-full uppercase',
+                              confirmation.severity === 'critical' && 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+                              confirmation.severity === 'high' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+                              confirmation.severity === 'medium' && 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+                              confirmation.severity === 'low' && 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+                            )}>
+                              {confirmation.severity}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">
+                            {confirmation.message}
+                          </p>
+                          {confirmation.details && confirmation.details.length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {confirmation.details.map((detail) => (
+                                <div key={detail.label}>
+                                  <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                    {detail.label}
+                                  </p>
+                                  {(detail.type === 'json' || detail.type === 'code') ? (
+                                    <pre className="text-[11px] bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-300 rounded p-1 overflow-auto">
+                                      {detail.value}
+                                    </pre>
+                                  ) : (
+                                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                                      {detail.value}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => handleToolConfirmation(confirmation.id, true)}
+                              className="flex-1 px-2 py-1 text-xs bg-slate-800 text-white rounded hover:bg-slate-900"
+                            >
+                              {confirmation.confirmText ?? 'Confirm'}
+                            </button>
+                            <button
+                              onClick={() => handleToolConfirmation(confirmation.id, false)}
+                              className="flex-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                            >
+                              {confirmation.cancelText ?? 'Cancel'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {isLoadingTools && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Loading tools...</p>
+                  )}
+
+                  {!isLoadingTools && tools.length === 0 && !toolsError && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">No tools available yet.</p>
+                  )}
+
+                  {tools.length > 0 && (
+                    <div className="space-y-2">
+                      {tools.slice(0, 4).map((tool) => (
+                        <div
+                          key={tool.id}
+                          className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                {tool.name}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {tool.description}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleSelectTool(tool)}
+                              className="px-2 py-1 text-xs bg-slate-100 dark:bg-slate-900/40 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200"
+                            >
+                              Use
+                            </button>
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900/40">
+                              {tool.category}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900/40">
+                              {tool.confirmationType}
+                            </span>
+                            {tool.requiredPermissions.slice(0, 2).map((permission) => (
+                              <span
+                                key={`${tool.id}-${permission}`}
+                                className="px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900/40"
+                              >
+                                {permission}
+                              </span>
+                            ))}
+                            {tool.deprecated && (
+                              <span className="px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300">
+                                deprecated
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedTool && (
+                    <div className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          Run {selectedTool.name}
+                        </p>
+                        <button
+                          onClick={() => setSelectedTool(null)}
+                          className="text-slate-400 hover:text-slate-600"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                      <textarea
+                        value={toolInput}
+                        onChange={(event) => setToolInput(event.target.value)}
+                        className="w-full h-24 text-xs rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-2 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-300"
+                        placeholder='{"key": "value"}'
+                      />
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => handleInvokeTool(selectedTool)}
+                          disabled={toolStatus === 'running'}
+                          className={cn(
+                            'flex items-center gap-1 px-3 py-1 text-xs rounded',
+                            toolStatus === 'running'
+                              ? 'bg-slate-200 text-slate-500'
+                              : 'bg-slate-800 text-white hover:bg-slate-900'
+                          )}
+                        >
+                          {toolStatus === 'running' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Play className="h-3 w-3" />
+                          )}
+                          Run Tool
+                        </button>
+                        <button
+                          onClick={() => setToolInput('{\n  \n}')}
+                          className="px-2 py-1 text-xs text-slate-500 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                      {toolError && (
+                        <p className="mt-2 text-xs text-red-600 dark:text-red-400">{toolError}</p>
+                      )}
+                      {toolResult && (
+                        <div className="mt-2 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/40 p-2">
+                          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                            <span>Status: {toolResult.status}</span>
+                            <span>{new Date(toolResult.updatedAt).toLocaleTimeString()}</span>
+                          </div>
+                          <pre className="mt-1 text-[11px] text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
+                            {toolResult.result !== undefined
+                              ? formatToolPayload(toolResult.result)
+                              : 'No result returned.'}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Engine Info */}
           {enginesInfo && enginesInfo.run.length > 0 && (
             <div className="px-4 py-1 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between shrink-0">
@@ -1986,6 +2500,14 @@ function getXPProgress(progress: UserProgress): {
     percentage: needed === Infinity ? 100 : percentage,
     levelName: currentLevel.name,
   };
+}
+
+function formatToolPayload(payload: unknown): string {
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return String(payload);
+  }
 }
 
 // ============================================================================

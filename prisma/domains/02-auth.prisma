@@ -189,6 +189,19 @@ model User {
   samSkillAssessments                     SAMSkillAssessment[]                 @relation("SAMSkillAssessments")
   samRecommendations                      SAMRecommendation[]                  @relation("SAMRecommendations")
   samAgenticSessions                      SAMAgenticSession[]                  @relation("SAMAgenticSessions")
+  samLearningSessions                     SAMLearningSession[]
+  samLongTermMemories                     SAMLongTermMemory[]                  @relation("SAMLongTermMemories")
+  samConversationMemories                 SAMConversationMemory[]              @relation("SAMConversationMemories")
+  samVectorEmbeddings                     SAMVectorEmbedding[]
+
+  // Agent Tooling Relations
+  agentToolInvocations                    AgentToolInvocation[]
+  agentAuditLogs                          AgentAuditLog[]
+  agentPermissions                        AgentPermission[]
+  agentConfirmations                      AgentConfirmation[]
+
+  // SAM Session Context
+  samSessionContexts                      SAMSessionContext[]
 
   authSessions                            AuthSession[]
   study_streaks                           study_streaks[]

@@ -5,6 +5,12 @@ import { logger } from '@/lib/logger';
 import { createUnifiedBloomsEngine } from '@sam-ai/educational';
 import type { UnifiedBloomsResult } from '@sam-ai/educational';
 import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import {
+  getMemoryContext,
+  formatMemoryForPrompt,
+  processChatWithMemory,
+  type MemoryContext,
+} from '@/lib/sam/services/chat-memory-integration';
 
 let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
 
@@ -123,16 +129,21 @@ async function analyzeBloomsForChat(
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      message, 
+    const {
+      message,
       context,
-      conversationHistory = []
+      conversationHistory = [],
+      sessionId: providedSessionId,
     } = await request.json();
+
+    // Generate or use provided session ID
+    const sessionId = providedSessionId || `session_${user.id}_${Date.now()}`;
+    const turnNumber = conversationHistory.length;
 
     // Destructure with defaults to prevent undefined errors
     const {
@@ -147,9 +158,25 @@ export async function POST(request: NextRequest) {
       emotion = 'neutral'
     } = context || {};
 
-    // Build context-aware system prompt
-    const systemPrompt = buildSystemPrompt(learningContext, tutorPersonality, pageData);
-    
+    // Retrieve memory context for personalization
+    let memoryContext: MemoryContext | null = null;
+    try {
+      memoryContext = await getMemoryContext(user.id, message, {
+        sessionId,
+        courseId: learningContext.currentCourse?.id,
+        maxMemories: 5,
+        maxConversations: 3,
+        minScore: 0.7,
+      });
+    } catch (memoryError) {
+      logger.warn('[SAM Chat] Failed to retrieve memory context', { error: memoryError });
+    }
+
+    // Build context-aware system prompt with memory
+    const baseSystemPrompt = buildSystemPrompt(learningContext, tutorPersonality, pageData);
+    const memoryPromptAddition = memoryContext ? formatMemoryForPrompt(memoryContext) : '';
+    const systemPrompt = baseSystemPrompt + memoryPromptAddition;
+
     // Build conversation history (exclude system message from messages array)
     const messages = [
       ...conversationHistory.slice(-5).map((msg: any) => ({
@@ -177,6 +204,22 @@ export async function POST(request: NextRequest) {
     // Determine appropriate emotional tone
     const responseEmotion = determineResponseEmotion(emotion, message, learningContext);
 
+    // Store conversation and extract long-term memories (non-blocking)
+    processChatWithMemory(
+      user.id,
+      sessionId,
+      message,
+      parsedResponse.content,
+      turnNumber,
+      {
+        courseId: learningContext.currentCourse?.id,
+        emotion,
+        bloomsLevel: bloomsAnalysis?.dominantLevel,
+      }
+    ).catch((memoryStoreError) => {
+      logger.warn('[SAM Chat] Failed to store memory', { error: memoryStoreError });
+    });
+
     const bloomsInsights = bloomsAnalysis
       ? {
           dominantLevel: bloomsAnalysis.dominantLevel,
@@ -200,6 +243,7 @@ export async function POST(request: NextRequest) {
       action: parsedResponse.action,
       blooms: bloomsInsights,
       insights: bloomsInsights ? { blooms: bloomsInsights } : undefined,
+      sessionId, // Return session ID for client tracking
       metadata: {
         processingTime: Date.now(),
         contextUsed: {
@@ -207,6 +251,8 @@ export async function POST(request: NextRequest) {
           pageType: pageData.pageType,
           emotionDetected: emotion,
           bloomsAnalyzed: Boolean(bloomsAnalysis),
+          memoryContextUsed: Boolean(memoryContext?.relevantMemories.length),
+          memoriesRetrieved: memoryContext?.relevantMemories.length ?? 0,
         }
       }
     });

@@ -11,6 +11,7 @@ import {
   BarChart3,
   FileText,
   Shield,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -80,6 +81,13 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
       href: "/dashboard/admin/analytics",
       icon: (
         <BarChart3 className="h-6 w-6 shrink-0 text-neutral-700 dark:text-neutral-200" />
+      ),
+    },
+    {
+      label: "Agentic Tools",
+      href: "/dashboard/admin/agentic-tools",
+      icon: (
+        <Wrench className="h-6 w-6 shrink-0 text-neutral-700 dark:text-neutral-200" />
       ),
     },
     {
@@ -179,4 +187,3 @@ const Logo = ({ open }: { open: boolean }) => {
     </Link>
   );
 };
-

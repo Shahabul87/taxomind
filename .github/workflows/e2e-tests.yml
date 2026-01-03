@@ -24,8 +24,8 @@ on:
           - accessibility
 
 env:
-  NODE_VERSION: '20.x'
-  PNPM_VERSION: '8'
+  NODE_VERSION: '22.x'
+  PNPM_VERSION: '9'
   PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
   DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 

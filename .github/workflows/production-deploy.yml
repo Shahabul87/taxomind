@@ -12,8 +12,8 @@ on:
         type: boolean
 
 env:
-  NODE_VERSION: '18.x'
-  PNPM_VERSION: '8'
+  NODE_VERSION: '22.x'
+  PNPM_VERSION: '9'
   DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
   NEXTAUTH_SECRET: ${{ secrets.PROD_NEXTAUTH_SECRET }}
   NEXTAUTH_URL: ${{ secrets.PROD_NEXTAUTH_URL }}

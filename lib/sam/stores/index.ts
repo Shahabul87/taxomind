@@ -29,3 +29,32 @@ export {
   PrismaCheckInStore,
   createPrismaCheckInStore,
 } from './prisma-checkin-store';
+
+// Tool Registry Store
+export { PrismaToolStore, createPrismaToolStore } from './prisma-tool-store';
+
+// Analytics Stores
+export {
+  PrismaLearningSessionStore,
+  PrismaTopicProgressStore,
+  PrismaLearningGapStore,
+  PrismaSkillAssessmentStore,
+  PrismaRecommendationStore,
+  PrismaContentStore,
+  createPrismaLearningSessionStore,
+  createPrismaTopicProgressStore,
+  createPrismaLearningGapStore,
+  createPrismaSkillAssessmentStore,
+  createPrismaRecommendationStore,
+  createPrismaContentStore,
+} from './prisma-analytics-stores';
+
+// Memory Stores
+export {
+  PrismaVectorAdapter,
+  PrismaKnowledgeGraphStore,
+  PrismaSessionContextStore,
+  createPrismaVectorAdapter,
+  createPrismaKnowledgeGraphStore,
+  createPrismaSessionContextStore,
+} from './prisma-memory-stores';

@@ -1,0 +1,94 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sam-checkins-cron
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: sam-checkins
+spec:
+  schedule: "0 * * * *" # hourly
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: taxomind
+            component: sam-checkins
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: sam-checkins
+              image: curlimages/curl:8.5.0
+              env:
+                - name: APP_BASE_URL
+                  value: "http://taxomind:3000"
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: taxomind-secrets
+                      key: cron-secret
+                      optional: true
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  if [ -n "${CRON_SECRET:-}" ]; then
+                    curl -sS -H "Authorization: Bearer ${CRON_SECRET}" "${APP_BASE_URL}/api/cron/sam-checkins"
+                  else
+                    curl -sS "${APP_BASE_URL}/api/cron/sam-checkins"
+                  fi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sam-analytics-rollups-cron
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: sam-analytics-rollups
+spec:
+  schedule: "15 2 * * *" # daily
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: taxomind
+            component: sam-analytics-rollups
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: sam-analytics-rollups
+              image: curlimages/curl:8.5.0
+              env:
+                - name: APP_BASE_URL
+                  value: "http://taxomind:3000"
+                - name: CRON_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: taxomind-secrets
+                      key: cron-secret
+                      optional: true
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  if [ -n "${CRON_SECRET:-}" ]; then
+                    curl -sS -H "Authorization: Bearer ${CRON_SECRET}" "${APP_BASE_URL}/api/cron/sam-analytics-rollups?period=daily"
+                  else
+                    curl -sS "${APP_BASE_URL}/api/cron/sam-analytics-rollups?period=daily"
+                  fi

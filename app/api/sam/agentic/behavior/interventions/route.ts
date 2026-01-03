@@ -14,6 +14,7 @@ import {
 } from '@/lib/sam/stores';
 import { createBehaviorMonitor, InterventionType, ActionType } from '@sam-ai/agentic';
 import { v4 as uuidv4 } from 'uuid';
+import { dispatchInterventionNotifications } from '@/lib/sam/agentic-notifications';
 
 // Initialize stores
 const behaviorEventStore = createPrismaBehaviorEventStore();
@@ -187,6 +188,14 @@ export async function POST(req: NextRequest) {
           : undefined,
       },
     });
+
+    try {
+      await dispatchInterventionNotifications(session.user.id, [intervention], {
+        channels: ['auto'],
+      });
+    } catch (error) {
+      logger.warn('Failed to dispatch intervention notification:', error);
+    }
 
     logger.info(
       `Created intervention ${intervention.id} for user ${session.user.id}`

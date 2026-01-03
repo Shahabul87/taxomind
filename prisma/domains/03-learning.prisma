@@ -91,6 +91,9 @@ model Course {
 
   // SAM Agentic AI Relations (added January 2026)
   samLearningGoals             SAMLearningGoal[]              @relation("SAMGoalCourses")
+  samLongTermMemories          SAMLongTermMemory[]            @relation("SAMLongTermMemoryCourses")
+  samSessionContexts           SAMSessionContext[]
+  samVectorEmbeddings          SAMVectorEmbedding[]
 
   study_streaks                study_streaks[]
   user_achievements            user_achievements[]
@@ -173,6 +176,7 @@ model Chapter {
 
   // SAM Agentic AI Relations (added January 2026)
   samLearningGoals    SAMLearningGoal[]     @relation("SAMGoalChapters")
+  samVectorEmbeddings SAMVectorEmbedding[]
 
   user_progress       user_progress[]
 
@@ -217,6 +221,7 @@ model Section {
 
   // SAM Agentic AI Relations (added January 2026)
   samLearningGoals     SAMLearningGoal[]     @relation("SAMGoalSections")
+  samVectorEmbeddings  SAMVectorEmbedding[]
 
   user_progress        user_progress[]
 

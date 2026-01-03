@@ -186,6 +186,26 @@ export class QueueManager {
         },
         priority: 'low',
       },
+
+      // Agentic queue - memory ingestion and rollups
+      {
+        name: 'agentic',
+        concurrency: 2,
+        rateLimiter: {
+          max: 30,
+          duration: 60000,
+        },
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        priority: 'medium',
+      },
     ];
 
     defaultQueues.forEach(config => {

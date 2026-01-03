@@ -18,8 +18,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { db } from '@/lib/db';
 import { PrismaCheckInStore } from '@/lib/sam/stores';
+import { sendAgenticNotification } from '@/lib/sam/agentic-notifications';
 import {
   createCheckInScheduler,
   CheckInStatus,
@@ -65,41 +65,20 @@ async function sendNotification(payload: NotificationPayload): Promise<boolean> 
   const { userId, checkInId, message, channel, priority } = payload;
 
   try {
-    // Create in-app notification in database
-    // Include checkIn details in the message since the schema doesn't have a data field
     const actionUrl = payload.actionUrl ?? `/dashboard/learning?checkin=${checkInId}`;
-    const enhancedMessage = `${message}\n\n[View Check-In](${actionUrl})`;
+    const channels: Array<'auto' | 'in_app' | 'push' | 'email' | 'sms'> = channel === 'in_app'
+      ? ['auto']
+      : ['in_app', channel as 'push' | 'email' | 'sms'];
 
-    await db.notification.create({
-      data: {
-        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        userId,
-        type: `SAM_CHECK_IN:${priority}:${checkInId}`,
-        title: 'SAM Learning Check-In',
-        message: enhancedMessage,
-        read: false,
-      },
+    await sendAgenticNotification({
+      userId,
+      title: 'SAM Learning Check-In',
+      message,
+      type: `SAM_CHECK_IN:${priority}:${checkInId}`,
+      priority: priority as 'low' | 'medium' | 'high' | 'critical',
+      actionUrl,
+      channels,
     });
-
-    // For other channels (push, email, sms), we would integrate with external services
-    // This is a placeholder for future integration
-    switch (channel) {
-      case 'push':
-        // TODO: Integrate with web push notifications
-        logger.info('Push notification would be sent', { userId, checkInId });
-        break;
-      case 'email':
-        // TODO: Integrate with email service (SendGrid, Resend, etc.)
-        logger.info('Email notification would be sent', { userId, checkInId });
-        break;
-      case 'sms':
-        // TODO: Integrate with SMS service (Twilio, etc.)
-        logger.info('SMS notification would be sent', { userId, checkInId });
-        break;
-      default:
-        // in_app - already created above
-        break;
-    }
 
     return true;
   } catch (error) {

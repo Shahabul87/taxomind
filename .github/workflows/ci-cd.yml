@@ -8,8 +8,8 @@ on:
 
 env:
   NODE_ENV: test
-  NODE_VERSION: '18.x'
-  PNPM_VERSION: '8'
+  NODE_VERSION: '22.x'
+  PNPM_VERSION: '9'
   DATABASE_URL: postgresql://test:test@localhost:5432/test_db
 
 jobs:

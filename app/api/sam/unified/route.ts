@@ -82,6 +82,7 @@ import {
   getFeedbackSuggestions,
   type SafetyResult,
 } from '@sam-ai/safety';
+import { dispatchInterventionNotifications } from '@/lib/sam/agentic-notifications';
 
 // Import SAM Agentic Bridge for autonomous capabilities
 import {
@@ -89,7 +90,17 @@ import {
   type SAMAgenticBridge,
   type AgenticAnalysisResult,
   ConfidenceLevel,
+  type Intervention,
 } from '@/lib/sam/agentic-bridge';
+import type { VerificationResult } from '@sam-ai/agentic';
+import {
+  ensureToolingInitialized,
+  ensureDefaultToolPermissions,
+  mapUserToToolRole,
+} from '@/lib/sam/agentic-tooling';
+import { getAgenticMemorySystem } from '@/lib/sam/agentic-memory';
+import { planToolInvocation } from '@/lib/sam/tool-planner';
+import { queueMemoryIngestion } from '@/lib/sam/memory-ingestion';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -453,7 +464,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       courseId: pageContext.entityId,
       enableGoalPlanning: false, // Not needed for basic response flow
-      enableToolExecution: false, // Not needed for basic response flow
+      enableToolExecution: true,
       enableProactiveInterventions: true,
       enableSelfEvaluation: true,
       enableLearningAnalytics: true,
@@ -566,6 +577,7 @@ export async function POST(request: NextRequest) {
     // Build memory summary for prompt injection
     let memorySummary: string | undefined;
     let reviewSummary: string | undefined;
+    let agenticMemorySnippets: string[] = [];
     if (user.id) {
       try {
         const memoryResult = await buildMemorySummary({
@@ -577,6 +589,36 @@ export async function POST(request: NextRequest) {
         reviewSummary = memoryResult.reviewSummary;
       } catch (error) {
         logger.warn('[SAM_UNIFIED] Failed to build memory summary:', error);
+      }
+
+      try {
+        const memorySystem = getAgenticMemorySystem();
+        const courseIdForMemory = entityContext.course?.id
+          ?? entityContext.chapter?.courseId
+          ?? entityContext.section?.courseId
+          ?? (pageContext.entityType === 'course' ? pageContext.entityId : undefined);
+
+        await memorySystem.sessionContext.getOrCreateContext(user.id, courseIdForMemory);
+        await memorySystem.sessionContext.recordQuestion(user.id, message, courseIdForMemory);
+
+        agenticMemorySnippets = await memorySystem.memoryRetriever.retrieveForContext(
+          message,
+          user.id,
+          courseIdForMemory,
+          5
+        );
+
+        if (agenticMemorySnippets.length > 0) {
+          const agenticSummary = [
+            'Agentic Memory Context:',
+            ...agenticMemorySnippets.map((snippet) => `- ${snippet}`),
+          ].join('\n');
+          memorySummary = memorySummary
+            ? `${memorySummary}\n\n${agenticSummary}`
+            : agenticSummary;
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Failed to retrieve agentic memory:', error);
       }
     }
 
@@ -753,28 +795,97 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Run Safety Validation on response text
-    let safetyResult: { passed: boolean; suggestions: string[] } | null = null;
-    const responseText = result.response?.message || '';
-    if (responseText.length > 0) {
-      try {
-        const isSafe = await isFeedbackTextSafe(responseText);
-        const suggestions = isSafe ? [] : getFeedbackSuggestions(responseText);
+    // =========================================================================
+    // AGENTIC TOOL CALLING - LLM-DRIVEN EXECUTION
+    // =========================================================================
 
-        safetyResult = {
-          passed: isSafe,
-          suggestions,
+    let responseText = result.response?.message || '';
+    let toolExecution: {
+      toolId: string;
+      toolName: string;
+      status: string;
+      awaitingConfirmation: boolean;
+      confirmationId?: string;
+      result?: unknown;
+      reasoning?: string;
+      confidence?: number;
+    } | null = null;
+
+    try {
+      const tooling = await ensureToolingInitialized();
+      const role = mapUserToToolRole(user as { role?: string; isTeacher?: boolean });
+      await ensureDefaultToolPermissions(user.id, role, user.id);
+
+      const availableTools = await tooling.toolRegistry.listTools({
+        enabled: true,
+        deprecated: false,
+      });
+
+      const plan = await planToolInvocation({
+        ai: subsystems.config.ai,
+        message,
+        tools: availableTools,
+        context: {
+          pageType: pageContext.type,
+          pagePath: pageContext.path,
+          entitySummary: entityContext.summary,
+          memorySummary,
+        },
+      });
+
+      if (plan) {
+        const execution = await tooling.toolExecutor.execute(
+          plan.tool.id,
+          user.id,
+          plan.input,
+          {
+            sessionId: samContext.metadata.sessionId,
+            metadata: {
+              planner: {
+                reasoning: plan.reasoning,
+                confidence: plan.confidence,
+              },
+              pageContext: {
+                type: pageContext.type,
+                path: pageContext.path,
+                entityId: pageContext.entityId,
+              },
+            },
+          }
+        );
+
+        toolExecution = {
+          toolId: plan.tool.id,
+          toolName: plan.tool.name,
+          status: execution.status,
+          awaitingConfirmation: execution.awaitingConfirmation,
+          confirmationId: execution.confirmationId,
+          result: execution.result,
+          reasoning: plan.reasoning,
+          confidence: plan.confidence,
         };
 
-        if (!isSafe) {
-          logger.warn('[SAM_UNIFIED] Safety check flagged issues:', {
-            suggestionCount: suggestions.length,
-          });
+        if (execution.awaitingConfirmation) {
+          responseText = [
+            responseText,
+            `\n\nI can run ${plan.tool.name}, but it requires your confirmation.`,
+            'Open the Mentor Tools panel to review and approve.',
+          ].join('');
+        } else if (execution.status === 'success') {
+          responseText = [
+            responseText,
+            `\n\nTool result (${plan.tool.name}):`,
+            JSON.stringify(execution.result ?? {}, null, 2),
+          ].join('\n');
+        } else {
+          responseText = [
+            responseText,
+            `\n\nI tried running ${plan.tool.name}, but it did not complete successfully.`,
+          ].join('');
         }
-      } catch (error) {
-        logger.warn('[SAM_UNIFIED] Safety validation failed:', error);
-        safetyResult = { passed: true, suggestions: [] }; // Fail open for availability
       }
+    } catch (error) {
+      logger.warn('[SAM_UNIFIED] Tool execution planning failed:', error);
     }
 
     // =========================================================================
@@ -816,6 +927,61 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Verify response accuracy when confidence is not high
+    let verificationResult: VerificationResult | null = null;
+    let responseGated = false;
+    if (responseText.length > 0) {
+      try {
+        const strictMode = agenticConfidence?.level === ConfidenceLevel.LOW;
+        verificationResult = await agenticBridge.verifyResponse(responseText, {
+          strictMode,
+        });
+
+        const hasCriticalIssues = verificationResult.issues.some((issue) =>
+          issue.severity === 'critical' || issue.severity === 'high'
+        );
+
+        if (
+          hasCriticalIssues ||
+          verificationResult.status === 'contradicted' ||
+          (verificationResult.status === 'unverified' && (agenticConfidence?.score ?? 0) < 0.6)
+        ) {
+          responseGated = true;
+          responseText = [
+            'I want to be careful here because I could not verify parts of that response.',
+            'If you can share source material or clarify the exact goal, I can provide a verified answer.',
+          ].join(' ');
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Response verification failed:', error);
+      }
+    }
+
+    // Run Safety Validation on response text
+    let safetyResult: { passed: boolean; suggestions: string[] } | null = null;
+    if (responseText.length > 0) {
+      try {
+        const isSafe = await isFeedbackTextSafe(responseText);
+        const suggestions = isSafe ? [] : getFeedbackSuggestions(responseText);
+
+        safetyResult = {
+          passed: isSafe,
+          suggestions,
+        };
+
+        if (!isSafe) {
+          responseGated = true;
+          responseText = "I can't provide that response safely. Please rephrase or ask a different question.";
+          logger.warn('[SAM_UNIFIED] Safety check flagged issues:', {
+            suggestionCount: suggestions.length,
+          });
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Safety validation failed:', error);
+        safetyResult = { passed: true, suggestions: [] }; // Fail open for availability
+      }
+    }
+
     // Record session for learning analytics
     let sessionRecorded = false;
     const topicId = pageContext.entityId || 'unknown';
@@ -846,8 +1012,9 @@ export async function POST(request: NextRequest) {
 
     // Check for proactive interventions
     let interventions: Array<{ type: string; reason: string; priority: string }> = [];
+    let interventionResults: Intervention[] = [];
     try {
-      const interventionResults = await agenticBridge.checkForInterventions({
+      interventionResults = await agenticBridge.checkForInterventions({
         userId: user.id,
         courseId: pageContext.entityId,
         currentTopic: entityContext.section?.title || entityContext.chapter?.title,
@@ -871,6 +1038,102 @@ export async function POST(request: NextRequest) {
       // Continue without interventions - non-blocking
     }
 
+    // Dispatch intervention notifications (presence-aware)
+    if (interventions.length > 0) {
+      try {
+        const recentThreshold = Date.now() - 2 * 60 * 1000;
+        const recentInterventions = interventionResults.filter(
+          (intervention) => intervention.createdAt?.getTime() >= recentThreshold
+        );
+
+        if (recentInterventions.length > 0) {
+          await dispatchInterventionNotifications(user.id, recentInterventions, {
+            channels: ['auto'],
+          });
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Failed to dispatch intervention notifications:', error);
+      }
+    }
+
+    // Persist agentic memory embeddings for retrieval
+    try {
+      if (user.id) {
+        const courseIdForMemory = entityContext.course?.id
+          ?? entityContext.chapter?.courseId
+          ?? entityContext.section?.courseId
+          ?? (pageContext.entityType === 'course' ? pageContext.entityId : undefined);
+
+        if (message.trim().length > 0) {
+          queueMemoryIngestion({
+            content: message,
+            sourceId: `conversation_${user.id}_${startTime}`,
+            sourceType: 'CONVERSATION',
+            userId: user.id,
+            courseId: courseIdForMemory,
+            tags: ['sam', 'user-message'],
+            enableSummary: false,
+          });
+        }
+
+        if (responseText.trim().length > 0) {
+          queueMemoryIngestion({
+            content: responseText,
+            sourceId: `answer_${user.id}_${startTime}`,
+            sourceType: 'ANSWER',
+            userId: user.id,
+            courseId: courseIdForMemory,
+            tags: ['sam', 'assistant-response'],
+            enableSummary: false,
+          });
+        }
+
+        if (entityContext.course?.description) {
+          queueMemoryIngestion({
+            content: entityContext.course.description,
+            sourceId: `course_${entityContext.course.id}`,
+            sourceType: 'COURSE_CONTENT',
+            userId: user.id,
+            courseId: entityContext.course.id,
+            tags: ['course'],
+            enableSummary: true,
+            enableKnowledgeGraph: true,
+          });
+        }
+
+        if (entityContext.chapter?.description) {
+          queueMemoryIngestion({
+            content: entityContext.chapter.description,
+            sourceId: `chapter_${entityContext.chapter.id}`,
+            sourceType: 'CHAPTER_CONTENT',
+            userId: user.id,
+            courseId: entityContext.chapter.courseId,
+            chapterId: entityContext.chapter.id,
+            tags: ['chapter'],
+            enableSummary: true,
+            enableKnowledgeGraph: true,
+          });
+        }
+
+        if (entityContext.section?.content) {
+          queueMemoryIngestion({
+            content: entityContext.section.content,
+            sourceId: `section_${entityContext.section.id}`,
+            sourceType: 'SECTION_CONTENT',
+            userId: user.id,
+            courseId: entityContext.section.courseId,
+            chapterId: entityContext.section.chapterId,
+            sectionId: entityContext.section.id,
+            tags: ['section'],
+            enableSummary: true,
+            enableKnowledgeGraph: true,
+          });
+        }
+      }
+    } catch (error) {
+      logger.warn('[SAM_UNIFIED] Agentic memory persistence failed:', error);
+    }
+
     // Extract data from results
     const contextData = result.results.context?.data as Record<string, unknown> | undefined;
     const contentData = result.results.content?.data as Record<string, unknown> | undefined;
@@ -879,7 +1142,7 @@ export async function POST(request: NextRequest) {
     // Build response with all integrated data
     const response = {
       success: result.success,
-      response: result.response.message,
+      response: responseText,
       suggestions: result.response.suggestions || [],
       actions: result.response.actions || [],
       insights: {
@@ -956,8 +1219,18 @@ export async function POST(request: NextRequest) {
             score: agenticConfidence.score,
             factors: agenticConfidence.factors,
           } : undefined,
+          verification: verificationResult ? {
+            status: verificationResult.status,
+            accuracy: verificationResult.overallAccuracy,
+            issueCount: verificationResult.issues.length,
+            criticalIssues: verificationResult.issues
+              .filter((issue) => issue.severity === 'critical' || issue.severity === 'high')
+              .map((issue) => issue.description),
+          } : undefined,
+          responseGated: responseGated || undefined,
           sessionRecorded,
           interventions: interventions.length > 0 ? interventions : undefined,
+          toolExecution: toolExecution ?? undefined,
         },
       },
       metadata: {
@@ -975,9 +1248,13 @@ export async function POST(request: NextRequest) {
           safetyValidation: !!safetyResult,
           agenticBridge: true, // Always enabled now
           agenticConfidence: !!agenticConfidence,
+          agenticVerification: !!verificationResult,
+          agenticResponseGated: responseGated,
           agenticSession: sessionRecorded,
           agenticInterventions: interventions.length > 0,
+          agenticToolExecution: !!toolExecution,
         },
+        toolExecution: toolExecution ?? undefined,
       },
     };
 
@@ -989,8 +1266,11 @@ export async function POST(request: NextRequest) {
       pedagogyPassed: pedagogyResult?.passed,
       safetyPassed: safetyResult?.passed,
       agenticConfidence: agenticConfidence?.level,
+      agenticVerification: verificationResult?.status,
+      agenticResponseGated: responseGated,
       agenticSessionRecorded: sessionRecorded,
       agenticInterventions: interventions.length,
+      agenticToolExecution: toolExecution?.toolId,
     });
 
     return NextResponse.json(response, {

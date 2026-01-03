@@ -6,6 +6,7 @@
 import { logger } from '@/lib/logger';
 import { registerEnrollmentWorker } from './enrollment-worker';
 import { registerWebhookWorker } from './webhook-worker';
+import { registerAgenticWorker } from './agentic-worker';
 
 /**
  * Initialize all workers
@@ -19,6 +20,9 @@ export function initializeWorkers(): void {
 
     // Register webhook worker
     registerWebhookWorker();
+
+    // Register agentic worker
+    registerAgenticWorker();
 
     logger.info('[WORKERS] All workers initialized successfully');
   } catch (error) {

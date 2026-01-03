@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-02T20:48:02.815Z
+// Generated: 2026-01-03T05:33:03.173Z
 // Source: 20 domain files
 // ==========================================
 
@@ -623,6 +623,34 @@ enum SAMEmotion {
   THOUGHTFUL
   CELEBRATORY
   NEUTRAL
+}
+
+// Memory types for long-term memory storage
+enum SAMMemoryType {
+  INTERACTION      // User-SAM interaction memories
+  LEARNING_EVENT   // Learning milestones, breakthroughs
+  STRUGGLE_POINT   // Areas where user struggled
+  PREFERENCE       // User preferences learned over time
+  FEEDBACK         // Explicit feedback from user
+  CONTEXT          // Contextual information
+  CONCEPT          // Learned concepts
+  SKILL            // Demonstrated skills
+}
+
+// Memory importance levels
+enum SAMMemoryImportance {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Message roles for conversation memory
+enum SAMMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
 }
 
 enum SAMInteractionType {
@@ -1369,6 +1397,19 @@ model User {
   samSkillAssessments                     SAMSkillAssessment[]                 @relation("SAMSkillAssessments")
   samRecommendations                      SAMRecommendation[]                  @relation("SAMRecommendations")
   samAgenticSessions                      SAMAgenticSession[]                  @relation("SAMAgenticSessions")
+  samLearningSessions                     SAMLearningSession[]
+  samLongTermMemories                     SAMLongTermMemory[]                  @relation("SAMLongTermMemories")
+  samConversationMemories                 SAMConversationMemory[]              @relation("SAMConversationMemories")
+  samVectorEmbeddings                     SAMVectorEmbedding[]
+
+  // Agent Tooling Relations
+  agentToolInvocations                    AgentToolInvocation[]
+  agentAuditLogs                          AgentAuditLog[]
+  agentPermissions                        AgentPermission[]
+  agentConfirmations                      AgentConfirmation[]
+
+  // SAM Session Context
+  samSessionContexts                      SAMSessionContext[]
 
   authSessions                            AuthSession[]
   study_streaks                           study_streaks[]
@@ -2026,6 +2067,9 @@ model Course {
 
   // SAM Agentic AI Relations (added January 2026)
   samLearningGoals             SAMLearningGoal[]              @relation("SAMGoalCourses")
+  samLongTermMemories          SAMLongTermMemory[]            @relation("SAMLongTermMemoryCourses")
+  samSessionContexts           SAMSessionContext[]
+  samVectorEmbeddings          SAMVectorEmbedding[]
 
   study_streaks                study_streaks[]
   user_achievements            user_achievements[]
@@ -2108,6 +2152,7 @@ model Chapter {
 
   // SAM Agentic AI Relations (added January 2026)
   samLearningGoals    SAMLearningGoal[]     @relation("SAMGoalChapters")
+  samVectorEmbeddings SAMVectorEmbedding[]
 
   user_progress       user_progress[]
 
@@ -2152,6 +2197,7 @@ model Section {
 
   // SAM Agentic AI Relations (added January 2026)
   samLearningGoals     SAMLearningGoal[]     @relation("SAMGoalSections")
+  samVectorEmbeddings  SAMVectorEmbedding[]
 
   user_progress        user_progress[]
 
@@ -7275,7 +7321,7 @@ enum VoteType {
 // Autonomous goal planning, execution, behavior
 // monitoring, and proactive interventions
 //
-// Total Models: 15
+// Total Models: 26
 // Priority: 9
 // ==========================================
 
@@ -7768,6 +7814,356 @@ model SAMAgenticSession {
   @@index([userId, startTime])
   @@index([topicId])
   @@map("sam_agentic_sessions")
+}
+
+// ==========================================
+// AGENTIC LEARNING SESSION
+// ==========================================
+
+model SAMLearningSession {
+  id                  String   @id @default(cuid())
+  userId              String
+  topicId             String
+  startTime           DateTime @default(now())
+  endTime             DateTime?
+  duration            Int      @default(0)
+  activitiesCompleted Int      @default(0)
+  questionsAnswered   Int      @default(0)
+  correctAnswers      Int      @default(0)
+  conceptsCovered     String[] @default([])
+  focusScore          Float?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, topicId])
+  @@index([userId, startTime])
+  @@map("sam_learning_sessions")
+}
+
+// ==========================================
+// AGENTIC MEMORY MODELS
+// ==========================================
+
+model SAMVectorEmbedding {
+  id             String   @id @default(cuid())
+  sourceId       String
+  sourceType     String   // 'content', 'concept', 'question', 'memory', 'conversation'
+  userId         String?
+  courseId       String?
+  chapterId      String?
+  sectionId      String?
+  contentHash    String
+  contentText    String?  @db.Text  // Original text for reference
+  tags           String[] @default([])
+  language       String?
+  customMetadata Json?
+
+  // Embedding stored as JSON array (compatible with standard PostgreSQL)
+  // When pgvector is available, use embedding_vector column for native search
+  embedding      Json?
+  dimensions     Int      @default(1536)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  chapter        Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  section        Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sourceType])
+  @@index([courseId])
+  @@index([contentHash])
+  @@map("sam_vector_embeddings")
+}
+
+// Long-term memory entries with semantic search capability
+model SAMLongTermMemory {
+  id             String   @id @default(cuid())
+  userId         String
+
+  // Memory content
+  type           SAMMemoryType @default(INTERACTION)
+  title          String
+  content        String   @db.Text
+  summary        String?  @db.Text
+
+  // Context
+  courseId       String?
+  chapterId      String?
+  sectionId      String?
+  topicIds       String[] @default([])
+
+  // Importance & Retention
+  importance     SAMMemoryImportance @default(MEDIUM)
+  emotionalValence Float?  // -1 to 1 (negative to positive)
+  accessCount    Int      @default(0)
+  lastAccessedAt DateTime?
+
+  // Decay & Consolidation (for memory management)
+  decayFactor    Float    @default(1.0)  // 0 = forgotten, 1 = fresh
+  isConsolidated Boolean  @default(false)
+  consolidatedAt DateTime?
+
+  // Embedding stored as JSON array (compatible with standard PostgreSQL)
+  embedding      Json?
+  embeddingModel String?  @default("text-embedding-ada-002")
+
+  // Metadata
+  tags           String[] @default([])
+  metadata       Json?
+
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  expiresAt      DateTime?
+
+  // Relations
+  user           User     @relation("SAMLongTermMemories", fields: [userId], references: [id], onDelete: Cascade)
+  course         Course?  @relation("SAMLongTermMemoryCourses", fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, type])
+  @@index([userId, importance])
+  @@index([courseId])
+  @@index([createdAt])
+  @@map("sam_long_term_memories")
+}
+
+// Conversation memory for multi-turn context
+model SAMConversationMemory {
+  id             String   @id @default(cuid())
+  userId         String
+  sessionId      String
+
+  // Message content
+  role           SAMMessageRole @default(USER)
+  content        String   @db.Text
+
+  // Context window management
+  turnNumber     Int
+  tokenCount     Int      @default(0)
+
+  // Embedding stored as JSON array (compatible with standard PostgreSQL)
+  embedding      Json?
+
+  // Extracted entities & intents
+  entities       Json?    // [{type, value, confidence}]
+  intent         String?
+  sentiment      Float?   // -1 to 1
+
+  // Metadata
+  metadata       Json?
+
+  // Timestamps
+  createdAt      DateTime @default(now())
+
+  // Relations
+  user           User     @relation("SAMConversationMemories", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sessionId])
+  @@index([sessionId, turnNumber])
+  @@index([createdAt])
+  @@map("sam_conversation_memories")
+}
+
+model SAMKnowledgeNode {
+  id            String   @id @default(cuid())
+  type          String
+  name          String
+  description   String?
+  properties    Json?
+  embeddings    String[] @default([])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  outgoingEdges SAMKnowledgeEdge[] @relation("SAMKnowledgeEdgeFrom")
+  incomingEdges SAMKnowledgeEdge[] @relation("SAMKnowledgeEdgeTo")
+
+  @@index([type, name])
+  @@map("sam_knowledge_nodes")
+}
+
+model SAMKnowledgeEdge {
+  id         String   @id @default(cuid())
+  type       String
+  sourceId   String
+  targetId   String
+  weight     Float    @default(1)
+  properties Json?
+  createdAt  DateTime @default(now())
+
+  source     SAMKnowledgeNode @relation("SAMKnowledgeEdgeFrom", fields: [sourceId], references: [id], onDelete: Cascade)
+  target     SAMKnowledgeNode @relation("SAMKnowledgeEdgeTo", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+  @@index([targetId])
+  @@map("sam_knowledge_edges")
+}
+
+model SAMSessionContext {
+  id           String   @id @default(cuid())
+  userId       String
+  courseId     String?
+  lastActiveAt DateTime @default(now())
+  currentState Json
+  history      Json?
+  preferences  Json
+  insights     Json
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course       Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, courseId])
+  @@map("sam_session_contexts")
+}
+
+// ==========================================
+// AGENTIC TOOLING MODELS
+// ==========================================
+
+model AgentTool {
+  id                  String   @id
+  name                String
+  description         String
+  category            String
+  version             String
+  inputSchema         String   @db.Text
+  outputSchema        String?  @db.Text
+  requiredPermissions String[] @default([])
+  confirmationType    String
+  timeoutMs           Int?
+  maxRetries          Int?
+  rateLimit           String?  @db.Text
+  tags                String[] @default([])
+  examples            String?  @db.Text
+  metadata            String?  @db.Text
+  enabled             Boolean  @default(true)
+  deprecated          Boolean  @default(false)
+  deprecationMessage  String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  invocations         AgentToolInvocation[]
+  confirmations       AgentConfirmation[]
+  permissions         AgentPermission[]
+  auditLogs           AgentAuditLog[]
+
+  @@index([category])
+  @@index([enabled])
+  @@map("agent_tools")
+}
+
+model AgentToolInvocation {
+  id                  String   @id @default(cuid())
+  toolId              String
+  userId              String
+  sessionId           String
+  input               String?  @db.Text
+  validatedInput      String?  @db.Text
+  status              String
+  confirmationType    String
+  confirmationPrompt  String?
+  userConfirmed       Boolean?
+  confirmedAt         DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  duration            Int?
+  result              String?  @db.Text
+  metadata            String?  @db.Text
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tool                AgentTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  confirmations       AgentConfirmation[]
+  auditLogs           AgentAuditLog[]
+
+  @@index([userId, createdAt])
+  @@index([toolId, status])
+  @@map("agent_tool_invocations")
+}
+
+model AgentAuditLog {
+  id           String   @id @default(cuid())
+  timestamp    DateTime @default(now())
+  level        String
+  action       String
+  userId       String
+  sessionId    String
+  toolId       String?
+  invocationId String?
+  input        String?  @db.Text
+  output       String?  @db.Text
+  error        String?  @db.Text
+  ipAddress    String?
+  userAgent    String?
+  requestId    String?
+  metadata     String?  @db.Text
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool         AgentTool?        @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  invocation   AgentToolInvocation? @relation(fields: [invocationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, timestamp])
+  @@index([toolId])
+  @@map("agent_audit_logs")
+}
+
+model AgentPermission {
+  id         String   @id @default(cuid())
+  userId     String
+  toolId     String?
+  category   String?
+  levels     String[] @default([])
+  grantedBy  String?
+  grantedAt  DateTime @default(now())
+  expiresAt  DateTime?
+  conditions String?  @db.Text
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tool       AgentTool? @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([toolId])
+  @@map("agent_permissions")
+}
+
+model AgentConfirmation {
+  id           String   @id @default(cuid())
+  invocationId String
+  toolId       String
+  toolName     String
+  userId       String
+  title        String
+  message      String
+  details      String?  @db.Text
+  type         String
+  severity     String
+  confirmText  String?
+  cancelText   String?
+  timeout      Int?
+  status       String
+  respondedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  expiresAt    DateTime?
+
+  invocation   AgentToolInvocation @relation(fields: [invocationId], references: [id], onDelete: Cascade)
+  tool         AgentTool           @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([invocationId])
+  @@map("agent_confirmations")
 }
 
 // ==========================================

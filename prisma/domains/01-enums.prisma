@@ -582,6 +582,34 @@ enum SAMEmotion {
   NEUTRAL
 }
 
+// Memory types for long-term memory storage
+enum SAMMemoryType {
+  INTERACTION      // User-SAM interaction memories
+  LEARNING_EVENT   // Learning milestones, breakthroughs
+  STRUGGLE_POINT   // Areas where user struggled
+  PREFERENCE       // User preferences learned over time
+  FEEDBACK         // Explicit feedback from user
+  CONTEXT          // Contextual information
+  CONCEPT          // Learned concepts
+  SKILL            // Demonstrated skills
+}
+
+// Memory importance levels
+enum SAMMemoryImportance {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Message roles for conversation memory
+enum SAMMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+  TOOL
+}
+
 enum SAMInteractionType {
   FORM_POPULATE
   FORM_SUBMIT
