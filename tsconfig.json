@@ -96,8 +96,6 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "__tests__/**/*.ts",
-    "__tests__/**/*.tsx",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
@@ -109,10 +107,11 @@
     ".next/**",
     "coverage/**",
     "dist/**",
-    "__tests__/performance/**",
-    "__tests__/unit/lib/auth/saml-provider.test.ts",
-    "__tests__/unit/lib/sam-blooms-engine.test.ts",
+    "__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
     "**/*.spec.ts",
+    "**/*.spec.tsx",
     "**/*.e2e.ts",
     "**/test-utils/**",
     "**/mocks/**",
