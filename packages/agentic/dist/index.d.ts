@@ -3273,7 +3273,7 @@ type ContextAction = (typeof ContextAction)[keyof typeof ContextAction];
  * User preferences
  */
 interface UserPreferences {
-    learningStyle: LearningStyle$1;
+    learningStyle: LearningStyle$2;
     preferredPace: 'slow' | 'moderate' | 'fast';
     preferredContentTypes: ContentType$1[];
     preferredSessionLength: number;
@@ -3283,14 +3283,14 @@ interface UserPreferences {
 /**
  * Learning style
  */
-declare const LearningStyle$1: {
+declare const LearningStyle$2: {
     readonly VISUAL: "visual";
     readonly AUDITORY: "auditory";
     readonly READING_WRITING: "reading_writing";
     readonly KINESTHETIC: "kinesthetic";
     readonly MIXED: "mixed";
 };
-type LearningStyle$1 = (typeof LearningStyle$1)[keyof typeof LearningStyle$1];
+type LearningStyle$2 = (typeof LearningStyle$2)[keyof typeof LearningStyle$2];
 /**
  * Content types
  */
@@ -3768,6 +3768,7 @@ interface VectorPersistenceAdapter {
     saveBatch(embeddings: VectorEmbedding[]): Promise<void>;
     load(id: string): Promise<VectorEmbedding | null>;
     loadAll(filter?: VectorFilter): Promise<VectorEmbedding[]>;
+    searchByVector?(vector: number[], options: VectorSearchOptions): Promise<SimilarityResult[]>;
     delete(id: string): Promise<boolean>;
     deleteBatch(ids: string[]): Promise<number>;
     deleteByFilter(filter: VectorFilter): Promise<number>;
@@ -3920,7 +3921,7 @@ declare class KnowledgeGraphManager {
     /**
      * Get learning path between two concepts
      */
-    getLearningPath(fromId: string, toId: string): Promise<LearningPath$1 | null>;
+    getLearningPath(fromId: string, toId: string): Promise<LearningPath$2 | null>;
     /**
      * Find common ancestors between two concepts
      */
@@ -3943,7 +3944,7 @@ declare class KnowledgeGraphManager {
      */
     getStats(): Promise<KnowledgeGraphStats>;
 }
-interface LearningPath$1 {
+interface LearningPath$2 {
     steps: Array<{
         order: number;
         entity: GraphEntity;
@@ -4050,7 +4051,7 @@ declare class CrossSessionContext {
     /**
      * Set learning style
      */
-    setLearningStyle(userId: string, style: LearningStyle$1, courseId?: string): Promise<SessionContext>;
+    setLearningStyle(userId: string, style: LearningStyle$2, courseId?: string): Promise<SessionContext>;
     /**
      * Set preferred content types
      */
@@ -4121,7 +4122,7 @@ interface SessionSummary {
 }
 interface ContextForPrompt {
     hasContext: boolean;
-    learningStyle: LearningStyle$1;
+    learningStyle: LearningStyle$2;
     preferredPace: 'slow' | 'moderate' | 'fast';
     currentTopic: string | null;
     currentGoal: string | null;
@@ -6904,7 +6905,7 @@ declare enum MasteryLevel {
 /**
  * Learning style types
  */
-declare enum LearningStyle {
+declare enum LearningStyle$1 {
     VISUAL = "visual",
     AUDITORY = "auditory",
     READING_WRITING = "reading_writing",
@@ -7028,7 +7029,7 @@ interface GapEvidence {
 /**
  * Progress snapshot for a period
  */
-interface ProgressSnapshot {
+interface ProgressSnapshot$1 {
     id: string;
     userId: string;
     period: TimePeriod;
@@ -7248,13 +7249,13 @@ interface RecommendationContext {
     skillsToImprove: string[];
     preferredContentTypes: ContentType[];
     availableTime: number;
-    learningStyle?: LearningStyle;
+    learningStyle?: LearningStyle$1;
     currentGoals: string[];
 }
 /**
  * Learning path recommendation
  */
-interface LearningPath {
+interface LearningPath$1 {
     id: string;
     userId: string;
     title: string;
@@ -7616,7 +7617,7 @@ declare class ProgressAnalyzer {
     /**
      * Get a progress snapshot
      */
-    getSnapshot(userId: string, period?: TimePeriod): Promise<ProgressSnapshot>;
+    getSnapshot(userId: string, period?: TimePeriod): Promise<ProgressSnapshot$1>;
     private updateTopicProgress;
     private calculateMasteryScore;
     private scoreToLevel;
@@ -7805,7 +7806,7 @@ interface RecommendationInput {
     topicProgress?: TopicProgress[];
     skillAssessments?: SkillAssessment[];
     availableTime?: number;
-    learningStyle?: LearningStyle;
+    learningStyle?: LearningStyle$1;
     currentGoals?: string[];
     excludeCompleted?: boolean;
 }
@@ -7849,7 +7850,7 @@ declare class RecommendationEngine {
     /**
      * Generate a learning path for a target skill
      */
-    generateLearningPath(userId: string, targetSkillIds: string[], currentAssessments: SkillAssessment[]): Promise<LearningPath>;
+    generateLearningPath(userId: string, targetSkillIds: string[], currentAssessments: SkillAssessment[]): Promise<LearningPath$1>;
     /**
      * Add content to the content store
      */
@@ -7878,6 +7879,373 @@ declare class RecommendationEngine {
 declare function createRecommendationEngine(config?: RecommendationEngineConfig): RecommendationEngine;
 
 /**
+ * @sam-ai/agentic - Learning Path Types
+ * Portable types for skill tracking and learning path recommendations
+ */
+/**
+ * Represents a course in the knowledge graph
+ */
+interface CourseNode {
+    id: string;
+    title: string;
+    description?: string;
+    level?: 'beginner' | 'intermediate' | 'advanced';
+    estimatedHours?: number;
+    categoryId?: string;
+    tags?: string[];
+}
+/**
+ * Represents a concept/topic within a course
+ */
+interface ConceptNode {
+    id: string;
+    name: string;
+    description?: string;
+    courseId?: string;
+    chapterId?: string;
+    difficulty: DifficultyLevel;
+    estimatedMinutes?: number;
+    learningObjectives?: string[];
+    tags?: string[];
+}
+type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+/**
+ * Prerequisite relationship between concepts
+ */
+interface PrerequisiteRelation {
+    conceptId: string;
+    requiresConceptId: string;
+    importance: PrerequisiteImportance;
+    description?: string;
+}
+type PrerequisiteImportance = 'required' | 'recommended' | 'optional';
+/**
+ * Course graph containing all concepts and their relationships
+ */
+interface CourseGraph {
+    courseId: string;
+    title: string;
+    concepts: ConceptNode[];
+    prerequisites: PrerequisiteRelation[];
+    learningObjectives: string[];
+    totalEstimatedMinutes: number;
+}
+/**
+ * User's skill profile containing all learned concepts
+ */
+interface UserSkillProfile {
+    userId: string;
+    skills: UserSkill[];
+    masteredConcepts: string[];
+    inProgressConcepts: string[];
+    strugglingConcepts: string[];
+    totalLearningTimeMinutes: number;
+    streakDays: number;
+    lastActivityAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+/**
+ * Individual skill for a concept
+ */
+interface UserSkill {
+    conceptId: string;
+    conceptName: string;
+    masteryLevel: number;
+    confidenceScore: number;
+    practiceCount: number;
+    correctCount: number;
+    lastPracticedAt: Date;
+    firstLearnedAt: Date;
+    strengthTrend: SkillTrend;
+    nextReviewAt?: Date;
+    retentionScore?: number;
+}
+type SkillTrend = 'improving' | 'stable' | 'declining' | 'new';
+/**
+ * Performance data when completing a concept
+ */
+interface ConceptPerformance {
+    conceptId: string;
+    userId: string;
+    completed: boolean;
+    score?: number;
+    timeSpentMinutes?: number;
+    attemptCount?: number;
+    struggled?: boolean;
+    helpRequested?: boolean;
+    timestamp: Date;
+}
+/**
+ * Skill update result after processing performance
+ */
+interface SkillUpdateResult {
+    conceptId: string;
+    previousMastery: number;
+    newMastery: number;
+    masteryChange: number;
+    newTrend: SkillTrend;
+    unlockedConcepts: string[];
+    recommendedNext: string[];
+}
+/**
+ * Personalized learning path recommendation
+ */
+interface LearningPath {
+    id: string;
+    userId: string;
+    courseId?: string;
+    targetConceptId?: string;
+    steps: PathStep[];
+    totalEstimatedMinutes: number;
+    difficulty: DifficultyLevel;
+    confidence: number;
+    reason: string;
+    createdAt: Date;
+    expiresAt: Date;
+}
+/**
+ * Single step in a learning path
+ */
+interface PathStep {
+    order: number;
+    conceptId: string;
+    conceptName: string;
+    action: LearningAction;
+    priority: StepPriority;
+    estimatedMinutes: number;
+    reason: string;
+    prerequisites: string[];
+    resources?: LearningResource[];
+}
+type LearningAction = 'learn' | 'review' | 'practice' | 'assess' | 'explore';
+type StepPriority = 'critical' | 'high' | 'medium' | 'low';
+/**
+ * Learning resource associated with a step
+ */
+interface LearningResource {
+    id: string;
+    type: ResourceType;
+    title: string;
+    url?: string;
+    estimatedMinutes?: number;
+}
+type ResourceType = 'video' | 'article' | 'quiz' | 'exercise' | 'project' | 'discussion';
+/**
+ * Options for generating learning paths
+ */
+interface LearningPathOptions {
+    courseId?: string;
+    targetConceptId?: string;
+    maxSteps?: number;
+    maxMinutes?: number;
+    focusOnWeakAreas?: boolean;
+    includeReview?: boolean;
+    difficultyPreference?: DifficultyLevel;
+    learningStyle?: LearningStyle;
+}
+type LearningStyle = 'visual' | 'reading' | 'hands-on' | 'mixed';
+/**
+ * Spaced repetition schedule for a concept
+ */
+interface SpacedRepetitionSchedule {
+    conceptId: string;
+    userId: string;
+    interval: number;
+    easeFactor: number;
+    consecutiveCorrect: number;
+    nextReviewAt: Date;
+    lastReviewAt: Date;
+    reviewCount: number;
+}
+/**
+ * Review quality rating (SM-2 algorithm)
+ */
+type ReviewQuality = 0 | 1 | 2 | 3 | 4 | 5;
+/**
+ * Store interface for skill data persistence
+ */
+interface SkillStore {
+    getSkillProfile(userId: string): Promise<UserSkillProfile | null>;
+    saveSkillProfile(profile: UserSkillProfile): Promise<void>;
+    getSkill(userId: string, conceptId: string): Promise<UserSkill | null>;
+    updateSkill(userId: string, skill: UserSkill): Promise<void>;
+    getSkillsForCourse(userId: string, courseId: string): Promise<UserSkill[]>;
+    getStrugglingConcepts(userId: string, limit?: number): Promise<UserSkill[]>;
+    getConceptsDueForReview(userId: string, limit?: number): Promise<UserSkill[]>;
+}
+/**
+ * Store interface for learning path persistence
+ */
+interface LearningPathStore {
+    saveLearningPath(path: LearningPath): Promise<void>;
+    getLearningPath(id: string): Promise<LearningPath | null>;
+    getActiveLearningPaths(userId: string): Promise<LearningPath[]>;
+    getPathForCourse(userId: string, courseId: string): Promise<LearningPath | null>;
+    deleteLearningPath(id: string): Promise<void>;
+    markStepCompleted(pathId: string, stepOrder: number): Promise<void>;
+}
+/**
+ * Store interface for course graph data
+ */
+interface CourseGraphStore {
+    getCourseGraph(courseId: string): Promise<CourseGraph | null>;
+    saveCourseGraph(graph: CourseGraph): Promise<void>;
+    getConcept(conceptId: string): Promise<ConceptNode | null>;
+    getPrerequisites(conceptId: string): Promise<PrerequisiteRelation[]>;
+    getDependents(conceptId: string): Promise<string[]>;
+}
+/**
+ * Learning analytics for a user
+ */
+interface LearningAnalytics {
+    userId: string;
+    totalConceptsLearned: number;
+    totalConceptsMastered: number;
+    averageMasteryLevel: number;
+    totalLearningTimeMinutes: number;
+    currentStreak: number;
+    longestStreak: number;
+    weakestAreas: ConceptNode[];
+    strongestAreas: ConceptNode[];
+    recommendedFocus: string[];
+    progressTrend: 'accelerating' | 'steady' | 'slowing';
+}
+/**
+ * Progress snapshot for tracking over time
+ */
+interface ProgressSnapshot {
+    userId: string;
+    timestamp: Date;
+    conceptsLearned: number;
+    conceptsMastered: number;
+    averageMastery: number;
+    totalTimeMinutes: number;
+}
+
+/**
+ * @sam-ai/agentic - SkillTracker
+ * Tracks user skill progression and mastery levels
+ */
+
+interface SkillTrackerConfig {
+    store: SkillStore;
+    logger?: MemoryLogger;
+    masteryThreshold?: number;
+    struggleThreshold?: number;
+    decayRatePerDay?: number;
+    maxMasteryGain?: number;
+    minMasteryLoss?: number;
+}
+declare class SkillTracker {
+    private store;
+    private logger?;
+    private masteryThreshold;
+    private struggleThreshold;
+    private decayRatePerDay;
+    private maxMasteryGain;
+    private minMasteryLoss;
+    constructor(config: SkillTrackerConfig);
+    /**
+     * Get user's complete skill profile
+     */
+    getSkillProfile(userId: string): Promise<UserSkillProfile>;
+    /**
+     * Record performance and update skill mastery
+     */
+    recordPerformance(performance: ConceptPerformance): Promise<SkillUpdateResult>;
+    /**
+     * Get concepts that are due for spaced repetition review
+     */
+    getConceptsDueForReview(userId: string, limit?: number): Promise<UserSkill[]>;
+    /**
+     * Get concepts the user is struggling with
+     */
+    getStrugglingConcepts(userId: string, limit?: number): Promise<UserSkill[]>;
+    /**
+     * Calculate spaced repetition schedule using SM-2 algorithm
+     */
+    calculateSpacedRepetition(schedule: SpacedRepetitionSchedule, quality: ReviewQuality): SpacedRepetitionSchedule;
+    /**
+     * Check if user has mastered prerequisites for a concept
+     */
+    checkPrerequisitesMet(userId: string, _conceptId: string, prerequisites: string[]): Promise<{
+        met: boolean;
+        missing: string[];
+    }>;
+    /**
+     * Get mastery level for a specific concept
+     */
+    getMasteryLevel(userId: string, conceptId: string): Promise<number>;
+    private createNewSkill;
+    private updateExistingSkill;
+    private calculateInitialMastery;
+    private calculateMasteryDelta;
+    private updateConfidence;
+    private determineStrengthTrend;
+    private applySkillDecay;
+    private calculateNextReview;
+    private calculateRetention;
+    private calculateStreak;
+    private getNewlyUnlockedConcepts;
+    private getRecommendedNextConcepts;
+}
+declare function createSkillTracker(config: SkillTrackerConfig): SkillTracker;
+
+/**
+ * @sam-ai/agentic - LearningPathRecommender
+ * Generates personalized learning path recommendations
+ */
+
+interface PathRecommenderConfig {
+    pathStore: LearningPathStore;
+    courseGraphStore: CourseGraphStore;
+    skillTracker: SkillTracker;
+    logger?: MemoryLogger;
+    defaultMaxSteps?: number;
+    defaultMaxMinutes?: number;
+    pathExpirationHours?: number;
+}
+declare class LearningPathRecommender {
+    private pathStore;
+    private courseGraphStore;
+    private skillTracker;
+    private logger?;
+    private defaultMaxSteps;
+    private defaultMaxMinutes;
+    private pathExpirationHours;
+    constructor(config: PathRecommenderConfig);
+    /**
+     * Generate a personalized learning path
+     */
+    generatePath(userId: string, options?: LearningPathOptions): Promise<LearningPath>;
+    /**
+     * Get active learning path for a user
+     */
+    getActivePath(userId: string, courseId?: string): Promise<LearningPath | null>;
+    /**
+     * Mark a step as completed
+     */
+    completeStep(pathId: string, stepOrder: number): Promise<void>;
+    /**
+     * Generate a path to reach a specific target concept
+     */
+    generatePathToTarget(userId: string, targetConceptId: string, courseId: string): Promise<LearningPath>;
+    private buildStrugglingConceptSteps;
+    private buildInProgressSteps;
+    private buildNewConceptSteps;
+    private buildReviewSteps;
+    private buildOrderedSteps;
+    private findAllPrerequisites;
+    private topologicalSort;
+    private calculatePathDifficulty;
+    private calculateConfidence;
+    private generatePathReason;
+    private getConceptName;
+}
+declare function createPathRecommender(config: PathRecommenderConfig): LearningPathRecommender;
+
+/**
  * @sam-ai/agentic
  * Autonomous agentic capabilities for SAM AI mentor
  *
@@ -7902,6 +8270,7 @@ declare const CAPABILITIES: {
     readonly PROACTIVE_INTERVENTIONS: "proactive-interventions";
     readonly SELF_EVALUATION: "self-evaluation";
     readonly LEARNING_ANALYTICS: "learning-analytics";
+    readonly LEARNING_PATH: "learning-path";
 };
 type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
 /**
@@ -7909,4 +8278,4 @@ type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
  */
 declare function hasCapability(capability: Capability): boolean;
 
-export { type AIProvider, type AccessibilitySettings, type Achievement, ActionType, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AnalyticsLogger, AnomalyType, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, CAPABILITIES, type CalibrationBucket, type CalibrationData, type CalibrationStore, type Capability, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ComplexityLevel, type ComprehensionAnalysis, type ConceptMap, type ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ContentData, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextState, type CorrectionSuggestion, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_ROLE_PERMISSIONS, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type EffortBreakdown, type EffortEstimate, type EffortFactor, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, EntityType, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryLearningGapStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, type Intervention, type InterventionResult, type InterventionStore, type InterventionTiming, InterventionType, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath, type LearningPathStep, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, LearningStyle, type LearningSummary, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryItem, type MemoryLogger, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySource, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, MetricSource, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type OptimizedSchedule, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type PatternContext, type PatternStore, PatternType, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanFeedback$1 as PlanFeedback, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PrismaClientLike, type ProactiveLogger, LearningPlanStatus as ProactivePlanStatus, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type RateLimit, RateLimitSchema, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResponseContext, ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type ReviewItem, type RolePermissionMapping, type Rubric, type RubricCriterion, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfEvaluationLogger, type SessionContext, type SessionContextStore, type SessionSummary, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SourceReference, SourceType, type SourceValidation, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepError, type StepExecutionContext, type StepExecutionContextExtended, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepResult, StepStatus, StepStatusSchema, StepType, type StreakInfo, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, SubGoalType, SubGoalTypeSchema, type SuggestedAction, type SupportRecommendation, TimePeriod, type TimeSlot, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionResult, ToolExecutionStatus, ToolExecutionStatusSchema, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TraversalResult, type TrendDataPoint, TrendDirection, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type UpdateGoalInput, UpdateGoalInputSchema, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, UserRole, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, type VerificationResult, type VerificationResultStore, VerificationStatus, type WeeklyBreakdown, type WeeklyMilestone, cosineSimilarity, createAgentStateMachine, createAuditLogger, createBehaviorMonitor, createCheckInScheduler, createConfidenceScorer, createConfirmationManager, createContentTools, createCrossSessionContext, createGoalDecomposer, createInMemoryStores, createJourneyTimeline, createKnowledgeGraphManager, createMemoryRetriever, createMemorySystem, createMentorTools, createMultiSessionPlanTracker, createNotificationTools, createPermissionManager, createPlanBuilder, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createQualityTracker, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createSkillAssessor, createStepExecutor, createStepExecutorFunction, createToolExecutor, createToolRegistry, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, hasCapability };
+export { type AIProvider, type AccessibilitySettings, type Achievement, ActionType, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AnalyticsLogger, AnomalyType, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, CAPABILITIES, type CalibrationBucket, type CalibrationData, type CalibrationStore, type Capability, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ComplexityLevel, type ComprehensionAnalysis, type ConceptMap, type ConceptNode, type ConceptPerformance, type ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ContentData, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextState, type CorrectionSuggestion, type CourseGraph, type CourseGraphStore, type CourseNode, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_ROLE_PERMISSIONS, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type DifficultyLevel, type EffortBreakdown, type EffortEstimate, type EffortFactor, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, EntityType, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryLearningGapStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, type Intervention, type InterventionResult, type InterventionStore, type InterventionTiming, InterventionType, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningAction, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath$1 as LearningPath, type LearningPathOptions, LearningPathRecommender, type LearningPathStep, type LearningPathStore, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningResource, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, LearningStyle$1 as LearningStyle, type LearningSummary, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryItem, type MemoryLogger, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySource, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, MetricSource, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type OptimizedSchedule, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type LearningAnalytics as PathLearningAnalytics, type LearningStyle as PathLearningStyle, type ProgressSnapshot as PathProgressSnapshot, type PathRecommenderConfig, type PathStep, type PatternContext, type PatternStore, PatternType, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type LearningPath as PersonalizedLearningPath, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanFeedback$1 as PlanFeedback, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PrerequisiteImportance, type PrerequisiteRelation, type PrismaClientLike, type ProactiveLogger, LearningPlanStatus as ProactivePlanStatus, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot$1 as ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type RateLimit, RateLimitSchema, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResourceType, type ResponseContext, ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type ReviewItem, type ReviewQuality, type RolePermissionMapping, type Rubric, type RubricCriterion, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfEvaluationLogger, type SessionContext, type SessionContextStore, type SessionSummary, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SkillStore, SkillTracker, type SkillTrackerConfig, type SkillTrend, type SkillUpdateResult, type SourceReference, SourceType, type SourceValidation, type SpacedRepetitionSchedule, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepError, type StepExecutionContext, type StepExecutionContextExtended, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepPriority, type StepResult, StepStatus, StepStatusSchema, StepType, type StreakInfo, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, SubGoalType, SubGoalTypeSchema, type SuggestedAction, type SupportRecommendation, TimePeriod, type TimeSlot, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionResult, ToolExecutionStatus, ToolExecutionStatusSchema, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TraversalResult, type TrendDataPoint, TrendDirection, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type UpdateGoalInput, UpdateGoalInputSchema, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, UserRole, type UserSkill, type UserSkillProfile, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, type VerificationResult, type VerificationResultStore, VerificationStatus, type WeeklyBreakdown, type WeeklyMilestone, cosineSimilarity, createAgentStateMachine, createAuditLogger, createBehaviorMonitor, createCheckInScheduler, createConfidenceScorer, createConfirmationManager, createContentTools, createCrossSessionContext, createGoalDecomposer, createInMemoryStores, createJourneyTimeline, createKnowledgeGraphManager, createMemoryRetriever, createMemorySystem, createMentorTools, createMultiSessionPlanTracker, createNotificationTools, createPathRecommender, createPermissionManager, createPlanBuilder, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createQualityTracker, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createSkillAssessor, createSkillTracker, createStepExecutor, createStepExecutorFunction, createToolExecutor, createToolRegistry, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, hasCapability };

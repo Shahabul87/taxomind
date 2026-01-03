@@ -58,3 +58,19 @@ export {
   createPrismaKnowledgeGraphStore,
   createPrismaSessionContextStore,
 } from './prisma-memory-stores';
+
+// Learning Path Stores
+export {
+  PrismaSkillStore,
+  createPrismaSkillStore,
+} from './prisma-skill-store';
+
+export {
+  PrismaLearningPathStore,
+  createPrismaLearningPathStore,
+} from './prisma-learning-path-store';
+
+export {
+  PrismaCourseGraphStore,
+  createPrismaCourseGraphStore,
+} from './prisma-course-graph-store';

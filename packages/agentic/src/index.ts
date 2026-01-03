@@ -280,6 +280,48 @@ export {
 } from './learning-analytics';
 
 // ============================================================================
+// LEARNING PATH (Skill Tracking & Recommendations)
+// ============================================================================
+
+export {
+  // Types (with prefixes to avoid conflicts with learning-analytics)
+  type CourseNode,
+  type ConceptNode,
+  type DifficultyLevel,
+  type PrerequisiteRelation,
+  type PrerequisiteImportance,
+  type CourseGraph,
+  type UserSkillProfile,
+  type UserSkill,
+  type SkillTrend,
+  type ConceptPerformance,
+  type SkillUpdateResult,
+  type LearningPath as PersonalizedLearningPath,
+  type PathStep,
+  type LearningAction,
+  type StepPriority,
+  type LearningResource,
+  type ResourceType,
+  type LearningPathOptions,
+  type LearningStyle as PathLearningStyle,
+  type SpacedRepetitionSchedule,
+  type ReviewQuality,
+  type SkillStore,
+  type LearningPathStore,
+  type CourseGraphStore,
+  type LearningAnalytics as PathLearningAnalytics,
+  type ProgressSnapshot as PathProgressSnapshot,
+  // Skill Tracker
+  SkillTracker,
+  createSkillTracker,
+  type SkillTrackerConfig,
+  // Learning Path Recommender
+  LearningPathRecommender,
+  createPathRecommender,
+  type PathRecommenderConfig,
+} from './learning-path';
+
+// ============================================================================
 // PACKAGE INFO
 // ============================================================================
 
@@ -297,6 +339,7 @@ export const CAPABILITIES = {
   PROACTIVE_INTERVENTIONS: 'proactive-interventions',
   SELF_EVALUATION: 'self-evaluation',
   LEARNING_ANALYTICS: 'learning-analytics',
+  LEARNING_PATH: 'learning-path',
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
@@ -320,6 +363,8 @@ export function hasCapability(capability: Capability): boolean {
       return true; // Phase E implemented
     case CAPABILITIES.LEARNING_ANALYTICS:
       return true; // Phase F implemented
+    case CAPABILITIES.LEARNING_PATH:
+      return true; // Phase G - Knowledge Graph Integration
     default:
       return false;
   }
