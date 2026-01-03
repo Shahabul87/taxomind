@@ -20,8 +20,8 @@ RUN apk add --no-cache \
     openssl \
     ca-certificates
 
-# Install pnpm (project uses pnpm workspaces)
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm directly (corepack has signature verification issues)
+RUN npm install -g pnpm@9
 
 WORKDIR /app
 
