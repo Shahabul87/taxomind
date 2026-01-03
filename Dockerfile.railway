@@ -20,8 +20,8 @@ RUN apk add --no-cache \
     openssl \
     ca-certificates
 
-# Update npm to latest version (11.6.2) to suppress update notices
-RUN npm install -g npm@11.6.2
+# Install pnpm (project uses pnpm workspaces)
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
@@ -36,15 +36,17 @@ ENV CI=true
 # Skip postinstall to avoid outdated schema merge - use committed schema.prisma
 ENV SKIP_POSTINSTALL=true
 
-COPY package.json package-lock.json* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Copy scripts and prisma directories BEFORE npm install (needed for postinstall)
+# Copy scripts and prisma directories BEFORE pnpm install (needed for postinstall)
 COPY scripts ./scripts
 COPY prisma ./prisma
 
-# Install all dependencies (including dev) and run postinstall
-RUN npm ci && \
-    npm cache clean --force
+# Copy all workspace packages (required for pnpm workspace resolution)
+COPY packages ./packages
+
+# Install all dependencies (including dev) using pnpm
+RUN pnpm install --frozen-lockfile
 
 # ============================================
 # Stage 3: Builder (Build Application)
@@ -56,7 +58,10 @@ WORKDIR /app
 # Copy all dependencies (including dev dependencies for building)
 COPY --from=deps-dev /app/node_modules ./node_modules
 
-# Copy application source code
+# Copy workspace packages with their dependencies from deps-dev
+COPY --from=deps-dev /app/packages ./packages
+
+# Copy application source code (except packages which are already copied)
 COPY . .
 
 # Copy merged schema.prisma and generated Prisma client from deps-dev
@@ -73,7 +78,7 @@ RUN npx prisma generate
 
 # Build Next.js application (creates standalone output)
 # Database migrations run at startup, not during build
-RUN npm run build
+RUN pnpm run build
 
 # CRITICAL: Remove any .env files from standalone output
 # Next.js may copy these during build - Railway injects env vars at runtime
