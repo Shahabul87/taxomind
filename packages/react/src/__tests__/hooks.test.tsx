@@ -212,11 +212,11 @@ describe('useSAM', () => {
 
     act(() => {
       result.current.updateContext({
-        metadata: { custom: 'value' },
+        metadata: { version: 'updated-value', sessionId: 'new-session', startedAt: new Date(), lastActivityAt: new Date() },
       });
     });
 
-    expect(result.current.context.metadata.custom).toBe('value');
+    expect(result.current.context.metadata.version).toBe('updated-value');
   });
 
   it('should update page context', () => {
@@ -276,9 +276,10 @@ describe('useSAMChat', () => {
     });
 
     // useSAMChat should not expose isOpen, open, close, etc.
-    expect((result.current as Record<string, unknown>).isOpen).toBeUndefined();
-    expect((result.current as Record<string, unknown>).open).toBeUndefined();
-    expect((result.current as Record<string, unknown>).close).toBeUndefined();
+    const chatResult = result.current as unknown as Record<string, unknown>;
+    expect(chatResult.isOpen).toBeUndefined();
+    expect(chatResult.open).toBeUndefined();
+    expect(chatResult.close).toBeUndefined();
   });
 
   it('should clear messages', () => {
@@ -423,7 +424,7 @@ describe('SAMProvider Configuration', () => {
         children
       );
 
-    const { result } = renderHook(() => useSAM(), { wrapper });
+    renderHook(() => useSAM(), { wrapper });
 
     await waitFor(() => {
       expect(onStateChange).toHaveBeenCalled();
@@ -480,12 +481,12 @@ describe('Edge Cases', () => {
 
     act(() => {
       result.current.updateContext({
-        metadata: { newKey: 'newValue' },
+        metadata: { version: 'new-version', sessionId: 'updated-session', startedAt: new Date(), lastActivityAt: new Date() },
       });
     });
 
-    // Original fields should still exist
-    expect(result.current.context.metadata.version).toBeDefined();
-    expect(result.current.context.metadata.newKey).toBe('newValue');
+    // Updated field should be set
+    expect(result.current.context.metadata.version).toBe('new-version');
+    expect(result.current.context.metadata.sessionId).toBe('updated-session');
   });
 });

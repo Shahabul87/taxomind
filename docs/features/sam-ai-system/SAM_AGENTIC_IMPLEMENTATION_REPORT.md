@@ -1079,6 +1079,731 @@ The SAM Agentic AI system now has:
 
 ---
 
+## Phase 2: Agentic Autonomy - Orchestration Module (Jan 4, 2026)
+
+### Implementation Summary
+
+| Task | Status | Description |
+|------|--------|-------------|
+| 2.1 | COMPLETED | Orchestration module with TutoringLoopController, ActiveStepExecutor, PlanContextInjector |
+| 2.2 | COMPLETED | Integration with unified SAM API route |
+| 2.3 | COMPLETED | Tool planning with plan context injection |
+| 2.4 | COMPLETED | Step advancement logic for learning plans |
+| 2.5 | COMPLETED | Cross-session continuity with persistent stores |
+| 2.6 | COMPLETED | UI integration with orchestration response data |
+
+### New Files Created
+
+#### Orchestration Module (`packages/agentic/src/orchestration/`)
+
+| Full Path | Purpose | Lines |
+|-----------|---------|-------|
+| `packages/agentic/src/orchestration/types.ts` | Core type definitions (TutoringContext, TutoringSession, StepTransition, etc.) | ~500 |
+| `packages/agentic/src/orchestration/tutoring-loop-controller.ts` | Main orchestration controller for plan-driven tutoring | ~400 |
+| `packages/agentic/src/orchestration/active-step-executor.ts` | Step execution with tool binding and confirmation gates | ~350 |
+| `packages/agentic/src/orchestration/plan-context-injector.ts` | LLM prompt injection for plan context | ~500 |
+| `packages/agentic/src/orchestration/confirmation-gate.ts` | User confirmation handling for high-impact tools | ~365 |
+| `packages/agentic/src/orchestration/stores.ts` | In-memory stores for orchestration data | ~200 |
+| `packages/agentic/src/orchestration/index.ts` | Module exports | ~100 |
+
+#### Prisma Store Implementation
+
+| Full Path | Purpose |
+|-----------|---------|
+| `lib/sam/stores/prisma-tutoring-session-store.ts` | Persistent session storage using Prisma |
+
+#### Integration Layer
+
+| Full Path | Purpose |
+|-----------|---------|
+| `lib/sam/orchestration-integration.ts` | Bridge between orchestration module and SAM API |
+
+### Key Type Definitions
+
+#### TutoringContext (`packages/agentic/src/orchestration/types.ts:27`)
+
+```typescript
+interface TutoringContext {
+  userId: string;
+  sessionId: string;
+  activeGoal: LearningGoal | null;
+  activePlan: ExecutionPlan | null;
+  currentStep: PlanStep | null;
+  stepObjectives: string[];
+  allowedTools: ToolDefinition[];
+  memoryContext: MemoryContextSummary;
+  pendingInterventions: PendingIntervention[];
+  previousStepResults: StepResult[];
+  sessionMetadata: SessionMetadata;
+}
+```
+
+#### StepEvaluation (`packages/agentic/src/orchestration/types.ts:149`)
+
+```typescript
+interface StepEvaluation {
+  stepId: string;
+  objectivesMet: string[];
+  objectivesMissed: string[];
+  progressPercent: number;
+  stepComplete: boolean;
+  shouldAdvance: boolean;
+  feedback: string | null;
+  suggestedInterventions: string[];
+  confidence: number;
+}
+```
+
+#### StepTransition (`packages/agentic/src/orchestration/types.ts:181`)
+
+```typescript
+interface StepTransition {
+  previousStep: PlanStep | null;
+  currentStep: PlanStep | null;
+  transitionType: TransitionType;
+  updatedPlanState: PlanState;
+  transitionMessage: string;
+  planComplete: boolean;
+  celebration: CelebrationData | null;
+}
+```
+
+### Unified Route Integration (`app/api/sam/unified/route.ts`)
+
+Key integration points:
+
+| Line Range | Feature |
+|------------|---------|
+| ~750 | Tutoring context preparation |
+| ~810 | Step progress evaluation |
+| ~828 | Step advancement logic |
+| ~846 | Orchestration response formatting |
+| ~1000 | Tool planning with tutoring context |
+
+### Package Exports (`@sam-ai/agentic`)
+
+```typescript
+// Orchestration Classes
+export {
+  TutoringLoopController,
+  ActiveStepExecutor,
+  PlanContextInjector,
+  ConfirmationGate,
+} from './orchestration';
+
+// Store Implementations
+export {
+  InMemoryOrchestrationConfirmationStore,
+  InMemoryTutoringSessionStore,
+} from './orchestration';
+
+// Type Exports
+export type {
+  TutoringContext,
+  TutoringSession,
+  TutoringSessionState,
+  StepEvaluation,
+  StepTransition,
+  TutoringLoopResult,
+  OrchestrationConfirmationRequest,
+  PlanContextInjection,
+} from './orchestration';
+```
+
+### Key Features Implemented
+
+1. **Plan-Driven Tutoring**
+   - Context preparation from active goals and plans
+   - Step objective extraction and injection
+   - Progress tracking per step and overall plan
+
+2. **Step Advancement Logic**
+   - Automatic evaluation of step completion
+   - Objective tracking (met/missed)
+   - Confidence-based advancement decisions
+   - Celebration/milestone notifications
+
+3. **Tool Integration**
+   - Tool permission checking per step
+   - Confirmation gates for high-risk operations
+   - Plan-aware tool planning
+
+4. **Cross-Session Continuity**
+   - Persistent session storage via Prisma
+   - State preservation across sessions
+   - Memory context integration
+
+5. **Prompt Enhancement**
+   - System prompt additions with learning context
+   - Step-specific objectives and constraints
+   - Multiple template format support (markdown, xml, json)
+
+### Build Verification
+
+```
+✅ SAM Packages TypeScript: PASSED (npm run sam:typecheck - all @sam-ai/* packages)
+✅ ESLint Check: PASSED (no errors in Phase 2 files)
+✅ Agentic Package Build: PASSED (packages/agentic)
+✅ Unified Route Integration: PASSED
+```
+
+**Note:** Full Next.js build (`npm run build`) verification is environment-dependent. In network-restricted environments, the build may fail on `next/font` Google Fonts fetching - this is not code-related. The SAM packages typecheck (`npm run sam:typecheck`) provides comprehensive TypeScript verification for all agentic module code.
+
+### Architecture Flow
+
+```
+                    +------------------------+
+                    |   Unified SAM Route    |
+                    |  (app/api/sam/unified) |
+                    +------------------------+
+                              |
+                              v
+                    +------------------------+
+                    | Orchestration          |
+                    | Integration            |
+                    | (lib/sam/orchestration)|
+                    +------------------------+
+                              |
+          +-------------------+-------------------+
+          |                   |                   |
+          v                   v                   v
++------------------+  +------------------+  +------------------+
+| TutoringLoop     |  | ActiveStep       |  | PlanContext      |
+| Controller       |  | Executor         |  | Injector         |
++------------------+  +------------------+  +------------------+
+          |                   |                   |
+          v                   v                   v
++------------------+  +------------------+  +------------------+
+| Goal/Plan        |  | Tool Registry    |  | Memory           |
+| Stores           |  | & Execution      |  | Stores           |
++------------------+  +------------------+  +------------------+
+```
+
+---
+
+---
+
+## Phase 3: Memory Lifecycle (Jan 4, 2026)
+
+### Implementation Summary
+
+| Task | Status | Description |
+|------|--------|-------------|
+| 3.1 | EXISTING | VectorAdapter interface for portable vector operations |
+| 3.2 | COMPLETED | Memory lifecycle management with auto-reindexing |
+| 3.3 | COMPLETED | Knowledge Graph refresh scheduler |
+| 3.4 | COMPLETED | Memory output normalization for LLM context |
+| 3.5 | COMPLETED | Background worker infrastructure |
+
+### Phase 3.1: VectorAdapter Interface (EXISTING)
+
+The VectorAdapter interface was found to already exist in the codebase:
+
+| File Path | Purpose | Lines |
+|-----------|---------|-------|
+| `packages/integration/src/adapters/vector.ts` | Abstract VectorAdapter interface | ~120 |
+| `packages/adapter-taxomind/src/adapters/pgvector-adapter.ts` | PgVector implementation for Taxomind | ~280 |
+
+**Key Interface Definition** (`packages/integration/src/adapters/vector.ts`):
+
+```typescript
+export interface VectorAdapter {
+  search(query: number[], options: VectorSearchOptions): Promise<VectorSearchResult[]>;
+  upsert(id: string, vector: number[], metadata: Record<string, unknown>): Promise<void>;
+  delete(id: string): Promise<void>;
+  getDimensions(): number;
+  getModelName(): string;
+}
+```
+
+### Phase 3.2: Memory Lifecycle Management (NEW)
+
+Created comprehensive memory lifecycle management with auto-reindexing capabilities.
+
+#### New Files Created
+
+| Full Path | Purpose | Lines |
+|-----------|---------|-------|
+| `packages/agentic/src/memory/lifecycle/types.ts` | Core lifecycle types (ReindexJob, ContentChangeEvent, Config) | ~360 |
+| `packages/agentic/src/memory/lifecycle/memory-lifecycle-manager.ts` | Main lifecycle orchestration with auto-reindex | ~680 |
+| `packages/agentic/src/memory/lifecycle/index.ts` | Module exports | ~60 |
+
+#### Key Types (`packages/agentic/src/memory/lifecycle/types.ts`)
+
+```typescript
+// Content entity types that can trigger reindexing
+export const ContentEntityType = {
+  COURSE: 'course',
+  CHAPTER: 'chapter',
+  SECTION: 'section',
+  USER_NOTE: 'user_note',
+  CONVERSATION: 'conversation',
+  KNOWLEDGE_ENTITY: 'knowledge_entity',
+} as const;
+
+// Change types that trigger lifecycle events
+export const ChangeType = {
+  CREATE: 'create',
+  UPDATE: 'update',
+  DELETE: 'delete',
+  BULK_UPDATE: 'bulk_update',
+} as const;
+
+// Lifecycle configuration interface
+export interface MemoryLifecycleConfig {
+  autoReindexEnabled: boolean;
+  reindexDebounceMs: number;
+  batchSize: number;
+  maxRetries: number;
+  retryDelayMs: number;
+  priorityThresholds: PriorityThresholds;
+  cleanupRetentionDays: number;
+  enableMetrics: boolean;
+}
+```
+
+#### MemoryLifecycleManager Class (`packages/agentic/src/memory/lifecycle/memory-lifecycle-manager.ts`)
+
+```typescript
+export class MemoryLifecycleManager implements MemoryLifecycleManagerInterface {
+  // Core methods
+  async handleContentChange(event: ContentChangeEvent): Promise<void>;
+  async processJobs(options?: ProcessJobsOptions): Promise<ProcessJobsResult>;
+  async cleanup(options?: CleanupOptions): Promise<CleanupResult>;
+
+  // Status methods
+  getStats(): LifecycleStats;
+  getHealth(): HealthCheckResult;
+
+  // Lifecycle methods
+  start(): void;
+  stop(): void;
+  pause(): void;
+  resume(): void;
+}
+```
+
+**Key Features**:
+- Auto-reindex on content changes (create/update/delete)
+- Debouncing for rapid updates (configurable)
+- Priority-based job processing
+- Retry logic with exponential backoff
+- In-memory and pluggable job stores
+- Health monitoring and metrics
+
+### Phase 3.3: Knowledge Graph Refresh Scheduler (NEW)
+
+Created scheduled KG maintenance with multiple job types.
+
+#### New File Created
+
+| Full Path | Purpose | Lines |
+|-----------|---------|-------|
+| `packages/agentic/src/memory/lifecycle/kg-refresh-scheduler.ts` | Scheduled KG updates and relationship maintenance | ~570 |
+
+#### KGRefreshScheduler Class
+
+```typescript
+export class KGRefreshScheduler implements KGRefreshSchedulerInterface {
+  // Scheduling methods
+  async scheduleJob(type: KGRefreshJobType, options?: ScheduleOptions): Promise<KGRefreshJob>;
+  async processDueJobs(): Promise<ProcessJobsResult>;
+
+  // Status methods
+  getStats(): KGRefreshStats;
+  getHealth(): HealthCheckResult;
+
+  // Lifecycle methods
+  start(): void;
+  stop(): void;
+  pause(): void;
+  resume(): void;
+}
+```
+
+#### KG Refresh Job Types
+
+| Job Type | Description | Default Schedule |
+|----------|-------------|------------------|
+| `full_rebuild` | Complete KG rebuild | Weekly |
+| `incremental` | Process recent changes only | Daily |
+| `relationship_check` | Validate relationships | Every 6 hours |
+| `stale_pruning` | Remove stale relationships | Daily |
+| `consistency_check` | Verify KG consistency | Weekly |
+
+**Key Features**:
+- Multiple job type support
+- Cron-like scheduling
+- Progress tracking per job
+- Error handling with retries
+- Entity and relationship counters
+
+### Phase 3.4: Memory Output Normalization (NEW)
+
+Created standardized memory context format for LLM prompt injection.
+
+#### New Files Created
+
+| Full Path | Purpose | Lines |
+|-----------|---------|-------|
+| `packages/agentic/src/memory/normalization/types.ts` | Normalized context types and schemas | ~400 |
+| `packages/agentic/src/memory/normalization/memory-normalizer.ts` | Raw memory to normalized format converter | ~580 |
+| `packages/agentic/src/memory/normalization/index.ts` | Module exports | ~50 |
+
+#### NormalizedMemoryContext Structure (`packages/agentic/src/memory/normalization/types.ts`)
+
+```typescript
+export interface NormalizedMemoryContext {
+  id: string;
+  userId: string;
+  courseId?: string;
+  generatedAt: Date;
+  generationTimeMs: number;
+  segments: MemorySegment[];
+  relevanceScore: number;
+  sources: NormalizedMemorySource[];
+  strategies: RetrievalStrategyUsed[];
+  metadata: ContextMetadata;
+}
+
+export interface MemorySegment {
+  type: MemorySegmentType;
+  title: string;
+  items: NormalizedMemoryItem[];
+  relevanceScore: number;
+  priority: number;
+}
+```
+
+#### Memory Segment Types
+
+| Segment Type | Description |
+|--------------|-------------|
+| `course_content` | Course material and lessons |
+| `user_history` | User learning history |
+| `previous_conversations` | Past conversation turns |
+| `related_concepts` | Related knowledge concepts |
+| `learning_progress` | Progress metrics |
+| `user_notes` | User annotations |
+| `external_knowledge` | External sources |
+| `recent_activity` | Recent user activity |
+
+#### MemoryNormalizer Class (`packages/agentic/src/memory/normalization/memory-normalizer.ts`)
+
+```typescript
+export class MemoryNormalizer implements MemoryNormalizerInterface {
+  // Core methods
+  async normalize(input: RawMemoryInput): Promise<NormalizedMemoryContext>;
+  formatForPrompt(context: NormalizedMemoryContext): string;
+  formatAsStructuredData(context: NormalizedMemoryContext): StructuredMemoryData;
+
+  // Configuration
+  getConfig(): MemoryNormalizerConfig;
+  updateConfig(config: Partial<MemoryNormalizerConfig>): void;
+}
+```
+
+**Key Features**:
+- Converts raw vector/graph results to standardized format
+- Token budget management
+- Content truncation with summaries
+- Multiple output formats (prompt string, structured JSON)
+- Zod schema validation
+
+### Phase 3.5: Background Worker Infrastructure (NEW)
+
+Created job queue and worker system for background memory operations.
+
+#### New Files Created
+
+| Full Path | Purpose | Lines |
+|-----------|---------|-------|
+| `packages/agentic/src/memory/worker/types.ts` | Job queue and worker types | ~380 |
+| `packages/agentic/src/memory/worker/background-worker.ts` | Background job processing implementation | ~550 |
+| `packages/agentic/src/memory/worker/index.ts` | Module exports | ~50 |
+
+#### Job Types (`packages/agentic/src/memory/worker/types.ts`)
+
+```typescript
+export const JobType = {
+  VECTOR_INDEX: 'vector_index',
+  VECTOR_REINDEX: 'vector_reindex',
+  KG_UPDATE: 'kg_update',
+  KG_REBUILD: 'kg_rebuild',
+  MEMORY_CLEANUP: 'memory_cleanup',
+  CACHE_INVALIDATION: 'cache_invalidation',
+  ANALYTICS_AGGREGATION: 'analytics_aggregation',
+  SESSION_ARCHIVE: 'session_archive',
+} as const;
+
+export const JobStatus = {
+  PENDING: 'pending',
+  QUEUED: 'queued',
+  ACTIVE: 'active',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  DELAYED: 'delayed',
+  PAUSED: 'paused',
+} as const;
+```
+
+#### InMemoryJobQueue Class (`packages/agentic/src/memory/worker/background-worker.ts`)
+
+```typescript
+export class InMemoryJobQueue implements JobQueueInterface {
+  async add<TData>(type: JobType, data: TData, options?: Partial<BaseJob>): Promise<BaseJob>;
+  async get(jobId: string): Promise<BaseJob | null>;
+  async update(jobId: string, updates: Partial<BaseJob>): Promise<BaseJob | null>;
+  async remove(jobId: string): Promise<boolean>;
+  async getNextPending(): Promise<BaseJob | null>;
+  async getByStatus(status: JobStatus, limit?: number): Promise<BaseJob[]>;
+  async getStats(): Promise<QueueStats>;
+  async pause(): Promise<void>;
+  async resume(): Promise<void>;
+  async cleanup(olderThan: Date): Promise<number>;
+}
+```
+
+#### BackgroundWorker Class
+
+```typescript
+export class BackgroundWorker implements BackgroundWorkerInterface {
+  // Lifecycle
+  async start(): Promise<void>;
+  async stop(): Promise<void>;
+  async pause(): Promise<void>;
+  async resume(): Promise<void>;
+
+  // Handler management
+  registerHandler<TData, TResult>(type: JobType, handler: JobHandler<TData, TResult>): void;
+  unregisterHandler(type: JobType): void;
+
+  // Status
+  getStatus(): WorkerStatus;
+  getStats(): WorkerStats;
+
+  // Job management
+  async processJob(jobId: string): Promise<void>;
+  async addJob<TData>(type: JobType, data: TData, options?: Partial<BaseJob>): Promise<BaseJob>;
+}
+```
+
+**Key Features**:
+- Configurable concurrency
+- Priority-based job ordering
+- Retry with exponential backoff
+- Graceful shutdown support
+- Event listeners for job lifecycle
+- Queue statistics and monitoring
+
+### Module Exports (`packages/agentic/src/memory/index.ts`)
+
+Added new exports for Phase 3 modules:
+
+```typescript
+// Memory Lifecycle Management
+export * from './lifecycle';
+
+// Memory Normalization
+export * from './normalization';
+
+// Background Worker
+export * from './worker';
+```
+
+### TypeScript Errors Fixed
+
+During implementation, several TypeScript errors were identified and fixed:
+
+| Error | File | Fix Applied |
+|-------|------|-------------|
+| Name conflict: MemoryItem | `normalization/types.ts` | Renamed to `NormalizedMemoryItem` |
+| Name conflict: MemorySource | `normalization/types.ts` | Renamed to `NormalizedMemorySource` |
+| Name conflict: RetrievalStrategy | `normalization/types.ts` | Renamed to `NormalizationRetrievalStrategy` |
+| Unused import: GraphEntity | `kg-refresh-scheduler.ts` | Removed import |
+| Unused import: ReindexJobType | `memory-lifecycle-manager.ts` | Removed import |
+| Unused variable: embeddingAdapter | `memory-lifecycle-manager.ts` | Removed property |
+| Unused variable: courseId | `memory-normalizer.ts` | Prefixed with underscore |
+| Unused variable: duration | `background-worker.ts` | Used void expression |
+
+### Build Verification
+
+```
+✅ TypeScript Check: PASSED (npx tsc --noEmit -p packages/agentic/tsconfig.json)
+✅ Package Build: PASSED (npm run build -w packages/agentic)
+   - dist/index.js: 671.62 KB
+   - dist/index.mjs: 652.83 KB
+   - dist/index.d.ts: 333.71 KB
+   - dist/index.d.mts: 333.71 KB
+✅ All Phase 3 exports available from @sam-ai/agentic
+```
+
+### File Summary
+
+| Phase | File | Lines | Status |
+|-------|------|-------|--------|
+| 3.1 | `packages/integration/src/adapters/vector.ts` | ~120 | EXISTING |
+| 3.1 | `packages/adapter-taxomind/src/adapters/pgvector-adapter.ts` | ~280 | EXISTING |
+| 3.2 | `packages/agentic/src/memory/lifecycle/types.ts` | ~360 | NEW |
+| 3.2 | `packages/agentic/src/memory/lifecycle/memory-lifecycle-manager.ts` | ~680 | NEW |
+| 3.2 | `packages/agentic/src/memory/lifecycle/index.ts` | ~60 | NEW |
+| 3.3 | `packages/agentic/src/memory/lifecycle/kg-refresh-scheduler.ts` | ~570 | NEW |
+| 3.4 | `packages/agentic/src/memory/normalization/types.ts` | ~400 | NEW |
+| 3.4 | `packages/agentic/src/memory/normalization/memory-normalizer.ts` | ~580 | NEW |
+| 3.4 | `packages/agentic/src/memory/normalization/index.ts` | ~50 | NEW |
+| 3.5 | `packages/agentic/src/memory/worker/types.ts` | ~380 | NEW |
+| 3.5 | `packages/agentic/src/memory/worker/background-worker.ts` | ~550 | NEW |
+| 3.5 | `packages/agentic/src/memory/worker/index.ts` | ~50 | NEW |
+
+**Total New Lines**: ~3,680 lines
+**Total Files**: 10 new files + 2 existing files verified
+
+### Architecture Integration
+
+```
++---------------------------------------------+
+|              @sam-ai/agentic                |
++---------------------------------------------+
+|  Memory Module (packages/agentic/src/memory)|
+|  +---------------------------------------+  |
+|  |           Lifecycle Management        |  |
+|  |  +----------------------------------+ |  |
+|  |  | MemoryLifecycleManager           | |  |
+|  |  | - handleContentChange()          | |  |
+|  |  | - processJobs()                  | |  |
+|  |  | - Auto-reindex on changes        | |  |
+|  |  +----------------------------------+ |  |
+|  |  | KGRefreshScheduler               | |  |
+|  |  | - scheduleJob()                  | |  |
+|  |  | - processDueJobs()               | |  |
+|  |  | - Stale pruning                  | |  |
+|  |  +----------------------------------+ |  |
+|  +---------------------------------------+  |
+|  |           Normalization              |  |
+|  |  +----------------------------------+ |  |
+|  |  | MemoryNormalizer                 | |  |
+|  |  | - normalize()                    | |  |
+|  |  | - formatForPrompt()              | |  |
+|  |  | - Token budget management        | |  |
+|  |  +----------------------------------+ |  |
+|  +---------------------------------------+  |
+|  |         Background Worker             |  |
+|  |  +----------------------------------+ |  |
+|  |  | InMemoryJobQueue                 | |  |
+|  |  | - add(), get(), update()         | |  |
+|  |  | - Priority ordering              | |  |
+|  |  +----------------------------------+ |  |
+|  |  | BackgroundWorker                 | |  |
+|  |  | - start(), stop(), pause()       | |  |
+|  |  | - registerHandler()              | |  |
+|  |  | - Retry with backoff             | |  |
+|  |  +----------------------------------+ |  |
+|  +---------------------------------------+  |
++---------------------------------------------+
+            |                |
+            v                v
++------------------+  +------------------+
+| VectorAdapter    |  | Prisma Stores    |
+| (integration)    |  | (adapter-prisma) |
++------------------+  +------------------+
+```
+
+### Usage Examples
+
+#### Memory Lifecycle Manager
+
+```typescript
+import {
+  MemoryLifecycleManager,
+  createInMemoryReindexJobStore,
+  ContentEntityType,
+  ChangeType
+} from '@sam-ai/agentic';
+
+const manager = new MemoryLifecycleManager({
+  store: createInMemoryReindexJobStore(),
+  vectorAdapter: myVectorAdapter,
+  config: {
+    autoReindexEnabled: true,
+    reindexDebounceMs: 5000,
+  },
+});
+
+manager.start();
+
+// Handle content changes
+await manager.handleContentChange({
+  entityType: ContentEntityType.SECTION,
+  entityId: 'section-123',
+  changeType: ChangeType.UPDATE,
+  timestamp: new Date(),
+});
+```
+
+#### KG Refresh Scheduler
+
+```typescript
+import { KGRefreshScheduler, KGRefreshJobType } from '@sam-ai/agentic';
+
+const scheduler = new KGRefreshScheduler({
+  kgManager: myKGManager,
+});
+
+scheduler.start();
+
+// Schedule a stale pruning job
+await scheduler.scheduleJob(KGRefreshJobType.STALE_PRUNING, {
+  priority: 5,
+  scheduledFor: new Date(Date.now() + 3600000), // 1 hour
+});
+```
+
+#### Memory Normalizer
+
+```typescript
+import { MemoryNormalizer } from '@sam-ai/agentic';
+
+const normalizer = new MemoryNormalizer();
+
+const context = await normalizer.normalize({
+  userId: 'user-123',
+  courseId: 'course-456',
+  query: 'quantum mechanics',
+  vectorResults: [...],
+  graphResults: [...],
+});
+
+// Format for LLM prompt
+const promptContext = normalizer.formatForPrompt(context);
+```
+
+#### Background Worker
+
+```typescript
+import { BackgroundWorker, createJobQueue, JobType } from '@sam-ai/agentic';
+
+const worker = new BackgroundWorker({
+  config: { concurrency: 3 },
+});
+
+// Register handlers
+worker.registerHandler(JobType.VECTOR_INDEX, async (job) => {
+  const { content, metadata } = job.data;
+  await vectorStore.index(content, metadata);
+  return { indexed: true };
+});
+
+worker.start();
+
+// Add job
+await worker.addJob(JobType.VECTOR_INDEX, {
+  content: 'Section content...',
+  metadata: { sectionId: 'sec-123' },
+});
+```
+
+---
+
 *Report generated: January 3, 2026*
 *Updated: January 3, 2026 (Tool Handlers Implementation)*
 *Updated: January 3, 2026 (Vector Search Integration)*
@@ -1086,4 +1811,6 @@ The SAM Agentic AI system now has:
 *Updated: January 3, 2026 (Proactive Check-In Scheduler)*
 *Updated: January 3, 2026 (External API Tool Support)*
 *Updated: January 4, 2026 (Multi-Session LearningPlanStore Implementation - ALL GAPS COMPLETE)*
+*Updated: January 4, 2026 (Phase 2 Orchestration Module - Agentic Autonomy)*
+*Updated: January 4, 2026 (Phase 3 Memory Lifecycle - COMPLETE)*
 *Author: Claude AI Assistant*

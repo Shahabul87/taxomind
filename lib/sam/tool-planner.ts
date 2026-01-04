@@ -15,6 +15,15 @@ export interface ToolPlanContext {
   pagePath?: string;
   entitySummary?: string;
   memorySummary?: string;
+  // NEW: Tutoring orchestration context for plan-driven tool planning
+  tutoringContext?: {
+    activePlanTitle?: string;
+    currentStepTitle?: string;
+    currentStepType?: string;
+    stepObjectives?: string[];
+    stepProgress?: number;
+    planContextAdditions?: string[];
+  };
 }
 
 export interface PlannedToolInvocation {
@@ -26,8 +35,10 @@ export interface PlannedToolInvocation {
 
 const TOOL_SELECTION_SYSTEM_PROMPT = [
   'You are an expert tool planner for an AI mentor.',
-  'Your job is to decide whether to call a tool based on the user message and context.',
-  'Only call a tool if the user explicitly asks for an action the tool can perform.',
+  'Your job is to decide whether to call a tool based on the user message, learning context, and current plan step.',
+  'Consider the current learning objectives and step type when selecting tools.',
+  'Only call a tool if the user explicitly asks for an action the tool can perform,',
+  'OR if a tool would directly help achieve the current step objectives.',
   'If no tool is needed, respond with {"action":"none"}.',
   'When calling a tool, provide a minimal JSON object for "input".',
   'Return ONLY valid JSON. No markdown, no prose.',
@@ -119,11 +130,33 @@ export async function planToolInvocation(params: {
   const selectedTools = selectToolsForPlanning(params.tools, params.message, maxTools);
   const allowedToolIds = new Set(selectedTools.map((tool) => tool.id));
 
+  // Build tutoring context section if available
+  const tutoringLines: string[] = [];
+  if (params.context?.tutoringContext) {
+    const tc = params.context.tutoringContext;
+    if (tc.activePlanTitle) {
+      tutoringLines.push(`Active learning plan: ${tc.activePlanTitle}`);
+    }
+    if (tc.currentStepTitle) {
+      tutoringLines.push(`Current step: ${tc.currentStepTitle} (${tc.currentStepType || 'learning'})`);
+    }
+    if (tc.stepObjectives && tc.stepObjectives.length > 0) {
+      tutoringLines.push(`Step objectives: ${tc.stepObjectives.slice(0, 3).join('; ')}`);
+    }
+    if (tc.stepProgress !== undefined) {
+      tutoringLines.push(`Step progress: ${Math.round(tc.stepProgress * 100)}%`);
+    }
+    if (tc.planContextAdditions && tc.planContextAdditions.length > 0) {
+      tutoringLines.push(...tc.planContextAdditions.slice(0, 2).map(a => truncateText(a, 200)));
+    }
+  }
+
   const contextLines = [
     params.context?.pageType ? `Page type: ${params.context.pageType}` : undefined,
     params.context?.pagePath ? `Page path: ${params.context.pagePath}` : undefined,
     params.context?.entitySummary ? `Entity summary: ${truncateText(params.context.entitySummary, 600)}` : undefined,
     params.context?.memorySummary ? `Memory context: ${truncateText(params.context.memorySummary, 400)}` : undefined,
+    tutoringLines.length > 0 ? `\nLearning plan context:\n${tutoringLines.join('\n')}` : undefined,
   ].filter(Boolean);
 
   const userPrompt = [

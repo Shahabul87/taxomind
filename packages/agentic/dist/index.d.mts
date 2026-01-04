@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AIAdapter, SAMLogger } from '@sam-ai/core';
+import { VectorAdapter } from '@sam-ai/integration';
 
 /**
  * @sam-ai/agentic - Goal Planning Types
@@ -1097,7 +1098,7 @@ declare const AuditLogLevel: {
     readonly CRITICAL: "critical";
 };
 type AuditLogLevel = (typeof AuditLogLevel)[keyof typeof AuditLogLevel];
-declare const ToolExecutionStatus: {
+declare const ToolExecutionStatus$1: {
     readonly PENDING: "pending";
     readonly AWAITING_CONFIRMATION: "awaiting_confirmation";
     readonly EXECUTING: "executing";
@@ -1107,7 +1108,7 @@ declare const ToolExecutionStatus: {
     readonly CANCELLED: "cancelled";
     readonly TIMEOUT: "timeout";
 };
-type ToolExecutionStatus = (typeof ToolExecutionStatus)[keyof typeof ToolExecutionStatus];
+type ToolExecutionStatus$1 = (typeof ToolExecutionStatus$1)[keyof typeof ToolExecutionStatus$1];
 interface ToolDefinition {
     id: string;
     name: string;
@@ -1175,7 +1176,7 @@ interface ToolInvocation {
     sessionId: string;
     input: unknown;
     validatedInput?: unknown;
-    status: ToolExecutionStatus;
+    status: ToolExecutionStatus$1;
     confirmationType: ConfirmationType;
     confirmationPrompt?: string;
     userConfirmed?: boolean;
@@ -2204,7 +2205,7 @@ interface ExecuteOptions {
 interface ExecutionOutcome {
     invocation: ToolInvocation;
     result: ToolExecutionResult | null;
-    status: ToolExecutionStatus;
+    status: ToolExecutionStatus$1;
     awaitingConfirmation: boolean;
     confirmationId?: string;
 }
@@ -3405,7 +3406,7 @@ interface MemoryItem {
     type: MemoryType;
     content: string;
     relevanceScore: number;
-    source: MemorySource;
+    source: MemorySource$1;
     context: MemoryContext;
     timestamp: Date;
 }
@@ -3423,7 +3424,7 @@ type MemoryType = (typeof MemoryType)[keyof typeof MemoryType];
 /**
  * Source of memory
  */
-interface MemorySource {
+interface MemorySource$1 {
     type: EmbeddingSourceType;
     id: string;
     title?: string;
@@ -4464,6 +4465,1493 @@ interface Achievement$1 {
 declare function createJourneyTimeline(config?: JourneyTimelineConfig): JourneyTimelineManager;
 
 /**
+ * @sam-ai/agentic - Memory Lifecycle Types
+ * Type definitions for memory lifecycle management
+ */
+
+/**
+ * Content change event that triggers reindexing
+ */
+interface ContentChangeEvent {
+    id: string;
+    entityType: ContentEntityType;
+    entityId: string;
+    changeType: ChangeType;
+    timestamp: Date;
+    metadata: ContentChangeMetadata;
+}
+/**
+ * Types of content entities that can be indexed
+ */
+declare const ContentEntityType: {
+    readonly COURSE: "course";
+    readonly CHAPTER: "chapter";
+    readonly SECTION: "section";
+    readonly LESSON: "lesson";
+    readonly QUIZ: "quiz";
+    readonly RESOURCE: "resource";
+    readonly USER_NOTE: "user_note";
+    readonly CONVERSATION: "conversation";
+};
+type ContentEntityType = (typeof ContentEntityType)[keyof typeof ContentEntityType];
+/**
+ * Types of changes that can occur
+ */
+declare const ChangeType: {
+    readonly CREATE: "create";
+    readonly UPDATE: "update";
+    readonly DELETE: "delete";
+    readonly BULK_UPDATE: "bulk_update";
+};
+type ChangeType = (typeof ChangeType)[keyof typeof ChangeType];
+/**
+ * Metadata about the content change
+ */
+interface ContentChangeMetadata {
+    courseId?: string;
+    chapterId?: string;
+    sectionId?: string;
+    userId?: string;
+    previousHash?: string;
+    newHash?: string;
+    fieldsChanged?: string[];
+    batchId?: string;
+}
+/**
+ * Reindex job definition
+ */
+interface ReindexJob {
+    id: string;
+    type: ReindexJobType;
+    status: ReindexJobStatus;
+    priority: ReindexPriority;
+    entityType: ContentEntityType;
+    entityId: string;
+    changeType: ChangeType;
+    metadata: ReindexJobMetadata;
+    attempts: number;
+    maxAttempts: number;
+    lastAttemptAt?: Date;
+    lastError?: string;
+    scheduledFor: Date;
+    startedAt?: Date;
+    completedAt?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+/**
+ * Types of reindex jobs
+ */
+declare const ReindexJobType: {
+    readonly SINGLE: "single";
+    readonly BATCH: "batch";
+    readonly FULL: "full";
+    readonly INCREMENTAL: "incremental";
+};
+type ReindexJobType = (typeof ReindexJobType)[keyof typeof ReindexJobType];
+/**
+ * Reindex job status
+ */
+declare const ReindexJobStatus: {
+    readonly PENDING: "pending";
+    readonly QUEUED: "queued";
+    readonly PROCESSING: "processing";
+    readonly COMPLETED: "completed";
+    readonly FAILED: "failed";
+    readonly CANCELLED: "cancelled";
+    readonly RETRYING: "retrying";
+};
+type ReindexJobStatus = (typeof ReindexJobStatus)[keyof typeof ReindexJobStatus];
+/**
+ * Priority levels for reindex jobs
+ */
+declare const ReindexPriority: {
+    readonly LOW: 1;
+    readonly NORMAL: 5;
+    readonly HIGH: 10;
+    readonly CRITICAL: 100;
+};
+type ReindexPriority = (typeof ReindexPriority)[keyof typeof ReindexPriority];
+/**
+ * Metadata for reindex jobs
+ */
+interface ReindexJobMetadata {
+    courseId?: string;
+    affectedDocuments?: string[];
+    batchSize?: number;
+    contentHash?: string;
+    source?: string;
+    triggeredBy?: string;
+    custom?: Record<string, unknown>;
+}
+/**
+ * Result of a reindex operation
+ */
+interface ReindexResult {
+    jobId: string;
+    success: boolean;
+    documentsProcessed: number;
+    documentsAdded: number;
+    documentsUpdated: number;
+    documentsDeleted: number;
+    errors: ReindexError[];
+    duration: number;
+    timestamp: Date;
+}
+/**
+ * Error during reindexing
+ */
+interface ReindexError {
+    documentId?: string;
+    entityId?: string;
+    message: string;
+    code: string;
+    recoverable: boolean;
+}
+/**
+ * Memory lifecycle manager configuration
+ */
+interface MemoryLifecycleConfig {
+    /** Enable automatic reindexing */
+    autoReindexEnabled: boolean;
+    /** Debounce time for rapid updates (ms) */
+    debounceMs: number;
+    /** Maximum batch size for bulk operations */
+    maxBatchSize: number;
+    /** Maximum concurrent reindex jobs */
+    maxConcurrentJobs: number;
+    /** Job retry configuration */
+    retry: {
+        maxAttempts: number;
+        backoffMs: number;
+        backoffMultiplier: number;
+    };
+    /** Priority rules */
+    priorityRules: PriorityRule[];
+    /** Entity-specific configurations */
+    entityConfigs: Record<ContentEntityType, EntityReindexConfig>;
+}
+/**
+ * Priority rule for determining job priority
+ */
+interface PriorityRule {
+    condition: {
+        entityTypes?: ContentEntityType[];
+        changeTypes?: ChangeType[];
+        custom?: (event: ContentChangeEvent) => boolean;
+    };
+    priority: ReindexPriority;
+}
+/**
+ * Entity-specific reindex configuration
+ */
+interface EntityReindexConfig {
+    enabled: boolean;
+    debounceMs?: number;
+    batchSize?: number;
+    extractContent: (entityId: string) => Promise<ExtractedContent | null>;
+}
+/**
+ * Extracted content ready for embedding
+ */
+interface ExtractedContent {
+    id: string;
+    content: string;
+    title?: string;
+    metadata: Record<string, unknown>;
+    chunks?: ContentChunk[];
+}
+/**
+ * Content chunk for large documents
+ */
+interface ContentChunk {
+    id: string;
+    content: string;
+    index: number;
+    metadata: Record<string, unknown>;
+}
+/**
+ * Memory lifecycle manager interface
+ */
+interface MemoryLifecycleManagerInterface {
+    /** Handle content change event */
+    handleContentChange(event: ContentChangeEvent): Promise<void>;
+    /** Queue a reindex job */
+    queueReindexJob(job: Omit<ReindexJob, 'id' | 'createdAt' | 'updatedAt'>): Promise<ReindexJob>;
+    /** Get pending jobs */
+    getPendingJobs(limit?: number): Promise<ReindexJob[]>;
+    /** Process next batch of jobs */
+    processJobs(): Promise<ReindexResult[]>;
+    /** Cancel a job */
+    cancelJob(jobId: string): Promise<boolean>;
+    /** Get job status */
+    getJobStatus(jobId: string): Promise<ReindexJob | null>;
+    /** Get lifecycle statistics */
+    getStats(): Promise<LifecycleStats>;
+    /** Trigger full reindex for an entity type */
+    triggerFullReindex(entityType: ContentEntityType): Promise<ReindexJob>;
+    /** Start the lifecycle manager */
+    start(): Promise<void>;
+    /** Stop the lifecycle manager */
+    stop(): Promise<void>;
+}
+/**
+ * Lifecycle statistics
+ */
+interface LifecycleStats {
+    pendingJobs: number;
+    processingJobs: number;
+    completedToday: number;
+    failedToday: number;
+    averageProcessingTime: number;
+    lastProcessedAt?: Date;
+    queueDepthByPriority: Record<number, number>;
+}
+/**
+ * Storage interface for reindex jobs
+ */
+interface ReindexJobStore {
+    create(job: Omit<ReindexJob, 'id' | 'createdAt' | 'updatedAt'>): Promise<ReindexJob>;
+    get(id: string): Promise<ReindexJob | null>;
+    update(id: string, updates: Partial<ReindexJob>): Promise<ReindexJob | null>;
+    delete(id: string): Promise<boolean>;
+    findPending(limit: number): Promise<ReindexJob[]>;
+    findByEntity(entityType: ContentEntityType, entityId: string): Promise<ReindexJob[]>;
+    findByStatus(status: ReindexJobStatus, limit?: number): Promise<ReindexJob[]>;
+    countByStatus(): Promise<Record<ReindexJobStatus, number>>;
+    cleanupCompleted(olderThan: Date): Promise<number>;
+}
+declare const ContentChangeEventSchema: z.ZodObject<{
+    id: z.ZodString;
+    entityType: z.ZodEnum<["course", "chapter", "section", "lesson", "quiz", "resource", "user_note", "conversation"]>;
+    entityId: z.ZodString;
+    changeType: z.ZodEnum<["create", "update", "delete", "bulk_update"]>;
+    timestamp: z.ZodDate;
+    metadata: z.ZodObject<{
+        courseId: z.ZodOptional<z.ZodString>;
+        chapterId: z.ZodOptional<z.ZodString>;
+        sectionId: z.ZodOptional<z.ZodString>;
+        userId: z.ZodOptional<z.ZodString>;
+        previousHash: z.ZodOptional<z.ZodString>;
+        newHash: z.ZodOptional<z.ZodString>;
+        fieldsChanged: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+        batchId: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        userId?: string | undefined;
+        previousHash?: string | undefined;
+        newHash?: string | undefined;
+        fieldsChanged?: string[] | undefined;
+        batchId?: string | undefined;
+    }, {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        userId?: string | undefined;
+        previousHash?: string | undefined;
+        newHash?: string | undefined;
+        fieldsChanged?: string[] | undefined;
+        batchId?: string | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    metadata: {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        userId?: string | undefined;
+        previousHash?: string | undefined;
+        newHash?: string | undefined;
+        fieldsChanged?: string[] | undefined;
+        batchId?: string | undefined;
+    };
+    timestamp: Date;
+    entityId: string;
+    entityType: "resource" | "quiz" | "chapter" | "section" | "user_note" | "conversation" | "course" | "lesson";
+    changeType: "create" | "update" | "delete" | "bulk_update";
+}, {
+    id: string;
+    metadata: {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        userId?: string | undefined;
+        previousHash?: string | undefined;
+        newHash?: string | undefined;
+        fieldsChanged?: string[] | undefined;
+        batchId?: string | undefined;
+    };
+    timestamp: Date;
+    entityId: string;
+    entityType: "resource" | "quiz" | "chapter" | "section" | "user_note" | "conversation" | "course" | "lesson";
+    changeType: "create" | "update" | "delete" | "bulk_update";
+}>;
+declare const MemoryLifecycleConfigSchema: z.ZodObject<{
+    autoReindexEnabled: z.ZodDefault<z.ZodBoolean>;
+    debounceMs: z.ZodDefault<z.ZodNumber>;
+    maxBatchSize: z.ZodDefault<z.ZodNumber>;
+    maxConcurrentJobs: z.ZodDefault<z.ZodNumber>;
+    retry: z.ZodObject<{
+        maxAttempts: z.ZodDefault<z.ZodNumber>;
+        backoffMs: z.ZodDefault<z.ZodNumber>;
+        backoffMultiplier: z.ZodDefault<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        maxAttempts: number;
+        backoffMs: number;
+        backoffMultiplier: number;
+    }, {
+        maxAttempts?: number | undefined;
+        backoffMs?: number | undefined;
+        backoffMultiplier?: number | undefined;
+    }>;
+    priorityRules: z.ZodDefault<z.ZodArray<z.ZodAny, "many">>;
+    entityConfigs: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodAny>>;
+}, "strip", z.ZodTypeAny, {
+    retry: {
+        maxAttempts: number;
+        backoffMs: number;
+        backoffMultiplier: number;
+    };
+    autoReindexEnabled: boolean;
+    debounceMs: number;
+    maxBatchSize: number;
+    maxConcurrentJobs: number;
+    priorityRules: any[];
+    entityConfigs: Record<string, any>;
+}, {
+    retry: {
+        maxAttempts?: number | undefined;
+        backoffMs?: number | undefined;
+        backoffMultiplier?: number | undefined;
+    };
+    autoReindexEnabled?: boolean | undefined;
+    debounceMs?: number | undefined;
+    maxBatchSize?: number | undefined;
+    maxConcurrentJobs?: number | undefined;
+    priorityRules?: any[] | undefined;
+    entityConfigs?: Record<string, any> | undefined;
+}>;
+
+/**
+ * @sam-ai/agentic - Memory Lifecycle Manager
+ * Manages memory reindexing and lifecycle operations
+ */
+
+declare class InMemoryReindexJobStore implements ReindexJobStore {
+    private jobs;
+    create(job: Omit<ReindexJob, 'id' | 'createdAt' | 'updatedAt'>): Promise<ReindexJob>;
+    get(id: string): Promise<ReindexJob | null>;
+    update(id: string, updates: Partial<ReindexJob>): Promise<ReindexJob | null>;
+    delete(id: string): Promise<boolean>;
+    findPending(limit: number): Promise<ReindexJob[]>;
+    findByEntity(entityType: ContentEntityType, entityId: string): Promise<ReindexJob[]>;
+    findByStatus(status: ReindexJobStatus, limit?: number): Promise<ReindexJob[]>;
+    countByStatus(): Promise<Record<ReindexJobStatus, number>>;
+    cleanupCompleted(olderThan: Date): Promise<number>;
+    clear(): void;
+}
+declare class MemoryLifecycleManager implements MemoryLifecycleManagerInterface {
+    private readonly config;
+    private readonly store;
+    private readonly vectorAdapter;
+    private readonly logger;
+    private readonly debouncer;
+    private isRunning;
+    private processingInterval?;
+    private activeJobs;
+    constructor(options: {
+        config?: Partial<MemoryLifecycleConfig>;
+        store?: ReindexJobStore;
+        vectorAdapter: VectorAdapter;
+        logger?: MemoryLogger;
+    });
+    handleContentChange(event: ContentChangeEvent): Promise<void>;
+    private processDebouncedEvents;
+    private calculatePriority;
+    queueReindexJob(job: Omit<ReindexJob, 'id' | 'createdAt' | 'updatedAt'>): Promise<ReindexJob>;
+    getPendingJobs(limit?: number): Promise<ReindexJob[]>;
+    processJobs(): Promise<ReindexResult[]>;
+    private processJob;
+    cancelJob(jobId: string): Promise<boolean>;
+    getJobStatus(jobId: string): Promise<ReindexJob | null>;
+    getStats(): Promise<LifecycleStats>;
+    triggerFullReindex(entityType: ContentEntityType): Promise<ReindexJob>;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+}
+declare function createMemoryLifecycleManager(options: {
+    config?: Partial<MemoryLifecycleConfig>;
+    store?: ReindexJobStore;
+    vectorAdapter: VectorAdapter;
+    logger?: MemoryLogger;
+}): MemoryLifecycleManager;
+
+/**
+ * @sam-ai/agentic - Knowledge Graph Refresh Scheduler
+ * Manages scheduled KG updates and relationship maintenance
+ */
+
+/**
+ * KG Refresh job types
+ */
+declare const KGRefreshJobType: {
+    readonly FULL_REBUILD: "full_rebuild";
+    readonly INCREMENTAL: "incremental";
+    readonly RELATIONSHIP_CHECK: "relationship_check";
+    readonly STALE_PRUNING: "stale_pruning";
+    readonly CONSISTENCY_CHECK: "consistency_check";
+};
+type KGRefreshJobType = (typeof KGRefreshJobType)[keyof typeof KGRefreshJobType];
+/**
+ * KG Refresh job status
+ */
+declare const KGRefreshJobStatus: {
+    readonly PENDING: "pending";
+    readonly RUNNING: "running";
+    readonly COMPLETED: "completed";
+    readonly FAILED: "failed";
+    readonly CANCELLED: "cancelled";
+};
+type KGRefreshJobStatus = (typeof KGRefreshJobStatus)[keyof typeof KGRefreshJobStatus];
+/**
+ * KG Refresh job definition
+ */
+interface KGRefreshJob {
+    id: string;
+    type: KGRefreshJobType;
+    status: KGRefreshJobStatus;
+    entityTypes?: EntityType[];
+    relationshipTypes?: RelationshipType[];
+    scheduledFor: Date;
+    startedAt?: Date;
+    completedAt?: Date;
+    result?: KGRefreshResult;
+    error?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+/**
+ * Result of a KG refresh operation
+ */
+interface KGRefreshResult {
+    entitiesProcessed: number;
+    entitiesAdded: number;
+    entitiesUpdated: number;
+    entitiesDeleted: number;
+    relationshipsProcessed: number;
+    relationshipsAdded: number;
+    relationshipsUpdated: number;
+    relationshipsDeleted: number;
+    staleRelationshipsPruned: number;
+    inconsistenciesFound: number;
+    inconsistenciesFixed: number;
+    duration: number;
+}
+/**
+ * KG Refresh scheduler configuration
+ */
+interface KGRefreshSchedulerConfig {
+    /** Enable scheduled refresh */
+    enabled: boolean;
+    /** Cron expression or interval in ms for periodic refresh */
+    scheduleIntervalMs: number;
+    /** Maximum age for relationships before considered stale (ms) */
+    staleRelationshipAgeMs: number;
+    /** Entity types to refresh */
+    entityTypes: EntityType[];
+    /** Run incremental updates instead of full rebuild */
+    incrementalMode: boolean;
+    /** Maximum entities to process per job */
+    batchSize: number;
+    /** Minimum confidence for relationships */
+    minRelationshipConfidence: number;
+}
+/**
+ * KG Refresh scheduler interface
+ */
+interface KGRefreshSchedulerInterface {
+    /** Schedule a refresh job */
+    scheduleRefresh(type: KGRefreshJobType, options?: Partial<KGRefreshJob>): Promise<KGRefreshJob>;
+    /** Execute pending jobs */
+    executePendingJobs(): Promise<KGRefreshResult[]>;
+    /** Get job status */
+    getJobStatus(jobId: string): Promise<KGRefreshJob | null>;
+    /** Cancel a job */
+    cancelJob(jobId: string): Promise<boolean>;
+    /** Get scheduler statistics */
+    getStats(): Promise<KGRefreshStats>;
+    /** Start the scheduler */
+    start(): Promise<void>;
+    /** Stop the scheduler */
+    stop(): Promise<void>;
+}
+/**
+ * KG Refresh statistics
+ */
+interface KGRefreshStats {
+    lastRefreshAt?: Date;
+    lastRefreshDuration?: number;
+    totalEntities: number;
+    totalRelationships: number;
+    staleRelationships: number;
+    pendingJobs: number;
+    completedJobs24h: number;
+}
+declare class KGRefreshScheduler implements KGRefreshSchedulerInterface {
+    private readonly config;
+    private readonly kgStore;
+    private readonly logger;
+    private jobs;
+    private isRunning;
+    private schedulerInterval?;
+    constructor(options: {
+        config?: Partial<KGRefreshSchedulerConfig>;
+        kgStore: KnowledgeGraphStore;
+        logger?: MemoryLogger;
+    });
+    scheduleRefresh(type: KGRefreshJobType, options?: Partial<KGRefreshJob>): Promise<KGRefreshJob>;
+    executePendingJobs(): Promise<KGRefreshResult[]>;
+    private executeJob;
+    private executeFullRebuild;
+    private executeIncrementalRefresh;
+    private executeRelationshipCheck;
+    private executeStalePruning;
+    private executeConsistencyCheck;
+    private validateRelationship;
+    getJobStatus(jobId: string): Promise<KGRefreshJob | null>;
+    cancelJob(jobId: string): Promise<boolean>;
+    getStats(): Promise<KGRefreshStats>;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+}
+declare function createKGRefreshScheduler(options: {
+    config?: Partial<KGRefreshSchedulerConfig>;
+    kgStore: KnowledgeGraphStore;
+    logger?: MemoryLogger;
+}): KGRefreshScheduler;
+
+/**
+ * @sam-ai/agentic - Memory Normalization Types
+ * Standardized types for memory output normalization
+ */
+
+/**
+ * Standardized memory context for LLM injection
+ * All memory retrievers should output this format
+ */
+interface NormalizedMemoryContext {
+    /** Unique context ID */
+    id: string;
+    /** User ID this context belongs to */
+    userId: string;
+    /** Optional course ID for course-specific context */
+    courseId?: string;
+    /** Timestamp when context was generated */
+    generatedAt: Date;
+    /** Time taken to generate context (ms) */
+    generationTimeMs: number;
+    /** Memory segments organized by type */
+    segments: MemorySegment[];
+    /** Overall relevance score (0-1) */
+    relevanceScore: number;
+    /** Sources used to generate this context */
+    sources: NormalizedMemorySource[];
+    /** Retrieval strategies used */
+    strategies: RetrievalStrategyUsed[];
+    /** Metadata about the context */
+    metadata: ContextMetadata;
+}
+/**
+ * Memory segment - a logical grouping of related memories
+ */
+interface MemorySegment {
+    /** Segment type */
+    type: MemorySegmentType;
+    /** Segment title for display */
+    title: string;
+    /** Items in this segment */
+    items: NormalizedMemoryItem[];
+    /** Segment relevance score (0-1) */
+    relevanceScore: number;
+    /** Order priority (higher = more important) */
+    priority: number;
+}
+/**
+ * Types of memory segments
+ */
+declare const MemorySegmentType: {
+    readonly COURSE_CONTENT: "course_content";
+    readonly USER_HISTORY: "user_history";
+    readonly PREVIOUS_CONVERSATIONS: "previous_conversations";
+    readonly RELATED_CONCEPTS: "related_concepts";
+    readonly LEARNING_PROGRESS: "learning_progress";
+    readonly USER_NOTES: "user_notes";
+    readonly EXTERNAL_KNOWLEDGE: "external_knowledge";
+    readonly RECENT_ACTIVITY: "recent_activity";
+};
+type MemorySegmentType = (typeof MemorySegmentType)[keyof typeof MemorySegmentType];
+/**
+ * Individual memory item for normalized context
+ */
+interface NormalizedMemoryItem {
+    /** Unique item ID */
+    id: string;
+    /** Item type */
+    type: MemoryItemType;
+    /** Content of the memory */
+    content: string;
+    /** Optional summary (for long content) */
+    summary?: string;
+    /** Relevance score to the query (0-1) */
+    relevanceScore: number;
+    /** Source of this memory */
+    source: NormalizedMemorySource;
+    /** When this memory was created */
+    createdAt: Date;
+    /** Metadata specific to this item */
+    metadata: Record<string, unknown>;
+}
+/**
+ * Types of memory items
+ */
+declare const MemoryItemType: {
+    readonly TEXT: "text";
+    readonly CONVERSATION_TURN: "conversation_turn";
+    readonly CONCEPT: "concept";
+    readonly SKILL: "skill";
+    readonly PROGRESS: "progress";
+    readonly NOTE: "note";
+    readonly QUESTION: "question";
+    readonly ANSWER: "answer";
+    readonly ARTIFACT: "artifact";
+};
+type MemoryItemType = (typeof MemoryItemType)[keyof typeof MemoryItemType];
+/**
+ * Source of a memory item for normalized context
+ */
+interface NormalizedMemorySource {
+    /** Source type */
+    type: MemorySourceType;
+    /** Source ID */
+    id: string;
+    /** Source name/title */
+    name?: string;
+    /** URL if applicable */
+    url?: string;
+}
+/**
+ * Types of memory sources
+ */
+declare const MemorySourceType: {
+    readonly VECTOR_STORE: "vector_store";
+    readonly KNOWLEDGE_GRAPH: "knowledge_graph";
+    readonly SESSION_CONTEXT: "session_context";
+    readonly JOURNEY_TIMELINE: "journey_timeline";
+    readonly DATABASE: "database";
+    readonly EXTERNAL_API: "external_api";
+};
+type MemorySourceType = (typeof MemorySourceType)[keyof typeof MemorySourceType];
+/**
+ * Retrieval strategy used
+ */
+interface RetrievalStrategyUsed {
+    /** Strategy type */
+    type: NormalizationRetrievalStrategy;
+    /** Time taken (ms) */
+    durationMs: number;
+    /** Results returned */
+    resultsCount: number;
+    /** Average relevance of results */
+    avgRelevance: number;
+}
+/**
+ * Retrieval strategies for normalization
+ */
+declare const NormalizationRetrievalStrategy: {
+    readonly SEMANTIC_SEARCH: "semantic_search";
+    readonly KEYWORD_SEARCH: "keyword_search";
+    readonly GRAPH_TRAVERSAL: "graph_traversal";
+    readonly RECENCY_BOOST: "recency_boost";
+    readonly HYBRID: "hybrid";
+    readonly CONTEXTUAL: "contextual";
+};
+type NormalizationRetrievalStrategy = (typeof NormalizationRetrievalStrategy)[keyof typeof NormalizationRetrievalStrategy];
+/**
+ * Context metadata
+ */
+interface ContextMetadata {
+    /** Query that generated this context */
+    query?: string;
+    /** Total items before filtering */
+    totalItemsFound: number;
+    /** Items after relevance filtering */
+    filteredItems: number;
+    /** Token estimate for this context */
+    estimatedTokens: number;
+    /** Whether context was truncated */
+    truncated: boolean;
+    /** Custom metadata */
+    custom?: Record<string, unknown>;
+}
+/**
+ * Memory normalizer configuration
+ */
+interface MemoryNormalizerConfig {
+    /** Maximum total items in context */
+    maxItems: number;
+    /** Maximum items per segment */
+    maxItemsPerSegment: number;
+    /** Maximum content length per item (chars) */
+    maxContentLength: number;
+    /** Minimum relevance score to include */
+    minRelevanceScore: number;
+    /** Whether to include summaries for long content */
+    includeSummaries: boolean;
+    /** Maximum summary length (chars) */
+    maxSummaryLength: number;
+    /** Segment priority order */
+    segmentPriority: MemorySegmentType[];
+    /** Token budget for context */
+    tokenBudget: number;
+    /** Approximate chars per token */
+    charsPerToken: number;
+}
+/**
+ * Default normalizer configuration
+ */
+declare const DEFAULT_NORMALIZER_CONFIG: MemoryNormalizerConfig;
+/**
+ * Memory normalizer interface
+ */
+interface MemoryNormalizerInterface {
+    /** Normalize raw memory results into standardized context */
+    normalize(input: RawMemoryInput): Promise<NormalizedMemoryContext>;
+    /** Format context for LLM system prompt */
+    formatForPrompt(context: NormalizedMemoryContext): string;
+    /** Format context as structured data */
+    formatAsStructuredData(context: NormalizedMemoryContext): StructuredMemoryData;
+    /** Get configuration */
+    getConfig(): MemoryNormalizerConfig;
+    /** Update configuration */
+    updateConfig(config: Partial<MemoryNormalizerConfig>): void;
+}
+/**
+ * Raw memory input from various sources
+ */
+interface RawMemoryInput {
+    userId: string;
+    courseId?: string;
+    query?: string;
+    vectorResults?: RawVectorResult[];
+    graphResults?: RawGraphResult[];
+    sessionContext?: RawSessionContext;
+    journeyEvents?: RawJourneyEvent[];
+}
+/**
+ * Raw vector search result
+ */
+interface RawVectorResult {
+    id: string;
+    content: string;
+    score: number;
+    metadata: Record<string, unknown>;
+}
+/**
+ * Raw graph traversal result
+ */
+interface RawGraphResult {
+    entity: {
+        id: string;
+        type: string;
+        name: string;
+        properties: Record<string, unknown>;
+    };
+    relationships: Array<{
+        type: string;
+        targetId: string;
+        weight: number;
+    }>;
+    depth: number;
+}
+/**
+ * Raw session context
+ */
+interface RawSessionContext {
+    currentTopic?: string;
+    recentConcepts: string[];
+    pendingQuestions: string[];
+    emotionalState?: string;
+}
+/**
+ * Raw journey event
+ */
+interface RawJourneyEvent {
+    type: string;
+    timestamp: Date;
+    data: Record<string, unknown>;
+}
+/**
+ * Structured memory data for APIs
+ */
+interface StructuredMemoryData {
+    summary: string;
+    segments: Array<{
+        type: string;
+        title: string;
+        itemCount: number;
+        topItems: Array<{
+            content: string;
+            relevance: number;
+        }>;
+    }>;
+    sources: string[];
+    stats: {
+        totalItems: number;
+        avgRelevance: number;
+        tokenEstimate: number;
+    };
+}
+declare const NormalizedMemoryContextSchema: z.ZodObject<{
+    id: z.ZodString;
+    userId: z.ZodString;
+    courseId: z.ZodOptional<z.ZodString>;
+    generatedAt: z.ZodDate;
+    generationTimeMs: z.ZodNumber;
+    segments: z.ZodArray<z.ZodObject<{
+        type: z.ZodString;
+        title: z.ZodString;
+        items: z.ZodArray<z.ZodAny, "many">;
+        relevanceScore: z.ZodNumber;
+        priority: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        type: string;
+        title: string;
+        priority: number;
+        items: any[];
+        relevanceScore: number;
+    }, {
+        type: string;
+        title: string;
+        priority: number;
+        items: any[];
+        relevanceScore: number;
+    }>, "many">;
+    relevanceScore: z.ZodNumber;
+    sources: z.ZodArray<z.ZodObject<{
+        type: z.ZodString;
+        id: z.ZodString;
+        name: z.ZodOptional<z.ZodString>;
+        url: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        type: string;
+        id: string;
+        name?: string | undefined;
+        url?: string | undefined;
+    }, {
+        type: string;
+        id: string;
+        name?: string | undefined;
+        url?: string | undefined;
+    }>, "many">;
+    strategies: z.ZodArray<z.ZodObject<{
+        type: z.ZodString;
+        durationMs: z.ZodNumber;
+        resultsCount: z.ZodNumber;
+        avgRelevance: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        type: string;
+        durationMs: number;
+        resultsCount: number;
+        avgRelevance: number;
+    }, {
+        type: string;
+        durationMs: number;
+        resultsCount: number;
+        avgRelevance: number;
+    }>, "many">;
+    metadata: z.ZodObject<{
+        query: z.ZodOptional<z.ZodString>;
+        totalItemsFound: z.ZodNumber;
+        filteredItems: z.ZodNumber;
+        estimatedTokens: z.ZodNumber;
+        truncated: z.ZodBoolean;
+        custom: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    }, "strip", z.ZodTypeAny, {
+        totalItemsFound: number;
+        filteredItems: number;
+        estimatedTokens: number;
+        truncated: boolean;
+        custom?: Record<string, unknown> | undefined;
+        query?: string | undefined;
+    }, {
+        totalItemsFound: number;
+        filteredItems: number;
+        estimatedTokens: number;
+        truncated: boolean;
+        custom?: Record<string, unknown> | undefined;
+        query?: string | undefined;
+    }>;
+}, "strip", z.ZodTypeAny, {
+    userId: string;
+    id: string;
+    metadata: {
+        totalItemsFound: number;
+        filteredItems: number;
+        estimatedTokens: number;
+        truncated: boolean;
+        custom?: Record<string, unknown> | undefined;
+        query?: string | undefined;
+    };
+    strategies: {
+        type: string;
+        durationMs: number;
+        resultsCount: number;
+        avgRelevance: number;
+    }[];
+    generatedAt: Date;
+    generationTimeMs: number;
+    segments: {
+        type: string;
+        title: string;
+        priority: number;
+        items: any[];
+        relevanceScore: number;
+    }[];
+    relevanceScore: number;
+    sources: {
+        type: string;
+        id: string;
+        name?: string | undefined;
+        url?: string | undefined;
+    }[];
+    courseId?: string | undefined;
+}, {
+    userId: string;
+    id: string;
+    metadata: {
+        totalItemsFound: number;
+        filteredItems: number;
+        estimatedTokens: number;
+        truncated: boolean;
+        custom?: Record<string, unknown> | undefined;
+        query?: string | undefined;
+    };
+    strategies: {
+        type: string;
+        durationMs: number;
+        resultsCount: number;
+        avgRelevance: number;
+    }[];
+    generatedAt: Date;
+    generationTimeMs: number;
+    segments: {
+        type: string;
+        title: string;
+        priority: number;
+        items: any[];
+        relevanceScore: number;
+    }[];
+    relevanceScore: number;
+    sources: {
+        type: string;
+        id: string;
+        name?: string | undefined;
+        url?: string | undefined;
+    }[];
+    courseId?: string | undefined;
+}>;
+declare const MemoryNormalizerConfigSchema: z.ZodObject<{
+    maxItems: z.ZodNumber;
+    maxItemsPerSegment: z.ZodNumber;
+    maxContentLength: z.ZodNumber;
+    minRelevanceScore: z.ZodNumber;
+    includeSummaries: z.ZodBoolean;
+    maxSummaryLength: z.ZodNumber;
+    segmentPriority: z.ZodArray<z.ZodString, "many">;
+    tokenBudget: z.ZodNumber;
+    charsPerToken: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    maxItems: number;
+    maxItemsPerSegment: number;
+    maxContentLength: number;
+    minRelevanceScore: number;
+    includeSummaries: boolean;
+    maxSummaryLength: number;
+    segmentPriority: string[];
+    tokenBudget: number;
+    charsPerToken: number;
+}, {
+    maxItems: number;
+    maxItemsPerSegment: number;
+    maxContentLength: number;
+    minRelevanceScore: number;
+    includeSummaries: boolean;
+    maxSummaryLength: number;
+    segmentPriority: string[];
+    tokenBudget: number;
+    charsPerToken: number;
+}>;
+
+/**
+ * @sam-ai/agentic - Memory Normalizer
+ * Standardizes memory outputs for consistent LLM context injection
+ */
+
+declare class MemoryNormalizer implements MemoryNormalizerInterface {
+    private config;
+    private readonly logger;
+    constructor(options?: {
+        config?: Partial<MemoryNormalizerConfig>;
+        logger?: MemoryLogger;
+    });
+    getConfig(): MemoryNormalizerConfig;
+    updateConfig(config: Partial<MemoryNormalizerConfig>): void;
+    normalize(input: RawMemoryInput): Promise<NormalizedMemoryContext>;
+    private processVectorResults;
+    private processGraphResults;
+    private processSessionContext;
+    private processJourneyEvents;
+    formatForPrompt(context: NormalizedMemoryContext): string;
+    formatAsStructuredData(context: NormalizedMemoryContext): StructuredMemoryData;
+    private mapSourceToSegmentType;
+    private mapToItemType;
+    private getSegmentTitle;
+    private getSegmentPriority;
+    private truncateContent;
+    private generateSummary;
+    private generateContextSummary;
+    private calculateAvgRelevance;
+    private calculateOverallRelevance;
+    private countItems;
+    private applyTokenBudget;
+}
+declare function createMemoryNormalizer(options?: {
+    config?: Partial<MemoryNormalizerConfig>;
+    logger?: MemoryLogger;
+}): MemoryNormalizer;
+
+/**
+ * @sam-ai/agentic - Background Worker Types
+ * Type definitions for background job processing
+ */
+
+/**
+ * Base job interface
+ */
+interface BaseJob {
+    id: string;
+    type: JobType;
+    status: JobStatus;
+    priority: number;
+    data: unknown;
+    result?: unknown;
+    error?: string;
+    attempts: number;
+    maxAttempts: number;
+    createdAt: Date;
+    updatedAt: Date;
+    scheduledFor: Date;
+    startedAt?: Date;
+    completedAt?: Date;
+    progress?: number;
+}
+/**
+ * Job types
+ */
+declare const JobType: {
+    readonly REINDEX: "reindex";
+    readonly KG_REFRESH: "kg_refresh";
+    readonly EMBEDDING_GENERATION: "embedding_generation";
+    readonly CONTENT_ANALYSIS: "content_analysis";
+    readonly MEMORY_CLEANUP: "memory_cleanup";
+    readonly NOTIFICATION: "notification";
+    readonly SCHEDULED_TASK: "scheduled_task";
+    readonly CUSTOM: "custom";
+};
+type JobType = (typeof JobType)[keyof typeof JobType];
+/**
+ * Job status
+ */
+declare const JobStatus: {
+    readonly PENDING: "pending";
+    readonly QUEUED: "queued";
+    readonly ACTIVE: "active";
+    readonly COMPLETED: "completed";
+    readonly FAILED: "failed";
+    readonly CANCELLED: "cancelled";
+    readonly DELAYED: "delayed";
+    readonly PAUSED: "paused";
+};
+type JobStatus = (typeof JobStatus)[keyof typeof JobStatus];
+/**
+ * Job queue configuration
+ */
+interface JobQueueConfig {
+    /** Queue name */
+    name: string;
+    /** Maximum concurrent jobs */
+    concurrency: number;
+    /** Default job priority */
+    defaultPriority: number;
+    /** Default retry attempts */
+    defaultMaxAttempts: number;
+    /** Retry delay in ms */
+    retryDelayMs: number;
+    /** Retry backoff multiplier */
+    retryBackoffMultiplier: number;
+    /** Job timeout in ms */
+    jobTimeoutMs: number;
+    /** Clean up completed jobs after (ms) */
+    cleanupAfterMs: number;
+    /** Enable job persistence */
+    persistJobs: boolean;
+}
+/**
+ * Default queue configuration
+ */
+declare const DEFAULT_QUEUE_CONFIG: JobQueueConfig;
+/**
+ * Job queue statistics
+ */
+interface QueueStats {
+    name: string;
+    pending: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+    paused: number;
+    totalProcessed: number;
+    avgProcessingTime: number;
+    lastProcessedAt?: Date;
+}
+/**
+ * Worker configuration
+ */
+interface WorkerConfig {
+    /** Worker ID */
+    id: string;
+    /** Queues to process */
+    queues: string[];
+    /** Processing concurrency per queue */
+    concurrency: number;
+    /** Poll interval when idle (ms) */
+    pollIntervalMs: number;
+    /** Maximum jobs to process before pause */
+    maxJobsPerCycle: number;
+    /** Enable graceful shutdown */
+    gracefulShutdown: boolean;
+    /** Shutdown timeout (ms) */
+    shutdownTimeoutMs: number;
+}
+/**
+ * Default worker configuration
+ */
+declare const DEFAULT_WORKER_CONFIG: WorkerConfig;
+/**
+ * Worker status
+ */
+declare const WorkerStatus: {
+    readonly IDLE: "idle";
+    readonly RUNNING: "running";
+    readonly PAUSED: "paused";
+    readonly STOPPING: "stopping";
+    readonly STOPPED: "stopped";
+};
+type WorkerStatus = (typeof WorkerStatus)[keyof typeof WorkerStatus];
+/**
+ * Worker statistics
+ */
+interface WorkerStats {
+    id: string;
+    status: WorkerStatus;
+    startedAt?: Date;
+    activeJobs: number;
+    processedJobs: number;
+    failedJobs: number;
+    avgProcessingTime: number;
+    lastActivityAt?: Date;
+    uptime: number;
+}
+/**
+ * Job handler function
+ */
+type JobHandler<TData = unknown, TResult = unknown> = (job: BaseJob & {
+    data: TData;
+}) => Promise<TResult>;
+/**
+ * Job handler registration
+ */
+interface JobHandlerRegistration {
+    type: JobType;
+    handler: JobHandler;
+    config?: Partial<JobQueueConfig>;
+}
+/**
+ * Job progress update
+ */
+interface JobProgress {
+    jobId: string;
+    progress: number;
+    message?: string;
+}
+/**
+ * Job event types
+ */
+declare const JobEvent: {
+    readonly CREATED: "created";
+    readonly STARTED: "started";
+    readonly PROGRESS: "progress";
+    readonly COMPLETED: "completed";
+    readonly FAILED: "failed";
+    readonly RETRYING: "retrying";
+    readonly CANCELLED: "cancelled";
+};
+type JobEvent = (typeof JobEvent)[keyof typeof JobEvent];
+/**
+ * Job event listener
+ */
+type JobEventListener = (event: JobEvent, job: BaseJob) => void;
+/**
+ * Job queue interface
+ */
+interface JobQueueInterface {
+    /** Add a job to the queue */
+    add<TData>(type: JobType, data: TData, options?: Partial<BaseJob>): Promise<BaseJob>;
+    /** Get a job by ID */
+    get(jobId: string): Promise<BaseJob | null>;
+    /** Update job */
+    update(jobId: string, updates: Partial<BaseJob>): Promise<BaseJob | null>;
+    /** Remove a job */
+    remove(jobId: string): Promise<boolean>;
+    /** Get next pending job */
+    getNextPending(): Promise<BaseJob | null>;
+    /** Get jobs by status */
+    getByStatus(status: JobStatus, limit?: number): Promise<BaseJob[]>;
+    /** Get queue statistics */
+    getStats(): Promise<QueueStats>;
+    /** Pause the queue */
+    pause(): Promise<void>;
+    /** Resume the queue */
+    resume(): Promise<void>;
+    /** Clean up old jobs */
+    cleanup(olderThan: Date): Promise<number>;
+    /** Register job event listener */
+    on(event: JobEvent, listener: JobEventListener): void;
+    /** Remove job event listener */
+    off(event: JobEvent, listener: JobEventListener): void;
+}
+/**
+ * Background worker interface
+ */
+interface BackgroundWorkerInterface {
+    /** Start the worker */
+    start(): Promise<void>;
+    /** Stop the worker */
+    stop(): Promise<void>;
+    /** Pause processing */
+    pause(): Promise<void>;
+    /** Resume processing */
+    resume(): Promise<void>;
+    /** Get worker status */
+    getStatus(): WorkerStatus;
+    /** Get worker statistics */
+    getStats(): WorkerStats;
+    /** Register job handler */
+    registerHandler<TData, TResult>(type: JobType, handler: JobHandler<TData, TResult>, config?: Partial<JobQueueConfig>): void;
+    /** Unregister job handler */
+    unregisterHandler(type: JobType): void;
+    /** Process a specific job (for testing) */
+    processJob(jobId: string): Promise<void>;
+}
+declare const BaseJobSchema: z.ZodObject<{
+    id: z.ZodString;
+    type: z.ZodEnum<["reindex", "kg_refresh", "embedding_generation", "content_analysis", "memory_cleanup", "notification", "scheduled_task", "custom"]>;
+    status: z.ZodEnum<["pending", "queued", "active", "completed", "failed", "cancelled", "delayed", "paused"]>;
+    priority: z.ZodNumber;
+    data: z.ZodUnknown;
+    result: z.ZodOptional<z.ZodUnknown>;
+    error: z.ZodOptional<z.ZodString>;
+    attempts: z.ZodNumber;
+    maxAttempts: z.ZodNumber;
+    createdAt: z.ZodDate;
+    updatedAt: z.ZodDate;
+    scheduledFor: z.ZodDate;
+    startedAt: z.ZodOptional<z.ZodDate>;
+    completedAt: z.ZodOptional<z.ZodDate>;
+    progress: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    type: "custom" | "notification" | "reindex" | "kg_refresh" | "embedding_generation" | "content_analysis" | "memory_cleanup" | "scheduled_task";
+    status: "active" | "paused" | "completed" | "failed" | "cancelled" | "pending" | "queued" | "delayed";
+    priority: number;
+    createdAt: Date;
+    id: string;
+    updatedAt: Date;
+    scheduledFor: Date;
+    attempts: number;
+    maxAttempts: number;
+    result?: unknown;
+    progress?: number | undefined;
+    completedAt?: Date | undefined;
+    error?: string | undefined;
+    startedAt?: Date | undefined;
+    data?: unknown;
+}, {
+    type: "custom" | "notification" | "reindex" | "kg_refresh" | "embedding_generation" | "content_analysis" | "memory_cleanup" | "scheduled_task";
+    status: "active" | "paused" | "completed" | "failed" | "cancelled" | "pending" | "queued" | "delayed";
+    priority: number;
+    createdAt: Date;
+    id: string;
+    updatedAt: Date;
+    scheduledFor: Date;
+    attempts: number;
+    maxAttempts: number;
+    result?: unknown;
+    progress?: number | undefined;
+    completedAt?: Date | undefined;
+    error?: string | undefined;
+    startedAt?: Date | undefined;
+    data?: unknown;
+}>;
+declare const JobQueueConfigSchema: z.ZodObject<{
+    name: z.ZodString;
+    concurrency: z.ZodNumber;
+    defaultPriority: z.ZodNumber;
+    defaultMaxAttempts: z.ZodNumber;
+    retryDelayMs: z.ZodNumber;
+    retryBackoffMultiplier: z.ZodNumber;
+    jobTimeoutMs: z.ZodNumber;
+    cleanupAfterMs: z.ZodNumber;
+    persistJobs: z.ZodBoolean;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    concurrency: number;
+    defaultPriority: number;
+    defaultMaxAttempts: number;
+    retryDelayMs: number;
+    retryBackoffMultiplier: number;
+    jobTimeoutMs: number;
+    cleanupAfterMs: number;
+    persistJobs: boolean;
+}, {
+    name: string;
+    concurrency: number;
+    defaultPriority: number;
+    defaultMaxAttempts: number;
+    retryDelayMs: number;
+    retryBackoffMultiplier: number;
+    jobTimeoutMs: number;
+    cleanupAfterMs: number;
+    persistJobs: boolean;
+}>;
+declare const WorkerConfigSchema: z.ZodObject<{
+    id: z.ZodString;
+    queues: z.ZodArray<z.ZodString, "many">;
+    concurrency: z.ZodNumber;
+    pollIntervalMs: z.ZodNumber;
+    maxJobsPerCycle: z.ZodNumber;
+    gracefulShutdown: z.ZodBoolean;
+    shutdownTimeoutMs: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    concurrency: number;
+    queues: string[];
+    pollIntervalMs: number;
+    maxJobsPerCycle: number;
+    gracefulShutdown: boolean;
+    shutdownTimeoutMs: number;
+}, {
+    id: string;
+    concurrency: number;
+    queues: string[];
+    pollIntervalMs: number;
+    maxJobsPerCycle: number;
+    gracefulShutdown: boolean;
+    shutdownTimeoutMs: number;
+}>;
+
+/**
+ * @sam-ai/agentic - Background Worker
+ * Manages background job processing for memory operations
+ */
+
+declare class InMemoryJobQueue implements JobQueueInterface {
+    private readonly config;
+    private readonly logger;
+    private jobs;
+    private listeners;
+    private isPaused;
+    private processedCount;
+    private totalProcessingTime;
+    private lastProcessedAt?;
+    constructor(options?: {
+        config?: Partial<JobQueueConfig>;
+        logger?: MemoryLogger;
+    });
+    add<TData>(type: JobType, data: TData, options?: Partial<BaseJob>): Promise<BaseJob>;
+    get(jobId: string): Promise<BaseJob | null>;
+    update(jobId: string, updates: Partial<BaseJob>): Promise<BaseJob | null>;
+    remove(jobId: string): Promise<boolean>;
+    getNextPending(): Promise<BaseJob | null>;
+    getByStatus(status: JobStatus, limit?: number): Promise<BaseJob[]>;
+    getStats(): Promise<QueueStats>;
+    pause(): Promise<void>;
+    resume(): Promise<void>;
+    cleanup(olderThan: Date): Promise<number>;
+    on(event: JobEvent, listener: JobEventListener): void;
+    off(event: JobEvent, listener: JobEventListener): void;
+    private emit;
+    recordProcessing(durationMs: number): void;
+    clear(): void;
+}
+declare class BackgroundWorker implements BackgroundWorkerInterface {
+    private readonly config;
+    private readonly queues;
+    private readonly handlers;
+    private readonly logger;
+    private status;
+    private startedAt?;
+    private processedJobs;
+    private failedJobs;
+    private activeJobs;
+    private totalProcessingTime;
+    private lastActivityAt?;
+    private pollInterval?;
+    private shutdownPromise?;
+    constructor(options: {
+        config?: Partial<WorkerConfig>;
+        queues?: Map<string, JobQueueInterface>;
+        logger?: MemoryLogger;
+    });
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    pause(): Promise<void>;
+    resume(): Promise<void>;
+    registerHandler<TData, TResult>(type: JobType, handler: JobHandler<TData, TResult>): void;
+    unregisterHandler(type: JobType): void;
+    getStatus(): WorkerStatus;
+    getStats(): WorkerStats;
+    processJob(jobId: string): Promise<void>;
+    private poll;
+    private executeJob;
+    getQueue(name: string): JobQueueInterface | undefined;
+    addJob<TData>(type: JobType, data: TData, options?: Partial<BaseJob> & {
+        queue?: string;
+    }): Promise<BaseJob>;
+}
+declare function createBackgroundWorker(options?: {
+    config?: Partial<WorkerConfig>;
+    queues?: Map<string, JobQueueInterface>;
+    logger?: MemoryLogger;
+}): BackgroundWorker;
+declare function createJobQueue(options?: {
+    config?: Partial<JobQueueConfig>;
+    logger?: MemoryLogger;
+}): InMemoryJobQueue;
+
+/**
  * @sam-ai/agentic - Memory Module
  * Long-term memory and retrieval for SAM AI Mentor
  */
@@ -4823,7 +6311,7 @@ interface ScheduledCheckIn {
     triggerConditions: TriggerCondition[];
     message: string;
     questions: CheckInQuestion[];
-    suggestedActions: SuggestedAction[];
+    suggestedActions: SuggestedAction$1[];
     channel: NotificationChannel;
     planId?: string;
     courseId?: string;
@@ -4920,7 +6408,7 @@ type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
 /**
  * Suggested action in check-in
  */
-interface SuggestedAction {
+interface SuggestedAction$1 {
     id: string;
     title: string;
     description: string;
@@ -5175,10 +6663,10 @@ interface SupportRecommendation {
  */
 interface Intervention {
     id: string;
-    type: InterventionType;
+    type: InterventionType$1;
     priority: 'low' | 'medium' | 'high' | 'critical';
     message: string;
-    suggestedActions: SuggestedAction[];
+    suggestedActions: SuggestedAction$1[];
     timing: InterventionTiming;
     createdAt: Date;
     executedAt?: Date;
@@ -5187,7 +6675,7 @@ interface Intervention {
 /**
  * Intervention type
  */
-declare const InterventionType: {
+declare const InterventionType$1: {
     readonly ENCOURAGEMENT: "encouragement";
     readonly DIFFICULTY_ADJUSTMENT: "difficulty_adjustment";
     readonly CONTENT_RECOMMENDATION: "content_recommendation";
@@ -5198,7 +6686,7 @@ declare const InterventionType: {
     readonly PROGRESS_CELEBRATION: "progress_celebration";
     readonly STREAK_REMINDER: "streak_reminder";
 };
-type InterventionType = (typeof InterventionType)[keyof typeof InterventionType];
+type InterventionType$1 = (typeof InterventionType$1)[keyof typeof InterventionType$1];
 /**
  * Intervention timing
  */
@@ -5939,7 +7427,7 @@ type ConfidenceFactorType = (typeof ConfidenceFactorType)[keyof typeof Confidenc
 /**
  * Individual confidence factor
  */
-interface ConfidenceFactor {
+interface ConfidenceFactor$1 {
     type: ConfidenceFactorType;
     score: number;
     weight: number;
@@ -5956,8 +7444,8 @@ interface ConfidenceScore {
     sessionId: string;
     overallScore: number;
     level: ConfidenceLevel;
-    factors: ConfidenceFactor[];
-    responseType: ResponseType;
+    factors: ConfidenceFactor$1[];
+    responseType: ResponseType$1;
     topic?: string;
     complexity: ComplexityLevel;
     shouldVerify: boolean;
@@ -5968,7 +7456,7 @@ interface ConfidenceScore {
 /**
  * Response types for scoring
  */
-declare const ResponseType: {
+declare const ResponseType$1: {
     readonly EXPLANATION: "explanation";
     readonly ANSWER: "answer";
     readonly HINT: "hint";
@@ -5977,7 +7465,7 @@ declare const ResponseType: {
     readonly RECOMMENDATION: "recommendation";
     readonly CLARIFICATION: "clarification";
 };
-type ResponseType = (typeof ResponseType)[keyof typeof ResponseType];
+type ResponseType$1 = (typeof ResponseType$1)[keyof typeof ResponseType$1];
 /**
  * Complexity levels
  */
@@ -5996,7 +7484,7 @@ interface ConfidenceInput {
     userId: string;
     sessionId: string;
     responseText: string;
-    responseType: ResponseType;
+    responseType: ResponseType$1;
     topic?: string;
     context?: ResponseContext;
     sources?: SourceReference[];
@@ -6277,7 +7765,7 @@ interface CalibrationData {
     expectedAccuracy: number;
     actualAccuracy: number;
     calibrationError: number;
-    byConfidenceLevel: CalibrationBucket[];
+    byConfidenceLevel: CalibrationBucket$1[];
     adjustmentFactor: number;
     adjustmentDirection: 'increase' | 'decrease' | 'none';
     periodStart: Date;
@@ -6287,7 +7775,7 @@ interface CalibrationData {
 /**
  * Calibration bucket for a confidence level
  */
-interface CalibrationBucket {
+interface CalibrationBucket$1 {
     level: ConfidenceLevel;
     count: number;
     expectedAccuracy: number;
@@ -6306,7 +7794,7 @@ interface QualitySummary {
     averageQuality: number;
     averageConfidence: number;
     calibrationScore: number;
-    byResponseType: Record<ResponseType, QualityAggregate>;
+    byResponseType: Record<ResponseType$1, QualityAggregate>;
     byTopic: Record<string, QualityAggregate>;
     byComplexity: Record<ComplexityLevel, QualityAggregate>;
     qualityTrend: 'improving' | 'stable' | 'declining';
@@ -6679,7 +8167,7 @@ declare class ConfidenceScorer {
     /**
      * Quick confidence check without storing
      */
-    quickCheck(responseText: string, responseType: ResponseType, sources?: SourceReference[]): Promise<{
+    quickCheck(responseText: string, responseType: ResponseType$1, sources?: SourceReference[]): Promise<{
         score: number;
         level: ConfidenceLevel;
         shouldVerify: boolean;
@@ -7924,6 +9412,708 @@ declare class RecommendationEngine {
 declare function createRecommendationEngine(config?: RecommendationEngineConfig): RecommendationEngine;
 
 /**
+ * @sam-ai/agentic - Orchestration Types
+ * Types for the Tutoring Loop Controller and related orchestration components
+ */
+
+/**
+ * Complete context for a tutoring interaction
+ * This is passed to the LLM along with the user's message
+ */
+interface TutoringContext {
+    /** User ID */
+    userId: string;
+    /** Current session ID */
+    sessionId: string;
+    /** Active learning goal, if any */
+    activeGoal: LearningGoal | null;
+    /** Active execution plan, if any */
+    activePlan: ExecutionPlan | null;
+    /** Current step being worked on */
+    currentStep: PlanStep | null;
+    /** Objectives for the current step (injected into prompt) */
+    stepObjectives: string[];
+    /** Tools allowed for this step/context */
+    allowedTools: ToolDefinition[];
+    /** Memory context from previous sessions */
+    memoryContext: MemoryContextSummary;
+    /** Pending interventions to address */
+    pendingInterventions: PendingIntervention[];
+    /** Previous step results for context */
+    previousStepResults: StepResult[];
+    /** Session metadata */
+    sessionMetadata: SessionMetadata;
+}
+/**
+ * Summary of memory context for prompt injection
+ */
+interface MemoryContextSummary {
+    /** Recent topics discussed */
+    recentTopics: string[];
+    /** Concepts the user is struggling with */
+    strugglingConcepts: string[];
+    /** Concepts the user has mastered */
+    masteredConcepts: string[];
+    /** Summary of previous sessions */
+    sessionSummary: string | null;
+    /** Relevant knowledge snippets */
+    knowledgeSnippets: string[];
+    /** User's learning style preference */
+    learningStyle: string | null;
+    /** User's current mastery level */
+    currentMasteryLevel: string | null;
+}
+/**
+ * Pending intervention that needs to be addressed
+ */
+interface PendingIntervention {
+    id: string;
+    type: InterventionType;
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    message: string;
+    suggestedActions: SuggestedAction[];
+    createdAt: Date;
+}
+type InterventionType = 'encouragement' | 'difficulty_adjustment' | 'content_recommendation' | 'break_suggestion' | 'goal_revision' | 'progress_check' | 'struggle_detection' | 'milestone_celebration';
+interface SuggestedAction {
+    id: string;
+    label: string;
+    type: 'navigate' | 'adjust' | 'skip' | 'retry' | 'help';
+    payload?: Record<string, unknown>;
+}
+/**
+ * Session metadata
+ */
+interface SessionMetadata {
+    startedAt: Date;
+    lastActiveAt: Date;
+    messageCount: number;
+    stepsCompletedThisSession: number;
+    totalSessionTime: number;
+}
+/**
+ * Result of evaluating whether a step can advance
+ */
+interface StepEvaluation {
+    /** Whether the step criteria have been met */
+    stepComplete: boolean;
+    /** Confidence in the evaluation (0-1) */
+    confidence: number;
+    /** Criteria that were evaluated */
+    evaluatedCriteria: EvaluatedCriterion[];
+    /** Criteria that are still pending */
+    pendingCriteria: string[];
+    /** Progress within the step (0-100) */
+    progressPercent: number;
+    /** Recommendations based on evaluation */
+    recommendations: StepRecommendation[];
+    /** Whether to advance to next step */
+    shouldAdvance: boolean;
+    /** ID of recommended next step (if different from sequential) */
+    recommendedNextStepId: string | null;
+}
+interface EvaluatedCriterion {
+    criterion: string;
+    met: boolean;
+    evidence: string | null;
+    confidence: number;
+}
+interface StepRecommendation {
+    type: 'continue' | 'review' | 'practice' | 'skip' | 'simplify' | 'challenge';
+    reason: string;
+    priority: number;
+}
+/**
+ * Result of transitioning between steps
+ */
+interface StepTransition {
+    /** Previous step */
+    previousStep: PlanStep | null;
+    /** New current step */
+    currentStep: PlanStep | null;
+    /** Type of transition */
+    transitionType: TransitionType;
+    /** Updated plan state */
+    updatedPlanState: PlanState;
+    /** Message to show user about transition */
+    transitionMessage: string;
+    /** Whether the plan is now complete */
+    planComplete: boolean;
+    /** Celebration data if milestone reached */
+    celebration: CelebrationData | null;
+}
+type TransitionType = 'advance' | 'skip' | 'retry' | 'rollback' | 'jump' | 'complete' | 'pause' | 'resume';
+interface CelebrationData {
+    type: 'step_complete' | 'milestone' | 'goal_complete' | 'streak';
+    title: string;
+    message: string;
+    xpEarned?: number;
+    badgeEarned?: string;
+}
+/**
+ * Plan for tool execution within the tutoring context
+ */
+interface ToolPlan {
+    /** Tools to execute */
+    tools: PlannedToolExecution[];
+    /** Reasoning for the tool plan */
+    reasoning: string;
+    /** Confidence in the plan (0-1) */
+    confidence: number;
+    /** Whether any tools require confirmation */
+    requiresConfirmation: boolean;
+    /** Step context this plan is for */
+    stepContext: StepToolContext | null;
+}
+interface PlannedToolExecution {
+    toolId: string;
+    toolName: string;
+    input: Record<string, unknown>;
+    priority: number;
+    requiresConfirmation: boolean;
+    reasoning: string;
+}
+interface StepToolContext {
+    stepId: string;
+    stepType: StepType;
+    objectives: string[];
+    allowedTools: string[];
+}
+/**
+ * Request for user confirmation before tool execution (orchestration version)
+ * Renamed to avoid conflict with tool-registry ConfirmationRequest
+ */
+interface OrchestrationConfirmationRequest {
+    id: string;
+    userId: string;
+    sessionId: string;
+    /** Tool being confirmed */
+    toolId: string;
+    toolName: string;
+    toolDescription: string;
+    /** Input that will be used */
+    plannedInput: Record<string, unknown>;
+    /** Why this tool was selected */
+    reasoning: string;
+    /** Risk level of the tool */
+    riskLevel: 'safe' | 'low' | 'medium' | 'high' | 'critical';
+    /** Step context */
+    stepId: string | null;
+    stepTitle: string | null;
+    /** Status */
+    status: 'pending' | 'approved' | 'rejected' | 'expired';
+    /** Timestamps */
+    createdAt: Date;
+    expiresAt: Date;
+    respondedAt: Date | null;
+    /** Response data */
+    approvedBy: string | null;
+    rejectionReason: string | null;
+}
+/**
+ * Response to a confirmation request
+ */
+interface ConfirmationResponse {
+    requestId: string;
+    approved: boolean;
+    rejectionReason?: string;
+    modifiedInput?: Record<string, unknown>;
+}
+/**
+ * Data for injecting plan context into LLM prompts
+ */
+interface PlanContextInjection {
+    /** System prompt additions */
+    systemPromptAdditions: string[];
+    /** User message prefix */
+    messagePrefix: string | null;
+    /** User message suffix */
+    messageSuffix: string | null;
+    /** Structured context data */
+    structuredContext: StructuredPlanContext;
+}
+interface StructuredPlanContext {
+    /** Current goal summary */
+    goalSummary: string | null;
+    /** Current step details */
+    stepDetails: StepDetails | null;
+    /** Progress summary */
+    progressSummary: string;
+    /** Available actions */
+    availableActions: string[];
+    /** Constraints or guidelines */
+    constraints: string[];
+}
+interface StepDetails {
+    title: string;
+    type: StepType;
+    description: string | null;
+    objectives: string[];
+    estimatedMinutes: number;
+    currentProgress: number;
+}
+/**
+ * Result from the tutoring loop controller
+ */
+interface TutoringLoopResult {
+    /** Original response from LLM */
+    response: string;
+    /** Modified response (after step context injection) */
+    modifiedResponse: string | null;
+    /** Context that was used */
+    context: TutoringContext;
+    /** Step evaluation result */
+    evaluation: StepEvaluation | null;
+    /** Step transition result */
+    transition: StepTransition | null;
+    /** Tool plan for this interaction */
+    toolPlan: ToolPlan | null;
+    /** Pending confirmations */
+    pendingConfirmations: OrchestrationConfirmationRequest[];
+    /** Metadata */
+    metadata: TutoringLoopMetadata;
+}
+interface TutoringLoopMetadata {
+    processingTime: number;
+    contextPrepTime: number;
+    evaluationTime: number;
+    toolPlanningTime: number;
+    stepAdvanced: boolean;
+    planCompleted: boolean;
+    interventionsTriggered: number;
+}
+/**
+ * Store for confirmation requests (orchestration version)
+ */
+interface OrchestrationConfirmationRequestStore {
+    create(request: Omit<OrchestrationConfirmationRequest, 'id' | 'createdAt'>): Promise<OrchestrationConfirmationRequest>;
+    get(requestId: string): Promise<OrchestrationConfirmationRequest | null>;
+    getByUser(userId: string, options?: {
+        status?: string[];
+        limit?: number;
+    }): Promise<OrchestrationConfirmationRequest[]>;
+    update(requestId: string, updates: Partial<OrchestrationConfirmationRequest>): Promise<OrchestrationConfirmationRequest>;
+    respond(requestId: string, response: ConfirmationResponse): Promise<OrchestrationConfirmationRequest>;
+    expireOld(maxAgeMinutes: number): Promise<number>;
+}
+/**
+ * Store for tutoring sessions
+ */
+interface TutoringSessionStore {
+    getOrCreate(userId: string, planId?: string): Promise<TutoringSession>;
+    update(sessionId: string, updates: Partial<TutoringSession>): Promise<TutoringSession>;
+    end(sessionId: string): Promise<TutoringSession>;
+    getActive(userId: string): Promise<TutoringSession | null>;
+    getRecent(userId: string, limit?: number): Promise<TutoringSession[]>;
+}
+interface TutoringSession {
+    id: string;
+    userId: string;
+    planId: string | null;
+    startedAt: Date;
+    endedAt: Date | null;
+    messageCount: number;
+    stepsCompleted: string[];
+    toolsExecuted: string[];
+    metadata: Record<string, unknown>;
+}
+interface OrchestrationLogger {
+    debug(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>): void;
+    warn(message: string, data?: Record<string, unknown>): void;
+    error(message: string, error?: Error | unknown, data?: Record<string, unknown>): void;
+}
+
+/**
+ * @sam-ai/agentic - Tutoring Loop Controller
+ * Main orchestrator for plan-driven tutoring sessions
+ * Prepares context before LLM calls and evaluates progress after responses
+ */
+
+interface TutoringLoopControllerConfig {
+    /** Goal store for retrieving active goals */
+    goalStore: GoalStore;
+    /** Plan store for retrieving and updating plans */
+    planStore: PlanStore;
+    /** Tool store for retrieving allowed tools */
+    toolStore: ToolStore;
+    /** Confirmation request store */
+    confirmationStore: OrchestrationConfirmationRequestStore;
+    /** Session store */
+    sessionStore: TutoringSessionStore;
+    /** Logger instance */
+    logger?: OrchestrationLogger;
+    /** Step completion confidence threshold (0-1) */
+    stepCompletionThreshold?: number;
+    /** Whether to auto-advance on step completion */
+    autoAdvance?: boolean;
+    /** Maximum retries for failed steps */
+    maxStepRetries?: number;
+    /** Session timeout in minutes */
+    sessionTimeoutMinutes?: number;
+}
+declare class TutoringLoopController {
+    private readonly config;
+    private readonly logger;
+    constructor(config: TutoringLoopControllerConfig);
+    /**
+     * Prepare complete tutoring context for an LLM call
+     */
+    prepareContext(userId: string, sessionId: string, _message: string, options?: PrepareContextOptions): Promise<TutoringContext>;
+    /**
+     * Evaluate whether the current step can be advanced
+     */
+    evaluateProgress(context: TutoringContext, response: string, userMessage: string): Promise<StepEvaluation>;
+    /**
+     * Advance to the next step in the plan
+     */
+    advanceStep(planId: string, evaluation: StepEvaluation, options?: AdvanceStepOptions): Promise<StepTransition>;
+    /**
+     * Plan tool usage based on the current tutoring context
+     */
+    planToolUsage(context: TutoringContext, userMessage: string): Promise<ToolPlan>;
+    /**
+     * Process the complete tutoring loop
+     */
+    processLoop(userId: string, sessionId: string, userMessage: string, llmResponse: string, options?: ProcessLoopOptions): Promise<TutoringLoopResult>;
+    private getActiveGoal;
+    private getActivePlan;
+    private getCurrentStep;
+    private extractStepObjectives;
+    private getAllowedTools;
+    private buildMemoryContext;
+    private getPendingInterventions;
+    private getPreviousStepResults;
+    private buildSessionMetadata;
+    private evaluateCriterion;
+    private generateRecommendations;
+    private getNextStepId;
+    private determineTransitionType;
+    private updatePlanState;
+    private isPlanComplete;
+    private generateCelebration;
+    private generateTransitionMessage;
+    private analyzeToolNeeds;
+    private generateToolPlanReasoning;
+    private calculateToolPlanConfidence;
+    private createEmptyEvaluation;
+    private createDefaultLogger;
+}
+interface PrepareContextOptions {
+    planId?: string;
+    goalId?: string;
+    sessionContext?: SessionContext;
+}
+interface AdvanceStepOptions {
+    skip?: boolean;
+    retry?: boolean;
+    rollback?: boolean;
+    targetStepId?: string;
+}
+interface ProcessLoopOptions {
+    planId?: string;
+    goalId?: string;
+    sessionContext?: SessionContext;
+}
+declare function createTutoringLoopController(config: TutoringLoopControllerConfig): TutoringLoopController;
+
+/**
+ * @sam-ai/agentic - Active Step Executor
+ * Wires StepExecutor to runtime with tool binding and real-time execution
+ */
+
+interface ActiveStepExecutorConfig {
+    /** Tool store for executing tools */
+    toolStore: ToolStore;
+    /** Confirmation store for managing confirmations */
+    confirmationStore: OrchestrationConfirmationRequestStore;
+    /** Logger instance */
+    logger?: OrchestrationLogger;
+    /** Default timeout for tool execution (ms) */
+    defaultTimeoutMs?: number;
+    /** Maximum concurrent tool executions */
+    maxConcurrentTools?: number;
+    /** Whether to require confirmation for high-risk tools */
+    requireConfirmation?: boolean;
+    /** Confirmation expiry time (ms) */
+    confirmationExpiryMs?: number;
+}
+interface StepExecutionResult {
+    stepId: string;
+    status: StepStatus;
+    output: StepExecutionOutput;
+    metrics: StepMetrics;
+    toolResults: ToolExecutionSummary[];
+    errors: StepExecutionError[];
+    startedAt: Date;
+    completedAt: Date;
+}
+interface StepExecutionOutput {
+    message: string;
+    data?: Record<string, unknown>;
+    artifacts?: Artifact[];
+}
+interface Artifact {
+    id: string;
+    type: 'content' | 'quiz' | 'exercise' | 'resource' | 'feedback';
+    title: string;
+    content: unknown;
+    metadata?: Record<string, unknown>;
+}
+interface ToolExecutionSummary {
+    toolId: string;
+    toolName: string;
+    status: 'success' | 'failed' | 'skipped' | 'pending_confirmation';
+    result?: ToolExecutionResult;
+    error?: string;
+    duration: number;
+    confirmationId?: string;
+}
+interface StepExecutionError {
+    code: string;
+    message: string;
+    toolId?: string;
+    recoverable: boolean;
+    details?: Record<string, unknown>;
+}
+declare class ActiveStepExecutor {
+    private readonly config;
+    private readonly logger;
+    private readonly pendingConfirmations;
+    constructor(config: ActiveStepExecutorConfig);
+    /**
+     * Execute a step with its associated tools
+     */
+    executeStep(step: PlanStep, context: TutoringContext, toolPlan: ToolPlan): Promise<StepExecutionResult>;
+    /**
+     * Execute a tool plan with confirmation handling
+     */
+    executeToolPlan(toolPlan: ToolPlan, context: TutoringContext): Promise<ToolPlanExecutionResult>;
+    /**
+     * Execute a single tool
+     */
+    executeTool(tool: PlannedToolExecution, context: TutoringContext): Promise<ToolExecutionSummary>;
+    /**
+     * Handle confirmation response for a pending tool execution
+     */
+    handleConfirmation(confirmationId: string, response: ConfirmationResponse, context: TutoringContext): Promise<ToolExecutionSummary | null>;
+    /**
+     * Get all pending confirmations for a user
+     */
+    getPendingConfirmations(userId: string): Promise<OrchestrationConfirmationRequest[]>;
+    /**
+     * Cancel a pending confirmation
+     */
+    cancelConfirmation(confirmationId: string): Promise<boolean>;
+    private categorizeTools;
+    private executeToolsBatch;
+    private requestToolConfirmation;
+    private validateToolInput;
+    private executeWithTimeout;
+    private assessRiskLevel;
+    private extractArtifacts;
+    private calculateAdditionalMetrics;
+    private generateOutputMessage;
+    private aggregateToolOutputs;
+    private chunkArray;
+    private createDefaultLogger;
+}
+interface ToolPlanExecutionResult {
+    summaries: ToolExecutionSummary[];
+    errors: StepExecutionError[];
+    artifacts: Artifact[];
+}
+declare function createActiveStepExecutor(config: ActiveStepExecutorConfig): ActiveStepExecutor;
+
+/**
+ * @sam-ai/agentic - Plan Context Injector
+ * Formats plan context for LLM prompt injection
+ */
+
+interface PlanContextInjectorConfig {
+    /** Logger instance */
+    logger?: OrchestrationLogger;
+    /** Maximum objectives to include */
+    maxObjectives?: number;
+    /** Maximum previous results to include */
+    maxPreviousResults?: number;
+    /** Include memory context in injection */
+    includeMemoryContext?: boolean;
+    /** Include gamification context */
+    includeGamification?: boolean;
+    /** Template format for system prompt additions */
+    templateFormat?: 'markdown' | 'xml' | 'json';
+}
+declare class PlanContextInjector {
+    private readonly config;
+    private readonly logger;
+    constructor(config?: PlanContextInjectorConfig);
+    /**
+     * Create plan context injection for LLM prompt
+     */
+    createInjection(context: TutoringContext): PlanContextInjection;
+    /**
+     * Format context as a single string for system prompt
+     */
+    formatForSystemPrompt(context: TutoringContext): string;
+    /**
+     * Format context as structured data
+     */
+    formatAsStructuredData(context: TutoringContext): StructuredPlanContext;
+    /**
+     * Build the complete prompt with context
+     */
+    buildCompletePrompt(context: TutoringContext, userMessage: string, systemPrompt?: string): PromptComponents;
+    private buildSystemPromptAdditions;
+    private buildMessagePrefix;
+    private buildMessageSuffix;
+    private buildStructuredContext;
+    private buildStepDetails;
+    private buildProgressSummary;
+    private getAvailableActions;
+    private getStepTypeActions;
+    private getConstraints;
+    private formatPlanContext;
+    private formatStepObjectives;
+    private formatMemoryContext;
+    private formatAvailableTools;
+    private formatInterventions;
+    private formatTemplate;
+    private getTemplate;
+    private calculateProgress;
+    private createDefaultLogger;
+}
+interface PromptComponents {
+    systemPrompt: string;
+    userMessage: string;
+    structuredContext: StructuredPlanContext;
+}
+declare function createPlanContextInjector(config?: PlanContextInjectorConfig): PlanContextInjector;
+
+/**
+ * @sam-ai/agentic - Confirmation Gate
+ * User confirmation handling for high-impact tool usage
+ */
+
+interface ConfirmationGateConfig {
+    /** Confirmation request store */
+    confirmationStore: OrchestrationConfirmationRequestStore;
+    /** Logger instance */
+    logger?: OrchestrationLogger;
+    /** Default expiry time for confirmations (ms) */
+    defaultExpiryMs?: number;
+    /** Auto-approve for safe tools */
+    autoApproveForSafe?: boolean;
+    /** Maximum pending confirmations per user */
+    maxPendingPerUser?: number;
+    /** Notification callback */
+    onConfirmationRequired?: (request: OrchestrationConfirmationRequest) => void;
+}
+declare class ConfirmationGate {
+    private readonly config;
+    private readonly logger;
+    constructor(config: ConfirmationGateConfig);
+    /**
+     * Check if a tool requires confirmation
+     */
+    requiresConfirmation(tool: ToolDefinition): boolean;
+    /**
+     * Get the confirmation type for a tool
+     */
+    getConfirmationType(tool: ToolDefinition): ConfirmationType;
+    /**
+     * Request confirmation for a tool execution
+     */
+    requestConfirmation(userId: string, sessionId: string, tool: ToolDefinition, input: Record<string, unknown>, options?: RequestConfirmationOptions): Promise<OrchestrationConfirmationRequest>;
+    /**
+     * Respond to a confirmation request
+     */
+    respond(confirmationId: string, response: ConfirmationResponse): Promise<OrchestrationConfirmationRequest>;
+    /**
+     * Approve a confirmation request
+     */
+    approve(confirmationId: string, _approvedBy?: string, modifiedInput?: Record<string, unknown>): Promise<OrchestrationConfirmationRequest>;
+    /**
+     * Reject a confirmation request
+     */
+    reject(confirmationId: string, reason?: string): Promise<OrchestrationConfirmationRequest>;
+    /**
+     * Get pending confirmations for a user
+     */
+    getPendingConfirmations(userId: string): Promise<OrchestrationConfirmationRequest[]>;
+    /**
+     * Expire a confirmation request
+     */
+    expireConfirmation(confirmationId: string): Promise<void>;
+    /**
+     * Expire all old confirmations
+     */
+    expireOldConfirmations(maxAgeMinutes?: number): Promise<number>;
+    /**
+     * Check if a confirmation is still valid
+     */
+    isValid(confirmationId: string): Promise<boolean>;
+    /**
+     * Get confirmation request by ID
+     */
+    getConfirmation(confirmationId: string): Promise<OrchestrationConfirmationRequest | null>;
+    private assessRiskLevel;
+    private generateReasoning;
+    private createDefaultLogger;
+}
+interface RequestConfirmationOptions {
+    reasoning?: string;
+    stepId?: string;
+    stepTitle?: string;
+    expiryMs?: number;
+}
+declare function createConfirmationGate(config: ConfirmationGateConfig): ConfirmationGate;
+
+/**
+ * @sam-ai/agentic - Orchestration Stores
+ * In-memory store implementations for orchestration components
+ */
+
+declare class InMemoryOrchestrationConfirmationStore implements OrchestrationConfirmationRequestStore {
+    private readonly requests;
+    create(request: Omit<OrchestrationConfirmationRequest, 'id' | 'createdAt'>): Promise<OrchestrationConfirmationRequest>;
+    get(requestId: string): Promise<OrchestrationConfirmationRequest | null>;
+    getByUser(userId: string, options?: {
+        status?: string[];
+        limit?: number;
+    }): Promise<OrchestrationConfirmationRequest[]>;
+    update(requestId: string, updates: Partial<OrchestrationConfirmationRequest>): Promise<OrchestrationConfirmationRequest>;
+    respond(requestId: string, response: ConfirmationResponse): Promise<OrchestrationConfirmationRequest>;
+    expireOld(maxAgeMinutes: number): Promise<number>;
+    clear(): void;
+    size(): number;
+    getAll(): OrchestrationConfirmationRequest[];
+}
+declare class InMemoryTutoringSessionStore implements TutoringSessionStore {
+    private readonly sessions;
+    private readonly userActiveSessions;
+    getOrCreate(userId: string, planId?: string): Promise<TutoringSession>;
+    update(sessionId: string, updates: Partial<TutoringSession>): Promise<TutoringSession>;
+    end(sessionId: string): Promise<TutoringSession>;
+    getActive(userId: string): Promise<TutoringSession | null>;
+    getRecent(userId: string, limit?: number): Promise<TutoringSession[]>;
+    get(sessionId: string): Promise<TutoringSession | null>;
+    clear(): void;
+    size(): number;
+    getAll(): TutoringSession[];
+}
+declare function createInMemoryOrchestrationConfirmationStore(): InMemoryOrchestrationConfirmationStore;
+declare function createInMemorySessionStore(): InMemoryTutoringSessionStore;
+/**
+ * Create all in-memory stores for orchestration
+ */
+declare function createInMemoryOrchestrationStores(): OrchestrationStores;
+interface OrchestrationStores {
+    confirmationStore: OrchestrationConfirmationRequestStore;
+    sessionStore: TutoringSessionStore;
+}
+
+/**
  * @sam-ai/agentic - Learning Path Types
  * Portable types for skill tracking and learning path recommendations
  */
@@ -8291,6 +10481,2120 @@ declare class LearningPathRecommender {
 declare function createPathRecommender(config: PathRecommenderConfig): LearningPathRecommender;
 
 /**
+ * @sam-ai/agentic - Real-Time Types
+ * Type definitions for WebSocket communication, presence tracking, and proactive push
+ */
+
+/**
+ * SAM WebSocket event types for real-time communication
+ */
+declare const SAMEventType: {
+    readonly INTERVENTION: "intervention";
+    readonly CHECKIN: "checkin";
+    readonly RECOMMENDATION: "recommendation";
+    readonly STEP_COMPLETED: "step_completed";
+    readonly GOAL_PROGRESS: "goal_progress";
+    readonly NUDGE: "nudge";
+    readonly PRESENCE_UPDATE: "presence_update";
+    readonly SESSION_SYNC: "session_sync";
+    readonly CELEBRATION: "celebration";
+    readonly ACTIVITY: "activity";
+    readonly HEARTBEAT: "heartbeat";
+    readonly ACKNOWLEDGE: "acknowledge";
+    readonly DISMISS: "dismiss";
+    readonly RESPOND: "respond";
+    readonly SUBSCRIBE: "subscribe";
+    readonly UNSUBSCRIBE: "unsubscribe";
+    readonly CONNECTED: "connected";
+    readonly DISCONNECTED: "disconnected";
+    readonly ERROR: "error";
+    readonly RECONNECTING: "reconnecting";
+};
+type SAMEventType = (typeof SAMEventType)[keyof typeof SAMEventType];
+/**
+ * Base WebSocket event structure
+ */
+interface BaseWebSocketEvent<T extends SAMEventType, P = unknown> {
+    type: T;
+    payload: P;
+    timestamp: Date;
+    eventId: string;
+    userId?: string;
+    sessionId?: string;
+}
+/**
+ * Intervention push event
+ */
+interface InterventionEvent extends BaseWebSocketEvent<'intervention', Intervention> {
+    type: 'intervention';
+    urgency: 'immediate' | 'soon' | 'routine';
+    dismissible: boolean;
+    expiresAt?: Date;
+}
+/**
+ * Check-in push event
+ */
+interface CheckInEvent extends BaseWebSocketEvent<'checkin', TriggeredCheckIn> {
+    type: 'checkin';
+    checkIn: ScheduledCheckIn;
+    urgency: 'immediate' | 'soon' | 'routine';
+}
+/**
+ * Recommendation push event
+ */
+interface RecommendationPayload {
+    id: string;
+    type: 'content' | 'activity' | 'break' | 'review' | 'goal';
+    title: string;
+    description: string;
+    actionUrl?: string;
+    priority: 'high' | 'medium' | 'low';
+    reason: string;
+    metadata?: Record<string, unknown>;
+}
+interface RecommendationEvent extends BaseWebSocketEvent<'recommendation', RecommendationPayload> {
+    type: 'recommendation';
+}
+/**
+ * Step completion notification
+ */
+interface StepCompletionPayload {
+    planId: string;
+    stepId: string;
+    stepTitle: string;
+    stepNumber: number;
+    totalSteps: number;
+    progress: number;
+    nextStepTitle?: string;
+    celebrationMessage?: string;
+}
+interface StepCompletedEvent extends BaseWebSocketEvent<'step_completed', StepCompletionPayload> {
+    type: 'step_completed';
+}
+/**
+ * Goal progress update
+ */
+interface GoalProgressPayload {
+    goalId: string;
+    goalTitle: string;
+    progress: number;
+    milestone?: {
+        title: string;
+        achieved: boolean;
+        message: string;
+    };
+    streak?: {
+        current: number;
+        atRisk: boolean;
+        message?: string;
+    };
+}
+interface GoalProgressEvent extends BaseWebSocketEvent<'goal_progress', GoalProgressPayload> {
+    type: 'goal_progress';
+}
+/**
+ * Proactive nudge (lightweight intervention)
+ */
+interface NudgePayload {
+    id: string;
+    type: NudgeType;
+    message: string;
+    icon?: string;
+    action?: {
+        label: string;
+        url?: string;
+        action?: string;
+    };
+    dismissAfterMs?: number;
+    position?: 'top' | 'bottom' | 'center' | 'corner';
+}
+declare const NudgeType: {
+    readonly REMINDER: "reminder";
+    readonly ENCOURAGEMENT: "encouragement";
+    readonly TIP: "tip";
+    readonly STREAK_ALERT: "streak_alert";
+    readonly BREAK_SUGGESTION: "break_suggestion";
+    readonly STUDY_PROMPT: "study_prompt";
+    readonly ACHIEVEMENT: "achievement";
+};
+type NudgeType = (typeof NudgeType)[keyof typeof NudgeType];
+interface NudgeEvent extends BaseWebSocketEvent<'nudge', NudgePayload> {
+    type: 'nudge';
+}
+/**
+ * Presence update event
+ */
+interface PresencePayload {
+    userId: string;
+    status: PresenceStatus;
+    lastActivityAt: Date;
+    currentPage?: string;
+    currentCourse?: string;
+    currentSection?: string;
+    deviceType?: 'desktop' | 'mobile' | 'tablet';
+}
+interface PresenceUpdateEvent extends BaseWebSocketEvent<'presence_update', PresencePayload> {
+    type: 'presence_update';
+}
+/**
+ * Session sync event for cross-device continuity
+ */
+interface SessionSyncPayload {
+    sessionId: string;
+    currentPlanId?: string;
+    currentStepId?: string;
+    lastActivity: Date;
+    pendingActions: string[];
+    syncedAt: Date;
+}
+interface SessionSyncEvent extends BaseWebSocketEvent<'session_sync', SessionSyncPayload> {
+    type: 'session_sync';
+}
+/**
+ * Celebration event for achievements
+ */
+interface CelebrationPayload {
+    type: CelebrationType;
+    title: string;
+    message: string;
+    achievement?: {
+        id: string;
+        name: string;
+        icon: string;
+        description: string;
+    };
+    confetti?: boolean;
+    sound?: boolean;
+    displayDurationMs?: number;
+}
+declare const CelebrationType: {
+    readonly GOAL_COMPLETED: "goal_completed";
+    readonly MILESTONE_REACHED: "milestone_reached";
+    readonly STREAK_MILESTONE: "streak_milestone";
+    readonly BADGE_EARNED: "badge_earned";
+    readonly LEVEL_UP: "level_up";
+    readonly COURSE_COMPLETED: "course_completed";
+    readonly MASTERY_ACHIEVED: "mastery_achieved";
+};
+type CelebrationType = (typeof CelebrationType)[keyof typeof CelebrationType];
+interface CelebrationEvent extends BaseWebSocketEvent<'celebration', CelebrationPayload> {
+    type: 'celebration';
+}
+/**
+ * Client activity event
+ */
+interface ActivityPayload {
+    type: 'page_view' | 'interaction' | 'focus' | 'blur' | 'scroll' | 'typing';
+    data: Record<string, unknown>;
+    pageContext?: {
+        url: string;
+        courseId?: string;
+        sectionId?: string;
+    };
+}
+interface ActivityEvent extends BaseWebSocketEvent<'activity', ActivityPayload> {
+    type: 'activity';
+}
+/**
+ * Heartbeat event for connection health
+ */
+interface HeartbeatPayload {
+    status: 'alive';
+    timestamp: Date;
+    connectionId: string;
+}
+interface HeartbeatEvent extends BaseWebSocketEvent<'heartbeat', HeartbeatPayload> {
+    type: 'heartbeat';
+}
+/**
+ * Acknowledge event for confirming receipt
+ */
+interface AcknowledgePayload {
+    eventId: string;
+    received: boolean;
+    action?: 'viewed' | 'clicked' | 'dismissed';
+}
+interface AcknowledgeEvent extends BaseWebSocketEvent<'acknowledge', AcknowledgePayload> {
+    type: 'acknowledge';
+}
+/**
+ * Dismiss event for closing notifications
+ */
+interface DismissPayload {
+    eventId: string;
+    reason?: 'user_action' | 'timeout' | 'replaced' | 'navigation';
+}
+interface DismissEvent extends BaseWebSocketEvent<'dismiss', DismissPayload> {
+    type: 'dismiss';
+}
+/**
+ * Subscribe/unsubscribe events
+ */
+interface SubscriptionPayload {
+    channels: string[];
+    courseId?: string;
+    sessionId?: string;
+}
+interface SubscribeEvent extends BaseWebSocketEvent<'subscribe', SubscriptionPayload> {
+    type: 'subscribe';
+}
+interface UnsubscribeEvent extends BaseWebSocketEvent<'unsubscribe', SubscriptionPayload> {
+    type: 'unsubscribe';
+}
+/**
+ * System error event
+ */
+interface ErrorPayload {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+    recoverable: boolean;
+}
+interface ErrorEvent extends BaseWebSocketEvent<'error', ErrorPayload> {
+    type: 'error';
+}
+/**
+ * Connected event
+ */
+interface ConnectedPayload {
+    connectionId: string;
+    userId: string;
+    sessionId: string;
+    serverTime: Date;
+    capabilities: string[];
+}
+interface ConnectedEvent extends BaseWebSocketEvent<'connected', ConnectedPayload> {
+    type: 'connected';
+}
+/**
+ * Union type of all SAM WebSocket events
+ */
+type SAMWebSocketEvent = InterventionEvent | CheckInEvent | RecommendationEvent | StepCompletedEvent | GoalProgressEvent | NudgeEvent | PresenceUpdateEvent | SessionSyncEvent | CelebrationEvent | ActivityEvent | HeartbeatEvent | AcknowledgeEvent | DismissEvent | SubscribeEvent | UnsubscribeEvent | ErrorEvent | ConnectedEvent;
+/**
+ * User presence status
+ */
+declare const PresenceStatus: {
+    readonly ONLINE: "online";
+    readonly AWAY: "away";
+    readonly IDLE: "idle";
+    readonly STUDYING: "studying";
+    readonly OFFLINE: "offline";
+    readonly DO_NOT_DISTURB: "do_not_disturb";
+};
+type PresenceStatus = (typeof PresenceStatus)[keyof typeof PresenceStatus];
+/**
+ * User presence record
+ */
+interface UserPresence {
+    userId: string;
+    connectionId: string;
+    status: PresenceStatus;
+    lastActivityAt: Date;
+    connectedAt: Date;
+    metadata: PresenceMetadata;
+    subscriptions: string[];
+}
+/**
+ * Presence metadata
+ */
+interface PresenceMetadata {
+    deviceType: 'desktop' | 'mobile' | 'tablet';
+    browser?: string;
+    os?: string;
+    location?: {
+        courseId?: string;
+        chapterId?: string;
+        sectionId?: string;
+        pageUrl?: string;
+    };
+    sessionContext?: {
+        planId?: string;
+        stepId?: string;
+        goalId?: string;
+    };
+}
+/**
+ * Presence state change
+ */
+interface PresenceStateChange {
+    userId: string;
+    previousStatus: PresenceStatus;
+    newStatus: PresenceStatus;
+    changedAt: Date;
+    reason: PresenceChangeReason;
+}
+declare const PresenceChangeReason: {
+    readonly CONNECTED: "connected";
+    readonly DISCONNECTED: "disconnected";
+    readonly ACTIVITY: "activity";
+    readonly IDLE_TIMEOUT: "idle_timeout";
+    readonly AWAY_TIMEOUT: "away_timeout";
+    readonly USER_SET: "user_set";
+    readonly SESSION_END: "session_end";
+};
+type PresenceChangeReason = (typeof PresenceChangeReason)[keyof typeof PresenceChangeReason];
+/**
+ * WebSocket connection state
+ */
+declare const ConnectionState: {
+    readonly CONNECTING: "connecting";
+    readonly CONNECTED: "connected";
+    readonly RECONNECTING: "reconnecting";
+    readonly DISCONNECTED: "disconnected";
+    readonly FAILED: "failed";
+};
+type ConnectionState = (typeof ConnectionState)[keyof typeof ConnectionState];
+/**
+ * Connection configuration
+ */
+interface ConnectionConfig {
+    /** WebSocket server URL */
+    url: string;
+    /** Reconnection attempts */
+    maxReconnectAttempts: number;
+    /** Base reconnection delay (ms) */
+    reconnectDelay: number;
+    /** Heartbeat interval (ms) */
+    heartbeatInterval: number;
+    /** Idle timeout for presence (ms) */
+    idleTimeout: number;
+    /** Away timeout for presence (ms) */
+    awayTimeout: number;
+    /** Enable automatic reconnection */
+    autoReconnect: boolean;
+    /** Auth token for connection */
+    authToken?: string;
+}
+/**
+ * Default connection configuration
+ */
+declare const DEFAULT_CONNECTION_CONFIG: ConnectionConfig;
+/**
+ * Connection statistics
+ */
+interface ConnectionStats {
+    connectionId: string;
+    connectedAt: Date;
+    lastHeartbeatAt: Date;
+    messagesSent: number;
+    messagesReceived: number;
+    reconnectCount: number;
+    latencyMs: number;
+}
+/**
+ * Push delivery channel
+ */
+declare const DeliveryChannel: {
+    readonly WEBSOCKET: "websocket";
+    readonly SSE: "sse";
+    readonly PUSH_NOTIFICATION: "push_notification";
+    readonly EMAIL: "email";
+    readonly IN_APP: "in_app";
+};
+type DeliveryChannel = (typeof DeliveryChannel)[keyof typeof DeliveryChannel];
+/**
+ * Push delivery priority
+ */
+declare const DeliveryPriority: {
+    readonly CRITICAL: "critical";
+    readonly HIGH: "high";
+    readonly NORMAL: "normal";
+    readonly LOW: "low";
+};
+type DeliveryPriority = (typeof DeliveryPriority)[keyof typeof DeliveryPriority];
+/**
+ * Push delivery request
+ */
+interface PushDeliveryRequest {
+    id: string;
+    userId: string;
+    event: SAMWebSocketEvent;
+    priority: DeliveryPriority;
+    channels: DeliveryChannel[];
+    fallbackChannels?: DeliveryChannel[];
+    expiresAt?: Date;
+    metadata?: Record<string, unknown>;
+}
+/**
+ * Push delivery result
+ */
+interface PushDeliveryResult {
+    requestId: string;
+    userId: string;
+    deliveredVia: DeliveryChannel | null;
+    success: boolean;
+    error?: string;
+    attemptedChannels: DeliveryChannel[];
+    deliveredAt?: Date;
+    acknowledgedAt?: Date;
+}
+/**
+ * Push dispatcher configuration
+ */
+interface PushDispatcherConfig {
+    /** Max queue size */
+    maxQueueSize: number;
+    /** Batch size for processing */
+    batchSize: number;
+    /** Processing interval (ms) */
+    processingInterval: number;
+    /** Retry attempts for failed deliveries */
+    retryAttempts: number;
+    /** Retry delay (ms) */
+    retryDelay: number;
+    /** Default expiration (ms) */
+    defaultExpirationMs: number;
+}
+/**
+ * Default push dispatcher configuration
+ */
+declare const DEFAULT_PUSH_DISPATCHER_CONFIG: PushDispatcherConfig;
+/**
+ * Intervention surface type (where to display)
+ */
+declare const InterventionSurface: {
+    readonly TOAST: "toast";
+    readonly MODAL: "modal";
+    readonly SIDEBAR: "sidebar";
+    readonly INLINE: "inline";
+    readonly FLOATING: "floating";
+    readonly BANNER: "banner";
+    readonly ASSISTANT_PANEL: "assistant_panel";
+    readonly DASHBOARD_WIDGET: "dashboard_widget";
+};
+type InterventionSurface = (typeof InterventionSurface)[keyof typeof InterventionSurface];
+/**
+ * Intervention display configuration
+ */
+interface InterventionDisplayConfig {
+    surface: InterventionSurface;
+    position?: 'top' | 'bottom' | 'left' | 'right' | 'center' | 'top-right' | 'bottom-right';
+    duration?: number;
+    dismissible: boolean;
+    blocking: boolean;
+    priority: number;
+    animation?: 'fade' | 'slide' | 'bounce' | 'none';
+    sound?: boolean;
+    vibrate?: boolean;
+}
+/**
+ * Intervention UI state
+ */
+interface InterventionUIState {
+    id: string;
+    event: SAMWebSocketEvent;
+    displayConfig: InterventionDisplayConfig;
+    visible: boolean;
+    createdAt: Date;
+    displayedAt?: Date;
+    dismissedAt?: Date;
+    interactedAt?: Date;
+    interactionType?: 'click' | 'dismiss' | 'action' | 'timeout';
+}
+/**
+ * Intervention queue for UI management
+ */
+interface InterventionQueue {
+    items: InterventionUIState[];
+    maxVisible: number;
+    currentlyVisible: string[];
+    priorityOrder: string[];
+}
+/**
+ * Presence store interface (portable)
+ */
+interface PresenceStore {
+    get(userId: string): Promise<UserPresence | null>;
+    getByConnection(connectionId: string): Promise<UserPresence | null>;
+    set(presence: UserPresence): Promise<void>;
+    update(userId: string, updates: Partial<UserPresence>): Promise<UserPresence | null>;
+    delete(userId: string): Promise<boolean>;
+    deleteByConnection(connectionId: string): Promise<boolean>;
+    getOnline(): Promise<UserPresence[]>;
+    getByStatus(status: PresenceStatus): Promise<UserPresence[]>;
+    cleanup(olderThan: Date): Promise<number>;
+}
+/**
+ * Push queue store interface (portable)
+ */
+interface PushQueueStore {
+    enqueue(request: PushDeliveryRequest): Promise<void>;
+    dequeue(count: number): Promise<PushDeliveryRequest[]>;
+    peek(count: number): Promise<PushDeliveryRequest[]>;
+    acknowledge(requestId: string, result: PushDeliveryResult): Promise<void>;
+    requeue(request: PushDeliveryRequest): Promise<void>;
+    getStats(): Promise<PushQueueStats>;
+    cleanup(olderThan: Date): Promise<number>;
+}
+/**
+ * Push queue statistics (renamed to avoid conflict with memory QueueStats)
+ */
+interface PushQueueStats {
+    pending: number;
+    processing: number;
+    completed: number;
+    failed: number;
+    avgProcessingTimeMs: number;
+    oldestPendingAt?: Date;
+}
+/**
+ * Event history store interface
+ */
+interface EventHistoryStore {
+    add(event: SAMWebSocketEvent, userId: string): Promise<void>;
+    getByUser(userId: string, limit?: number): Promise<SAMWebSocketEvent[]>;
+    getByType(userId: string, type: SAMEventType, limit?: number): Promise<SAMWebSocketEvent[]>;
+    getUnacknowledged(userId: string): Promise<SAMWebSocketEvent[]>;
+    markAcknowledged(eventId: string): Promise<void>;
+    cleanup(olderThan: Date): Promise<number>;
+}
+/**
+ * WebSocket connection handler interface (portable)
+ */
+interface WebSocketConnectionHandler {
+    /** Handle new connection */
+    onConnect(connectionId: string, userId: string, metadata: PresenceMetadata): Promise<void>;
+    /** Handle disconnection */
+    onDisconnect(connectionId: string, reason?: string): Promise<void>;
+    /** Handle incoming message */
+    onMessage(connectionId: string, event: SAMWebSocketEvent): Promise<void>;
+    /** Handle connection error */
+    onError(connectionId: string, error: Error): Promise<void>;
+}
+/**
+ * Push dispatcher interface (portable)
+ */
+interface PushDispatcherInterface {
+    /** Queue event for delivery */
+    dispatch(request: PushDeliveryRequest): Promise<void>;
+    /** Process queued events */
+    processQueue(): Promise<PushDeliveryResult[]>;
+    /** Check if user is reachable via WebSocket */
+    isUserOnline(userId: string): Promise<boolean>;
+    /** Get delivery stats */
+    getStats(): Promise<DispatcherStats>;
+    /** Start processing */
+    start(): void;
+    /** Stop processing */
+    stop(): void;
+}
+/**
+ * Dispatcher statistics
+ */
+interface DispatcherStats {
+    queueSize: number;
+    deliveredCount: number;
+    failedCount: number;
+    activeConnections: number;
+    avgDeliveryTimeMs: number;
+    lastProcessedAt?: Date;
+}
+/**
+ * Presence tracker interface (portable)
+ */
+interface PresenceTrackerInterface {
+    /** Record user activity */
+    recordActivity(userId: string, activity: ActivityPayload): Promise<void>;
+    /** Get user presence */
+    getPresence(userId: string): Promise<UserPresence | null>;
+    /** Update presence status */
+    updateStatus(userId: string, status: PresenceStatus): Promise<void>;
+    /** Check for idle/away users */
+    checkTimeouts(): Promise<PresenceStateChange[]>;
+    /** Get online users */
+    getOnlineUsers(): Promise<UserPresence[]>;
+    /** Subscribe to presence changes */
+    onPresenceChange(callback: (change: PresenceStateChange) => void): () => void;
+}
+/**
+ * Intervention surface manager interface
+ */
+interface InterventionSurfaceManager {
+    /** Queue intervention for display */
+    queue(event: SAMWebSocketEvent, config?: Partial<InterventionDisplayConfig>): void;
+    /** Dismiss intervention */
+    dismiss(eventId: string, reason?: string): void;
+    /** Get current queue state */
+    getQueue(): InterventionQueue;
+    /** Clear all interventions */
+    clearAll(): void;
+    /** Subscribe to queue changes */
+    onQueueChange(callback: (queue: InterventionQueue) => void): () => void;
+}
+interface RealtimeLogger {
+    debug(message: string, meta?: Record<string, unknown>): void;
+    info(message: string, meta?: Record<string, unknown>): void;
+    warn(message: string, meta?: Record<string, unknown>): void;
+    error(message: string, meta?: Record<string, unknown>): void;
+}
+declare const SAMWebSocketEventSchema: z.ZodObject<{
+    type: z.ZodString;
+    payload: z.ZodUnknown;
+    timestamp: z.ZodDate;
+    eventId: z.ZodString;
+    userId: z.ZodOptional<z.ZodString>;
+    sessionId: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    type: string;
+    timestamp: Date;
+    eventId: string;
+    userId?: string | undefined;
+    sessionId?: string | undefined;
+    payload?: unknown;
+}, {
+    type: string;
+    timestamp: Date;
+    eventId: string;
+    userId?: string | undefined;
+    sessionId?: string | undefined;
+    payload?: unknown;
+}>;
+declare const ConnectionConfigSchema: z.ZodObject<{
+    url: z.ZodString;
+    maxReconnectAttempts: z.ZodNumber;
+    reconnectDelay: z.ZodNumber;
+    heartbeatInterval: z.ZodNumber;
+    idleTimeout: z.ZodNumber;
+    awayTimeout: z.ZodNumber;
+    autoReconnect: z.ZodBoolean;
+    authToken: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    url: string;
+    maxReconnectAttempts: number;
+    reconnectDelay: number;
+    heartbeatInterval: number;
+    idleTimeout: number;
+    awayTimeout: number;
+    autoReconnect: boolean;
+    authToken?: string | undefined;
+}, {
+    url: string;
+    maxReconnectAttempts: number;
+    reconnectDelay: number;
+    heartbeatInterval: number;
+    idleTimeout: number;
+    awayTimeout: number;
+    autoReconnect: boolean;
+    authToken?: string | undefined;
+}>;
+declare const PushDeliveryRequestSchema: z.ZodObject<{
+    id: z.ZodString;
+    userId: z.ZodString;
+    event: z.ZodObject<{
+        type: z.ZodString;
+        payload: z.ZodUnknown;
+        timestamp: z.ZodDate;
+        eventId: z.ZodString;
+        userId: z.ZodOptional<z.ZodString>;
+        sessionId: z.ZodOptional<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        type: string;
+        timestamp: Date;
+        eventId: string;
+        userId?: string | undefined;
+        sessionId?: string | undefined;
+        payload?: unknown;
+    }, {
+        type: string;
+        timestamp: Date;
+        eventId: string;
+        userId?: string | undefined;
+        sessionId?: string | undefined;
+        payload?: unknown;
+    }>;
+    priority: z.ZodEnum<["critical", "high", "normal", "low"]>;
+    channels: z.ZodArray<z.ZodEnum<["websocket", "sse", "push_notification", "email", "in_app"]>, "many">;
+    fallbackChannels: z.ZodOptional<z.ZodArray<z.ZodEnum<["websocket", "sse", "push_notification", "email", "in_app"]>, "many">>;
+    expiresAt: z.ZodOptional<z.ZodDate>;
+    metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}, "strip", z.ZodTypeAny, {
+    userId: string;
+    priority: "low" | "high" | "critical" | "normal";
+    id: string;
+    channels: ("email" | "in_app" | "websocket" | "sse" | "push_notification")[];
+    event: {
+        type: string;
+        timestamp: Date;
+        eventId: string;
+        userId?: string | undefined;
+        sessionId?: string | undefined;
+        payload?: unknown;
+    };
+    metadata?: Record<string, unknown> | undefined;
+    expiresAt?: Date | undefined;
+    fallbackChannels?: ("email" | "in_app" | "websocket" | "sse" | "push_notification")[] | undefined;
+}, {
+    userId: string;
+    priority: "low" | "high" | "critical" | "normal";
+    id: string;
+    channels: ("email" | "in_app" | "websocket" | "sse" | "push_notification")[];
+    event: {
+        type: string;
+        timestamp: Date;
+        eventId: string;
+        userId?: string | undefined;
+        sessionId?: string | undefined;
+        payload?: unknown;
+    };
+    metadata?: Record<string, unknown> | undefined;
+    expiresAt?: Date | undefined;
+    fallbackChannels?: ("email" | "in_app" | "websocket" | "sse" | "push_notification")[] | undefined;
+}>;
+
+/**
+ * @sam-ai/agentic - Presence Tracker
+ * Tracks user online/offline status and activity for proactive interventions
+ */
+
+declare class InMemoryPresenceStore implements PresenceStore {
+    private presences;
+    private connectionIndex;
+    get(userId: string): Promise<UserPresence | null>;
+    getByConnection(connectionId: string): Promise<UserPresence | null>;
+    set(presence: UserPresence): Promise<void>;
+    update(userId: string, updates: Partial<UserPresence>): Promise<UserPresence | null>;
+    delete(userId: string): Promise<boolean>;
+    deleteByConnection(connectionId: string): Promise<boolean>;
+    getOnline(): Promise<UserPresence[]>;
+    getByStatus(status: PresenceStatus): Promise<UserPresence[]>;
+    cleanup(olderThan: Date): Promise<number>;
+    clear(): void;
+}
+interface PresenceTrackerConfig {
+    /** Time in ms before user is considered idle (default: 60000 = 1 min) */
+    idleTimeoutMs: number;
+    /** Time in ms before idle user is considered away (default: 300000 = 5 min) */
+    awayTimeoutMs: number;
+    /** Time in ms before away user is considered offline (default: 1800000 = 30 min) */
+    offlineTimeoutMs: number;
+    /** Interval for checking timeouts (default: 10000 = 10 sec) */
+    checkIntervalMs: number;
+    /** Enable automatic timeout checking */
+    autoCheckTimeouts: boolean;
+}
+declare const DEFAULT_PRESENCE_CONFIG: PresenceTrackerConfig;
+declare class PresenceTracker implements PresenceTrackerInterface {
+    private readonly store;
+    private readonly config;
+    private readonly logger;
+    private readonly listeners;
+    private checkInterval?;
+    private isRunning;
+    constructor(options: {
+        store?: PresenceStore;
+        config?: Partial<PresenceTrackerConfig>;
+        logger?: RealtimeLogger;
+    });
+    start(): void;
+    stop(): void;
+    connect(userId: string, connectionId: string, metadata: PresenceMetadata): Promise<UserPresence>;
+    disconnect(connectionId: string, reason?: string): Promise<void>;
+    recordActivity(userId: string, activity: ActivityPayload): Promise<void>;
+    getPresence(userId: string): Promise<UserPresence | null>;
+    updateStatus(userId: string, status: PresenceStatus): Promise<void>;
+    checkTimeouts(): Promise<PresenceStateChange[]>;
+    private transitionStatus;
+    getOnlineUsers(): Promise<UserPresence[]>;
+    getStudyingUsers(): Promise<UserPresence[]>;
+    getIdleUsers(): Promise<UserPresence[]>;
+    isUserOnline(userId: string): Promise<boolean>;
+    subscribe(userId: string, channels: string[]): Promise<void>;
+    unsubscribe(userId: string, channels: string[]): Promise<void>;
+    getSubscribedUsers(channel: string): Promise<string[]>;
+    onPresenceChange(callback: (change: PresenceStateChange) => void): () => void;
+    private emitChange;
+    cleanup(olderThanMs?: number): Promise<number>;
+}
+declare function createPresenceTracker(options?: {
+    store?: PresenceStore;
+    config?: Partial<PresenceTrackerConfig>;
+    logger?: RealtimeLogger;
+}): PresenceTracker;
+declare function createInMemoryPresenceStore(): InMemoryPresenceStore;
+
+/**
+ * @sam-ai/agentic - Proactive Push Dispatcher
+ * Handles real-time delivery of interventions, check-ins, and notifications
+ */
+
+declare class InMemoryPushQueueStore implements PushQueueStore {
+    private queue;
+    private completed;
+    private failed;
+    private processing;
+    private totalProcessingTime;
+    private processedCount;
+    enqueue(request: PushDeliveryRequest): Promise<void>;
+    dequeue(count: number): Promise<PushDeliveryRequest[]>;
+    peek(count: number): Promise<PushDeliveryRequest[]>;
+    acknowledge(requestId: string, result: PushDeliveryResult): Promise<void>;
+    requeue(request: PushDeliveryRequest): Promise<void>;
+    getStats(): Promise<PushQueueStats>;
+    cleanup(olderThan: Date): Promise<number>;
+    getQueueSize(): number;
+    clear(): void;
+}
+/**
+ * Handler for delivering events via specific channels
+ */
+interface DeliveryHandler {
+    channel: DeliveryChannel;
+    canDeliver(userId: string): Promise<boolean>;
+    deliver(userId: string, event: SAMWebSocketEvent): Promise<boolean>;
+}
+declare class ProactivePushDispatcher implements PushDispatcherInterface {
+    private readonly store;
+    private readonly config;
+    private readonly logger;
+    private readonly handlers;
+    private readonly presenceTracker?;
+    private isRunning;
+    private processInterval?;
+    private deliveredCount;
+    private failedCount;
+    private lastProcessedAt?;
+    constructor(options: {
+        store?: PushQueueStore;
+        config?: Partial<PushDispatcherConfig>;
+        presenceTracker?: PresenceTrackerInterface;
+        logger?: RealtimeLogger;
+    });
+    registerHandler(handler: DeliveryHandler): void;
+    unregisterHandler(channel: DeliveryChannel): void;
+    start(): void;
+    stop(): void;
+    dispatch(request: PushDeliveryRequest): Promise<void>;
+    /**
+     * Create and dispatch an event with defaults
+     */
+    dispatchEvent(userId: string, event: SAMWebSocketEvent, options?: {
+        priority?: DeliveryPriority;
+        channels?: DeliveryChannel[];
+        fallbackChannels?: DeliveryChannel[];
+        expiresAt?: Date;
+    }): Promise<void>;
+    processQueue(): Promise<PushDeliveryResult[]>;
+    private processRequest;
+    private shouldRetry;
+    isUserOnline(userId: string): Promise<boolean>;
+    getStats(): Promise<DispatcherStats>;
+    cleanup(olderThanMs?: number): Promise<number>;
+}
+declare function createPushDispatcher(options?: {
+    store?: PushQueueStore;
+    config?: Partial<PushDispatcherConfig>;
+    presenceTracker?: PresenceTrackerInterface;
+    logger?: RealtimeLogger;
+}): ProactivePushDispatcher;
+declare function createInMemoryPushQueueStore(): InMemoryPushQueueStore;
+
+/**
+ * @sam-ai/agentic - WebSocket Connection Manager
+ * Portable WebSocket abstraction for real-time SAM communication
+ */
+
+type MessageHandler = (event: SAMWebSocketEvent) => void;
+type ConnectionHandler = (state: ConnectionState) => void;
+type ErrorHandler = (error: Error) => void;
+interface WebSocketManagerInterface {
+    /** Connect to WebSocket server */
+    connect(userId: string, metadata?: PresenceMetadata): Promise<void>;
+    /** Disconnect from server */
+    disconnect(): void;
+    /** Send event to server */
+    send(event: SAMWebSocketEvent): Promise<void>;
+    /** Subscribe to specific event types */
+    on(eventType: SAMEventType, handler: MessageHandler): () => void;
+    /** Subscribe to connection state changes */
+    onConnectionChange(handler: ConnectionHandler): () => void;
+    /** Subscribe to errors */
+    onError(handler: ErrorHandler): () => void;
+    /** Get current connection state */
+    getState(): ConnectionState;
+    /** Get connection statistics */
+    getStats(): ConnectionStats;
+    /** Check if connected */
+    isConnected(): boolean;
+}
+/**
+ * Client-side WebSocket manager for browser environments
+ * This is the main class for UI integration
+ */
+declare class ClientWebSocketManager implements WebSocketManagerInterface {
+    private readonly config;
+    private readonly logger;
+    private socket;
+    private state;
+    private connectionId;
+    private userId;
+    private metadata;
+    private reconnectAttempts;
+    private reconnectTimeout?;
+    private heartbeatInterval?;
+    private readonly eventHandlers;
+    private readonly connectionHandlers;
+    private readonly errorHandlers;
+    private stats;
+    constructor(options?: {
+        config?: Partial<ConnectionConfig>;
+        logger?: RealtimeLogger;
+    });
+    connect(userId: string, metadata?: PresenceMetadata): Promise<void>;
+    disconnect(): void;
+    send(event: SAMWebSocketEvent): Promise<void>;
+    on(eventType: SAMEventType, handler: MessageHandler): () => void;
+    onConnectionChange(handler: ConnectionHandler): () => void;
+    onError(handler: ErrorHandler): () => void;
+    getState(): ConnectionState;
+    getStats(): ConnectionStats;
+    isConnected(): boolean;
+    getConnectionId(): string | null;
+    reportActivity(activity: {
+        type: 'page_view' | 'interaction' | 'focus' | 'blur' | 'scroll' | 'typing';
+        data?: Record<string, unknown>;
+        pageContext?: {
+            url: string;
+            courseId?: string;
+            sectionId?: string;
+        };
+    }): Promise<void>;
+    acknowledgeEvent(eventId: string, action?: 'viewed' | 'clicked' | 'dismissed'): Promise<void>;
+    dismissEvent(targetEventId: string, reason?: string): Promise<void>;
+    private handleOpen;
+    private handleClose;
+    private handleError;
+    private handleMessage;
+    private scheduleReconnect;
+    private startHeartbeat;
+    private setState;
+    private clearTimers;
+    private buildWebSocketUrl;
+    private detectDeviceType;
+    private detectBrowser;
+}
+/**
+ * Server-side connection manager for managing multiple client connections
+ * This is used in API routes or WebSocket servers
+ */
+declare class ServerConnectionManager {
+    private readonly logger;
+    private readonly connections;
+    private readonly userConnections;
+    private readonly handlers;
+    constructor(options?: {
+        logger?: RealtimeLogger;
+    });
+    registerConnection(connectionId: string, userId: string, socket: unknown, // WebSocket type varies by environment
+    metadata: PresenceMetadata): void;
+    removeConnection(connectionId: string, reason?: string): void;
+    sendToConnection(connectionId: string, event: SAMWebSocketEvent): Promise<boolean>;
+    sendToUser(userId: string, event: SAMWebSocketEvent): Promise<number>;
+    broadcast(event: SAMWebSocketEvent, filter?: (connection: ServerConnection) => boolean): Promise<number>;
+    getConnection(connectionId: string): ServerConnection | undefined;
+    getUserConnections(userId: string): ServerConnection[];
+    isUserConnected(userId: string): boolean;
+    getConnectionCount(): number;
+    getConnectedUserIds(): string[];
+    addHandler(handler: WebSocketConnectionHandler): void;
+    removeHandler(handler: WebSocketConnectionHandler): void;
+    handleMessage(connectionId: string, rawMessage: string): Promise<void>;
+}
+interface ServerConnection {
+    id: string;
+    userId: string;
+    socket: unknown;
+    metadata: PresenceMetadata;
+    connectedAt: Date;
+    lastActivityAt: Date;
+    subscriptions: Set<string>;
+}
+declare function createClientWebSocketManager(options?: {
+    config?: Partial<ConnectionConfig>;
+    logger?: RealtimeLogger;
+}): ClientWebSocketManager;
+declare function createServerConnectionManager(options?: {
+    logger?: RealtimeLogger;
+}): ServerConnectionManager;
+
+/**
+ * @sam-ai/agentic - Intervention Surface Manager
+ * Manages UI surfaces for displaying interventions, check-ins, and notifications
+ */
+
+/**
+ * Default display configs by event type
+ */
+declare const DEFAULT_DISPLAY_CONFIGS: Record<SAMEventType, Partial<InterventionDisplayConfig>>;
+interface SurfaceManagerConfig {
+    /** Maximum visible interventions at once */
+    maxVisible: number;
+    /** Maximum queue size */
+    maxQueueSize: number;
+    /** Default display duration for timed interventions (ms) */
+    defaultDuration: number;
+    /** Enable sound effects */
+    enableSound: boolean;
+    /** Enable haptic feedback (mobile) */
+    enableHaptics: boolean;
+    /** Auto-acknowledge viewed interventions */
+    autoAcknowledge: boolean;
+}
+declare const DEFAULT_SURFACE_MANAGER_CONFIG: SurfaceManagerConfig;
+declare class InterventionSurfaceManagerImpl implements InterventionSurfaceManager {
+    private readonly config;
+    private readonly logger;
+    private items;
+    private visibleItems;
+    private dismissTimers;
+    private listeners;
+    constructor(options?: {
+        config?: Partial<SurfaceManagerConfig>;
+        logger?: RealtimeLogger;
+    });
+    queue(event: SAMWebSocketEvent, config?: Partial<InterventionDisplayConfig>): void;
+    private isDisplayableEvent;
+    private removeLowestPriority;
+    private processQueue;
+    private show;
+    dismiss(eventId: string, reason?: string): void;
+    dismissAll(): void;
+    markInteracted(eventId: string, interactionType: 'click' | 'dismiss' | 'action'): void;
+    getQueue(): InterventionQueue;
+    getVisible(): InterventionUIState[];
+    getVisibleBySurface(surface: string): InterventionUIState[];
+    getItem(eventId: string): InterventionUIState | undefined;
+    clearAll(): void;
+    clearBySurface(surface: string): void;
+    onQueueChange(callback: (queue: InterventionQueue) => void): () => void;
+    private notifyListeners;
+    private playSound;
+    private vibrate;
+}
+declare function createInterventionSurfaceManager(options?: {
+    config?: Partial<SurfaceManagerConfig>;
+    logger?: RealtimeLogger;
+}): InterventionSurfaceManagerImpl;
+/**
+ * Intervention render props for React components
+ */
+interface InterventionRenderProps {
+    item: InterventionUIState;
+    dismiss: () => void;
+    interact: (type: 'click' | 'action') => void;
+    acknowledge: () => void;
+}
+/**
+ * Surface component props
+ */
+interface SurfaceComponentProps {
+    interventions: InterventionUIState[];
+    onDismiss: (id: string) => void;
+    onInteract: (id: string, type: 'click' | 'action') => void;
+    maxVisible?: number;
+}
+/**
+ * Toast container props
+ */
+interface ToastContainerProps extends SurfaceComponentProps {
+    position?: 'top' | 'bottom' | 'top-right' | 'bottom-right' | 'top-left' | 'bottom-left';
+}
+/**
+ * Modal container props
+ */
+interface ModalContainerProps extends SurfaceComponentProps {
+    backdrop?: boolean;
+    closeOnBackdrop?: boolean;
+}
+/**
+ * Sidebar container props
+ */
+interface SidebarContainerProps extends SurfaceComponentProps {
+    side?: 'left' | 'right';
+    width?: number | string;
+}
+/**
+ * Banner container props
+ */
+interface BannerContainerProps extends SurfaceComponentProps {
+    position?: 'top' | 'bottom';
+    sticky?: boolean;
+}
+
+/**
+ * @sam-ai/agentic - Observability Types
+ * Type definitions for telemetry, metrics, and quality tracking
+ */
+/**
+ * Tool execution event for telemetry
+ */
+interface ToolExecutionEvent {
+    /** Unique execution ID */
+    executionId: string;
+    /** Tool identifier */
+    toolId: string;
+    /** Tool name */
+    toolName: string;
+    /** User who initiated */
+    userId: string;
+    /** Session context */
+    sessionId?: string;
+    /** Plan/goal context if applicable */
+    planId?: string;
+    stepId?: string;
+    /** Execution timing */
+    startedAt: Date;
+    completedAt?: Date;
+    durationMs?: number;
+    /** Result status */
+    status: ToolExecutionStatus;
+    /** Error details if failed */
+    error?: ToolExecutionError;
+    /** Was confirmation required? */
+    confirmationRequired: boolean;
+    /** Was confirmation given? */
+    confirmationGiven?: boolean;
+    /** Input parameters (sanitized) */
+    inputSummary?: string;
+    /** Output summary (sanitized) */
+    outputSummary?: string;
+    /** Custom tags */
+    tags?: Record<string, string>;
+}
+declare const ToolExecutionStatus: {
+    readonly PENDING: "pending";
+    readonly CONFIRMED: "confirmed";
+    readonly REJECTED: "rejected";
+    readonly EXECUTING: "executing";
+    readonly SUCCESS: "success";
+    readonly FAILED: "failed";
+    readonly TIMEOUT: "timeout";
+    readonly CANCELLED: "cancelled";
+};
+type ToolExecutionStatus = (typeof ToolExecutionStatus)[keyof typeof ToolExecutionStatus];
+interface ToolExecutionError {
+    code: string;
+    message: string;
+    stack?: string;
+    retryable: boolean;
+}
+/**
+ * Aggregated tool metrics
+ */
+interface ToolMetrics {
+    /** Total executions */
+    executionCount: number;
+    /** Success rate (0-1) */
+    successRate: number;
+    /** Average latency in ms */
+    avgLatencyMs: number;
+    /** P50 latency */
+    p50LatencyMs: number;
+    /** P95 latency */
+    p95LatencyMs: number;
+    /** P99 latency */
+    p99LatencyMs: number;
+    /** Confirmation rate (how often confirmation was required) */
+    confirmationRate: number;
+    /** Confirmation acceptance rate */
+    confirmationAcceptRate: number;
+    /** Failures grouped by error code */
+    failuresByCode: Record<string, number>;
+    /** Executions by tool */
+    executionsByTool: Record<string, number>;
+    /** Time period */
+    periodStart: Date;
+    periodEnd: Date;
+}
+/**
+ * Memory retrieval event for quality tracking
+ */
+interface MemoryRetrievalEvent {
+    /** Unique retrieval ID */
+    retrievalId: string;
+    /** User context */
+    userId: string;
+    sessionId?: string;
+    /** Query that triggered retrieval */
+    query: string;
+    /** Retrieval source */
+    source: MemorySource;
+    /** Results returned */
+    resultCount: number;
+    /** Top relevance score (0-1) */
+    topRelevanceScore: number;
+    /** Average relevance score */
+    avgRelevanceScore: number;
+    /** Was cache used? */
+    cacheHit: boolean;
+    /** Latency in ms */
+    latencyMs: number;
+    /** Timestamp */
+    timestamp: Date;
+    /** User feedback if available */
+    userFeedback?: MemoryFeedback;
+    /** Custom metadata */
+    metadata?: Record<string, unknown>;
+}
+declare const MemorySource: {
+    readonly VECTOR_SEARCH: "vector_search";
+    readonly KNOWLEDGE_GRAPH: "knowledge_graph";
+    readonly SESSION_CONTEXT: "session_context";
+    readonly CROSS_SESSION: "cross_session";
+    readonly CURRICULUM: "curriculum";
+    readonly EXTERNAL: "external";
+};
+type MemorySource = (typeof MemorySource)[keyof typeof MemorySource];
+interface MemoryFeedback {
+    /** Was the result helpful? */
+    helpful: boolean;
+    /** Relevance rating (1-5) */
+    relevanceRating?: number;
+    /** User comment */
+    comment?: string;
+    /** Timestamp */
+    providedAt: Date;
+}
+/**
+ * Aggregated memory quality metrics
+ */
+interface MemoryQualityMetrics {
+    /** Total searches */
+    searchCount: number;
+    /** Average relevance score */
+    avgRelevanceScore: number;
+    /** Median relevance score */
+    medianRelevanceScore: number;
+    /** Cache hit rate (0-1) */
+    cacheHitRate: number;
+    /** Average latency */
+    avgLatencyMs: number;
+    /** P95 latency */
+    p95LatencyMs: number;
+    /** Empty result rate */
+    emptyResultRate: number;
+    /** User feedback positive rate */
+    positiveFeedbackRate: number;
+    /** Metrics by source */
+    bySource: Record<MemorySource, SourceMetrics>;
+    /** Reindex queue depth */
+    reindexQueueDepth: number;
+    /** Last reindex timestamp */
+    lastReindexAt?: Date;
+    /** Time period */
+    periodStart: Date;
+    periodEnd: Date;
+}
+interface SourceMetrics {
+    searchCount: number;
+    avgRelevanceScore: number;
+    avgLatencyMs: number;
+    cacheHitRate: number;
+}
+/**
+ * Confidence prediction event
+ */
+interface ConfidencePrediction {
+    /** Unique prediction ID */
+    predictionId: string;
+    /** User context */
+    userId: string;
+    sessionId?: string;
+    /** Response context */
+    responseId: string;
+    responseType: ResponseType;
+    /** Predicted confidence (0-1) */
+    predictedConfidence: number;
+    /** Confidence factors used */
+    factors: ConfidenceFactor[];
+    /** Timestamp */
+    predictedAt: Date;
+    /** Actual outcome (if known) */
+    actualOutcome?: ConfidenceOutcome;
+}
+declare const ResponseType: {
+    readonly EXPLANATION: "explanation";
+    readonly ANSWER: "answer";
+    readonly RECOMMENDATION: "recommendation";
+    readonly ASSESSMENT: "assessment";
+    readonly INTERVENTION: "intervention";
+    readonly TOOL_RESULT: "tool_result";
+};
+type ResponseType = (typeof ResponseType)[keyof typeof ResponseType];
+interface ConfidenceFactor {
+    type: string;
+    name: string;
+    weight: number;
+    score: number;
+    contribution: number;
+}
+interface ConfidenceOutcome {
+    /** Was the response accurate? */
+    accurate: boolean;
+    /** User verified (explicit feedback) */
+    userVerified: boolean;
+    /** Verification method */
+    verificationMethod: VerificationMethod;
+    /** Actual quality score if measurable (0-1) */
+    qualityScore?: number;
+    /** Outcome recorded at */
+    recordedAt: Date;
+    /** Notes */
+    notes?: string;
+}
+declare const VerificationMethod: {
+    readonly USER_FEEDBACK: "user_feedback";
+    readonly EXPERT_REVIEW: "expert_review";
+    readonly AUTOMATED_CHECK: "automated_check";
+    readonly OUTCOME_TRACKING: "outcome_tracking";
+    readonly SELF_VERIFICATION: "self_verification";
+};
+type VerificationMethod = (typeof VerificationMethod)[keyof typeof VerificationMethod];
+/**
+ * Calibration metrics
+ */
+interface CalibrationMetrics {
+    /** Total predictions */
+    predictionCount: number;
+    /** Predictions with outcomes */
+    outcomesRecorded: number;
+    /** Average predicted confidence */
+    avgPredictedConfidence: number;
+    /** Average actual accuracy */
+    avgActualAccuracy: number;
+    /** Calibration error (difference between predicted and actual) */
+    calibrationError: number;
+    /** Brier score (mean squared error of predictions) */
+    brierScore: number;
+    /** Calibration buckets */
+    calibrationBuckets: CalibrationBucket[];
+    /** Verification override rate */
+    verificationOverrideRate: number;
+    /** Metrics by response type */
+    byResponseType: Record<ResponseType, TypeCalibration>;
+    /** Time period */
+    periodStart: Date;
+    periodEnd: Date;
+}
+interface CalibrationBucket {
+    /** Bucket range (e.g., 0.8-0.9) */
+    rangeStart: number;
+    rangeEnd: number;
+    /** Number of predictions in bucket */
+    count: number;
+    /** Average predicted confidence */
+    avgPredicted: number;
+    /** Actual accuracy rate */
+    actualAccuracy: number;
+    /** Calibration error for bucket */
+    error: number;
+}
+interface TypeCalibration {
+    predictionCount: number;
+    avgPredictedConfidence: number;
+    avgActualAccuracy: number;
+    calibrationError: number;
+}
+/**
+ * Plan lifecycle event
+ */
+interface PlanLifecycleEvent {
+    /** Event ID */
+    eventId: string;
+    /** Plan ID */
+    planId: string;
+    /** User ID */
+    userId: string;
+    /** Event type */
+    eventType: PlanEventType;
+    /** Step ID if applicable */
+    stepId?: string;
+    /** Previous state */
+    previousState?: string;
+    /** New state */
+    newState?: string;
+    /** Timestamp */
+    timestamp: Date;
+    /** Additional data */
+    metadata?: Record<string, unknown>;
+}
+declare const PlanEventType: {
+    readonly CREATED: "created";
+    readonly ACTIVATED: "activated";
+    readonly STEP_STARTED: "step_started";
+    readonly STEP_COMPLETED: "step_completed";
+    readonly STEP_FAILED: "step_failed";
+    readonly STEP_SKIPPED: "step_skipped";
+    readonly PAUSED: "paused";
+    readonly RESUMED: "resumed";
+    readonly COMPLETED: "completed";
+    readonly ABANDONED: "abandoned";
+    readonly MODIFIED: "modified";
+};
+type PlanEventType = (typeof PlanEventType)[keyof typeof PlanEventType];
+/**
+ * Plan metrics
+ */
+interface PlanMetrics {
+    /** Active plans count */
+    activePlansCount: number;
+    /** Total plans created */
+    totalCreated: number;
+    /** Completion rate (0-1) */
+    completionRate: number;
+    /** Abandonment rate (0-1) */
+    abandonmentRate: number;
+    /** Average steps per plan */
+    avgStepsPerPlan: number;
+    /** Average completion time (ms) */
+    avgCompletionTimeMs: number;
+    /** Step completion rate by position */
+    stepCompletionByPosition: Record<number, number>;
+    /** Dropoff analysis */
+    dropoffByStep: Record<number, number>;
+    /** Plans by status */
+    byStatus: Record<string, number>;
+    /** Time period */
+    periodStart: Date;
+    periodEnd: Date;
+}
+/**
+ * Proactive event tracking
+ */
+interface ProactiveEvent {
+    /** Event ID */
+    eventId: string;
+    /** User ID */
+    userId: string;
+    /** Event type */
+    eventType: ProactiveEventType;
+    /** Intervention/check-in ID */
+    itemId: string;
+    /** Was it delivered? */
+    delivered: boolean;
+    /** Delivery channel */
+    channel?: string;
+    /** User response */
+    response?: ProactiveResponse;
+    /** Timestamp */
+    timestamp: Date;
+}
+declare const ProactiveEventType: {
+    readonly CHECKIN_SCHEDULED: "checkin_scheduled";
+    readonly CHECKIN_TRIGGERED: "checkin_triggered";
+    readonly CHECKIN_DELIVERED: "checkin_delivered";
+    readonly CHECKIN_RESPONDED: "checkin_responded";
+    readonly CHECKIN_DISMISSED: "checkin_dismissed";
+    readonly CHECKIN_EXPIRED: "checkin_expired";
+    readonly INTERVENTION_TRIGGERED: "intervention_triggered";
+    readonly INTERVENTION_DELIVERED: "intervention_delivered";
+    readonly INTERVENTION_ACCEPTED: "intervention_accepted";
+    readonly INTERVENTION_DISMISSED: "intervention_dismissed";
+    readonly NUDGE_SENT: "nudge_sent";
+    readonly NUDGE_CLICKED: "nudge_clicked";
+    readonly RECOMMENDATION_SHOWN: "recommendation_shown";
+    readonly RECOMMENDATION_CLICKED: "recommendation_clicked";
+};
+type ProactiveEventType = (typeof ProactiveEventType)[keyof typeof ProactiveEventType];
+interface ProactiveResponse {
+    action: 'accepted' | 'dismissed' | 'deferred' | 'clicked';
+    responseTimeMs: number;
+    feedback?: string;
+}
+/**
+ * Proactive metrics
+ */
+interface ProactiveMetrics {
+    /** Check-ins sent */
+    checkInsSent: number;
+    /** Check-in response rate */
+    checkInResponseRate: number;
+    /** Average check-in response time */
+    avgCheckInResponseTimeMs: number;
+    /** Interventions triggered */
+    interventionsTriggered: number;
+    /** Intervention acceptance rate */
+    interventionAcceptRate: number;
+    /** Nudges sent */
+    nudgesSent: number;
+    /** Nudge click rate */
+    nudgeClickRate: number;
+    /** Recommendations shown */
+    recommendationsShown: number;
+    /** Recommendation click rate */
+    recommendationClickRate: number;
+    /** By channel delivery stats */
+    byChannel: Record<string, ChannelMetrics>;
+    /** Time period */
+    periodStart: Date;
+    periodEnd: Date;
+}
+interface ChannelMetrics {
+    sent: number;
+    delivered: number;
+    deliveryRate: number;
+    responseRate: number;
+}
+/**
+ * Complete agentic metrics snapshot
+ */
+interface AgenticMetrics {
+    /** Tool execution metrics */
+    tools: ToolMetrics;
+    /** Memory quality metrics */
+    memory: MemoryQualityMetrics;
+    /** Confidence calibration metrics */
+    confidence: CalibrationMetrics;
+    /** Plan/goal metrics */
+    plans: PlanMetrics;
+    /** Proactive engagement metrics */
+    proactive: ProactiveMetrics;
+    /** System health */
+    system: SystemHealthMetrics;
+    /** Generated at */
+    generatedAt: Date;
+    /** Time period */
+    periodStart: Date;
+    periodEnd: Date;
+}
+interface SystemHealthMetrics {
+    /** Overall health score (0-1) */
+    healthScore: number;
+    /** Component health */
+    components: Record<string, ComponentHealth>;
+    /** Active connections */
+    activeConnections: number;
+    /** Memory usage */
+    memoryUsageMb: number;
+    /** Queue depths */
+    queueDepths: Record<string, number>;
+    /** Error rate (last hour) */
+    errorRate: number;
+    /** Latency percentiles */
+    latencyP50Ms: number;
+    latencyP95Ms: number;
+    latencyP99Ms: number;
+}
+interface ComponentHealth {
+    name: string;
+    status: HealthStatus;
+    lastCheckAt: Date;
+    latencyMs?: number;
+    errorCount?: number;
+    message?: string;
+}
+declare const HealthStatus: {
+    readonly HEALTHY: "healthy";
+    readonly DEGRADED: "degraded";
+    readonly UNHEALTHY: "unhealthy";
+    readonly UNKNOWN: "unknown";
+};
+type HealthStatus = (typeof HealthStatus)[keyof typeof HealthStatus];
+/**
+ * Tool execution event store
+ */
+interface ToolExecutionStore {
+    record(event: ToolExecutionEvent): Promise<void>;
+    getById(executionId: string): Promise<ToolExecutionEvent | null>;
+    query(options: ToolExecutionQuery): Promise<ToolExecutionEvent[]>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<ToolMetrics>;
+}
+interface ToolExecutionQuery {
+    userId?: string;
+    toolId?: string;
+    status?: ToolExecutionStatus | ToolExecutionStatus[];
+    planId?: string;
+    startTime?: Date;
+    endTime?: Date;
+    limit?: number;
+    offset?: number;
+}
+/**
+ * Memory retrieval event store
+ */
+interface MemoryRetrievalStore {
+    record(event: MemoryRetrievalEvent): Promise<void>;
+    getById(retrievalId: string): Promise<MemoryRetrievalEvent | null>;
+    recordFeedback(retrievalId: string, feedback: MemoryFeedback): Promise<void>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<MemoryQualityMetrics>;
+}
+/**
+ * Confidence prediction store
+ */
+interface ConfidencePredictionStore {
+    record(prediction: ConfidencePrediction): Promise<void>;
+    getById(predictionId: string): Promise<ConfidencePrediction | null>;
+    recordOutcome(predictionId: string, outcome: ConfidenceOutcome): Promise<void>;
+    getCalibrationMetrics(periodStart: Date, periodEnd: Date): Promise<CalibrationMetrics>;
+}
+/**
+ * Plan lifecycle event store
+ */
+interface PlanLifecycleStore {
+    record(event: PlanLifecycleEvent): Promise<void>;
+    getByPlanId(planId: string): Promise<PlanLifecycleEvent[]>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<PlanMetrics>;
+}
+/**
+ * Proactive event store
+ */
+interface ProactiveEventStore {
+    record(event: ProactiveEvent): Promise<void>;
+    getByUserId(userId: string, limit?: number): Promise<ProactiveEvent[]>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<ProactiveMetrics>;
+}
+interface ObservabilityLogger {
+    debug(message: string, data?: Record<string, unknown>): void;
+    info(message: string, data?: Record<string, unknown>): void;
+    warn(message: string, data?: Record<string, unknown>): void;
+    error(message: string, data?: Record<string, unknown>): void;
+}
+interface AlertRule {
+    id: string;
+    name: string;
+    description: string;
+    metric: string;
+    operator: 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
+    threshold: number;
+    windowMinutes: number;
+    severity: AlertSeverity;
+    enabled: boolean;
+}
+declare const AlertSeverity: {
+    readonly INFO: "info";
+    readonly WARNING: "warning";
+    readonly CRITICAL: "critical";
+};
+type AlertSeverity = (typeof AlertSeverity)[keyof typeof AlertSeverity];
+interface Alert {
+    id: string;
+    ruleId: string;
+    ruleName: string;
+    severity: AlertSeverity;
+    message: string;
+    currentValue: number;
+    threshold: number;
+    triggeredAt: Date;
+    acknowledgedAt?: Date;
+    resolvedAt?: Date;
+    metadata?: Record<string, unknown>;
+}
+
+/**
+ * @sam-ai/agentic - Tool Telemetry
+ * Tracks tool execution metrics for observability
+ */
+
+declare class InMemoryToolExecutionStore implements ToolExecutionStore {
+    private events;
+    private readonly maxEvents;
+    constructor(maxEvents?: number);
+    record(event: ToolExecutionEvent): Promise<void>;
+    getById(executionId: string): Promise<ToolExecutionEvent | null>;
+    query(options: ToolExecutionQuery): Promise<ToolExecutionEvent[]>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<ToolMetrics>;
+    private percentile;
+    clear(): void;
+}
+interface ToolTelemetryConfig {
+    /** Enable telemetry collection */
+    enabled: boolean;
+    /** Sample rate for events (0-1, 1 = all events) */
+    sampleRate: number;
+    /** Max events to keep in memory */
+    maxEvents: number;
+    /** Sanitize sensitive data from inputs/outputs */
+    sanitize: boolean;
+    /** Fields to redact from inputs/outputs */
+    redactFields: string[];
+}
+declare const DEFAULT_TOOL_TELEMETRY_CONFIG: ToolTelemetryConfig;
+declare class ToolTelemetry {
+    private readonly store;
+    private readonly config;
+    private readonly logger;
+    private activeExecutions;
+    constructor(options: {
+        store?: ToolExecutionStore;
+        config?: Partial<ToolTelemetryConfig>;
+        logger?: ObservabilityLogger;
+    });
+    /**
+     * Start tracking a tool execution
+     */
+    startExecution(params: {
+        toolId: string;
+        toolName: string;
+        userId: string;
+        sessionId?: string;
+        planId?: string;
+        stepId?: string;
+        confirmationRequired: boolean;
+        input?: unknown;
+        tags?: Record<string, string>;
+    }): string;
+    /**
+     * Record confirmation response
+     */
+    recordConfirmation(executionId: string, confirmed: boolean): void;
+    /**
+     * Mark execution as started (after confirmation)
+     */
+    markExecuting(executionId: string): void;
+    /**
+     * Complete a tool execution
+     */
+    completeExecution(executionId: string, success: boolean, output?: unknown, error?: ToolExecutionError): Promise<void>;
+    /**
+     * Record a timeout
+     */
+    recordTimeout(executionId: string): Promise<void>;
+    /**
+     * Record a cancellation
+     */
+    recordCancellation(executionId: string): Promise<void>;
+    getExecution(executionId: string): Promise<ToolExecutionEvent | null>;
+    queryExecutions(query: ToolExecutionQuery): Promise<ToolExecutionEvent[]>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<ToolMetrics>;
+    /**
+     * Get metrics for the last N minutes
+     */
+    getRecentMetrics(minutes?: number): Promise<ToolMetrics>;
+    /**
+     * Get active execution count
+     */
+    getActiveExecutionCount(): number;
+    private shouldSample;
+    private sanitizeAndSummarize;
+}
+declare function createToolTelemetry(options?: {
+    store?: ToolExecutionStore;
+    config?: Partial<ToolTelemetryConfig>;
+    logger?: ObservabilityLogger;
+}): ToolTelemetry;
+declare function createInMemoryToolExecutionStore(maxEvents?: number): InMemoryToolExecutionStore;
+
+/**
+ * @sam-ai/agentic - Memory Quality Tracker
+ * Tracks memory retrieval quality and relevance metrics
+ */
+
+declare class InMemoryMemoryRetrievalStore implements MemoryRetrievalStore {
+    private events;
+    private readonly maxEvents;
+    constructor(maxEvents?: number);
+    record(event: MemoryRetrievalEvent): Promise<void>;
+    getById(retrievalId: string): Promise<MemoryRetrievalEvent | null>;
+    recordFeedback(retrievalId: string, feedback: MemoryFeedback): Promise<void>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<MemoryQualityMetrics>;
+    private emptySourceMetrics;
+    private median;
+    private percentile;
+    clear(): void;
+}
+interface MemoryQualityConfig {
+    /** Enable tracking */
+    enabled: boolean;
+    /** Sample rate (0-1) */
+    sampleRate: number;
+    /** Max events to store */
+    maxEvents: number;
+    /** Low relevance threshold for alerts */
+    lowRelevanceThreshold: number;
+    /** High latency threshold for alerts (ms) */
+    highLatencyThreshold: number;
+}
+declare const DEFAULT_MEMORY_QUALITY_CONFIG: MemoryQualityConfig;
+declare class MemoryQualityTracker {
+    private readonly store;
+    private readonly config;
+    private readonly logger;
+    private readonly alertListeners;
+    constructor(options: {
+        store?: MemoryRetrievalStore;
+        config?: Partial<MemoryQualityConfig>;
+        logger?: ObservabilityLogger;
+    });
+    /**
+     * Record a memory retrieval event
+     */
+    recordRetrieval(params: {
+        userId: string;
+        sessionId?: string;
+        query: string;
+        source: MemorySource;
+        resultCount: number;
+        topRelevanceScore: number;
+        avgRelevanceScore: number;
+        cacheHit: boolean;
+        latencyMs: number;
+        metadata?: Record<string, unknown>;
+    }): Promise<string>;
+    /**
+     * Record user feedback for a retrieval
+     */
+    recordFeedback(retrievalId: string, feedback: Omit<MemoryFeedback, 'providedAt'>): Promise<void>;
+    getRetrieval(retrievalId: string): Promise<MemoryRetrievalEvent | null>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<MemoryQualityMetrics>;
+    /**
+     * Get metrics for the last N minutes
+     */
+    getRecentMetrics(minutes?: number): Promise<MemoryQualityMetrics>;
+    /**
+     * Get quality summary for a specific source
+     */
+    getSourceQuality(source: MemorySource, periodStart: Date, periodEnd: Date): Promise<SourceMetrics>;
+    private checkAlerts;
+    /**
+     * Subscribe to quality alerts
+     */
+    onAlert(callback: (alert: MemoryQualityAlert) => void): () => void;
+    private emitAlert;
+    private shouldSample;
+}
+interface MemoryQualityAlert {
+    type: 'low_relevance' | 'high_latency' | 'empty_results';
+    message: string;
+    retrievalId: string;
+    value: number;
+    threshold: number;
+}
+declare function createMemoryQualityTracker(options?: {
+    store?: MemoryRetrievalStore;
+    config?: Partial<MemoryQualityConfig>;
+    logger?: ObservabilityLogger;
+}): MemoryQualityTracker;
+declare function createInMemoryMemoryRetrievalStore(maxEvents?: number): InMemoryMemoryRetrievalStore;
+
+/**
+ * @sam-ai/agentic - Confidence Calibration Tracker
+ * Tracks confidence predictions vs actual outcomes for calibration
+ */
+
+declare class InMemoryConfidencePredictionStore implements ConfidencePredictionStore {
+    private predictions;
+    private readonly maxPredictions;
+    constructor(maxPredictions?: number);
+    record(prediction: ConfidencePrediction): Promise<void>;
+    getById(predictionId: string): Promise<ConfidencePrediction | null>;
+    recordOutcome(predictionId: string, outcome: ConfidenceOutcome): Promise<void>;
+    getCalibrationMetrics(periodStart: Date, periodEnd: Date): Promise<CalibrationMetrics>;
+    private calculateBuckets;
+    private calculateOverrideRate;
+    private calculateByResponseType;
+    clear(): void;
+}
+interface CalibrationConfig {
+    /** Enable tracking */
+    enabled: boolean;
+    /** Sample rate (0-1) */
+    sampleRate: number;
+    /** Max predictions to store */
+    maxPredictions: number;
+    /** Number of buckets for calibration */
+    bucketCount: number;
+    /** Alert on high calibration error */
+    calibrationErrorThreshold: number;
+}
+declare const DEFAULT_CALIBRATION_CONFIG: CalibrationConfig;
+declare class ConfidenceCalibrationTracker {
+    private readonly store;
+    private readonly config;
+    private readonly logger;
+    private readonly alertListeners;
+    constructor(options: {
+        store?: ConfidencePredictionStore;
+        config?: Partial<CalibrationConfig>;
+        logger?: ObservabilityLogger;
+    });
+    /**
+     * Record a confidence prediction
+     */
+    recordPrediction(params: {
+        userId: string;
+        sessionId?: string;
+        responseId: string;
+        responseType: ResponseType;
+        predictedConfidence: number;
+        factors: ConfidenceFactor[];
+    }): Promise<string>;
+    /**
+     * Record the actual outcome for a prediction
+     */
+    recordOutcome(predictionId: string, params: {
+        accurate: boolean;
+        userVerified: boolean;
+        verificationMethod: VerificationMethod;
+        qualityScore?: number;
+        notes?: string;
+    }): Promise<void>;
+    /**
+     * Record outcome from user feedback
+     */
+    recordUserFeedback(predictionId: string, helpful: boolean, rating?: number): Promise<void>;
+    getPrediction(predictionId: string): Promise<ConfidencePrediction | null>;
+    getCalibrationMetrics(periodStart: Date, periodEnd: Date): Promise<CalibrationMetrics>;
+    /**
+     * Get metrics for the last N days
+     */
+    getRecentMetrics(days?: number): Promise<CalibrationMetrics>;
+    /**
+     * Get calibration summary
+     */
+    getCalibrationSummary(): Promise<CalibrationSummary>;
+    private checkCalibrationAlerts;
+    /**
+     * Subscribe to calibration alerts
+     */
+    onAlert(callback: (alert: CalibrationAlert) => void): () => void;
+    private emitAlert;
+    private shouldSample;
+}
+interface CalibrationSummary {
+    calibrationQuality: 'excellent' | 'good' | 'fair' | 'poor';
+    calibrationError: number;
+    brierScore: number;
+    sampleSize: number;
+    recommendations: string[];
+    lastUpdated: Date;
+}
+interface CalibrationAlert {
+    type: 'high_calibration_error' | 'calibration_drift';
+    message: string;
+    predictionId?: string;
+    calibrationError: number;
+    threshold: number;
+}
+declare function createConfidenceCalibrationTracker(options?: {
+    store?: ConfidencePredictionStore;
+    config?: Partial<CalibrationConfig>;
+    logger?: ObservabilityLogger;
+}): ConfidenceCalibrationTracker;
+declare function createInMemoryConfidencePredictionStore(maxPredictions?: number): InMemoryConfidencePredictionStore;
+
+/**
+ * @sam-ai/agentic - Agentic Metrics Collector
+ * Unified metrics collection and aggregation for observability
+ */
+
+declare class InMemoryPlanLifecycleStore implements PlanLifecycleStore {
+    private events;
+    private readonly maxEventsPerPlan;
+    constructor(maxEventsPerPlan?: number);
+    record(event: PlanLifecycleEvent): Promise<void>;
+    getByPlanId(planId: string): Promise<PlanLifecycleEvent[]>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<PlanMetrics>;
+    clear(): void;
+}
+declare class InMemoryProactiveEventStore implements ProactiveEventStore {
+    private events;
+    private readonly maxEvents;
+    constructor(maxEvents?: number);
+    record(event: ProactiveEvent): Promise<void>;
+    getByUserId(userId: string, limit?: number): Promise<ProactiveEvent[]>;
+    getMetrics(periodStart: Date, periodEnd: Date): Promise<ProactiveMetrics>;
+    clear(): void;
+}
+interface MetricsCollectorConfig {
+    /** Enable metrics collection */
+    enabled: boolean;
+    /** Default period for metrics (hours) */
+    defaultPeriodHours: number;
+    /** Health check interval (ms) */
+    healthCheckIntervalMs: number;
+    /** Enable alert evaluation */
+    alertsEnabled: boolean;
+}
+declare const DEFAULT_METRICS_COLLECTOR_CONFIG: MetricsCollectorConfig;
+declare class AgenticMetricsCollector {
+    private readonly config;
+    private readonly logger;
+    private readonly toolTelemetry;
+    private readonly memoryQualityTracker;
+    private readonly confidenceCalibration;
+    private readonly planLifecycleStore;
+    private readonly proactiveEventStore;
+    private alertRules;
+    private activeAlerts;
+    private alertListeners;
+    private healthCheckInterval?;
+    private lastHealthCheck?;
+    constructor(options: {
+        config?: Partial<MetricsCollectorConfig>;
+        logger?: ObservabilityLogger;
+        toolTelemetry?: ToolTelemetry;
+        memoryQualityTracker?: MemoryQualityTracker;
+        confidenceCalibration?: ConfidenceCalibrationTracker;
+        planLifecycleStore?: PlanLifecycleStore;
+        proactiveEventStore?: ProactiveEventStore;
+    });
+    start(): void;
+    stop(): void;
+    getToolTelemetry(): ToolTelemetry;
+    getMemoryQualityTracker(): MemoryQualityTracker;
+    getConfidenceCalibration(): ConfidenceCalibrationTracker;
+    getPlanLifecycleStore(): PlanLifecycleStore;
+    getProactiveEventStore(): ProactiveEventStore;
+    /**
+     * Get complete agentic metrics snapshot
+     */
+    getMetrics(periodStart?: Date, periodEnd?: Date): Promise<AgenticMetrics>;
+    /**
+     * Get quick summary metrics for dashboard
+     */
+    getQuickSummary(): Promise<QuickMetricsSummary>;
+    private runHealthCheck;
+    getSystemHealth(): Promise<SystemHealthMetrics>;
+    /**
+     * Add an alert rule
+     */
+    addAlertRule(rule: AlertRule): void;
+    /**
+     * Remove an alert rule
+     */
+    removeAlertRule(ruleId: string): void;
+    /**
+     * Get active alerts
+     */
+    getActiveAlerts(): Alert[];
+    /**
+     * Acknowledge an alert
+     */
+    acknowledgeAlert(alertId: string): void;
+    /**
+     * Subscribe to alerts
+     */
+    onAlert(callback: (alert: Alert) => void): () => void;
+    private evaluateAlerts;
+    private getMetricValue;
+    private evaluateCondition;
+    private emitAlert;
+    recordPlanEvent(event: Omit<PlanLifecycleEvent, 'eventId' | 'timestamp'>): Promise<void>;
+    recordProactiveEvent(event: Omit<ProactiveEvent, 'eventId' | 'timestamp'>): Promise<void>;
+}
+interface QuickMetricsSummary {
+    toolSuccessRate: number;
+    avgToolLatencyMs: number;
+    memoryRelevanceScore: number;
+    memoryCacheHitRate: number;
+    confidenceCalibrationError: number;
+    activeToolExecutions: number;
+    healthScore: number;
+    activeAlerts: number;
+    timestamp: Date;
+}
+declare function createAgenticMetricsCollector(options?: {
+    config?: Partial<MetricsCollectorConfig>;
+    logger?: ObservabilityLogger;
+    toolTelemetry?: ToolTelemetry;
+    memoryQualityTracker?: MemoryQualityTracker;
+    confidenceCalibration?: ConfidenceCalibrationTracker;
+    planLifecycleStore?: PlanLifecycleStore;
+    proactiveEventStore?: ProactiveEventStore;
+}): AgenticMetricsCollector;
+declare function createInMemoryPlanLifecycleStore(maxEventsPerPlan?: number): InMemoryPlanLifecycleStore;
+declare function createInMemoryProactiveEventStore(maxEvents?: number): InMemoryProactiveEventStore;
+
+/**
  * @sam-ai/agentic
  * Autonomous agentic capabilities for SAM AI mentor
  *
@@ -8316,6 +12620,8 @@ declare const CAPABILITIES: {
     readonly SELF_EVALUATION: "self-evaluation";
     readonly LEARNING_ANALYTICS: "learning-analytics";
     readonly LEARNING_PATH: "learning-path";
+    readonly ORCHESTRATION: "orchestration";
+    readonly OBSERVABILITY: "observability";
 };
 type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
 /**
@@ -8323,4 +12629,4 @@ type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
  */
 declare function hasCapability(capability: Capability): boolean;
 
-export { type AIProvider, type AccessibilitySettings, type Achievement, ActionType, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AnalyticsLogger, AnomalyType, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, CAPABILITIES, type CalibrationBucket, type CalibrationData, type CalibrationStore, type Capability, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ComplexityLevel, type ComprehensionAnalysis, type ConceptMap, type ConceptNode, type ConceptPerformance, type ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ContentData, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextState, type CorrectionSuggestion, type CourseGraph, type CourseGraphStore, type CourseNode, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, type CreateSubGoalInput, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_ROLE_PERMISSIONS, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type DifficultyLevel, type EffortBreakdown, type EffortEstimate, type EffortFactor, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, EntityType, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryLearningGapStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, type Intervention, type InterventionResult, type InterventionStore, type InterventionTiming, InterventionType, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningAction, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath$1 as LearningPath, type LearningPathOptions, LearningPathRecommender, type LearningPathStep, type LearningPathStore, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningResource, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, LearningStyle$1 as LearningStyle, type LearningSummary, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryItem, type MemoryLogger, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySource, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, MetricSource, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type OptimizedSchedule, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type LearningAnalytics as PathLearningAnalytics, type LearningStyle as PathLearningStyle, type ProgressSnapshot as PathProgressSnapshot, type PathRecommenderConfig, type PathStep, type PatternContext, type PatternStore, PatternType, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type LearningPath as PersonalizedLearningPath, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanFeedback$1 as PlanFeedback, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PrerequisiteImportance, type PrerequisiteRelation, type PrismaClientLike, type ProactiveLogger, LearningPlanStatus as ProactivePlanStatus, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot$1 as ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type RateLimit, RateLimitSchema, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResourceType, type ResponseContext, ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type ReviewItem, type ReviewQuality, type RolePermissionMapping, type Rubric, type RubricCriterion, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfEvaluationLogger, type SessionContext, type SessionContextStore, type SessionSummary, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SkillStore, SkillTracker, type SkillTrackerConfig, type SkillTrend, type SkillUpdateResult, type SourceReference, SourceType, type SourceValidation, type SpacedRepetitionSchedule, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepError, type StepExecutionContext, type StepExecutionContextExtended, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepPriority, type StepResult, StepStatus, StepStatusSchema, StepType, type StreakInfo, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, type SubGoalQueryOptions, type SubGoalStore, SubGoalType, SubGoalTypeSchema, type SuggestedAction, type SupportRecommendation, TimePeriod, type TimeSlot, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionResult, ToolExecutionStatus, ToolExecutionStatusSchema, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TraversalResult, type TrendDataPoint, TrendDirection, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type UpdateGoalInput, UpdateGoalInputSchema, type UpdateSubGoalInput, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, UserRole, type UserSkill, type UserSkillProfile, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, type VerificationResult, type VerificationResultStore, VerificationStatus, type WeeklyBreakdown, type WeeklyMilestone, cosineSimilarity, createAgentStateMachine, createAuditLogger, createBehaviorMonitor, createCheckInScheduler, createConfidenceScorer, createConfirmationManager, createContentTools, createCrossSessionContext, createGoalDecomposer, createInMemoryStores, createJourneyTimeline, createKnowledgeGraphManager, createMemoryRetriever, createMemorySystem, createMentorTools, createMultiSessionPlanTracker, createNotificationTools, createPathRecommender, createPermissionManager, createPlanBuilder, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createQualityTracker, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createSkillAssessor, createSkillTracker, createStepExecutor, createStepExecutorFunction, createToolExecutor, createToolRegistry, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, hasCapability };
+export { type AIProvider, type AccessibilitySettings, type Achievement, type AcknowledgeEvent, type AcknowledgePayload, ActionType, ActiveStepExecutor, type ActiveStepExecutorConfig, type ActivityEvent, type ActivityPayload, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AgenticMetrics, AgenticMetricsCollector, type Alert, type AlertRule, AlertSeverity, type AnalyticsLogger, AnomalyType, type Artifact, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, BackgroundWorker, type BackgroundWorkerInterface, type BannerContainerProps, type BaseJob, BaseJobSchema, type BaseWebSocketEvent, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, CAPABILITIES, type CalibrationAlert, type CalibrationBucket$1 as CalibrationBucket, type CalibrationConfig, type CalibrationData, type CalibrationMetrics, type CalibrationStore, type CalibrationSummary, type Capability, type CelebrationData, type CelebrationEvent, type CelebrationPayload, CelebrationType, ChangeType, type ChannelMetrics, type CheckInEvent, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ClientWebSocketManager, ComplexityLevel, type ComponentHealth, type ComprehensionAnalysis, type ConceptMap, type ConceptNode, type ConceptPerformance, ConfidenceCalibrationTracker, type ConfidenceFactor$1 as ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceOutcome, type ConfidencePrediction, type ConfidencePredictionStore, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationGate, type ConfirmationGateConfig, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationResponse, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ConnectedEvent, type ConnectedPayload, type ConnectionConfig, ConnectionConfigSchema, type ConnectionHandler, ConnectionState, type ConnectionStats, type ContentChangeEvent, ContentChangeEventSchema, type ContentChangeMetadata, type ContentChunk, type ContentData, ContentEntityType, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextMetadata, type ContextState, type CorrectionSuggestion, type CourseGraph, type CourseGraphStore, type CourseNode, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, type CreateSubGoalInput, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_CALIBRATION_CONFIG, DEFAULT_CONNECTION_CONFIG, DEFAULT_DISPLAY_CONFIGS, DEFAULT_MEMORY_QUALITY_CONFIG, DEFAULT_METRICS_COLLECTOR_CONFIG, DEFAULT_NORMALIZER_CONFIG, DEFAULT_PRESENCE_CONFIG, DEFAULT_PUSH_DISPATCHER_CONFIG, DEFAULT_QUEUE_CONFIG, DEFAULT_ROLE_PERMISSIONS, DEFAULT_SURFACE_MANAGER_CONFIG, DEFAULT_TOOL_TELEMETRY_CONFIG, DEFAULT_WORKER_CONFIG, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, DeliveryChannel, type DeliveryHandler, DeliveryPriority, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type DifficultyLevel, type DismissEvent, type DismissPayload, type DispatcherStats, type EffortBreakdown, type EffortEstimate, type EffortFactor, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, type EntityReindexConfig, EntityType, type ErrorEvent, type ErrorHandler, type ErrorPayload, type EvaluatedCriterion, type EventHistoryStore, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type ExtractedContent, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalProgressEvent, type GoalProgressPayload, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, HealthStatus, type HeartbeatEvent, type HeartbeatPayload, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidencePredictionStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryJobQueue, InMemoryLearningGapStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryMemoryRetrievalStore, InMemoryOrchestrationConfirmationStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryPlanLifecycleStore, InMemoryPresenceStore, InMemoryProactiveEventStore, InMemoryPushQueueStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemoryReindexJobStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolExecutionStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryTutoringSessionStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, type Intervention, type InterventionDisplayConfig, type InterventionEvent, type InterventionQueue, type InterventionRenderProps, type InterventionResult, type InterventionStore, InterventionSurface, type InterventionSurfaceManager, InterventionSurfaceManagerImpl, type InterventionTiming, InterventionType$1 as InterventionType, type InterventionUIState, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, JobEvent, type JobEventListener, type JobHandler, type JobHandlerRegistration, type JobProgress, type JobQueueConfig, JobQueueConfigSchema, type JobQueueInterface, JobStatus, JobType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KGRefreshJob, KGRefreshJobStatus, KGRefreshJobType, type KGRefreshResult, KGRefreshScheduler, type KGRefreshSchedulerConfig, type KGRefreshSchedulerInterface, type KGRefreshStats, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningAction, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath$1 as LearningPath, type LearningPathOptions, LearningPathRecommender, type LearningPathStep, type LearningPathStore, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningResource, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, LearningStyle$1 as LearningStyle, type LearningSummary, type LifecycleStats, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryContextSummary, type MemoryFeedback, type MemoryItem, MemoryItemType, type MemoryLifecycleConfig, MemoryLifecycleConfigSchema, MemoryLifecycleManager, type MemoryLifecycleManagerInterface, type MemoryLogger, MemoryNormalizer, type MemoryNormalizerConfig, MemoryNormalizerConfigSchema, type MemoryNormalizerInterface, type MemoryQualityAlert, type MemoryQualityConfig, type MemoryQualityMetrics, MemoryQualityTracker, type MemoryRetrievalEvent, type MemoryRetrievalStore, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySegment, MemorySegmentType, type MemorySource$1 as MemorySource, MemorySourceType, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, type MessageHandler, MetricSource, type MetricsCollectorConfig, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, type ModalContainerProps, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, NormalizationRetrievalStrategy, type NormalizedMemoryContext, NormalizedMemoryContextSchema, type NormalizedMemoryItem, type NormalizedMemorySource, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type NudgeEvent, type NudgePayload, NudgeType, type ObservabilityLogger, type OptimizedSchedule, type OrchestrationConfirmationRequest, type OrchestrationConfirmationRequestStore, type OrchestrationLogger, type OrchestrationStores, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type LearningAnalytics as PathLearningAnalytics, type LearningStyle as PathLearningStyle, type ProgressSnapshot as PathProgressSnapshot, type PathRecommenderConfig, type PathStep, type PatternContext, type PatternStore, PatternType, type PendingIntervention, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type LearningPath as PersonalizedLearningPath, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanContextInjection, PlanContextInjector, type PlanContextInjectorConfig, PlanEventType, type PlanFeedback$1 as PlanFeedback, type PlanLifecycleEvent, type PlanLifecycleStore, type PlanMetrics, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PlannedToolExecution, type PrerequisiteImportance, type PrerequisiteRelation, PresenceChangeReason, type PresenceMetadata, type PresencePayload, type PresenceStateChange, PresenceStatus, type PresenceStore, PresenceTracker, type PresenceTrackerConfig, type PresenceTrackerInterface, type PresenceUpdateEvent, type PriorityRule, type PrismaClientLike, type ProactiveEvent, type ProactiveEventStore, ProactiveEventType, type ProactiveLogger, type ProactiveMetrics, LearningPlanStatus as ProactivePlanStatus, ProactivePushDispatcher, type ProactiveResponse, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot$1 as ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type PromptComponents, type PushDeliveryRequest, PushDeliveryRequestSchema, type PushDeliveryResult, type PushDispatcherConfig, type PushDispatcherInterface, type PushQueueStats, type PushQueueStore, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type QueueStats, type QuickMetricsSummary, type RateLimit, RateLimitSchema, type RawGraphResult, type RawJourneyEvent, type RawMemoryInput, type RawSessionContext, type RawVectorResult, type RealtimeLogger, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationEvent, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, type RecommendationPayload, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, type ReindexError, type ReindexJob, type ReindexJobMetadata, ReindexJobStatus, type ReindexJobStore, ReindexJobType, ReindexPriority, type ReindexResult, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResourceType, type ResponseContext, ResponseType$1 as ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type RetrievalStrategyUsed, type ReviewItem, type ReviewQuality, type RolePermissionMapping, type Rubric, type RubricCriterion, SAMEventType, type SAMWebSocketEvent, SAMWebSocketEventSchema, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfEvaluationLogger, type ServerConnection, ServerConnectionManager, type SessionContext, type SessionContextStore, type SessionMetadata, type SessionSummary, type SessionSyncEvent, type SessionSyncPayload, type SidebarContainerProps, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SkillStore, SkillTracker, type SkillTrackerConfig, type SkillTrend, type SkillUpdateResult, type SourceMetrics, type SourceReference, SourceType, type SourceValidation, type SpacedRepetitionSchedule, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepCompletedEvent, type StepCompletionPayload, type StepDetails, type StepError, type StepEvaluation, type StepExecutionContext, type StepExecutionContextExtended, type StepExecutionError, type StepExecutionOutput, type StepExecutionResult, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepPriority, type StepRecommendation, type StepResult, StepStatus, StepStatusSchema, type StepToolContext, type StepTransition, StepType, type StreakInfo, type StructuredMemoryData, type StructuredPlanContext, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, type SubGoalQueryOptions, type SubGoalStore, SubGoalType, SubGoalTypeSchema, type SubscribeEvent, type SubscriptionPayload, type SuggestedAction$1 as SuggestedAction, type SupportRecommendation, type SurfaceComponentProps, type SurfaceManagerConfig, type SystemHealthMetrics, MemorySource as TelemetryMemorySource, ResponseType as TelemetryResponseType, ToolExecutionStatus as TelemetryToolExecutionStatus, TimePeriod, type TimeSlot, type ToastContainerProps, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionError, type ToolExecutionEvent, type ToolExecutionQuery, type ToolExecutionResult, ToolExecutionStatus$1 as ToolExecutionStatus, ToolExecutionStatusSchema, type ToolExecutionStore, type ToolExecutionSummary, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolMetrics, type ToolPlan, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, ToolTelemetry, type ToolTelemetryConfig, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TransitionType, type TraversalResult, type TrendDataPoint, TrendDirection, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type TutoringContext, TutoringLoopController, type TutoringLoopControllerConfig, type TutoringLoopMetadata, type TutoringLoopResult, type TutoringSession, type TutoringSessionStore, type TypeCalibration, type UnsubscribeEvent, type UpdateGoalInput, UpdateGoalInputSchema, type UpdateSubGoalInput, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, type UserPresence, UserRole, type UserSkill, type UserSkillProfile, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, VerificationMethod, type VerificationResult, type VerificationResultStore, VerificationStatus, type WebSocketConnectionHandler, type WebSocketManagerInterface, type WeeklyBreakdown, type WeeklyMilestone, type WorkerConfig, WorkerConfigSchema, type WorkerStats, WorkerStatus, cosineSimilarity, createActiveStepExecutor, createAgentStateMachine, createAgenticMetricsCollector, createAuditLogger, createBackgroundWorker, createBehaviorMonitor, createCheckInScheduler, createClientWebSocketManager, createConfidenceCalibrationTracker, createConfidenceScorer, createConfirmationGate, createConfirmationManager, createContentTools, createCrossSessionContext, createGoalDecomposer, createInMemoryConfidencePredictionStore, createInMemoryMemoryRetrievalStore, createInMemoryOrchestrationConfirmationStore, createInMemoryOrchestrationStores, createInMemoryPlanLifecycleStore, createInMemoryPresenceStore, createInMemoryProactiveEventStore, createInMemoryPushQueueStore, createInMemorySessionStore, createInMemoryStores, createInMemoryToolExecutionStore, createInterventionSurfaceManager, createJobQueue, createJourneyTimeline, createKGRefreshScheduler, createKnowledgeGraphManager, createMemoryLifecycleManager, createMemoryNormalizer, createMemoryQualityTracker, createMemoryRetriever, createMemorySystem, createMentorTools, createMultiSessionPlanTracker, createNotificationTools, createPathRecommender, createPermissionManager, createPlanBuilder, createPlanContextInjector, createPresenceTracker, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createPushDispatcher, createQualityTracker, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createServerConnectionManager, createSkillAssessor, createSkillTracker, createStepExecutor, createStepExecutorFunction, createToolExecutor, createToolRegistry, createToolTelemetry, createTutoringLoopController, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, hasCapability };

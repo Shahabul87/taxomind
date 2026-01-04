@@ -58,6 +58,15 @@ export {
   type Achievement,
 } from './journey-timeline';
 
+// Memory Lifecycle Management
+export * from './lifecycle';
+
+// Memory Normalization
+export * from './normalization';
+
+// Background Worker
+export * from './worker';
+
 // ============================================================================
 // CONVENIENCE FACTORY
 // ============================================================================

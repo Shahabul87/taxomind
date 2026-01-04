@@ -111,8 +111,8 @@ describe('SAMApiTransportResponse', () => {
   it('should accept optional fields', () => {
     const response: SAMApiTransportResponse = {
       message: 'Hello!',
-      suggestions: [{ id: '1', text: 'Follow up', label: 'Follow up' }],
-      actions: [{ id: '1', type: 'navigate', label: 'Go' }],
+      suggestions: [{ id: '1', text: 'Follow up', label: 'Follow up', type: 'quick-reply' }],
+      actions: [{ id: '1', type: 'navigate', label: 'Go', payload: {} }],
       insights: { key: 'value' },
       blooms: {
         dominantLevel: 'ANALYZE',
@@ -125,7 +125,7 @@ describe('SAMApiTransportResponse', () => {
           CREATE: 0.1,
         },
         cognitiveDepth: 65,
-        balance: 0.8,
+        balance: 'well-balanced',
         gaps: [],
         recommendations: [],
         confidence: 0.9,

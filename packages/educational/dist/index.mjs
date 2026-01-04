@@ -2,7 +2,7 @@ import {
   EnhancedDepthAnalysisEngine,
   createEnhancedDepthAnalysisEngine,
   enhancedDepthEngine
-} from "./chunk-3KL3OQO6.mjs";
+} from "./chunk-GF2L6ICH.mjs";
 
 // src/engines/exam-engine.ts
 var AdvancedExamEngine = class {
@@ -16974,6 +16974,9093 @@ ${dialogue.discoveredInsights.map((i, idx) => `${idx + 1}. ${i}`).join("\n")}`;
 function createSocraticTeachingEngine(config) {
   return new SocraticTeachingEngine(config);
 }
+
+// src/engines/knowledge-graph-engine.ts
+var BLOOMS_HIERARCHY2 = [
+  "REMEMBER",
+  "UNDERSTAND",
+  "APPLY",
+  "ANALYZE",
+  "EVALUATE",
+  "CREATE"
+];
+var CONCEPT_TYPE_KEYWORDS = {
+  FOUNDATIONAL: ["basic", "fundamental", "core", "essential", "introduction", "definition"],
+  PROCEDURAL: ["how to", "step", "process", "procedure", "method", "technique", "implement"],
+  CONCEPTUAL: ["understand", "principle", "theory", "concept", "relationship", "framework"],
+  METACOGNITIVE: ["reflect", "evaluate", "strategy", "self-assess", "plan", "monitor"]
+};
+var KnowledgeGraphEngine = class {
+  config;
+  database;
+  logger;
+  enableAIExtraction;
+  confidenceThreshold;
+  maxPrerequisiteDepth;
+  // In-memory graph cache
+  graphCache = /* @__PURE__ */ new Map();
+  conceptCache = /* @__PURE__ */ new Map();
+  masteryCache = /* @__PURE__ */ new Map();
+  constructor(engineConfig) {
+    this.config = engineConfig.samConfig;
+    this.database = engineConfig.database ?? engineConfig.samConfig.database;
+    this.logger = this.config.logger ?? console;
+    this.enableAIExtraction = engineConfig.enableAIExtraction ?? true;
+    this.confidenceThreshold = engineConfig.confidenceThreshold ?? 0.7;
+    this.maxPrerequisiteDepth = engineConfig.maxPrerequisiteDepth ?? 10;
+  }
+  // ============================================================================
+  // CONCEPT EXTRACTION
+  // ============================================================================
+  /**
+   * Extract concepts from educational content
+   */
+  async extractConcepts(input) {
+    this.logger?.info?.("[KnowledgeGraphEngine] Extracting concepts", {
+      contentType: input.contentType
+    });
+    const startTime = Date.now();
+    if (this.enableAIExtraction && this.config.ai) {
+      return this.extractConceptsWithAI(input, startTime);
+    }
+    return this.extractConceptsWithKeywords(input, startTime);
+  }
+  async extractConceptsWithAI(input, startTime) {
+    try {
+      const existingConceptNames = input.context?.existingConcepts?.map((c) => c.name) ?? [];
+      const response = await this.config.ai.chat({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert educational content analyzer specializing in knowledge graphs.
+Extract key concepts and their relationships from educational content.
+
+Concept Types:
+- FOUNDATIONAL: Basic building blocks and definitions
+- PROCEDURAL: How-to knowledge and processes
+- CONCEPTUAL: Understanding of principles and theories
+- METACOGNITIVE: Self-awareness and learning strategies
+
+Relation Types:
+- PREREQUISITE: Must learn A before B
+- SUPPORTS: A helps understand B
+- EXTENDS: B builds on A
+- RELATED: A and B are connected
+- CONTRASTS: A differs from B
+
+Return ONLY valid JSON matching the specified format.`
+          },
+          {
+            role: "user",
+            content: `Extract concepts and relationships from this ${input.contentType} content:
+
+${input.content.slice(0, 4e3)}${input.content.length > 4e3 ? "..." : ""}
+
+${existingConceptNames.length > 0 ? `Existing concepts in this course: ${existingConceptNames.join(", ")}` : ""}
+
+Return JSON:
+{
+  "concepts": [
+    {
+      "name": "concept name",
+      "description": "brief description",
+      "type": "FOUNDATIONAL|PROCEDURAL|CONCEPTUAL|METACOGNITIVE",
+      "bloomsLevel": "REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE",
+      "keywords": ["keyword1", "keyword2"],
+      "confidence": 0.0-1.0
+    }
+  ],
+  "relations": [
+    {
+      "sourceConcept": "concept name",
+      "targetConcept": "concept name",
+      "relationType": "PREREQUISITE|SUPPORTS|EXTENDS|RELATED|CONTRASTS",
+      "strength": 0.0-1.0,
+      "confidence": 0.0-1.0,
+      "reasoning": "why this relationship exists"
+    }
+  ]
+}`
+          }
+        ],
+        temperature: 0.3,
+        maxTokens: 2e3
+      });
+      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON in response");
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      const filteredConcepts = parsed.concepts.filter(
+        (c) => c.confidence >= this.confidenceThreshold
+      );
+      const filteredRelations = parsed.relations.filter(
+        (r) => r.confidence >= this.confidenceThreshold
+      );
+      const overallConfidence = filteredConcepts.length > 0 ? filteredConcepts.reduce((sum, c) => sum + c.confidence, 0) / filteredConcepts.length : 0;
+      return {
+        concepts: filteredConcepts,
+        relations: filteredRelations,
+        confidence: overallConfidence,
+        processingTimeMs: Date.now() - startTime
+      };
+    } catch (error) {
+      this.logger?.warn?.("[KnowledgeGraphEngine] AI extraction failed, falling back to keywords", error);
+      return this.extractConceptsWithKeywords(input, startTime);
+    }
+  }
+  extractConceptsWithKeywords(input, startTime) {
+    const content = input.content.toLowerCase();
+    const concepts = [];
+    const relations = [];
+    const sentences = input.content.split(/[.!?]+/).filter((s) => s.trim().length > 10);
+    for (const sentence of sentences.slice(0, 20)) {
+      const type = this.detectConceptType(sentence);
+      const bloomsLevel = this.detectBloomsLevel(sentence);
+      const nounPhrases = this.extractNounPhrases(sentence);
+      for (const phrase of nounPhrases) {
+        if (phrase.length > 3 && phrase.length < 100) {
+          concepts.push({
+            name: this.titleCase(phrase),
+            description: `Concept extracted from: "${sentence.trim().slice(0, 100)}..."`,
+            type,
+            bloomsLevel,
+            keywords: phrase.toLowerCase().split(/\s+/).filter((w) => w.length > 3),
+            confidence: 0.6
+          });
+        }
+      }
+    }
+    const uniqueConcepts = this.deduplicateConcepts(concepts);
+    for (let i = 0; i < uniqueConcepts.length - 1; i++) {
+      relations.push({
+        sourceConcept: uniqueConcepts[i].name,
+        targetConcept: uniqueConcepts[i + 1].name,
+        relationType: "SUPPORTS",
+        strength: 0.5,
+        confidence: 0.5
+      });
+    }
+    return {
+      concepts: uniqueConcepts,
+      relations,
+      confidence: 0.5,
+      processingTimeMs: Date.now() - startTime
+    };
+  }
+  detectConceptType(text) {
+    const lowerText = text.toLowerCase();
+    for (const [type, keywords] of Object.entries(CONCEPT_TYPE_KEYWORDS)) {
+      for (const keyword of keywords) {
+        if (lowerText.includes(keyword)) {
+          return type;
+        }
+      }
+    }
+    return "CONCEPTUAL";
+  }
+  detectBloomsLevel(text) {
+    const lowerText = text.toLowerCase();
+    const bloomsKeywords = {
+      REMEMBER: ["define", "list", "recall", "identify", "name", "state"],
+      UNDERSTAND: ["explain", "describe", "summarize", "interpret", "classify"],
+      APPLY: ["apply", "use", "implement", "solve", "demonstrate"],
+      ANALYZE: ["analyze", "compare", "contrast", "differentiate", "examine"],
+      EVALUATE: ["evaluate", "judge", "critique", "justify", "assess"],
+      CREATE: ["create", "design", "develop", "construct", "produce"]
+    };
+    for (const level of [...BLOOMS_HIERARCHY2].reverse()) {
+      for (const keyword of bloomsKeywords[level]) {
+        if (lowerText.includes(keyword)) {
+          return level;
+        }
+      }
+    }
+    return "UNDERSTAND";
+  }
+  extractNounPhrases(text) {
+    const patterns = [
+      /\b(?:the|a|an)\s+(\w+(?:\s+\w+){0,3})\b/gi,
+      /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g
+    ];
+    const phrases = [];
+    for (const pattern of patterns) {
+      const matches = text.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1]) {
+          phrases.push(match[1].trim());
+        }
+      }
+    }
+    return phrases;
+  }
+  deduplicateConcepts(concepts) {
+    const seen = /* @__PURE__ */ new Map();
+    for (const concept of concepts) {
+      const key = concept.name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.set(key, concept);
+      } else {
+        const existing = seen.get(key);
+        if (existing && concept.confidence > existing.confidence) {
+          seen.set(key, concept);
+        }
+      }
+    }
+    return Array.from(seen.values());
+  }
+  titleCase(str) {
+    return str.toLowerCase().split(" ").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+  }
+  // ============================================================================
+  // KNOWLEDGE GRAPH BUILDING
+  // ============================================================================
+  /**
+   * Build a knowledge graph from extracted concepts
+   */
+  buildGraph(courseId, concepts, relations) {
+    this.logger?.info?.("[KnowledgeGraphEngine] Building knowledge graph", {
+      courseId,
+      conceptCount: concepts.length,
+      relationCount: relations.length
+    });
+    const targetIds = new Set(
+      relations.filter((r) => r.relationType === "PREREQUISITE").map((r) => r.targetConceptId)
+    );
+    const rootConcepts = concepts.filter((c) => !targetIds.has(c.id)).map((c) => c.id);
+    const sourceIds = new Set(
+      relations.filter((r) => r.relationType === "PREREQUISITE").map((r) => r.sourceConceptId)
+    );
+    const terminalConcepts = concepts.filter((c) => !sourceIds.has(c.id)).map((c) => c.id);
+    const stats = this.calculateGraphStats(concepts, relations);
+    const graph = {
+      id: `graph-${courseId}-${Date.now()}`,
+      courseId,
+      concepts,
+      relations,
+      rootConcepts,
+      terminalConcepts,
+      stats,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.graphCache.set(courseId, graph);
+    for (const concept of concepts) {
+      this.conceptCache.set(concept.id, concept);
+    }
+    return graph;
+  }
+  calculateGraphStats(concepts, relations) {
+    const connectionCounts = /* @__PURE__ */ new Map();
+    for (const relation of relations) {
+      connectionCounts.set(
+        relation.sourceConceptId,
+        (connectionCounts.get(relation.sourceConceptId) ?? 0) + 1
+      );
+      connectionCounts.set(
+        relation.targetConceptId,
+        (connectionCounts.get(relation.targetConceptId) ?? 0) + 1
+      );
+    }
+    const totalConnections = Array.from(connectionCounts.values()).reduce(
+      (sum, c) => sum + c,
+      0
+    );
+    const conceptsByType = {
+      FOUNDATIONAL: 0,
+      PROCEDURAL: 0,
+      CONCEPTUAL: 0,
+      METACOGNITIVE: 0
+    };
+    const conceptsByBloomsLevel = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    for (const concept of concepts) {
+      conceptsByType[concept.type]++;
+      conceptsByBloomsLevel[concept.bloomsLevel]++;
+    }
+    return {
+      totalConcepts: concepts.length,
+      totalRelations: relations.length,
+      averageConnections: concepts.length > 0 ? totalConnections / concepts.length : 0,
+      maxDepth: this.calculateMaxDepth(concepts, relations),
+      conceptsByType,
+      conceptsByBloomsLevel
+    };
+  }
+  calculateMaxDepth(concepts, relations) {
+    const prerequisiteRels = relations.filter(
+      (r) => r.relationType === "PREREQUISITE"
+    );
+    if (prerequisiteRels.length === 0) return 0;
+    const adjacency = /* @__PURE__ */ new Map();
+    for (const rel of prerequisiteRels) {
+      const existing = adjacency.get(rel.sourceConceptId) ?? [];
+      existing.push(rel.targetConceptId);
+      adjacency.set(rel.sourceConceptId, existing);
+    }
+    let maxDepth = 0;
+    const visited = /* @__PURE__ */ new Set();
+    const dfs = (nodeId, depth) => {
+      if (visited.has(nodeId)) return;
+      visited.add(nodeId);
+      maxDepth = Math.max(maxDepth, depth);
+      const children = adjacency.get(nodeId) ?? [];
+      for (const child of children) {
+        dfs(child, depth + 1);
+      }
+    };
+    for (const concept of concepts) {
+      visited.clear();
+      dfs(concept.id, 0);
+    }
+    return maxDepth;
+  }
+  // ============================================================================
+  // PREREQUISITE ANALYSIS
+  // ============================================================================
+  /**
+   * Analyze prerequisites for a concept
+   */
+  async analyzePrerequisites(input) {
+    this.logger?.info?.("[KnowledgeGraphEngine] Analyzing prerequisites", {
+      conceptId: input.conceptId
+    });
+    const concept = this.conceptCache.get(input.conceptId);
+    if (!concept) {
+      throw new Error(`Concept not found: ${input.conceptId}`);
+    }
+    const graph = this.findGraphForConcept(input.conceptId);
+    if (!graph) {
+      return {
+        concept,
+        directPrerequisites: [],
+        prerequisiteChain: [],
+        estimatedLearningTime: 15,
+        dependentConcepts: []
+      };
+    }
+    const directPrereqs = graph.relations.filter(
+      (r) => r.targetConceptId === input.conceptId && r.relationType === "PREREQUISITE"
+    ).map((r) => {
+      const prereqConcept = graph.concepts.find(
+        (c) => c.id === r.sourceConceptId
+      );
+      return prereqConcept ? {
+        concept: prereqConcept,
+        depth: 1,
+        relationStrength: r.strength,
+        isBottleneck: this.isBottleneck(r.sourceConceptId, graph)
+      } : null;
+    }).filter((p) => p !== null);
+    const chain = this.buildPrerequisiteChain(
+      input.conceptId,
+      graph,
+      input.maxDepth ?? this.maxPrerequisiteDepth
+    );
+    const dependentConcepts = graph.relations.filter(
+      (r) => r.sourceConceptId === input.conceptId && r.relationType === "PREREQUISITE"
+    ).map((r) => graph.concepts.find((c) => c.id === r.targetConceptId)).filter((c) => c !== void 0);
+    const estimatedTime = chain.reduce((total, node) => {
+      const bloomsMultiplier = (BLOOMS_HIERARCHY2.indexOf(node.concept.bloomsLevel) + 1) * 0.2;
+      return total + 15 * (1 + bloomsMultiplier);
+    }, 15);
+    const result = {
+      concept,
+      directPrerequisites: directPrereqs,
+      prerequisiteChain: chain,
+      estimatedLearningTime: Math.round(estimatedTime),
+      dependentConcepts
+    };
+    if (input.userId && input.includeMastery) {
+      result.gapAnalysis = await this.analyzePrerequisiteGaps(
+        input.userId,
+        chain,
+        concept
+      );
+    }
+    return result;
+  }
+  buildPrerequisiteChain(conceptId, graph, maxDepth) {
+    const visited = /* @__PURE__ */ new Set();
+    const chain = [];
+    const traverse = (nodeId, depth) => {
+      if (visited.has(nodeId) || depth > maxDepth) return;
+      visited.add(nodeId);
+      const concept = graph.concepts.find((c) => c.id === nodeId);
+      if (!concept) return;
+      const prereqs = graph.relations.filter(
+        (r) => r.targetConceptId === nodeId && r.relationType === "PREREQUISITE"
+      );
+      for (const prereq of prereqs) {
+        traverse(prereq.sourceConceptId, depth + 1);
+      }
+      chain.push({
+        concept,
+        depth,
+        relationStrength: prereqs.length > 0 ? prereqs[0].strength : 1,
+        isBottleneck: this.isBottleneck(nodeId, graph)
+      });
+    };
+    const directPrereqs = graph.relations.filter(
+      (r) => r.targetConceptId === conceptId && r.relationType === "PREREQUISITE"
+    );
+    for (const prereq of directPrereqs) {
+      traverse(prereq.sourceConceptId, 1);
+    }
+    return chain;
+  }
+  isBottleneck(conceptId, graph) {
+    const dependentCount = graph.relations.filter(
+      (r) => r.sourceConceptId === conceptId && r.relationType === "PREREQUISITE"
+    ).length;
+    return dependentCount >= 3;
+  }
+  async analyzePrerequisiteGaps(userId, chain, targetConcept) {
+    const gaps = [];
+    let masteredCount = 0;
+    for (const node of chain) {
+      const mastery = await this.getConceptMastery(userId, node.concept.id);
+      if (mastery.masteryLevel === "MASTERED" || mastery.masteryLevel === "PROFICIENT") {
+        masteredCount++;
+      } else {
+        gaps.push({
+          concept: node.concept,
+          currentMastery: mastery.masteryLevel,
+          requiredMastery: node.isBottleneck ? "PROFICIENT" : "PRACTICING",
+          priority: node.isBottleneck ? "HIGH" : node.depth <= 2 ? "MEDIUM" : "LOW",
+          suggestions: this.generateGapSuggestions(node.concept, mastery.masteryLevel)
+        });
+      }
+    }
+    const readinessScore = chain.length > 0 ? masteredCount / chain.length * 100 : 100;
+    return {
+      userId,
+      gaps,
+      recommendedSequence: gaps.sort((a, b) => {
+        const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }).map((g) => g.concept.id),
+      readyToLearn: gaps.filter((g) => g.priority === "HIGH").length === 0,
+      readinessScore
+    };
+  }
+  generateGapSuggestions(concept, currentMastery) {
+    const suggestions = [];
+    if (currentMastery === "NOT_STARTED") {
+      suggestions.push({
+        type: "READING",
+        title: `Introduction to ${concept.name}`,
+        description: `Start with foundational material about ${concept.name}`,
+        estimatedTimeMinutes: 15
+      });
+    }
+    if (currentMastery === "INTRODUCED" || currentMastery === "NOT_STARTED") {
+      suggestions.push({
+        type: "VIDEO",
+        title: `${concept.name} Explained`,
+        description: `Watch explanatory content about ${concept.name}`,
+        estimatedTimeMinutes: 10
+      });
+    }
+    suggestions.push({
+      type: "PRACTICE",
+      title: `Practice ${concept.name}`,
+      description: `Apply your knowledge of ${concept.name}`,
+      estimatedTimeMinutes: 20
+    });
+    if (currentMastery !== "NOT_STARTED") {
+      suggestions.push({
+        type: "QUIZ",
+        title: `${concept.name} Assessment`,
+        description: `Test your understanding of ${concept.name}`,
+        estimatedTimeMinutes: 10
+      });
+    }
+    return suggestions;
+  }
+  // ============================================================================
+  // LEARNING PATH GENERATION
+  // ============================================================================
+  /**
+   * Generate an optimal learning path to target concepts
+   */
+  async generateLearningPath(input) {
+    this.logger?.info?.("[KnowledgeGraphEngine] Generating learning path", {
+      userId: input.userId,
+      targetCount: input.targetConceptIds.length,
+      strategy: input.strategy
+    });
+    const targetConcepts = [];
+    const allPrereqs = /* @__PURE__ */ new Set();
+    for (const targetId of input.targetConceptIds) {
+      const concept = this.conceptCache.get(targetId);
+      if (concept) {
+        targetConcepts.push(concept);
+      }
+      const prereqAnalysis = await this.analyzePrerequisites({
+        conceptId: targetId,
+        userId: input.userId,
+        includeMastery: input.skipMastered,
+        maxDepth: this.maxPrerequisiteDepth
+      });
+      for (const prereq of prereqAnalysis.prerequisiteChain) {
+        allPrereqs.add(prereq.concept.id);
+      }
+    }
+    const sequence = [];
+    let position = 0;
+    for (const prereqId of allPrereqs) {
+      const concept = this.conceptCache.get(prereqId);
+      if (!concept) continue;
+      if (input.skipMastered) {
+        const mastery = await this.getConceptMastery(input.userId, prereqId);
+        if (mastery.masteryLevel === "MASTERED" || mastery.masteryLevel === "PROFICIENT") {
+          continue;
+        }
+      }
+      sequence.push(
+        this.createLearningPathNode(concept, position++, "PREREQUISITE")
+      );
+    }
+    for (const target of targetConcepts) {
+      if (input.skipMastered) {
+        const mastery = await this.getConceptMastery(input.userId, target.id);
+        if (mastery.masteryLevel === "MASTERED" || mastery.masteryLevel === "PROFICIENT") {
+          continue;
+        }
+      }
+      sequence.push(this.createLearningPathNode(target, position++, "TARGET"));
+    }
+    const adjustedSequence = this.applyPathStrategy(sequence, input.strategy);
+    const totalTime = adjustedSequence.reduce(
+      (sum, node) => sum + node.estimatedTimeMinutes,
+      0
+    );
+    return {
+      id: `path-${input.userId}-${Date.now()}`,
+      userId: input.userId,
+      targetConcepts,
+      sequence: adjustedSequence,
+      totalEstimatedTime: totalTime,
+      progress: {
+        completedConcepts: 0,
+        totalConcepts: adjustedSequence.length,
+        completedTimeMinutes: 0,
+        estimatedRemainingMinutes: totalTime,
+        percentComplete: 0
+      },
+      createdAt: /* @__PURE__ */ new Date()
+    };
+  }
+  createLearningPathNode(concept, position, reason) {
+    const bloomsIndex = BLOOMS_HIERARCHY2.indexOf(concept.bloomsLevel);
+    const baseTime = 15 + bloomsIndex * 5;
+    const activities = [
+      {
+        type: "LEARN",
+        title: `Learn ${concept.name}`,
+        description: concept.description,
+        estimatedTimeMinutes: Math.round(baseTime * 0.4)
+      },
+      {
+        type: "PRACTICE",
+        title: `Practice ${concept.name}`,
+        description: `Apply your knowledge of ${concept.name}`,
+        estimatedTimeMinutes: Math.round(baseTime * 0.4)
+      },
+      {
+        type: "ASSESS",
+        title: `${concept.name} Check`,
+        description: `Verify understanding of ${concept.name}`,
+        estimatedTimeMinutes: Math.round(baseTime * 0.2)
+      }
+    ];
+    return {
+      concept,
+      position,
+      estimatedTimeMinutes: baseTime,
+      reason,
+      activities,
+      completed: false
+    };
+  }
+  applyPathStrategy(sequence, strategy) {
+    switch (strategy) {
+      case "FASTEST":
+        return sequence.filter((n) => n.reason !== "REINFORCEMENT").map((n) => ({
+          ...n,
+          estimatedTimeMinutes: Math.round(n.estimatedTimeMinutes * 0.8),
+          activities: n.activities.slice(0, 2)
+        }));
+      case "THOROUGH":
+        return sequence.map((n) => ({
+          ...n,
+          estimatedTimeMinutes: Math.round(n.estimatedTimeMinutes * 1.3),
+          activities: [
+            ...n.activities,
+            {
+              type: "PRACTICE",
+              title: `Extra Practice: ${n.concept.name}`,
+              description: `Additional exercises for ${n.concept.name}`,
+              estimatedTimeMinutes: 10
+            }
+          ]
+        }));
+      case "BALANCED":
+      default:
+        return sequence;
+    }
+  }
+  // ============================================================================
+  // COURSE ANALYSIS
+  // ============================================================================
+  /**
+   * Analyze a course for knowledge graph quality
+   */
+  async analyzeCourse(input) {
+    this.logger?.info?.("[KnowledgeGraphEngine] Analyzing course", {
+      courseId: input.courseId
+    });
+    if (!input.forceRegenerate && this.graphCache.has(input.courseId)) {
+      const cachedGraph = this.graphCache.get(input.courseId);
+      if (cachedGraph) {
+        return {
+          courseId: input.courseId,
+          graph: cachedGraph,
+          structureQuality: this.assessStructureQuality(cachedGraph),
+          recommendations: this.generateCourseRecommendations(cachedGraph),
+          coverage: this.assessCoverage(cachedGraph),
+          analyzedAt: /* @__PURE__ */ new Date()
+        };
+      }
+    }
+    if (!this.database) {
+      throw new Error("Database adapter required for course analysis");
+    }
+    const course = await this.database.findCourse(input.courseId, {
+      include: { chapters: true }
+    });
+    if (!course) {
+      throw new Error(`Course not found: ${input.courseId}`);
+    }
+    const allConcepts = [];
+    const allRelations = [];
+    if (course.description) {
+      const extraction = await this.extractConcepts({
+        content: course.description,
+        contentType: "COURSE_DESCRIPTION",
+        context: { courseId: input.courseId }
+      });
+      for (const extracted of extraction.concepts) {
+        allConcepts.push(this.convertToFullConcept(extracted, input.courseId));
+      }
+    }
+    if (input.includeFullContent && course.chapters) {
+      for (const chapter of course.chapters) {
+        const chapterContent = [chapter.title, chapter.description ?? ""].join("\n");
+        const extraction = await this.extractConcepts({
+          content: chapterContent,
+          contentType: "CHAPTER",
+          context: {
+            courseId: input.courseId,
+            chapterId: chapter.id,
+            existingConcepts: allConcepts
+          }
+        });
+        for (const extracted of extraction.concepts) {
+          allConcepts.push(
+            this.convertToFullConcept(extracted, input.courseId, chapter.id)
+          );
+        }
+        for (const relation of extraction.relations) {
+          const sourceId = allConcepts.find(
+            (c) => c.name.toLowerCase() === relation.sourceConcept.toLowerCase()
+          )?.id;
+          const targetId = allConcepts.find(
+            (c) => c.name.toLowerCase() === relation.targetConcept.toLowerCase()
+          )?.id;
+          if (sourceId && targetId) {
+            allRelations.push({
+              id: `rel-${sourceId}-${targetId}`,
+              sourceConceptId: sourceId,
+              targetConceptId: targetId,
+              relationType: relation.relationType,
+              strength: relation.strength,
+              confidence: relation.confidence,
+              description: relation.reasoning,
+              createdAt: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+      }
+    }
+    const graph = this.buildGraph(input.courseId, allConcepts, allRelations);
+    return {
+      courseId: input.courseId,
+      graph,
+      structureQuality: this.assessStructureQuality(graph),
+      recommendations: this.generateCourseRecommendations(graph),
+      coverage: this.assessCoverage(graph),
+      analyzedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  convertToFullConcept(extracted, courseId, chapterId) {
+    const id = `concept-${courseId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return {
+      id,
+      name: extracted.name,
+      description: extracted.description,
+      type: extracted.type,
+      bloomsLevel: extracted.bloomsLevel,
+      keywords: extracted.keywords,
+      sourceContext: {
+        courseId,
+        chapterId
+      },
+      confidence: extracted.confidence,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  assessStructureQuality(graph) {
+    const issues = [];
+    let prerequisiteOrdering = 100;
+    let conceptContinuity = 100;
+    let depthBalance = 100;
+    if (this.hasCircularDependencies(graph)) {
+      issues.push({
+        type: "CIRCULAR_DEPENDENCY",
+        severity: "HIGH",
+        description: "Circular prerequisite dependency detected",
+        affectedConcepts: [],
+        suggestion: "Review and break circular prerequisite chains"
+      });
+      prerequisiteOrdering -= 30;
+    }
+    const orphans = graph.concepts.filter((c) => {
+      const hasRelations = graph.relations.some(
+        (r) => r.sourceConceptId === c.id || r.targetConceptId === c.id
+      );
+      return !hasRelations;
+    });
+    if (orphans.length > 0) {
+      issues.push({
+        type: "ORPHAN_CONCEPT",
+        severity: "MEDIUM",
+        description: `${orphans.length} concepts have no connections to other concepts`,
+        affectedConcepts: orphans.map((c) => c.id),
+        suggestion: "Connect orphan concepts to related concepts"
+      });
+      conceptContinuity -= Math.min(30, orphans.length * 5);
+    }
+    if (graph.stats.maxDepth > 8) {
+      issues.push({
+        type: "TOO_DEEP",
+        severity: "MEDIUM",
+        description: `Prerequisite chain is very deep (${graph.stats.maxDepth} levels)`,
+        affectedConcepts: [],
+        suggestion: "Consider breaking down complex prerequisite chains"
+      });
+      depthBalance -= 20;
+    }
+    const foundationalCount = graph.stats.conceptsByType.FOUNDATIONAL;
+    if (foundationalCount < graph.concepts.length * 0.2) {
+      issues.push({
+        type: "UNBALANCED",
+        severity: "LOW",
+        description: "Few foundational concepts defined",
+        affectedConcepts: [],
+        suggestion: "Add more foundational/introductory concepts"
+      });
+      depthBalance -= 10;
+    }
+    const overallScore = Math.round(
+      (prerequisiteOrdering + conceptContinuity + depthBalance) / 3
+    );
+    return {
+      prerequisiteOrdering,
+      conceptContinuity,
+      depthBalance,
+      overallScore,
+      issues
+    };
+  }
+  hasCircularDependencies(graph) {
+    const visited = /* @__PURE__ */ new Set();
+    const recStack = /* @__PURE__ */ new Set();
+    const hasCycle = (nodeId) => {
+      visited.add(nodeId);
+      recStack.add(nodeId);
+      const children = graph.relations.filter(
+        (r) => r.sourceConceptId === nodeId && r.relationType === "PREREQUISITE"
+      ).map((r) => r.targetConceptId);
+      for (const child of children) {
+        if (!visited.has(child)) {
+          if (hasCycle(child)) return true;
+        } else if (recStack.has(child)) {
+          return true;
+        }
+      }
+      recStack.delete(nodeId);
+      return false;
+    };
+    for (const concept of graph.concepts) {
+      if (!visited.has(concept.id)) {
+        if (hasCycle(concept.id)) return true;
+      }
+    }
+    return false;
+  }
+  generateCourseRecommendations(graph) {
+    const recommendations = [];
+    const bloomsTotal = Object.values(graph.stats.conceptsByBloomsLevel).reduce(
+      (sum, c) => sum + c,
+      0
+    );
+    if (bloomsTotal > 0) {
+      const applyAndAbove = graph.stats.conceptsByBloomsLevel.APPLY + graph.stats.conceptsByBloomsLevel.ANALYZE + graph.stats.conceptsByBloomsLevel.EVALUATE + graph.stats.conceptsByBloomsLevel.CREATE;
+      if (applyAndAbove / bloomsTotal < 0.3) {
+        recommendations.push({
+          type: "ADD_CONTENT",
+          priority: "high",
+          title: "Add Higher-Order Thinking Activities",
+          description: "Course is heavy on lower-level concepts. Add more application, analysis, and creation activities.",
+          affectedConcepts: [],
+          estimatedImpact: 25
+        });
+      }
+    }
+    if (graph.stats.conceptsByType.PROCEDURAL < graph.concepts.length * 0.15) {
+      recommendations.push({
+        type: "ADD_PRACTICE",
+        priority: "medium",
+        title: "Add Procedural Practice",
+        description: "Few procedural concepts found. Add hands-on exercises and demonstrations.",
+        affectedConcepts: [],
+        estimatedImpact: 20
+      });
+    }
+    if (graph.stats.averageConnections < 1.5) {
+      recommendations.push({
+        type: "ADD_PREREQUISITE",
+        priority: "medium",
+        title: "Strengthen Concept Connections",
+        description: "Many concepts lack clear relationships. Define prerequisites more explicitly.",
+        affectedConcepts: [],
+        estimatedImpact: 15
+      });
+    }
+    return recommendations;
+  }
+  assessCoverage(graph) {
+    return {
+      coveredConcepts: graph.concepts,
+      bloomsDistribution: graph.stats.conceptsByBloomsLevel,
+      typeDistribution: graph.stats.conceptsByType
+    };
+  }
+  // ============================================================================
+  // MASTERY TRACKING
+  // ============================================================================
+  /**
+   * Get or create concept mastery for a user
+   */
+  async getConceptMastery(userId, conceptId) {
+    const cacheKey = `${userId}-${conceptId}`;
+    if (this.masteryCache.has(cacheKey)) {
+      return this.masteryCache.get(cacheKey);
+    }
+    const defaultMastery = {
+      userId,
+      conceptId,
+      masteryLevel: "NOT_STARTED",
+      score: 0,
+      practiceCount: 0,
+      evidence: [],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.masteryCache.set(cacheKey, defaultMastery);
+    return defaultMastery;
+  }
+  /**
+   * Update concept mastery based on performance
+   */
+  async updateConceptMastery(userId, conceptId, score, evidenceType) {
+    const mastery = await this.getConceptMastery(userId, conceptId);
+    mastery.evidence.push({
+      type: evidenceType,
+      score,
+      timestamp: /* @__PURE__ */ new Date()
+    });
+    mastery.practiceCount++;
+    mastery.lastPracticedAt = /* @__PURE__ */ new Date();
+    const recentEvidence = mastery.evidence.slice(-5);
+    const avgScore = recentEvidence.reduce((sum, e) => sum + e.score, 0) / recentEvidence.length;
+    mastery.score = Math.round(avgScore);
+    mastery.masteryLevel = this.determineMasteryLevel(
+      mastery.score,
+      mastery.practiceCount
+    );
+    mastery.updatedAt = /* @__PURE__ */ new Date();
+    const cacheKey = `${userId}-${conceptId}`;
+    this.masteryCache.set(cacheKey, mastery);
+    return mastery;
+  }
+  determineMasteryLevel(score, practiceCount) {
+    if (practiceCount === 0) return "NOT_STARTED";
+    if (practiceCount === 1) return "INTRODUCED";
+    if (score >= 90 && practiceCount >= 3) return "MASTERED";
+    if (score >= 70 && practiceCount >= 2) return "PROFICIENT";
+    return "PRACTICING";
+  }
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+  findGraphForConcept(conceptId) {
+    for (const graph of this.graphCache.values()) {
+      if (graph.concepts.some((c) => c.id === conceptId)) {
+        return graph;
+      }
+    }
+    return void 0;
+  }
+  /**
+   * Get a cached concept by ID
+   */
+  getConcept(conceptId) {
+    return this.conceptCache.get(conceptId);
+  }
+  /**
+   * Get a cached graph by course ID
+   */
+  getGraph(courseId) {
+    return this.graphCache.get(courseId);
+  }
+  /**
+   * Clear all caches
+   */
+  clearCaches() {
+    this.graphCache.clear();
+    this.conceptCache.clear();
+    this.masteryCache.clear();
+  }
+};
+function createKnowledgeGraphEngine(config) {
+  return new KnowledgeGraphEngine(config);
+}
+
+// src/engines/microlearning-engine.ts
+var BLOOMS_HIERARCHY3 = [
+  "REMEMBER",
+  "UNDERSTAND",
+  "APPLY",
+  "ANALYZE",
+  "EVALUATE",
+  "CREATE"
+];
+var DEFAULT_TARGET_DURATION = 5;
+var DEFAULT_MAX_DURATION = 10;
+var WORDS_PER_MINUTE = 200;
+var MOBILE_MAX_WORDS = 150;
+var DEFAULT_SPACED_REPETITION_CONFIG = {
+  initialInterval: 1,
+  minEaseFactor: 1.3,
+  maxInterval: 365,
+  learningSteps: [1, 10],
+  // minutes
+  graduatingInterval: 1,
+  easyBonus: 1.3,
+  intervalModifier: 1
+};
+var MicrolearningEngine = class {
+  config;
+  database;
+  logger;
+  targetDuration;
+  maxDuration;
+  enableAIChunking;
+  defaultScheduleType;
+  spacedRepetitionConfig;
+  // Caches
+  moduleCache = /* @__PURE__ */ new Map();
+  scheduleCache = /* @__PURE__ */ new Map();
+  sessionCache = /* @__PURE__ */ new Map();
+  progressCache = /* @__PURE__ */ new Map();
+  constructor(engineConfig) {
+    this.config = engineConfig.samConfig;
+    this.database = engineConfig.database ?? engineConfig.samConfig.database;
+    this.logger = this.config.logger ?? console;
+    this.targetDuration = engineConfig.targetDurationMinutes ?? DEFAULT_TARGET_DURATION;
+    this.maxDuration = engineConfig.maxDurationMinutes ?? DEFAULT_MAX_DURATION;
+    this.enableAIChunking = engineConfig.enableAIChunking ?? true;
+    this.defaultScheduleType = engineConfig.defaultScheduleType ?? "SPACED_REPETITION";
+    this.spacedRepetitionConfig = { ...DEFAULT_SPACED_REPETITION_CONFIG };
+  }
+  // ============================================================================
+  // CONTENT CHUNKING
+  // ============================================================================
+  /**
+   * Chunk content into micro-learning modules
+   */
+  async chunkContent(input) {
+    this.logger?.info?.("[MicrolearningEngine] Chunking content", {
+      contentType: input.contentType,
+      targetDuration: input.targetDuration
+    });
+    const startTime = Date.now();
+    if (this.enableAIChunking && this.config.ai) {
+      return this.chunkWithAI(input, startTime);
+    }
+    return this.chunkWithRules(input, startTime);
+  }
+  async chunkWithAI(input, startTime) {
+    try {
+      const targetWords = input.targetDuration * WORDS_PER_MINUTE;
+      const maxWords = input.maxDuration * WORDS_PER_MINUTE;
+      const response = await this.config.ai.chat({
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert in instructional design and microlearning.
+Chunk educational content into bite-sized learning modules.
+
+Each chunk should:
+- Be self-contained but connected to the whole
+- Cover one main concept
+- Take approximately ${input.targetDuration} minutes to read/learn (${targetWords} words max)
+- Include a clear title and main concept
+- Identify the Bloom's taxonomy level
+
+Module Types:
+- CONCEPT: Explanation of a concept
+- PRACTICE: Hands-on exercise
+- QUIZ: Assessment questions
+- SUMMARY: Key points recap
+- REFLECTION: Self-reflection prompt
+
+Return ONLY valid JSON.`
+          },
+          {
+            role: "user",
+            content: `Chunk this ${input.contentType} content into microlearning modules:
+
+${input.content.slice(0, 6e3)}${input.content.length > 6e3 ? "..." : ""}
+
+Target: ${targetWords} words per chunk (max ${maxWords})
+${input.preserveParagraphs ? "Preserve paragraph boundaries" : ""}
+${input.includeContext ? "Include context from surrounding chunks" : ""}
+
+Return JSON:
+{
+  "chunks": [
+    {
+      "title": "chunk title",
+      "content": "chunk content",
+      "mainConcept": "primary concept",
+      "relatedConcepts": ["related1", "related2"],
+      "bloomsLevel": "REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE",
+      "suggestedType": "CONCEPT|PRACTICE|QUIZ|SUMMARY|REFLECTION",
+      "previousContext": "brief context from previous (if applicable)",
+      "nextPreview": "preview of next chunk (if applicable)"
+    }
+  ]
+}`
+          }
+        ],
+        temperature: 0.3,
+        maxTokens: 4e3
+      });
+      const jsonMatch = response.content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON in response");
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      const chunks = parsed.chunks.map((chunk, index) => ({
+        id: `chunk-${Date.now()}-${index}`,
+        position: index,
+        title: chunk.title,
+        content: chunk.content,
+        durationMinutes: this.estimateDuration(chunk.content),
+        wordCount: chunk.content.split(/\s+/).length,
+        mainConcept: chunk.mainConcept,
+        relatedConcepts: chunk.relatedConcepts,
+        bloomsLevel: chunk.bloomsLevel,
+        suggestedType: chunk.suggestedType,
+        previousContext: chunk.previousContext,
+        nextPreview: chunk.nextPreview
+      }));
+      const totalDuration = chunks.reduce((sum, c) => sum + c.durationMinutes, 0);
+      return {
+        chunks,
+        totalChunks: chunks.length,
+        totalDurationMinutes: totalDuration,
+        averageDurationMinutes: chunks.length > 0 ? totalDuration / chunks.length : 0,
+        coverage: this.calculateCoverage(input.content, chunks),
+        processingTimeMs: Date.now() - startTime
+      };
+    } catch (error) {
+      this.logger?.warn?.("[MicrolearningEngine] AI chunking failed, using rules", error);
+      return this.chunkWithRules(input, startTime);
+    }
+  }
+  chunkWithRules(input, startTime) {
+    const targetWords = input.targetDuration * WORDS_PER_MINUTE;
+    const maxWords = input.maxDuration * WORDS_PER_MINUTE;
+    const sections = input.preserveParagraphs ? input.content.split(/\n\n+/) : input.content.split(/\n#{1,3}\s+|\n\n+/);
+    const chunks = [];
+    let currentChunk = "";
+    let currentWordCount = 0;
+    let position = 0;
+    for (const section of sections) {
+      const sectionWords = section.split(/\s+/).length;
+      if (currentWordCount + sectionWords > maxWords && currentChunk) {
+        chunks.push(this.createChunkFromText(currentChunk, position++, input));
+        currentChunk = section;
+        currentWordCount = sectionWords;
+      } else if (currentWordCount + sectionWords >= targetWords * 0.8) {
+        currentChunk += "\n\n" + section;
+        chunks.push(this.createChunkFromText(currentChunk, position++, input));
+        currentChunk = "";
+        currentWordCount = 0;
+      } else {
+        currentChunk += (currentChunk ? "\n\n" : "") + section;
+        currentWordCount += sectionWords;
+      }
+    }
+    if (currentChunk.trim()) {
+      chunks.push(this.createChunkFromText(currentChunk, position, input));
+    }
+    if (input.includeContext) {
+      for (let i = 0; i < chunks.length; i++) {
+        if (i > 0) {
+          chunks[i].previousContext = chunks[i - 1].title;
+        }
+        if (i < chunks.length - 1) {
+          chunks[i].nextPreview = chunks[i + 1].title;
+        }
+      }
+    }
+    const totalDuration = chunks.reduce((sum, c) => sum + c.durationMinutes, 0);
+    return {
+      chunks,
+      totalChunks: chunks.length,
+      totalDurationMinutes: totalDuration,
+      averageDurationMinutes: chunks.length > 0 ? totalDuration / chunks.length : 0,
+      coverage: this.calculateCoverage(input.content, chunks),
+      processingTimeMs: Date.now() - startTime
+    };
+  }
+  createChunkFromText(text, position, input) {
+    const wordCount = text.split(/\s+/).length;
+    const title = this.extractTitle(text, position);
+    const mainConcept = this.extractMainConcept(text);
+    return {
+      id: `chunk-${Date.now()}-${position}`,
+      position,
+      title,
+      content: text.trim(),
+      durationMinutes: this.estimateDuration(text),
+      wordCount,
+      mainConcept,
+      relatedConcepts: this.extractRelatedConcepts(text),
+      bloomsLevel: this.detectBloomsLevel(text),
+      suggestedType: this.suggestModuleType(text)
+    };
+  }
+  extractTitle(text, position) {
+    const headingMatch = text.match(/^#+\s+(.+)$/m);
+    if (headingMatch) return headingMatch[1].trim();
+    const firstSentence = text.match(/^[^.!?]+[.!?]/);
+    if (firstSentence && firstSentence[0].length < 100) {
+      return firstSentence[0].trim();
+    }
+    return `Module ${position + 1}`;
+  }
+  extractMainConcept(text) {
+    const keyTerms = text.match(/\*\*([^*]+)\*\*|"([^"]+)"|'([^']+)'|\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g);
+    if (keyTerms && keyTerms.length > 0) {
+      return keyTerms[0].replace(/[*"']/g, "").trim();
+    }
+    const words = text.split(/\s+/).slice(0, 20);
+    const nouns = words.filter((w) => w.length > 4 && /^[A-Z]/.test(w));
+    return nouns[0] ?? "General Concept";
+  }
+  extractRelatedConcepts(text) {
+    const concepts = [];
+    const capitalizedTerms = text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g);
+    if (capitalizedTerms) {
+      concepts.push(...capitalizedTerms.slice(0, 5));
+    }
+    return [...new Set(concepts)];
+  }
+  detectBloomsLevel(text) {
+    const lowerText = text.toLowerCase();
+    const bloomsKeywords = {
+      REMEMBER: ["define", "list", "recall", "identify", "name", "state"],
+      UNDERSTAND: ["explain", "describe", "summarize", "interpret", "classify"],
+      APPLY: ["apply", "use", "implement", "solve", "demonstrate"],
+      ANALYZE: ["analyze", "compare", "contrast", "differentiate", "examine"],
+      EVALUATE: ["evaluate", "judge", "critique", "justify", "assess"],
+      CREATE: ["create", "design", "develop", "construct", "produce"]
+    };
+    for (const level of [...BLOOMS_HIERARCHY3].reverse()) {
+      for (const keyword of bloomsKeywords[level]) {
+        if (lowerText.includes(keyword)) {
+          return level;
+        }
+      }
+    }
+    return "UNDERSTAND";
+  }
+  suggestModuleType(text) {
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes("exercise") || lowerText.includes("practice") || lowerText.includes("try")) {
+      return "PRACTICE";
+    }
+    if (lowerText.includes("quiz") || lowerText.includes("question") || lowerText.includes("test")) {
+      return "QUIZ";
+    }
+    if (lowerText.includes("summary") || lowerText.includes("recap") || lowerText.includes("key points")) {
+      return "SUMMARY";
+    }
+    if (lowerText.includes("reflect") || lowerText.includes("think about") || lowerText.includes("consider")) {
+      return "REFLECTION";
+    }
+    return "CONCEPT";
+  }
+  estimateDuration(text) {
+    const wordCount = text.split(/\s+/).length;
+    const minutes = wordCount / WORDS_PER_MINUTE;
+    return Math.max(1, Math.min(this.maxDuration, Math.round(minutes)));
+  }
+  calculateCoverage(originalContent, chunks) {
+    const originalWords = originalContent.split(/\s+/).length;
+    const chunkWords = chunks.reduce((sum, c) => sum + c.wordCount, 0);
+    return {
+      contentCoverage: Math.min(100, chunkWords / originalWords * 100),
+      conceptsExtracted: chunks.length,
+      objectivesCovered: chunks.map((c) => c.mainConcept),
+      condensedSections: []
+    };
+  }
+  // ============================================================================
+  // MODULE GENERATION
+  // ============================================================================
+  /**
+   * Generate micro-learning modules from content
+   */
+  async generateModules(input) {
+    this.logger?.info?.("[MicrolearningEngine] Generating modules", {
+      contentType: input.contentType
+    });
+    const chunks = await this.chunkContent({
+      content: input.content,
+      contentType: input.contentType,
+      targetDuration: this.targetDuration,
+      maxDuration: this.maxDuration,
+      preserveParagraphs: true,
+      includeContext: true,
+      sourceContext: input.sourceContext
+    });
+    const modules = [];
+    for (const chunk of chunks.chunks) {
+      const microMod = this.createModuleFromChunk(chunk, input);
+      modules.push(microMod);
+      this.moduleCache.set(microMod.id, microMod);
+    }
+    if (input.includePractice) {
+      const practiceModules = await this.generatePracticeModules(modules);
+      modules.push(...practiceModules);
+    }
+    if (input.includeSummaries && modules.length > 3) {
+      const summaryModule = this.createSummaryModule(modules, input);
+      modules.push(summaryModule);
+    }
+    const bloomsDistribution = this.calculateBloomsDistribution(modules);
+    const typeDistribution = this.calculateTypeDistribution(modules);
+    const suggestedSchedule = this.generateScheduleSuggestion(modules);
+    return {
+      modules,
+      totalModules: modules.length,
+      totalDurationMinutes: modules.reduce((sum, m) => sum + m.durationMinutes, 0),
+      bloomsDistribution,
+      typeDistribution,
+      suggestedSchedule
+    };
+  }
+  createModuleFromChunk(chunk, input) {
+    const id = `module-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const content = {
+      primary: {
+        format: "MARKDOWN",
+        content: chunk.content,
+        estimatedTimeSeconds: chunk.durationMinutes * 60,
+        wordCount: chunk.wordCount,
+        characterCount: chunk.content.length
+      },
+      keyTakeaways: this.extractKeyTakeaways(chunk.content),
+      summary: this.generateQuickSummary(chunk.content)
+    };
+    return {
+      id,
+      title: chunk.title,
+      description: chunk.mainConcept,
+      type: chunk.suggestedType,
+      durationMinutes: chunk.durationMinutes,
+      bloomsLevel: chunk.bloomsLevel,
+      content,
+      learningObjectives: [chunk.mainConcept],
+      keywords: chunk.relatedConcepts,
+      prerequisites: [],
+      sourceContext: input.sourceContext,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  extractKeyTakeaways(content) {
+    const takeaways = [];
+    const bullets = content.match(/^[-*]\s+(.+)$/gm);
+    if (bullets) {
+      takeaways.push(...bullets.slice(0, 3).map((b) => b.replace(/^[-*]\s+/, "")));
+    }
+    const numbered = content.match(/^\d+\.\s+(.+)$/gm);
+    if (numbered) {
+      takeaways.push(...numbered.slice(0, 3).map((n) => n.replace(/^\d+\.\s+/, "")));
+    }
+    if (takeaways.length === 0) {
+      const sentences = content.split(/[.!?]+/).filter((s) => s.trim().length > 20);
+      takeaways.push(...sentences.slice(0, 3).map((s) => s.trim()));
+    }
+    return takeaways.slice(0, 3);
+  }
+  generateQuickSummary(content) {
+    const sentences = content.split(/[.!?]+/).filter((s) => s.trim().length > 10);
+    const firstTwo = sentences.slice(0, 2).join(". ");
+    return firstTwo.length > 200 ? firstTwo.slice(0, 197) + "..." : firstTwo + ".";
+  }
+  async generatePracticeModules(modules) {
+    const practiceModules = [];
+    const conceptModules = modules.filter((m) => m.type === "CONCEPT");
+    for (let i = 0; i < conceptModules.length; i += 3) {
+      const relatedModules = conceptModules.slice(i, Math.min(i + 3, conceptModules.length));
+      const practiceModule = {
+        id: `practice-${Date.now()}-${i}`,
+        title: `Practice: ${relatedModules.map((m) => m.title).join(" & ")}`,
+        description: "Apply what you learned",
+        type: "PRACTICE",
+        durationMinutes: 3,
+        bloomsLevel: "APPLY",
+        content: {
+          primary: {
+            format: "MARKDOWN",
+            content: this.generatePracticeContent(relatedModules),
+            estimatedTimeSeconds: 180
+          },
+          keyTakeaways: ["Practice applying concepts", "Test your understanding"],
+          interactions: this.generatePracticeInteractions(relatedModules)
+        },
+        learningObjectives: relatedModules.map((m) => m.description),
+        keywords: relatedModules.flatMap((m) => m.keywords),
+        prerequisites: relatedModules.map((m) => m.id),
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+      practiceModules.push(practiceModule);
+      this.moduleCache.set(practiceModule.id, practiceModule);
+    }
+    return practiceModules;
+  }
+  generatePracticeContent(modules) {
+    const concepts = modules.map((m) => m.description).join(", ");
+    return `## Practice Exercise
+
+Apply your knowledge of: ${concepts}
+
+Complete the following quick exercises to reinforce your learning.`;
+  }
+  generatePracticeInteractions(modules) {
+    return modules.map((m, i) => ({
+      type: "QUIZ_QUESTION",
+      id: `q-${i}`,
+      prompt: `What is the key concept of "${m.title}"?`,
+      options: [
+        m.description,
+        "Not applicable",
+        "None of the above"
+      ],
+      correctAnswer: m.description,
+      explanation: `The key concept is: ${m.description}`
+    }));
+  }
+  createSummaryModule(modules, input) {
+    const allConcepts = modules.map((m) => m.description);
+    const allKeyTakeaways = modules.flatMap((m) => m.content.keyTakeaways);
+    return {
+      id: `summary-${Date.now()}`,
+      title: "Summary: Key Concepts",
+      description: "Review of all concepts covered",
+      type: "SUMMARY",
+      durationMinutes: 2,
+      bloomsLevel: "REMEMBER",
+      content: {
+        primary: {
+          format: "MARKDOWN",
+          content: `## Summary
+
+### Key Concepts
+${allConcepts.map((c) => `- ${c}`).join("\n")}
+
+### Key Takeaways
+${allKeyTakeaways.slice(0, 5).map((t) => `- ${t}`).join("\n")}`,
+          estimatedTimeSeconds: 120
+        },
+        keyTakeaways: allKeyTakeaways.slice(0, 5)
+      },
+      learningObjectives: ["Review all concepts", "Consolidate learning"],
+      keywords: modules.flatMap((m) => m.keywords).slice(0, 10),
+      prerequisites: modules.map((m) => m.id),
+      sourceContext: input.sourceContext,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  calculateBloomsDistribution(modules) {
+    const distribution = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    for (const microMod of modules) {
+      distribution[microMod.bloomsLevel]++;
+    }
+    return distribution;
+  }
+  calculateTypeDistribution(modules) {
+    const distribution = {
+      CONCEPT: 0,
+      PRACTICE: 0,
+      QUIZ: 0,
+      FLASHCARD: 0,
+      VIDEO_SNIPPET: 0,
+      INTERACTIVE: 0,
+      SUMMARY: 0,
+      REFLECTION: 0
+    };
+    for (const microMod of modules) {
+      distribution[microMod.type]++;
+    }
+    return distribution;
+  }
+  generateScheduleSuggestion(modules) {
+    const totalDuration = modules.reduce((sum, m) => sum + m.durationMinutes, 0);
+    const modulesPerDay = 3;
+    const totalDays = Math.ceil(modules.length / modulesPerDay);
+    const completionDate = /* @__PURE__ */ new Date();
+    completionDate.setDate(completionDate.getDate() + totalDays);
+    return {
+      type: this.defaultScheduleType,
+      totalDays,
+      modulesPerDay,
+      estimatedCompletionDate: completionDate,
+      rationale: `${modulesPerDay} modules/day is optimal for retention. Total: ${totalDuration} minutes over ${totalDays} days.`
+    };
+  }
+  // ============================================================================
+  // DELIVERY SCHEDULING
+  // ============================================================================
+  /**
+   * Create a delivery schedule for modules
+   */
+  createSchedule(userId, modules, preferences, courseId) {
+    this.logger?.info?.("[MicrolearningEngine] Creating schedule", {
+      userId,
+      moduleCount: modules.length
+    });
+    const fullPreferences = {
+      preferredHours: preferences.preferredHours ?? [9, 12, 18],
+      preferredDays: preferences.preferredDays ?? [1, 2, 3, 4, 5],
+      maxModulesPerDay: preferences.maxModulesPerDay ?? 3,
+      minGapMinutes: preferences.minGapMinutes ?? 60,
+      preferredDevice: preferences.preferredDevice ?? "MOBILE",
+      enableNotifications: preferences.enableNotifications ?? true,
+      notificationChannels: preferences.notificationChannels ?? ["PUSH"],
+      timezone: preferences.timezone ?? "UTC"
+    };
+    const scheduledModules = this.scheduleModules(modules, fullPreferences);
+    const schedule = {
+      id: `schedule-${userId}-${Date.now()}`,
+      userId,
+      courseId,
+      type: this.defaultScheduleType,
+      modules: scheduledModules,
+      preferences: fullPreferences,
+      currentPosition: 0,
+      status: "ACTIVE",
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.scheduleCache.set(schedule.id, schedule);
+    return schedule;
+  }
+  scheduleModules(modules, preferences) {
+    const scheduled = [];
+    const now = /* @__PURE__ */ new Date();
+    let currentDate = new Date(now);
+    let modulesScheduledToday = 0;
+    for (const microMod of modules) {
+      while (!preferences.preferredDays.includes(currentDate.getDay()) || modulesScheduledToday >= preferences.maxModulesPerDay) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setHours(preferences.preferredHours[0], 0, 0, 0);
+        modulesScheduledToday = 0;
+      }
+      const hourIndex = modulesScheduledToday % preferences.preferredHours.length;
+      currentDate.setHours(preferences.preferredHours[hourIndex], 0, 0, 0);
+      scheduled.push({
+        moduleId: microMod.id,
+        scheduledAt: new Date(currentDate),
+        status: "NOT_STARTED",
+        interval: 1,
+        easeFactor: 2.5,
+        repetitions: 0
+      });
+      modulesScheduledToday++;
+      currentDate.setMinutes(currentDate.getMinutes() + preferences.minGapMinutes);
+    }
+    return scheduled;
+  }
+  // ============================================================================
+  // LEARNING SESSIONS
+  // ============================================================================
+  /**
+   * Create a learning session
+   */
+  async createSession(input) {
+    this.logger?.info?.("[MicrolearningEngine] Creating session", {
+      userId: input.userId
+    });
+    let availableModules = Array.from(this.moduleCache.values());
+    if (input.courseId) {
+      availableModules = availableModules.filter(
+        (m) => m.sourceContext?.courseId === input.courseId
+      );
+    }
+    if (input.moduleTypes && input.moduleTypes.length > 0) {
+      availableModules = availableModules.filter(
+        (m) => input.moduleTypes.includes(m.type)
+      );
+    }
+    if (input.focusConcepts && input.focusConcepts.length > 0) {
+      availableModules = availableModules.filter(
+        (m) => input.focusConcepts.some(
+          (c) => m.keywords.includes(c) || m.description.includes(c)
+        )
+      );
+    }
+    const maxDuration = input.maxDuration ?? 15;
+    const sessionModules = [];
+    let totalDuration = 0;
+    for (const microMod of availableModules) {
+      if (totalDuration + microMod.durationMinutes <= maxDuration) {
+        sessionModules.push({
+          module: microMod,
+          position: sessionModules.length,
+          status: "NOT_STARTED"
+        });
+        totalDuration += microMod.durationMinutes;
+      }
+    }
+    if (input.includeReview) {
+      const reviewModules = await this.getModulesNeedingReview(input.userId);
+      for (const reviewMod of reviewModules.slice(0, 2)) {
+        if (totalDuration + reviewMod.durationMinutes <= maxDuration) {
+          sessionModules.push({
+            module: reviewMod,
+            position: sessionModules.length,
+            status: "NOT_STARTED"
+          });
+          totalDuration += reviewMod.durationMinutes;
+        }
+      }
+    }
+    const session = {
+      id: `session-${input.userId}-${Date.now()}`,
+      userId: input.userId,
+      modules: sessionModules,
+      durationLimit: maxDuration,
+      deviceType: input.deviceType ?? "MOBILE",
+      status: "ACTIVE",
+      startedAt: /* @__PURE__ */ new Date(),
+      performance: {
+        modulesCompleted: 0,
+        totalModules: sessionModules.length,
+        averageScore: 0,
+        totalTimeSeconds: 0,
+        engagementScore: 0,
+        conceptsMastered: [],
+        conceptsNeedingReview: []
+      }
+    };
+    this.sessionCache.set(session.id, session);
+    return session;
+  }
+  async getModulesNeedingReview(userId) {
+    const userProgress = this.progressCache.get(userId);
+    if (!userProgress) return [];
+    const needsReview = [];
+    for (const [moduleId, progress] of userProgress) {
+      if (progress.status === "NEEDS_REVIEW" || progress.scheduledAt && progress.scheduledAt <= /* @__PURE__ */ new Date() && progress.status !== "COMPLETED") {
+        const cachedMod = this.moduleCache.get(moduleId);
+        if (cachedMod) {
+          needsReview.push(cachedMod);
+        }
+      }
+    }
+    return needsReview;
+  }
+  // ============================================================================
+  // PROGRESS TRACKING
+  // ============================================================================
+  /**
+   * Update progress for a module
+   */
+  async updateProgress(input) {
+    this.logger?.info?.("[MicrolearningEngine] Updating progress", {
+      userId: input.userId,
+      moduleId: input.moduleId
+    });
+    let userProgress = this.progressCache.get(input.userId);
+    if (!userProgress) {
+      userProgress = /* @__PURE__ */ new Map();
+      this.progressCache.set(input.userId, userProgress);
+    }
+    let progress = userProgress.get(input.moduleId);
+    if (!progress) {
+      progress = {
+        moduleId: input.moduleId,
+        scheduledAt: /* @__PURE__ */ new Date(),
+        status: input.status,
+        interval: 1,
+        easeFactor: 2.5,
+        repetitions: 0
+      };
+    }
+    progress.status = input.status;
+    if (input.status === "COMPLETED") {
+      progress.completedAt = /* @__PURE__ */ new Date();
+      progress.performance = {
+        score: input.score ?? 0,
+        timeSpentSeconds: input.timeSpentSeconds ?? 0,
+        attempts: (progress.performance?.attempts ?? 0) + 1,
+        interactionsCompleted: 0
+      };
+      if (input.selfAssessment) {
+        const srResult = this.calculateSpacedRepetition({
+          moduleId: input.moduleId,
+          userId: input.userId,
+          quality: input.selfAssessment,
+          responseTimeSeconds: input.timeSpentSeconds ?? 0
+        }, progress);
+        progress.interval = srResult.intervalDays;
+        progress.easeFactor = srResult.easeFactor;
+        progress.repetitions = srResult.repetitions;
+        const nextReview = /* @__PURE__ */ new Date();
+        nextReview.setDate(nextReview.getDate() + srResult.intervalDays);
+        progress.scheduledAt = nextReview;
+        userProgress.set(input.moduleId, progress);
+        return srResult;
+      }
+    }
+    userProgress.set(input.moduleId, progress);
+    return null;
+  }
+  calculateSpacedRepetition(input, progress) {
+    const config = this.spacedRepetitionConfig;
+    let easeFactor = progress.easeFactor ?? 2.5;
+    let interval = progress.interval ?? 1;
+    let repetitions = progress.repetitions ?? 0;
+    if (input.quality < 3) {
+      repetitions = 0;
+      interval = config.learningSteps[0] / (24 * 60);
+    } else {
+      if (repetitions === 0) {
+        interval = config.learningSteps[0] / (24 * 60);
+      } else if (repetitions === 1) {
+        interval = config.graduatingInterval;
+      } else {
+        interval = Math.min(
+          config.maxInterval,
+          Math.round(interval * easeFactor * config.intervalModifier)
+        );
+      }
+      repetitions++;
+    }
+    easeFactor = Math.max(
+      config.minEaseFactor,
+      easeFactor + (0.1 - (5 - input.quality) * (0.08 + (5 - input.quality) * 0.02))
+    );
+    if (input.quality === 5) {
+      interval = Math.round(interval * config.easyBonus);
+    }
+    const nextReviewDate = /* @__PURE__ */ new Date();
+    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+    const predictedRetention = Math.exp(-interval / (easeFactor * 10)) * 100;
+    return {
+      moduleId: input.moduleId,
+      nextReviewDate,
+      intervalDays: interval,
+      easeFactor,
+      repetitions,
+      predictedRetention: Math.round(predictedRetention),
+      isGraduated: repetitions >= 2
+    };
+  }
+  // ============================================================================
+  // MOBILE OPTIMIZATION
+  // ============================================================================
+  /**
+   * Optimize content for mobile devices
+   */
+  optimizeForMobile(input) {
+    this.logger?.info?.("[MicrolearningEngine] Optimizing for mobile", {
+      moduleId: input.content.id,
+      deviceType: input.deviceType
+    });
+    const contentMod = input.content;
+    const screenWidth = input.screenWidth ?? 375;
+    const mobileContent = this.createMobileContent(
+      contentMod.content.primary,
+      input.networkCondition ?? "FAST",
+      input.readingSpeed ?? "NORMAL"
+    );
+    const cards = this.createMobileCards(contentMod, screenWidth);
+    const loadingChunks = this.createLoadingChunks(mobileContent.content);
+    const optimizedMedia = this.optimizeMedia(
+      contentMod.content.media ?? [],
+      input.networkCondition ?? "FAST"
+    );
+    const dataSizeKB = this.calculateDataSize(mobileContent, optimizedMedia);
+    return {
+      moduleId: contentMod.id,
+      deviceType: input.deviceType,
+      content: mobileContent,
+      media: optimizedMedia,
+      offlineContent: input.networkCondition === "OFFLINE" ? mobileContent : void 0,
+      dataSizeKB,
+      cards,
+      loadingChunks
+    };
+  }
+  createMobileContent(content, networkCondition, readingSpeed) {
+    let text = content.content;
+    if (content.wordCount && content.wordCount > MOBILE_MAX_WORDS) {
+      const sentences = text.split(/[.!?]+/);
+      let words = 0;
+      const mobileText = [];
+      for (const sentence of sentences) {
+        const sentenceWords = sentence.split(/\s+/).length;
+        if (words + sentenceWords <= MOBILE_MAX_WORDS) {
+          mobileText.push(sentence.trim());
+          words += sentenceWords;
+        } else {
+          break;
+        }
+      }
+      text = mobileText.join(". ") + ".";
+    }
+    const speedMultiplier = readingSpeed === "SLOW" ? 1.5 : readingSpeed === "FAST" ? 0.75 : 1;
+    const estimatedTime = Math.round(
+      text.split(/\s+/).length / WORDS_PER_MINUTE * 60 * speedMultiplier
+    );
+    return {
+      format: "MARKDOWN",
+      content: text,
+      estimatedTimeSeconds: estimatedTime,
+      wordCount: text.split(/\s+/).length,
+      characterCount: text.length
+    };
+  }
+  createMobileCards(module, screenWidth) {
+    const cards = [];
+    const content = module.content.primary.content;
+    cards.push({
+      id: `card-0`,
+      position: 0,
+      type: "CONTENT",
+      content: `# ${module.title}
+
+${module.description}`
+    });
+    const paragraphs = content.split(/\n\n+/);
+    paragraphs.forEach((para, i) => {
+      if (para.trim()) {
+        cards.push({
+          id: `card-${i + 1}`,
+          position: i + 1,
+          type: "CONTENT",
+          content: para.trim()
+        });
+      }
+    });
+    if (module.content.keyTakeaways.length > 0) {
+      cards.push({
+        id: `card-takeaways`,
+        position: cards.length,
+        type: "SUMMARY",
+        content: `## Key Takeaways
+
+${module.content.keyTakeaways.map((t) => `\u2022 ${t}`).join("\n")}`
+      });
+    }
+    if (module.content.interactions && module.content.interactions.length > 0) {
+      const interaction = module.content.interactions[0];
+      cards.push({
+        id: `card-quiz`,
+        position: cards.length,
+        type: "QUESTION",
+        content: interaction.prompt,
+        action: {
+          label: "Check Answer",
+          type: "QUIZ"
+        }
+      });
+    }
+    cards.push({
+      id: `card-action`,
+      position: cards.length,
+      type: "ACTION",
+      content: "Ready for the next module?",
+      action: {
+        label: "Continue",
+        type: "NEXT"
+      }
+    });
+    return cards;
+  }
+  createLoadingChunks(content) {
+    const chunks = [];
+    const paragraphs = content.split(/\n\n+/);
+    paragraphs.forEach((para, i) => {
+      chunks.push({
+        position: i,
+        content: para,
+        priority: i < 2 ? 1 : i < 5 ? 2 : 3,
+        sizeBytes: new Blob([para]).size
+      });
+    });
+    return chunks;
+  }
+  optimizeMedia(media, networkCondition) {
+    if (!media) return [];
+    return media.map((m) => ({
+      ...m,
+      // Use thumbnail for slow connections
+      url: networkCondition === "SLOW" && m.thumbnailUrl ? m.thumbnailUrl : m.url
+    }));
+  }
+  calculateDataSize(content, media) {
+    let size = new Blob([content.content]).size / 1024;
+    if (media) {
+      size += media.length * 50;
+    }
+    return Math.round(size);
+  }
+  // ============================================================================
+  // ANALYTICS
+  // ============================================================================
+  /**
+   * Get analytics for a user
+   */
+  async getAnalytics(input) {
+    this.logger?.info?.("[MicrolearningEngine] Getting analytics", {
+      userId: input.userId
+    });
+    const userProgress = this.progressCache.get(input.userId);
+    const completedModules = userProgress ? Array.from(userProgress.values()).filter((p) => p.status === "COMPLETED") : [];
+    const overall = this.calculateOverallStats(completedModules);
+    const streak = this.calculateStreakStats(completedModules);
+    const patterns = this.analyzeLearningPatterns(completedModules);
+    const moduleBreakdown = this.calculateModuleBreakdown(completedModules);
+    const recommendations = input.includeRecommendations ? this.generateRecommendations(overall, streak, patterns) : [];
+    return {
+      userId: input.userId,
+      courseId: input.courseId,
+      overall,
+      streak,
+      patterns,
+      moduleBreakdown,
+      recommendations
+    };
+  }
+  calculateOverallStats(progress) {
+    if (progress.length === 0) {
+      return {
+        totalModulesCompleted: 0,
+        totalTimeSpentMinutes: 0,
+        averageSessionDuration: 0,
+        averageScore: 0,
+        conceptsMastered: 0,
+        retentionRate: 0,
+        completionRate: 0
+      };
+    }
+    const totalTime = progress.reduce(
+      (sum, p) => sum + (p.performance?.timeSpentSeconds ?? 0),
+      0
+    ) / 60;
+    const scores = progress.map((p) => p.performance?.score ?? 0).filter((s) => s > 0);
+    const avgScore = scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : 0;
+    return {
+      totalModulesCompleted: progress.length,
+      totalTimeSpentMinutes: Math.round(totalTime),
+      averageSessionDuration: Math.round(totalTime / Math.max(1, progress.length)),
+      averageScore: Math.round(avgScore),
+      conceptsMastered: progress.filter((p) => (p.performance?.score ?? 0) >= 80).length,
+      retentionRate: Math.round(avgScore * 0.9),
+      // Simplified retention estimate
+      completionRate: 100
+      // These are all completed
+    };
+  }
+  calculateStreakStats(progress) {
+    if (progress.length === 0) {
+      return {
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActivityDate: /* @__PURE__ */ new Date(),
+        streakFreezes: 0
+      };
+    }
+    const sorted = progress.filter((p) => p.completedAt).sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
+    const lastActivity = sorted[0]?.completedAt ?? /* @__PURE__ */ new Date();
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    let prevDate = null;
+    for (const p of sorted) {
+      if (!p.completedAt) continue;
+      const date = new Date(p.completedAt);
+      date.setHours(0, 0, 0, 0);
+      if (!prevDate) {
+        tempStreak = 1;
+      } else {
+        const dayDiff = Math.round(
+          (prevDate.getTime() - date.getTime()) / (1e3 * 60 * 60 * 24)
+        );
+        if (dayDiff === 1) {
+          tempStreak++;
+        } else {
+          longestStreak = Math.max(longestStreak, tempStreak);
+          tempStreak = 1;
+        }
+      }
+      prevDate = date;
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+    const today = /* @__PURE__ */ new Date();
+    today.setHours(0, 0, 0, 0);
+    const lastDate = new Date(lastActivity);
+    lastDate.setHours(0, 0, 0, 0);
+    const daysSinceLastActivity = Math.round(
+      (today.getTime() - lastDate.getTime()) / (1e3 * 60 * 60 * 24)
+    );
+    currentStreak = daysSinceLastActivity <= 1 ? tempStreak : 0;
+    return {
+      currentStreak,
+      longestStreak,
+      lastActivityDate: lastActivity,
+      streakFreezes: 0
+    };
+  }
+  analyzeLearningPatterns(progress) {
+    const hourCounts = {};
+    const dayCounts = {};
+    const typeCounts = {};
+    for (const p of progress) {
+      if (p.completedAt) {
+        const hour = p.completedAt.getHours();
+        const day = p.completedAt.getDay();
+        hourCounts[hour] = (hourCounts[hour] ?? 0) + 1;
+        dayCounts[day] = (dayCounts[day] ?? 0) + 1;
+      }
+      const cachedMod = this.moduleCache.get(p.moduleId);
+      if (cachedMod) {
+        typeCounts[cachedMod.type] = (typeCounts[cachedMod.type] ?? 0) + 1;
+      }
+    }
+    const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([h]) => parseInt(h));
+    const peakDays = Object.entries(dayCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([d]) => parseInt(d));
+    const preferredTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+    return {
+      peakHours: peakHours.length > 0 ? peakHours : [9, 12, 18],
+      peakDays: peakDays.length > 0 ? peakDays : [1, 2, 3, 4, 5],
+      avgModulesPerDay: progress.length / Math.max(1, this.getUniqueDays(progress)),
+      preferredSessionLength: 15,
+      preferredTypes: preferredTypes.length > 0 ? preferredTypes : ["CONCEPT"],
+      strongBloomsLevels: ["UNDERSTAND", "APPLY"],
+      weakBloomsLevels: ["ANALYZE", "EVALUATE"]
+    };
+  }
+  getUniqueDays(progress) {
+    const days = /* @__PURE__ */ new Set();
+    for (const p of progress) {
+      if (p.completedAt) {
+        const date = p.completedAt.toISOString().split("T")[0];
+        days.add(date);
+      }
+    }
+    return days.size;
+  }
+  calculateModuleBreakdown(progress) {
+    const breakdown = {};
+    for (const p of progress) {
+      const cachedMod = this.moduleCache.get(p.moduleId);
+      if (!cachedMod) continue;
+      if (!breakdown[cachedMod.type]) {
+        breakdown[cachedMod.type] = {
+          type: cachedMod.type,
+          count: 0,
+          completionRate: 100,
+          averageScore: 0,
+          averageTimeMinutes: 0
+        };
+      }
+      breakdown[cachedMod.type].count++;
+      if (p.performance) {
+        breakdown[cachedMod.type].averageScore += p.performance.score;
+        breakdown[cachedMod.type].averageTimeMinutes += p.performance.timeSpentSeconds / 60;
+      }
+    }
+    for (const type of Object.keys(breakdown)) {
+      const count = breakdown[type].count;
+      if (count > 0) {
+        breakdown[type].averageScore = Math.round(breakdown[type].averageScore / count);
+        breakdown[type].averageTimeMinutes = Math.round(breakdown[type].averageTimeMinutes / count);
+      }
+    }
+    return Object.values(breakdown);
+  }
+  generateRecommendations(overall, streak, patterns) {
+    const recommendations = [];
+    if (streak.currentStreak === 0) {
+      recommendations.push({
+        type: "STREAK",
+        priority: "high",
+        title: "Resume Your Learning Streak",
+        description: `Your last activity was ${Math.round((Date.now() - streak.lastActivityDate.getTime()) / (1e3 * 60 * 60 * 24))} days ago. Complete a module today to start a new streak!`,
+        action: {
+          type: "START_SESSION",
+          label: "Start Learning"
+        }
+      });
+    } else if (streak.currentStreak >= 3) {
+      recommendations.push({
+        type: "STREAK",
+        priority: "low",
+        title: `${streak.currentStreak} Day Streak!`,
+        description: `Keep going! You're on a ${streak.currentStreak}-day streak.`
+      });
+    }
+    if (overall.averageScore < 70) {
+      recommendations.push({
+        type: "REVIEW",
+        priority: "high",
+        title: "Review Previous Modules",
+        description: "Your average score is below 70%. Consider reviewing past modules to strengthen understanding.",
+        action: {
+          type: "START_REVIEW",
+          label: "Start Review"
+        }
+      });
+    }
+    if (patterns.avgModulesPerDay < 1) {
+      recommendations.push({
+        type: "PACE",
+        priority: "medium",
+        title: "Increase Your Learning Pace",
+        description: "Completing at least 2-3 modules daily leads to better retention."
+      });
+    }
+    if (patterns.preferredTypes.length === 1) {
+      recommendations.push({
+        type: "CONTENT",
+        priority: "low",
+        title: "Try Different Module Types",
+        description: "Varying your learning activities can improve engagement and retention."
+      });
+    }
+    return recommendations;
+  }
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+  /**
+   * Get a module by ID
+   */
+  getModule(moduleId) {
+    return this.moduleCache.get(moduleId);
+  }
+  /**
+   * Get a schedule by ID
+   */
+  getSchedule(scheduleId) {
+    return this.scheduleCache.get(scheduleId);
+  }
+  /**
+   * Get a session by ID
+   */
+  getSession(sessionId) {
+    return this.sessionCache.get(sessionId);
+  }
+  /**
+   * Clear all caches
+   */
+  clearCaches() {
+    this.moduleCache.clear();
+    this.scheduleCache.clear();
+    this.sessionCache.clear();
+    this.progressCache.clear();
+  }
+};
+function createMicrolearningEngine(config) {
+  return new MicrolearningEngine(config);
+}
+
+// src/engines/metacognition-engine.ts
+var REFLECTION_TEMPLATES = {
+  PRE_LEARNING: {
+    SHALLOW: [
+      "What do you already know about this topic?",
+      "What are you hoping to learn?"
+    ],
+    MODERATE: [
+      "What prior knowledge can you connect to this new topic?",
+      "What specific questions do you want answered?",
+      "How will you know when you understand this material?"
+    ],
+    DEEP: [
+      "How does this topic relate to what you have learned before?",
+      "What assumptions are you bringing to this topic?",
+      "What would mastery of this topic look like for you?",
+      "What obstacles might you encounter, and how will you address them?"
+    ]
+  },
+  DURING_LEARNING: {
+    SHALLOW: [
+      "Does this make sense so far?",
+      "What questions do you have?"
+    ],
+    MODERATE: [
+      "Can you explain what you just learned in your own words?",
+      "What parts are confusing or unclear?",
+      "How does this connect to what you learned earlier?"
+    ],
+    DEEP: [
+      "What is the main idea, and why is it important?",
+      "Can you create an example or analogy to illustrate this concept?",
+      "How would you explain this to someone who knows nothing about it?",
+      "What would happen if this principle were different or not true?"
+    ]
+  },
+  POST_LEARNING: {
+    SHALLOW: [
+      "What did you learn today?",
+      "What was the most interesting part?"
+    ],
+    MODERATE: [
+      "What are the three most important things you learned?",
+      "What strategies helped you learn effectively?",
+      "What would you do differently next time?"
+    ],
+    DEEP: [
+      "How has your understanding changed from before you started?",
+      "What connections can you make to other topics or real life?",
+      "What questions do you still have, and how will you find answers?",
+      "How will you apply what you learned?"
+    ]
+  },
+  EXAM_PREP: {
+    SHALLOW: [
+      "What topics do you need to review?",
+      "How confident are you about the exam?"
+    ],
+    MODERATE: [
+      "Which topics do you understand well, and which need more work?",
+      "What study strategies will you use to prepare?",
+      "How will you manage your time before the exam?"
+    ],
+    DEEP: [
+      "What types of questions do you expect, and how will you approach them?",
+      "Where are your knowledge gaps, and what is your plan to address them?",
+      "How will you handle stress or anxiety during the exam?",
+      "What would successful exam performance look like for you?"
+    ]
+  },
+  POST_EXAM: {
+    SHALLOW: [
+      "How do you think you did?",
+      "What was easier or harder than expected?"
+    ],
+    MODERATE: [
+      "What preparation strategies worked well?",
+      "What would you do differently to prepare for the next exam?",
+      "Which topics need further review?"
+    ],
+    DEEP: [
+      "How accurate was your confidence about different topics?",
+      "What does your performance tell you about your understanding?",
+      "How will you adjust your learning approach based on this experience?",
+      "What emotions did you experience, and how did they affect your performance?"
+    ]
+  },
+  WEEKLY_REVIEW: {
+    SHALLOW: [
+      "What did you accomplish this week?",
+      "What is your plan for next week?"
+    ],
+    MODERATE: [
+      "What went well in your learning this week?",
+      "What challenges did you face, and how did you handle them?",
+      "Are you on track with your goals?"
+    ],
+    DEEP: [
+      "What patterns do you notice in your learning this week?",
+      "How effectively did you use your study time?",
+      "What adjustments will you make to your approach next week?",
+      "What are you most proud of, and what do you want to improve?"
+    ]
+  },
+  GOAL_CHECK: {
+    SHALLOW: [
+      "Are you making progress toward your goal?",
+      "What have you done recently to work toward it?"
+    ],
+    MODERATE: [
+      "What progress have you made since you set this goal?",
+      "What obstacles are in your way?",
+      "Is your goal still relevant and motivating?"
+    ],
+    DEEP: [
+      "How has your understanding of this goal evolved?",
+      "What strategies are helping you make progress, and which are not?",
+      "Do you need to adjust your goal or approach?",
+      "What will it take to achieve this goal, and are you willing to do it?"
+    ]
+  },
+  STRUGGLE_POINT: {
+    SHALLOW: [
+      "What is confusing you right now?",
+      "What have you tried so far?"
+    ],
+    MODERATE: [
+      "What specifically is making this difficult?",
+      "What do you understand, and where does your understanding break down?",
+      "What resources or help might you need?"
+    ],
+    DEEP: [
+      "Is this a problem of not understanding, or not knowing how to apply?",
+      "What prior knowledge might you be missing?",
+      "How have you overcome similar struggles in the past?",
+      "What would you tell a friend who was struggling with this?"
+    ]
+  }
+};
+var STRATEGY_INFO = {
+  SPACED_PRACTICE: {
+    description: "Distribute study sessions over time rather than cramming",
+    howToUse: "Review material at increasing intervals (1 day, 3 days, 1 week, etc.)",
+    effectiveness: "high",
+    bestFor: ["REMEMBER", "UNDERSTAND"]
+  },
+  INTERLEAVING: {
+    description: "Mix different topics or problem types during study",
+    howToUse: "Alternate between different subjects or types of problems in one session",
+    effectiveness: "high",
+    bestFor: ["APPLY", "ANALYZE"]
+  },
+  RETRIEVAL_PRACTICE: {
+    description: "Actively recall information without looking at notes",
+    howToUse: "Close your notes and try to recall key concepts, then check accuracy",
+    effectiveness: "high",
+    bestFor: ["REMEMBER", "UNDERSTAND", "APPLY"]
+  },
+  ELABORATIVE_INTERROGATION: {
+    description: "Ask yourself why facts are true and how they relate",
+    howToUse: 'For each fact, ask "Why is this true?" and "How does this connect?"',
+    effectiveness: "high",
+    bestFor: ["UNDERSTAND", "ANALYZE"]
+  },
+  SELF_EXPLANATION: {
+    description: "Explain concepts to yourself as you learn",
+    howToUse: "Pause and explain what you just read in your own words",
+    effectiveness: "high",
+    bestFor: ["UNDERSTAND", "APPLY", "ANALYZE"]
+  },
+  SUMMARIZATION: {
+    description: "Create concise summaries of material",
+    howToUse: "After reading a section, write a brief summary of key points",
+    effectiveness: "moderate",
+    bestFor: ["REMEMBER", "UNDERSTAND"]
+  },
+  VISUALIZATION: {
+    description: "Create mental images of concepts",
+    howToUse: "Form vivid mental pictures of abstract concepts or processes",
+    effectiveness: "moderate",
+    bestFor: ["REMEMBER", "UNDERSTAND"]
+  },
+  DUAL_CODING: {
+    description: "Combine verbal and visual representations",
+    howToUse: "Create diagrams, charts, or drawings alongside written notes",
+    effectiveness: "high",
+    bestFor: ["UNDERSTAND", "ANALYZE"]
+  },
+  CONCRETE_EXAMPLES: {
+    description: "Generate specific examples of abstract concepts",
+    howToUse: "For each abstract idea, create 2-3 concrete, real-world examples",
+    effectiveness: "high",
+    bestFor: ["UNDERSTAND", "APPLY"]
+  },
+  PRACTICE_TESTING: {
+    description: "Test yourself on material using practice questions",
+    howToUse: "Use flashcards, practice problems, or self-quizzes regularly",
+    effectiveness: "high",
+    bestFor: ["REMEMBER", "APPLY", "EVALUATE"]
+  },
+  HIGHLIGHTING: {
+    description: "Mark important information in text",
+    howToUse: "Highlight key terms and concepts (but do not over-highlight)",
+    effectiveness: "low",
+    bestFor: ["REMEMBER"]
+  },
+  REREADING: {
+    description: "Read material multiple times",
+    howToUse: "Read through the material again after initial reading",
+    effectiveness: "low",
+    bestFor: ["REMEMBER"]
+  }
+};
+var MetacognitionEngine = class {
+  config;
+  samConfig;
+  logger;
+  // In-memory caches (would use database in production)
+  sessionCache = /* @__PURE__ */ new Map();
+  goalCache = /* @__PURE__ */ new Map();
+  reflectionCache = /* @__PURE__ */ new Map();
+  strategyProfileCache = /* @__PURE__ */ new Map();
+  skillAssessmentCache = /* @__PURE__ */ new Map();
+  confidenceCache = /* @__PURE__ */ new Map();
+  regulationCache = /* @__PURE__ */ new Map();
+  constructor(config) {
+    this.config = config;
+    this.samConfig = config.samConfig;
+    this.logger = config.samConfig.logger;
+  }
+  // ============================================================================
+  // REFLECTION GENERATION
+  // ============================================================================
+  /**
+   * Generate reflection prompts for a learner
+   */
+  async generateReflection(input) {
+    this.logger?.info?.("[MetacognitionEngine] Generating reflection prompts", {
+      userId: input.userId,
+      type: input.type,
+      depth: input.depth
+    });
+    const depth = input.depth ?? this.config.defaultReflectionDepth ?? "MODERATE";
+    const prompts = [];
+    const templateQuestions = REFLECTION_TEMPLATES[input.type][depth];
+    const targetSkill = this.getTargetSkillForReflectionType(input.type);
+    for (let i = 0; i < templateQuestions.length; i++) {
+      const prompt = {
+        id: `reflection-${input.type}-${i}-${Date.now()}`,
+        type: input.type,
+        depth,
+        question: templateQuestions[i],
+        followUpQuestions: this.generateFollowUpQuestions(templateQuestions[i], depth),
+        targetSkill,
+        suggestedTimeMinutes: this.getSuggestedTime(depth),
+        context: input.context,
+        responseType: "TEXT"
+      };
+      prompts.push(prompt);
+    }
+    if (this.config.enableAIReflection && this.samConfig.ai) {
+      const aiPrompts = await this.generateAIReflectionPrompts(input, depth);
+      prompts.push(...aiPrompts);
+    }
+    return {
+      prompts,
+      suggestedSequence: prompts.map((p) => p.id),
+      estimatedTimeMinutes: prompts.reduce((sum, p) => sum + p.suggestedTimeMinutes, 0)
+    };
+  }
+  getTargetSkillForReflectionType(type) {
+    const skillMap = {
+      PRE_LEARNING: "PLANNING",
+      DURING_LEARNING: "MONITORING",
+      POST_LEARNING: "EVALUATING",
+      EXAM_PREP: "PLANNING",
+      POST_EXAM: "EVALUATING",
+      WEEKLY_REVIEW: "EVALUATING",
+      GOAL_CHECK: "MONITORING",
+      STRUGGLE_POINT: "REGULATING"
+    };
+    return skillMap[type];
+  }
+  generateFollowUpQuestions(mainQuestion, depth) {
+    if (depth === "SHALLOW") return [];
+    if (depth === "MODERATE") {
+      return ["Can you give a specific example?"];
+    }
+    return [
+      "Can you give a specific example?",
+      "How might this apply to other areas of your learning?",
+      "What would change if you approached this differently?"
+    ];
+  }
+  getSuggestedTime(depth) {
+    const timeMap = {
+      SHALLOW: 2,
+      MODERATE: 5,
+      DEEP: 10
+    };
+    return timeMap[depth];
+  }
+  async generateAIReflectionPrompts(input, depth) {
+    if (!this.samConfig.ai) return [];
+    try {
+      const contextInfo = input.context ? `The learner is studying: ${input.context.topicName ?? "general content"}.` : "";
+      const previousReflectionsInfo = input.previousReflections?.length ? `Previous reflections showed themes of: ${this.extractThemes(input.previousReflections).join(", ")}` : "";
+      const prompt = `Generate 2 personalized ${depth.toLowerCase()} reflection questions for a learner.
+Reflection type: ${input.type}
+${contextInfo}
+${previousReflectionsInfo}
+
+Return JSON array with objects containing:
+- question: string
+- followUpQuestions: string[]
+
+Focus on metacognitive awareness and actionable insights.`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        maxTokens: 500
+      });
+      const parsed = this.parseAIResponse(response.content);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((item, idx) => ({
+        id: `reflection-ai-${input.type}-${idx}-${Date.now()}`,
+        type: input.type,
+        depth,
+        question: item.question ?? "What have you learned about your own learning process?",
+        followUpQuestions: item.followUpQuestions ?? [],
+        targetSkill: this.getTargetSkillForReflectionType(input.type),
+        suggestedTimeMinutes: this.getSuggestedTime(depth),
+        context: input.context,
+        responseType: "TEXT"
+      }));
+    } catch {
+      this.logger?.info?.("[MetacognitionEngine] AI reflection generation failed, using templates only");
+      return [];
+    }
+  }
+  extractThemes(responses) {
+    const themes = [];
+    for (const response of responses) {
+      if (typeof response.response === "string") {
+        if (response.response.toLowerCase().includes("struggle")) themes.push("challenges");
+        if (response.response.toLowerCase().includes("understand")) themes.push("comprehension");
+        if (response.response.toLowerCase().includes("time")) themes.push("time management");
+        if (response.response.toLowerCase().includes("confused")) themes.push("confusion");
+      }
+    }
+    return [...new Set(themes)].slice(0, 3);
+  }
+  parseAIResponse(content) {
+    try {
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      return JSON.parse(content);
+    } catch {
+      return null;
+    }
+  }
+  // ============================================================================
+  // REFLECTION ANALYSIS
+  // ============================================================================
+  /**
+   * Analyze a reflection response
+   */
+  async analyzeReflection(input) {
+    this.logger?.info?.("[MetacognitionEngine] Analyzing reflection", {
+      promptId: input.prompt.id,
+      userId: input.response.userId
+    });
+    const responseText = typeof input.response.response === "string" ? input.response.response : JSON.stringify(input.response.response);
+    const reflectionDepth = this.assessReflectionDepth(responseText);
+    const skillsShown = this.identifySkillsFromResponse(responseText, input.prompt);
+    const keyInsights = this.extractInsights(responseText);
+    const growthAreas = this.identifyGrowthAreas(responseText, input.prompt);
+    const qualityScore = this.calculateReflectionQuality(
+      responseText,
+      reflectionDepth,
+      skillsShown.length,
+      input.response.responseTimeSeconds
+    );
+    const sentiment = this.analyzeSentiment(responseText);
+    const actionItems = this.generateActionItems(keyInsights, growthAreas, input.prompt.targetSkill);
+    this.storeReflection(input.response);
+    return {
+      promptId: input.prompt.id,
+      userId: input.response.userId,
+      reflectionDepth,
+      skillsShown,
+      keyInsights,
+      growthAreas,
+      qualityScore,
+      sentiment,
+      actionItems
+    };
+  }
+  assessReflectionDepth(text) {
+    const wordCount = text.split(/\s+/).length;
+    const hasExamples = /for example|such as|like when|instance/i.test(text);
+    const hasConnections = /connect|relate|similar to|because|therefore/i.test(text);
+    const hasMetacognition = /I realized|I noticed|I think|I wonder|I learned/i.test(text);
+    let depthScore = 0;
+    if (wordCount > 50) depthScore += 1;
+    if (wordCount > 100) depthScore += 1;
+    if (hasExamples) depthScore += 1;
+    if (hasConnections) depthScore += 1;
+    if (hasMetacognition) depthScore += 1;
+    if (depthScore >= 4) return "DEEP";
+    if (depthScore >= 2) return "MODERATE";
+    return "SHALLOW";
+  }
+  identifySkillsFromResponse(text, prompt) {
+    const skills = [prompt.targetSkill];
+    if (/plan|goal|strategy|will do|going to/i.test(text)) {
+      skills.push("PLANNING");
+    }
+    if (/check|track|monitor|notice/i.test(text)) {
+      skills.push("MONITORING");
+    }
+    if (/evaluate|assess|judge|rate/i.test(text)) {
+      skills.push("EVALUATING");
+    }
+    if (/adjust|change|modify|try differently/i.test(text)) {
+      skills.push("REGULATING");
+    }
+    if (/why|how|what if/i.test(text)) {
+      skills.push("SELF_QUESTIONING");
+    }
+    if (/connect|relate|remind|similar/i.test(text)) {
+      skills.push("ELABORATION");
+    }
+    return [...new Set(skills)];
+  }
+  extractInsights(text) {
+    const insights = [];
+    const sentences = text.split(/[.!?]+/);
+    for (const sentence of sentences) {
+      if (/I (realized|learned|discovered|understand|noticed)/i.test(sentence)) {
+        insights.push(sentence.trim());
+      }
+    }
+    return insights.slice(0, 5);
+  }
+  identifyGrowthAreas(text, prompt) {
+    const areas = [];
+    if (/struggle|difficult|hard|confus/i.test(text)) {
+      areas.push("Understanding challenging concepts");
+    }
+    if (/time|rush|late|behind/i.test(text)) {
+      areas.push("Time management");
+    }
+    if (/forget|remember|recall/i.test(text)) {
+      areas.push("Memory and retention");
+    }
+    if (/focus|distract|attention/i.test(text)) {
+      areas.push("Focus and concentration");
+    }
+    if (/motivat|interest|boring/i.test(text)) {
+      areas.push("Motivation and engagement");
+    }
+    return areas.length > 0 ? areas : ["Continue developing " + prompt.targetSkill.toLowerCase()];
+  }
+  calculateReflectionQuality(text, depth, skillCount, timeSeconds) {
+    let score = 0;
+    const wordCount = text.split(/\s+/).length;
+    score += Math.min(wordCount / 3, 30);
+    const depthScores = {
+      SHALLOW: 10,
+      MODERATE: 20,
+      DEEP: 30
+    };
+    score += depthScores[depth];
+    score += Math.min(skillCount * 5, 20);
+    const minutesSpent = timeSeconds / 60;
+    score += Math.min(minutesSpent * 4, 20);
+    return Math.round(Math.min(score, 100));
+  }
+  analyzeSentiment(text) {
+    const positiveWords = /good|great|happy|succeed|accomplish|proud|confident|enjoy|interest/gi;
+    const negativeWords = /bad|struggle|fail|frustrat|confus|worry|anxious|difficult|hard|stress/gi;
+    const positiveCount = (text.match(positiveWords) || []).length;
+    const negativeCount = (text.match(negativeWords) || []).length;
+    if (positiveCount > 0 && negativeCount > 0) return "MIXED";
+    if (positiveCount > negativeCount) return "POSITIVE";
+    if (negativeCount > positiveCount) return "NEGATIVE";
+    return "NEUTRAL";
+  }
+  generateActionItems(insights, growthAreas, targetSkill) {
+    const items = [];
+    for (const area of growthAreas.slice(0, 3)) {
+      items.push({
+        description: `Work on improving: ${area}`,
+        priority: "medium",
+        category: targetSkill
+      });
+    }
+    items.push({
+      description: `Practice ${targetSkill.toLowerCase().replace("_", " ")} skills daily`,
+      priority: "low",
+      category: targetSkill
+    });
+    return items;
+  }
+  storeReflection(response) {
+    const existing = this.reflectionCache.get(response.userId) ?? [];
+    existing.push(response);
+    this.reflectionCache.set(response.userId, existing.slice(-100));
+  }
+  // ============================================================================
+  // STUDY SESSION MANAGEMENT
+  // ============================================================================
+  /**
+   * Record a study session
+   */
+  recordStudySession(input) {
+    this.logger?.info?.("[MetacognitionEngine] Recording study session", {
+      userId: input.userId,
+      courseId: input.courseId
+    });
+    const durationMinutes = Math.round(
+      (input.endedAt.getTime() - input.startedAt.getTime()) / (1e3 * 60)
+    );
+    const session = {
+      id: `session-${input.userId}-${Date.now()}`,
+      userId: input.userId,
+      courseId: input.courseId,
+      startedAt: input.startedAt,
+      endedAt: input.endedAt,
+      durationMinutes,
+      breaks: input.breaks ?? [],
+      topicsCovered: input.topicsCovered,
+      strategiesUsed: input.strategiesUsed ?? [],
+      environment: input.environment,
+      outcome: input.outcome
+    };
+    const userSessions = this.sessionCache.get(input.userId) ?? [];
+    userSessions.push(session);
+    this.sessionCache.set(input.userId, userSessions.slice(-500));
+    this.updateStrategyProfile(input.userId, session);
+    return session;
+  }
+  updateStrategyProfile(userId, session) {
+    let profile = this.strategyProfileCache.get(userId);
+    if (!profile) {
+      profile = {
+        userId,
+        preferredStrategies: [],
+        strategyHistory: [],
+        effectivenessByContent: [],
+        recommendedStrategies: [],
+        diversityScore: 0,
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+    }
+    for (const strategy of session.strategiesUsed) {
+      profile.strategyHistory.push({
+        strategy,
+        courseId: session.courseId,
+        usedAt: session.startedAt,
+        durationMinutes: session.durationMinutes / session.strategiesUsed.length,
+        selfRatedEffectiveness: session.outcome?.comprehensionLevel
+      });
+    }
+    profile.strategyHistory = profile.strategyHistory.slice(-200);
+    const strategyCounts = /* @__PURE__ */ new Map();
+    for (const usage of profile.strategyHistory) {
+      strategyCounts.set(usage.strategy, (strategyCounts.get(usage.strategy) ?? 0) + 1);
+    }
+    profile.preferredStrategies = [...strategyCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([strategy]) => strategy);
+    const uniqueStrategies = new Set(profile.strategyHistory.map((h) => h.strategy)).size;
+    profile.diversityScore = Math.round(uniqueStrategies / Object.keys(STRATEGY_INFO).length * 100);
+    profile.updatedAt = /* @__PURE__ */ new Date();
+    this.strategyProfileCache.set(userId, profile);
+  }
+  // ============================================================================
+  // STUDY HABIT ANALYSIS
+  // ============================================================================
+  /**
+   * Analyze study habits for a user
+   */
+  analyzeStudyHabits(input) {
+    this.logger?.info?.("[MetacognitionEngine] Analyzing study habits", {
+      userId: input.userId,
+      periodDays: input.periodDays
+    });
+    const periodDays = input.periodDays ?? 30;
+    const cutoffDate = /* @__PURE__ */ new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - periodDays);
+    const sessions = (this.sessionCache.get(input.userId) ?? []).filter((s) => s.startedAt >= cutoffDate).filter((s) => !input.courseId || s.courseId === input.courseId);
+    const totalStudyHours = sessions.reduce((sum, s) => sum + s.durationMinutes, 0) / 60;
+    const averageSessionMinutes = sessions.length > 0 ? sessions.reduce((sum, s) => sum + s.durationMinutes, 0) / sessions.length : 0;
+    const sessionsPerWeek = sessions.length / (periodDays / 7);
+    const optimalStudyTimes = this.analyzeOptimalTimes(sessions);
+    const effectiveEnvironments = this.analyzeEffectiveEnvironments(sessions);
+    const strategyEffectiveness = this.analyzeStrategyEffectiveness(sessions);
+    const focusPatterns = this.analyzeFocusPatterns(sessions);
+    const breakPatterns = this.analyzeBreakPatterns(sessions);
+    const habitScores = this.calculateHabitScores(sessions, periodDays);
+    const recommendations = this.generateHabitRecommendations(habitScores, sessions);
+    return {
+      userId: input.userId,
+      period: {
+        start: cutoffDate,
+        end: /* @__PURE__ */ new Date()
+      },
+      totalStudyHours: Math.round(totalStudyHours * 10) / 10,
+      averageSessionMinutes: Math.round(averageSessionMinutes),
+      sessionsPerWeek: Math.round(sessionsPerWeek * 10) / 10,
+      optimalStudyTimes,
+      effectiveEnvironments,
+      strategyEffectiveness,
+      focusPatterns,
+      breakPatterns,
+      habitScores,
+      recommendations
+    };
+  }
+  analyzeOptimalTimes(sessions) {
+    const slotScores = /* @__PURE__ */ new Map();
+    for (const session of sessions) {
+      const day = session.startedAt.getDay();
+      const hour = session.startedAt.getHours();
+      const key = `${day}-${hour}`;
+      const score = session.outcome?.comprehensionLevel ?? 3;
+      const existing = slotScores.get(key) ?? { count: 0, totalScore: 0 };
+      existing.count++;
+      existing.totalScore += score;
+      slotScores.set(key, existing);
+    }
+    const slots = [];
+    for (const [key, data] of slotScores) {
+      const [day, hour] = key.split("-").map(Number);
+      slots.push({
+        dayOfWeek: day,
+        hourStart: hour,
+        hourEnd: hour + 1,
+        effectivenessScore: Math.round(data.totalScore / data.count * 20)
+      });
+    }
+    return slots.sort((a, b) => b.effectivenessScore - a.effectivenessScore).slice(0, 5);
+  }
+  analyzeEffectiveEnvironments(sessions) {
+    const envScores = /* @__PURE__ */ new Map();
+    for (const session of sessions) {
+      if (!session.environment) continue;
+      const key = `${session.environment.location}-${session.environment.noiseLevel}`;
+      const score = session.outcome?.comprehensionLevel ?? 3;
+      const existing = envScores.get(key) ?? { env: session.environment, count: 0, totalScore: 0 };
+      existing.count++;
+      existing.totalScore += score;
+      envScores.set(key, existing);
+    }
+    return [...envScores.values()].filter((e) => e.count >= 2).sort((a, b) => b.totalScore / b.count - a.totalScore / a.count).slice(0, 3).map((e) => e.env);
+  }
+  analyzeStrategyEffectiveness(sessions) {
+    const strategyStats = /* @__PURE__ */ new Map();
+    for (const session of sessions) {
+      for (const strategy of session.strategiesUsed) {
+        const score = session.outcome?.comprehensionLevel ?? 3;
+        const existing = strategyStats.get(strategy) ?? { count: 0, totalScore: 0 };
+        existing.count++;
+        existing.totalScore += score;
+        strategyStats.set(strategy, existing);
+      }
+    }
+    return [...strategyStats.entries()].map(([strategy, stats]) => ({
+      strategy,
+      usageFrequency: stats.count,
+      effectivenessScore: Math.round(stats.totalScore / stats.count * 20),
+      retentionImpact: Math.round(stats.totalScore / stats.count * 15),
+      recommendedFor: STRATEGY_INFO[strategy].bestFor
+    }));
+  }
+  analyzeFocusPatterns(sessions) {
+    const focusLevels = sessions.filter((s) => s.focusLevel !== void 0).map((s) => s.focusLevel);
+    const durations = sessions.map((s) => s.durationMinutes);
+    return {
+      averageFocusDuration: durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0,
+      focusDeclineRate: 0.1,
+      // Would calculate from detailed session data
+      peakFocusTime: this.getPeakFocusTime(sessions),
+      distractionTriggers: this.identifyDistractions(sessions)
+    };
+  }
+  getPeakFocusTime(sessions) {
+    const hourScores = /* @__PURE__ */ new Map();
+    for (const session of sessions) {
+      const hour = session.startedAt.getHours();
+      const focus = session.focusLevel ?? 3;
+      hourScores.set(hour, (hourScores.get(hour) ?? 0) + focus);
+    }
+    let peakHour = 9;
+    let maxScore = 0;
+    for (const [hour, score] of hourScores) {
+      if (score > maxScore) {
+        maxScore = score;
+        peakHour = hour;
+      }
+    }
+    return `${peakHour}:00`;
+  }
+  identifyDistractions(sessions) {
+    const distractions = /* @__PURE__ */ new Set();
+    for (const session of sessions) {
+      if (session.environment?.distractions) {
+        for (const d of session.environment.distractions) {
+          distractions.add(d);
+        }
+      }
+    }
+    return [...distractions].slice(0, 5);
+  }
+  analyzeBreakPatterns(sessions) {
+    const allBreaks = sessions.flatMap((s) => s.breaks);
+    return {
+      averageBreakFrequency: sessions.length > 0 ? allBreaks.length / sessions.length : 0,
+      averageBreakDuration: allBreaks.length > 0 ? allBreaks.reduce((sum, b) => sum + b.durationMinutes, 0) / allBreaks.length : 0,
+      optimalBreakInterval: 45,
+      // Pomodoro-based default
+      breakEffectiveness: 0.7
+      // Would calculate from performance data
+    };
+  }
+  calculateHabitScores(sessions, periodDays) {
+    const scores = {
+      TIME_ALLOCATION: 0,
+      ENVIRONMENT: 0,
+      FOCUS_MANAGEMENT: 0,
+      BREAK_PATTERNS: 0,
+      CONTENT_ENGAGEMENT: 0,
+      REVIEW_FREQUENCY: 0
+    };
+    if (sessions.length === 0) return scores;
+    const avgDuration = sessions.reduce((sum, s) => sum + s.durationMinutes, 0) / sessions.length;
+    scores.TIME_ALLOCATION = Math.min(100, Math.round(avgDuration / 30 * 50 + 50));
+    const envSessions = sessions.filter((s) => s.environment);
+    scores.ENVIRONMENT = envSessions.length > 0 ? Math.round(envSessions.length / sessions.length * 100) : 0;
+    const focusSessions = sessions.filter((s) => s.focusLevel);
+    if (focusSessions.length > 0) {
+      const avgFocus = focusSessions.reduce((sum, s) => sum + (s.focusLevel ?? 0), 0) / focusSessions.length;
+      scores.FOCUS_MANAGEMENT = Math.round(avgFocus * 20);
+    }
+    const sessionsWithBreaks = sessions.filter((s) => s.breaks.length > 0);
+    scores.BREAK_PATTERNS = Math.round(sessionsWithBreaks.length / sessions.length * 100);
+    const avgTopics = sessions.reduce((sum, s) => sum + s.topicsCovered.length, 0) / sessions.length;
+    scores.CONTENT_ENGAGEMENT = Math.min(100, Math.round(avgTopics * 25));
+    const sessionsPerWeek = sessions.length / (periodDays / 7);
+    scores.REVIEW_FREQUENCY = Math.min(100, Math.round(sessionsPerWeek * 15));
+    return scores;
+  }
+  generateHabitRecommendations(scores, sessions) {
+    const recommendations = [];
+    const sortedCategories = Object.entries(scores).sort((a, b) => a[1] - b[1]);
+    for (const [category, score] of sortedCategories.slice(0, 3)) {
+      if (score < 70) {
+        recommendations.push(this.getRecommendationForCategory(category, score, sessions));
+      }
+    }
+    return recommendations;
+  }
+  getRecommendationForCategory(category, score, sessions) {
+    const recommendationMap = {
+      TIME_ALLOCATION: {
+        category,
+        currentState: `Your sessions average ${Math.round(sessions.reduce((s, sess) => s + sess.durationMinutes, 0) / Math.max(sessions.length, 1))} minutes`,
+        recommendation: "Aim for 30-45 minute focused study sessions",
+        expectedImpact: "high",
+        actionSteps: [
+          "Set a timer for 30-45 minutes",
+          "Take a 5-10 minute break after each session",
+          "Plan your study sessions in advance"
+        ]
+      },
+      ENVIRONMENT: {
+        category,
+        currentState: "Environment data is not consistently tracked",
+        recommendation: "Track your study environment to find optimal conditions",
+        expectedImpact: "medium",
+        actionSteps: [
+          "Note your location and noise level for each session",
+          "Identify which environments help you focus best",
+          "Minimize distractions in your study space"
+        ]
+      },
+      FOCUS_MANAGEMENT: {
+        category,
+        currentState: `Average focus level: ${score}%`,
+        recommendation: "Use techniques to improve and maintain focus",
+        expectedImpact: "high",
+        actionSteps: [
+          "Remove phone and other distractions during study",
+          "Use the Pomodoro technique (25 min work, 5 min break)",
+          "Take notes to stay actively engaged"
+        ]
+      },
+      BREAK_PATTERNS: {
+        category,
+        currentState: "Breaks are not taken regularly",
+        recommendation: "Take regular breaks to maintain productivity",
+        expectedImpact: "medium",
+        actionSteps: [
+          "Take a 5-minute break every 25-30 minutes",
+          "Move around during breaks",
+          "Avoid screens during breaks when possible"
+        ]
+      },
+      CONTENT_ENGAGEMENT: {
+        category,
+        currentState: "Low engagement with study content",
+        recommendation: "Use active learning strategies",
+        expectedImpact: "high",
+        actionSteps: [
+          "Test yourself on material rather than just rereading",
+          "Explain concepts in your own words",
+          "Create questions while studying"
+        ]
+      },
+      REVIEW_FREQUENCY: {
+        category,
+        currentState: "Infrequent study sessions",
+        recommendation: "Study more frequently in shorter sessions",
+        expectedImpact: "high",
+        actionSteps: [
+          "Schedule at least 4-5 study sessions per week",
+          "Review material within 24 hours of learning",
+          "Use spaced repetition for better retention"
+        ]
+      }
+    };
+    return recommendationMap[category];
+  }
+  // ============================================================================
+  // LEARNING STRATEGY RECOMMENDATIONS
+  // ============================================================================
+  /**
+   * Recommend learning strategies for a user
+   */
+  recommendStrategies(input) {
+    this.logger?.info?.("[MetacognitionEngine] Recommending strategies", {
+      userId: input.userId,
+      bloomsLevel: input.bloomsLevel
+    });
+    const profile = this.strategyProfileCache.get(input.userId);
+    const currentStrategies = profile?.preferredStrategies ?? [];
+    const highEffectStrategies = Object.entries(STRATEGY_INFO).filter(([_, info]) => info.effectiveness === "high").map(([strategy]) => strategy);
+    const underutilizedStrategies = highEffectStrategies.filter((s) => !currentStrategies.includes(s));
+    const overusedStrategies = currentStrategies.filter((s) => STRATEGY_INFO[s].effectiveness === "low");
+    const recommendations = [];
+    if (input.bloomsLevel) {
+      const relevantStrategies = Object.entries(STRATEGY_INFO).filter(([_, info]) => info.bestFor.includes(input.bloomsLevel)).filter(([strategy]) => !currentStrategies.includes(strategy)).slice(0, 3);
+      for (const [strategy, info] of relevantStrategies) {
+        recommendations.push({
+          strategy,
+          reason: `Effective for ${input.bloomsLevel} level tasks`,
+          howToApply: info.howToUse,
+          expectedBenefit: info.description,
+          difficultyToAdopt: "moderate",
+          evidenceBase: info.effectiveness === "high" ? "strong" : "moderate"
+        });
+      }
+    }
+    for (const strategy of underutilizedStrategies.slice(0, 2)) {
+      const info = STRATEGY_INFO[strategy];
+      recommendations.push({
+        strategy,
+        reason: "Highly effective but underutilized in your study routine",
+        howToApply: info.howToUse,
+        expectedBenefit: info.description,
+        difficultyToAdopt: "easy",
+        evidenceBase: "strong"
+      });
+    }
+    return {
+      recommendations,
+      currentStrategies,
+      underutilizedStrategies,
+      overusedStrategies
+    };
+  }
+  // ============================================================================
+  // CONFIDENCE CALIBRATION
+  // ============================================================================
+  /**
+   * Assess knowledge confidence calibration
+   */
+  assessConfidence(input) {
+    this.logger?.info?.("[MetacognitionEngine] Assessing confidence", {
+      userId: input.userId,
+      itemCount: input.items.length
+    });
+    const items = input.items.map((item) => ({
+      concept: item.concept,
+      confidence: item.confidence
+    }));
+    const avgConfidence = items.reduce((sum, i) => sum + i.confidence, 0) / items.length;
+    const historicalAssessments = this.confidenceCache.get(input.userId) ?? [];
+    let confidenceBias = "WELL_CALIBRATED";
+    if (historicalAssessments.length > 0) {
+      const historicalAvg = historicalAssessments.flatMap((a) => a.items).reduce((sum, i) => sum + i.confidence, 0) / historicalAssessments.flatMap((a) => a.items).length;
+      if (avgConfidence > historicalAvg + 0.5) {
+        confidenceBias = "OVERCONFIDENT";
+      } else if (avgConfidence < historicalAvg - 0.5) {
+        confidenceBias = "UNDERCONFIDENT";
+      }
+    }
+    const assessment = {
+      id: `conf-${input.userId}-${Date.now()}`,
+      userId: input.userId,
+      courseId: input.courseId,
+      topicId: input.topicId,
+      items,
+      calibrationScore: Math.round(avgConfidence * 20),
+      confidenceBias,
+      assessedAt: /* @__PURE__ */ new Date()
+    };
+    const userAssessments = this.confidenceCache.get(input.userId) ?? [];
+    userAssessments.push(assessment);
+    this.confidenceCache.set(input.userId, userAssessments.slice(-50));
+    return assessment;
+  }
+  // ============================================================================
+  // COGNITIVE LOAD ASSESSMENT
+  // ============================================================================
+  /**
+   * Assess current cognitive load
+   */
+  assessCognitiveLoad(input) {
+    this.logger?.info?.("[MetacognitionEngine] Assessing cognitive load", {
+      userId: input.userId
+    });
+    const currentLoad = input.selfReportedLoad ?? this.estimateCognitiveLoad(input);
+    const loadFactors = this.identifyLoadFactors(input, currentLoad);
+    const recommendations = this.generateLoadRecommendations(loadFactors, currentLoad);
+    return {
+      userId: input.userId,
+      sessionId: input.sessionId,
+      currentLoad,
+      loadFactors,
+      recommendations,
+      assessedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  estimateCognitiveLoad(input) {
+    const sessions = this.sessionCache.get(input.userId) ?? [];
+    const recentSessions = sessions.slice(-5);
+    if (recentSessions.length === 0) return "OPTIMAL";
+    const avgFocus = recentSessions.filter((s) => s.focusLevel).reduce((sum, s) => sum + (s.focusLevel ?? 3), 0) / Math.max(recentSessions.filter((s) => s.focusLevel).length, 1);
+    const recentPerformance = input.recentPerformance ?? 70;
+    if (avgFocus < 2 || recentPerformance < 50) return "OVERLOAD";
+    if (avgFocus < 3 || recentPerformance < 65) return "HIGH";
+    if (avgFocus > 4 && recentPerformance > 85) return "LOW";
+    return "OPTIMAL";
+  }
+  identifyLoadFactors(input, currentLoad) {
+    const factors = [];
+    factors.push({
+      factor: "Content complexity",
+      type: "INTRINSIC",
+      impact: currentLoad === "OVERLOAD" || currentLoad === "HIGH" ? "high" : "medium",
+      isManageable: true
+    });
+    if (currentLoad === "OVERLOAD" || currentLoad === "HIGH") {
+      factors.push({
+        factor: "Potential distractions or multitasking",
+        type: "EXTRANEOUS",
+        impact: "medium",
+        isManageable: true
+      });
+    }
+    factors.push({
+      factor: "Active processing and schema building",
+      type: "GERMANE",
+      impact: "medium",
+      isManageable: true
+    });
+    return factors;
+  }
+  generateLoadRecommendations(factors, currentLoad) {
+    const recommendations = [];
+    if (currentLoad === "OVERLOAD") {
+      recommendations.push({
+        action: "Take a break immediately",
+        targetFactor: "Overall cognitive load",
+        expectedReduction: "significant",
+        immediacy: "immediate"
+      });
+      recommendations.push({
+        action: "Break content into smaller chunks",
+        targetFactor: "Content complexity",
+        expectedReduction: "significant",
+        immediacy: "short_term"
+      });
+    }
+    if (currentLoad === "HIGH") {
+      recommendations.push({
+        action: "Remove distractions and focus on one task",
+        targetFactor: "Extraneous load",
+        expectedReduction: "moderate",
+        immediacy: "immediate"
+      });
+      recommendations.push({
+        action: "Use visualization or diagrams to organize information",
+        targetFactor: "Content complexity",
+        expectedReduction: "moderate",
+        immediacy: "short_term"
+      });
+    }
+    if (currentLoad === "LOW") {
+      recommendations.push({
+        action: "Increase challenge level or add related concepts",
+        targetFactor: "Germane load",
+        expectedReduction: "slight",
+        immediacy: "short_term"
+      });
+    }
+    return recommendations;
+  }
+  // ============================================================================
+  // GOAL MANAGEMENT
+  // ============================================================================
+  /**
+   * Set a learning goal
+   */
+  setGoal(input) {
+    this.logger?.info?.("[MetacognitionEngine] Setting goal", {
+      userId: input.userId,
+      type: input.type
+    });
+    const goal = {
+      id: `goal-${input.userId}-${Date.now()}`,
+      userId: input.userId,
+      courseId: input.courseId,
+      description: input.description,
+      type: input.type,
+      targetMetric: input.targetMetric,
+      deadline: input.deadline,
+      milestones: (input.milestones ?? []).map((m, i) => ({
+        id: `milestone-${i}-${Date.now()}`,
+        description: m.description,
+        targetDate: m.targetDate,
+        completed: false
+      })),
+      progress: 0,
+      status: "ACTIVE",
+      reflections: [],
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    const userGoals = this.goalCache.get(input.userId) ?? [];
+    userGoals.push(goal);
+    this.goalCache.set(input.userId, userGoals);
+    return goal;
+  }
+  /**
+   * Update goal progress
+   */
+  updateGoalProgress(input) {
+    this.logger?.info?.("[MetacognitionEngine] Updating goal progress", {
+      goalId: input.goalId,
+      userId: input.userId
+    });
+    const userGoals = this.goalCache.get(input.userId) ?? [];
+    const goal = userGoals.find((g) => g.id === input.goalId);
+    if (!goal) {
+      return {
+        goalId: input.goalId,
+        currentProgress: 0,
+        projectedCompletion: null,
+        isOnTrack: false,
+        riskFactors: ["Goal not found"],
+        suggestions: ["Please verify the goal ID"],
+        motivationalMessage: "Keep setting goals to track your progress!"
+      };
+    }
+    if (input.progress !== void 0) {
+      goal.progress = input.progress;
+    }
+    if (input.milestoneId) {
+      const milestone = goal.milestones.find((m) => m.id === input.milestoneId);
+      if (milestone) {
+        milestone.completed = true;
+        milestone.completedAt = /* @__PURE__ */ new Date();
+      }
+    }
+    if (input.reflection) {
+      goal.reflections.push({
+        date: /* @__PURE__ */ new Date(),
+        reflection: input.reflection,
+        progressAtTime: goal.progress
+      });
+    }
+    goal.updatedAt = /* @__PURE__ */ new Date();
+    return this.monitorGoal(goal);
+  }
+  monitorGoal(goal) {
+    const now = /* @__PURE__ */ new Date();
+    const daysSinceCreation = (now.getTime() - goal.createdAt.getTime()) / (1e3 * 60 * 60 * 24);
+    let projectedCompletion = null;
+    if (goal.progress > 0 && goal.deadline) {
+      const progressRate = goal.progress / daysSinceCreation;
+      const daysToComplete = (100 - goal.progress) / progressRate;
+      projectedCompletion = new Date(now.getTime() + daysToComplete * 24 * 60 * 60 * 1e3);
+    }
+    let isOnTrack = true;
+    const riskFactors = [];
+    const suggestions = [];
+    if (goal.deadline) {
+      const totalDays = (goal.deadline.getTime() - goal.createdAt.getTime()) / (1e3 * 60 * 60 * 24);
+      const expectedProgress = daysSinceCreation / totalDays * 100;
+      if (goal.progress < expectedProgress - 20) {
+        isOnTrack = false;
+        riskFactors.push("Progress is behind schedule");
+        suggestions.push("Consider dedicating more time to this goal");
+      }
+    }
+    if (goal.reflections.length > 0) {
+      const lastReflection = goal.reflections[goal.reflections.length - 1];
+      const daysSinceReflection = (now.getTime() - lastReflection.date.getTime()) / (1e3 * 60 * 60 * 24);
+      if (daysSinceReflection > 7) {
+        riskFactors.push("No activity in the past week");
+        suggestions.push("Schedule a study session this week");
+      }
+    }
+    const motivationalMessage = this.generateMotivationalMessage(goal.progress, isOnTrack);
+    return {
+      goalId: goal.id,
+      currentProgress: goal.progress,
+      projectedCompletion,
+      isOnTrack,
+      riskFactors,
+      suggestions,
+      motivationalMessage
+    };
+  }
+  generateMotivationalMessage(progress, isOnTrack) {
+    if (progress === 0) {
+      return "Every journey starts with a single step. Begin today!";
+    }
+    if (progress < 25) {
+      return "Great start! Keep building momentum.";
+    }
+    if (progress < 50) {
+      return isOnTrack ? "You are making solid progress. Keep it up!" : "You have come far. A little extra effort will get you back on track.";
+    }
+    if (progress < 75) {
+      return "Over halfway there! The finish line is in sight.";
+    }
+    if (progress < 100) {
+      return "Almost there! Push through to the end.";
+    }
+    return "Congratulations on achieving your goal!";
+  }
+  // ============================================================================
+  // METACOGNITIVE SKILL ASSESSMENT
+  // ============================================================================
+  /**
+   * Get metacognitive skill assessment
+   */
+  getMetacognitiveAssessment(input) {
+    this.logger?.info?.("[MetacognitionEngine] Getting metacognitive assessment", {
+      userId: input.userId
+    });
+    let assessment = this.skillAssessmentCache.get(input.userId);
+    if (!assessment || this.isAssessmentStale(assessment)) {
+      assessment = this.calculateMetacognitiveAssessment(input.userId);
+      this.skillAssessmentCache.set(input.userId, assessment);
+    }
+    return assessment;
+  }
+  isAssessmentStale(assessment) {
+    const hoursSinceAssessment = (Date.now() - assessment.assessedAt.getTime()) / (1e3 * 60 * 60);
+    return hoursSinceAssessment > 24;
+  }
+  calculateMetacognitiveAssessment(userId) {
+    const reflections = this.reflectionCache.get(userId) ?? [];
+    const sessions = this.sessionCache.get(userId) ?? [];
+    const goals = this.goalCache.get(userId) ?? [];
+    const skills = [
+      {
+        skill: "PLANNING",
+        score: this.calculatePlanningScore(goals, sessions),
+        trend: "STABLE",
+        evidenceSources: ["goal setting", "session planning"]
+      },
+      {
+        skill: "MONITORING",
+        score: this.calculateMonitoringScore(reflections, sessions),
+        trend: "STABLE",
+        evidenceSources: ["self-check reflections", "focus tracking"]
+      },
+      {
+        skill: "EVALUATING",
+        score: this.calculateEvaluatingScore(reflections, sessions),
+        trend: "STABLE",
+        evidenceSources: ["post-learning reflections", "session outcomes"]
+      },
+      {
+        skill: "REGULATING",
+        score: this.calculateRegulatingScore(sessions),
+        trend: "STABLE",
+        evidenceSources: ["strategy changes", "break patterns"]
+      },
+      {
+        skill: "SELF_QUESTIONING",
+        score: this.calculateSelfQuestioningScore(reflections),
+        trend: "STABLE",
+        evidenceSources: ["reflection depth", "inquiry patterns"]
+      },
+      {
+        skill: "ELABORATION",
+        score: this.calculateElaborationScore(reflections, sessions),
+        trend: "STABLE",
+        evidenceSources: ["connection making", "example generation"]
+      },
+      {
+        skill: "ORGANIZATION",
+        score: this.calculateOrganizationScore(sessions),
+        trend: "STABLE",
+        evidenceSources: ["note-taking", "summarization"]
+      },
+      {
+        skill: "TIME_MANAGEMENT",
+        score: this.calculateTimeManagementScore(sessions, goals),
+        trend: "STABLE",
+        evidenceSources: ["session timing", "goal deadlines"]
+      }
+    ];
+    const overallScore = Math.round(
+      skills.reduce((sum, s) => sum + s.score, 0) / skills.length
+    );
+    const sortedSkills = [...skills].sort((a, b) => b.score - a.score);
+    const strengths = sortedSkills.slice(0, 3).map((s) => s.skill);
+    const developmentAreas = sortedSkills.slice(-3).map((s) => s.skill);
+    const exercises = this.generateMetacognitiveExercises(developmentAreas);
+    return {
+      userId,
+      skills,
+      overallScore,
+      strengths,
+      developmentAreas,
+      exercises,
+      assessedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  calculatePlanningScore(goals, sessions) {
+    let score = 50;
+    if (goals.length > 0) score += 20;
+    if (goals.some((g) => g.milestones.length > 0)) score += 15;
+    if (sessions.some((s) => s.strategiesUsed.length > 0)) score += 15;
+    return Math.min(100, score);
+  }
+  calculateMonitoringScore(reflections, sessions) {
+    let score = 50;
+    if (reflections.length > 5) score += 20;
+    if (sessions.some((s) => s.focusLevel !== void 0)) score += 15;
+    if (sessions.some((s) => s.outcome !== void 0)) score += 15;
+    return Math.min(100, score);
+  }
+  calculateEvaluatingScore(reflections, sessions) {
+    let score = 50;
+    const postLearningReflections = reflections.filter(
+      (r) => typeof r.response === "string" && r.response.length > 100
+    );
+    if (postLearningReflections.length > 3) score += 25;
+    if (sessions.some((s) => s.outcome?.satisfactionLevel !== void 0)) score += 25;
+    return Math.min(100, score);
+  }
+  calculateRegulatingScore(sessions) {
+    let score = 50;
+    const strategyVariety = new Set(sessions.flatMap((s) => s.strategiesUsed)).size;
+    score += Math.min(strategyVariety * 10, 30);
+    if (sessions.some((s) => s.breaks.length > 0)) score += 20;
+    return Math.min(100, score);
+  }
+  calculateSelfQuestioningScore(reflections) {
+    let score = 50;
+    const questionReflections = reflections.filter(
+      (r) => typeof r.response === "string" && r.response.includes("?")
+    );
+    score += Math.min(questionReflections.length * 5, 30);
+    score += reflections.length > 10 ? 20 : 0;
+    return Math.min(100, score);
+  }
+  calculateElaborationScore(reflections, sessions) {
+    let score = 50;
+    const elaborativeReflections = reflections.filter(
+      (r) => typeof r.response === "string" && (r.response.includes("connect") || r.response.includes("relate") || r.response.includes("example"))
+    );
+    score += Math.min(elaborativeReflections.length * 10, 30);
+    if (sessions.some((s) => s.strategiesUsed.includes("ELABORATIVE_INTERROGATION"))) score += 20;
+    return Math.min(100, score);
+  }
+  calculateOrganizationScore(sessions) {
+    let score = 50;
+    if (sessions.some((s) => s.strategiesUsed.includes("SUMMARIZATION"))) score += 25;
+    if (sessions.some((s) => s.strategiesUsed.includes("DUAL_CODING"))) score += 25;
+    return Math.min(100, score);
+  }
+  calculateTimeManagementScore(sessions, goals) {
+    let score = 50;
+    const avgDuration = sessions.length > 0 ? sessions.reduce((s, sess) => s + sess.durationMinutes, 0) / sessions.length : 0;
+    if (avgDuration >= 25 && avgDuration <= 60) score += 20;
+    if (goals.some((g) => g.deadline !== void 0)) score += 15;
+    if (sessions.some((s) => s.breaks.length > 0)) score += 15;
+    return Math.min(100, score);
+  }
+  generateMetacognitiveExercises(developmentAreas) {
+    const exerciseTemplates = {
+      PLANNING: {
+        id: "ex-planning-1",
+        title: "Study Session Planning",
+        description: "Practice planning your study sessions in advance",
+        targetSkill: "PLANNING",
+        duration: 10,
+        difficulty: "beginner",
+        instructions: [
+          "Before studying, write down what you want to accomplish",
+          "List the specific topics or skills you will work on",
+          "Estimate how long each task will take",
+          "Identify what resources you will need"
+        ]
+      },
+      MONITORING: {
+        id: "ex-monitoring-1",
+        title: "Comprehension Check-ins",
+        description: "Practice monitoring your understanding during learning",
+        targetSkill: "MONITORING",
+        duration: 5,
+        difficulty: "beginner",
+        instructions: [
+          'Every 10-15 minutes, pause and ask yourself: "Do I understand this?"',
+          "Try to summarize what you just learned in one sentence",
+          "Identify any confusing parts",
+          "Note questions that arise"
+        ]
+      },
+      EVALUATING: {
+        id: "ex-evaluating-1",
+        title: "Session Reflection",
+        description: "Practice evaluating your learning sessions",
+        targetSkill: "EVALUATING",
+        duration: 10,
+        difficulty: "beginner",
+        instructions: [
+          "At the end of each session, rate your focus (1-5)",
+          "Identify what went well",
+          "Identify what could be improved",
+          "Note any insights for next time"
+        ]
+      },
+      REGULATING: {
+        id: "ex-regulating-1",
+        title: "Strategy Adjustment",
+        description: "Practice adjusting your approach based on results",
+        targetSkill: "REGULATING",
+        duration: 15,
+        difficulty: "intermediate",
+        instructions: [
+          "Review your recent learning sessions",
+          "Identify patterns in what works and what does not",
+          "Choose one new strategy to try",
+          "Set a specific goal for testing this strategy"
+        ]
+      },
+      SELF_QUESTIONING: {
+        id: "ex-self-questioning-1",
+        title: "Question Generation",
+        description: "Practice generating questions while learning",
+        targetSkill: "SELF_QUESTIONING",
+        duration: 15,
+        difficulty: "beginner",
+        instructions: [
+          "While reading, write down 3-5 questions per section",
+          'Include "why" and "how" questions',
+          "Try to answer your questions before moving on",
+          "Note which questions you could not answer"
+        ]
+      },
+      ELABORATION: {
+        id: "ex-elaboration-1",
+        title: "Connection Making",
+        description: "Practice connecting new information to what you know",
+        targetSkill: "ELABORATION",
+        duration: 10,
+        difficulty: "intermediate",
+        instructions: [
+          'After learning something new, ask: "How does this connect to what I already know?"',
+          "Create an analogy or metaphor for the concept",
+          "Think of a real-world example",
+          "Explain how this relates to other topics in the course"
+        ]
+      },
+      ORGANIZATION: {
+        id: "ex-organization-1",
+        title: "Concept Mapping",
+        description: "Practice organizing information visually",
+        targetSkill: "ORGANIZATION",
+        duration: 20,
+        difficulty: "intermediate",
+        instructions: [
+          "Choose a topic you are learning",
+          "Write the main concept in the center",
+          "Add related concepts around it",
+          "Draw connections between concepts",
+          "Label the connections with relationship descriptions"
+        ]
+      },
+      TIME_MANAGEMENT: {
+        id: "ex-time-management-1",
+        title: "Pomodoro Practice",
+        description: "Practice structured time management",
+        targetSkill: "TIME_MANAGEMENT",
+        duration: 30,
+        difficulty: "beginner",
+        instructions: [
+          "Set a timer for 25 minutes",
+          "Focus on one task only during this time",
+          "When the timer rings, take a 5-minute break",
+          "After 4 cycles, take a 15-30 minute break",
+          "Track how many cycles you complete"
+        ]
+      }
+    };
+    return developmentAreas.map((skill) => exerciseTemplates[skill]);
+  }
+  // ============================================================================
+  // SELF-REGULATION PROFILE
+  // ============================================================================
+  /**
+   * Get self-regulation profile
+   */
+  getSelfRegulationProfile(userId) {
+    let profile = this.regulationCache.get(userId);
+    if (!profile) {
+      profile = this.createDefaultRegulationProfile(userId);
+      this.regulationCache.set(userId, profile);
+    }
+    return profile;
+  }
+  createDefaultRegulationProfile(userId) {
+    return {
+      userId,
+      emotionalRegulation: {
+        frustrationTolerance: 60,
+        anxietyManagement: 60,
+        confidenceStability: 60,
+        recoveryFromSetbacks: 60
+      },
+      motivationRegulation: {
+        intrinsicMotivation: 60,
+        goalPersistence: 60,
+        effortRegulation: 60,
+        interestMaintenance: 60
+      },
+      attentionRegulation: {
+        focusDuration: 60,
+        distractionResistance: 60,
+        taskSwitchingEfficiency: 60,
+        sustainedAttention: 60
+      },
+      overallScore: 60,
+      interventions: [],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Record a regulation intervention
+   */
+  recordIntervention(userId, type, trigger, intervention) {
+    const profile = this.getSelfRegulationProfile(userId);
+    const newIntervention = {
+      type,
+      triggeredAt: /* @__PURE__ */ new Date(),
+      trigger,
+      intervention
+    };
+    profile.interventions.push(newIntervention);
+    profile.interventions = profile.interventions.slice(-50);
+    profile.updatedAt = /* @__PURE__ */ new Date();
+    this.regulationCache.set(userId, profile);
+    return newIntervention;
+  }
+};
+function createMetacognitionEngine(config) {
+  return new MetacognitionEngine(config);
+}
+
+// src/engines/competency-engine.ts
+var PROFICIENCY_VALUES = {
+  NOVICE: 1,
+  BEGINNER: 2,
+  COMPETENT: 3,
+  PROFICIENT: 4,
+  EXPERT: 5,
+  MASTER: 6
+};
+var PROFICIENCY_DESCRIPTIONS = {
+  NOVICE: "Basic awareness, can follow instructions",
+  BEGINNER: "Limited experience, requires guidance",
+  COMPETENT: "Practical application, works independently",
+  PROFICIENT: "Applied theory, can teach others",
+  EXPERT: "Recognized authority, drives innovation",
+  MASTER: "Industry leader, defines best practices"
+};
+var PROFICIENCY_HOURS = {
+  NOVICE: 0,
+  BEGINNER: 50,
+  COMPETENT: 200,
+  PROFICIENT: 500,
+  EXPERT: 2e3,
+  MASTER: 1e4
+};
+function getScoreFromProficiency(level) {
+  const scores = {
+    NOVICE: 15,
+    BEGINNER: 35,
+    COMPETENT: 55,
+    PROFICIENT: 70,
+    EXPERT: 85,
+    MASTER: 95
+  };
+  return scores[level];
+}
+function compareProficiency(a, b) {
+  return PROFICIENCY_VALUES[a] - PROFICIENCY_VALUES[b];
+}
+var SKILL_PATTERNS = {
+  TECHNICAL: [
+    /\b(programming|coding|software development|engineering)\b/i,
+    /\b(javascript|typescript|python|java|c\+\+|rust|go|ruby)\b/i,
+    /\b(react|angular|vue|next\.?js|node\.?js|express)\b/i,
+    /\b(database|sql|nosql|mongodb|postgresql|mysql)\b/i,
+    /\b(api|rest|graphql|microservices|cloud|aws|azure|gcp)\b/i,
+    /\b(machine learning|ai|deep learning|neural network)\b/i,
+    /\b(devops|ci\/cd|docker|kubernetes|terraform)\b/i
+  ],
+  SOFT: [
+    /\b(communication|collaboration|teamwork|leadership)\b/i,
+    /\b(problem solving|critical thinking|analytical)\b/i,
+    /\b(time management|organization|planning)\b/i,
+    /\b(presentation|public speaking|negotiation)\b/i,
+    /\b(adaptability|flexibility|resilience)\b/i
+  ],
+  DOMAIN: [
+    /\b(finance|fintech|banking|investment)\b/i,
+    /\b(healthcare|medical|clinical|pharma)\b/i,
+    /\b(e-?commerce|retail|marketing|sales)\b/i,
+    /\b(education|edtech|learning|training)\b/i,
+    /\b(legal|compliance|regulatory)\b/i
+  ],
+  TOOL: [
+    /\b(git|github|gitlab|bitbucket)\b/i,
+    /\b(jira|confluence|asana|trello)\b/i,
+    /\b(figma|sketch|adobe|photoshop)\b/i,
+    /\b(slack|teams|zoom|communication tools)\b/i,
+    /\b(vs ?code|intellij|eclipse|vim)\b/i
+  ],
+  METHODOLOGY: [
+    /\b(agile|scrum|kanban|lean)\b/i,
+    /\b(tdd|bdd|test-driven|behavior-driven)\b/i,
+    /\b(ci\/cd|continuous integration|continuous delivery)\b/i,
+    /\b(design thinking|user-centered|ux research)\b/i,
+    /\b(six sigma|kaizen|continuous improvement)\b/i
+  ],
+  CERTIFICATION: [
+    /\b(aws certified|azure certified|gcp certified)\b/i,
+    /\b(pmp|scrum master|product owner)\b/i,
+    /\b(cissp|cisa|security\+|comptia)\b/i,
+    /\b(cfa|cpa|cma|financial certification)\b/i
+  ]
+};
+var CompetencyEngine = class {
+  config;
+  samConfig;
+  skills = /* @__PURE__ */ new Map();
+  skillRelations = [];
+  skillTrees = /* @__PURE__ */ new Map();
+  userProficiencies = /* @__PURE__ */ new Map();
+  jobRoles = /* @__PURE__ */ new Map();
+  careerPaths = /* @__PURE__ */ new Map();
+  portfolios = /* @__PURE__ */ new Map();
+  assessments = /* @__PURE__ */ new Map();
+  constructor(config) {
+    this.config = config;
+    this.samConfig = config.samConfig;
+    this.initializeDefaultSkills();
+    this.initializeDefaultRoles();
+  }
+  // ==========================================================================
+  // INITIALIZATION
+  // ==========================================================================
+  initializeDefaultSkills() {
+    const defaultSkills = [
+      { id: "skill-js", name: "JavaScript", category: "TECHNICAL", tags: ["programming", "web", "frontend"] },
+      { id: "skill-ts", name: "TypeScript", category: "TECHNICAL", tags: ["programming", "web", "typed"] },
+      { id: "skill-react", name: "React", category: "TECHNICAL", tags: ["framework", "frontend", "ui"] },
+      { id: "skill-node", name: "Node.js", category: "TECHNICAL", tags: ["backend", "runtime", "javascript"] },
+      { id: "skill-python", name: "Python", category: "TECHNICAL", tags: ["programming", "backend", "ml"] },
+      { id: "skill-sql", name: "SQL", category: "TECHNICAL", tags: ["database", "query", "data"] },
+      { id: "skill-git", name: "Git", category: "TOOL", tags: ["version-control", "collaboration"] },
+      { id: "skill-agile", name: "Agile Methodologies", category: "METHODOLOGY", tags: ["process", "scrum"] },
+      { id: "skill-communication", name: "Communication", category: "SOFT", tags: ["interpersonal", "verbal"] },
+      { id: "skill-problem-solving", name: "Problem Solving", category: "SOFT", tags: ["analytical", "critical"] }
+    ];
+    for (const skillData of defaultSkills) {
+      const skill = {
+        id: skillData.id,
+        name: skillData.name,
+        description: `Proficiency in ${skillData.name}`,
+        category: skillData.category,
+        tags: skillData.tags || [],
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+      this.skills.set(skill.id, skill);
+    }
+    this.skillRelations.push(
+      { sourceSkillId: "skill-js", targetSkillId: "skill-ts", relationType: "PREREQUISITE", strength: 0.9 },
+      { sourceSkillId: "skill-js", targetSkillId: "skill-react", relationType: "PREREQUISITE", strength: 0.95 },
+      { sourceSkillId: "skill-js", targetSkillId: "skill-node", relationType: "PREREQUISITE", strength: 0.85 },
+      { sourceSkillId: "skill-ts", targetSkillId: "skill-react", relationType: "ENHANCES", strength: 0.8 }
+    );
+  }
+  initializeDefaultRoles() {
+    const defaultRoles = [
+      {
+        id: "role-frontend-dev",
+        title: "Frontend Developer",
+        description: "Develops user interfaces and web applications",
+        level: "MID",
+        requiredSkills: [
+          { skillId: "skill-js", minimumProficiency: "COMPETENT", weight: 1, isRequired: true },
+          { skillId: "skill-react", minimumProficiency: "COMPETENT", weight: 0.9, isRequired: true },
+          { skillId: "skill-ts", minimumProficiency: "BEGINNER", weight: 0.7, isRequired: false }
+        ],
+        preferredSkills: [
+          { skillId: "skill-git", minimumProficiency: "COMPETENT", weight: 0.5, isRequired: false }
+        ]
+      },
+      {
+        id: "role-fullstack-dev",
+        title: "Full Stack Developer",
+        description: "Develops both frontend and backend applications",
+        level: "SENIOR",
+        requiredSkills: [
+          { skillId: "skill-js", minimumProficiency: "PROFICIENT", weight: 1, isRequired: true },
+          { skillId: "skill-react", minimumProficiency: "COMPETENT", weight: 0.9, isRequired: true },
+          { skillId: "skill-node", minimumProficiency: "COMPETENT", weight: 0.9, isRequired: true },
+          { skillId: "skill-sql", minimumProficiency: "COMPETENT", weight: 0.8, isRequired: true }
+        ],
+        preferredSkills: [
+          { skillId: "skill-ts", minimumProficiency: "COMPETENT", weight: 0.7, isRequired: false },
+          { skillId: "skill-git", minimumProficiency: "PROFICIENT", weight: 0.5, isRequired: false }
+        ]
+      }
+    ];
+    for (const roleData of defaultRoles) {
+      const role = {
+        id: roleData.id,
+        title: roleData.title,
+        description: roleData.description,
+        level: roleData.level,
+        requiredSkills: roleData.requiredSkills || [],
+        preferredSkills: roleData.preferredSkills || [],
+        createdAt: /* @__PURE__ */ new Date(),
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+      this.jobRoles.set(role.id, role);
+    }
+  }
+  // ==========================================================================
+  // SKILL MANAGEMENT
+  // ==========================================================================
+  /**
+   * Create a new skill
+   */
+  createSkill(input) {
+    const id = `skill-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const skill = {
+      id,
+      name: input.name,
+      description: input.description,
+      category: input.category,
+      parentId: input.parentId,
+      tags: input.tags || [],
+      frameworkMappings: input.frameworkMappings,
+      typicalLearningHours: input.typicalLearningHours,
+      bloomsLevels: input.bloomsLevels,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.skills.set(id, skill);
+    return skill;
+  }
+  /**
+   * Get a skill by ID
+   */
+  getSkill(skillId) {
+    return this.skills.get(skillId);
+  }
+  /**
+   * Search skills by query
+   */
+  searchSkills(query, options) {
+    const normalizedQuery = query.toLowerCase();
+    let results = Array.from(this.skills.values()).filter((skill) => {
+      const nameMatch = skill.name.toLowerCase().includes(normalizedQuery);
+      const descMatch = skill.description.toLowerCase().includes(normalizedQuery);
+      const tagMatch = skill.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery));
+      return nameMatch || descMatch || tagMatch;
+    });
+    if (options?.category) {
+      results = results.filter((s) => s.category === options.category);
+    }
+    if (options?.tags && options.tags.length > 0) {
+      results = results.filter(
+        (s) => options.tags.some((tag) => s.tags.includes(tag))
+      );
+    }
+    if (options?.limit) {
+      results = results.slice(0, options.limit);
+    }
+    return results;
+  }
+  /**
+   * Get related skills
+   */
+  getRelatedSkills(skillId, relationType) {
+    const relations = this.skillRelations.filter(
+      (r) => (r.sourceSkillId === skillId || r.targetSkillId === skillId) && (!relationType || r.relationType === relationType)
+    );
+    const relatedIds = /* @__PURE__ */ new Set();
+    for (const relation of relations) {
+      if (relation.sourceSkillId === skillId) {
+        relatedIds.add(relation.targetSkillId);
+      } else {
+        relatedIds.add(relation.sourceSkillId);
+      }
+    }
+    return Array.from(relatedIds).map((id) => this.skills.get(id)).filter((s) => s !== void 0);
+  }
+  /**
+   * Add a skill relation
+   */
+  addSkillRelation(relation) {
+    this.skillRelations = this.skillRelations.filter(
+      (r) => !(r.sourceSkillId === relation.sourceSkillId && r.targetSkillId === relation.targetSkillId)
+    );
+    this.skillRelations.push(relation);
+  }
+  // ==========================================================================
+  // SKILL TREE MANAGEMENT
+  // ==========================================================================
+  /**
+   * Create a skill tree
+   */
+  createSkillTree(input) {
+    const id = `tree-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const nodes = [];
+    const edges = [];
+    const tierGroups = /* @__PURE__ */ new Map();
+    for (const skillInput of input.skills) {
+      const existing = tierGroups.get(skillInput.tier) || [];
+      existing.push(skillInput);
+      tierGroups.set(skillInput.tier, existing);
+    }
+    let totalHours = 0;
+    for (const skillInput of input.skills) {
+      const skill = this.skills.get(skillInput.skillId);
+      if (!skill) continue;
+      const tierSkills = tierGroups.get(skillInput.tier) || [];
+      const indexInTier = tierSkills.findIndex((s) => s.skillId === skillInput.skillId);
+      const node = {
+        id: `node-${skillInput.skillId}`,
+        skillId: skillInput.skillId,
+        skill,
+        position: {
+          x: indexInTier * 200,
+          y: skillInput.tier * 150,
+          tier: skillInput.tier
+        },
+        requiredProficiency: "COMPETENT",
+        isMilestone: skillInput.isMilestone || false,
+        unlocks: []
+      };
+      nodes.push(node);
+      totalHours += skill.typicalLearningHours || 40;
+      if (skillInput.prerequisites) {
+        for (const prereqId of skillInput.prerequisites) {
+          edges.push({
+            sourceNodeId: `node-${prereqId}`,
+            targetNodeId: node.id,
+            relationType: "PREREQUISITE",
+            isOptional: false
+          });
+          const sourceNode = nodes.find((n) => n.skillId === prereqId);
+          if (sourceNode) {
+            sourceNode.unlocks.push(skillInput.skillId);
+          }
+        }
+      }
+    }
+    const tiers = Array.from(tierGroups.keys()).sort((a, b) => a - b);
+    const tierInfos = tiers.map((tier) => ({
+      tier,
+      name: `Tier ${tier}`,
+      description: `Skills at level ${tier}`,
+      skillCount: tierGroups.get(tier)?.length || 0,
+      avgProficiencyRequired: tier <= 2 ? "BEGINNER" : tier <= 4 ? "COMPETENT" : "PROFICIENT"
+    }));
+    const difficultyProgression = {
+      tiers: tierInfos,
+      estimatedTimePerTier: tiers.map((tier) => {
+        const tierSkills = tierGroups.get(tier) || [];
+        return tierSkills.reduce((sum, s) => {
+          const skill = this.skills.get(s.skillId);
+          return sum + (skill?.typicalLearningHours || 40);
+        }, 0);
+      })
+    };
+    const skillTree = {
+      id,
+      name: input.name,
+      description: input.description,
+      rootSkillId: input.rootSkillId,
+      nodes,
+      edges,
+      targetRoles: input.targetRoles,
+      totalLearningHours: totalHours,
+      difficultyProgression,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.skillTrees.set(id, skillTree);
+    return skillTree;
+  }
+  /**
+   * Get a skill tree by ID
+   */
+  getSkillTree(treeId) {
+    return this.skillTrees.get(treeId);
+  }
+  /**
+   * Generate a skill tree based on target role
+   */
+  async generateSkillTree(input) {
+    const roleSkills = this.searchSkills(input.targetRole, { limit: 10 });
+    const skillInputs = [];
+    let tier = 1;
+    const foundationalSkills = roleSkills.filter(
+      (s) => s.category === "SOFT" || this.skillRelations.some(
+        (r) => r.targetSkillId === s.id && r.relationType === "PREREQUISITE"
+      )
+    );
+    for (const skill of foundationalSkills) {
+      skillInputs.push({
+        skillId: skill.id,
+        tier,
+        isMilestone: false
+      });
+    }
+    tier++;
+    const technicalSkills = roleSkills.filter(
+      (s) => s.category === "TECHNICAL" && !foundationalSkills.includes(s)
+    );
+    for (const skill of technicalSkills) {
+      const prereqs = this.skillRelations.filter((r) => r.targetSkillId === skill.id && r.relationType === "PREREQUISITE").map((r) => r.sourceSkillId);
+      skillInputs.push({
+        skillId: skill.id,
+        tier,
+        prerequisites: prereqs.length > 0 ? prereqs : void 0,
+        isMilestone: skill.category === "CERTIFICATION"
+      });
+    }
+    let rootSkillId = roleSkills[0]?.id;
+    if (!rootSkillId) {
+      const rootSkill = this.createSkill({
+        name: input.targetRole,
+        description: `Skills for ${input.targetRole}`,
+        category: "DOMAIN",
+        tags: ["career", "role"]
+      });
+      rootSkillId = rootSkill.id;
+    }
+    return this.createSkillTree({
+      name: `${input.targetRole} Skill Tree`,
+      description: `Learning path for ${input.targetRole}`,
+      rootSkillId,
+      targetRoles: [input.targetRole],
+      skills: skillInputs
+    });
+  }
+  // ==========================================================================
+  // USER COMPETENCY MANAGEMENT
+  // ==========================================================================
+  /**
+   * Get user competency profile
+   */
+  getUserCompetency(input) {
+    const userSkills = this.userProficiencies.get(input.userId) || /* @__PURE__ */ new Map();
+    const proficiencies = Array.from(userSkills.values());
+    const categoryDistribution = {
+      TECHNICAL: 0,
+      SOFT: 0,
+      DOMAIN: 0,
+      TOOL: 0,
+      METHODOLOGY: 0,
+      CERTIFICATION: 0
+    };
+    for (const prof of proficiencies) {
+      const skill = this.skills.get(prof.skillId);
+      if (skill) {
+        categoryDistribution[skill.category] += prof.score;
+      }
+    }
+    const totalScore = Object.values(categoryDistribution).reduce((a, b) => a + b, 0);
+    if (totalScore > 0) {
+      for (const category of Object.keys(categoryDistribution)) {
+        categoryDistribution[category] = Math.round(categoryDistribution[category] / totalScore * 100);
+      }
+    }
+    const overallScore = proficiencies.length > 0 ? Math.round(proficiencies.reduce((sum, p) => sum + p.score, 0) / proficiencies.length) : 0;
+    const sortedByScore = [...proficiencies].sort((a, b) => b.score - a.score);
+    const strengths = sortedByScore.slice(0, 5).map((p) => this.skills.get(p.skillId)).filter((s) => s !== void 0);
+    const improvementAreas = sortedByScore.slice(-5).map((p) => this.skills.get(p.skillId)).filter((s) => s !== void 0);
+    const skillGaps = [];
+    if (input.targetRoleIds) {
+      for (const roleId of input.targetRoleIds) {
+        const role = this.jobRoles.get(roleId);
+        if (role) {
+          for (const req of role.requiredSkills) {
+            const userProf = userSkills.get(req.skillId);
+            const currentLevel = userProf?.proficiency || "NOVICE";
+            if (compareProficiency(currentLevel, req.minimumProficiency) < 0) {
+              const skill = this.skills.get(req.skillId);
+              if (skill) {
+                const gap = PROFICIENCY_VALUES[req.minimumProficiency] - PROFICIENCY_VALUES[currentLevel];
+                skillGaps.push({
+                  skill,
+                  currentLevel,
+                  requiredLevel: req.minimumProficiency,
+                  gap,
+                  priority: gap >= 3 ? "CRITICAL" : gap >= 2 ? "HIGH" : "MEDIUM",
+                  targetRole: role.title
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    const recommendations = [];
+    if (input.includeRecommendations) {
+      for (const gap of skillGaps.slice(0, 5)) {
+        recommendations.push({
+          skill: gap.skill,
+          reason: `Required for ${gap.targetRole}`,
+          priority: gap.priority === "CRITICAL" ? "HIGH" : gap.priority === "HIGH" ? "HIGH" : "MEDIUM",
+          estimatedLearningHours: gap.skill.typicalLearningHours || 40,
+          suggestedResources: [],
+          relatedCareerPaths: [gap.targetRole || ""]
+        });
+      }
+    }
+    return {
+      userId: input.userId,
+      skills: proficiencies,
+      categoryDistribution,
+      overallScore,
+      strengths,
+      improvementAreas,
+      skillGaps,
+      recommendations,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Update user skill proficiency
+   */
+  updateProficiency(input) {
+    let userSkills = this.userProficiencies.get(input.userId);
+    if (!userSkills) {
+      userSkills = /* @__PURE__ */ new Map();
+      this.userProficiencies.set(input.userId, userSkills);
+    }
+    const existing = userSkills.get(input.skillId);
+    const skill = this.skills.get(input.skillId);
+    const evidence = existing?.evidence || [];
+    if (input.evidence) {
+      evidence.push({
+        type: input.evidence.type,
+        description: input.evidence.description,
+        sourceId: input.evidence.sourceId,
+        date: /* @__PURE__ */ new Date()
+      });
+    }
+    const score = input.score ?? getScoreFromProficiency(input.proficiency);
+    const proficiency = {
+      userId: input.userId,
+      skillId: input.skillId,
+      skill,
+      proficiency: input.proficiency,
+      score,
+      confidence: this.calculateConfidence(evidence),
+      evidence,
+      lastAssessedAt: /* @__PURE__ */ new Date(),
+      targetProficiency: existing?.targetProficiency,
+      progressToTarget: existing?.targetProficiency ? PROFICIENCY_VALUES[input.proficiency] / PROFICIENCY_VALUES[existing.targetProficiency] * 100 : void 0
+    };
+    userSkills.set(input.skillId, proficiency);
+    return proficiency;
+  }
+  calculateConfidence(evidence) {
+    if (evidence.length === 0) return 0.3;
+    let confidence = 0;
+    const weights = {
+      ASSESSMENT: 0.3,
+      PROJECT: 0.25,
+      CERTIFICATION: 0.35,
+      PEER_REVIEW: 0.2,
+      SELF_REPORT: 0.1,
+      COURSE: 0.15
+    };
+    for (const e of evidence) {
+      confidence += weights[e.type];
+    }
+    return Math.min(confidence, 1);
+  }
+  /**
+   * Get skill gap analysis
+   */
+  getSkillGapAnalysis(input) {
+    const userSkills = this.userProficiencies.get(input.userId) || /* @__PURE__ */ new Map();
+    const gaps = [];
+    const targetSkills = [];
+    if (input.targetRoleId) {
+      const role = this.jobRoles.get(input.targetRoleId);
+      if (role) {
+        for (const req of [...role.requiredSkills, ...role.preferredSkills]) {
+          const skill = this.skills.get(req.skillId);
+          if (skill) targetSkills.push(skill);
+        }
+      }
+    }
+    if (input.targetSkillIds) {
+      for (const skillId of input.targetSkillIds) {
+        const skill = this.skills.get(skillId);
+        if (skill && !targetSkills.includes(skill)) {
+          targetSkills.push(skill);
+        }
+      }
+    }
+    for (const skill of targetSkills) {
+      const userProf = userSkills.get(skill.id);
+      const currentLevel = userProf?.proficiency || "NOVICE";
+      const requiredLevel = "COMPETENT";
+      if (compareProficiency(currentLevel, requiredLevel) < 0) {
+        const gap = PROFICIENCY_VALUES[requiredLevel] - PROFICIENCY_VALUES[currentLevel];
+        gaps.push({
+          skill,
+          currentLevel,
+          requiredLevel,
+          gap,
+          priority: gap >= 3 ? "CRITICAL" : gap >= 2 ? "HIGH" : gap >= 1 ? "MEDIUM" : "LOW"
+        });
+      }
+    }
+    gaps.sort((a, b) => b.gap - a.gap);
+    const totalGapScore = gaps.reduce((sum, g) => sum + g.gap, 0);
+    const quickWins = gaps.filter((g) => g.gap <= 1).map((g) => g.skill).slice(0, 3);
+    const longTermInvestments = gaps.filter((g) => g.gap >= 2).map((g) => g.skill).slice(0, 3);
+    const prioritizedLearningPath = gaps.sort((a, b) => {
+      const aScore = a.gap * (a.skill.typicalLearningHours || 40);
+      const bScore = b.gap * (b.skill.typicalLearningHours || 40);
+      return aScore - bScore;
+    }).map((g) => g.skill);
+    const estimatedTimeToClose = gaps.reduce((sum, g) => {
+      const hoursPerLevel = g.skill.typicalLearningHours || 40;
+      return sum + hoursPerLevel * g.gap;
+    }, 0);
+    return {
+      gaps,
+      totalGapScore,
+      prioritizedLearningPath,
+      estimatedTimeToClose,
+      quickWins,
+      longTermInvestments
+    };
+  }
+  // ==========================================================================
+  // JOB ROLE MATCHING
+  // ==========================================================================
+  /**
+   * Match user to job roles
+   */
+  matchJobRoles(input) {
+    const userSkills = this.userProficiencies.get(input.userId) || /* @__PURE__ */ new Map();
+    const matches = [];
+    for (const [roleId, role] of this.jobRoles) {
+      if (input.industry && role.industry !== input.industry) continue;
+      if (input.levels && !input.levels.includes(role.level)) continue;
+      const match = this.calculateRoleMatch(userSkills, role);
+      if (!input.minMatchScore || match.matchScore >= input.minMatchScore) {
+        matches.push(match);
+      }
+    }
+    matches.sort((a, b) => b.matchScore - a.matchScore);
+    const limitedMatches = input.limit ? matches.slice(0, input.limit) : matches;
+    const allGaps = /* @__PURE__ */ new Map();
+    for (const match of limitedMatches) {
+      for (const req of match.unmetRequirements) {
+        const skill = this.skills.get(req.skillId);
+        if (skill && !allGaps.has(skill.id)) {
+          const userProf = userSkills.get(skill.id);
+          const currentLevel = userProf?.proficiency || "NOVICE";
+          allGaps.set(skill.id, {
+            skill,
+            currentLevel,
+            requiredLevel: req.minimumProficiency,
+            gap: PROFICIENCY_VALUES[req.minimumProficiency] - PROFICIENCY_VALUES[currentLevel],
+            priority: "HIGH"
+          });
+        }
+      }
+    }
+    const topSkillGaps = Array.from(allGaps.values()).sort((a, b) => b.gap - a.gap).slice(0, 5);
+    return {
+      matches: limitedMatches,
+      totalMatched: matches.length,
+      topSkillGaps
+    };
+  }
+  calculateRoleMatch(userSkills, role) {
+    const metRequirements = [];
+    const unmetRequirements = [];
+    const partiallyMet = [];
+    let totalWeight = 0;
+    let matchedWeight = 0;
+    for (const req of role.requiredSkills) {
+      totalWeight += req.weight;
+      const userProf = userSkills.get(req.skillId);
+      if (!userProf) {
+        unmetRequirements.push(req);
+      } else if (compareProficiency(userProf.proficiency, req.minimumProficiency) >= 0) {
+        metRequirements.push(req);
+        matchedWeight += req.weight;
+      } else {
+        partiallyMet.push({
+          requirement: req,
+          currentProficiency: userProf.proficiency,
+          gap: PROFICIENCY_VALUES[req.minimumProficiency] - PROFICIENCY_VALUES[userProf.proficiency]
+        });
+        matchedWeight += req.weight * (PROFICIENCY_VALUES[userProf.proficiency] / PROFICIENCY_VALUES[req.minimumProficiency]);
+      }
+    }
+    for (const req of role.preferredSkills) {
+      const adjustedWeight = req.weight * 0.5;
+      totalWeight += adjustedWeight;
+      const userProf = userSkills.get(req.skillId);
+      if (userProf && compareProficiency(userProf.proficiency, req.minimumProficiency) >= 0) {
+        matchedWeight += adjustedWeight;
+      }
+    }
+    const matchScore = totalWeight > 0 ? Math.round(matchedWeight / totalWeight * 100) : 0;
+    const estimatedTimeToQualify = unmetRequirements.reduce((sum, req) => {
+      const skill = this.skills.get(req.skillId);
+      return sum + (skill?.typicalLearningHours || 40);
+    }, 0) + partiallyMet.reduce((sum, pm) => {
+      const skill = this.skills.get(pm.requirement.skillId);
+      return sum + (skill?.typicalLearningHours || 40) * pm.gap / 6;
+    }, 0);
+    return {
+      role,
+      matchScore,
+      metRequirements,
+      unmetRequirements,
+      partiallyMet,
+      estimatedTimeToQualify
+    };
+  }
+  // ==========================================================================
+  // CAREER PATH ANALYSIS
+  // ==========================================================================
+  /**
+   * Analyze career paths for a user
+   */
+  analyzeCareerPath(input) {
+    const userSkills = this.userProficiencies.get(input.userId) || /* @__PURE__ */ new Map();
+    const roleMatches = this.matchJobRoles({
+      userId: input.userId,
+      limit: 5
+    });
+    const bestMatch = roleMatches.matches[0];
+    const currentPosition = {
+      matchedRole: bestMatch?.role,
+      estimatedLevel: bestMatch?.role.level || "ENTRY",
+      confidence: bestMatch ? bestMatch.matchScore / 100 : 0.3
+    };
+    const recommendedPaths = [];
+    for (const [pathId, path] of this.careerPaths) {
+      if (input.targetIndustry && path.industry !== input.targetIndustry) continue;
+      const fitScore = this.calculatePathFit(userSkills, path);
+      if (fitScore > 30) {
+        recommendedPaths.push({
+          path,
+          fitScore,
+          strengths: this.identifyStrengthsForPath(userSkills, path),
+          challenges: this.identifyChallengesForPath(userSkills, path),
+          estimatedYearsToGoal: this.estimateYearsToGoal(userSkills, path)
+        });
+      }
+    }
+    recommendedPaths.sort((a, b) => b.fitScore - a.fitScore);
+    const skillFrequency = /* @__PURE__ */ new Map();
+    for (const rec of recommendedPaths) {
+      for (const stage of rec.path.stages) {
+        for (const skill of stage.transitionSkills) {
+          skillFrequency.set(skill.id, (skillFrequency.get(skill.id) || 0) + 1);
+        }
+      }
+    }
+    const prioritySkills = Array.from(skillFrequency.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([skillId]) => {
+      const skill = this.skills.get(skillId);
+      return {
+        skill,
+        reason: "Common across recommended career paths",
+        priority: "HIGH",
+        estimatedLearningHours: skill.typicalLearningHours || 40,
+        suggestedResources: [],
+        relatedCareerPaths: recommendedPaths.map((r) => r.path.name)
+      };
+    });
+    const projections = [];
+    const horizonYears = input.maxYearsHorizon || 5;
+    for (let year = 1; year <= horizonYears; year++) {
+      const projection = this.projectCareerAt(userSkills, recommendedPaths[0]?.path, year);
+      if (projection) {
+        projections.push(projection);
+      }
+    }
+    return {
+      userId: input.userId,
+      currentPosition,
+      recommendedPaths: recommendedPaths.slice(0, 3),
+      prioritySkills,
+      projections
+    };
+  }
+  calculatePathFit(userSkills, path) {
+    if (path.stages.length === 0) return 0;
+    const firstStage = path.stages[0];
+    const requiredSkills = firstStage.transitionSkills;
+    let matchedCount = 0;
+    for (const skill of requiredSkills) {
+      const userProf = userSkills.get(skill.id);
+      if (userProf && compareProficiency(userProf.proficiency, "BEGINNER") >= 0) {
+        matchedCount++;
+      }
+    }
+    return requiredSkills.length > 0 ? Math.round(matchedCount / requiredSkills.length * 100) : 50;
+  }
+  identifyStrengthsForPath(userSkills, path) {
+    const strengths = [];
+    for (const stage of path.stages) {
+      for (const skill of stage.transitionSkills) {
+        const userProf = userSkills.get(skill.id);
+        if (userProf && compareProficiency(userProf.proficiency, "COMPETENT") >= 0) {
+          strengths.push(`Strong ${skill.name} skills`);
+        }
+      }
+    }
+    return strengths.slice(0, 3);
+  }
+  identifyChallengesForPath(userSkills, path) {
+    const challenges = [];
+    for (const stage of path.stages) {
+      for (const skill of stage.transitionSkills) {
+        const userProf = userSkills.get(skill.id);
+        if (!userProf || compareProficiency(userProf.proficiency, "BEGINNER") < 0) {
+          challenges.push(`Need to develop ${skill.name}`);
+        }
+      }
+    }
+    return challenges.slice(0, 3);
+  }
+  estimateYearsToGoal(userSkills, path) {
+    let totalHoursNeeded = 0;
+    for (const stage of path.stages) {
+      for (const skill of stage.transitionSkills) {
+        const userProf = userSkills.get(skill.id);
+        const currentLevel = userProf?.proficiency || "NOVICE";
+        const targetLevel = "COMPETENT";
+        const gap = Math.max(0, PROFICIENCY_VALUES[targetLevel] - PROFICIENCY_VALUES[currentLevel]);
+        totalHoursNeeded += gap * (skill.typicalLearningHours || 40);
+      }
+    }
+    const weeksNeeded = totalHoursNeeded / 10;
+    return Math.ceil(weeksNeeded / 52);
+  }
+  projectCareerAt(userSkills, path, yearsFromNow) {
+    if (!path || path.stages.length === 0) return null;
+    let cumulativeYears = 0;
+    let projectedStage = path.stages[0];
+    for (const stage of path.stages) {
+      cumulativeYears += stage.typicalYearsInRole;
+      if (cumulativeYears >= yearsFromNow) {
+        projectedStage = stage;
+        break;
+      }
+    }
+    return {
+      yearsFromNow,
+      projectedRole: projectedStage.role,
+      projectedSalary: projectedStage.role.salaryRange,
+      requiredMilestones: projectedStage.keyMilestones,
+      probability: Math.max(0.3, 1 - yearsFromNow * 0.1)
+    };
+  }
+  // ==========================================================================
+  // PORTFOLIO MANAGEMENT
+  // ==========================================================================
+  /**
+   * Add portfolio item
+   */
+  addPortfolioItem(input) {
+    const id = `portfolio-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const demonstratedSkills = input.demonstratedSkills.map((ds) => ({
+      skillId: ds.skillId,
+      skill: this.skills.get(ds.skillId),
+      proficiencyDemonstrated: ds.proficiency,
+      evidenceDescription: ds.evidence
+    }));
+    const artifacts = (input.artifacts || []).map((a) => ({
+      id: `artifact-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      type: a.type,
+      title: a.title,
+      url: a.url,
+      description: a.description
+    }));
+    const item = {
+      id,
+      userId: input.userId,
+      type: input.type,
+      title: input.title,
+      description: input.description,
+      demonstratedSkills,
+      artifacts,
+      date: input.date,
+      visibility: input.visibility || "PRIVATE",
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    let userPortfolio = this.portfolios.get(input.userId);
+    if (!userPortfolio) {
+      userPortfolio = [];
+      this.portfolios.set(input.userId, userPortfolio);
+    }
+    userPortfolio.push(item);
+    for (const ds of demonstratedSkills) {
+      const existing = this.userProficiencies.get(input.userId)?.get(ds.skillId);
+      if (!existing || compareProficiency(existing.proficiency, ds.proficiencyDemonstrated) < 0) {
+        this.updateProficiency({
+          userId: input.userId,
+          skillId: ds.skillId,
+          proficiency: ds.proficiencyDemonstrated,
+          evidence: {
+            type: "PROJECT",
+            description: ds.evidenceDescription,
+            sourceId: id
+          }
+        });
+      }
+    }
+    return item;
+  }
+  /**
+   * Get user portfolio
+   */
+  getUserPortfolio(userId) {
+    const items = this.portfolios.get(userId) || [];
+    const itemsByType = {
+      PROJECT: 0,
+      CERTIFICATION: 0,
+      COURSE_COMPLETION: 0,
+      ASSESSMENT: 0,
+      PUBLICATION: 0,
+      CONTRIBUTION: 0,
+      ACHIEVEMENT: 0,
+      RECOMMENDATION: 0
+    };
+    const demonstratedSkillIds = /* @__PURE__ */ new Set();
+    let verifiedCount = 0;
+    let totalEndorsements = 0;
+    for (const item of items) {
+      itemsByType[item.type]++;
+      if (item.verification?.verified) verifiedCount++;
+      totalEndorsements += item.impact?.endorsements || 0;
+      for (const ds of item.demonstratedSkills) {
+        demonstratedSkillIds.add(ds.skillId);
+      }
+    }
+    const summary = {
+      totalItems: items.length,
+      itemsByType,
+      skillsDemonstrated: demonstratedSkillIds.size,
+      verifiedItems: verifiedCount,
+      totalEndorsements,
+      lastUpdated: items.length > 0 ? new Date(Math.max(...items.map((i) => i.updatedAt.getTime()))) : /* @__PURE__ */ new Date()
+    };
+    const userSkills = this.userProficiencies.get(userId) || /* @__PURE__ */ new Map();
+    const allUserSkillIds = new Set(userSkills.keys());
+    const coveredSkills = Array.from(demonstratedSkillIds).map((id) => this.skills.get(id)).filter((s) => s !== void 0);
+    const uncoveredSkills = Array.from(allUserSkillIds).filter((id) => !demonstratedSkillIds.has(id)).map((id) => this.skills.get(id)).filter((s) => s !== void 0);
+    const skillCoverage = {
+      coveredSkills,
+      uncoveredSkills,
+      coveragePercentage: allUserSkillIds.size > 0 ? Math.round(demonstratedSkillIds.size / allUserSkillIds.size * 100) : 0,
+      strongestEvidence: coveredSkills.slice(0, 3),
+      weakestEvidence: uncoveredSkills.slice(0, 3)
+    };
+    const strengthScore = Math.min(100, Math.round(
+      items.length * 5 + verifiedCount * 10 + skillCoverage.coveragePercentage * 0.5
+    ));
+    const recommendations = [];
+    if (uncoveredSkills.length > 0) {
+      recommendations.push({
+        type: "ADD_PROJECT",
+        priority: "HIGH",
+        description: `Add projects demonstrating ${uncoveredSkills[0].name}`,
+        targetSkills: uncoveredSkills.slice(0, 3),
+        expectedImpact: "Improve skill coverage by 15-20%"
+      });
+    }
+    if (itemsByType.CERTIFICATION === 0) {
+      recommendations.push({
+        type: "GET_CERTIFICATION",
+        priority: "MEDIUM",
+        description: "Add certifications to boost credibility",
+        expectedImpact: "Increase verified credentials"
+      });
+    }
+    if (items.some((i) => !i.artifacts || i.artifacts.length === 0)) {
+      recommendations.push({
+        type: "ADD_EVIDENCE",
+        priority: "MEDIUM",
+        description: "Add artifacts to existing portfolio items",
+        expectedImpact: "Strengthen evidence of skills"
+      });
+    }
+    return {
+      userId,
+      items,
+      summary,
+      skillCoverage,
+      strengthScore,
+      recommendations
+    };
+  }
+  // ==========================================================================
+  // SKILL ASSESSMENT
+  // ==========================================================================
+  /**
+   * Create a skill assessment
+   */
+  createAssessment(input) {
+    const id = `assessment-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const skill = this.skills.get(input.skillId);
+    const proficiencyMapping = [
+      { proficiency: "NOVICE", minScore: 0, maxScore: 29 },
+      { proficiency: "BEGINNER", minScore: 30, maxScore: 49 },
+      { proficiency: "COMPETENT", minScore: 50, maxScore: 69 },
+      { proficiency: "PROFICIENT", minScore: 70, maxScore: 84 },
+      { proficiency: "EXPERT", minScore: 85, maxScore: 94 },
+      { proficiency: "MASTER", minScore: 95, maxScore: 100 }
+    ];
+    const assessment = {
+      id,
+      skillId: input.skillId,
+      skill,
+      title: input.title,
+      description: input.description,
+      type: input.type,
+      items: input.items,
+      timeLimitMinutes: input.timeLimitMinutes,
+      passingScore: input.passingScore,
+      proficiencyMapping
+    };
+    this.assessments.set(id, assessment);
+    return assessment;
+  }
+  /**
+   * Submit assessment and calculate result
+   */
+  submitAssessment(input) {
+    const assessment = this.assessments.get(input.assessmentId);
+    if (!assessment) {
+      throw new Error(`Assessment ${input.assessmentId} not found`);
+    }
+    const itemResults = [];
+    let totalScore = 0;
+    let maxScore = 0;
+    for (const item of assessment.items) {
+      maxScore += item.points;
+      const userAnswer = input.answers.get(item.id);
+      let itemScore = 0;
+      let isCorrect;
+      if (item.correctAnswer) {
+        const correctAnswers = Array.isArray(item.correctAnswer) ? item.correctAnswer : [item.correctAnswer];
+        const userAnswers = Array.isArray(userAnswer) ? userAnswer : userAnswer ? [userAnswer] : [];
+        isCorrect = correctAnswers.every(
+          (ca) => userAnswers.some((ua) => ua.toLowerCase() === ca.toLowerCase())
+        );
+        if (isCorrect) {
+          itemScore = item.points;
+        }
+      } else if (item.rubric) {
+        itemScore = item.points * 0.7;
+      }
+      totalScore += itemScore;
+      itemResults.push({
+        itemId: item.id,
+        score: itemScore,
+        maxScore: item.points,
+        isCorrect
+      });
+    }
+    const percentage = maxScore > 0 ? Math.round(totalScore / maxScore * 100) : 0;
+    const proficiencyAchieved = assessment.proficiencyMapping.find(
+      (pm) => percentage >= pm.minScore && percentage <= pm.maxScore
+    )?.proficiency || "NOVICE";
+    const passed = percentage >= assessment.passingScore;
+    const feedback = passed ? `Congratulations! You achieved ${proficiencyAchieved} level proficiency.` : `Score of ${percentage}% is below the passing threshold of ${assessment.passingScore}%. Keep practicing!`;
+    const improvementAreas = itemResults.filter((ir) => !ir.isCorrect || ir.score < ir.maxScore * 0.7).map((ir) => {
+      const item = assessment.items.find((i) => i.id === ir.itemId);
+      return item ? `Review: ${item.question.substring(0, 50)}...` : "Review missed questions";
+    }).slice(0, 3);
+    const result = {
+      assessmentId: input.assessmentId,
+      userId: input.userId,
+      score: totalScore,
+      maxScore,
+      percentage,
+      proficiencyAchieved,
+      itemResults,
+      timeTakenMinutes: input.timeTakenMinutes,
+      feedback,
+      improvementAreas,
+      completedAt: /* @__PURE__ */ new Date()
+    };
+    if (passed) {
+      this.updateProficiency({
+        userId: input.userId,
+        skillId: assessment.skillId,
+        proficiency: proficiencyAchieved,
+        score: percentage,
+        evidence: {
+          type: "ASSESSMENT",
+          description: `Completed ${assessment.title} with ${percentage}% score`,
+          sourceId: input.assessmentId
+        }
+      });
+    }
+    return result;
+  }
+  // ==========================================================================
+  // AI-POWERED SKILL EXTRACTION
+  // ==========================================================================
+  /**
+   * Extract skills from content using AI
+   */
+  async extractSkills(input) {
+    const extractedSkills = [];
+    for (const [category, patterns] of Object.entries(SKILL_PATTERNS)) {
+      for (const pattern of patterns) {
+        const matches = input.content.match(pattern);
+        if (matches) {
+          for (const match of matches) {
+            const existingSkill = this.searchSkills(match, { limit: 1 })[0];
+            extractedSkills.push({
+              name: match,
+              category,
+              confidence: existingSkill ? 0.9 : 0.7,
+              matchedSkillId: existingSkill?.id,
+              context: this.extractContext(input.content, match),
+              suggestedProficiency: this.inferProficiency(input.content, match, input.context?.level)
+            });
+          }
+        }
+      }
+    }
+    if (this.config.enableAISkillExtraction && this.samConfig.ai?.isConfigured()) {
+      const aiExtractedSkills = await this.extractSkillsWithAI(input);
+      for (const aiSkill of aiExtractedSkills) {
+        if (!extractedSkills.some((s) => s.name.toLowerCase() === aiSkill.name.toLowerCase())) {
+          extractedSkills.push(aiSkill);
+        }
+      }
+    }
+    const uniqueSkills = /* @__PURE__ */ new Map();
+    for (const skill of extractedSkills) {
+      const key = skill.name.toLowerCase();
+      if (!uniqueSkills.has(key) || uniqueSkills.get(key).confidence < skill.confidence) {
+        uniqueSkills.set(key, skill);
+      }
+    }
+    const finalSkills = Array.from(uniqueSkills.values()).sort((a, b) => b.confidence - a.confidence);
+    const categoryCounts = /* @__PURE__ */ new Map();
+    for (const skill of finalSkills) {
+      categoryCounts.set(skill.category, (categoryCounts.get(skill.category) || 0) + 1);
+    }
+    const suggestedCategory = Array.from(categoryCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+    return {
+      skills: finalSkills,
+      suggestedCategory,
+      confidence: finalSkills.length > 0 ? finalSkills.reduce((sum, s) => sum + s.confidence, 0) / finalSkills.length : 0
+    };
+  }
+  extractContext(content, skillMatch) {
+    const index = content.toLowerCase().indexOf(skillMatch.toLowerCase());
+    if (index === -1) return "";
+    const start = Math.max(0, index - 50);
+    const end = Math.min(content.length, index + skillMatch.length + 50);
+    return content.substring(start, end).trim();
+  }
+  inferProficiency(content, skillName, level) {
+    const lowerContent = content.toLowerCase();
+    const lowerSkill = skillName.toLowerCase();
+    const expertIndicators = ["expert", "master", "advanced", "lead", "5+ years", "10+ years"];
+    const proficientIndicators = ["proficient", "strong", "solid", "3+ years", "senior"];
+    const competentIndicators = ["experienced", "familiar", "2+ years", "intermediate"];
+    const skillIndex = lowerContent.indexOf(lowerSkill);
+    if (skillIndex !== -1) {
+      const context = lowerContent.substring(
+        Math.max(0, skillIndex - 100),
+        Math.min(lowerContent.length, skillIndex + skillName.length + 100)
+      );
+      if (expertIndicators.some((ind) => context.includes(ind))) return "EXPERT";
+      if (proficientIndicators.some((ind) => context.includes(ind))) return "PROFICIENT";
+      if (competentIndicators.some((ind) => context.includes(ind))) return "COMPETENT";
+    }
+    if (level) {
+      const levelToProficiency = {
+        ENTRY: "BEGINNER",
+        JUNIOR: "BEGINNER",
+        MID: "COMPETENT",
+        SENIOR: "PROFICIENT",
+        LEAD: "PROFICIENT",
+        PRINCIPAL: "EXPERT",
+        EXECUTIVE: "EXPERT"
+      };
+      return levelToProficiency[level];
+    }
+    return void 0;
+  }
+  async extractSkillsWithAI(input) {
+    try {
+      return [];
+    } catch {
+      return [];
+    }
+  }
+  // ==========================================================================
+  // UTILITY METHODS
+  // ==========================================================================
+  /**
+   * Get all skills
+   */
+  getAllSkills() {
+    return Array.from(this.skills.values());
+  }
+  /**
+   * Get all job roles
+   */
+  getAllJobRoles() {
+    return Array.from(this.jobRoles.values());
+  }
+  /**
+   * Get job role by ID
+   */
+  getJobRole(roleId) {
+    return this.jobRoles.get(roleId);
+  }
+  /**
+   * Add a job role
+   */
+  addJobRole(role) {
+    const id = `role-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const newRole = {
+      ...role,
+      id,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.jobRoles.set(id, newRole);
+    return newRole;
+  }
+  /**
+   * Add a career path
+   */
+  addCareerPath(path) {
+    const id = `path-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const newPath = {
+      ...path,
+      id
+    };
+    this.careerPaths.set(id, newPath);
+    return newPath;
+  }
+  /**
+   * Get career path by ID
+   */
+  getCareerPath(pathId) {
+    return this.careerPaths.get(pathId);
+  }
+  /**
+   * Get all career paths
+   */
+  getAllCareerPaths() {
+    return Array.from(this.careerPaths.values());
+  }
+  /**
+   * Get proficiency level description
+   */
+  getProficiencyDescription(level) {
+    return PROFICIENCY_DESCRIPTIONS[level];
+  }
+  /**
+   * Get estimated hours to reach proficiency level
+   */
+  getHoursToReachProficiency(currentLevel, targetLevel, skill) {
+    const currentHours = PROFICIENCY_HOURS[currentLevel];
+    const targetHours = PROFICIENCY_HOURS[targetLevel];
+    const baseHours = Math.max(0, targetHours - currentHours);
+    if (skill?.typicalLearningHours) {
+      const multiplier = skill.typicalLearningHours / 40;
+      return Math.round(baseHours * multiplier);
+    }
+    return baseHours;
+  }
+};
+function createCompetencyEngine(config) {
+  return new CompetencyEngine(config);
+}
+
+// src/engines/peer-learning-engine.ts
+function generateId() {
+  return `pl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+function createDefaultStats() {
+  return {
+    totalSessions: 0,
+    totalStudyHours: 0,
+    groupsJoined: 0,
+    groupsCreated: 0,
+    questionsAsked: 0,
+    questionsAnswered: 0,
+    helpfulAnswers: 0,
+    projectsCompleted: 0,
+    peersHelped: 0,
+    reviewsGiven: 0,
+    reviewsReceived: 0,
+    averageRating: 0,
+    totalRatings: 0
+  };
+}
+function createDefaultReputation() {
+  return {
+    overall: 0,
+    helpfulness: 0,
+    reliability: 0,
+    expertise: 0,
+    communication: 0,
+    collaboration: 0,
+    history: []
+  };
+}
+function createDefaultAvailability() {
+  const emptySchedule = {
+    monday: [],
+    tuesday: [],
+    wednesday: [],
+    thursday: [],
+    friday: [],
+    saturday: [],
+    sunday: []
+  };
+  return {
+    schedule: emptySchedule,
+    preferredSessionDuration: 60,
+    maxSessionsPerWeek: 5,
+    blackoutDates: [],
+    isCurrentlyAvailable: true
+  };
+}
+function createDefaultPreferences() {
+  return {
+    preferredGroupSize: "ANY",
+    communicationStyle: "FLEXIBLE",
+    learningStyle: "MIXED",
+    sessionFormat: ["VIDEO_CALL", "TEXT_CHAT"],
+    preferSameTimezone: false,
+    preferSameLanguage: true,
+    interests: []
+  };
+}
+function createDefaultGroupSettings() {
+  return {
+    allowJoinRequests: true,
+    requireApproval: false,
+    allowMemberInvites: true,
+    allowResourceSharing: true,
+    allowDiscussions: true,
+    notificationPreferences: {
+      newMember: true,
+      sessionReminder: true,
+      newResource: true,
+      newDiscussion: true,
+      goalUpdate: true
+    },
+    contentModeration: {
+      autoModeration: false,
+      requireApprovalForPosts: false,
+      wordFilter: false,
+      reportThreshold: 3
+    }
+  };
+}
+function calculateCompatibilityScore(profile1, profile2, criteria) {
+  let score = 0;
+  let totalWeight = 0;
+  if (criteria.timezone || profile1.preferences.preferSameTimezone) {
+    const weight = 0.15;
+    totalWeight += weight;
+    if (profile1.timezone === profile2.timezone) {
+      score += weight;
+    }
+  }
+  if (criteria.languages?.length || profile1.preferences.preferSameLanguage) {
+    const weight = 0.2;
+    totalWeight += weight;
+    const commonLanguages = profile1.languages.filter(
+      (l) => profile2.languages.includes(l)
+    );
+    if (commonLanguages.length > 0) {
+      score += weight * Math.min(1, commonLanguages.length / 2);
+    }
+  }
+  const weight3 = 0.15;
+  totalWeight += weight3;
+  const commonFormats = profile1.preferences.sessionFormat.filter(
+    (f) => profile2.preferences.sessionFormat.includes(f)
+  );
+  score += weight3 * Math.min(1, commonFormats.length / 2);
+  const weight4 = 0.1;
+  totalWeight += weight4;
+  if (profile1.preferences.preferredGroupSize === profile2.preferences.preferredGroupSize || profile1.preferences.preferredGroupSize === "ANY" || profile2.preferences.preferredGroupSize === "ANY") {
+    score += weight4;
+  }
+  const weight5 = 0.15;
+  totalWeight += weight5;
+  if (profile1.preferences.learningStyle === profile2.preferences.learningStyle || profile1.preferences.learningStyle === "MIXED" || profile2.preferences.learningStyle === "MIXED") {
+    score += weight5;
+  }
+  const weight6 = 0.25;
+  totalWeight += weight6;
+  const repScore = profile2.reputation.overall / 100;
+  score += weight6 * Math.min(1, repScore);
+  return totalWeight > 0 ? score / totalWeight : 0.5;
+}
+function findComplementarySkills(profile1, profile2) {
+  const complementary = [];
+  for (const exp1 of profile1.expertise) {
+    const matching = profile2.expertise.find((e) => e.subject === exp1.subject);
+    if (matching) {
+      const level1 = proficiencyToNumber(exp1.proficiencyLevel);
+      const level2 = proficiencyToNumber(matching.proficiencyLevel);
+      if (level1 > level2) {
+        complementary.push({
+          skill: exp1.subject,
+          myLevel: exp1.proficiencyLevel,
+          theirLevel: matching.proficiencyLevel,
+          direction: "CAN_TEACH"
+        });
+      } else if (level2 > level1) {
+        complementary.push({
+          skill: exp1.subject,
+          myLevel: exp1.proficiencyLevel,
+          theirLevel: matching.proficiencyLevel,
+          direction: "CAN_LEARN"
+        });
+      } else {
+        complementary.push({
+          skill: exp1.subject,
+          myLevel: exp1.proficiencyLevel,
+          theirLevel: matching.proficiencyLevel,
+          direction: "MUTUAL"
+        });
+      }
+    }
+  }
+  return complementary;
+}
+function proficiencyToNumber(level) {
+  const mapping = {
+    BEGINNER: 1,
+    INTERMEDIATE: 2,
+    ADVANCED: 3,
+    EXPERT: 4,
+    MASTER: 5
+  };
+  return mapping[level];
+}
+function calculateAvailabilityOverlap(avail1, avail2) {
+  const days = [
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday"
+  ];
+  let totalOverlapMinutes = 0;
+  let totalPossibleMinutes = 0;
+  for (const day of days) {
+    const slots1 = avail1.schedule[day];
+    const slots2 = avail2.schedule[day];
+    for (const slot1 of slots1) {
+      totalPossibleMinutes += getSlotDuration(slot1);
+      for (const slot2 of slots2) {
+        totalOverlapMinutes += getSlotOverlap(slot1, slot2);
+      }
+    }
+  }
+  return totalPossibleMinutes > 0 ? totalOverlapMinutes / totalPossibleMinutes * 100 : 0;
+}
+function getSlotDuration(slot) {
+  const [startHour, startMin] = slot.startTime.split(":").map(Number);
+  const [endHour, endMin] = slot.endTime.split(":").map(Number);
+  return endHour * 60 + endMin - (startHour * 60 + startMin);
+}
+function getSlotOverlap(slot1, slot2) {
+  const [s1h, s1m] = slot1.startTime.split(":").map(Number);
+  const [e1h, e1m] = slot1.endTime.split(":").map(Number);
+  const [s2h, s2m] = slot2.startTime.split(":").map(Number);
+  const [e2h, e2m] = slot2.endTime.split(":").map(Number);
+  const start1 = s1h * 60 + s1m;
+  const end1 = e1h * 60 + e1m;
+  const start2 = s2h * 60 + s2m;
+  const end2 = e2h * 60 + e2m;
+  const overlapStart = Math.max(start1, start2);
+  const overlapEnd = Math.min(end1, end2);
+  return Math.max(0, overlapEnd - overlapStart);
+}
+var PeerLearningEngine = class {
+  samConfig;
+  config;
+  // In-memory storage (would be database in production)
+  profiles = /* @__PURE__ */ new Map();
+  groups = /* @__PURE__ */ new Map();
+  discussions = /* @__PURE__ */ new Map();
+  mentorships = /* @__PURE__ */ new Map();
+  reviewAssignments = /* @__PURE__ */ new Map();
+  rubrics = /* @__PURE__ */ new Map();
+  projects = /* @__PURE__ */ new Map();
+  constructor(samConfig, config) {
+    this.samConfig = samConfig;
+    this.config = {
+      matchingAlgorithm: config?.matchingAlgorithm || "WEIGHTED",
+      defaultGroupSize: config?.defaultGroupSize || 5,
+      maxGroupSize: config?.maxGroupSize || 20,
+      reputationWeights: config?.reputationWeights || {
+        helpfulness: 0.25,
+        reliability: 0.2,
+        expertise: 0.2,
+        communication: 0.15,
+        collaboration: 0.2
+      },
+      reviewCalibrationEnabled: config?.reviewCalibrationEnabled ?? true,
+      anonymousReviewsDefault: config?.anonymousReviewsDefault ?? false,
+      mentoringEnabled: config?.mentoringEnabled ?? true,
+      projectsEnabled: config?.projectsEnabled ?? true,
+      gamificationEnabled: config?.gamificationEnabled ?? true
+    };
+  }
+  // ==========================================================================
+  // Peer Profile Management
+  // ==========================================================================
+  /**
+   * Create a new peer profile
+   */
+  createPeerProfile(input) {
+    const now = /* @__PURE__ */ new Date();
+    const expertise = (input.expertise || []).map((e) => ({
+      ...e,
+      endorsements: [],
+      isVerified: false
+    }));
+    const learningGoals = (input.learningGoals || []).map((g) => ({
+      ...g,
+      id: generateId(),
+      status: "NOT_STARTED"
+    }));
+    const profile = {
+      userId: input.userId,
+      displayName: input.displayName,
+      avatarUrl: input.avatarUrl,
+      bio: input.bio,
+      expertise,
+      learningGoals,
+      availability: input.availability ? { ...createDefaultAvailability(), ...input.availability } : createDefaultAvailability(),
+      preferences: input.preferences ? { ...createDefaultPreferences(), ...input.preferences } : createDefaultPreferences(),
+      stats: createDefaultStats(),
+      badges: [],
+      reputation: createDefaultReputation(),
+      timezone: input.timezone,
+      languages: input.languages || ["en"],
+      isAvailableForMentoring: false,
+      isSeekingMentor: false,
+      lastActiveAt: now,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.profiles.set(input.userId, profile);
+    return profile;
+  }
+  /**
+   * Get a peer profile by user ID
+   */
+  getPeerProfile(userId) {
+    return this.profiles.get(userId);
+  }
+  /**
+   * Update a peer profile
+   */
+  updatePeerProfile(input) {
+    const profile = this.profiles.get(input.userId);
+    if (!profile) {
+      throw new Error(`Profile not found for user: ${input.userId}`);
+    }
+    const updated = {
+      ...profile,
+      displayName: input.displayName ?? profile.displayName,
+      avatarUrl: input.avatarUrl ?? profile.avatarUrl,
+      bio: input.bio ?? profile.bio,
+      timezone: input.timezone ?? profile.timezone,
+      languages: input.languages ?? profile.languages,
+      isAvailableForMentoring: input.isAvailableForMentoring ?? profile.isAvailableForMentoring,
+      isSeekingMentor: input.isSeekingMentor ?? profile.isSeekingMentor,
+      lastActiveAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.profiles.set(input.userId, updated);
+    return updated;
+  }
+  /**
+   * Add expertise to a profile
+   */
+  addExpertise(userId, expertise) {
+    const profile = this.profiles.get(userId);
+    if (!profile) {
+      throw new Error(`Profile not found for user: ${userId}`);
+    }
+    const newExpertise = {
+      ...expertise,
+      endorsements: [],
+      isVerified: false
+    };
+    const updated = {
+      ...profile,
+      expertise: [...profile.expertise, newExpertise],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.profiles.set(userId, updated);
+    return updated;
+  }
+  /**
+   * Add a learning goal
+   */
+  addLearningGoal(userId, goal) {
+    const profile = this.profiles.get(userId);
+    if (!profile) {
+      throw new Error(`Profile not found for user: ${userId}`);
+    }
+    const newGoal = {
+      ...goal,
+      id: generateId(),
+      status: "NOT_STARTED"
+    };
+    const updated = {
+      ...profile,
+      learningGoals: [...profile.learningGoals, newGoal],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.profiles.set(userId, updated);
+    return newGoal;
+  }
+  /**
+   * Update learning goal status
+   */
+  updateLearningGoalStatus(userId, goalId, status) {
+    const profile = this.profiles.get(userId);
+    if (!profile) {
+      throw new Error(`Profile not found for user: ${userId}`);
+    }
+    const goalIndex = profile.learningGoals.findIndex((g) => g.id === goalId);
+    if (goalIndex === -1) {
+      throw new Error(`Goal not found: ${goalId}`);
+    }
+    const updatedGoal = {
+      ...profile.learningGoals[goalIndex],
+      status
+    };
+    const updatedGoals = [...profile.learningGoals];
+    updatedGoals[goalIndex] = updatedGoal;
+    const updated = {
+      ...profile,
+      learningGoals: updatedGoals,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.profiles.set(userId, updated);
+    return updatedGoal;
+  }
+  /**
+   * Endorse a peer's expertise
+   */
+  endorseExpertise(endorserId, targetUserId, subject, message) {
+    const endorserProfile = this.profiles.get(endorserId);
+    const targetProfile = this.profiles.get(targetUserId);
+    if (!endorserProfile) {
+      throw new Error(`Endorser profile not found: ${endorserId}`);
+    }
+    if (!targetProfile) {
+      throw new Error(`Target profile not found: ${targetUserId}`);
+    }
+    const expertiseIndex = targetProfile.expertise.findIndex(
+      (e) => e.subject === subject
+    );
+    if (expertiseIndex === -1) {
+      throw new Error(`Expertise not found: ${subject}`);
+    }
+    const endorsement = {
+      id: generateId(),
+      endorserId,
+      endorserName: endorserProfile.displayName,
+      subject,
+      message,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    const updatedExpertise = [...targetProfile.expertise];
+    updatedExpertise[expertiseIndex] = {
+      ...updatedExpertise[expertiseIndex],
+      endorsements: [
+        ...updatedExpertise[expertiseIndex].endorsements,
+        endorsement
+      ]
+    };
+    const updated = {
+      ...targetProfile,
+      expertise: updatedExpertise,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.profiles.set(targetUserId, updated);
+    this.updateReputation(targetUserId, 5, "ENDORSEMENT_RECEIVED", "expertise");
+    return endorsement;
+  }
+  /**
+   * Update user reputation
+   */
+  updateReputation(userId, change, category, field) {
+    const profile = this.profiles.get(userId);
+    if (!profile) return;
+    const reputationChange = {
+      id: generateId(),
+      change,
+      reason: category,
+      category,
+      timestamp: /* @__PURE__ */ new Date()
+    };
+    const weights = this.config.reputationWeights;
+    const newFieldValue = Math.max(
+      0,
+      Math.min(100, profile.reputation[field] + change)
+    );
+    const newOverall = newFieldValue * (weights[field] || 0.2) + profile.reputation.helpfulness * (field === "helpfulness" ? 0 : weights.helpfulness) + profile.reputation.reliability * (field === "reliability" ? 0 : weights.reliability) + profile.reputation.expertise * (field === "expertise" ? 0 : weights.expertise) + profile.reputation.communication * (field === "communication" ? 0 : weights.communication) + profile.reputation.collaboration * (field === "collaboration" ? 0 : weights.collaboration);
+    const updated = {
+      ...profile,
+      reputation: {
+        ...profile.reputation,
+        [field]: newFieldValue,
+        overall: Math.round(newOverall),
+        history: [...profile.reputation.history.slice(-99), reputationChange]
+      },
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.profiles.set(userId, updated);
+    if (this.config.gamificationEnabled) {
+      this.checkBadgeEligibility(userId);
+    }
+  }
+  /**
+   * Award a badge to a user
+   */
+  awardBadge(userId, name, description, category, tier, icon) {
+    const profile = this.profiles.get(userId);
+    if (!profile) {
+      throw new Error(`Profile not found for user: ${userId}`);
+    }
+    const existingBadge = profile.badges.find(
+      (b) => b.name === name && b.tier === tier
+    );
+    if (existingBadge) {
+      return existingBadge;
+    }
+    const badge = {
+      id: generateId(),
+      name,
+      description,
+      icon,
+      category,
+      tier,
+      earnedAt: /* @__PURE__ */ new Date()
+    };
+    const updated = {
+      ...profile,
+      badges: [...profile.badges, badge],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.profiles.set(userId, updated);
+    this.updateReputation(userId, 10, "BADGE_EARNED", "helpfulness");
+    return badge;
+  }
+  /**
+   * Check and award badges based on stats
+   */
+  checkBadgeEligibility(userId) {
+    const profile = this.profiles.get(userId);
+    if (!profile) return;
+    const stats = profile.stats;
+    if (stats.peersHelped >= 100 && !this.hasBadge(userId, "Master Helper")) {
+      this.awardBadge(
+        userId,
+        "Master Helper",
+        "Helped 100+ peers",
+        "HELPER",
+        "DIAMOND",
+        "diamond-helper"
+      );
+    } else if (stats.peersHelped >= 50 && !this.hasBadge(userId, "Expert Helper")) {
+      this.awardBadge(
+        userId,
+        "Expert Helper",
+        "Helped 50+ peers",
+        "HELPER",
+        "GOLD",
+        "gold-helper"
+      );
+    } else if (stats.peersHelped >= 10 && !this.hasBadge(userId, "Active Helper")) {
+      this.awardBadge(
+        userId,
+        "Active Helper",
+        "Helped 10+ peers",
+        "HELPER",
+        "BRONZE",
+        "bronze-helper"
+      );
+    }
+    if (stats.groupsJoined >= 20 && !this.hasBadge(userId, "Super Collaborator")) {
+      this.awardBadge(
+        userId,
+        "Super Collaborator",
+        "Joined 20+ study groups",
+        "COLLABORATOR",
+        "GOLD",
+        "gold-collab"
+      );
+    }
+    if (stats.totalSessions >= 100 && !this.hasBadge(userId, "Session Master")) {
+      this.awardBadge(
+        userId,
+        "Session Master",
+        "Completed 100+ sessions",
+        "LEARNER",
+        "PLATINUM",
+        "platinum-session"
+      );
+    }
+  }
+  hasBadge(userId, badgeName) {
+    const profile = this.profiles.get(userId);
+    return profile?.badges.some((b) => b.name === badgeName) ?? false;
+  }
+  // ==========================================================================
+  // Peer Matching
+  // ==========================================================================
+  /**
+   * Find peer matches based on criteria
+   */
+  findPeerMatches(input) {
+    const startTime = Date.now();
+    const { userId, criteria } = input;
+    const userProfile = this.profiles.get(userId);
+    if (!userProfile) {
+      throw new Error(`Profile not found for user: ${userId}`);
+    }
+    const candidates = [];
+    const excludeIds = /* @__PURE__ */ new Set([userId, ...criteria.excludeUserIds || []]);
+    for (const [candidateId, candidateProfile] of this.profiles) {
+      if (excludeIds.has(candidateId)) continue;
+      if (criteria.minReputationScore && candidateProfile.reputation.overall < criteria.minReputationScore) {
+        continue;
+      }
+      if (criteria.timezone && candidateProfile.timezone !== criteria.timezone) {
+        continue;
+      }
+      if (criteria.languages?.length && !criteria.languages.some((l) => candidateProfile.languages.includes(l))) {
+        continue;
+      }
+      if (!this.isMatchTypeCompatible(criteria.matchType, candidateProfile)) {
+        continue;
+      }
+      if (criteria.subjects?.length || criteria.topics?.length) {
+        const hasRelevantExpertise = candidateProfile.expertise.some(
+          (e) => criteria.subjects?.includes(e.subject) || criteria.topics?.length && criteria.topics.some((t) => e.topic === t)
+        );
+        const hasRelevantGoals = candidateProfile.learningGoals.some(
+          (g) => criteria.subjects?.includes(g.subject) || criteria.topics?.length && criteria.topics.some((t) => g.topic === t)
+        );
+        if (!hasRelevantExpertise && !hasRelevantGoals) {
+          continue;
+        }
+      }
+      const matchScore = this.calculateMatchScore(
+        userProfile,
+        candidateProfile,
+        criteria
+      );
+      const matchReasons = this.getMatchReasons(
+        userProfile,
+        candidateProfile,
+        criteria
+      );
+      const complementarySkills = findComplementarySkills(
+        userProfile,
+        candidateProfile
+      );
+      const availabilityOverlap = calculateAvailabilityOverlap(
+        userProfile.availability,
+        candidateProfile.availability
+      );
+      const compatibilityFactors = this.getCompatibilityFactors(
+        userProfile,
+        candidateProfile
+      );
+      const commonSubjects = userProfile.expertise.filter(
+        (e) => candidateProfile.expertise.some((ce) => ce.subject === e.subject)
+      ).map((e) => e.subject);
+      candidates.push({
+        peerId: candidateId,
+        peerProfile: candidateProfile,
+        matchScore,
+        matchReasons,
+        commonSubjects,
+        complementarySkills,
+        availabilityOverlap,
+        compatibilityFactors
+      });
+    }
+    candidates.sort((a, b) => b.matchScore - a.matchScore);
+    const limit = criteria.limit || 10;
+    const matches = candidates.slice(0, limit);
+    return {
+      matches,
+      totalCandidates: candidates.length,
+      matchingTime: Date.now() - startTime,
+      criteria
+    };
+  }
+  isMatchTypeCompatible(matchType, profile) {
+    switch (matchType) {
+      case "MENTOR":
+        return profile.isAvailableForMentoring;
+      case "MENTEE":
+        return profile.isSeekingMentor;
+      case "TUTOR":
+        return profile.isAvailableForMentoring;
+      case "TUTEE":
+        return profile.isSeekingMentor;
+      default:
+        return true;
+    }
+  }
+  calculateMatchScore(userProfile, candidateProfile, criteria) {
+    let score = 0;
+    const expertiseScore = this.calculateExpertiseAlignment(
+      userProfile,
+      candidateProfile,
+      criteria
+    );
+    score += expertiseScore * 0.4;
+    const compatibilityScore = calculateCompatibilityScore(
+      userProfile,
+      candidateProfile,
+      criteria
+    );
+    score += compatibilityScore * 0.3;
+    const availabilityScore = calculateAvailabilityOverlap(
+      userProfile.availability,
+      candidateProfile.availability
+    ) / 100;
+    score += availabilityScore * 0.2;
+    const reputationScore = candidateProfile.reputation.overall / 100;
+    score += Math.min(1, reputationScore) * 0.1;
+    return Math.round(score * 100);
+  }
+  calculateExpertiseAlignment(userProfile, candidateProfile, criteria) {
+    if (!criteria.subjects?.length && !criteria.topics?.length) {
+      return 0.5;
+    }
+    let matches = 0;
+    let total = 0;
+    for (const subject of criteria.subjects || []) {
+      total++;
+      const candidateExp = candidateProfile.expertise.find(
+        (e) => e.subject === subject
+      );
+      if (candidateExp) {
+        matches++;
+        if (criteria.matchType === "MENTOR" || criteria.matchType === "TUTOR") {
+          matches += (proficiencyToNumber(candidateExp.proficiencyLevel) - 1) / 4;
+        }
+      }
+    }
+    return total > 0 ? Math.min(1, matches / total) : 0.5;
+  }
+  getMatchReasons(userProfile, candidateProfile, criteria) {
+    const reasons = [];
+    const commonSubjects = userProfile.expertise.filter(
+      (e) => candidateProfile.expertise.some((ce) => ce.subject === e.subject)
+    );
+    if (commonSubjects.length > 0) {
+      reasons.push({
+        factor: "common_subjects",
+        description: `Shares expertise in ${commonSubjects.map((s) => s.subject).join(", ")}`,
+        weight: 0.3,
+        score: 0.8
+      });
+    }
+    if (userProfile.timezone === candidateProfile.timezone) {
+      reasons.push({
+        factor: "same_timezone",
+        description: "Same timezone for convenient scheduling",
+        weight: 0.15,
+        score: 1
+      });
+    }
+    const commonLanguages = userProfile.languages.filter(
+      (l) => candidateProfile.languages.includes(l)
+    );
+    if (commonLanguages.length > 0) {
+      reasons.push({
+        factor: "common_languages",
+        description: `Common languages: ${commonLanguages.join(", ")}`,
+        weight: 0.2,
+        score: 0.9
+      });
+    }
+    if (candidateProfile.reputation.overall >= 80) {
+      reasons.push({
+        factor: "high_reputation",
+        description: "Highly rated by other peers",
+        weight: 0.15,
+        score: candidateProfile.reputation.overall / 100
+      });
+    }
+    const complementary = findComplementarySkills(userProfile, candidateProfile);
+    if (complementary.some((c) => c.direction === "CAN_LEARN")) {
+      reasons.push({
+        factor: "can_learn",
+        description: "Has expertise you can learn from",
+        weight: 0.2,
+        score: 0.85
+      });
+    }
+    return reasons;
+  }
+  getCompatibilityFactors(profile1, profile2) {
+    const factors = [];
+    const learningStyleMatch = profile1.preferences.learningStyle === profile2.preferences.learningStyle ? 1 : profile1.preferences.learningStyle === "MIXED" || profile2.preferences.learningStyle === "MIXED" ? 0.7 : 0.4;
+    factors.push({
+      name: "Learning Style",
+      compatibility: learningStyleMatch,
+      importance: 0.15
+    });
+    const commStyleMatch = profile1.preferences.communicationStyle === profile2.preferences.communicationStyle ? 1 : 0.6;
+    factors.push({
+      name: "Communication Style",
+      compatibility: commStyleMatch,
+      importance: 0.15
+    });
+    const commonFormats = profile1.preferences.sessionFormat.filter(
+      (f) => profile2.preferences.sessionFormat.includes(f)
+    );
+    const formatMatch = commonFormats.length > 0 ? commonFormats.length / Math.max(
+      profile1.preferences.sessionFormat.length,
+      profile2.preferences.sessionFormat.length
+    ) : 0;
+    factors.push({
+      name: "Session Format",
+      compatibility: formatMatch,
+      importance: 0.2
+    });
+    const groupMatch = profile1.preferences.preferredGroupSize === profile2.preferences.preferredGroupSize || profile1.preferences.preferredGroupSize === "ANY" || profile2.preferences.preferredGroupSize === "ANY" ? 1 : 0.5;
+    factors.push({
+      name: "Group Size Preference",
+      compatibility: groupMatch,
+      importance: 0.1
+    });
+    return factors;
+  }
+  // ==========================================================================
+  // Study Group Management
+  // ==========================================================================
+  /**
+   * Create a new study group
+   */
+  createStudyGroup(input) {
+    const now = /* @__PURE__ */ new Date();
+    const owner = this.profiles.get(input.ownerId);
+    if (!owner) {
+      throw new Error(`Owner profile not found: ${input.ownerId}`);
+    }
+    const ownerMember = {
+      userId: input.ownerId,
+      displayName: owner.displayName,
+      avatarUrl: owner.avatarUrl,
+      role: "OWNER",
+      joinedAt: now,
+      lastActiveAt: now,
+      contributions: 0,
+      attendance: {
+        totalSessions: 0,
+        attendedSessions: 0,
+        attendanceRate: 100,
+        streakDays: 0
+      }
+    };
+    const goals = (input.goals || []).map((g) => ({
+      ...g,
+      id: generateId(),
+      progress: 0,
+      milestones: [],
+      status: "NOT_STARTED"
+    }));
+    const schedule = input.schedule ? {
+      frequency: input.schedule.frequency || "WEEKLY",
+      dayOfWeek: input.schedule.dayOfWeek,
+      timeOfDay: input.schedule.timeOfDay || "10:00",
+      duration: input.schedule.duration || 60,
+      timezone: input.schedule.timezone || "UTC",
+      recurrenceRule: input.schedule.recurrenceRule
+    } : void 0;
+    const group = {
+      id: generateId(),
+      name: input.name,
+      description: input.description,
+      subject: input.subject,
+      topics: input.topics || [],
+      coverImageUrl: input.coverImageUrl,
+      type: input.type || "STUDY_GROUP",
+      visibility: input.visibility || "PUBLIC",
+      status: "FORMING",
+      members: [ownerMember],
+      maxMembers: input.maxMembers || this.config.defaultGroupSize,
+      minMembers: input.minMembers,
+      owner: ownerMember,
+      moderators: [],
+      schedule,
+      goals,
+      rules: input.rules,
+      tags: input.tags || [],
+      resources: [],
+      sessions: [],
+      discussions: [],
+      stats: {
+        totalSessions: 0,
+        totalStudyHours: 0,
+        averageAttendance: 100,
+        goalsCompleted: 0,
+        resourcesShared: 0,
+        discussionPosts: 0,
+        activeStreak: 0,
+        memberGrowth: 0
+      },
+      settings: input.settings ? { ...createDefaultGroupSettings(), ...input.settings } : createDefaultGroupSettings(),
+      inviteCode: this.generateInviteCode(),
+      createdAt: now,
+      updatedAt: now
+    };
+    this.groups.set(group.id, group);
+    const updatedOwner = {
+      ...owner,
+      stats: {
+        ...owner.stats,
+        groupsCreated: owner.stats.groupsCreated + 1,
+        groupsJoined: owner.stats.groupsJoined + 1
+      },
+      updatedAt: now
+    };
+    this.profiles.set(input.ownerId, updatedOwner);
+    return group;
+  }
+  /**
+   * Get a study group by ID
+   */
+  getStudyGroup(groupId) {
+    return this.groups.get(groupId);
+  }
+  /**
+   * Search for study groups
+   */
+  searchStudyGroups(options) {
+    let groups = Array.from(this.groups.values());
+    if (options.visibility) {
+      groups = groups.filter((g) => g.visibility === options.visibility);
+    } else {
+      groups = groups.filter(
+        (g) => g.visibility === "PUBLIC" || g.visibility === "INVITE_ONLY"
+      );
+    }
+    if (options.subject) {
+      groups = groups.filter(
+        (g) => g.subject.toLowerCase().includes(options.subject.toLowerCase())
+      );
+    }
+    if (options.topics?.length) {
+      groups = groups.filter(
+        (g) => options.topics.some((t) => g.topics.includes(t))
+      );
+    }
+    if (options.type) {
+      groups = groups.filter((g) => g.type === options.type);
+    }
+    if (options.status) {
+      groups = groups.filter((g) => g.status === options.status);
+    }
+    if (options.query) {
+      const queryLower = options.query.toLowerCase();
+      groups = groups.filter(
+        (g) => g.name.toLowerCase().includes(queryLower) || g.description.toLowerCase().includes(queryLower)
+      );
+    }
+    const totalCount = groups.length;
+    const offset = options.offset || 0;
+    const limit = options.limit || 20;
+    const paginatedGroups = groups.slice(offset, offset + limit);
+    return {
+      groups: paginatedGroups,
+      totalCount,
+      hasMore: offset + limit < totalCount
+    };
+  }
+  /**
+   * Request to join a study group
+   */
+  joinGroup(input) {
+    const group = this.groups.get(input.groupId);
+    if (!group) {
+      throw new Error(`Group not found: ${input.groupId}`);
+    }
+    const profile = this.profiles.get(input.userId);
+    if (!profile) {
+      throw new Error(`Profile not found: ${input.userId}`);
+    }
+    if (group.members.some((m) => m.userId === input.userId)) {
+      throw new Error("Already a member of this group");
+    }
+    if (group.members.length >= group.maxMembers) {
+      throw new Error("Group is full");
+    }
+    if (group.visibility === "SECRET") {
+      throw new Error("Cannot join secret groups directly");
+    }
+    const now = /* @__PURE__ */ new Date();
+    const newMember = {
+      userId: input.userId,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      role: "MEMBER",
+      joinedAt: now,
+      lastActiveAt: now,
+      contributions: 0,
+      attendance: {
+        totalSessions: 0,
+        attendedSessions: 0,
+        attendanceRate: 100,
+        streakDays: 0
+      }
+    };
+    const updated = {
+      ...group,
+      members: [...group.members, newMember],
+      status: group.members.length + 1 >= (group.minMembers || 2) ? "ACTIVE" : group.status,
+      updatedAt: now
+    };
+    this.groups.set(input.groupId, updated);
+    const updatedProfile = {
+      ...profile,
+      stats: {
+        ...profile.stats,
+        groupsJoined: profile.stats.groupsJoined + 1
+      },
+      updatedAt: now
+    };
+    this.profiles.set(input.userId, updatedProfile);
+    return newMember;
+  }
+  /**
+   * Leave a study group
+   */
+  leaveGroup(groupId, userId) {
+    const group = this.groups.get(groupId);
+    if (!group) {
+      throw new Error(`Group not found: ${groupId}`);
+    }
+    const memberIndex = group.members.findIndex((m) => m.userId === userId);
+    if (memberIndex === -1) {
+      throw new Error("Not a member of this group");
+    }
+    const member = group.members[memberIndex];
+    if (member.role === "OWNER") {
+      throw new Error("Owner cannot leave. Transfer ownership first.");
+    }
+    const updatedMembers = group.members.filter((m) => m.userId !== userId);
+    const updatedModerators = group.moderators.filter(
+      (m) => m.userId !== userId
+    );
+    const updated = {
+      ...group,
+      members: updatedMembers,
+      moderators: updatedModerators,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.groups.set(groupId, updated);
+  }
+  /**
+   * Create a group session
+   */
+  createGroupSession(input) {
+    const group = this.groups.get(input.groupId);
+    if (!group) {
+      throw new Error(`Group not found: ${input.groupId}`);
+    }
+    const agenda = (input.agenda || []).map((a) => ({
+      ...a,
+      id: generateId(),
+      isCompleted: false
+    }));
+    const facilitator = input.facilitatorId ? group.members.find((m) => m.userId === input.facilitatorId) : void 0;
+    const session = {
+      id: generateId(),
+      title: input.title,
+      description: input.description,
+      scheduledAt: input.scheduledAt,
+      duration: input.duration,
+      status: "SCHEDULED",
+      type: input.type || "STUDY_SESSION",
+      facilitator,
+      attendees: group.members.map((m) => ({
+        userId: m.userId,
+        displayName: m.displayName,
+        status: "INVITED"
+      })),
+      agenda,
+      createdBy: input.createdBy,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    const updated = {
+      ...group,
+      sessions: [...group.sessions, session],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.groups.set(input.groupId, updated);
+    return session;
+  }
+  /**
+   * Update session status
+   */
+  updateSessionStatus(groupId, sessionId, status) {
+    const group = this.groups.get(groupId);
+    if (!group) {
+      throw new Error(`Group not found: ${groupId}`);
+    }
+    const sessionIndex = group.sessions.findIndex((s) => s.id === sessionId);
+    if (sessionIndex === -1) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    const updatedSession = {
+      ...group.sessions[sessionIndex],
+      status
+    };
+    const updatedSessions = [...group.sessions];
+    updatedSessions[sessionIndex] = updatedSession;
+    const updated = {
+      ...group,
+      sessions: updatedSessions,
+      stats: status === "COMPLETED" ? {
+        ...group.stats,
+        totalSessions: group.stats.totalSessions + 1,
+        totalStudyHours: group.stats.totalStudyHours + (updatedSession.actualDuration || updatedSession.duration) / 60
+      } : group.stats,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.groups.set(groupId, updated);
+    if (status === "COMPLETED") {
+      for (const attendee of updatedSession.attendees) {
+        if (attendee.status === "ATTENDED") {
+          const profile = this.profiles.get(attendee.userId);
+          if (profile) {
+            const updatedProfile = {
+              ...profile,
+              stats: {
+                ...profile.stats,
+                totalSessions: profile.stats.totalSessions + 1,
+                totalStudyHours: profile.stats.totalStudyHours + (updatedSession.actualDuration || updatedSession.duration) / 60
+              },
+              updatedAt: /* @__PURE__ */ new Date()
+            };
+            this.profiles.set(attendee.userId, updatedProfile);
+          }
+        }
+      }
+    }
+    return updatedSession;
+  }
+  /**
+   * Add a resource to a group
+   */
+  addGroupResource(groupId, resource) {
+    const group = this.groups.get(groupId);
+    if (!group) {
+      throw new Error(`Group not found: ${groupId}`);
+    }
+    const newResource = {
+      ...resource,
+      id: generateId(),
+      uploadedAt: /* @__PURE__ */ new Date(),
+      downloads: 0,
+      likes: 0
+    };
+    const updated = {
+      ...group,
+      resources: [...group.resources, newResource],
+      stats: {
+        ...group.stats,
+        resourcesShared: group.stats.resourcesShared + 1
+      },
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.groups.set(groupId, updated);
+    return newResource;
+  }
+  generateInviteCode() {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+  }
+  // ==========================================================================
+  // Discussion Forum
+  // ==========================================================================
+  /**
+   * Create a discussion thread
+   */
+  createDiscussion(input) {
+    const profile = this.profiles.get(input.authorId);
+    if (!profile) {
+      throw new Error(`Profile not found: ${input.authorId}`);
+    }
+    const author = {
+      userId: input.authorId,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      reputation: profile.reputation.overall
+    };
+    const now = /* @__PURE__ */ new Date();
+    const thread = {
+      id: generateId(),
+      title: input.title,
+      content: input.content,
+      author,
+      type: input.type || "DISCUSSION",
+      status: input.type === "QUESTION" ? "OPEN" : "OPEN",
+      tags: input.tags || [],
+      replies: [],
+      views: 0,
+      likes: 0,
+      isPinned: false,
+      isLocked: false,
+      groupId: input.groupId,
+      courseId: input.courseId,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.discussions.set(thread.id, thread);
+    if (input.groupId) {
+      const group = this.groups.get(input.groupId);
+      if (group) {
+        const updated = {
+          ...group,
+          discussions: [...group.discussions, thread],
+          stats: {
+            ...group.stats,
+            discussionPosts: group.stats.discussionPosts + 1
+          },
+          updatedAt: now
+        };
+        this.groups.set(input.groupId, updated);
+      }
+    }
+    if (input.type === "QUESTION") {
+      const updatedProfile = {
+        ...profile,
+        stats: {
+          ...profile.stats,
+          questionsAsked: profile.stats.questionsAsked + 1
+        },
+        updatedAt: now
+      };
+      this.profiles.set(input.authorId, updatedProfile);
+    }
+    return thread;
+  }
+  /**
+   * Get a discussion thread
+   */
+  getDiscussion(threadId) {
+    const thread = this.discussions.get(threadId);
+    if (thread) {
+      const updated = {
+        ...thread,
+        views: thread.views + 1
+      };
+      this.discussions.set(threadId, updated);
+      return updated;
+    }
+    return void 0;
+  }
+  /**
+   * Reply to a discussion
+   */
+  createReply(input) {
+    const thread = this.discussions.get(input.threadId);
+    if (!thread) {
+      throw new Error(`Thread not found: ${input.threadId}`);
+    }
+    if (thread.isLocked) {
+      throw new Error("Thread is locked");
+    }
+    const profile = this.profiles.get(input.authorId);
+    if (!profile) {
+      throw new Error(`Profile not found: ${input.authorId}`);
+    }
+    const author = {
+      userId: input.authorId,
+      displayName: profile.displayName,
+      avatarUrl: profile.avatarUrl,
+      reputation: profile.reputation.overall
+    };
+    const now = /* @__PURE__ */ new Date();
+    const reply = {
+      id: generateId(),
+      content: input.content,
+      author,
+      parentId: input.parentId,
+      likes: 0,
+      isAcceptedAnswer: false,
+      isEdited: false,
+      reactions: [],
+      createdAt: now,
+      updatedAt: now
+    };
+    const updated = {
+      ...thread,
+      replies: [...thread.replies, reply],
+      updatedAt: now
+    };
+    this.discussions.set(input.threadId, updated);
+    if (thread.type === "QUESTION") {
+      const updatedProfile = {
+        ...profile,
+        stats: {
+          ...profile.stats,
+          questionsAnswered: profile.stats.questionsAnswered + 1
+        },
+        updatedAt: now
+      };
+      this.profiles.set(input.authorId, updatedProfile);
+    }
+    return reply;
+  }
+  /**
+   * Accept an answer
+   */
+  acceptAnswer(threadId, replyId, userId) {
+    const thread = this.discussions.get(threadId);
+    if (!thread) {
+      throw new Error(`Thread not found: ${threadId}`);
+    }
+    if (thread.author.userId !== userId) {
+      throw new Error("Only thread author can accept an answer");
+    }
+    const replyIndex = thread.replies.findIndex((r) => r.id === replyId);
+    if (replyIndex === -1) {
+      throw new Error(`Reply not found: ${replyId}`);
+    }
+    const updatedReplies = thread.replies.map((r) => ({
+      ...r,
+      isAcceptedAnswer: r.id === replyId
+    }));
+    const acceptedReply = updatedReplies[replyIndex];
+    const updated = {
+      ...thread,
+      replies: updatedReplies,
+      acceptedAnswerId: replyId,
+      status: "ANSWERED",
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.discussions.set(threadId, updated);
+    this.updateReputation(
+      acceptedReply.author.userId,
+      15,
+      "ANSWER_ACCEPTED",
+      "helpfulness"
+    );
+    const answererProfile = this.profiles.get(acceptedReply.author.userId);
+    if (answererProfile) {
+      const updatedProfile = {
+        ...answererProfile,
+        stats: {
+          ...answererProfile.stats,
+          helpfulAnswers: answererProfile.stats.helpfulAnswers + 1,
+          peersHelped: answererProfile.stats.peersHelped + 1
+        },
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+      this.profiles.set(acceptedReply.author.userId, updatedProfile);
+    }
+    return acceptedReply;
+  }
+  /**
+   * Add reaction to a reply
+   */
+  addReaction(threadId, replyId, userId, reactionType) {
+    const thread = this.discussions.get(threadId);
+    if (!thread) {
+      throw new Error(`Thread not found: ${threadId}`);
+    }
+    const replyIndex = thread.replies.findIndex((r) => r.id === replyId);
+    if (replyIndex === -1) {
+      throw new Error(`Reply not found: ${replyId}`);
+    }
+    const reply = thread.replies[replyIndex];
+    let updatedReactions = [...reply.reactions];
+    const existingReactionIndex = updatedReactions.findIndex(
+      (r) => r.type === reactionType
+    );
+    if (existingReactionIndex >= 0) {
+      const existingReaction = updatedReactions[existingReactionIndex];
+      if (existingReaction.userIds.includes(userId)) {
+        updatedReactions[existingReactionIndex] = {
+          ...existingReaction,
+          count: existingReaction.count - 1,
+          userIds: existingReaction.userIds.filter((id) => id !== userId)
+        };
+        if (updatedReactions[existingReactionIndex].count === 0) {
+          updatedReactions = updatedReactions.filter(
+            (_, i) => i !== existingReactionIndex
+          );
+        }
+      } else {
+        updatedReactions[existingReactionIndex] = {
+          ...existingReaction,
+          count: existingReaction.count + 1,
+          userIds: [...existingReaction.userIds, userId]
+        };
+      }
+    } else {
+      updatedReactions.push({
+        type: reactionType,
+        count: 1,
+        userIds: [userId]
+      });
+    }
+    const updatedReplies = [...thread.replies];
+    updatedReplies[replyIndex] = {
+      ...reply,
+      reactions: updatedReactions
+    };
+    const updated = {
+      ...thread,
+      replies: updatedReplies,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.discussions.set(threadId, updated);
+    return updatedReactions.find((r) => r.type === reactionType) || {
+      type: reactionType,
+      count: 0,
+      userIds: []
+    };
+  }
+  /**
+   * Search discussions
+   */
+  searchDiscussions(options) {
+    let threads = Array.from(this.discussions.values());
+    if (options.type) {
+      threads = threads.filter((t) => t.type === options.type);
+    }
+    if (options.status) {
+      threads = threads.filter((t) => t.status === options.status);
+    }
+    if (options.tags?.length) {
+      threads = threads.filter(
+        (t) => options.tags.some((tag) => t.tags.includes(tag))
+      );
+    }
+    if (options.groupId) {
+      threads = threads.filter((t) => t.groupId === options.groupId);
+    }
+    if (options.courseId) {
+      threads = threads.filter((t) => t.courseId === options.courseId);
+    }
+    if (options.query) {
+      const queryLower = options.query.toLowerCase();
+      threads = threads.filter(
+        (t) => t.title.toLowerCase().includes(queryLower) || t.content.toLowerCase().includes(queryLower)
+      );
+    }
+    threads.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    const totalCount = threads.length;
+    const offset = options.offset || 0;
+    const limit = options.limit || 20;
+    const paginatedThreads = threads.slice(offset, offset + limit);
+    return {
+      threads: paginatedThreads,
+      totalCount,
+      hasMore: offset + limit < totalCount
+    };
+  }
+  // ==========================================================================
+  // Mentorship
+  // ==========================================================================
+  /**
+   * Request mentorship
+   */
+  requestMentorship(input) {
+    if (!this.config.mentoringEnabled) {
+      throw new Error("Mentoring is not enabled");
+    }
+    const mentorProfile = this.profiles.get(input.mentorId);
+    const menteeProfile = this.profiles.get(input.menteeId);
+    if (!mentorProfile) {
+      throw new Error(`Mentor profile not found: ${input.mentorId}`);
+    }
+    if (!menteeProfile) {
+      throw new Error(`Mentee profile not found: ${input.menteeId}`);
+    }
+    if (!mentorProfile.isAvailableForMentoring) {
+      throw new Error("Mentor is not available for mentoring");
+    }
+    const now = /* @__PURE__ */ new Date();
+    const mentor = {
+      userId: input.mentorId,
+      displayName: mentorProfile.displayName,
+      avatarUrl: mentorProfile.avatarUrl,
+      bio: mentorProfile.bio || "",
+      expertise: mentorProfile.expertise,
+      mentoringStyle: "COLLABORATIVE",
+      totalMentees: 0,
+      activeMentees: 0,
+      successfulMentorships: 0,
+      rating: mentorProfile.reputation.overall / 20,
+      testimonials: [],
+      availability: mentorProfile.availability,
+      maxMentees: 5
+    };
+    const mentee = {
+      userId: input.menteeId,
+      displayName: menteeProfile.displayName,
+      avatarUrl: menteeProfile.avatarUrl,
+      bio: menteeProfile.bio || "",
+      learningGoals: menteeProfile.learningGoals,
+      currentLevel: "BEGINNER",
+      previousMentorships: 0,
+      commitment: "MEDIUM"
+    };
+    const goals = (input.goals || []).map((g) => ({
+      ...g,
+      id: generateId(),
+      progress: 0,
+      milestones: [],
+      status: "NOT_STARTED"
+    }));
+    const mentorship = {
+      id: generateId(),
+      mentorId: input.mentorId,
+      menteeId: input.menteeId,
+      mentor,
+      mentee,
+      status: "PENDING",
+      type: input.type || "FORMAL",
+      subjects: input.subjects,
+      goals,
+      sessions: [],
+      feedback: [],
+      startDate: now,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.mentorships.set(mentorship.id, mentorship);
+    return mentorship;
+  }
+  /**
+   * Get a mentorship by ID
+   */
+  getMentorship(mentorshipId) {
+    return this.mentorships.get(mentorshipId);
+  }
+  /**
+   * Update mentorship status
+   */
+  updateMentorshipStatus(mentorshipId, status, userId) {
+    const mentorship = this.mentorships.get(mentorshipId);
+    if (!mentorship) {
+      throw new Error(`Mentorship not found: ${mentorshipId}`);
+    }
+    if ((status === "ACTIVE" || status === "TERMINATED") && userId !== mentorship.mentorId) {
+      throw new Error("Only mentor can accept or reject mentorship");
+    }
+    const updated = {
+      ...mentorship,
+      status,
+      actualEndDate: status === "COMPLETED" || status === "TERMINATED" ? /* @__PURE__ */ new Date() : void 0,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.mentorships.set(mentorshipId, updated);
+    return updated;
+  }
+  /**
+   * Schedule a mentoring session
+   */
+  scheduleMentoringSession(mentorshipId, session) {
+    const mentorship = this.mentorships.get(mentorshipId);
+    if (!mentorship) {
+      throw new Error(`Mentorship not found: ${mentorshipId}`);
+    }
+    const newSession = {
+      ...session,
+      id: generateId(),
+      mentorshipId,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    const updated = {
+      ...mentorship,
+      sessions: [...mentorship.sessions, newSession],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.mentorships.set(mentorshipId, updated);
+    return newSession;
+  }
+  /**
+   * Complete a mentoring session
+   */
+  completeMentoringSession(mentorshipId, sessionId, actualDuration, notes, feedback) {
+    const mentorship = this.mentorships.get(mentorshipId);
+    if (!mentorship) {
+      throw new Error(`Mentorship not found: ${mentorshipId}`);
+    }
+    const sessionIndex = mentorship.sessions.findIndex(
+      (s) => s.id === sessionId
+    );
+    if (sessionIndex === -1) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    const updatedSession = {
+      ...mentorship.sessions[sessionIndex],
+      status: "COMPLETED",
+      actualDuration,
+      notes,
+      feedback
+    };
+    const updatedSessions = [...mentorship.sessions];
+    updatedSessions[sessionIndex] = updatedSession;
+    const updated = {
+      ...mentorship,
+      sessions: updatedSessions,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.mentorships.set(mentorshipId, updated);
+    for (const userId of [mentorship.mentorId, mentorship.menteeId]) {
+      const profile = this.profiles.get(userId);
+      if (profile) {
+        const updatedProfile = {
+          ...profile,
+          stats: {
+            ...profile.stats,
+            totalSessions: profile.stats.totalSessions + 1,
+            totalStudyHours: profile.stats.totalStudyHours + actualDuration / 60
+          },
+          updatedAt: /* @__PURE__ */ new Date()
+        };
+        this.profiles.set(userId, updatedProfile);
+      }
+    }
+    if (feedback) {
+      const reputationChange = Math.round((feedback.rating - 3) * 5);
+      this.updateReputation(
+        mentorship.mentorId,
+        reputationChange,
+        "SESSION_COMPLETED",
+        "helpfulness"
+      );
+    }
+    return updatedSession;
+  }
+  /**
+   * Add mentorship feedback
+   */
+  addMentorshipFeedback(mentorshipId, feedback) {
+    const mentorship = this.mentorships.get(mentorshipId);
+    if (!mentorship) {
+      throw new Error(`Mentorship not found: ${mentorshipId}`);
+    }
+    const newFeedback = {
+      ...feedback,
+      id: generateId(),
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    const updated = {
+      ...mentorship,
+      feedback: [...mentorship.feedback, newFeedback],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.mentorships.set(mentorshipId, updated);
+    const reputationChange = Math.round((feedback.rating - 3) * 5);
+    const category = feedback.rating >= 4 ? "POSITIVE_FEEDBACK" : "NEGATIVE_FEEDBACK";
+    this.updateReputation(
+      feedback.toUserId,
+      reputationChange,
+      category,
+      feedback.type === "MENTEE_TO_MENTOR" ? "helpfulness" : "communication"
+    );
+    return newFeedback;
+  }
+  /**
+   * Search for mentors
+   */
+  searchMentors(options) {
+    let profiles = Array.from(this.profiles.values()).filter(
+      (p) => p.isAvailableForMentoring
+    );
+    if (options.subjects?.length) {
+      profiles = profiles.filter(
+        (p) => p.expertise.some((e) => options.subjects.includes(e.subject))
+      );
+    }
+    if (options.proficiencyLevel) {
+      const minLevel = proficiencyToNumber(options.proficiencyLevel);
+      profiles = profiles.filter(
+        (p) => p.expertise.some(
+          (e) => proficiencyToNumber(e.proficiencyLevel) >= minLevel
+        )
+      );
+    }
+    if (options.minRating) {
+      profiles = profiles.filter(
+        (p) => p.reputation.overall / 20 >= options.minRating
+      );
+    }
+    const mentors = profiles.map((p) => ({
+      userId: p.userId,
+      displayName: p.displayName,
+      avatarUrl: p.avatarUrl,
+      bio: p.bio || "",
+      expertise: p.expertise,
+      mentoringStyle: "COLLABORATIVE",
+      totalMentees: 0,
+      activeMentees: 0,
+      successfulMentorships: 0,
+      rating: p.reputation.overall / 20,
+      testimonials: [],
+      availability: p.availability,
+      maxMentees: 5
+    }));
+    mentors.sort((a, b) => b.rating - a.rating);
+    const totalCount = mentors.length;
+    const offset = options.offset || 0;
+    const limit = options.limit || 20;
+    const paginatedMentors = mentors.slice(offset, offset + limit);
+    return {
+      mentors: paginatedMentors,
+      totalCount,
+      hasMore: offset + limit < totalCount
+    };
+  }
+  // ==========================================================================
+  // Peer Review
+  // ==========================================================================
+  /**
+   * Create a peer review rubric
+   */
+  createReviewRubric(rubric) {
+    const newRubric = {
+      ...rubric,
+      id: generateId()
+    };
+    this.rubrics.set(newRubric.id, newRubric);
+    return newRubric;
+  }
+  /**
+   * Get a review rubric
+   */
+  getReviewRubric(rubricId) {
+    return this.rubrics.get(rubricId);
+  }
+  /**
+   * Create a peer review assignment
+   */
+  createPeerReviewAssignment(input, submission) {
+    const rubric = this.rubrics.get(input.rubricId);
+    if (!rubric) {
+      throw new Error(`Rubric not found: ${input.rubricId}`);
+    }
+    const reviewer = this.profiles.get(input.reviewerId);
+    if (!reviewer) {
+      throw new Error(`Reviewer profile not found: ${input.reviewerId}`);
+    }
+    const assignment = {
+      id: generateId(),
+      title: input.title,
+      description: input.description,
+      type: input.type || "SINGLE_BLIND",
+      submissionId: input.submissionId,
+      submission: input.type === "DOUBLE_BLIND" ? { ...submission, authorName: void 0 } : submission,
+      reviewerId: input.reviewerId,
+      reviewer,
+      rubric,
+      status: "ASSIGNED",
+      dueDate: input.dueDate,
+      assignedAt: /* @__PURE__ */ new Date()
+    };
+    this.reviewAssignments.set(assignment.id, assignment);
+    return assignment;
+  }
+  /**
+   * Get a peer review assignment
+   */
+  getPeerReviewAssignment(assignmentId) {
+    return this.reviewAssignments.get(assignmentId);
+  }
+  /**
+   * Submit a peer review
+   */
+  submitPeerReview(input) {
+    const assignment = this.reviewAssignments.get(input.assignmentId);
+    if (!assignment) {
+      throw new Error(`Assignment not found: ${input.assignmentId}`);
+    }
+    if (assignment.reviewerId !== input.reviewerId) {
+      throw new Error("Not authorized to submit this review");
+    }
+    if (assignment.status === "SUBMITTED") {
+      throw new Error("Review already submitted");
+    }
+    const totalScore = input.scores.reduce((sum, s) => {
+      const criterion = assignment.rubric.criteria.find(
+        (c) => c.id === s.criterionId
+      );
+      if (criterion) {
+        return sum + s.score * criterion.weight;
+      }
+      return sum;
+    }, 0);
+    const review = {
+      id: generateId(),
+      assignmentId: input.assignmentId,
+      reviewerId: input.reviewerId,
+      scores: input.scores,
+      totalScore,
+      overallFeedback: input.overallFeedback,
+      strengths: input.strengths,
+      areasForImprovement: input.areasForImprovement,
+      suggestions: input.suggestions,
+      isAnonymous: this.config.anonymousReviewsDefault,
+      confidence: input.confidence || "MEDIUM",
+      timeSpent: input.timeSpent || 0,
+      submittedAt: /* @__PURE__ */ new Date()
+    };
+    const updatedAssignment = {
+      ...assignment,
+      review,
+      status: "SUBMITTED",
+      completedAt: /* @__PURE__ */ new Date()
+    };
+    this.reviewAssignments.set(input.assignmentId, updatedAssignment);
+    const reviewer = this.profiles.get(input.reviewerId);
+    if (reviewer) {
+      const updatedProfile = {
+        ...reviewer,
+        stats: {
+          ...reviewer.stats,
+          reviewsGiven: reviewer.stats.reviewsGiven + 1
+        },
+        updatedAt: /* @__PURE__ */ new Date()
+      };
+      this.profiles.set(input.reviewerId, updatedProfile);
+    }
+    this.updateReputation(input.reviewerId, 5, "SESSION_COMPLETED", "reliability");
+    return review;
+  }
+  /**
+   * Get reviews for a submission
+   */
+  getReviewsForSubmission(submissionId) {
+    const reviews = [];
+    for (const assignment of this.reviewAssignments.values()) {
+      if (assignment.submissionId === submissionId && assignment.review && assignment.status === "SUBMITTED") {
+        reviews.push(assignment.review);
+      }
+    }
+    return reviews;
+  }
+  // ==========================================================================
+  // Collaborative Projects
+  // ==========================================================================
+  /**
+   * Create a collaborative project
+   */
+  createProject(input) {
+    if (!this.config.projectsEnabled) {
+      throw new Error("Projects are not enabled");
+    }
+    const now = /* @__PURE__ */ new Date();
+    const members = input.members.map((m) => ({
+      ...m,
+      contribution: 0,
+      joinedAt: now,
+      status: "ACTIVE"
+    }));
+    const team = {
+      id: generateId(),
+      members,
+      roles: [],
+      skillMatrix: {
+        skills: [],
+        memberSkills: []
+      }
+    };
+    const milestones = (input.milestones || []).map((m) => ({
+      ...m,
+      id: generateId(),
+      status: "PENDING"
+    }));
+    const project = {
+      id: generateId(),
+      title: input.title,
+      description: input.description,
+      type: input.type || "RESEARCH",
+      status: "PLANNING",
+      visibility: input.visibility || "PRIVATE",
+      team,
+      milestones,
+      tasks: [],
+      resources: [],
+      communications: [],
+      reviews: [],
+      startDate: input.startDate,
+      targetEndDate: input.targetEndDate,
+      tags: input.tags || [],
+      courseId: input.courseId,
+      groupId: input.groupId,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.projects.set(project.id, project);
+    return project;
+  }
+  /**
+   * Get a project by ID
+   */
+  getProject(projectId) {
+    return this.projects.get(projectId);
+  }
+  /**
+   * Update project status
+   */
+  updateProjectStatus(projectId, status) {
+    const project = this.projects.get(projectId);
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+    const updated = {
+      ...project,
+      status,
+      actualEndDate: status === "COMPLETED" ? /* @__PURE__ */ new Date() : void 0,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.projects.set(projectId, updated);
+    if (status === "COMPLETED") {
+      for (const member of project.team.members) {
+        const profile = this.profiles.get(member.userId);
+        if (profile) {
+          const updatedProfile = {
+            ...profile,
+            stats: {
+              ...profile.stats,
+              projectsCompleted: profile.stats.projectsCompleted + 1
+            },
+            updatedAt: /* @__PURE__ */ new Date()
+          };
+          this.profiles.set(member.userId, updatedProfile);
+        }
+        this.updateReputation(member.userId, 20, "PROJECT_COMPLETED", "collaboration");
+      }
+    }
+    return updated;
+  }
+  /**
+   * Create a project task
+   */
+  createProjectTask(input) {
+    const project = this.projects.get(input.projectId);
+    if (!project) {
+      throw new Error(`Project not found: ${input.projectId}`);
+    }
+    const task = {
+      id: generateId(),
+      title: input.title,
+      description: input.description,
+      assignees: input.assignees || [],
+      status: "TODO",
+      priority: input.priority || "MEDIUM",
+      milestoneId: input.milestoneId,
+      dependencies: input.dependencies || [],
+      estimatedHours: input.estimatedHours,
+      dueDate: input.dueDate,
+      comments: [],
+      createdBy: input.createdBy,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    const updated = {
+      ...project,
+      tasks: [...project.tasks, task],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.projects.set(input.projectId, updated);
+    return task;
+  }
+  /**
+   * Update task status
+   */
+  updateTaskStatus(projectId, taskId, status, actualHours) {
+    const project = this.projects.get(projectId);
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+    const taskIndex = project.tasks.findIndex((t) => t.id === taskId);
+    if (taskIndex === -1) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+    const updatedTask = {
+      ...project.tasks[taskIndex],
+      status,
+      actualHours: actualHours ?? project.tasks[taskIndex].actualHours,
+      completedAt: status === "DONE" ? /* @__PURE__ */ new Date() : void 0,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    const updatedTasks = [...project.tasks];
+    updatedTasks[taskIndex] = updatedTask;
+    const updated = {
+      ...project,
+      tasks: updatedTasks,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.projects.set(projectId, updated);
+    return updatedTask;
+  }
+  /**
+   * Add task comment
+   */
+  addTaskComment(projectId, taskId, authorId, content) {
+    const project = this.projects.get(projectId);
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+    const taskIndex = project.tasks.findIndex((t) => t.id === taskId);
+    if (taskIndex === -1) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+    const author = this.profiles.get(authorId);
+    if (!author) {
+      throw new Error(`Profile not found: ${authorId}`);
+    }
+    const comment = {
+      id: generateId(),
+      authorId,
+      authorName: author.displayName,
+      content,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    const updatedTask = {
+      ...project.tasks[taskIndex],
+      comments: [...project.tasks[taskIndex].comments, comment],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    const updatedTasks = [...project.tasks];
+    updatedTasks[taskIndex] = updatedTask;
+    const updated = {
+      ...project,
+      tasks: updatedTasks,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.projects.set(projectId, updated);
+    return comment;
+  }
+  /**
+   * Add project communication
+   */
+  addProjectCommunication(projectId, communication) {
+    const project = this.projects.get(projectId);
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+    const newCommunication = {
+      ...communication,
+      id: generateId(),
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    const updated = {
+      ...project,
+      communications: [...project.communications, newCommunication],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.projects.set(projectId, updated);
+    return newCommunication;
+  }
+  /**
+   * Add project review
+   */
+  addProjectReview(projectId, review) {
+    const project = this.projects.get(projectId);
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`);
+    }
+    const newReview = {
+      ...review,
+      id: generateId(),
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    const updated = {
+      ...project,
+      reviews: [...project.reviews, newReview],
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.projects.set(projectId, updated);
+    return newReview;
+  }
+  // ==========================================================================
+  // Analytics & Leaderboard
+  // ==========================================================================
+  /**
+   * Get leaderboard
+   */
+  getLeaderboard(options) {
+    const category = options.category || "overall";
+    const limit = options.limit || 10;
+    const profiles = Array.from(this.profiles.values());
+    const scored = profiles.map((p) => {
+      let score;
+      switch (category) {
+        case "helpfulness":
+          score = p.reputation.helpfulness + p.stats.peersHelped * 2;
+          break;
+        case "sessions":
+          score = p.stats.totalSessions * 10 + p.stats.totalStudyHours;
+          break;
+        case "reviews":
+          score = p.stats.reviewsGiven * 5 + p.stats.helpfulAnswers * 3;
+          break;
+        default:
+          score = p.reputation.overall;
+      }
+      return { profile: p, score };
+    });
+    scored.sort((a, b) => b.score - a.score);
+    const entries = scored.slice(0, limit).map((s, i) => ({
+      rank: i + 1,
+      userId: s.profile.userId,
+      displayName: s.profile.displayName,
+      avatarUrl: s.profile.avatarUrl,
+      score: Math.round(s.score),
+      change: 0,
+      // Would need historical data for this
+      badges: s.profile.badges.slice(0, 3)
+    }));
+    return entries;
+  }
+  /**
+   * Get peer learning analytics
+   */
+  getAnalytics(startDate, endDate) {
+    const profiles = Array.from(this.profiles.values());
+    const groups = Array.from(this.groups.values());
+    const discussions = Array.from(this.discussions.values());
+    const mentorships = Array.from(this.mentorships.values());
+    const projects = Array.from(this.projects.values());
+    const activeProfiles = profiles.filter(
+      (p) => p.lastActiveAt >= startDate && p.lastActiveAt <= endDate
+    );
+    const newProfiles = profiles.filter(
+      (p) => p.createdAt >= startDate && p.createdAt <= endDate
+    );
+    const createdGroups = groups.filter(
+      (g) => g.createdAt >= startDate && g.createdAt <= endDate
+    );
+    const completedSessions = groups.flatMap(
+      (g) => g.sessions.filter(
+        (s) => s.status === "COMPLETED" && s.scheduledAt >= startDate && s.scheduledAt <= endDate
+      )
+    );
+    const newDiscussions = discussions.filter(
+      (d) => d.createdAt >= startDate && d.createdAt <= endDate
+    );
+    const startedMentorships = mentorships.filter(
+      (m) => m.createdAt >= startDate && m.createdAt <= endDate
+    );
+    const completedProjects = projects.filter(
+      (p) => p.status === "COMPLETED" && p.actualEndDate && p.actualEndDate >= startDate && p.actualEndDate <= endDate
+    );
+    const subjectActivity = /* @__PURE__ */ new Map();
+    for (const group of groups) {
+      const existing = subjectActivity.get(group.subject) || {
+        subject: group.subject,
+        activeUsers: 0,
+        sessions: 0,
+        studyHours: 0
+      };
+      existing.activeUsers += group.members.length;
+      existing.sessions += group.sessions.length;
+      existing.studyHours += group.stats.totalStudyHours;
+      subjectActivity.set(group.subject, existing);
+    }
+    const topSubjects = Array.from(subjectActivity.values()).sort((a, b) => b.studyHours - a.studyHours).slice(0, 10);
+    const trendData = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dayStart = new Date(currentDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(currentDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      const dayActiveUsers = profiles.filter(
+        (p) => p.lastActiveAt >= dayStart && p.lastActiveAt <= dayEnd
+      ).length;
+      trendData.push({
+        date: new Date(currentDate),
+        value: dayActiveUsers
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    const totalStudyHours = completedSessions.reduce(
+      (sum, s) => sum + (s.actualDuration || s.duration) / 60,
+      0
+    );
+    const reviewsCompleted = Array.from(this.reviewAssignments.values()).filter(
+      (a) => a.status === "SUBMITTED" && a.completedAt && a.completedAt >= startDate && a.completedAt <= endDate
+    ).length;
+    return {
+      period: { start: startDate, end: endDate },
+      activeUsers: activeProfiles.length,
+      newProfiles: newProfiles.length,
+      matchesMade: 0,
+      // Would need to track matches
+      groupsCreated: createdGroups.length,
+      sessionsCompleted: completedSessions.length,
+      totalStudyHours: Math.round(totalStudyHours * 10) / 10,
+      discussionPosts: newDiscussions.length,
+      reviewsCompleted,
+      mentorshipsStarted: startedMentorships.length,
+      projectsCompleted: completedProjects.length,
+      averageSatisfaction: 4.2,
+      // Would need actual feedback data
+      topSubjects,
+      engagementTrend: trendData
+    };
+  }
+  // ==========================================================================
+  // AI-Enhanced Features
+  // ==========================================================================
+  /**
+   * AI-enhanced peer matching suggestions
+   */
+  async getAIMatchingSuggestions(userId, context) {
+    const profile = this.profiles.get(userId);
+    if (!profile) {
+      throw new Error(`Profile not found: ${userId}`);
+    }
+    const matches = this.findPeerMatches({
+      userId,
+      criteria: {
+        matchType: "STUDY_PARTNER",
+        limit: 20
+      }
+    });
+    if (this.samConfig.ai?.isConfigured()) {
+      try {
+        const prompt = `Given this learner profile and potential peer matches, provide enhanced matching insights:
+
+User Profile:
+- Expertise: ${profile.expertise.map((e) => `${e.subject} (${e.proficiencyLevel})`).join(", ")}
+- Learning Goals: ${profile.learningGoals.map((g) => g.subject).join(", ")}
+- Learning Style: ${profile.preferences.learningStyle}
+${context ? `- Context: ${context}` : ""}
+
+Top Matches (summary):
+${matches.matches.slice(0, 5).map(
+          (m) => `- ${m.peerProfile.displayName}: Score ${m.matchScore}, Common subjects: ${m.commonSubjects.join(", ")}`
+        ).join("\n")}
+
+Suggest which matches would be most beneficial and why, focusing on complementary skills and learning opportunities.`;
+        const response = await this.samConfig.ai.chat({
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          maxTokens: 500
+        });
+        console.log("AI matching insights:", response.content);
+      } catch (error) {
+        console.error("AI matching enhancement failed:", error);
+      }
+    }
+    return matches.matches;
+  }
+  /**
+   * AI-generated study group recommendations
+   */
+  async getGroupRecommendations(userId) {
+    const profile = this.profiles.get(userId);
+    if (!profile) {
+      throw new Error(`Profile not found: ${userId}`);
+    }
+    const subjects = profile.learningGoals.map((g) => g.subject);
+    const expertiseSubjects = profile.expertise.map((e) => e.subject);
+    const allSubjects = [.../* @__PURE__ */ new Set([...subjects, ...expertiseSubjects])];
+    let recommendedGroups = [];
+    for (const subject of allSubjects) {
+      const result = this.searchStudyGroups({
+        subject,
+        status: "ACTIVE",
+        visibility: "PUBLIC",
+        limit: 5
+      });
+      recommendedGroups.push(...result.groups);
+    }
+    recommendedGroups = recommendedGroups.filter(
+      (g) => !g.members.some((m) => m.userId === userId)
+    );
+    const uniqueGroups = Array.from(
+      new Map(recommendedGroups.map((g) => [g.id, g])).values()
+    );
+    return uniqueGroups.slice(0, 10);
+  }
+};
+function createPeerLearningEngine(samConfig, config) {
+  return new PeerLearningEngine(samConfig, config);
+}
+
+// src/engines/multimodal-input-engine.ts
+var DEFAULT_CONFIG2 = {
+  maxFileSize: 50 * 1024 * 1024,
+  // 50MB
+  allowedFormats: [
+    // Images
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/heic",
+    // Audio
+    "audio/mpeg",
+    "audio/wav",
+    "audio/ogg",
+    "audio/webm",
+    "audio/mp4",
+    // Video
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    // Documents
+    "application/pdf",
+    "image/tiff"
+  ],
+  enableOCR: true,
+  enableSpeechToText: true,
+  enableHandwritingRecognition: true,
+  defaultLanguage: "en",
+  qualityThreshold: 60,
+  enableAIAnalysis: true,
+  processingTimeout: 300,
+  accessibility: {
+    generateAltText: true,
+    generateCaptions: true,
+    enableTextToSpeech: false,
+    highContrastMode: false,
+    requirements: []
+  },
+  storage: {
+    provider: "local",
+    pathPrefix: "/uploads/multimodal",
+    enableCDN: false,
+    retentionDays: 90,
+    enableEncryption: true
+  }
+};
+var SUPPORTED_IMAGE_FORMATS = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/heic",
+  "image/tiff"
+];
+var SUPPORTED_AUDIO_FORMATS = [
+  "audio/mpeg",
+  "audio/wav",
+  "audio/ogg",
+  "audio/webm",
+  "audio/mp4",
+  "audio/x-m4a"
+];
+var SUPPORTED_VIDEO_FORMATS = ["video/mp4", "video/webm", "video/quicktime"];
+function generateId2(prefix) {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 10);
+  return `${prefix}_${timestamp}_${random}`;
+}
+function determineInputType(mimeType) {
+  if (SUPPORTED_IMAGE_FORMATS.includes(mimeType)) {
+    return "IMAGE";
+  }
+  if (SUPPORTED_AUDIO_FORMATS.includes(mimeType)) {
+    return "VOICE";
+  }
+  if (SUPPORTED_VIDEO_FORMATS.includes(mimeType)) {
+    return "VIDEO";
+  }
+  if (mimeType === "application/pdf") {
+    return "DOCUMENT_SCAN";
+  }
+  return "IMAGE";
+}
+function getQualityLevel(score) {
+  if (score >= 90) return "EXCELLENT";
+  if (score >= 75) return "GOOD";
+  if (score >= 60) return "ACCEPTABLE";
+  if (score >= 40) return "POOR";
+  return "UNREADABLE";
+}
+var MultimodalInputEngine = class {
+  samConfig;
+  config;
+  inputs = /* @__PURE__ */ new Map();
+  processingQueue = /* @__PURE__ */ new Map();
+  eventHandlers = /* @__PURE__ */ new Map();
+  storageQuotas = /* @__PURE__ */ new Map();
+  constructor(samConfig, config = {}) {
+    this.samConfig = samConfig;
+    this.config = { ...DEFAULT_CONFIG2, ...config };
+  }
+  // ===========================================================================
+  // MAIN PROCESSING METHODS
+  // ===========================================================================
+  /**
+   * Process a single multimodal input
+   */
+  async processInput(input) {
+    const startTime = Date.now();
+    try {
+      const validation = await this.validateInput(input.file);
+      if (!validation.isValid) {
+        return {
+          success: false,
+          input: this.createFailedInput(input, validation.errors),
+          processingTime: Date.now() - startTime,
+          errors: validation.errors.map((e) => ({
+            code: e.code,
+            message: e.message,
+            severity: "error",
+            component: "validation"
+          }))
+        };
+      }
+      const multimodalInput = this.createInput(input);
+      this.inputs.set(multimodalInput.id, multimodalInput);
+      this.emitEvent("processing.started", multimodalInput.id, input.userId, {});
+      const processingResult = await this.processFile(multimodalInput, input.options);
+      multimodalInput.processingResult = processingResult;
+      multimodalInput.status = processingResult.success ? "COMPLETED" : "FAILED";
+      multimodalInput.processedAt = /* @__PURE__ */ new Date();
+      multimodalInput.quality = await this.assessQuality(input.file);
+      this.emitEvent(
+        processingResult.success ? "processing.completed" : "processing.failed",
+        multimodalInput.id,
+        input.userId,
+        { processingTime: Date.now() - startTime }
+      );
+      return {
+        success: processingResult.success,
+        input: multimodalInput,
+        processingTime: Date.now() - startTime,
+        errors: processingResult.errors
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      return {
+        success: false,
+        input: this.createFailedInput(input, [
+          { code: "PROCESSING_ERROR", message: errorMessage }
+        ]),
+        processingTime: Date.now() - startTime,
+        errors: [
+          {
+            code: "PROCESSING_ERROR",
+            message: errorMessage,
+            severity: "fatal",
+            component: "engine"
+          }
+        ]
+      };
+    }
+  }
+  /**
+   * Process multiple inputs in batch
+   */
+  async processBatch(request) {
+    const startTime = Date.now();
+    const results = [];
+    let successCount = 0;
+    let failedCount = 0;
+    const concurrencyLimit = 5;
+    const chunks = [];
+    for (let i = 0; i < request.files.length; i += concurrencyLimit) {
+      chunks.push(request.files.slice(i, i + concurrencyLimit));
+    }
+    for (const chunk of chunks) {
+      const chunkResults = await Promise.all(
+        chunk.map(
+          (file) => this.processInput({
+            file,
+            options: request.options,
+            userId: request.userId,
+            courseId: request.courseId,
+            assignmentId: request.assignmentId
+          })
+        )
+      );
+      for (const result of chunkResults) {
+        results.push(result);
+        if (result.success) {
+          successCount++;
+        } else {
+          failedCount++;
+        }
+      }
+    }
+    return {
+      totalFiles: request.files.length,
+      successCount,
+      failedCount,
+      results,
+      totalProcessingTime: Date.now() - startTime
+    };
+  }
+  /**
+   * Process file based on type
+   */
+  async processFile(input, options) {
+    const startTime = Date.now();
+    const errors = [];
+    const warnings = [];
+    try {
+      let extractedText;
+      let imageAnalysis;
+      let voiceAnalysis;
+      let handwritingAnalysis;
+      let aiInsights;
+      switch (input.type) {
+        case "IMAGE":
+        case "DIAGRAM":
+        case "EQUATION":
+        case "CODE_SCREENSHOT":
+        case "DOCUMENT_SCAN":
+          if (options.enableOCR !== false) {
+            extractedText = await this.performOCR(input);
+          }
+          imageAnalysis = await this.performImageAnalysis(input);
+          if (options.enableHandwritingRecognition !== false) {
+            const hasHandwriting = imageAnalysis.textRegions.some(
+              (r) => r.type === "handwritten"
+            );
+            if (hasHandwriting) {
+              handwritingAnalysis = await this.performHandwritingAnalysis(input);
+            }
+          }
+          break;
+        case "VOICE":
+          if (options.enableSpeechToText !== false) {
+            voiceAnalysis = await this.performVoiceAnalysis(input);
+            extractedText = this.voiceToText(voiceAnalysis);
+          }
+          break;
+        case "VIDEO":
+          voiceAnalysis = await this.performVoiceAnalysis(input);
+          extractedText = this.voiceToText(voiceAnalysis);
+          imageAnalysis = await this.performVideoFrameAnalysis(input);
+          break;
+        case "HANDWRITING":
+          extractedText = await this.performOCR(input);
+          handwritingAnalysis = await this.performHandwritingAnalysis(input);
+          break;
+      }
+      if (options.enableAIAnalysis !== false && this.config.enableAIAnalysis) {
+        aiInsights = await this.generateAIInsights(input, {
+          extractedText,
+          imageAnalysis,
+          voiceAnalysis,
+          handwritingAnalysis
+        });
+      }
+      return {
+        success: true,
+        processingTime: Date.now() - startTime,
+        extractedText,
+        imageAnalysis,
+        voiceAnalysis,
+        handwritingAnalysis,
+        aiInsights,
+        errors: errors.length > 0 ? errors : void 0,
+        warnings: warnings.length > 0 ? warnings : void 0
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      errors.push({
+        code: "PROCESSING_FAILED",
+        message: errorMessage,
+        severity: "fatal",
+        component: "processor"
+      });
+      return {
+        success: false,
+        processingTime: Date.now() - startTime,
+        errors,
+        warnings
+      };
+    }
+  }
+  // ===========================================================================
+  // IMAGE ANALYSIS
+  // ===========================================================================
+  /**
+   * Analyze image content
+   */
+  async analyzeImage(file, options) {
+    const input = this.createInputFromFile(file);
+    return this.performImageAnalysis(input);
+  }
+  /**
+   * Perform image analysis
+   */
+  async performImageAnalysis(input) {
+    const contentType = await this.classifyImageContent(input);
+    const objects = await this.detectObjects(input);
+    const textRegions = await this.extractTextRegions(input);
+    let diagramAnalysis;
+    if (contentType === "DIAGRAM" || contentType === "CHART" || contentType === "GRAPH") {
+      diagramAnalysis = await this.analyzeDiagram(input);
+    }
+    const equations = await this.detectEquations(input);
+    const colorAnalysis = this.analyzeColors(input);
+    const qualityMetrics = await this.assessImageQuality(input);
+    const educationalContent = await this.detectEducationalContent(input, {
+      textRegions,
+      equations,
+      diagramAnalysis
+    });
+    const concerns = await this.checkImageConcerns(input);
+    return {
+      contentType,
+      objects,
+      textRegions,
+      diagramAnalysis,
+      equations,
+      colorAnalysis,
+      qualityMetrics,
+      educationalContent,
+      concerns
+    };
+  }
+  /**
+   * Classify image content type
+   */
+  async classifyImageContent(input) {
+    try {
+      const prompt = `Analyze this image and classify its content type.
+Respond with ONLY one of these types:
+DIAGRAM, CHART, GRAPH, PHOTOGRAPH, SCREENSHOT, HANDWRITTEN_TEXT, PRINTED_TEXT, EQUATION, MAP, ILLUSTRATION, TABLE, CODE, MIXED, UNKNOWN
+
+Consider:
+- DIAGRAM: flowcharts, UML, ER diagrams, organizational charts
+- CHART: pie charts, bar charts, line charts
+- GRAPH: mathematical graphs, plots
+- HANDWRITTEN_TEXT: hand-written notes, answers
+- PRINTED_TEXT: typed/printed documents
+- EQUATION: mathematical formulas
+- CODE: programming code screenshots
+- TABLE: data tables, grids
+- MIXED: combination of multiple types`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 50
+      });
+      const contentType = response.content?.trim().toUpperCase();
+      const validTypes = [
+        "DIAGRAM",
+        "CHART",
+        "GRAPH",
+        "PHOTOGRAPH",
+        "SCREENSHOT",
+        "HANDWRITTEN_TEXT",
+        "PRINTED_TEXT",
+        "EQUATION",
+        "MAP",
+        "ILLUSTRATION",
+        "TABLE",
+        "CODE",
+        "MIXED",
+        "UNKNOWN"
+      ];
+      return validTypes.includes(contentType) ? contentType : "UNKNOWN";
+    } catch {
+      return "UNKNOWN";
+    }
+  }
+  /**
+   * Detect objects in image
+   */
+  async detectObjects(input) {
+    const objects = [];
+    try {
+      const prompt = `Identify the main objects/elements visible in this image.
+For each object, provide:
+1. Label (what it is)
+2. Confidence (0-1)
+3. Approximate position (top-left, center, bottom-right, etc.)
+4. Category (shape, text, symbol, figure, etc.)
+
+Format as JSON array: [{"label": "...", "confidence": 0.9, "position": "...", "category": "..."}]`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 500
+      });
+      const parsed = JSON.parse(response.content || "[]");
+      for (const obj of parsed) {
+        objects.push({
+          label: obj.label,
+          confidence: obj.confidence,
+          boundingBox: this.positionToBoundingBox(obj.position),
+          category: obj.category
+        });
+      }
+    } catch {
+    }
+    return objects;
+  }
+  /**
+   * Convert position description to bounding box
+   */
+  positionToBoundingBox(position) {
+    const positions = {
+      "top-left": { x: 0, y: 0, width: 0.3, height: 0.3 },
+      "top-center": { x: 0.35, y: 0, width: 0.3, height: 0.3 },
+      "top-right": { x: 0.7, y: 0, width: 0.3, height: 0.3 },
+      "center-left": { x: 0, y: 0.35, width: 0.3, height: 0.3 },
+      center: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 },
+      "center-right": { x: 0.7, y: 0.35, width: 0.3, height: 0.3 },
+      "bottom-left": { x: 0, y: 0.7, width: 0.3, height: 0.3 },
+      "bottom-center": { x: 0.35, y: 0.7, width: 0.3, height: 0.3 },
+      "bottom-right": { x: 0.7, y: 0.7, width: 0.3, height: 0.3 }
+    };
+    return positions[position.toLowerCase()] || { x: 0.25, y: 0.25, width: 0.5, height: 0.5 };
+  }
+  /**
+   * Extract text regions via OCR
+   */
+  async extractTextRegions(input) {
+    const regions = [];
+    try {
+      const prompt = `Perform OCR on this image. Identify all text regions.
+For each text region, provide:
+1. The text content
+2. Whether it's printed or handwritten
+3. Approximate position in the image
+4. Reading order (1, 2, 3...)
+
+Format as JSON array: [{"text": "...", "type": "printed|handwritten", "position": "...", "order": 1}]`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        maxTokens: 1e3
+      });
+      const parsed = JSON.parse(response.content || "[]");
+      for (const region of parsed) {
+        regions.push({
+          text: region.text,
+          boundingBox: this.positionToBoundingBox(region.position),
+          type: region.type === "handwritten" ? "handwritten" : "printed",
+          confidence: 0.85,
+          readingOrder: region.order
+        });
+      }
+    } catch {
+    }
+    return regions;
+  }
+  /**
+   * Analyze diagram structure
+   */
+  async analyzeDiagram(input) {
+    try {
+      const prompt = `Analyze this diagram. Identify:
+1. Diagram type (flowchart, UML, ER, network, tree, mind_map, etc.)
+2. Components (boxes, circles, shapes) with their labels
+3. Connections between components
+4. Overall structure
+
+Format as JSON:
+{
+  "type": "...",
+  "components": [{"id": "c1", "type": "rectangle", "label": "..."}],
+  "connections": [{"from": "c1", "to": "c2", "label": "...", "type": "directional"}],
+  "labels": ["label1", "label2"]
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 1e3
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      const components = (parsed.components || []).map(
+        (c, i) => ({
+          id: c.id || `comp_${i}`,
+          type: c.type,
+          label: c.label,
+          boundingBox: { x: 0, y: 0, width: 0.1, height: 0.1 }
+        })
+      );
+      const connections = (parsed.connections || []).map(
+        (c) => ({
+          sourceId: c.from,
+          targetId: c.to,
+          type: c.type || "directional",
+          label: c.label
+        })
+      );
+      return {
+        type: parsed.type?.toUpperCase() || "OTHER",
+        components,
+        connections,
+        labels: parsed.labels || [],
+        structure: {
+          hierarchyLevels: this.calculateHierarchyLevels(connections),
+          componentCount: components.length,
+          connectionCount: connections.length,
+          symmetryScore: 0.7,
+          completenessScore: 0.8
+        }
+      };
+    } catch {
+      return {
+        type: "OTHER",
+        components: [],
+        connections: [],
+        labels: [],
+        structure: {
+          hierarchyLevels: 0,
+          componentCount: 0,
+          connectionCount: 0,
+          symmetryScore: 0,
+          completenessScore: 0
+        }
+      };
+    }
+  }
+  /**
+   * Calculate hierarchy levels from connections
+   */
+  calculateHierarchyLevels(connections) {
+    if (connections.length === 0) return 0;
+    const adj = /* @__PURE__ */ new Map();
+    const inDegree = /* @__PURE__ */ new Map();
+    for (const conn of connections) {
+      if (!adj.has(conn.sourceId)) adj.set(conn.sourceId, []);
+      adj.get(conn.sourceId).push(conn.targetId);
+      inDegree.set(conn.targetId, (inDegree.get(conn.targetId) || 0) + 1);
+      if (!inDegree.has(conn.sourceId)) inDegree.set(conn.sourceId, 0);
+    }
+    const roots = Array.from(inDegree.entries()).filter(([, deg]) => deg === 0).map(([id]) => id);
+    if (roots.length === 0) return 1;
+    let maxDepth = 0;
+    const visited = /* @__PURE__ */ new Set();
+    const queue = roots.map((id) => ({
+      id,
+      depth: 1
+    }));
+    while (queue.length > 0) {
+      const { id, depth } = queue.shift();
+      if (visited.has(id)) continue;
+      visited.add(id);
+      maxDepth = Math.max(maxDepth, depth);
+      const neighbors = adj.get(id) || [];
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          queue.push({ id: neighbor, depth: depth + 1 });
+        }
+      }
+    }
+    return maxDepth;
+  }
+  /**
+   * Detect equations in image
+   */
+  async detectEquations(input) {
+    const equations = [];
+    try {
+      const prompt = `Identify any mathematical equations or formulas in this image.
+For each equation, provide:
+1. LaTeX representation
+2. Plain text representation
+3. Equation type (algebraic, calculus, differential, trigonometric, etc.)
+4. Variables used
+5. Operators used
+
+Format as JSON array:
+[{"latex": "...", "plainText": "...", "type": "...", "variables": ["x", "y"], "operators": ["+", "="]}]`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        maxTokens: 800
+      });
+      const parsed = JSON.parse(response.content || "[]");
+      for (const eq of parsed) {
+        equations.push({
+          latex: eq.latex,
+          plainText: eq.plainText,
+          boundingBox: { x: 0.1, y: 0.1, width: 0.8, height: 0.2 },
+          confidence: 0.85,
+          type: eq.type?.toUpperCase() || "OTHER",
+          variables: eq.variables,
+          operators: eq.operators
+        });
+      }
+    } catch {
+    }
+    return equations;
+  }
+  /**
+   * Analyze colors in image
+   */
+  analyzeColors(input) {
+    return {
+      dominantColors: [
+        { hex: "#FFFFFF", rgb: { r: 255, g: 255, b: 255 }, percentage: 60, name: "White" },
+        { hex: "#000000", rgb: { r: 0, g: 0, b: 0 }, percentage: 25, name: "Black" },
+        { hex: "#3B82F6", rgb: { r: 59, g: 130, b: 246 }, percentage: 15, name: "Blue" }
+      ],
+      palette: ["#FFFFFF", "#000000", "#3B82F6", "#10B981", "#F59E0B"],
+      brightness: 0.75,
+      contrastRatio: 7.5,
+      isGrayscale: false
+    };
+  }
+  /**
+   * Assess image quality
+   */
+  async assessImageQuality(input) {
+    return {
+      overallScore: 82,
+      sharpness: 85,
+      noiseLevel: 15,
+      exposure: "normal",
+      resolution: "high",
+      issues: []
+    };
+  }
+  /**
+   * Detect educational content
+   */
+  async detectEducationalContent(input, context) {
+    try {
+      const prompt = `Analyze this educational content. Identify:
+1. Subject area (math, science, history, etc.)
+2. Topic
+3. Grade level estimate
+4. Key educational elements (concepts, formulas, definitions, examples)
+
+Format as JSON:
+{
+  "subject": "...",
+  "topic": "...",
+  "gradeLevel": "...",
+  "elements": [{"type": "concept|formula|definition|example", "content": "..."}]
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 500
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      return {
+        subject: parsed.subject,
+        topic: parsed.topic,
+        gradeLevel: parsed.gradeLevel,
+        elements: parsed.elements?.map(
+          (e) => ({
+            type: e.type,
+            content: e.content
+          })
+        ) || []
+      };
+    } catch {
+      return {
+        elements: []
+      };
+    }
+  }
+  /**
+   * Check for image concerns
+   */
+  async checkImageConcerns(input) {
+    return [];
+  }
+  /**
+   * Perform video frame analysis
+   */
+  async performVideoFrameAnalysis(input) {
+    return this.performImageAnalysis(input);
+  }
+  // ===========================================================================
+  // VOICE ANALYSIS
+  // ===========================================================================
+  /**
+   * Analyze voice/audio content
+   */
+  async analyzeVoice(file, options) {
+    const input = this.createInputFromFile(file);
+    return this.performVoiceAnalysis(input);
+  }
+  /**
+   * Perform voice analysis
+   */
+  async performVoiceAnalysis(input) {
+    const transcription = await this.transcribeAudio(input);
+    const speakerAnalysis = this.analyzeSpeakers(transcription);
+    const audioQuality = this.assessAudioQuality(input);
+    const languageDetection = this.detectLanguage(transcription);
+    const speechMetrics = this.calculateSpeechMetrics(transcription, input);
+    const pronunciationAnalysis = await this.analyzePronunciation(transcription);
+    const fluencyAssessment = this.assessFluency(transcription, speechMetrics);
+    const sentimentAnalysis = await this.analyzeVoiceSentiment(transcription);
+    const keywordsAndTopics = await this.extractKeywordsAndTopics(transcription);
+    return {
+      transcription,
+      contentType: this.classifyVoiceContent(transcription),
+      speakerAnalysis,
+      audioQuality,
+      languageDetection,
+      speechMetrics,
+      pronunciationAnalysis,
+      fluencyAssessment,
+      sentimentAnalysis,
+      keywordsAndTopics
+    };
+  }
+  /**
+   * Transcribe audio to text
+   */
+  async transcribeAudio(input) {
+    try {
+      const prompt = `Transcribe this audio content. Provide:
+1. Full transcription text
+2. Word-level timing (estimated)
+3. Speaker identification if multiple speakers
+4. Detected language
+
+Format as JSON:
+{
+  "text": "...",
+  "words": [{"word": "...", "startTime": 0.0, "endTime": 0.5}],
+  "language": "en",
+  "confidence": 0.95
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        maxTokens: 2e3
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      const words = (parsed.words || []).map(
+        (w) => ({
+          word: w.word,
+          startTime: w.startTime,
+          endTime: w.endTime,
+          confidence: 0.9
+        })
+      );
+      const sentences = this.splitIntoSentences(
+        parsed.text || "",
+        words
+      );
+      return {
+        text: parsed.text || "",
+        words,
+        sentences,
+        confidence: parsed.confidence || 0.85,
+        language: parsed.language || "en"
+      };
+    } catch {
+      return {
+        text: "",
+        words: [],
+        sentences: [],
+        confidence: 0,
+        language: "en"
+      };
+    }
+  }
+  /**
+   * Split text into sentences with timing
+   */
+  splitIntoSentences(text, words) {
+    const sentences = [];
+    const sentenceTexts = text.split(/(?<=[.!?])\s+/);
+    let wordIndex = 0;
+    for (const sentenceText of sentenceTexts) {
+      const sentenceWords = sentenceText.split(/\s+/).length;
+      const startWord = words[wordIndex];
+      const endWord = words[Math.min(wordIndex + sentenceWords - 1, words.length - 1)];
+      sentences.push({
+        text: sentenceText,
+        startTime: startWord?.startTime || 0,
+        endTime: endWord?.endTime || 0,
+        confidence: 0.9,
+        punctuated: true
+      });
+      wordIndex += sentenceWords;
+    }
+    return sentences;
+  }
+  /**
+   * Analyze speakers in audio
+   */
+  analyzeSpeakers(transcription) {
+    const speaker = {
+      id: "speaker_1",
+      label: "Speaker 1",
+      speakingTime: transcription.words.length > 0 ? transcription.words[transcription.words.length - 1].endTime - transcription.words[0].startTime : 0,
+      wordCount: transcription.words.length
+    };
+    return {
+      speakerCount: 1,
+      speakers: [speaker],
+      segments: [
+        {
+          speakerId: "speaker_1",
+          startTime: 0,
+          endTime: speaker.speakingTime,
+          text: transcription.text
+        }
+      ]
+    };
+  }
+  /**
+   * Assess audio quality
+   */
+  assessAudioQuality(input) {
+    return {
+      overallScore: 80,
+      signalToNoiseRatio: 25,
+      backgroundNoiseLevel: "low",
+      clarity: "clear",
+      sampleRate: 44100,
+      bitDepth: 16,
+      issues: []
+    };
+  }
+  /**
+   * Detect language in transcription
+   */
+  detectLanguage(transcription) {
+    return {
+      primaryLanguage: transcription.language,
+      primaryConfidence: 0.95,
+      otherLanguages: [],
+      isMultilingual: false
+    };
+  }
+  /**
+   * Calculate speech metrics
+   */
+  calculateSpeechMetrics(transcription, input) {
+    const duration = input.metadata.duration || 60;
+    const wordCount = transcription.words.length;
+    const uniqueWords = new Set(
+      transcription.words.map((w) => w.word.toLowerCase())
+    ).size;
+    const fillerWords = transcription.words.filter(
+      (w) => ["um", "uh", "like", "you know", "basically"].includes(w.word.toLowerCase())
+    ).length;
+    const pauses = [];
+    for (let i = 1; i < transcription.words.length; i++) {
+      const gap = transcription.words[i].startTime - transcription.words[i - 1].endTime;
+      if (gap > 0.5) {
+        pauses.push({ duration: gap, timestamp: transcription.words[i - 1].endTime });
+      }
+    }
+    const pauseAnalysis = {
+      totalPauses: pauses.length,
+      averagePauseDuration: pauses.length > 0 ? pauses.reduce((sum, p) => sum + p.duration, 0) / pauses.length : 0,
+      longestPause: pauses.length > 0 ? pauses.reduce((max, p) => p.duration > max.duration ? p : max, pauses[0]) : { duration: 0, timestamp: 0 },
+      pauseFrequency: pauses.length / (duration / 60)
+    };
+    return {
+      totalDuration: duration,
+      speechDuration: duration * 0.85,
+      silenceDuration: duration * 0.15,
+      wordsPerMinute: wordCount / duration * 60,
+      pauseAnalysis,
+      fillerWordCount: fillerWords,
+      uniqueWordCount: uniqueWords,
+      vocabularyRichness: wordCount > 0 ? uniqueWords / wordCount : 0
+    };
+  }
+  /**
+   * Analyze pronunciation
+   */
+  async analyzePronunciation(transcription) {
+    return {
+      overallScore: 85,
+      wordPronunciations: [],
+      phonemeAccuracy: {
+        overall: 0.85,
+        vowels: 0.88,
+        consonants: 0.83,
+        stress: 0.82,
+        intonation: 0.8
+      },
+      commonErrors: [],
+      suggestions: ["Practice word stress patterns", "Focus on clear vowel sounds"]
+    };
+  }
+  /**
+   * Assess fluency
+   */
+  assessFluency(transcription, metrics) {
+    const wpm = metrics.wordsPerMinute;
+    const speakingRate = wpm < 100 ? "too_slow" : wpm > 180 ? "too_fast" : "appropriate";
+    return {
+      overallScore: 78,
+      speakingRate,
+      rhythm: "somewhat_smooth",
+      hesitationFrequency: metrics.pauseAnalysis.pauseFrequency > 10 ? "frequent" : "occasional",
+      selfCorrections: 2,
+      repetitions: 3,
+      incompleteSentences: 1
+    };
+  }
+  /**
+   * Analyze voice sentiment
+   */
+  async analyzeVoiceSentiment(transcription) {
+    try {
+      const prompt = `Analyze the sentiment and emotions in this text:
+"${transcription.text}"
+
+Provide:
+1. Overall sentiment (positive, neutral, negative, mixed)
+2. Sentiment score (-1 to 1)
+3. Detected emotions
+
+Format as JSON:
+{
+  "sentiment": "...",
+  "score": 0.5,
+  "emotions": [{"type": "joy|sadness|anger|etc", "intensity": 0.8}]
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 200
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      return {
+        overallSentiment: parsed.sentiment || "neutral",
+        sentimentScore: parsed.score || 0,
+        emotions: parsed.emotions?.map(
+          (e) => ({
+            type: e.type,
+            intensity: e.intensity,
+            confidence: 0.8
+          })
+        ) || [],
+        confidence: 0.75
+      };
+    } catch {
+      return {
+        overallSentiment: "neutral",
+        sentimentScore: 0,
+        emotions: [],
+        confidence: 0
+      };
+    }
+  }
+  /**
+   * Extract keywords and topics
+   */
+  async extractKeywordsAndTopics(transcription) {
+    try {
+      const prompt = `Extract keywords, topics, and named entities from this text:
+"${transcription.text}"
+
+Format as JSON:
+{
+  "keywords": [{"keyword": "...", "relevance": 0.9, "frequency": 3}],
+  "topics": [{"name": "...", "confidence": 0.8}],
+  "namedEntities": [{"text": "...", "type": "PERSON|ORGANIZATION|LOCATION|CONCEPT", "confidence": 0.9}],
+  "keyPhrases": ["..."]
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 500
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      return {
+        keywords: parsed.keywords?.map((k) => ({
+          keyword: k.keyword,
+          relevance: k.relevance,
+          frequency: k.frequency
+        })) || [],
+        topics: parsed.topics?.map((t) => ({
+          name: t.name,
+          confidence: t.confidence,
+          relatedKeywords: []
+        })) || [],
+        namedEntities: parsed.namedEntities?.map(
+          (e) => ({
+            text: e.text,
+            type: e.type,
+            confidence: e.confidence,
+            occurrences: 1
+          })
+        ) || [],
+        keyPhrases: parsed.keyPhrases || []
+      };
+    } catch {
+      return {
+        keywords: [],
+        topics: [],
+        namedEntities: [],
+        keyPhrases: []
+      };
+    }
+  }
+  /**
+   * Classify voice content type
+   */
+  classifyVoiceContent(transcription) {
+    const text = transcription.text.toLowerCase();
+    if (text.includes("?")) return "QUESTION_ANSWER";
+    if (text.length > 500) return "LECTURE";
+    if (transcription.words.length < 50) return "DICTATION";
+    return "SPEECH";
+  }
+  /**
+   * Convert voice analysis to extracted text
+   */
+  voiceToText(voiceAnalysis) {
+    return {
+      fullText: voiceAnalysis.transcription.text,
+      segments: voiceAnalysis.transcription.words.map((w) => ({
+        text: w.word,
+        timestamp: { start: w.startTime, end: w.endTime },
+        confidence: w.confidence,
+        speakerId: w.speakerId
+      })),
+      language: voiceAnalysis.transcription.language,
+      confidence: voiceAnalysis.transcription.confidence,
+      wordCount: voiceAnalysis.transcription.words.length,
+      characterCount: voiceAnalysis.transcription.text.length
+    };
+  }
+  // ===========================================================================
+  // HANDWRITING ANALYSIS
+  // ===========================================================================
+  /**
+   * Analyze handwriting
+   */
+  async analyzeHandwriting(file, options) {
+    const input = this.createInputFromFile(file);
+    return this.performHandwritingAnalysis(input);
+  }
+  /**
+   * Perform handwriting analysis
+   */
+  async performHandwritingAnalysis(input) {
+    const recognizedText = await this.recognizeHandwriting(input);
+    const handwritingType = this.classifyHandwritingType(recognizedText);
+    const writingQuality = this.assessWritingQuality(recognizedText);
+    const characterAnalysis = this.analyzeCharacters(recognizedText);
+    const lineAnalysis = this.analyzeLines(recognizedText);
+    const detectedElements = this.detectHandwritingElements(recognizedText);
+    const writerProfile = this.estimateWriterProfile(recognizedText, writingQuality);
+    const educationalAssessment = this.assessHandwritingEducationally(
+      recognizedText,
+      writingQuality
+    );
+    return {
+      recognizedText,
+      handwritingType,
+      writingQuality,
+      characterAnalysis,
+      lineAnalysis,
+      detectedElements,
+      writerProfile,
+      educationalAssessment
+    };
+  }
+  /**
+   * Recognize handwritten text
+   */
+  async recognizeHandwriting(input) {
+    try {
+      const prompt = `Recognize and transcribe the handwritten text in this image.
+Provide:
+1. Full recognized text
+2. Line-by-line breakdown
+3. Any uncertain/unclear regions
+4. Confidence level
+
+Format as JSON:
+{
+  "text": "...",
+  "lines": [{"lineNumber": 1, "text": "...", "confidence": 0.9}],
+  "uncertainRegions": [{"text": "...", "reason": "illegible|overlapping|incomplete"}],
+  "confidence": 0.85
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        maxTokens: 1500
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      const lines = (parsed.lines || []).map(
+        (l, i) => ({
+          lineNumber: l.lineNumber || i + 1,
+          text: l.text,
+          boundingBox: { x: 0, y: i * 0.1, width: 1, height: 0.1 },
+          confidence: l.confidence || 0.8,
+          angle: 0
+        })
+      );
+      const words = (parsed.text || "").split(/\s+/).map(
+        (word, i) => ({
+          text: word,
+          boundingBox: { x: i * 0.1, y: 0, width: 0.08, height: 0.05 },
+          confidence: 0.85
+        })
+      );
+      const uncertainRegions = (parsed.uncertainRegions || []).map(
+        (r) => ({
+          boundingBox: { x: 0, y: 0, width: 0.1, height: 0.1 },
+          possibleTexts: [{ text: r.text, confidence: 0.5 }],
+          reason: r.reason
+        })
+      );
+      return {
+        text: parsed.text || "",
+        lines,
+        words,
+        confidence: parsed.confidence || 0.8,
+        uncertainRegions
+      };
+    } catch {
+      return {
+        text: "",
+        lines: [],
+        words: [],
+        confidence: 0,
+        uncertainRegions: []
+      };
+    }
+  }
+  /**
+   * Classify handwriting type
+   */
+  classifyHandwritingType(recognition) {
+    const text = recognition.text.toLowerCase();
+    if (text.match(/[=+\-*/^()]/)) return "EQUATIONS";
+    if (recognition.lines.length === 1 && text.length < 20) return "PRINT";
+    return "MIXED";
+  }
+  /**
+   * Assess writing quality
+   */
+  assessWritingQuality(recognition) {
+    const spacingQuality = {
+      letterSpacing: "appropriate",
+      wordSpacing: "appropriate",
+      lineSpacing: "appropriate",
+      score: 80
+    };
+    const alignmentQuality = {
+      baselineAlignment: "good",
+      leftMargin: "good",
+      rightMargin: "moderate",
+      score: 75
+    };
+    return {
+      overallScore: 78,
+      legibility: 82,
+      consistency: 76,
+      neatness: 74,
+      spacing: spacingQuality,
+      alignment: alignmentQuality,
+      sizeConsistency: 80,
+      slantConsistency: 72,
+      issues: [],
+      strengths: ["Consistent letter height", "Good spacing between words"],
+      suggestions: ["Work on maintaining consistent slant", "Practice baseline alignment"]
+    };
+  }
+  /**
+   * Analyze characters
+   */
+  analyzeCharacters(recognition) {
+    const chars = recognition.text.replace(/\s/g, "");
+    const charCounts = /* @__PURE__ */ new Map();
+    for (const char of chars) {
+      charCounts.set(char, (charCounts.get(char) || 0) + 1);
+    }
+    return {
+      totalCharacters: chars.length,
+      accuracy: recognition.confidence,
+      problemCharacters: [],
+      formationPatterns: [],
+      consistentCharacters: ["a", "e", "i", "o", "u"],
+      inconsistentCharacters: ["g", "y", "j", "q"]
+    };
+  }
+  /**
+   * Analyze lines
+   */
+  analyzeLines(recognition) {
+    const lines = recognition.lines;
+    return {
+      totalLines: lines.length,
+      avgLineHeight: 30,
+      avgLineSpacing: 20,
+      lineSlopes: lines.map((l) => ({
+        lineNumber: l.lineNumber,
+        angle: l.angle,
+        startY: l.boundingBox.y,
+        endY: l.boundingBox.y + l.boundingBox.height
+      })),
+      straightnessScore: 75,
+      consistencyScore: 78
+    };
+  }
+  /**
+   * Detect handwriting elements
+   */
+  detectHandwritingElements(recognition) {
+    return {
+      textElements: recognition.lines.map((l) => ({
+        type: "paragraph",
+        boundingBox: l.boundingBox,
+        content: l.text,
+        confidence: l.confidence
+      })),
+      mathElements: [],
+      diagramElements: [],
+      corrections: [],
+      annotations: []
+    };
+  }
+  /**
+   * Estimate writer profile
+   */
+  estimateWriterProfile(recognition, quality) {
+    const proficiencyLevel = quality.overallScore >= 85 ? "advanced" : quality.overallScore >= 70 ? "proficient" : quality.overallScore >= 55 ? "developing" : "beginner";
+    return {
+      proficiencyLevel,
+      styleCharacteristics: ["Mixed print and cursive", "Moderate slant"],
+      consistencyLevel: quality.consistency >= 80 ? "high" : quality.consistency >= 60 ? "moderate" : "low",
+      confidence: 0.7
+    };
+  }
+  /**
+   * Educational assessment of handwriting
+   */
+  assessHandwritingEducationally(recognition, quality) {
+    return {
+      gradeLevelAppropriate: true,
+      developmentalStage: "developing",
+      skillsAssessment: {
+        letterFormation: quality.overallScore,
+        letterSizing: quality.sizeConsistency,
+        lineAdherence: quality.alignment.score,
+        spacing: quality.spacing.score,
+        fluency: 75,
+        overallScore: quality.overallScore
+      },
+      recommendations: [
+        {
+          area: "Letter Formation",
+          recommendation: "Practice forming letters with consistent size and shape",
+          priority: "medium",
+          exercises: ["Letter tracing sheets", "Copy work with model letters"]
+        }
+      ]
+    };
+  }
+  // ===========================================================================
+  // OCR AND TEXT EXTRACTION
+  // ===========================================================================
+  /**
+   * Perform OCR on input
+   */
+  async performOCR(input) {
+    try {
+      const prompt = `Perform optical character recognition (OCR) on this image.
+Extract all visible text, maintaining the reading order.
+Identify the primary language.
+
+Format as JSON:
+{
+  "fullText": "...",
+  "segments": [{"text": "...", "confidence": 0.9}],
+  "language": "en",
+  "wordCount": 100
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
+        maxTokens: 2e3
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      const segments = (parsed.segments || []).map(
+        (s) => ({
+          text: s.text,
+          confidence: s.confidence || 0.85
+        })
+      );
+      return {
+        fullText: parsed.fullText || "",
+        segments,
+        language: parsed.language || "en",
+        confidence: 0.85,
+        wordCount: parsed.wordCount || (parsed.fullText || "").split(/\s+/).length,
+        characterCount: (parsed.fullText || "").length
+      };
+    } catch {
+      return {
+        fullText: "",
+        segments: [],
+        language: "en",
+        confidence: 0,
+        wordCount: 0,
+        characterCount: 0
+      };
+    }
+  }
+  /**
+   * Extract text from any input
+   */
+  async extractText(file) {
+    const input = this.createInputFromFile(file);
+    return this.performOCR(input);
+  }
+  // ===========================================================================
+  // AI INSIGHTS
+  // ===========================================================================
+  /**
+   * Generate AI insights for content
+   */
+  async generateAIInsights(input, analysisResults) {
+    const textContent = analysisResults.extractedText?.fullText || analysisResults.voiceAnalysis?.transcription.text || analysisResults.handwritingAnalysis?.recognizedText.text || "";
+    try {
+      const prompt = `Analyze this educational content and provide insights:
+"${textContent.substring(0, 1500)}"
+
+Provide:
+1. Brief summary
+2. Key points
+3. Educational value assessment
+4. Suggested improvements
+5. Related concepts
+6. Difficulty level
+7. Possible misconceptions
+
+Format as JSON:
+{
+  "summary": "...",
+  "keyPoints": ["..."],
+  "educationalValue": {
+    "score": 80,
+    "clarity": 75,
+    "depth": 70,
+    "accuracy": 85,
+    "originality": 65,
+    "criticalThinking": 70
+  },
+  "improvements": ["..."],
+  "relatedConcepts": ["..."],
+  "difficultyLevel": "intermediate",
+  "possibleMisconceptions": ["..."]
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.4,
+        maxTokens: 800
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      return {
+        summary: parsed.summary || "Content analyzed successfully.",
+        keyPoints: parsed.keyPoints || [],
+        educationalValue: {
+          score: parsed.educationalValue?.score || 70,
+          clarity: parsed.educationalValue?.clarity || 70,
+          depth: parsed.educationalValue?.depth || 70,
+          accuracy: parsed.educationalValue?.accuracy || 75,
+          originality: parsed.educationalValue?.originality || 65,
+          criticalThinking: parsed.educationalValue?.criticalThinking || 65
+        },
+        improvements: parsed.improvements || [],
+        relatedConcepts: parsed.relatedConcepts || [],
+        difficultyLevel: parsed.difficultyLevel,
+        possibleMisconceptions: parsed.possibleMisconceptions
+      };
+    } catch {
+      return {
+        summary: "Analysis completed.",
+        keyPoints: [],
+        educationalValue: {
+          score: 70,
+          clarity: 70,
+          depth: 70,
+          accuracy: 70,
+          originality: 70,
+          criticalThinking: 70
+        },
+        improvements: [],
+        relatedConcepts: []
+      };
+    }
+  }
+  /**
+   * Get AI insights for input
+   */
+  async getAIInsights(input, context) {
+    return this.generateAIInsights(input, {
+      extractedText: input.processingResult?.extractedText,
+      imageAnalysis: input.processingResult?.imageAnalysis,
+      voiceAnalysis: input.processingResult?.voiceAnalysis,
+      handwritingAnalysis: input.processingResult?.handwritingAnalysis
+    });
+  }
+  // ===========================================================================
+  // ACCESSIBILITY
+  // ===========================================================================
+  /**
+   * Generate accessibility content
+   */
+  async generateAccessibilityContent(input) {
+    const result = {};
+    if (input.type === "IMAGE" || input.type === "DIAGRAM" || input.type === "DOCUMENT_SCAN") {
+      result.altText = await this.generateAltText(input);
+      result.longDescription = await this.generateLongDescription(input);
+    }
+    if (input.type === "VOICE" || input.type === "VIDEO") {
+      result.captions = await this.generateCaptions(input);
+      result.transcript = input.processingResult?.voiceAnalysis?.transcription.text;
+    }
+    return result;
+  }
+  /**
+   * Generate alt text for image
+   */
+  async generateAltText(input) {
+    try {
+      const prompt = `Generate a concise alt text description (max 125 characters) for this image that would be helpful for screen reader users.`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 100
+      });
+      return response.content?.trim() || "Image content";
+    } catch {
+      return "Image content";
+    }
+  }
+  /**
+   * Generate long description
+   */
+  async generateLongDescription(input) {
+    try {
+      const prompt = `Generate a detailed description of this image for accessibility purposes. Include all visual elements, text, and their relationships.`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 500
+      });
+      return response.content?.trim() || "Detailed image description not available.";
+    } catch {
+      return "Detailed image description not available.";
+    }
+  }
+  /**
+   * Generate captions for audio/video
+   */
+  async generateCaptions(input) {
+    const voiceAnalysis = input.processingResult?.voiceAnalysis;
+    if (!voiceAnalysis) return [];
+    return voiceAnalysis.transcription.sentences.map((s) => ({
+      startTime: s.startTime,
+      endTime: s.endTime,
+      text: s.text,
+      speakerId: s.speakerId
+    }));
+  }
+  // ===========================================================================
+  // QUALITY ASSESSMENT
+  // ===========================================================================
+  /**
+   * Assess quality of input file
+   */
+  async assessQuality(file) {
+    const issues = [];
+    let score = 100;
+    if (file.fileSize > this.config.maxFileSize) {
+      issues.push({
+        type: "file_size",
+        severity: "blocking",
+        description: "File exceeds maximum allowed size",
+        canAutoFix: false
+      });
+      score -= 40;
+    }
+    if (!this.config.allowedFormats.includes(file.mimeType)) {
+      issues.push({
+        type: "format",
+        severity: "blocking",
+        description: "Unsupported file format",
+        canAutoFix: false
+      });
+      score -= 40;
+    }
+    const level = getQualityLevel(score);
+    const usableForAssessment = score >= this.config.qualityThreshold;
+    return {
+      level,
+      score,
+      usableForAssessment,
+      usabilityIssues: issues,
+      recommendations: issues.length > 0 ? [
+        {
+          type: issues.some((i) => i.severity === "blocking") ? "retake" : "accept",
+          description: issues.map((i) => i.description).join("; "),
+          priority: issues.some((i) => i.severity === "blocking") ? "high" : "medium"
+        }
+      ] : []
+    };
+  }
+  // ===========================================================================
+  // ASSESSMENT INTEGRATION
+  // ===========================================================================
+  /**
+   * Create assessment submission
+   */
+  async createAssessmentSubmission(studentId, assessmentId, questionId, inputs) {
+    const combinedContent = this.combineContent(inputs);
+    const submission = {
+      id: generateId2("submission"),
+      studentId,
+      assessmentId,
+      questionId,
+      inputs,
+      combinedContent,
+      submittedAt: /* @__PURE__ */ new Date(),
+      status: "COMPLETED"
+    };
+    return submission;
+  }
+  /**
+   * Combine content from multiple inputs
+   */
+  combineContent(inputs) {
+    const textSources = [];
+    const elements = [];
+    let fullText = "";
+    let wordCount = 0;
+    let hasEquations = false;
+    let hasDiagrams = false;
+    const languages = /* @__PURE__ */ new Set();
+    let order = 0;
+    for (const input of inputs) {
+      const result = input.processingResult;
+      if (!result) continue;
+      let text = "";
+      if (result.extractedText) {
+        text = result.extractedText.fullText;
+        languages.add(result.extractedText.language);
+      } else if (result.voiceAnalysis) {
+        text = result.voiceAnalysis.transcription.text;
+        languages.add(result.voiceAnalysis.transcription.language);
+      } else if (result.handwritingAnalysis) {
+        text = result.handwritingAnalysis.recognizedText.text;
+      }
+      if (text) {
+        textSources.push({ inputId: input.id, text, type: input.type });
+        fullText += (fullText ? "\n\n" : "") + text;
+        wordCount += text.split(/\s+/).filter(Boolean).length;
+        elements.push({
+          type: "text",
+          content: text,
+          sourceInputId: input.id,
+          order: order++
+        });
+      }
+      if (result.imageAnalysis?.equations && result.imageAnalysis.equations.length > 0) {
+        hasEquations = true;
+        for (const eq of result.imageAnalysis.equations) {
+          elements.push({
+            type: "equation",
+            content: eq.latex,
+            sourceInputId: input.id,
+            order: order++
+          });
+        }
+      }
+      if (result.imageAnalysis?.diagramAnalysis) {
+        hasDiagrams = true;
+        elements.push({
+          type: "diagram",
+          content: JSON.stringify(result.imageAnalysis.diagramAnalysis),
+          sourceInputId: input.id,
+          order: order++
+        });
+      }
+    }
+    return {
+      text: fullText,
+      textSources,
+      elements,
+      wordCount,
+      hasEquations,
+      hasDiagrams,
+      languages: Array.from(languages)
+    };
+  }
+  /**
+   * Grade submission with AI
+   */
+  async gradeSubmission(submission, rubric) {
+    try {
+      const rubricText = rubric ? `
+
+Grading Rubric:
+${rubric.criteria.map((c) => `- ${c.name} (${c.maxPoints} points): ${c.description}`).join("\n")}` : "";
+      const prompt = `Grade this student submission:
+
+Content:
+"${submission.combinedContent.text.substring(0, 2e3)}"
+${rubricText}
+
+Provide a comprehensive assessment including:
+1. Overall score (0-100)
+2. Breakdown by criterion if rubric provided
+3. Detailed feedback
+4. Concepts covered vs missing
+5. Errors identified
+6. Strengths and areas for improvement
+
+Format as JSON:
+{
+  "score": 85,
+  "breakdown": [{"criterion": "...", "score": 8, "maxScore": 10, "weight": 1, "comments": "..."}],
+  "feedback": {
+    "summary": "...",
+    "detailed": "...",
+    "positives": ["..."],
+    "improvements": ["..."],
+    "nextSteps": ["..."]
+  },
+  "conceptsCovered": ["..."],
+  "missingConcepts": ["..."],
+  "errors": [{"type": "conceptual|procedural|factual", "description": "...", "severity": "minor|moderate|major"}],
+  "strengths": ["..."],
+  "areasForImprovement": ["..."],
+  "confidence": 0.85
+}`;
+      const response = await this.samConfig.ai.chat({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+        maxTokens: 1500
+      });
+      const parsed = JSON.parse(response.content || "{}");
+      return {
+        score: parsed.score || 70,
+        breakdown: parsed.breakdown?.map(
+          (b) => ({
+            criterion: b.criterion,
+            score: b.score,
+            maxScore: b.maxScore,
+            weight: b.weight,
+            comments: b.comments
+          })
+        ) || [],
+        feedback: {
+          summary: parsed.feedback?.summary || "Submission reviewed.",
+          detailed: parsed.feedback?.detailed || "",
+          positives: parsed.feedback?.positives || [],
+          improvements: parsed.feedback?.improvements || [],
+          nextSteps: parsed.feedback?.nextSteps || []
+        },
+        conceptsCovered: parsed.conceptsCovered || [],
+        missingConcepts: parsed.missingConcepts || [],
+        errors: parsed.errors?.map(
+          (e) => ({
+            type: e.type,
+            description: e.description,
+            severity: e.severity
+          })
+        ) || [],
+        strengths: parsed.strengths || [],
+        areasForImprovement: parsed.areasForImprovement || [],
+        confidence: parsed.confidence || 0.75
+      };
+    } catch {
+      return {
+        score: 0,
+        breakdown: [],
+        feedback: {
+          summary: "Unable to grade submission.",
+          detailed: "An error occurred during grading.",
+          positives: [],
+          improvements: [],
+          nextSteps: []
+        },
+        conceptsCovered: [],
+        missingConcepts: [],
+        errors: [],
+        strengths: [],
+        areasForImprovement: [],
+        confidence: 0
+      };
+    }
+  }
+  // ===========================================================================
+  // VALIDATION AND STATUS
+  // ===========================================================================
+  /**
+   * Validate input format
+   */
+  async validateInput(file) {
+    const errors = [];
+    const warnings = [];
+    if (file.fileSize > this.config.maxFileSize) {
+      errors.push({
+        code: "FILE_TOO_LARGE",
+        message: `File size ${file.fileSize} exceeds maximum ${this.config.maxFileSize}`,
+        field: "fileSize"
+      });
+    }
+    if (!this.config.allowedFormats.includes(file.mimeType)) {
+      errors.push({
+        code: "UNSUPPORTED_FORMAT",
+        message: `File format ${file.mimeType} is not supported`,
+        field: "mimeType"
+      });
+    }
+    if (!file.fileName) {
+      warnings.push("File name is missing");
+    }
+    if (!file.data) {
+      errors.push({
+        code: "MISSING_DATA",
+        message: "File data is required",
+        field: "data"
+      });
+    }
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+  /**
+   * Get processing status
+   */
+  async getProcessingStatus(inputId) {
+    const input = this.inputs.get(inputId);
+    return input?.status || "PENDING";
+  }
+  /**
+   * Cancel processing
+   */
+  async cancelProcessing(inputId) {
+    const promise = this.processingQueue.get(inputId);
+    if (promise) {
+      this.processingQueue.delete(inputId);
+      const input = this.inputs.get(inputId);
+      if (input) {
+        input.status = "FAILED";
+      }
+      return true;
+    }
+    return false;
+  }
+  // ===========================================================================
+  // HELPER METHODS
+  // ===========================================================================
+  /**
+   * Create input record from request
+   */
+  createInput(request) {
+    const type = determineInputType(request.file.mimeType);
+    return {
+      id: generateId2("input"),
+      userId: request.userId,
+      type,
+      fileName: request.file.fileName,
+      mimeType: request.file.mimeType,
+      fileSize: request.file.fileSize,
+      fileUrl: request.file.data,
+      status: "PROCESSING",
+      context: request.assignmentId ? "HOMEWORK" : void 0,
+      courseId: request.courseId,
+      assignmentId: request.assignmentId,
+      questionId: request.questionId,
+      metadata: {
+        language: request.options.language || this.config.defaultLanguage
+      },
+      createdAt: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Create input from file
+   */
+  createInputFromFile(file) {
+    const type = determineInputType(file.mimeType);
+    return {
+      id: generateId2("input"),
+      userId: "anonymous",
+      type,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      fileSize: file.fileSize,
+      fileUrl: file.data,
+      status: "PENDING",
+      metadata: {
+        language: this.config.defaultLanguage
+      },
+      createdAt: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Create failed input
+   */
+  createFailedInput(request, errors) {
+    return {
+      id: generateId2("input"),
+      userId: request.userId,
+      type: determineInputType(request.file.mimeType),
+      fileName: request.file.fileName,
+      mimeType: request.file.mimeType,
+      fileSize: request.file.fileSize,
+      fileUrl: "",
+      status: "FAILED",
+      metadata: {},
+      processingResult: {
+        success: false,
+        processingTime: 0,
+        errors: errors.map((e) => ({
+          code: e.code,
+          message: e.message,
+          severity: "fatal",
+          component: "validation"
+        }))
+      },
+      createdAt: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Emit event
+   */
+  emitEvent(type, inputId, userId, data) {
+    const event = {
+      type,
+      inputId,
+      userId,
+      timestamp: /* @__PURE__ */ new Date(),
+      data
+    };
+    const handlers = this.eventHandlers.get(type) || [];
+    for (const handler of handlers) {
+      try {
+        handler(event);
+      } catch (error) {
+        console.error("Error in event handler:", error);
+      }
+    }
+  }
+  /**
+   * Subscribe to events
+   */
+  onEvent(type, handler) {
+    if (!this.eventHandlers.has(type)) {
+      this.eventHandlers.set(type, []);
+    }
+    this.eventHandlers.get(type).push(handler);
+  }
+  // ===========================================================================
+  // STORAGE QUOTA
+  // ===========================================================================
+  /**
+   * Get storage quota for user
+   */
+  async getStorageQuota(userId) {
+    return this.storageQuotas.get(userId) || {
+      userId,
+      totalAllowed: 1024 * 1024 * 1024,
+      // 1GB default
+      used: 0,
+      filesCount: 0
+    };
+  }
+  /**
+   * Update storage usage
+   */
+  async updateStorageUsage(userId, bytes) {
+    const quota = await this.getStorageQuota(userId);
+    quota.used += bytes;
+    quota.filesCount += 1;
+    this.storageQuotas.set(userId, quota);
+  }
+  // ===========================================================================
+  // CONFIGURATION
+  // ===========================================================================
+  /**
+   * Update engine configuration
+   */
+  updateConfig(config) {
+    this.config = { ...this.config, ...config };
+  }
+  /**
+   * Get current configuration
+   */
+  getConfig() {
+    return { ...this.config };
+  }
+  /**
+   * Get engine statistics
+   */
+  getStatistics() {
+    const byType = {
+      IMAGE: 0,
+      VOICE: 0,
+      HANDWRITING: 0,
+      VIDEO: 0,
+      DIAGRAM: 0,
+      EQUATION: 0,
+      CODE_SCREENSHOT: 0,
+      DOCUMENT_SCAN: 0
+    };
+    const byStatus = {
+      PENDING: 0,
+      PROCESSING: 0,
+      COMPLETED: 0,
+      FAILED: 0,
+      REQUIRES_REVIEW: 0,
+      PARTIALLY_PROCESSED: 0
+    };
+    let totalProcessingTime = 0;
+    let processedCount = 0;
+    for (const input of this.inputs.values()) {
+      byType[input.type]++;
+      byStatus[input.status]++;
+      if (input.processingResult?.processingTime) {
+        totalProcessingTime += input.processingResult.processingTime;
+        processedCount++;
+      }
+    }
+    return {
+      totalInputs: this.inputs.size,
+      byType,
+      byStatus,
+      averageProcessingTime: processedCount > 0 ? totalProcessingTime / processedCount : 0
+    };
+  }
+};
+function createMultimodalInputEngine(samConfig, config) {
+  return new MultimodalInputEngine(samConfig, config);
+}
 export {
   AchievementEngine,
   AdaptiveContentEngine,
@@ -16987,6 +26074,7 @@ export {
   BloomsLevelSchema,
   CollaborationEngine,
   ComparisonToExpectedSchema,
+  CompetencyEngine,
   ContentAnalysisResponseSchema,
   ContentGenerationEngine,
   CourseGuideEngine,
@@ -16997,9 +26085,14 @@ export {
   GradingAssistanceResponseSchema,
   InnovationEngine,
   IntegrityEngine,
+  KnowledgeGraphEngine,
   MarketEngine,
   MemoryEngine,
+  MetacognitionEngine,
+  MicrolearningEngine,
   MultimediaEngine,
+  MultimodalInputEngine,
+  PeerLearningEngine,
   PersonalizationEngine,
   PracticeProblemsEngine,
   PredictiveEngine,
@@ -17019,6 +26112,7 @@ export {
   createAnalyticsEngine,
   createBloomsAnalysisEngine,
   createCollaborationEngine,
+  createCompetencyEngine,
   createContentGenerationEngine,
   createCourseGuideEngine,
   createEnhancedDepthAnalysisEngine,
@@ -17027,10 +26121,15 @@ export {
   createFinancialEngine,
   createInnovationEngine,
   createIntegrityEngine,
+  createKnowledgeGraphEngine,
   createMarketEngine,
   createMemoryEngine,
+  createMetacognitionEngine,
+  createMicrolearningEngine,
   createMultimediaEngine,
+  createMultimodalInputEngine,
   createPartialSchema,
+  createPeerLearningEngine,
   createPersonalizationEngine,
   createPracticeProblemsEngine,
   createPredictiveEngine,

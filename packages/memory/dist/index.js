@@ -369,7 +369,6 @@ var InMemoryStudentProfileStore = class {
   }
 };
 var PrismaStudentProfileStore = class {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma;
   profileTableName;
   masteryTableName;
@@ -594,7 +593,6 @@ var PrismaStudentProfileStore = class {
   /**
    * Map database result to StudentProfile
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapToProfile(result) {
     const masteryByTopic = {};
     for (const m of result.masteryRecords ?? []) {
@@ -618,7 +616,6 @@ var PrismaStudentProfileStore = class {
   /**
    * Map database result to TopicMastery
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapToMastery(result) {
     return {
       topicId: result.topicId,
@@ -635,7 +632,6 @@ var PrismaStudentProfileStore = class {
   /**
    * Map database result to LearningPathway
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapToPathway(result) {
     return {
       id: result.id,

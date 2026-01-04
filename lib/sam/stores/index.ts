@@ -86,3 +86,9 @@ export {
   PrismaLearningPlanStore,
   createPrismaLearningPlanStore,
 } from './prisma-learning-plan-store';
+
+// Tutoring Session Store (Cross-Session Continuity)
+export {
+  PrismaTutoringSessionStore,
+  createPrismaTutoringSessionStore,
+} from './prisma-tutoring-session-store';

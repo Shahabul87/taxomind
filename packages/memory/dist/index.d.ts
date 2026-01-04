@@ -1512,7 +1512,7 @@ declare class InMemoryMemoryStore implements MemoryStore {
 /**
  * Configuration for EvaluationMemoryIntegrationImpl
  */
-interface EvaluationMemoryIntegrationImplConfig extends MemoryIntegrationConfig {
+interface EvaluationMemoryIntegrationImplConfig extends Partial<MemoryIntegrationConfig> {
     /**
      * Student profile store
      */

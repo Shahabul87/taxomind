@@ -1,0 +1,43 @@
+{
+  "name": "@sam-ai/adapter-taxomind",
+  "version": "0.1.0",
+  "description": "SAM AI adapter implementations for Taxomind LMS",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.mjs",
+      "require": "./dist/adapters/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts,.tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sam-ai/integration": "0.1.0",
+    "@prisma/client": "^6.3.0",
+    "@anthropic-ai/sdk": "^0.39.1",
+    "openai": "^4.77.3"
+  },
+  "peerDependencies": {
+    "@sam-ai/core": "*",
+    "@sam-ai/agentic": "*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.3"
+  }
+}

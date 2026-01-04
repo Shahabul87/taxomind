@@ -695,3 +695,59 @@ export {
   type MemoryUpdateResult,
   type UnifiedChatMetadata,
 } from './unified-chat-integration';
+
+// Real-Time Integration - WebSocket, Presence, Push Dispatcher (Phase 4)
+export {
+  // Client-side manager
+  SAMRealtimeClient,
+  createSAMRealtimeClient,
+  getSAMRealtimeClient,
+  // Server-side manager
+  SAMRealtimeServer,
+  createSAMRealtimeServer,
+  getSAMRealtimeServer,
+  // Singleton management
+  resetSAMRealtimeInstances,
+  // Integration with ProactiveScheduler
+  pushProactiveIntervention,
+  // Display configs
+  DEFAULT_DISPLAY_CONFIGS,
+  // Types
+  type SAMRealtimeConfig,
+} from './realtime';
+
+// Telemetry Integration - Observability and Metrics (Phase 5)
+export {
+  // Service
+  SAMTelemetryService,
+  getSAMTelemetryService,
+  createSAMTelemetryService,
+  resetSAMTelemetryInstance,
+  // Config
+  DEFAULT_SAM_TELEMETRY_CONFIG,
+  type SAMTelemetryConfig,
+  // Status Enums
+  ToolExecutionStatus,
+  MemorySource,
+  ResponseType as TelemetryResponseType,
+  VerificationMethod,
+  PlanEventType,
+  ProactiveEventType,
+  AlertSeverity,
+  // Types
+  type AgenticMetrics,
+  type QuickMetricsSummary,
+  type ToolMetrics,
+  type MemoryQualityMetrics,
+  type CalibrationMetrics,
+  type PlanMetrics,
+  type ProactiveMetrics,
+  type SystemHealthMetrics,
+  type Alert,
+  type AlertRule,
+  type ToolExecutionEvent,
+  type MemoryRetrievalEvent,
+  type ConfidencePrediction,
+  type PlanLifecycleEvent,
+  type ProactiveEvent,
+} from './telemetry';

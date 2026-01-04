@@ -3500,13 +3500,29 @@ function generateCourseContentHash(course) {
 }
 var EnhancedDepthAnalysisEngine = class {
   startTime = 0;
+  samConfig;
   storage;
   logger;
   contentHasher;
+  enableAIEnhancements;
   constructor(options = {}) {
+    this.samConfig = options.samConfig;
     this.storage = options.storage;
     this.logger = options.logger ?? noopLogger;
     this.contentHasher = options.contentHasher ?? generateCourseContentHash;
+    this.enableAIEnhancements = options.enableAIEnhancements ?? false;
+  }
+  /**
+   * Check if AI-enhanced analysis is available
+   */
+  hasAICapabilities() {
+    return !!(this.samConfig && this.enableAIEnhancements);
+  }
+  /**
+   * Get the SAMConfig (for subclasses or testing)
+   */
+  getSAMConfig() {
+    return this.samConfig;
   }
   /**
    * Perform comprehensive enhanced depth analysis

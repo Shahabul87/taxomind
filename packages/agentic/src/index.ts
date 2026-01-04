@@ -280,6 +280,12 @@ export {
 } from './learning-analytics';
 
 // ============================================================================
+// ORCHESTRATION (Plan-Driven Tutoring)
+// ============================================================================
+
+export * from './orchestration';
+
+// ============================================================================
 // LEARNING PATH (Skill Tracking & Recommendations)
 // ============================================================================
 
@@ -322,6 +328,18 @@ export {
 } from './learning-path';
 
 // ============================================================================
+// REAL-TIME (WebSocket, Presence, Push)
+// ============================================================================
+
+export * from './realtime';
+
+// ============================================================================
+// OBSERVABILITY (Telemetry, Metrics, Quality Tracking)
+// ============================================================================
+
+export * from './observability';
+
+// ============================================================================
 // PACKAGE INFO
 // ============================================================================
 
@@ -340,6 +358,8 @@ export const CAPABILITIES = {
   SELF_EVALUATION: 'self-evaluation',
   LEARNING_ANALYTICS: 'learning-analytics',
   LEARNING_PATH: 'learning-path',
+  ORCHESTRATION: 'orchestration',
+  OBSERVABILITY: 'observability',
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
@@ -365,6 +385,10 @@ export function hasCapability(capability: Capability): boolean {
       return true; // Phase F implemented
     case CAPABILITIES.LEARNING_PATH:
       return true; // Phase G - Knowledge Graph Integration
+    case CAPABILITIES.ORCHESTRATION:
+      return true; // Phase 2 - Plan-Driven Tutoring
+    case CAPABILITIES.OBSERVABILITY:
+      return true; // Phase 5 - Observability & Operations
     default:
       return false;
   }

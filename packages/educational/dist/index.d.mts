@@ -1,5 +1,5 @@
 import { SAMConfig, SAMDatabaseAdapter, BloomsLevel as BloomsLevel$1, BaseEngine, BloomsEngineInput, BloomsEngineOutput, EngineInput } from '@sam-ai/core';
-export { E as EnhancedDepthAnalysisEngine, e as createEnhancedDepthAnalysisEngine, f as enhancedDepthEngine } from './enhanced-depth-engine-BTI0OOb5.mjs';
+export { E as EnhancedDepthAnalysisEngine, e as createEnhancedDepthAnalysisEngine, f as enhancedDepthEngine } from './enhanced-depth-engine-DWurd92J.mjs';
 import { z, ZodSchema } from 'zod';
 
 /**
@@ -5031,6 +5031,4931 @@ interface SocraticTeachingEngine$1 {
 }
 
 /**
+ * Knowledge Graph Engine Types
+ *
+ * Types for concept extraction, prerequisite tracking, and knowledge dependency graphs
+ */
+
+interface KnowledgeGraphEngineConfig {
+    samConfig: SAMConfig;
+    database?: SAMDatabaseAdapter;
+    /** Enable AI-powered concept extraction */
+    enableAIExtraction?: boolean;
+    /** Minimum confidence threshold for concept relationships (0-1) */
+    confidenceThreshold?: number;
+    /** Maximum depth for prerequisite chain analysis */
+    maxPrerequisiteDepth?: number;
+}
+type ConceptType = 'FOUNDATIONAL' | 'PROCEDURAL' | 'CONCEPTUAL' | 'METACOGNITIVE';
+type RelationType = 'PREREQUISITE' | 'SUPPORTS' | 'EXTENDS' | 'RELATED' | 'CONTRASTS';
+type ConceptMasteryLevel = 'NOT_STARTED' | 'INTRODUCED' | 'PRACTICING' | 'PROFICIENT' | 'MASTERED';
+/**
+ * A concept node in the knowledge graph
+ */
+interface Concept {
+    id: string;
+    name: string;
+    description: string;
+    type: ConceptType;
+    bloomsLevel: BloomsLevel$1;
+    /** Keywords associated with this concept */
+    keywords: string[];
+    /** Course/chapter/section where this concept is taught */
+    sourceContext?: {
+        courseId?: string;
+        chapterId?: string;
+        sectionId?: string;
+    };
+    /** Confidence score from extraction (0-1) */
+    confidence: number;
+    /** Metadata for extensions */
+    metadata?: Record<string, unknown>;
+    createdAt: Date;
+    updatedAt: Date;
+}
+/**
+ * A relationship between two concepts
+ */
+interface ConceptRelation {
+    id: string;
+    sourceConceptId: string;
+    targetConceptId: string;
+    relationType: RelationType;
+    /** How strong is this relationship (0-1) */
+    strength: number;
+    /** Confidence in this relationship (0-1) */
+    confidence: number;
+    /** Optional explanation of the relationship */
+    description?: string;
+    createdAt: Date;
+}
+/**
+ * Student's mastery of a specific concept
+ */
+interface ConceptMastery {
+    userId: string;
+    conceptId: string;
+    masteryLevel: ConceptMasteryLevel;
+    /** Score from 0-100 */
+    score: number;
+    /** Number of times practiced */
+    practiceCount: number;
+    /** Last time this concept was practiced */
+    lastPracticedAt?: Date;
+    /** Evidence of mastery (quiz scores, assignments, etc.) */
+    evidence: MasteryEvidence[];
+    updatedAt: Date;
+}
+interface MasteryEvidence {
+    type: 'QUIZ' | 'ASSIGNMENT' | 'PRACTICE' | 'INTERACTION';
+    score: number;
+    timestamp: Date;
+    sourceId?: string;
+}
+/**
+ * Full knowledge graph for a course or topic
+ */
+interface KnowledgeGraph {
+    id: string;
+    courseId: string;
+    concepts: Concept[];
+    relations: ConceptRelation[];
+    /** Root concepts (no prerequisites) */
+    rootConcepts: string[];
+    /** Terminal concepts (nothing builds on them) */
+    terminalConcepts: string[];
+    /** Graph statistics */
+    stats: GraphStats;
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface GraphStats {
+    totalConcepts: number;
+    totalRelations: number;
+    averageConnections: number;
+    maxDepth: number;
+    conceptsByType: Record<ConceptType, number>;
+    conceptsByBloomsLevel: Record<BloomsLevel$1, number>;
+}
+interface ConceptExtractionInput {
+    content: string;
+    contentType: 'COURSE_DESCRIPTION' | 'CHAPTER' | 'SECTION' | 'LEARNING_OBJECTIVE' | 'QUIZ';
+    context?: {
+        courseId?: string;
+        chapterId?: string;
+        sectionId?: string;
+        existingConcepts?: Concept[];
+    };
+}
+interface ConceptExtractionResult {
+    concepts: ExtractedConcept[];
+    relations: ExtractedRelation[];
+    confidence: number;
+    processingTimeMs: number;
+}
+interface ExtractedConcept {
+    name: string;
+    description: string;
+    type: ConceptType;
+    bloomsLevel: BloomsLevel$1;
+    keywords: string[];
+    confidence: number;
+}
+interface ExtractedRelation {
+    sourceConcept: string;
+    targetConcept: string;
+    relationType: RelationType;
+    strength: number;
+    confidence: number;
+    reasoning?: string;
+}
+interface PrerequisiteAnalysisInput {
+    conceptId: string;
+    userId?: string;
+    /** Include mastery status in analysis */
+    includeMastery?: boolean;
+    /** Maximum depth to traverse */
+    maxDepth?: number;
+}
+interface PrerequisiteAnalysisResult {
+    concept: Concept;
+    /** Direct prerequisites */
+    directPrerequisites: PrerequisiteNode[];
+    /** All prerequisites in order (topological sort) */
+    prerequisiteChain: PrerequisiteNode[];
+    /** Total estimated learning time in minutes */
+    estimatedLearningTime: number;
+    /** Concepts that depend on this one */
+    dependentConcepts: Concept[];
+    /** Gap analysis for user if userId provided */
+    gapAnalysis?: PrerequisiteGapAnalysis;
+}
+interface PrerequisiteNode {
+    concept: Concept;
+    depth: number;
+    relationStrength: number;
+    /** User's mastery if userId provided */
+    mastery?: ConceptMastery;
+    /** Is this a bottleneck (many things depend on it)? */
+    isBottleneck: boolean;
+}
+interface PrerequisiteGapAnalysis {
+    userId: string;
+    /** Concepts the user hasn't mastered that are prerequisites */
+    gaps: ConceptGap[];
+    /** Recommended learning sequence */
+    recommendedSequence: string[];
+    /** Ready to learn (prerequisites met) */
+    readyToLearn: boolean;
+    /** Percentage of prerequisites mastered */
+    readinessScore: number;
+}
+interface ConceptGap {
+    concept: Concept;
+    currentMastery: ConceptMasteryLevel;
+    requiredMastery: ConceptMasteryLevel;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
+    /** Suggested resources to close the gap */
+    suggestions: GapSuggestion[];
+}
+interface GapSuggestion {
+    type: 'REVIEW' | 'PRACTICE' | 'QUIZ' | 'VIDEO' | 'READING';
+    title: string;
+    description: string;
+    estimatedTimeMinutes: number;
+    resourceId?: string;
+}
+interface LearningPathInput {
+    userId: string;
+    targetConceptIds: string[];
+    /** Optimize for speed or thoroughness */
+    strategy: 'FASTEST' | 'THOROUGH' | 'BALANCED';
+    /** Skip concepts already mastered */
+    skipMastered?: boolean;
+}
+interface LearningPath {
+    id: string;
+    userId: string;
+    targetConcepts: Concept[];
+    /** Ordered sequence of concepts to learn */
+    sequence: LearningPathNode[];
+    /** Total estimated time in minutes */
+    totalEstimatedTime: number;
+    /** Progress tracking */
+    progress: LearningPathProgress;
+    createdAt: Date;
+}
+interface LearningPathNode {
+    concept: Concept;
+    position: number;
+    estimatedTimeMinutes: number;
+    /** Why this concept is in the path */
+    reason: 'TARGET' | 'PREREQUISITE' | 'REINFORCEMENT';
+    /** Suggested activities */
+    activities: PathActivity[];
+    /** Is this node completed? */
+    completed: boolean;
+    completedAt?: Date;
+}
+interface PathActivity {
+    type: 'LEARN' | 'PRACTICE' | 'ASSESS';
+    title: string;
+    description: string;
+    resourceId?: string;
+    estimatedTimeMinutes: number;
+}
+interface LearningPathProgress {
+    completedConcepts: number;
+    totalConcepts: number;
+    completedTimeMinutes: number;
+    estimatedRemainingMinutes: number;
+    percentComplete: number;
+}
+interface CourseKnowledgeAnalysisInput {
+    courseId: string;
+    /** Include all chapters and sections */
+    includeFullContent?: boolean;
+    /** Regenerate graph even if cached */
+    forceRegenerate?: boolean;
+}
+interface CourseKnowledgeAnalysisResult {
+    courseId: string;
+    graph: KnowledgeGraph;
+    /** Quality assessment of the course structure */
+    structureQuality: CourseStructureQuality;
+    /** Recommendations for improving the course */
+    recommendations: KnowledgeGraphRecommendation[];
+    /** Coverage analysis */
+    coverage: ConceptCoverage;
+    analyzedAt: Date;
+}
+interface CourseStructureQuality {
+    /** How well are prerequisites ordered (0-100) */
+    prerequisiteOrdering: number;
+    /** Are there gaps in the learning sequence (0-100) */
+    conceptContinuity: number;
+    /** Is the depth appropriate (0-100) */
+    depthBalance: number;
+    /** Overall quality score (0-100) */
+    overallScore: number;
+    issues: StructureIssue[];
+}
+interface StructureIssue {
+    type: 'MISSING_PREREQUISITE' | 'CIRCULAR_DEPENDENCY' | 'ORPHAN_CONCEPT' | 'TOO_DEEP' | 'UNBALANCED';
+    severity: 'HIGH' | 'MEDIUM' | 'LOW';
+    description: string;
+    affectedConcepts: string[];
+    suggestion: string;
+}
+interface KnowledgeGraphRecommendation {
+    type: 'ADD_CONTENT' | 'REORDER' | 'ADD_PRACTICE' | 'ADD_PREREQUISITE' | 'SIMPLIFY';
+    priority: 'high' | 'medium' | 'low';
+    title: string;
+    description: string;
+    affectedConcepts: string[];
+    estimatedImpact: number;
+}
+interface ConceptCoverage {
+    /** Concepts covered by the course */
+    coveredConcepts: Concept[];
+    /** Standard concepts not covered (if comparing to curriculum) */
+    uncoveredConcepts?: string[];
+    /** Bloom's level distribution */
+    bloomsDistribution: Record<BloomsLevel$1, number>;
+    /** Concept type distribution */
+    typeDistribution: Record<ConceptType, number>;
+}
+
+/**
+ * Microlearning Engine Types
+ *
+ * Types for bite-sized learning modules, content chunking, spaced delivery,
+ * and mobile-optimized learning experiences.
+ */
+
+interface MicrolearningEngineConfig {
+    samConfig: SAMConfig;
+    database?: SAMDatabaseAdapter;
+    /** Target duration for micro-modules in minutes (default: 5) */
+    targetDurationMinutes?: number;
+    /** Maximum duration for any module (default: 10) */
+    maxDurationMinutes?: number;
+    /** Enable AI-powered content chunking */
+    enableAIChunking?: boolean;
+    /** Default delivery schedule type */
+    defaultScheduleType?: DeliveryScheduleType;
+}
+type MicroModuleType = 'CONCEPT' | 'PRACTICE' | 'QUIZ' | 'FLASHCARD' | 'VIDEO_SNIPPET' | 'INTERACTIVE' | 'SUMMARY' | 'REFLECTION';
+type MicrolearningContentFormat = 'TEXT' | 'RICH_TEXT' | 'MARKDOWN' | 'HTML' | 'VIDEO' | 'AUDIO' | 'IMAGE' | 'INTERACTIVE';
+type DeviceType = 'MOBILE' | 'TABLET' | 'DESKTOP';
+type DeliveryScheduleType = 'SPACED_REPETITION' | 'DAILY_DIGEST' | 'ADAPTIVE' | 'ON_DEMAND' | 'NOTIFICATION';
+type MicroModuleStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED' | 'NEEDS_REVIEW';
+/**
+ * A single micro-learning module (bite-sized content)
+ */
+interface MicroModule {
+    id: string;
+    title: string;
+    description: string;
+    type: MicroModuleType;
+    /** Duration in minutes */
+    durationMinutes: number;
+    /** Bloom's taxonomy level */
+    bloomsLevel: BloomsLevel$1;
+    /** Content in various formats for different devices */
+    content: MicroModuleContent;
+    /** Learning objectives covered */
+    learningObjectives: string[];
+    /** Keywords for search/categorization */
+    keywords: string[];
+    /** Prerequisites (other module IDs) */
+    prerequisites: string[];
+    /** Source content reference */
+    sourceContext?: {
+        courseId?: string;
+        chapterId?: string;
+        sectionId?: string;
+        position?: number;
+    };
+    /** Engagement metrics */
+    metrics?: MicroModuleMetrics;
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface MicroModuleContent {
+    /** Primary content */
+    primary: ContentBlock;
+    /** Mobile-optimized version */
+    mobile?: ContentBlock;
+    /** Summary/TL;DR version */
+    summary?: string;
+    /** Key takeaways (bullet points) */
+    keyTakeaways: string[];
+    /** Optional media attachments */
+    media?: MediaAttachment[];
+    /** Interactive elements */
+    interactions?: InteractionElement[];
+}
+interface ContentBlock {
+    format: MicrolearningContentFormat;
+    content: string;
+    /** Estimated reading/viewing time in seconds */
+    estimatedTimeSeconds: number;
+    /** Word count for text content */
+    wordCount?: number;
+    /** Character count for mobile optimization */
+    characterCount?: number;
+}
+interface MediaAttachment {
+    type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'GIF';
+    url: string;
+    thumbnailUrl?: string;
+    durationSeconds?: number;
+    altText?: string;
+    caption?: string;
+}
+interface InteractionElement {
+    type: 'QUIZ_QUESTION' | 'POLL' | 'REFLECTION' | 'DRAG_DROP' | 'FILL_BLANK' | 'HIGHLIGHT';
+    id: string;
+    prompt: string;
+    options?: string[];
+    correctAnswer?: string | string[];
+    explanation?: string;
+}
+interface MicroModuleMetrics {
+    completionRate: number;
+    averageTimeSpent: number;
+    engagementScore: number;
+    retentionScore: number;
+    totalViews: number;
+    totalCompletions: number;
+}
+interface ChunkingInput {
+    content: string;
+    contentType: 'COURSE' | 'CHAPTER' | 'SECTION' | 'ARTICLE' | 'DOCUMENT';
+    /** Target duration per chunk in minutes */
+    targetDuration: number;
+    /** Maximum duration per chunk */
+    maxDuration: number;
+    /** Preserve paragraph boundaries */
+    preserveParagraphs?: boolean;
+    /** Include context from surrounding chunks */
+    includeContext?: boolean;
+    /** Source metadata */
+    sourceContext?: {
+        courseId?: string;
+        chapterId?: string;
+        sectionId?: string;
+        title?: string;
+    };
+}
+interface ChunkingResult {
+    chunks: ContentChunk[];
+    totalChunks: number;
+    totalDurationMinutes: number;
+    averageDurationMinutes: number;
+    coverage: ChunkingCoverage;
+    processingTimeMs: number;
+}
+interface ContentChunk {
+    id: string;
+    position: number;
+    title: string;
+    content: string;
+    /** Estimated duration in minutes */
+    durationMinutes: number;
+    /** Word count */
+    wordCount: number;
+    /** Main concept covered */
+    mainConcept: string;
+    /** Related concepts */
+    relatedConcepts: string[];
+    /** Bloom's level detected */
+    bloomsLevel: BloomsLevel$1;
+    /** Type of content in this chunk */
+    suggestedType: MicroModuleType;
+    /** Context from previous chunk */
+    previousContext?: string;
+    /** Preview of next chunk */
+    nextPreview?: string;
+}
+interface ChunkingCoverage {
+    /** Percentage of original content included */
+    contentCoverage: number;
+    /** Key concepts extracted */
+    conceptsExtracted: number;
+    /** Learning objectives covered */
+    objectivesCovered: string[];
+    /** Content that was condensed/summarized */
+    condensedSections: string[];
+}
+interface DeliverySchedule {
+    id: string;
+    userId: string;
+    courseId?: string;
+    /** Schedule type */
+    type: DeliveryScheduleType;
+    /** Modules to deliver */
+    modules: ScheduledModule[];
+    /** User preferences */
+    preferences: DeliveryPreferences;
+    /** Current position in schedule */
+    currentPosition: number;
+    /** Schedule status */
+    status: 'ACTIVE' | 'PAUSED' | 'COMPLETED';
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface ScheduledModule {
+    moduleId: string;
+    /** Scheduled delivery time */
+    scheduledAt: Date;
+    /** Actual delivery time (if sent) */
+    deliveredAt?: Date;
+    /** User completion time (if completed) */
+    completedAt?: Date;
+    /** Spaced repetition interval (days) */
+    interval?: number;
+    /** Ease factor for SM-2 */
+    easeFactor?: number;
+    /** Number of repetitions */
+    repetitions?: number;
+    /** Status */
+    status: MicroModuleStatus;
+    /** Performance on this module */
+    performance?: ModulePerformance;
+}
+interface DeliveryPreferences {
+    /** Preferred delivery times (hours in user's timezone) */
+    preferredHours: number[];
+    /** Days of week (0=Sunday, 6=Saturday) */
+    preferredDays: number[];
+    /** Maximum modules per day */
+    maxModulesPerDay: number;
+    /** Minimum gap between modules (minutes) */
+    minGapMinutes: number;
+    /** Preferred device */
+    preferredDevice: DeviceType;
+    /** Enable notifications */
+    enableNotifications: boolean;
+    /** Notification channels */
+    notificationChannels: ('PUSH' | 'EMAIL' | 'SMS')[];
+    /** Time zone */
+    timezone: string;
+}
+interface ModulePerformance {
+    /** Score (0-100) */
+    score: number;
+    /** Time spent in seconds */
+    timeSpentSeconds: number;
+    /** Number of attempts */
+    attempts: number;
+    /** Interactions completed */
+    interactionsCompleted: number;
+    /** Retention quiz score (if applicable) */
+    retentionScore?: number;
+}
+interface MicrolearningSession {
+    id: string;
+    userId: string;
+    /** Modules in this session */
+    modules: SessionModule[];
+    /** Session duration limit in minutes */
+    durationLimit: number;
+    /** Device type */
+    deviceType: DeviceType;
+    /** Session status */
+    status: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
+    /** Start time */
+    startedAt: Date;
+    /** End time */
+    endedAt?: Date;
+    /** Session performance */
+    performance: SessionPerformance;
+}
+interface SessionModule {
+    module: MicroModule;
+    position: number;
+    status: MicroModuleStatus;
+    startedAt?: Date;
+    completedAt?: Date;
+    performance?: ModulePerformance;
+}
+interface SessionPerformance {
+    modulesCompleted: number;
+    totalModules: number;
+    averageScore: number;
+    totalTimeSeconds: number;
+    engagementScore: number;
+    conceptsMastered: string[];
+    conceptsNeedingReview: string[];
+}
+interface MobileOptimizationInput {
+    content: MicroModule;
+    deviceType: DeviceType;
+    /** Screen width in pixels */
+    screenWidth?: number;
+    /** Network conditions */
+    networkCondition?: 'FAST' | 'SLOW' | 'OFFLINE';
+    /** User's reading speed preference */
+    readingSpeed?: 'SLOW' | 'NORMAL' | 'FAST';
+}
+interface MobileOptimizedContent {
+    moduleId: string;
+    deviceType: DeviceType;
+    /** Optimized primary content */
+    content: ContentBlock;
+    /** Optimized media (lower resolution, etc.) */
+    media?: MediaAttachment[];
+    /** Offline-available content */
+    offlineContent?: ContentBlock;
+    /** Estimated data size in KB */
+    dataSizeKB: number;
+    /** Swipeable cards for mobile */
+    cards?: MobileCard[];
+    /** Progressive loading chunks */
+    loadingChunks?: LoadingChunk[];
+}
+interface MobileCard {
+    id: string;
+    position: number;
+    type: 'CONTENT' | 'QUESTION' | 'SUMMARY' | 'ACTION';
+    content: string;
+    /** Media for this card */
+    media?: MediaAttachment;
+    /** Action button */
+    action?: {
+        label: string;
+        type: 'NEXT' | 'QUIZ' | 'BOOKMARK' | 'SHARE';
+    };
+}
+interface LoadingChunk {
+    position: number;
+    content: string;
+    /** Priority for loading (1 = highest) */
+    priority: number;
+    /** Size in bytes */
+    sizeBytes: number;
+}
+interface SpacedRepetitionConfig {
+    /** Initial interval in days */
+    initialInterval: number;
+    /** Minimum ease factor */
+    minEaseFactor: number;
+    /** Maximum interval in days */
+    maxInterval: number;
+    /** Learning steps (minutes) */
+    learningSteps: number[];
+    /** Graduating interval (days) */
+    graduatingInterval: number;
+    /** Easy bonus multiplier */
+    easyBonus: number;
+    /** Interval modifier */
+    intervalModifier: number;
+}
+interface SpacedRepetitionUpdate {
+    moduleId: string;
+    userId: string;
+    /** User's self-assessment (1-5, 1=forgot, 5=easy) */
+    quality: 1 | 2 | 3 | 4 | 5;
+    /** Time taken in seconds */
+    responseTimeSeconds: number;
+}
+interface MicrolearningSRResult {
+    moduleId: string;
+    nextReviewDate: Date;
+    intervalDays: number;
+    easeFactor: number;
+    repetitions: number;
+    /** Predicted retention at next review */
+    predictedRetention: number;
+    /** Is this card graduated from learning? */
+    isGraduated: boolean;
+}
+interface MicrolearningAnalytics {
+    userId: string;
+    courseId?: string;
+    /** Overall stats */
+    overall: OverallStats;
+    /** Daily streak */
+    streak: StreakStats;
+    /** Learning patterns */
+    patterns: LearningPatterns;
+    /** Module performance breakdown */
+    moduleBreakdown: ModuleBreakdown[];
+    /** Recommendations */
+    recommendations: MicrolearningRecommendation[];
+}
+interface OverallStats {
+    totalModulesCompleted: number;
+    totalTimeSpentMinutes: number;
+    averageSessionDuration: number;
+    averageScore: number;
+    conceptsMastered: number;
+    retentionRate: number;
+    completionRate: number;
+}
+interface StreakStats {
+    currentStreak: number;
+    longestStreak: number;
+    lastActivityDate: Date;
+    streakFreezes: number;
+}
+interface LearningPatterns {
+    /** Most active hours */
+    peakHours: number[];
+    /** Most active days */
+    peakDays: number[];
+    /** Average modules per day */
+    avgModulesPerDay: number;
+    /** Preferred session length */
+    preferredSessionLength: number;
+    /** Preferred content types */
+    preferredTypes: MicroModuleType[];
+    /** Best performing Bloom's levels */
+    strongBloomsLevels: BloomsLevel$1[];
+    /** Weak Bloom's levels needing practice */
+    weakBloomsLevels: BloomsLevel$1[];
+}
+interface ModuleBreakdown {
+    type: MicroModuleType;
+    count: number;
+    completionRate: number;
+    averageScore: number;
+    averageTimeMinutes: number;
+}
+interface MicrolearningRecommendation {
+    type: 'SCHEDULE' | 'CONTENT' | 'PACE' | 'REVIEW' | 'STREAK';
+    priority: 'high' | 'medium' | 'low';
+    title: string;
+    description: string;
+    action?: {
+        type: string;
+        label: string;
+        data?: Record<string, unknown>;
+    };
+}
+interface GenerateModulesInput {
+    content: string;
+    contentType: ChunkingInput['contentType'];
+    /** Target number of modules */
+    targetModules?: number;
+    /** Module types to generate */
+    moduleTypes?: MicroModuleType[];
+    /** Include practice questions */
+    includePractice?: boolean;
+    /** Include summary modules */
+    includeSummaries?: boolean;
+    sourceContext?: ChunkingInput['sourceContext'];
+}
+interface GenerateModulesResult {
+    modules: MicroModule[];
+    totalModules: number;
+    totalDurationMinutes: number;
+    bloomsDistribution: Record<BloomsLevel$1, number>;
+    typeDistribution: Record<MicroModuleType, number>;
+    suggestedSchedule: ScheduleSuggestion;
+}
+interface ScheduleSuggestion {
+    type: DeliveryScheduleType;
+    totalDays: number;
+    modulesPerDay: number;
+    estimatedCompletionDate: Date;
+    rationale: string;
+}
+interface CreateSessionInput {
+    userId: string;
+    courseId?: string;
+    /** Maximum session duration in minutes */
+    maxDuration?: number;
+    /** Module types to include */
+    moduleTypes?: MicroModuleType[];
+    /** Include review modules */
+    includeReview?: boolean;
+    /** Device type */
+    deviceType?: DeviceType;
+    /** Focus on specific concepts */
+    focusConcepts?: string[];
+}
+interface UpdateProgressInput {
+    userId: string;
+    moduleId: string;
+    status: MicroModuleStatus;
+    score?: number;
+    timeSpentSeconds?: number;
+    /** For spaced repetition */
+    selfAssessment?: 1 | 2 | 3 | 4 | 5;
+}
+interface GetAnalyticsInput {
+    userId: string;
+    courseId?: string;
+    /** Date range */
+    startDate?: Date;
+    endDate?: Date;
+    /** Include recommendations */
+    includeRecommendations?: boolean;
+}
+
+/**
+ * Metacognition Engine Types
+ *
+ * Types for self-reflection, learning awareness, study habit analysis,
+ * and learning strategy recommendations.
+ */
+
+interface MetacognitionEngineConfig {
+    samConfig: SAMConfig;
+    database?: SAMDatabaseAdapter;
+    /** Enable AI-powered reflection generation */
+    enableAIReflection?: boolean;
+    /** Default reflection depth */
+    defaultReflectionDepth?: ReflectionDepth;
+    /** Enable study habit tracking */
+    enableHabitTracking?: boolean;
+    /** Calibration threshold for confidence accuracy */
+    calibrationThreshold?: number;
+}
+type ReflectionDepth = 'SHALLOW' | 'MODERATE' | 'DEEP';
+type ReflectionType = 'PRE_LEARNING' | 'DURING_LEARNING' | 'POST_LEARNING' | 'EXAM_PREP' | 'POST_EXAM' | 'WEEKLY_REVIEW' | 'GOAL_CHECK' | 'STRUGGLE_POINT';
+type MetacognitiveSkill = 'PLANNING' | 'MONITORING' | 'EVALUATING' | 'REGULATING' | 'SELF_QUESTIONING' | 'ELABORATION' | 'ORGANIZATION' | 'TIME_MANAGEMENT';
+type LearningStrategy = 'SPACED_PRACTICE' | 'INTERLEAVING' | 'RETRIEVAL_PRACTICE' | 'ELABORATIVE_INTERROGATION' | 'SELF_EXPLANATION' | 'SUMMARIZATION' | 'VISUALIZATION' | 'DUAL_CODING' | 'CONCRETE_EXAMPLES' | 'PRACTICE_TESTING' | 'HIGHLIGHTING' | 'REREADING';
+type StudyHabitCategory = 'TIME_ALLOCATION' | 'ENVIRONMENT' | 'FOCUS_MANAGEMENT' | 'BREAK_PATTERNS' | 'CONTENT_ENGAGEMENT' | 'REVIEW_FREQUENCY';
+type ConfidenceLevel = 1 | 2 | 3 | 4 | 5;
+type CognitiveLoadLevel = 'LOW' | 'OPTIMAL' | 'HIGH' | 'OVERLOAD';
+/**
+ * A reflection prompt for the learner
+ */
+interface ReflectionPrompt {
+    id: string;
+    type: ReflectionType;
+    depth: ReflectionDepth;
+    /** The main question or prompt */
+    question: string;
+    /** Follow-up questions for deeper reflection */
+    followUpQuestions: string[];
+    /** Metacognitive skill being targeted */
+    targetSkill: MetacognitiveSkill;
+    /** Suggested time for reflection (minutes) */
+    suggestedTimeMinutes: number;
+    /** Context that triggered this reflection */
+    context?: ReflectionContext;
+    /** Expected response type */
+    responseType: 'TEXT' | 'RATING' | 'MULTIPLE_CHOICE' | 'CHECKLIST';
+    /** Options for non-text responses */
+    options?: string[];
+}
+interface ReflectionContext {
+    courseId?: string;
+    chapterId?: string;
+    topicName?: string;
+    activityType?: string;
+    performanceLevel?: number;
+    timeSpentMinutes?: number;
+    difficultyEncountered?: boolean;
+}
+/**
+ * A learner's response to a reflection prompt
+ */
+interface ReflectionResponse {
+    promptId: string;
+    userId: string;
+    response: string | number | string[];
+    /** Time taken to respond (seconds) */
+    responseTimeSeconds: number;
+    /** Self-reported confidence in reflection quality */
+    reflectionConfidence?: ConfidenceLevel;
+    timestamp: Date;
+}
+/**
+ * Analysis of a reflection response
+ */
+interface ReflectionAnalysis {
+    promptId: string;
+    userId: string;
+    /** Depth of reflection detected */
+    reflectionDepth: ReflectionDepth;
+    /** Metacognitive skills demonstrated */
+    skillsShown: MetacognitiveSkill[];
+    /** Key insights extracted */
+    keyInsights: string[];
+    /** Areas for growth */
+    growthAreas: string[];
+    /** Quality score (0-100) */
+    qualityScore: number;
+    /** Sentiment of reflection */
+    sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
+    /** Actionable items identified */
+    actionItems: ActionItem[];
+}
+interface ActionItem {
+    description: string;
+    priority: 'high' | 'medium' | 'low';
+    category: MetacognitiveSkill;
+    suggestedDeadline?: Date;
+}
+/**
+ * A study session record
+ */
+interface StudySession {
+    id: string;
+    userId: string;
+    courseId?: string;
+    /** Start time */
+    startedAt: Date;
+    /** End time */
+    endedAt?: Date;
+    /** Duration in minutes */
+    durationMinutes: number;
+    /** Breaks taken */
+    breaks: StudyBreak[];
+    /** Focus level self-assessment */
+    focusLevel?: ConfidenceLevel;
+    /** Topics covered */
+    topicsCovered: string[];
+    /** Strategies used */
+    strategiesUsed: LearningStrategy[];
+    /** Environment factors */
+    environment?: StudyEnvironment;
+    /** Session outcome */
+    outcome?: SessionOutcome;
+}
+interface StudyBreak {
+    startedAt: Date;
+    durationMinutes: number;
+    type: 'SHORT' | 'LONG' | 'UNPLANNED';
+    activity?: string;
+}
+interface StudyEnvironment {
+    location: 'HOME' | 'LIBRARY' | 'CAFE' | 'CLASSROOM' | 'OTHER';
+    noiseLevel: 'SILENT' | 'QUIET' | 'MODERATE' | 'NOISY';
+    distractions: string[];
+    deviceUsed: 'DESKTOP' | 'LAPTOP' | 'TABLET' | 'MOBILE';
+    timeOfDay: 'EARLY_MORNING' | 'MORNING' | 'AFTERNOON' | 'EVENING' | 'NIGHT';
+}
+interface SessionOutcome {
+    goalsAchieved: boolean;
+    comprehensionLevel: ConfidenceLevel;
+    satisfactionLevel: ConfidenceLevel;
+    notesOrReflection?: string;
+}
+/**
+ * Analysis of study habits over time
+ */
+interface StudyHabitAnalysis {
+    userId: string;
+    period: {
+        start: Date;
+        end: Date;
+    };
+    /** Total study time in hours */
+    totalStudyHours: number;
+    /** Average session duration */
+    averageSessionMinutes: number;
+    /** Sessions per week */
+    sessionsPerWeek: number;
+    /** Optimal study times detected */
+    optimalStudyTimes: TimeSlot[];
+    /** Most effective environments */
+    effectiveEnvironments: StudyEnvironment[];
+    /** Strategy effectiveness */
+    strategyEffectiveness: StrategyEffectiveness[];
+    /** Focus patterns */
+    focusPatterns: FocusPattern;
+    /** Break patterns */
+    breakPatterns: BreakPattern;
+    /** Habit scores by category */
+    habitScores: Record<StudyHabitCategory, number>;
+    /** Recommendations */
+    recommendations: StudyHabitRecommendation[];
+}
+interface TimeSlot {
+    dayOfWeek: number;
+    hourStart: number;
+    hourEnd: number;
+    effectivenessScore: number;
+}
+interface StrategyEffectiveness {
+    strategy: LearningStrategy;
+    usageFrequency: number;
+    effectivenessScore: number;
+    retentionImpact: number;
+    recommendedFor: BloomsLevel$1[];
+}
+interface FocusPattern {
+    averageFocusDuration: number;
+    focusDeclineRate: number;
+    peakFocusTime: string;
+    distractionTriggers: string[];
+}
+interface BreakPattern {
+    averageBreakFrequency: number;
+    averageBreakDuration: number;
+    optimalBreakInterval: number;
+    breakEffectiveness: number;
+}
+interface StudyHabitRecommendation {
+    category: StudyHabitCategory;
+    currentState: string;
+    recommendation: string;
+    expectedImpact: 'high' | 'medium' | 'low';
+    actionSteps: string[];
+    resources?: string[];
+}
+/**
+ * Learning strategy profile for a user
+ */
+interface StrategyProfile {
+    userId: string;
+    /** Preferred strategies */
+    preferredStrategies: LearningStrategy[];
+    /** Strategy usage history */
+    strategyHistory: StrategyUsage[];
+    /** Strategy effectiveness by content type */
+    effectivenessByContent: ContentStrategyMatch[];
+    /** Recommended strategies to try */
+    recommendedStrategies: StrategyRecommendation[];
+    /** Strategy diversity score */
+    diversityScore: number;
+    updatedAt: Date;
+}
+interface StrategyUsage {
+    strategy: LearningStrategy;
+    courseId?: string;
+    usedAt: Date;
+    durationMinutes: number;
+    selfRatedEffectiveness?: ConfidenceLevel;
+    actualPerformanceImpact?: number;
+}
+interface ContentStrategyMatch {
+    contentType: string;
+    bloomsLevel: BloomsLevel$1;
+    effectiveStrategies: LearningStrategy[];
+    ineffectiveStrategies: LearningStrategy[];
+}
+interface StrategyRecommendation {
+    strategy: LearningStrategy;
+    reason: string;
+    howToApply: string;
+    expectedBenefit: string;
+    difficultyToAdopt: 'easy' | 'moderate' | 'challenging';
+    evidenceBase: 'strong' | 'moderate' | 'emerging';
+}
+/**
+ * Knowledge confidence assessment
+ */
+interface KnowledgeConfidenceAssessment {
+    id: string;
+    userId: string;
+    courseId?: string;
+    topicId?: string;
+    /** Items being assessed */
+    items: ConfidenceItem[];
+    /** Overall calibration score */
+    calibrationScore: number;
+    /** Overconfidence or underconfidence tendency */
+    confidenceBias: 'OVERCONFIDENT' | 'UNDERCONFIDENT' | 'WELL_CALIBRATED';
+    assessedAt: Date;
+}
+interface ConfidenceItem {
+    concept: string;
+    /** Self-reported confidence (1-5) */
+    confidence: ConfidenceLevel;
+    /** Actual performance (0-100) */
+    actualPerformance?: number;
+    /** Calibration gap */
+    calibrationGap?: number;
+}
+/**
+ * Cognitive load self-assessment
+ */
+interface CognitiveLoadAssessment {
+    userId: string;
+    sessionId?: string;
+    /** Current cognitive load level */
+    currentLoad: CognitiveLoadLevel;
+    /** Factors contributing to load */
+    loadFactors: CognitiveLoadFactor[];
+    /** Recommendations to optimize load */
+    recommendations: LoadOptimizationRecommendation[];
+    assessedAt: Date;
+}
+interface CognitiveLoadFactor {
+    factor: string;
+    type: 'INTRINSIC' | 'EXTRANEOUS' | 'GERMANE';
+    impact: 'high' | 'medium' | 'low';
+    isManageable: boolean;
+}
+interface LoadOptimizationRecommendation {
+    action: string;
+    targetFactor: string;
+    expectedReduction: 'significant' | 'moderate' | 'slight';
+    immediacy: 'immediate' | 'short_term' | 'long_term';
+}
+/**
+ * A learning goal set by the user
+ */
+interface LearningGoal {
+    id: string;
+    userId: string;
+    courseId?: string;
+    /** Goal description */
+    description: string;
+    /** Goal type */
+    type: GoalType;
+    /** Target metric */
+    targetMetric?: GoalMetric;
+    /** Deadline */
+    deadline?: Date;
+    /** Milestones */
+    milestones: GoalMilestone[];
+    /** Current progress (0-100) */
+    progress: number;
+    /** Status */
+    status: 'ACTIVE' | 'COMPLETED' | 'ABANDONED' | 'PAUSED';
+    /** Reflections on this goal */
+    reflections: GoalReflection[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+type GoalType = 'MASTERY' | 'COMPLETION' | 'PERFORMANCE' | 'HABIT' | 'SKILL' | 'TIME_BASED';
+interface GoalMetric {
+    metricType: string;
+    currentValue: number;
+    targetValue: number;
+    unit: string;
+}
+interface GoalMilestone {
+    id: string;
+    description: string;
+    targetDate?: Date;
+    completed: boolean;
+    completedAt?: Date;
+}
+interface GoalReflection {
+    date: Date;
+    reflection: string;
+    progressAtTime: number;
+    obstacles?: string[];
+    adjustments?: string[];
+}
+/**
+ * Goal monitoring result
+ */
+interface GoalMonitoringResult {
+    goalId: string;
+    currentProgress: number;
+    projectedCompletion: Date | null;
+    isOnTrack: boolean;
+    riskFactors: string[];
+    suggestions: string[];
+    motivationalMessage: string;
+}
+/**
+ * Assessment of metacognitive skills
+ */
+interface MetacognitiveSkillAssessment {
+    userId: string;
+    /** Skills breakdown */
+    skills: MetacognitiveSkillScore[];
+    /** Overall metacognitive ability score */
+    overallScore: number;
+    /** Strengths */
+    strengths: MetacognitiveSkill[];
+    /** Areas for development */
+    developmentAreas: MetacognitiveSkill[];
+    /** Recommended exercises */
+    exercises: MetacognitiveExercise[];
+    assessedAt: Date;
+}
+interface MetacognitiveSkillScore {
+    skill: MetacognitiveSkill;
+    score: number;
+    trend: 'IMPROVING' | 'STABLE' | 'DECLINING';
+    evidenceSources: string[];
+}
+interface MetacognitiveExercise {
+    id: string;
+    title: string;
+    description: string;
+    targetSkill: MetacognitiveSkill;
+    duration: number;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    instructions: string[];
+}
+/**
+ * Self-regulation tracking
+ */
+interface SelfRegulationProfile {
+    userId: string;
+    /** Emotional regulation during learning */
+    emotionalRegulation: EmotionalRegulationMetrics;
+    /** Motivation regulation */
+    motivationRegulation: MotivationRegulationMetrics;
+    /** Attention regulation */
+    attentionRegulation: AttentionRegulationMetrics;
+    /** Overall self-regulation score */
+    overallScore: number;
+    /** Intervention history */
+    interventions: RegulationIntervention[];
+    updatedAt: Date;
+}
+interface EmotionalRegulationMetrics {
+    frustrationTolerance: number;
+    anxietyManagement: number;
+    confidenceStability: number;
+    recoveryFromSetbacks: number;
+}
+interface MotivationRegulationMetrics {
+    intrinsicMotivation: number;
+    goalPersistence: number;
+    effortRegulation: number;
+    interestMaintenance: number;
+}
+interface AttentionRegulationMetrics {
+    focusDuration: number;
+    distractionResistance: number;
+    taskSwitchingEfficiency: number;
+    sustainedAttention: number;
+}
+interface RegulationIntervention {
+    type: 'EMOTIONAL' | 'MOTIVATION' | 'ATTENTION';
+    triggeredAt: Date;
+    trigger: string;
+    intervention: string;
+    effectiveness?: ConfidenceLevel;
+}
+interface GenerateReflectionInput {
+    userId: string;
+    type: ReflectionType;
+    depth?: ReflectionDepth;
+    context?: ReflectionContext;
+    /** Previous reflections for continuity */
+    previousReflections?: ReflectionResponse[];
+}
+interface GenerateReflectionResult {
+    prompts: ReflectionPrompt[];
+    suggestedSequence: string[];
+    estimatedTimeMinutes: number;
+}
+interface AnalyzeReflectionInput {
+    response: ReflectionResponse;
+    prompt: ReflectionPrompt;
+    /** Historical context for comparison */
+    historicalResponses?: ReflectionResponse[];
+}
+interface RecordStudySessionInput {
+    userId: string;
+    courseId?: string;
+    startedAt: Date;
+    endedAt: Date;
+    topicsCovered: string[];
+    strategiesUsed?: LearningStrategy[];
+    breaks?: StudyBreak[];
+    environment?: StudyEnvironment;
+    outcome?: SessionOutcome;
+}
+interface GetHabitAnalysisInput {
+    userId: string;
+    courseId?: string;
+    periodDays?: number;
+}
+interface AssessConfidenceInput {
+    userId: string;
+    items: Array<{
+        concept: string;
+        confidence: ConfidenceLevel;
+    }>;
+    courseId?: string;
+    topicId?: string;
+}
+interface SetGoalInput {
+    userId: string;
+    description: string;
+    type: GoalType;
+    courseId?: string;
+    targetMetric?: GoalMetric;
+    deadline?: Date;
+    milestones?: Array<{
+        description: string;
+        targetDate?: Date;
+    }>;
+}
+interface UpdateGoalProgressInput {
+    goalId: string;
+    userId: string;
+    progress?: number;
+    milestoneId?: string;
+    reflection?: string;
+}
+interface GetMetacognitiveAssessmentInput {
+    userId: string;
+    courseId?: string;
+    /** Include detailed breakdown */
+    detailed?: boolean;
+}
+interface RecommendStrategiesInput {
+    userId: string;
+    courseId?: string;
+    contentType?: string;
+    bloomsLevel?: BloomsLevel$1;
+    currentChallenges?: string[];
+}
+interface RecommendStrategiesResult {
+    recommendations: StrategyRecommendation[];
+    currentStrategies: LearningStrategy[];
+    underutilizedStrategies: LearningStrategy[];
+    overusedStrategies: LearningStrategy[];
+}
+interface AssessCognitiveLoadInput {
+    userId: string;
+    sessionId?: string;
+    currentActivity?: string;
+    selfReportedLoad?: CognitiveLoadLevel;
+    recentPerformance?: number;
+}
+
+/**
+ * Competency Engine Types
+ *
+ * Types for skill trees, job mapping, competency frameworks,
+ * career pathways, and portfolio building.
+ */
+
+interface CompetencyEngineConfig {
+    samConfig: SAMConfig;
+    database?: SAMDatabaseAdapter;
+    /** Enable AI-powered skill extraction */
+    enableAISkillExtraction?: boolean;
+    /** Default competency framework */
+    defaultFramework?: CompetencyFramework;
+    /** Include industry benchmarks */
+    includeIndustryBenchmarks?: boolean;
+}
+type CompetencyFramework = 'SFIA' | 'ONET' | 'ESCO' | 'NICE' | 'CUSTOM';
+type SkillCategory = 'TECHNICAL' | 'SOFT' | 'DOMAIN' | 'TOOL' | 'METHODOLOGY' | 'CERTIFICATION';
+type ProficiencyLevel = 'NOVICE' | 'BEGINNER' | 'COMPETENT' | 'PROFICIENT' | 'EXPERT' | 'MASTER';
+type SkillRelationType = 'PREREQUISITE' | 'COREQUISITE' | 'ENHANCES' | 'RELATED' | 'SPECIALIZATION' | 'GENERALIZATION';
+type CareerLevel = 'ENTRY' | 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD' | 'PRINCIPAL' | 'EXECUTIVE';
+type PortfolioItemType = 'PROJECT' | 'CERTIFICATION' | 'COURSE_COMPLETION' | 'ASSESSMENT' | 'PUBLICATION' | 'CONTRIBUTION' | 'ACHIEVEMENT' | 'RECOMMENDATION';
+/**
+ * A skill in the competency system
+ */
+interface CompetencySkill {
+    id: string;
+    name: string;
+    description: string;
+    category: SkillCategory;
+    /** Parent skill (for hierarchical skills) */
+    parentId?: string;
+    /** Tags for searching/filtering */
+    tags: string[];
+    /** Framework mappings */
+    frameworkMappings?: FrameworkMapping[];
+    /** Typical time to learn (hours) */
+    typicalLearningHours?: number;
+    /** Demand level in job market */
+    marketDemand?: MarketDemand;
+    /** Related Bloom's levels */
+    bloomsLevels?: BloomsLevel$1[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface FrameworkMapping {
+    framework: CompetencyFramework;
+    code: string;
+    name: string;
+    level?: number;
+}
+interface MarketDemand {
+    level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    trend: 'DECLINING' | 'STABLE' | 'GROWING' | 'EMERGING';
+    avgSalaryImpact?: number;
+    jobPostingCount?: number;
+    lastUpdated: Date;
+}
+/**
+ * Relationship between skills
+ */
+interface SkillRelation {
+    sourceSkillId: string;
+    targetSkillId: string;
+    relationType: SkillRelationType;
+    strength: number;
+    description?: string;
+}
+/**
+ * A skill tree representing a learning/career path
+ */
+interface SkillTree {
+    id: string;
+    name: string;
+    description: string;
+    /** Root skill or domain */
+    rootSkillId: string;
+    /** All nodes in the tree */
+    nodes: SkillTreeNode[];
+    /** Edges connecting nodes */
+    edges: SkillTreeEdge[];
+    /** Target career roles */
+    targetRoles?: string[];
+    /** Estimated total learning hours */
+    totalLearningHours: number;
+    /** Difficulty progression */
+    difficultyProgression: DifficultyProgression;
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface SkillTreeNode {
+    id: string;
+    skillId: string;
+    skill: CompetencySkill;
+    /** Position in tree (for visualization) */
+    position: {
+        x: number;
+        y: number;
+        tier: number;
+    };
+    /** Required proficiency to unlock next tier */
+    requiredProficiency: ProficiencyLevel;
+    /** Is this a milestone/checkpoint node */
+    isMilestone: boolean;
+    /** Unlocks (skills that become available) */
+    unlocks: string[];
+    /** Learning resources for this node */
+    resources?: CompetencyLearningResource[];
+}
+interface SkillTreeEdge {
+    sourceNodeId: string;
+    targetNodeId: string;
+    relationType: SkillRelationType;
+    /** Is this path optional */
+    isOptional: boolean;
+}
+interface DifficultyProgression {
+    tiers: TierInfo[];
+    estimatedTimePerTier: number[];
+}
+interface TierInfo {
+    tier: number;
+    name: string;
+    description: string;
+    skillCount: number;
+    avgProficiencyRequired: ProficiencyLevel;
+}
+interface CompetencyLearningResource {
+    id: string;
+    title: string;
+    type: 'COURSE' | 'ARTICLE' | 'VIDEO' | 'BOOK' | 'PROJECT' | 'EXERCISE';
+    url?: string;
+    estimatedHours: number;
+    difficulty: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+}
+/**
+ * A user's proficiency in a skill
+ */
+interface UserSkillProficiency {
+    userId: string;
+    skillId: string;
+    skill?: CompetencySkill;
+    /** Current proficiency level */
+    proficiency: ProficiencyLevel;
+    /** Numeric score (0-100) */
+    score: number;
+    /** Confidence in assessment */
+    confidence: number;
+    /** Evidence supporting this proficiency */
+    evidence: ProficiencyEvidence[];
+    /** Last assessment date */
+    lastAssessedAt: Date;
+    /** Target proficiency */
+    targetProficiency?: ProficiencyLevel;
+    /** Progress toward target */
+    progressToTarget?: number;
+}
+interface ProficiencyEvidence {
+    type: 'ASSESSMENT' | 'PROJECT' | 'CERTIFICATION' | 'PEER_REVIEW' | 'SELF_REPORT' | 'COURSE';
+    sourceId?: string;
+    description: string;
+    score?: number;
+    date: Date;
+    verifiedBy?: string;
+}
+/**
+ * User's overall competency profile
+ */
+interface CompetencyProfile {
+    userId: string;
+    /** All skill proficiencies */
+    skills: UserSkillProficiency[];
+    /** Skill distribution by category */
+    categoryDistribution: Record<SkillCategory, number>;
+    /** Overall competency score */
+    overallScore: number;
+    /** Strengths (top skills) */
+    strengths: CompetencySkill[];
+    /** Areas for improvement */
+    improvementAreas: CompetencySkill[];
+    /** Skill gaps for target roles */
+    skillGaps: SkillGap[];
+    /** Learning recommendations */
+    recommendations: SkillRecommendation[];
+    /** Last updated */
+    updatedAt: Date;
+}
+interface SkillGap {
+    skill: CompetencySkill;
+    currentLevel: ProficiencyLevel;
+    requiredLevel: ProficiencyLevel;
+    gap: number;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    targetRole?: string;
+}
+interface SkillRecommendation {
+    skill: CompetencySkill;
+    reason: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH';
+    estimatedLearningHours: number;
+    suggestedResources: CompetencyLearningResource[];
+    relatedCareerPaths: string[];
+}
+/**
+ * A job role with required competencies
+ */
+interface JobRole {
+    id: string;
+    title: string;
+    description: string;
+    /** Career level */
+    level: CareerLevel;
+    /** Industry/domain */
+    industry?: string;
+    /** Required skills with proficiency levels */
+    requiredSkills: RoleSkillRequirement[];
+    /** Nice-to-have skills */
+    preferredSkills: RoleSkillRequirement[];
+    /** Typical salary range */
+    salaryRange?: SalaryRange;
+    /** Growth outlook */
+    growthOutlook?: GrowthOutlook;
+    /** Related roles */
+    relatedRoles?: string[];
+    /** Framework mappings */
+    frameworkMappings?: FrameworkMapping[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface RoleSkillRequirement {
+    skillId: string;
+    skill?: CompetencySkill;
+    minimumProficiency: ProficiencyLevel;
+    weight: number;
+    isRequired: boolean;
+}
+interface SalaryRange {
+    min: number;
+    max: number;
+    median: number;
+    currency: string;
+    location?: string;
+    source?: string;
+    lastUpdated: Date;
+}
+interface GrowthOutlook {
+    projectedGrowth: number;
+    timeframeYears: number;
+    demandLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
+    automationRisk: 'LOW' | 'MEDIUM' | 'HIGH';
+    source?: string;
+}
+/**
+ * Match between user and job role
+ */
+interface JobRoleMatch {
+    role: JobRole;
+    /** Overall match score (0-100) */
+    matchScore: number;
+    /** Skills already met */
+    metRequirements: RoleSkillRequirement[];
+    /** Skills not yet met */
+    unmetRequirements: RoleSkillRequirement[];
+    /** Partially met skills */
+    partiallyMet: PartialSkillMatch[];
+    /** Estimated time to qualify */
+    estimatedTimeToQualify: number;
+    /** Recommended learning path */
+    recommendedPath?: SkillTree;
+}
+interface PartialSkillMatch {
+    requirement: RoleSkillRequirement;
+    currentProficiency: ProficiencyLevel;
+    gap: number;
+}
+/**
+ * A career progression path
+ */
+interface CompetencyCareerPath {
+    id: string;
+    name: string;
+    description: string;
+    /** Industry/domain */
+    industry?: string;
+    /** Roles in progression order */
+    stages: CareerStage[];
+    /** Alternative branches */
+    branches?: CareerBranch[];
+    /** Total typical years */
+    typicalYearsTotal: number;
+    /** Required skill evolution */
+    skillProgression: SkillProgressionMap;
+}
+interface CareerStage {
+    order: number;
+    role: JobRole;
+    typicalYearsInRole: number;
+    typicalYearsToReach: number;
+    keyMilestones: string[];
+    transitionSkills: CompetencySkill[];
+}
+interface CareerBranch {
+    fromStageOrder: number;
+    name: string;
+    description: string;
+    alternativeStages: CareerStage[];
+    branchingCriteria: string[];
+}
+interface SkillProgressionMap {
+    /** Skills to acquire at each stage */
+    byStage: Record<number, CompetencySkill[]>;
+    /** Proficiency evolution for key skills */
+    proficiencyEvolution: SkillEvolution[];
+}
+interface SkillEvolution {
+    skillId: string;
+    skill?: CompetencySkill;
+    progressionByStage: Record<number, ProficiencyLevel>;
+}
+/**
+ * User's career path analysis
+ */
+interface CareerPathAnalysis {
+    userId: string;
+    /** Current estimated position */
+    currentPosition: {
+        matchedRole?: JobRole;
+        estimatedLevel: CareerLevel;
+        confidence: number;
+    };
+    /** Recommended paths */
+    recommendedPaths: CareerPathRecommendation[];
+    /** Skills to prioritize */
+    prioritySkills: SkillRecommendation[];
+    /** Timeline projections */
+    projections: CareerProjection[];
+}
+interface CareerPathRecommendation {
+    path: CompetencyCareerPath;
+    fitScore: number;
+    strengths: string[];
+    challenges: string[];
+    estimatedYearsToGoal: number;
+}
+interface CareerProjection {
+    yearsFromNow: number;
+    projectedRole: JobRole;
+    projectedSalary?: SalaryRange;
+    requiredMilestones: string[];
+    probability: number;
+}
+/**
+ * A competency portfolio item
+ */
+interface PortfolioItem {
+    id: string;
+    userId: string;
+    type: PortfolioItemType;
+    title: string;
+    description: string;
+    /** Skills demonstrated */
+    demonstratedSkills: DemonstratedSkill[];
+    /** Evidence/artifacts */
+    artifacts: PortfolioArtifact[];
+    /** Date of completion/achievement */
+    date: Date;
+    /** External verification */
+    verification?: PortfolioVerification;
+    /** Visibility */
+    visibility: 'PRIVATE' | 'CONNECTIONS' | 'PUBLIC';
+    /** Impact metrics */
+    impact?: ImpactMetrics;
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface DemonstratedSkill {
+    skillId: string;
+    skill?: CompetencySkill;
+    proficiencyDemonstrated: ProficiencyLevel;
+    evidenceDescription: string;
+}
+interface PortfolioArtifact {
+    id: string;
+    type: 'IMAGE' | 'DOCUMENT' | 'VIDEO' | 'LINK' | 'CODE' | 'PRESENTATION';
+    title: string;
+    url?: string;
+    thumbnailUrl?: string;
+    description?: string;
+}
+interface PortfolioVerification {
+    verified: boolean;
+    verifiedBy?: string;
+    verificationMethod: 'SYSTEM' | 'PEER' | 'INSTRUCTOR' | 'EMPLOYER' | 'CERTIFICATION_BODY';
+    verifiedAt?: Date;
+    credentialId?: string;
+}
+interface ImpactMetrics {
+    views?: number;
+    endorsements?: number;
+    shares?: number;
+    employerInterest?: number;
+}
+/**
+ * Complete user portfolio
+ */
+interface CompetencyPortfolio {
+    userId: string;
+    items: PortfolioItem[];
+    /** Summary statistics */
+    summary: PortfolioSummary;
+    /** Skill coverage from portfolio */
+    skillCoverage: SkillCoverageAnalysis;
+    /** Portfolio strength score */
+    strengthScore: number;
+    /** Recommendations for improvement */
+    recommendations: PortfolioRecommendation[];
+}
+interface PortfolioSummary {
+    totalItems: number;
+    itemsByType: Record<PortfolioItemType, number>;
+    skillsDemonstrated: number;
+    verifiedItems: number;
+    totalEndorsements: number;
+    lastUpdated: Date;
+}
+interface SkillCoverageAnalysis {
+    coveredSkills: CompetencySkill[];
+    uncoveredSkills: CompetencySkill[];
+    coveragePercentage: number;
+    strongestEvidence: CompetencySkill[];
+    weakestEvidence: CompetencySkill[];
+}
+interface PortfolioRecommendation {
+    type: 'ADD_PROJECT' | 'GET_CERTIFICATION' | 'ADD_EVIDENCE' | 'UPDATE_ITEM' | 'REMOVE_OUTDATED';
+    priority: 'LOW' | 'MEDIUM' | 'HIGH';
+    description: string;
+    targetSkills?: CompetencySkill[];
+    expectedImpact: string;
+}
+/**
+ * Skill assessment configuration
+ */
+interface SkillAssessment {
+    id: string;
+    skillId: string;
+    skill?: CompetencySkill;
+    title: string;
+    description: string;
+    /** Assessment type */
+    type: CompetencyAssessmentType;
+    /** Questions/tasks */
+    items: AssessmentItem[];
+    /** Time limit in minutes */
+    timeLimitMinutes?: number;
+    /** Passing threshold */
+    passingScore: number;
+    /** Proficiency level mappings */
+    proficiencyMapping: ProficiencyScoreMapping[];
+}
+type CompetencyAssessmentType = 'QUIZ' | 'PRACTICAL' | 'CODE_CHALLENGE' | 'CASE_STUDY' | 'PEER_REVIEW' | 'SELF_ASSESSMENT';
+interface AssessmentItem {
+    id: string;
+    type: 'MULTIPLE_CHOICE' | 'CODE' | 'SHORT_ANSWER' | 'PRACTICAL_TASK' | 'SCENARIO';
+    question: string;
+    options?: string[];
+    correctAnswer?: string | string[];
+    rubric?: CompetencyAssessmentRubric;
+    points: number;
+    difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+    bloomsLevel?: BloomsLevel$1;
+}
+interface CompetencyAssessmentRubric {
+    criteria: CompetencyRubricCriterion[];
+    maxScore: number;
+}
+interface CompetencyRubricCriterion {
+    name: string;
+    description: string;
+    levels: {
+        score: number;
+        description: string;
+    }[];
+}
+interface ProficiencyScoreMapping {
+    proficiency: ProficiencyLevel;
+    minScore: number;
+    maxScore: number;
+}
+/**
+ * Assessment result
+ */
+interface AssessmentResult {
+    assessmentId: string;
+    userId: string;
+    score: number;
+    maxScore: number;
+    percentage: number;
+    proficiencyAchieved: ProficiencyLevel;
+    /** Item-by-item results */
+    itemResults: ItemResult[];
+    /** Time taken */
+    timeTakenMinutes: number;
+    /** Feedback */
+    feedback: string;
+    /** Improvement suggestions */
+    improvementAreas: string[];
+    completedAt: Date;
+}
+interface ItemResult {
+    itemId: string;
+    score: number;
+    maxScore: number;
+    isCorrect?: boolean;
+    feedback?: string;
+}
+interface CreateSkillTreeInput {
+    name: string;
+    description: string;
+    rootSkillId: string;
+    targetRoles?: string[];
+    skills: {
+        skillId: string;
+        tier: number;
+        prerequisites?: string[];
+        isMilestone?: boolean;
+    }[];
+}
+interface GetUserCompetencyInput {
+    userId: string;
+    includeRecommendations?: boolean;
+    targetRoleIds?: string[];
+}
+interface MatchJobRolesInput {
+    userId: string;
+    /** Filter by industry */
+    industry?: string;
+    /** Filter by level */
+    levels?: CareerLevel[];
+    /** Minimum match score */
+    minMatchScore?: number;
+    /** Maximum results */
+    limit?: number;
+}
+interface MatchJobRolesResult {
+    matches: JobRoleMatch[];
+    totalMatched: number;
+    topSkillGaps: SkillGap[];
+}
+interface AnalyzeCareerPathInput {
+    userId: string;
+    targetRoleId?: string;
+    targetIndustry?: string;
+    maxYearsHorizon?: number;
+}
+interface AddPortfolioItemInput {
+    userId: string;
+    type: PortfolioItemType;
+    title: string;
+    description: string;
+    date: Date;
+    demonstratedSkills: {
+        skillId: string;
+        proficiency: ProficiencyLevel;
+        evidence: string;
+    }[];
+    artifacts?: {
+        type: PortfolioArtifact['type'];
+        title: string;
+        url?: string;
+        description?: string;
+    }[];
+    visibility?: PortfolioItem['visibility'];
+}
+interface AssessSkillInput {
+    userId: string;
+    skillId: string;
+    assessmentType?: CompetencyAssessmentType;
+}
+interface UpdateProficiencyInput {
+    userId: string;
+    skillId: string;
+    proficiency: ProficiencyLevel;
+    score?: number;
+    evidence?: {
+        type: ProficiencyEvidence['type'];
+        description: string;
+        sourceId?: string;
+    };
+}
+interface ExtractSkillsInput {
+    content: string;
+    contentType: 'JOB_POSTING' | 'RESUME' | 'COURSE' | 'PROJECT' | 'ARTICLE';
+    context?: {
+        industry?: string;
+        level?: CareerLevel;
+    };
+}
+interface ExtractSkillsResult {
+    skills: ExtractedSkillInfo[];
+    suggestedCategory?: SkillCategory;
+    confidence: number;
+}
+interface ExtractedSkillInfo {
+    name: string;
+    category: SkillCategory;
+    suggestedProficiency?: ProficiencyLevel;
+    matchedSkillId?: string;
+    confidence: number;
+    context: string;
+}
+interface GenerateSkillTreeInput {
+    targetRole: string;
+    currentSkills?: string[];
+    timeframeMonths?: number;
+    preferredLearningStyle?: 'STRUCTURED' | 'PROJECT_BASED' | 'MIXED';
+}
+interface GetSkillGapAnalysisInput {
+    userId: string;
+    targetRoleId?: string;
+    targetSkillIds?: string[];
+}
+interface SkillGapAnalysisResult {
+    gaps: SkillGap[];
+    totalGapScore: number;
+    prioritizedLearningPath: CompetencySkill[];
+    estimatedTimeToClose: number;
+    quickWins: CompetencySkill[];
+    longTermInvestments: CompetencySkill[];
+}
+
+/**
+ * @sam-ai/educational - Peer Learning Engine Types
+ *
+ * Comprehensive peer-to-peer learning system including:
+ * - Peer matching and discovery
+ * - Study groups and learning circles
+ * - Peer tutoring and mentoring
+ * - Collaborative projects
+ * - Discussion forums and Q&A
+ * - Peer assessments and reviews
+ */
+/**
+ * Peer profile for matching and collaboration
+ */
+interface PeerProfile {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    bio?: string;
+    expertise: PeerExpertise[];
+    learningGoals: PeerLearningGoal[];
+    availability: PeerAvailability;
+    preferences: PeerPreferences;
+    stats: PeerStats;
+    badges: PeerBadge[];
+    reputation: ReputationScore;
+    timezone?: string;
+    languages: string[];
+    isAvailableForMentoring: boolean;
+    isSeekingMentor: boolean;
+    lastActiveAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+/**
+ * Area of expertise for a peer
+ */
+interface PeerExpertise {
+    subject: string;
+    topic?: string;
+    proficiencyLevel: PeerProficiencyLevel;
+    yearsOfExperience?: number;
+    credentials?: string[];
+    endorsements: Endorsement[];
+    isVerified: boolean;
+}
+/**
+ * Proficiency levels for peer matching
+ */
+type PeerProficiencyLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'EXPERT' | 'MASTER';
+/**
+ * Endorsement from another peer
+ */
+interface Endorsement {
+    id: string;
+    endorserId: string;
+    endorserName: string;
+    subject: string;
+    message?: string;
+    createdAt: Date;
+}
+/**
+ * Learning goal for matching purposes
+ */
+interface PeerLearningGoal {
+    id: string;
+    subject: string;
+    topic?: string;
+    targetLevel: PeerProficiencyLevel;
+    currentLevel?: PeerProficiencyLevel;
+    deadline?: Date;
+    priority: PeerGoalPriority;
+    status: PeerGoalStatus;
+}
+type PeerGoalPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+type PeerGoalStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'PAUSED' | 'ABANDONED';
+/**
+ * Peer availability schedule
+ */
+interface PeerAvailability {
+    schedule: WeeklySchedule;
+    preferredSessionDuration: number;
+    maxSessionsPerWeek: number;
+    blackoutDates?: PeerDateRange[];
+    isCurrentlyAvailable: boolean;
+}
+interface WeeklySchedule {
+    monday: PeerTimeSlot[];
+    tuesday: PeerTimeSlot[];
+    wednesday: PeerTimeSlot[];
+    thursday: PeerTimeSlot[];
+    friday: PeerTimeSlot[];
+    saturday: PeerTimeSlot[];
+    sunday: PeerTimeSlot[];
+}
+interface PeerTimeSlot {
+    startTime: string;
+    endTime: string;
+}
+interface PeerDateRange {
+    start: Date;
+    end: Date;
+    reason?: string;
+}
+/**
+ * Peer preferences for matching
+ */
+interface PeerPreferences {
+    preferredGroupSize: GroupSizePreference;
+    communicationStyle: CommunicationStyle;
+    learningStyle: PeerLearningStyle;
+    sessionFormat: SessionFormat[];
+    ageRange?: AgeRange;
+    preferSameTimezone: boolean;
+    preferSameLanguage: boolean;
+    interests?: string[];
+}
+type GroupSizePreference = 'ONE_ON_ONE' | 'SMALL_GROUP' | 'LARGE_GROUP' | 'ANY';
+type CommunicationStyle = 'FORMAL' | 'CASUAL' | 'STRUCTURED' | 'FLEXIBLE';
+type PeerLearningStyle = 'VISUAL' | 'AUDITORY' | 'READING' | 'KINESTHETIC' | 'MIXED';
+type SessionFormat = 'VIDEO_CALL' | 'VOICE_CALL' | 'TEXT_CHAT' | 'IN_PERSON' | 'ASYNC';
+interface AgeRange {
+    min?: number;
+    max?: number;
+}
+/**
+ * Peer statistics
+ */
+interface PeerStats {
+    totalSessions: number;
+    totalStudyHours: number;
+    groupsJoined: number;
+    groupsCreated: number;
+    questionsAsked: number;
+    questionsAnswered: number;
+    helpfulAnswers: number;
+    projectsCompleted: number;
+    peersHelped: number;
+    reviewsGiven: number;
+    reviewsReceived: number;
+    averageRating: number;
+    totalRatings: number;
+}
+/**
+ * Peer badge/achievement
+ */
+interface PeerBadge {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    category: BadgeCategory;
+    tier: BadgeTier;
+    earnedAt: Date;
+    criteria?: string;
+}
+type BadgeCategory = 'HELPER' | 'COLLABORATOR' | 'MENTOR' | 'LEARNER' | 'CONTRIBUTOR' | 'LEADER' | 'SPECIALIST';
+type BadgeTier = 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM' | 'DIAMOND';
+/**
+ * Reputation score system
+ */
+interface ReputationScore {
+    overall: number;
+    helpfulness: number;
+    reliability: number;
+    expertise: number;
+    communication: number;
+    collaboration: number;
+    history: ReputationChange[];
+}
+interface ReputationChange {
+    id: string;
+    change: number;
+    reason: string;
+    category: ReputationCategory;
+    timestamp: Date;
+}
+type ReputationCategory = 'SESSION_COMPLETED' | 'POSITIVE_FEEDBACK' | 'NEGATIVE_FEEDBACK' | 'ANSWER_ACCEPTED' | 'BADGE_EARNED' | 'PROJECT_COMPLETED' | 'NO_SHOW' | 'ENDORSEMENT_RECEIVED';
+/**
+ * Peer match result
+ */
+interface PeerMatch {
+    peerId: string;
+    peerProfile: PeerProfile;
+    matchScore: number;
+    matchReasons: MatchReason[];
+    commonSubjects: string[];
+    complementarySkills: ComplementarySkill[];
+    availabilityOverlap: number;
+    compatibilityFactors: CompatibilityFactor[];
+}
+interface MatchReason {
+    factor: string;
+    description: string;
+    weight: number;
+    score: number;
+}
+interface ComplementarySkill {
+    skill: string;
+    myLevel: PeerProficiencyLevel;
+    theirLevel: PeerProficiencyLevel;
+    direction: 'CAN_TEACH' | 'CAN_LEARN' | 'MUTUAL';
+}
+interface CompatibilityFactor {
+    name: string;
+    compatibility: number;
+    importance: number;
+}
+/**
+ * Peer matching criteria
+ */
+interface PeerMatchCriteria {
+    subjects?: string[];
+    topics?: string[];
+    proficiencyLevel?: PeerProficiencyLevel;
+    matchType: MatchType;
+    groupSizePreference?: GroupSizePreference;
+    sessionFormat?: SessionFormat[];
+    timezone?: string;
+    languages?: string[];
+    minReputationScore?: number;
+    excludeUserIds?: string[];
+    limit?: number;
+}
+type MatchType = 'STUDY_PARTNER' | 'MENTOR' | 'MENTEE' | 'PROJECT_COLLABORATOR' | 'TUTOR' | 'TUTEE' | 'ANY';
+/**
+ * Study group for collaborative learning
+ */
+interface StudyGroup {
+    id: string;
+    name: string;
+    description: string;
+    subject: string;
+    topics: string[];
+    coverImageUrl?: string;
+    type: GroupType;
+    visibility: GroupVisibility;
+    status: GroupStatus;
+    members: GroupMember[];
+    maxMembers: number;
+    minMembers?: number;
+    owner: GroupMember;
+    moderators: GroupMember[];
+    schedule?: GroupSchedule;
+    goals: GroupGoal[];
+    rules?: string[];
+    tags: string[];
+    resources: GroupResource[];
+    sessions: GroupSession[];
+    discussions: DiscussionThread[];
+    stats: GroupStats;
+    settings: GroupSettings;
+    inviteCode?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+type GroupType = 'STUDY_GROUP' | 'LEARNING_CIRCLE' | 'COHORT' | 'PROJECT_TEAM' | 'BOOK_CLUB' | 'ACCOUNTABILITY_GROUP';
+type GroupVisibility = 'PUBLIC' | 'PRIVATE' | 'INVITE_ONLY' | 'SECRET';
+type GroupStatus = 'FORMING' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
+/**
+ * Group member with role
+ */
+interface GroupMember {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    role: GroupRole;
+    joinedAt: Date;
+    lastActiveAt: Date;
+    contributions: number;
+    attendance: AttendanceRecord;
+}
+type GroupRole = 'OWNER' | 'MODERATOR' | 'MEMBER' | 'OBSERVER';
+interface AttendanceRecord {
+    totalSessions: number;
+    attendedSessions: number;
+    attendanceRate: number;
+    streakDays: number;
+}
+/**
+ * Group schedule
+ */
+interface GroupSchedule {
+    frequency: ScheduleFrequency;
+    dayOfWeek?: number;
+    timeOfDay: string;
+    duration: number;
+    timezone: string;
+    nextSession?: Date;
+    recurrenceRule?: string;
+}
+type ScheduleFrequency = 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'CUSTOM';
+/**
+ * Group goal
+ */
+interface GroupGoal {
+    id: string;
+    title: string;
+    description: string;
+    targetDate?: Date;
+    progress: number;
+    milestones: GroupMilestone[];
+    status: PeerGoalStatus;
+}
+interface GroupMilestone {
+    id: string;
+    title: string;
+    isCompleted: boolean;
+    completedAt?: Date;
+    completedBy?: string;
+}
+/**
+ * Shared resource in a group
+ */
+interface GroupResource {
+    id: string;
+    title: string;
+    description?: string;
+    type: PeerResourceType;
+    url?: string;
+    content?: string;
+    uploadedBy: string;
+    uploadedAt: Date;
+    downloads: number;
+    likes: number;
+}
+type PeerResourceType = 'DOCUMENT' | 'VIDEO' | 'AUDIO' | 'LINK' | 'NOTE' | 'CODE' | 'PRESENTATION' | 'SPREADSHEET' | 'OTHER';
+/**
+ * Group study session
+ */
+interface GroupSession {
+    id: string;
+    title: string;
+    description?: string;
+    scheduledAt: Date;
+    duration: number;
+    actualDuration?: number;
+    status: SessionStatus;
+    type: GroupSessionType;
+    facilitator?: GroupMember;
+    attendees: SessionAttendee[];
+    agenda?: SessionAgenda[];
+    notes?: string;
+    recording?: SessionRecording;
+    followUp?: SessionFollowUp;
+    createdBy: string;
+    createdAt: Date;
+}
+type SessionStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'POSTPONED';
+type GroupSessionType = 'STUDY_SESSION' | 'DISCUSSION' | 'PRESENTATION' | 'WORKSHOP' | 'Q_AND_A' | 'REVIEW' | 'BRAINSTORM' | 'PRACTICE';
+interface SessionAttendee {
+    userId: string;
+    displayName: string;
+    status: AttendeeStatus;
+    joinedAt?: Date;
+    leftAt?: Date;
+}
+type AttendeeStatus = 'INVITED' | 'CONFIRMED' | 'ATTENDED' | 'ABSENT' | 'EXCUSED';
+interface SessionAgenda {
+    id: string;
+    title: string;
+    duration: number;
+    presenter?: string;
+    isCompleted: boolean;
+}
+interface SessionRecording {
+    url: string;
+    duration: number;
+    size: number;
+    format: string;
+}
+interface SessionFollowUp {
+    actionItems: PeerActionItem[];
+    assignedReadings?: string[];
+    nextSessionTopics?: string[];
+}
+interface PeerActionItem {
+    id: string;
+    title: string;
+    assignee?: string;
+    dueDate?: Date;
+    isCompleted: boolean;
+}
+/**
+ * Group statistics
+ */
+interface GroupStats {
+    totalSessions: number;
+    totalStudyHours: number;
+    averageAttendance: number;
+    goalsCompleted: number;
+    resourcesShared: number;
+    discussionPosts: number;
+    activeStreak: number;
+    memberGrowth: number;
+}
+/**
+ * Group settings
+ */
+interface GroupSettings {
+    allowJoinRequests: boolean;
+    requireApproval: boolean;
+    allowMemberInvites: boolean;
+    allowResourceSharing: boolean;
+    allowDiscussions: boolean;
+    notificationPreferences: NotificationPreferences;
+    contentModeration: ModerationSettings;
+}
+interface NotificationPreferences {
+    newMember: boolean;
+    sessionReminder: boolean;
+    newResource: boolean;
+    newDiscussion: boolean;
+    goalUpdate: boolean;
+}
+interface ModerationSettings {
+    autoModeration: boolean;
+    requireApprovalForPosts: boolean;
+    wordFilter: boolean;
+    reportThreshold: number;
+}
+/**
+ * Discussion thread
+ */
+interface DiscussionThread {
+    id: string;
+    title: string;
+    content: string;
+    author: ThreadAuthor;
+    type: ThreadType;
+    status: ThreadStatus;
+    tags: string[];
+    replies: DiscussionReply[];
+    views: number;
+    likes: number;
+    isPinned: boolean;
+    isLocked: boolean;
+    acceptedAnswerId?: string;
+    groupId?: string;
+    courseId?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface ThreadAuthor {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    reputation: number;
+}
+type ThreadType = 'DISCUSSION' | 'QUESTION' | 'ANNOUNCEMENT' | 'POLL' | 'RESOURCE_SHARE';
+type ThreadStatus = 'OPEN' | 'ANSWERED' | 'RESOLVED' | 'CLOSED';
+/**
+ * Reply to a discussion
+ */
+interface DiscussionReply {
+    id: string;
+    content: string;
+    author: ThreadAuthor;
+    parentId?: string;
+    likes: number;
+    isAcceptedAnswer: boolean;
+    isEdited: boolean;
+    editHistory?: EditRecord[];
+    reactions: Reaction[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface EditRecord {
+    editedAt: Date;
+    previousContent: string;
+}
+interface Reaction {
+    type: ReactionType;
+    count: number;
+    userIds: string[];
+}
+type ReactionType = 'LIKE' | 'HELPFUL' | 'INSIGHTFUL' | 'CELEBRATE' | 'CONFUSED' | 'QUESTION';
+/**
+ * Mentorship relationship
+ */
+interface Mentorship {
+    id: string;
+    mentorId: string;
+    menteeId: string;
+    mentor: MentorProfile;
+    mentee: MenteeProfile;
+    status: MentorshipStatus;
+    type: MentorshipType;
+    subjects: string[];
+    goals: MentorshipGoal[];
+    sessions: MentoringSession[];
+    feedback: MentorshipFeedback[];
+    agreement?: MentorshipAgreement;
+    startDate: Date;
+    expectedEndDate?: Date;
+    actualEndDate?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+type MentorshipStatus = 'PENDING' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'TERMINATED';
+type MentorshipType = 'FORMAL' | 'INFORMAL' | 'PEER_MENTORING' | 'GROUP_MENTORING' | 'REVERSE_MENTORING';
+/**
+ * Mentor profile
+ */
+interface MentorProfile {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    bio: string;
+    expertise: PeerExpertise[];
+    mentoringStyle: MentoringStyle;
+    totalMentees: number;
+    activeMentees: number;
+    successfulMentorships: number;
+    rating: number;
+    testimonials: Testimonial[];
+    availability: PeerAvailability;
+    maxMentees: number;
+}
+type MentoringStyle = 'DIRECTIVE' | 'SUPPORTIVE' | 'COACHING' | 'DELEGATING' | 'COLLABORATIVE';
+interface Testimonial {
+    id: string;
+    menteeId: string;
+    menteeName: string;
+    content: string;
+    rating: number;
+    createdAt: Date;
+}
+/**
+ * Mentee profile
+ */
+interface MenteeProfile {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    bio: string;
+    learningGoals: PeerLearningGoal[];
+    currentLevel: PeerProficiencyLevel;
+    preferredMentoringStyle?: MentoringStyle;
+    previousMentorships: number;
+    commitment: CommitmentLevel;
+}
+type CommitmentLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
+/**
+ * Mentorship goal
+ */
+interface MentorshipGoal {
+    id: string;
+    title: string;
+    description: string;
+    targetDate?: Date;
+    progress: number;
+    milestones: MentorshipMilestone[];
+    status: PeerGoalStatus;
+    notes?: string;
+}
+interface MentorshipMilestone {
+    id: string;
+    title: string;
+    description?: string;
+    targetDate?: Date;
+    isCompleted: boolean;
+    completedAt?: Date;
+    feedback?: string;
+}
+/**
+ * Mentoring session
+ */
+interface MentoringSession {
+    id: string;
+    mentorshipId: string;
+    scheduledAt: Date;
+    duration: number;
+    actualDuration?: number;
+    status: SessionStatus;
+    type: MentoringSessionType;
+    agenda?: string[];
+    notes?: string;
+    actionItems: PeerActionItem[];
+    feedback?: SessionFeedback;
+    recording?: SessionRecording;
+    createdAt: Date;
+}
+type MentoringSessionType = 'REGULAR' | 'GOAL_SETTING' | 'PROGRESS_REVIEW' | 'SKILL_DEVELOPMENT' | 'CAREER_GUIDANCE' | 'PROBLEM_SOLVING' | 'FINAL_REVIEW';
+interface SessionFeedback {
+    rating: number;
+    highlights?: string;
+    improvements?: string;
+    isPrivate: boolean;
+}
+/**
+ * Mentorship feedback
+ */
+interface MentorshipFeedback {
+    id: string;
+    fromUserId: string;
+    toUserId: string;
+    type: FeedbackType;
+    rating: number;
+    content: string;
+    isAnonymous: boolean;
+    createdAt: Date;
+}
+type FeedbackType = 'MENTOR_TO_MENTEE' | 'MENTEE_TO_MENTOR' | 'SYSTEM';
+/**
+ * Mentorship agreement
+ */
+interface MentorshipAgreement {
+    id: string;
+    expectations: AgreementExpectation[];
+    meetingFrequency: string;
+    communicationChannels: string[];
+    confidentialityTerms: string;
+    terminationTerms: string;
+    signedByMentor: boolean;
+    signedByMentee: boolean;
+    signedAt?: Date;
+}
+interface AgreementExpectation {
+    party: 'MENTOR' | 'MENTEE' | 'BOTH';
+    expectation: string;
+}
+/**
+ * Peer review assignment
+ */
+interface PeerReviewAssignment {
+    id: string;
+    title: string;
+    description: string;
+    type: PeerReviewType;
+    submissionId: string;
+    submission: ReviewSubmission;
+    reviewerId: string;
+    reviewer: PeerProfile;
+    rubric: PeerReviewRubric;
+    review?: PeerReview;
+    status: ReviewAssignmentStatus;
+    dueDate: Date;
+    assignedAt: Date;
+    completedAt?: Date;
+}
+type PeerReviewType = 'SINGLE_BLIND' | 'DOUBLE_BLIND' | 'OPEN' | 'COLLABORATIVE';
+type ReviewAssignmentStatus = 'ASSIGNED' | 'IN_PROGRESS' | 'SUBMITTED' | 'CALIBRATED' | 'LATE' | 'EXEMPTED';
+/**
+ * Submission for peer review
+ */
+interface ReviewSubmission {
+    id: string;
+    authorId: string;
+    authorName?: string;
+    title: string;
+    content: string;
+    attachments?: SubmissionAttachment[];
+    courseId?: string;
+    assignmentId?: string;
+    submittedAt: Date;
+}
+interface SubmissionAttachment {
+    id: string;
+    name: string;
+    url: string;
+    type: string;
+    size: number;
+}
+/**
+ * Peer review rubric
+ */
+interface PeerReviewRubric {
+    id: string;
+    name: string;
+    description?: string;
+    criteria: ReviewCriterion[];
+    totalPoints: number;
+    passingScore: number;
+    allowComments: boolean;
+    requireComments: boolean;
+}
+interface ReviewCriterion {
+    id: string;
+    name: string;
+    description: string;
+    maxPoints: number;
+    weight: number;
+    levels: CriterionLevel[];
+}
+interface CriterionLevel {
+    points: number;
+    label: string;
+    description: string;
+}
+/**
+ * Completed peer review
+ */
+interface PeerReview {
+    id: string;
+    assignmentId: string;
+    reviewerId: string;
+    scores: CriterionScore[];
+    totalScore: number;
+    overallFeedback: string;
+    strengths?: string;
+    areasForImprovement?: string;
+    suggestions?: string;
+    isAnonymous: boolean;
+    confidence: PeerConfidenceLevel;
+    timeSpent: number;
+    submittedAt: Date;
+}
+interface CriterionScore {
+    criterionId: string;
+    score: number;
+    comment?: string;
+}
+type PeerConfidenceLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
+/**
+ * Review calibration for quality assurance
+ */
+interface ReviewCalibration {
+    id: string;
+    reviewerId: string;
+    calibrationSubmissionId: string;
+    expectedScores: CriterionScore[];
+    actualScores: CriterionScore[];
+    deviation: number;
+    isCalibrated: boolean;
+    feedback?: string;
+    completedAt: Date;
+}
+/**
+ * Collaborative project
+ */
+interface CollaborativeProject {
+    id: string;
+    title: string;
+    description: string;
+    type: ProjectType;
+    status: ProjectStatus;
+    visibility: GroupVisibility;
+    team: ProjectTeam;
+    milestones: ProjectMilestone[];
+    tasks: ProjectTask[];
+    resources: ProjectResource[];
+    repository?: RepositoryInfo;
+    communications: ProjectCommunication[];
+    reviews: ProjectReview[];
+    startDate: Date;
+    targetEndDate?: Date;
+    actualEndDate?: Date;
+    tags: string[];
+    courseId?: string;
+    groupId?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+type ProjectType = 'RESEARCH' | 'CODING' | 'DESIGN' | 'WRITING' | 'PRESENTATION' | 'CASE_STUDY' | 'CAPSTONE' | 'HACKATHON';
+type ProjectStatus = 'PLANNING' | 'IN_PROGRESS' | 'UNDER_REVIEW' | 'COMPLETED' | 'ON_HOLD' | 'CANCELLED';
+/**
+ * Project team
+ */
+interface ProjectTeam {
+    id: string;
+    name?: string;
+    members: ProjectMember[];
+    roles: ProjectRoleDefinition[];
+    skillMatrix: TeamSkillMatrix;
+}
+interface ProjectMember {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    role: string;
+    responsibilities: string[];
+    contribution: number;
+    joinedAt: Date;
+    status: MemberStatus;
+}
+type MemberStatus = 'ACTIVE' | 'INACTIVE' | 'LEFT';
+interface ProjectRoleDefinition {
+    name: string;
+    description: string;
+    responsibilities: string[];
+    count: number;
+}
+interface TeamSkillMatrix {
+    skills: string[];
+    memberSkills: MemberSkillEntry[];
+}
+interface MemberSkillEntry {
+    userId: string;
+    skills: Record<string, PeerProficiencyLevel>;
+}
+/**
+ * Project milestone
+ */
+interface ProjectMilestone {
+    id: string;
+    title: string;
+    description?: string;
+    dueDate: Date;
+    status: MilestoneStatus;
+    deliverables: string[];
+    completedAt?: Date;
+    review?: MilestoneReview;
+}
+type MilestoneStatus = 'PENDING' | 'IN_PROGRESS' | 'UNDER_REVIEW' | 'COMPLETED' | 'OVERDUE';
+interface MilestoneReview {
+    reviewerId: string;
+    rating: number;
+    feedback: string;
+    reviewedAt: Date;
+}
+/**
+ * Project task
+ */
+interface ProjectTask {
+    id: string;
+    title: string;
+    description?: string;
+    assignees: string[];
+    status: TaskStatus;
+    priority: TaskPriority;
+    milestoneId?: string;
+    dependencies: string[];
+    estimatedHours?: number;
+    actualHours?: number;
+    dueDate?: Date;
+    completedAt?: Date;
+    comments: TaskComment[];
+    createdBy: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE' | 'BLOCKED';
+type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+interface TaskComment {
+    id: string;
+    authorId: string;
+    authorName: string;
+    content: string;
+    createdAt: Date;
+}
+/**
+ * Project resource
+ */
+interface ProjectResource {
+    id: string;
+    name: string;
+    type: PeerResourceType;
+    url?: string;
+    content?: string;
+    uploadedBy: string;
+    createdAt: Date;
+    version?: number;
+    history?: ResourceVersion[];
+}
+interface ResourceVersion {
+    version: number;
+    uploadedBy: string;
+    uploadedAt: Date;
+    changeDescription?: string;
+}
+/**
+ * Repository integration
+ */
+interface RepositoryInfo {
+    platform: 'GITHUB' | 'GITLAB' | 'BITBUCKET';
+    url: string;
+    defaultBranch: string;
+    isPrivate: boolean;
+    lastCommitAt?: Date;
+    contributors?: number;
+}
+/**
+ * Project communication
+ */
+interface ProjectCommunication {
+    id: string;
+    type: CommunicationType;
+    title?: string;
+    content: string;
+    author: string;
+    mentions?: string[];
+    attachments?: SubmissionAttachment[];
+    isPinned: boolean;
+    createdAt: Date;
+}
+type CommunicationType = 'UPDATE' | 'QUESTION' | 'DECISION' | 'BLOCKER' | 'CELEBRATION';
+/**
+ * Project review
+ */
+interface ProjectReview {
+    id: string;
+    reviewerType: ReviewerType;
+    reviewerId: string;
+    reviewerName: string;
+    rating: number;
+    feedback: string;
+    criteria: ProjectReviewCriterion[];
+    isPublic: boolean;
+    createdAt: Date;
+}
+type ReviewerType = 'PEER' | 'INSTRUCTOR' | 'MENTOR' | 'EXTERNAL';
+interface ProjectReviewCriterion {
+    name: string;
+    score: number;
+    maxScore: number;
+    comment?: string;
+}
+/**
+ * Peer learning engine configuration
+ */
+interface PeerLearningEngineConfig {
+    matchingAlgorithm?: MatchingAlgorithm;
+    defaultGroupSize?: number;
+    maxGroupSize?: number;
+    reputationWeights?: ReputationWeights;
+    reviewCalibrationEnabled?: boolean;
+    anonymousReviewsDefault?: boolean;
+    mentoringEnabled?: boolean;
+    projectsEnabled?: boolean;
+    gamificationEnabled?: boolean;
+}
+type MatchingAlgorithm = 'SIMPLE' | 'WEIGHTED' | 'GRAPH_BASED' | 'ML_ENHANCED';
+interface ReputationWeights {
+    helpfulness: number;
+    reliability: number;
+    expertise: number;
+    communication: number;
+    collaboration: number;
+}
+/**
+ * Input types for engine methods
+ */
+interface CreatePeerProfileInput {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    bio?: string;
+    expertise?: Omit<PeerExpertise, 'endorsements' | 'isVerified'>[];
+    learningGoals?: Omit<PeerLearningGoal, 'id' | 'status'>[];
+    availability?: Partial<PeerAvailability>;
+    preferences?: Partial<PeerPreferences>;
+    timezone?: string;
+    languages?: string[];
+}
+interface UpdatePeerProfileInput {
+    userId: string;
+    displayName?: string;
+    avatarUrl?: string;
+    bio?: string;
+    timezone?: string;
+    languages?: string[];
+    isAvailableForMentoring?: boolean;
+    isSeekingMentor?: boolean;
+}
+interface FindPeerMatchesInput {
+    userId: string;
+    criteria: PeerMatchCriteria;
+}
+interface CreateStudyGroupInput {
+    name: string;
+    description: string;
+    subject: string;
+    topics?: string[];
+    coverImageUrl?: string;
+    type?: GroupType;
+    visibility?: GroupVisibility;
+    maxMembers?: number;
+    minMembers?: number;
+    ownerId: string;
+    schedule?: Partial<GroupSchedule>;
+    goals?: Omit<GroupGoal, 'id' | 'progress' | 'milestones' | 'status'>[];
+    rules?: string[];
+    tags?: string[];
+    settings?: Partial<GroupSettings>;
+}
+interface JoinGroupInput {
+    groupId: string;
+    userId: string;
+    message?: string;
+}
+interface CreateGroupSessionInput {
+    groupId: string;
+    title: string;
+    description?: string;
+    scheduledAt: Date;
+    duration: number;
+    type?: GroupSessionType;
+    facilitatorId?: string;
+    agenda?: Omit<SessionAgenda, 'id' | 'isCompleted'>[];
+    createdBy: string;
+}
+interface CreateDiscussionInput {
+    title: string;
+    content: string;
+    authorId: string;
+    type?: ThreadType;
+    tags?: string[];
+    groupId?: string;
+    courseId?: string;
+}
+interface CreateReplyInput {
+    threadId: string;
+    content: string;
+    authorId: string;
+    parentId?: string;
+}
+interface RequestMentorshipInput {
+    mentorId: string;
+    menteeId: string;
+    type?: MentorshipType;
+    subjects: string[];
+    message?: string;
+    goals?: Omit<MentorshipGoal, 'id' | 'progress' | 'milestones' | 'status'>[];
+}
+interface CreatePeerReviewAssignmentInput {
+    title: string;
+    description: string;
+    type?: PeerReviewType;
+    submissionId: string;
+    reviewerId: string;
+    rubricId: string;
+    dueDate: Date;
+}
+interface SubmitPeerReviewInput {
+    assignmentId: string;
+    reviewerId: string;
+    scores: CriterionScore[];
+    overallFeedback: string;
+    strengths?: string;
+    areasForImprovement?: string;
+    suggestions?: string;
+    confidence?: PeerConfidenceLevel;
+    timeSpent?: number;
+}
+interface CreateProjectInput {
+    title: string;
+    description: string;
+    type?: ProjectType;
+    visibility?: GroupVisibility;
+    members: Omit<ProjectMember, 'contribution' | 'joinedAt' | 'status'>[];
+    startDate: Date;
+    targetEndDate?: Date;
+    milestones?: Omit<ProjectMilestone, 'id' | 'status' | 'completedAt' | 'review'>[];
+    tags?: string[];
+    courseId?: string;
+    groupId?: string;
+    createdBy: string;
+}
+interface CreateProjectTaskInput {
+    projectId: string;
+    title: string;
+    description?: string;
+    assignees?: string[];
+    priority?: TaskPriority;
+    milestoneId?: string;
+    dependencies?: string[];
+    estimatedHours?: number;
+    dueDate?: Date;
+    createdBy: string;
+}
+interface PeerMatchResult {
+    matches: PeerMatch[];
+    totalCandidates: number;
+    matchingTime: number;
+    criteria: PeerMatchCriteria;
+}
+interface GroupSearchResult {
+    groups: StudyGroup[];
+    totalCount: number;
+    hasMore: boolean;
+}
+interface DiscussionSearchResult {
+    threads: DiscussionThread[];
+    totalCount: number;
+    hasMore: boolean;
+}
+interface MentorSearchResult {
+    mentors: MentorProfile[];
+    totalCount: number;
+    hasMore: boolean;
+}
+interface LeaderboardEntry {
+    rank: number;
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    score: number;
+    change: number;
+    badges: PeerBadge[];
+}
+interface PeerLearningAnalytics {
+    period: PeerDateRange;
+    activeUsers: number;
+    newProfiles: number;
+    matchesMade: number;
+    groupsCreated: number;
+    sessionsCompleted: number;
+    totalStudyHours: number;
+    discussionPosts: number;
+    reviewsCompleted: number;
+    mentorshipsStarted: number;
+    projectsCompleted: number;
+    averageSatisfaction: number;
+    topSubjects: SubjectActivity[];
+    engagementTrend: TrendDataPoint[];
+}
+interface SubjectActivity {
+    subject: string;
+    activeUsers: number;
+    sessions: number;
+    studyHours: number;
+}
+interface TrendDataPoint {
+    date: Date;
+    value: number;
+}
+
+/**
+ * SAM AI Educational Package - Multimodal Input Types
+ *
+ * Types for processing images, voice recordings, and handwriting
+ * for educational assessments.
+ */
+/**
+ * Types of multimodal input supported
+ */
+type MultimodalInputType = 'IMAGE' | 'VOICE' | 'HANDWRITING' | 'VIDEO' | 'DIAGRAM' | 'EQUATION' | 'CODE_SCREENSHOT' | 'DOCUMENT_SCAN';
+/**
+ * Processing status for multimodal inputs
+ */
+type MultimodalProcessingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REQUIRES_REVIEW' | 'PARTIALLY_PROCESSED';
+/**
+ * Quality level of processed input
+ */
+type MultimodalQualityLevel = 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'POOR' | 'UNREADABLE';
+/**
+ * Language support for voice/text recognition
+ */
+type MultimodalLanguage = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'ko' | 'ar' | 'hi' | 'pt' | 'ru' | 'it' | 'other';
+/**
+ * Types of image content for classification
+ */
+type ImageContentType = 'DIAGRAM' | 'CHART' | 'GRAPH' | 'PHOTOGRAPH' | 'SCREENSHOT' | 'HANDWRITTEN_TEXT' | 'PRINTED_TEXT' | 'EQUATION' | 'MAP' | 'ILLUSTRATION' | 'TABLE' | 'CODE' | 'MIXED' | 'UNKNOWN';
+/**
+ * Types of voice content
+ */
+type VoiceContentType = 'SPEECH' | 'LECTURE' | 'READING' | 'QUESTION_ANSWER' | 'DISCUSSION' | 'PRESENTATION' | 'DICTATION' | 'FOREIGN_LANGUAGE' | 'MUSIC' | 'OTHER';
+/**
+ * Types of handwriting
+ */
+type HandwritingType = 'CURSIVE' | 'PRINT' | 'MIXED' | 'SHORTHAND' | 'CALLIGRAPHY' | 'SYMBOLS' | 'EQUATIONS' | 'DIAGRAMS';
+/**
+ * Assessment context for multimodal input
+ */
+type MultimodalAssessmentContext = 'EXAM' | 'HOMEWORK' | 'PRACTICE' | 'PROJECT' | 'LAB_REPORT' | 'ESSAY' | 'PRESENTATION' | 'QUIZ' | 'PORTFOLIO' | 'SELF_ASSESSMENT';
+/**
+ * Accessibility requirements
+ */
+type AccessibilityRequirement = 'SCREEN_READER' | 'HIGH_CONTRAST' | 'LARGE_TEXT' | 'AUDIO_DESCRIPTION' | 'CAPTIONS' | 'SIGN_LANGUAGE' | 'SIMPLIFIED_INTERFACE' | 'KEYBOARD_ONLY';
+/**
+ * Configuration for multimodal processing
+ */
+interface MultimodalConfig {
+    /** Maximum file size in bytes */
+    maxFileSize: number;
+    /** Allowed file formats */
+    allowedFormats: string[];
+    /** Enable OCR for images */
+    enableOCR: boolean;
+    /** Enable speech-to-text */
+    enableSpeechToText: boolean;
+    /** Enable handwriting recognition */
+    enableHandwritingRecognition: boolean;
+    /** Default language for processing */
+    defaultLanguage: MultimodalLanguage;
+    /** Quality threshold for acceptance */
+    qualityThreshold: number;
+    /** Enable AI-powered analysis */
+    enableAIAnalysis: boolean;
+    /** Processing timeout in seconds */
+    processingTimeout: number;
+    /** Accessibility options */
+    accessibility: AccessibilityOptions;
+    /** Storage configuration */
+    storage: StorageConfig;
+}
+/**
+ * Accessibility options for multimodal content
+ */
+interface AccessibilityOptions {
+    /** Generate alt text for images */
+    generateAltText: boolean;
+    /** Generate captions for audio/video */
+    generateCaptions: boolean;
+    /** Enable text-to-speech output */
+    enableTextToSpeech: boolean;
+    /** High contrast mode */
+    highContrastMode: boolean;
+    /** Required accessibility features */
+    requirements: AccessibilityRequirement[];
+}
+/**
+ * Storage configuration for multimodal files
+ */
+interface StorageConfig {
+    /** Storage provider */
+    provider: 'local' | 's3' | 'gcs' | 'azure' | 'cloudinary';
+    /** Bucket or container name */
+    bucket?: string;
+    /** Path prefix */
+    pathPrefix: string;
+    /** Enable CDN */
+    enableCDN: boolean;
+    /** Retention period in days */
+    retentionDays: number;
+    /** Enable encryption */
+    enableEncryption: boolean;
+}
+/**
+ * Base multimodal input submission
+ */
+interface MultimodalInput {
+    /** Unique identifier */
+    id: string;
+    /** User who submitted the input */
+    userId: string;
+    /** Type of input */
+    type: MultimodalInputType;
+    /** Original file name */
+    fileName: string;
+    /** File MIME type */
+    mimeType: string;
+    /** File size in bytes */
+    fileSize: number;
+    /** Storage URL or path */
+    fileUrl: string;
+    /** Processing status */
+    status: MultimodalProcessingStatus;
+    /** Assessment context */
+    context?: MultimodalAssessmentContext;
+    /** Associated course/assignment */
+    courseId?: string;
+    assignmentId?: string;
+    questionId?: string;
+    /** Metadata */
+    metadata: MultimodalMetadata;
+    /** Processing results */
+    processingResult?: MultimodalProcessingResult;
+    /** Quality assessment */
+    quality?: MultimodalQualityAssessment;
+    /** Timestamps */
+    createdAt: Date;
+    processedAt?: Date;
+    expiresAt?: Date;
+}
+/**
+ * Metadata for multimodal input
+ */
+interface MultimodalMetadata {
+    /** Original dimensions for images/video */
+    width?: number;
+    height?: number;
+    /** Duration for audio/video in seconds */
+    duration?: number;
+    /** Detected language */
+    language?: MultimodalLanguage;
+    /** Device/source information */
+    deviceInfo?: DeviceInfo;
+    /** Geolocation if available */
+    location?: GeolocationData;
+    /** Custom metadata */
+    custom?: Record<string, unknown>;
+    /** Tags for organization */
+    tags?: string[];
+}
+/**
+ * Device information
+ */
+interface DeviceInfo {
+    /** Device type */
+    type: 'mobile' | 'tablet' | 'desktop' | 'unknown';
+    /** Operating system */
+    os?: string;
+    /** Browser or app */
+    browser?: string;
+    /** Camera/microphone info */
+    captureDevice?: string;
+}
+/**
+ * Geolocation data
+ */
+interface GeolocationData {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+    timestamp: Date;
+}
+/**
+ * Processing result for multimodal input
+ */
+interface MultimodalProcessingResult {
+    /** Whether processing succeeded */
+    success: boolean;
+    /** Processing duration in ms */
+    processingTime: number;
+    /** Extracted text content */
+    extractedText?: ExtractedText;
+    /** Image analysis results */
+    imageAnalysis?: ImageAnalysisResult;
+    /** Voice/audio analysis results */
+    voiceAnalysis?: VoiceAnalysisResult;
+    /** Handwriting analysis results */
+    handwritingAnalysis?: HandwritingAnalysisResult;
+    /** AI-generated insights */
+    aiInsights?: AIInsights;
+    /** Errors if any */
+    errors?: ProcessingError[];
+    /** Warnings */
+    warnings?: string[];
+}
+/**
+ * Extracted text from any input
+ */
+interface ExtractedText {
+    /** Full extracted text */
+    fullText: string;
+    /** Text segments with position info */
+    segments: TextSegment[];
+    /** Detected language */
+    language: MultimodalLanguage;
+    /** Confidence score 0-1 */
+    confidence: number;
+    /** Word count */
+    wordCount: number;
+    /** Character count */
+    characterCount: number;
+}
+/**
+ * Text segment with position information
+ */
+interface TextSegment {
+    /** Segment text */
+    text: string;
+    /** Position in document/image */
+    boundingBox?: BoundingBox;
+    /** Timestamp for audio/video */
+    timestamp?: TimeRange;
+    /** Confidence score */
+    confidence: number;
+    /** Speaker ID for audio */
+    speakerId?: string;
+    /** Detected language for this segment */
+    language?: MultimodalLanguage;
+}
+/**
+ * Bounding box for spatial positioning
+ */
+interface BoundingBox {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    /** Rotation angle in degrees */
+    rotation?: number;
+}
+/**
+ * Time range for temporal positioning
+ */
+interface TimeRange {
+    start: number;
+    end: number;
+}
+/**
+ * Processing error details
+ */
+interface ProcessingError {
+    /** Error code */
+    code: string;
+    /** Error message */
+    message: string;
+    /** Error severity */
+    severity: 'warning' | 'error' | 'fatal';
+    /** Component that generated the error */
+    component: string;
+    /** Additional context */
+    details?: Record<string, unknown>;
+}
+/**
+ * Image analysis result
+ */
+interface ImageAnalysisResult {
+    /** Content type classification */
+    contentType: ImageContentType;
+    /** Detected objects */
+    objects: DetectedObject[];
+    /** Text regions (OCR) */
+    textRegions: TextRegion[];
+    /** Diagram/chart analysis */
+    diagramAnalysis?: DiagramAnalysis;
+    /** Equation detection */
+    equations?: DetectedEquation[];
+    /** Color analysis */
+    colorAnalysis: ColorAnalysis;
+    /** Quality metrics */
+    qualityMetrics: ImageQualityMetrics;
+    /** Educational content detection */
+    educationalContent?: EducationalContentDetection;
+    /** Potential issues or concerns */
+    concerns?: ImageConcern[];
+}
+/**
+ * Detected object in image
+ */
+interface DetectedObject {
+    /** Object label */
+    label: string;
+    /** Confidence score */
+    confidence: number;
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Object category */
+    category?: string;
+    /** Attributes */
+    attributes?: Record<string, string>;
+}
+/**
+ * Text region detected in image
+ */
+interface TextRegion {
+    /** Detected text */
+    text: string;
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Text type */
+    type: 'printed' | 'handwritten' | 'mixed';
+    /** Confidence score */
+    confidence: number;
+    /** Font/style info */
+    fontInfo?: FontInfo;
+    /** Reading order */
+    readingOrder: number;
+}
+/**
+ * Font information
+ */
+interface FontInfo {
+    /** Font family if detected */
+    family?: string;
+    /** Font size estimate */
+    size?: number;
+    /** Text style */
+    style: 'normal' | 'bold' | 'italic' | 'bold-italic';
+    /** Text color */
+    color?: string;
+}
+/**
+ * Diagram analysis result
+ */
+interface DiagramAnalysis {
+    /** Diagram type */
+    type: DiagramType;
+    /** Detected components */
+    components: DiagramComponent[];
+    /** Detected connections/relationships */
+    connections: DiagramConnection[];
+    /** Labels and text in diagram */
+    labels: string[];
+    /** Structural analysis */
+    structure: DiagramStructure;
+    /** Subject area detection */
+    subjectArea?: string;
+}
+/**
+ * Types of diagrams
+ */
+type DiagramType = 'FLOWCHART' | 'UML' | 'ER_DIAGRAM' | 'NETWORK' | 'ORGANIZATIONAL' | 'VENN' | 'TREE' | 'MIND_MAP' | 'SEQUENCE' | 'STATE' | 'CIRCUIT' | 'CHEMISTRY' | 'BIOLOGY' | 'PHYSICS' | 'MATH' | 'GEOGRAPHIC' | 'OTHER';
+/**
+ * Diagram component
+ */
+interface DiagramComponent {
+    /** Component ID */
+    id: string;
+    /** Component type */
+    type: string;
+    /** Component label */
+    label?: string;
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Shape type */
+    shape?: string;
+    /** Properties */
+    properties?: Record<string, unknown>;
+}
+/**
+ * Connection between diagram components
+ */
+interface DiagramConnection {
+    /** Source component ID */
+    sourceId: string;
+    /** Target component ID */
+    targetId: string;
+    /** Connection type */
+    type: 'directional' | 'bidirectional' | 'undirected';
+    /** Label on connection */
+    label?: string;
+    /** Line style */
+    style?: 'solid' | 'dashed' | 'dotted';
+}
+/**
+ * Diagram structure analysis
+ */
+interface DiagramStructure {
+    /** Hierarchy levels */
+    hierarchyLevels: number;
+    /** Component count */
+    componentCount: number;
+    /** Connection count */
+    connectionCount: number;
+    /** Symmetry score */
+    symmetryScore: number;
+    /** Completeness score */
+    completenessScore: number;
+}
+/**
+ * Detected equation in image
+ */
+interface DetectedEquation {
+    /** LaTeX representation */
+    latex: string;
+    /** MathML representation */
+    mathml?: string;
+    /** Plain text representation */
+    plainText: string;
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Confidence score */
+    confidence: number;
+    /** Equation type */
+    type: EquationType;
+    /** Variables detected */
+    variables?: string[];
+    /** Operators used */
+    operators?: string[];
+}
+/**
+ * Types of equations
+ */
+type EquationType = 'ALGEBRAIC' | 'CALCULUS' | 'DIFFERENTIAL' | 'TRIGONOMETRIC' | 'STATISTICAL' | 'MATRIX' | 'SET_THEORY' | 'LOGIC' | 'CHEMICAL' | 'PHYSICS' | 'OTHER';
+/**
+ * Color analysis result
+ */
+interface ColorAnalysis {
+    /** Dominant colors */
+    dominantColors: ColorInfo[];
+    /** Color palette */
+    palette: string[];
+    /** Average brightness */
+    brightness: number;
+    /** Contrast ratio */
+    contrastRatio: number;
+    /** Is grayscale */
+    isGrayscale: boolean;
+}
+/**
+ * Color information
+ */
+interface ColorInfo {
+    /** Hex color code */
+    hex: string;
+    /** RGB values */
+    rgb: {
+        r: number;
+        g: number;
+        b: number;
+    };
+    /** Percentage of image */
+    percentage: number;
+    /** Color name */
+    name?: string;
+}
+/**
+ * Image quality metrics
+ */
+interface ImageQualityMetrics {
+    /** Overall quality score 0-100 */
+    overallScore: number;
+    /** Sharpness score */
+    sharpness: number;
+    /** Noise level */
+    noiseLevel: number;
+    /** Exposure quality */
+    exposure: 'underexposed' | 'normal' | 'overexposed';
+    /** Resolution assessment */
+    resolution: 'low' | 'medium' | 'high';
+    /** Issues detected */
+    issues: ImageQualityIssue[];
+}
+/**
+ * Image quality issue
+ */
+interface ImageQualityIssue {
+    /** Issue type */
+    type: 'blur' | 'noise' | 'lighting' | 'rotation' | 'cropping' | 'resolution';
+    /** Severity */
+    severity: 'minor' | 'moderate' | 'severe';
+    /** Description */
+    description: string;
+    /** Suggested fix */
+    suggestedFix?: string;
+}
+/**
+ * Educational content detection
+ */
+interface EducationalContentDetection {
+    /** Subject area */
+    subject?: string;
+    /** Topic */
+    topic?: string;
+    /** Grade level estimate */
+    gradeLevel?: string;
+    /** Educational elements */
+    elements: EducationalElement[];
+    /** Alignment with standards */
+    standardsAlignment?: StandardAlignment[];
+}
+/**
+ * Educational element in content
+ */
+interface EducationalElement {
+    /** Element type */
+    type: 'concept' | 'formula' | 'definition' | 'example' | 'diagram' | 'problem';
+    /** Element content */
+    content: string;
+    /** Location */
+    boundingBox?: BoundingBox;
+    /** Related concepts */
+    relatedConcepts?: string[];
+}
+/**
+ * Standards alignment
+ */
+interface StandardAlignment {
+    /** Standard code */
+    code: string;
+    /** Standard description */
+    description: string;
+    /** Confidence */
+    confidence: number;
+}
+/**
+ * Image concern flags
+ */
+interface ImageConcern {
+    /** Concern type */
+    type: 'inappropriate' | 'cheating' | 'plagiarism' | 'quality' | 'integrity';
+    /** Confidence */
+    confidence: number;
+    /** Description */
+    description: string;
+    /** Recommended action */
+    recommendedAction: string;
+}
+/**
+ * Voice analysis result
+ */
+interface VoiceAnalysisResult {
+    /** Speech-to-text transcription */
+    transcription: VoiceTranscription;
+    /** Content type */
+    contentType: VoiceContentType;
+    /** Speaker analysis */
+    speakerAnalysis: SpeakerAnalysis;
+    /** Audio quality metrics */
+    audioQuality: AudioQualityMetrics;
+    /** Language detection */
+    languageDetection: LanguageDetection;
+    /** Speech metrics */
+    speechMetrics: SpeechMetrics;
+    /** Pronunciation analysis */
+    pronunciationAnalysis?: PronunciationAnalysis;
+    /** Fluency assessment */
+    fluencyAssessment?: FluencyAssessment;
+    /** Sentiment analysis */
+    sentimentAnalysis?: VoiceSentimentAnalysis;
+    /** Keywords and topics */
+    keywordsAndTopics: KeywordsAndTopics;
+}
+/**
+ * Voice transcription
+ */
+interface VoiceTranscription {
+    /** Full transcription text */
+    text: string;
+    /** Word-level transcription */
+    words: TranscribedWord[];
+    /** Sentence-level segments */
+    sentences: TranscribedSentence[];
+    /** Overall confidence */
+    confidence: number;
+    /** Detected language */
+    language: MultimodalLanguage;
+    /** Alternative transcriptions */
+    alternatives?: string[];
+}
+/**
+ * Transcribed word with timing
+ */
+interface TranscribedWord {
+    /** Word text */
+    word: string;
+    /** Start time in seconds */
+    startTime: number;
+    /** End time in seconds */
+    endTime: number;
+    /** Confidence score */
+    confidence: number;
+    /** Speaker ID */
+    speakerId?: string;
+    /** Is filler word */
+    isFiller?: boolean;
+}
+/**
+ * Transcribed sentence
+ */
+interface TranscribedSentence {
+    /** Sentence text */
+    text: string;
+    /** Start time */
+    startTime: number;
+    /** End time */
+    endTime: number;
+    /** Confidence */
+    confidence: number;
+    /** Speaker ID */
+    speakerId?: string;
+    /** Punctuation added */
+    punctuated: boolean;
+}
+/**
+ * Speaker analysis for multi-speaker audio
+ */
+interface SpeakerAnalysis {
+    /** Number of speakers detected */
+    speakerCount: number;
+    /** Speaker details */
+    speakers: SpeakerInfo[];
+    /** Speaker segments */
+    segments: SpeakerSegment[];
+}
+/**
+ * Speaker information
+ */
+interface SpeakerInfo {
+    /** Speaker ID */
+    id: string;
+    /** Speaker label */
+    label: string;
+    /** Total speaking time */
+    speakingTime: number;
+    /** Word count */
+    wordCount: number;
+    /** Voice characteristics */
+    voiceCharacteristics?: VoiceCharacteristics;
+}
+/**
+ * Voice characteristics
+ */
+interface VoiceCharacteristics {
+    /** Pitch range */
+    pitchRange: {
+        min: number;
+        max: number;
+        average: number;
+    };
+    /** Speaking rate (words per minute) */
+    speakingRate: number;
+    /** Volume level */
+    volumeLevel: 'soft' | 'normal' | 'loud';
+    /** Voice quality */
+    voiceQuality: 'clear' | 'hoarse' | 'nasal' | 'breathy';
+}
+/**
+ * Speaker segment
+ */
+interface SpeakerSegment {
+    /** Speaker ID */
+    speakerId: string;
+    /** Start time */
+    startTime: number;
+    /** End time */
+    endTime: number;
+    /** Transcribed text */
+    text: string;
+}
+/**
+ * Audio quality metrics
+ */
+interface AudioQualityMetrics {
+    /** Overall quality score 0-100 */
+    overallScore: number;
+    /** Signal-to-noise ratio in dB */
+    signalToNoiseRatio: number;
+    /** Background noise level */
+    backgroundNoiseLevel: 'none' | 'low' | 'moderate' | 'high';
+    /** Audio clarity */
+    clarity: 'clear' | 'slightly_muffled' | 'muffled' | 'unclear';
+    /** Sample rate */
+    sampleRate: number;
+    /** Bit depth */
+    bitDepth: number;
+    /** Issues detected */
+    issues: AudioQualityIssue[];
+}
+/**
+ * Audio quality issue
+ */
+interface AudioQualityIssue {
+    /** Issue type */
+    type: 'noise' | 'distortion' | 'clipping' | 'echo' | 'silence' | 'low_volume';
+    /** Time range */
+    timeRange?: TimeRange;
+    /** Severity */
+    severity: 'minor' | 'moderate' | 'severe';
+    /** Description */
+    description: string;
+}
+/**
+ * Language detection result
+ */
+interface LanguageDetection {
+    /** Primary language */
+    primaryLanguage: MultimodalLanguage;
+    /** Primary language confidence */
+    primaryConfidence: number;
+    /** Other detected languages */
+    otherLanguages: {
+        language: MultimodalLanguage;
+        confidence: number;
+    }[];
+    /** Is multilingual */
+    isMultilingual: boolean;
+}
+/**
+ * Speech metrics
+ */
+interface SpeechMetrics {
+    /** Total duration in seconds */
+    totalDuration: number;
+    /** Speech duration (excluding silence) */
+    speechDuration: number;
+    /** Silence duration */
+    silenceDuration: number;
+    /** Words per minute */
+    wordsPerMinute: number;
+    /** Syllables per minute */
+    syllablesPerMinute?: number;
+    /** Pause analysis */
+    pauseAnalysis: PauseAnalysis;
+    /** Filler word count */
+    fillerWordCount: number;
+    /** Unique word count */
+    uniqueWordCount: number;
+    /** Vocabulary richness (type-token ratio) */
+    vocabularyRichness: number;
+}
+/**
+ * Pause analysis
+ */
+interface PauseAnalysis {
+    /** Total pauses */
+    totalPauses: number;
+    /** Average pause duration */
+    averagePauseDuration: number;
+    /** Longest pause */
+    longestPause: {
+        duration: number;
+        timestamp: number;
+    };
+    /** Pause frequency (pauses per minute) */
+    pauseFrequency: number;
+}
+/**
+ * Pronunciation analysis
+ */
+interface PronunciationAnalysis {
+    /** Overall pronunciation score 0-100 */
+    overallScore: number;
+    /** Word-level pronunciations */
+    wordPronunciations: WordPronunciation[];
+    /** Phoneme accuracy */
+    phonemeAccuracy: PhonemeAccuracy;
+    /** Common errors */
+    commonErrors: PronunciationError[];
+    /** Improvement suggestions */
+    suggestions: string[];
+}
+/**
+ * Word pronunciation assessment
+ */
+interface WordPronunciation {
+    /** Word */
+    word: string;
+    /** Pronunciation score */
+    score: number;
+    /** Expected phonemes */
+    expectedPhonemes: string;
+    /** Actual phonemes */
+    actualPhonemes: string;
+    /** Issues */
+    issues?: string[];
+    /** Timestamp */
+    timestamp: number;
+}
+/**
+ * Phoneme accuracy
+ */
+interface PhonemeAccuracy {
+    /** Overall accuracy */
+    overall: number;
+    /** Vowel accuracy */
+    vowels: number;
+    /** Consonant accuracy */
+    consonants: number;
+    /** Stress accuracy */
+    stress: number;
+    /** Intonation accuracy */
+    intonation: number;
+}
+/**
+ * Pronunciation error
+ */
+interface PronunciationError {
+    /** Error type */
+    type: 'substitution' | 'omission' | 'insertion' | 'stress' | 'intonation';
+    /** Phoneme or word affected */
+    affected: string;
+    /** Frequency */
+    frequency: number;
+    /** Examples */
+    examples: string[];
+}
+/**
+ * Fluency assessment
+ */
+interface FluencyAssessment {
+    /** Overall fluency score 0-100 */
+    overallScore: number;
+    /** Speaking rate assessment */
+    speakingRate: 'too_slow' | 'appropriate' | 'too_fast';
+    /** Rhythm assessment */
+    rhythm: 'choppy' | 'somewhat_smooth' | 'smooth';
+    /** Hesitation frequency */
+    hesitationFrequency: 'frequent' | 'occasional' | 'rare';
+    /** Self-corrections */
+    selfCorrections: number;
+    /** Repetitions */
+    repetitions: number;
+    /** Incomplete sentences */
+    incompleteSentences: number;
+}
+/**
+ * Voice sentiment analysis
+ */
+interface VoiceSentimentAnalysis {
+    /** Overall sentiment */
+    overallSentiment: 'positive' | 'neutral' | 'negative' | 'mixed';
+    /** Sentiment score -1 to 1 */
+    sentimentScore: number;
+    /** Emotion detection */
+    emotions: DetectedEmotion[];
+    /** Confidence level */
+    confidence: number;
+    /** Sentiment over time */
+    timeline?: SentimentTimeline[];
+}
+/**
+ * Detected emotion
+ */
+interface DetectedEmotion {
+    /** Emotion type */
+    type: 'joy' | 'sadness' | 'anger' | 'fear' | 'surprise' | 'neutral' | 'confident' | 'uncertain';
+    /** Intensity 0-1 */
+    intensity: number;
+    /** Confidence */
+    confidence: number;
+}
+/**
+ * Sentiment timeline
+ */
+interface SentimentTimeline {
+    /** Time in seconds */
+    time: number;
+    /** Sentiment score */
+    sentiment: number;
+    /** Dominant emotion */
+    emotion?: string;
+}
+/**
+ * Keywords and topics extraction
+ */
+interface KeywordsAndTopics {
+    /** Extracted keywords */
+    keywords: ExtractedKeyword[];
+    /** Detected topics */
+    topics: DetectedTopic[];
+    /** Named entities */
+    namedEntities: NamedEntity[];
+    /** Key phrases */
+    keyPhrases: string[];
+}
+/**
+ * Extracted keyword
+ */
+interface ExtractedKeyword {
+    /** Keyword */
+    keyword: string;
+    /** Relevance score */
+    relevance: number;
+    /** Frequency */
+    frequency: number;
+    /** First occurrence timestamp */
+    firstOccurrence?: number;
+}
+/**
+ * Detected topic
+ */
+interface DetectedTopic {
+    /** Topic name */
+    name: string;
+    /** Confidence */
+    confidence: number;
+    /** Related keywords */
+    relatedKeywords: string[];
+    /** Time ranges */
+    timeRanges?: TimeRange[];
+}
+/**
+ * Named entity
+ */
+interface NamedEntity {
+    /** Entity text */
+    text: string;
+    /** Entity type */
+    type: 'PERSON' | 'ORGANIZATION' | 'LOCATION' | 'DATE' | 'NUMBER' | 'CONCEPT' | 'TERM' | 'OTHER';
+    /** Confidence */
+    confidence: number;
+    /** Occurrences */
+    occurrences: number;
+}
+/**
+ * Handwriting analysis result
+ */
+interface HandwritingAnalysisResult {
+    /** Recognized text */
+    recognizedText: HandwritingRecognition;
+    /** Handwriting type */
+    handwritingType: HandwritingType;
+    /** Writing quality assessment */
+    writingQuality: WritingQualityAssessment;
+    /** Character-level analysis */
+    characterAnalysis: CharacterAnalysis;
+    /** Line analysis */
+    lineAnalysis: LineAnalysis;
+    /** Detected elements */
+    detectedElements: HandwritingElements;
+    /** Writer profile estimation */
+    writerProfile?: WriterProfile;
+    /** Educational assessment */
+    educationalAssessment?: HandwritingEducationalAssessment;
+}
+/**
+ * Handwriting recognition result
+ */
+interface HandwritingRecognition {
+    /** Full recognized text */
+    text: string;
+    /** Line-by-line text */
+    lines: RecognizedLine[];
+    /** Word-level recognition */
+    words: RecognizedWord[];
+    /** Overall confidence */
+    confidence: number;
+    /** Alternative interpretations */
+    alternatives?: string[];
+    /** Uncertain regions */
+    uncertainRegions: UncertainRegion[];
+}
+/**
+ * Recognized line
+ */
+interface RecognizedLine {
+    /** Line number */
+    lineNumber: number;
+    /** Recognized text */
+    text: string;
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Confidence */
+    confidence: number;
+    /** Line angle (degrees) */
+    angle: number;
+}
+/**
+ * Recognized word
+ */
+interface RecognizedWord {
+    /** Word text */
+    text: string;
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Confidence */
+    confidence: number;
+    /** Alternative readings */
+    alternatives?: string[];
+    /** Stroke count */
+    strokeCount?: number;
+}
+/**
+ * Uncertain region in handwriting
+ */
+interface UncertainRegion {
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Possible interpretations */
+    possibleTexts: {
+        text: string;
+        confidence: number;
+    }[];
+    /** Reason for uncertainty */
+    reason: 'illegible' | 'overlapping' | 'incomplete' | 'unusual_style';
+}
+/**
+ * Writing quality assessment
+ */
+interface WritingQualityAssessment {
+    /** Overall quality score 0-100 */
+    overallScore: number;
+    /** Legibility score */
+    legibility: number;
+    /** Consistency score */
+    consistency: number;
+    /** Neatness score */
+    neatness: number;
+    /** Spacing quality */
+    spacing: SpacingQuality;
+    /** Alignment quality */
+    alignment: AlignmentQuality;
+    /** Size consistency */
+    sizeConsistency: number;
+    /** Slant consistency */
+    slantConsistency: number;
+    /** Issues identified */
+    issues: WritingQualityIssue[];
+    /** Strengths */
+    strengths: string[];
+    /** Improvement suggestions */
+    suggestions: string[];
+}
+/**
+ * Spacing quality assessment
+ */
+interface SpacingQuality {
+    /** Letter spacing */
+    letterSpacing: 'too_tight' | 'appropriate' | 'too_wide' | 'inconsistent';
+    /** Word spacing */
+    wordSpacing: 'too_tight' | 'appropriate' | 'too_wide' | 'inconsistent';
+    /** Line spacing */
+    lineSpacing: 'too_tight' | 'appropriate' | 'too_wide' | 'inconsistent';
+    /** Overall spacing score */
+    score: number;
+}
+/**
+ * Alignment quality assessment
+ */
+interface AlignmentQuality {
+    /** Baseline alignment */
+    baselineAlignment: 'poor' | 'moderate' | 'good' | 'excellent';
+    /** Left margin alignment */
+    leftMargin: 'poor' | 'moderate' | 'good' | 'excellent';
+    /** Right margin alignment */
+    rightMargin: 'poor' | 'moderate' | 'good' | 'excellent';
+    /** Overall alignment score */
+    score: number;
+}
+/**
+ * Writing quality issue
+ */
+interface WritingQualityIssue {
+    /** Issue type */
+    type: 'legibility' | 'spacing' | 'alignment' | 'size' | 'slant' | 'formation';
+    /** Severity */
+    severity: 'minor' | 'moderate' | 'severe';
+    /** Description */
+    description: string;
+    /** Affected regions */
+    affectedRegions?: BoundingBox[];
+    /** Examples */
+    examples?: string[];
+}
+/**
+ * Character-level analysis
+ */
+interface CharacterAnalysis {
+    /** Total characters */
+    totalCharacters: number;
+    /** Character accuracy */
+    accuracy: number;
+    /** Problem characters */
+    problemCharacters: ProblemCharacter[];
+    /** Character formation patterns */
+    formationPatterns: CharacterFormation[];
+    /** Most consistent characters */
+    consistentCharacters: string[];
+    /** Least consistent characters */
+    inconsistentCharacters: string[];
+}
+/**
+ * Problem character analysis
+ */
+interface ProblemCharacter {
+    /** Character */
+    character: string;
+    /** Frequency of issues */
+    issueFrequency: number;
+    /** Issue types */
+    issues: string[];
+    /** Examples (bounding boxes) */
+    examples: BoundingBox[];
+    /** Suggestion */
+    suggestion?: string;
+}
+/**
+ * Character formation pattern
+ */
+interface CharacterFormation {
+    /** Character */
+    character: string;
+    /** Average width */
+    avgWidth: number;
+    /** Average height */
+    avgHeight: number;
+    /** Average slant */
+    avgSlant: number;
+    /** Consistency score */
+    consistency: number;
+    /** Stroke patterns */
+    strokePatterns?: string[];
+}
+/**
+ * Line analysis
+ */
+interface LineAnalysis {
+    /** Total lines */
+    totalLines: number;
+    /** Average line height */
+    avgLineHeight: number;
+    /** Average line spacing */
+    avgLineSpacing: number;
+    /** Line slope analysis */
+    lineSlopes: LineSlope[];
+    /** Line straightness score */
+    straightnessScore: number;
+    /** Line consistency score */
+    consistencyScore: number;
+}
+/**
+ * Line slope data
+ */
+interface LineSlope {
+    /** Line number */
+    lineNumber: number;
+    /** Slope angle in degrees */
+    angle: number;
+    /** Start Y position */
+    startY: number;
+    /** End Y position */
+    endY: number;
+}
+/**
+ * Handwriting elements detected
+ */
+interface HandwritingElements {
+    /** Text elements */
+    textElements: TextElement[];
+    /** Mathematical elements */
+    mathElements: MathElement[];
+    /** Diagram/drawing elements */
+    diagramElements: DiagramElement[];
+    /** Corrections/strikethroughs */
+    corrections: CorrectionElement[];
+    /** Annotations */
+    annotations: AnnotationElement[];
+}
+/**
+ * Text element
+ */
+interface TextElement {
+    /** Element type */
+    type: 'paragraph' | 'list' | 'heading' | 'note' | 'label';
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Text content */
+    content: string;
+    /** Confidence */
+    confidence: number;
+}
+/**
+ * Mathematical element
+ */
+interface MathElement {
+    /** Element type */
+    type: 'equation' | 'expression' | 'number' | 'symbol' | 'graph';
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Content (LaTeX or plain text) */
+    content: string;
+    /** LaTeX representation */
+    latex?: string;
+    /** Confidence */
+    confidence: number;
+}
+/**
+ * Diagram element
+ */
+interface DiagramElement {
+    /** Element type */
+    type: 'shape' | 'arrow' | 'line' | 'curve' | 'freeform';
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Description */
+    description?: string;
+    /** Connected elements */
+    connectedTo?: string[];
+}
+/**
+ * Correction element (strikethrough, etc.)
+ */
+interface CorrectionElement {
+    /** Correction type */
+    type: 'strikethrough' | 'scribble' | 'overwrite' | 'insertion' | 'deletion';
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Original text (if detectable) */
+    originalText?: string;
+    /** New text (if applicable) */
+    newText?: string;
+}
+/**
+ * Annotation element
+ */
+interface AnnotationElement {
+    /** Annotation type */
+    type: 'underline' | 'highlight' | 'circle' | 'arrow' | 'bracket' | 'asterisk' | 'other';
+    /** Bounding box */
+    boundingBox: BoundingBox;
+    /** Related text */
+    relatedText?: string;
+    /** Color if detectable */
+    color?: string;
+}
+/**
+ * Writer profile estimation
+ */
+interface WriterProfile {
+    /** Estimated age range */
+    estimatedAgeRange?: string;
+    /** Estimated proficiency level */
+    proficiencyLevel: 'beginner' | 'developing' | 'proficient' | 'advanced';
+    /** Handedness estimation */
+    handedness?: 'left' | 'right' | 'unclear';
+    /** Writing style characteristics */
+    styleCharacteristics: string[];
+    /** Consistency indicators */
+    consistencyLevel: 'low' | 'moderate' | 'high';
+    /** Fatigue indicators */
+    fatigueIndicators?: FatigueIndicator[];
+    /** Confidence in profile */
+    confidence: number;
+}
+/**
+ * Fatigue indicator
+ */
+interface FatigueIndicator {
+    /** Indicator type */
+    type: 'size_change' | 'slant_change' | 'legibility_decrease' | 'spacing_change';
+    /** Location in document */
+    location: 'beginning' | 'middle' | 'end';
+    /** Severity */
+    severity: 'slight' | 'moderate' | 'significant';
+}
+/**
+ * Handwriting educational assessment
+ */
+interface HandwritingEducationalAssessment {
+    /** Grade level appropriateness */
+    gradeLevelAppropriate: boolean;
+    /** Estimated grade level */
+    estimatedGradeLevel?: string;
+    /** Developmental stage */
+    developmentalStage: 'pre_writing' | 'emergent' | 'developing' | 'fluent' | 'mature';
+    /** Skills assessment */
+    skillsAssessment: HandwritingSkillsAssessment;
+    /** Recommendations */
+    recommendations: HandwritingRecommendation[];
+    /** Progress indicators */
+    progressIndicators?: string[];
+}
+/**
+ * Handwriting skills assessment
+ */
+interface HandwritingSkillsAssessment {
+    /** Letter formation */
+    letterFormation: number;
+    /** Letter sizing */
+    letterSizing: number;
+    /** Line adherence */
+    lineAdherence: number;
+    /** Spacing */
+    spacing: number;
+    /** Fluency */
+    fluency: number;
+    /** Speed */
+    speed?: number;
+    /** Overall score */
+    overallScore: number;
+}
+/**
+ * Handwriting recommendation
+ */
+interface HandwritingRecommendation {
+    /** Focus area */
+    area: string;
+    /** Recommendation */
+    recommendation: string;
+    /** Priority */
+    priority: 'low' | 'medium' | 'high';
+    /** Exercises */
+    exercises?: string[];
+}
+/**
+ * Multimodal quality assessment
+ */
+interface MultimodalQualityAssessment {
+    /** Overall quality level */
+    level: MultimodalQualityLevel;
+    /** Overall score 0-100 */
+    score: number;
+    /** Usability for assessment */
+    usableForAssessment: boolean;
+    /** Issues that affect usability */
+    usabilityIssues: UsabilityIssue[];
+    /** Recommendations */
+    recommendations: QualityRecommendation[];
+    /** Automatic enhancements applied */
+    enhancementsApplied?: string[];
+}
+/**
+ * Usability issue
+ */
+interface UsabilityIssue {
+    /** Issue type */
+    type: string;
+    /** Severity */
+    severity: 'minor' | 'moderate' | 'severe' | 'blocking';
+    /** Description */
+    description: string;
+    /** Can be auto-fixed */
+    canAutoFix: boolean;
+}
+/**
+ * Quality recommendation
+ */
+interface QualityRecommendation {
+    /** Recommendation type */
+    type: 'retake' | 'enhance' | 'manual_review' | 'accept';
+    /** Description */
+    description: string;
+    /** Priority */
+    priority: 'low' | 'medium' | 'high';
+}
+/**
+ * AI-generated insights
+ */
+interface AIInsights {
+    /** Content summary */
+    summary: string;
+    /** Key points */
+    keyPoints: string[];
+    /** Educational value assessment */
+    educationalValue: EducationalValueAssessment;
+    /** Suggested improvements */
+    improvements: string[];
+    /** Related concepts */
+    relatedConcepts: string[];
+    /** Difficulty level estimate */
+    difficultyLevel?: 'basic' | 'intermediate' | 'advanced' | 'expert';
+    /** Bloom's taxonomy level */
+    bloomsLevel?: string;
+    /** Misconception detection */
+    possibleMisconceptions?: string[];
+    /** Follow-up suggestions */
+    followUpSuggestions?: string[];
+}
+/**
+ * Educational value assessment
+ */
+interface EducationalValueAssessment {
+    /** Overall value score */
+    score: number;
+    /** Clarity of expression */
+    clarity: number;
+    /** Depth of understanding shown */
+    depth: number;
+    /** Accuracy of content */
+    accuracy: number;
+    /** Originality */
+    originality: number;
+    /** Critical thinking demonstrated */
+    criticalThinking: number;
+}
+/**
+ * Input for processing multimodal content
+ */
+interface ProcessMultimodalInput {
+    /** File to process */
+    file: MultimodalFile;
+    /** Processing options */
+    options: ProcessingOptions;
+    /** User context */
+    userId: string;
+    /** Course/assignment context */
+    courseId?: string;
+    assignmentId?: string;
+    questionId?: string;
+    /** Expected content type hint */
+    expectedType?: MultimodalInputType;
+}
+/**
+ * Multimodal file for processing
+ */
+interface MultimodalFile {
+    /** File data (base64 or URL) */
+    data: string;
+    /** File name */
+    fileName: string;
+    /** MIME type */
+    mimeType: string;
+    /** File size */
+    fileSize: number;
+}
+/**
+ * Processing options
+ */
+interface ProcessingOptions {
+    /** Enable OCR */
+    enableOCR?: boolean;
+    /** Enable speech-to-text */
+    enableSpeechToText?: boolean;
+    /** Enable handwriting recognition */
+    enableHandwritingRecognition?: boolean;
+    /** Enable AI analysis */
+    enableAIAnalysis?: boolean;
+    /** Target language */
+    language?: MultimodalLanguage;
+    /** Quality threshold */
+    qualityThreshold?: number;
+    /** Custom processing hints */
+    hints?: ProcessingHints;
+}
+/**
+ * Processing hints
+ */
+interface ProcessingHints {
+    /** Subject area */
+    subject?: string;
+    /** Expected content */
+    expectedContent?: string;
+    /** Specific elements to look for */
+    lookFor?: string[];
+    /** Elements to ignore */
+    ignore?: string[];
+}
+/**
+ * Processing result output
+ */
+interface ProcessMultimodalOutput {
+    /** Success status */
+    success: boolean;
+    /** Processed input */
+    input: MultimodalInput;
+    /** Processing time */
+    processingTime: number;
+    /** Errors if any */
+    errors?: ProcessingError[];
+}
+/**
+ * Batch processing request
+ */
+interface BatchProcessingRequest {
+    /** Files to process */
+    files: MultimodalFile[];
+    /** Common options */
+    options: ProcessingOptions;
+    /** User context */
+    userId: string;
+    /** Course/assignment context */
+    courseId?: string;
+    assignmentId?: string;
+}
+/**
+ * Batch processing result
+ */
+interface BatchProcessingResult {
+    /** Total files */
+    totalFiles: number;
+    /** Successfully processed */
+    successCount: number;
+    /** Failed */
+    failedCount: number;
+    /** Individual results */
+    results: ProcessMultimodalOutput[];
+    /** Total processing time */
+    totalProcessingTime: number;
+}
+/**
+ * Multimodal assessment submission
+ */
+interface MultimodalAssessmentSubmission {
+    /** Submission ID */
+    id: string;
+    /** Student ID */
+    studentId: string;
+    /** Assessment ID */
+    assessmentId: string;
+    /** Question ID */
+    questionId: string;
+    /** Submitted inputs */
+    inputs: MultimodalInput[];
+    /** Combined extracted content */
+    combinedContent: CombinedContent;
+    /** AI assessment */
+    aiAssessment?: AIAssessmentResult;
+    /** Submission time */
+    submittedAt: Date;
+    /** Processing status */
+    status: MultimodalProcessingStatus;
+}
+/**
+ * Combined content from multiple inputs
+ */
+interface CombinedContent {
+    /** All text content */
+    text: string;
+    /** Text sources */
+    textSources: {
+        inputId: string;
+        text: string;
+        type: MultimodalInputType;
+    }[];
+    /** All detected elements */
+    elements: CombinedElement[];
+    /** Word count */
+    wordCount: number;
+    /** Has equations */
+    hasEquations: boolean;
+    /** Has diagrams */
+    hasDiagrams: boolean;
+    /** Languages detected */
+    languages: MultimodalLanguage[];
+}
+/**
+ * Combined element from multiple inputs
+ */
+interface CombinedElement {
+    /** Element type */
+    type: 'text' | 'equation' | 'diagram' | 'table' | 'code' | 'other';
+    /** Content */
+    content: string;
+    /** Source input ID */
+    sourceInputId: string;
+    /** Order in submission */
+    order: number;
+}
+/**
+ * AI assessment result
+ */
+interface AIAssessmentResult {
+    /** Overall score */
+    score: number;
+    /** Score breakdown */
+    breakdown: ScoreBreakdown[];
+    /** Feedback */
+    feedback: AssessmentFeedback;
+    /** Detected concepts */
+    conceptsCovered: string[];
+    /** Missing concepts */
+    missingConcepts: string[];
+    /** Errors identified */
+    errors: IdentifiedError[];
+    /** Strengths */
+    strengths: string[];
+    /** Areas for improvement */
+    areasForImprovement: string[];
+    /** Suggested resources */
+    suggestedResources?: SuggestedResource[];
+    /** Confidence in assessment */
+    confidence: number;
+}
+/**
+ * Score breakdown
+ */
+interface ScoreBreakdown {
+    /** Criterion */
+    criterion: string;
+    /** Score */
+    score: number;
+    /** Max score */
+    maxScore: number;
+    /** Weight */
+    weight: number;
+    /** Comments */
+    comments: string;
+}
+/**
+ * Assessment feedback
+ */
+interface AssessmentFeedback {
+    /** Summary feedback */
+    summary: string;
+    /** Detailed feedback */
+    detailed: string;
+    /** Positive points */
+    positives: string[];
+    /** Points for improvement */
+    improvements: string[];
+    /** Next steps */
+    nextSteps: string[];
+}
+/**
+ * Identified error in submission
+ */
+interface IdentifiedError {
+    /** Error type */
+    type: 'conceptual' | 'procedural' | 'factual' | 'formatting' | 'incomplete';
+    /** Description */
+    description: string;
+    /** Location reference */
+    location?: string;
+    /** Severity */
+    severity: 'minor' | 'moderate' | 'major';
+    /** Correction */
+    correction?: string;
+}
+/**
+ * Suggested resource
+ */
+interface SuggestedResource {
+    /** Resource title */
+    title: string;
+    /** Resource type */
+    type: 'video' | 'article' | 'practice' | 'tutorial' | 'other';
+    /** URL or reference */
+    reference: string;
+    /** Relevance reason */
+    reason: string;
+}
+/**
+ * Multimodal input engine interface
+ */
+interface IMultimodalInputEngine {
+    /** Process a single multimodal input */
+    processInput(input: ProcessMultimodalInput): Promise<ProcessMultimodalOutput>;
+    /** Process multiple inputs in batch */
+    processBatch(request: BatchProcessingRequest): Promise<BatchProcessingResult>;
+    /** Analyze image */
+    analyzeImage(file: MultimodalFile, options?: Partial<ProcessingOptions>): Promise<ImageAnalysisResult>;
+    /** Analyze voice/audio */
+    analyzeVoice(file: MultimodalFile, options?: Partial<ProcessingOptions>): Promise<VoiceAnalysisResult>;
+    /** Analyze handwriting */
+    analyzeHandwriting(file: MultimodalFile, options?: Partial<ProcessingOptions>): Promise<HandwritingAnalysisResult>;
+    /** Extract text from any input */
+    extractText(file: MultimodalFile): Promise<ExtractedText>;
+    /** Generate accessibility content */
+    generateAccessibilityContent(input: MultimodalInput): Promise<AccessibilityContent>;
+    /** Assess quality of input */
+    assessQuality(file: MultimodalFile): Promise<MultimodalQualityAssessment>;
+    /** Get AI insights */
+    getAIInsights(input: MultimodalInput, context?: AssessmentContext): Promise<AIInsights>;
+    /** Create assessment submission */
+    createAssessmentSubmission(studentId: string, assessmentId: string, questionId: string, inputs: MultimodalInput[]): Promise<MultimodalAssessmentSubmission>;
+    /** Grade submission with AI */
+    gradeSubmission(submission: MultimodalAssessmentSubmission, rubric?: MultimodalGradingRubric): Promise<AIAssessmentResult>;
+    /** Validate input format */
+    validateInput(file: MultimodalFile): Promise<ValidationResult$1>;
+    /** Get processing status */
+    getProcessingStatus(inputId: string): Promise<MultimodalProcessingStatus>;
+    /** Cancel processing */
+    cancelProcessing(inputId: string): Promise<boolean>;
+}
+/**
+ * Accessibility content
+ */
+interface AccessibilityContent {
+    /** Alt text for images */
+    altText?: string;
+    /** Long description */
+    longDescription?: string;
+    /** Captions for audio/video */
+    captions?: Caption[];
+    /** Audio description */
+    audioDescription?: string;
+    /** Transcript */
+    transcript?: string;
+    /** Simplified version */
+    simplifiedVersion?: string;
+}
+/**
+ * Caption entry
+ */
+interface Caption {
+    /** Start time */
+    startTime: number;
+    /** End time */
+    endTime: number;
+    /** Text */
+    text: string;
+    /** Speaker ID */
+    speakerId?: string;
+}
+/**
+ * Assessment context
+ */
+interface AssessmentContext {
+    /** Subject */
+    subject?: string;
+    /** Topic */
+    topic?: string;
+    /** Learning objectives */
+    learningObjectives?: string[];
+    /** Expected concepts */
+    expectedConcepts?: string[];
+    /** Grade level */
+    gradeLevel?: string;
+    /** Additional context */
+    additionalContext?: string;
+}
+/**
+ * Grading rubric for multimodal assessments
+ */
+interface MultimodalGradingRubric {
+    /** Rubric ID */
+    id: string;
+    /** Criteria */
+    criteria: MultimodalRubricCriterion[];
+    /** Total points */
+    totalPoints: number;
+    /** Grading scale */
+    gradingScale?: GradingScale;
+}
+/**
+ * Rubric criterion for multimodal grading
+ */
+interface MultimodalRubricCriterion {
+    /** Criterion ID */
+    id: string;
+    /** Name */
+    name: string;
+    /** Description */
+    description: string;
+    /** Max points */
+    maxPoints: number;
+    /** Weight */
+    weight: number;
+    /** Levels */
+    levels: MultimodalRubricLevel[];
+}
+/**
+ * Rubric level for multimodal grading
+ */
+interface MultimodalRubricLevel {
+    /** Level name */
+    name: string;
+    /** Points */
+    points: number;
+    /** Description */
+    description: string;
+}
+/**
+ * Grading scale
+ */
+interface GradingScale {
+    /** Scale type */
+    type: 'percentage' | 'points' | 'letter' | 'pass_fail';
+    /** Grade thresholds */
+    thresholds: GradeThreshold[];
+}
+/**
+ * Grade threshold
+ */
+interface GradeThreshold {
+    /** Grade name/letter */
+    grade: string;
+    /** Minimum score */
+    minScore: number;
+    /** Maximum score */
+    maxScore: number;
+}
+/**
+ * Validation result
+ */
+interface ValidationResult$1 {
+    /** Is valid */
+    isValid: boolean;
+    /** Validation errors */
+    errors: ValidationError$1[];
+    /** Warnings */
+    warnings: string[];
+    /** Suggested corrections */
+    suggestions?: string[];
+}
+/**
+ * Validation error
+ */
+interface ValidationError$1 {
+    /** Error code */
+    code: string;
+    /** Error message */
+    message: string;
+    /** Field */
+    field?: string;
+}
+/**
+ * Cached processing result
+ */
+interface CachedResult {
+    /** Input hash */
+    inputHash: string;
+    /** Result */
+    result: MultimodalProcessingResult;
+    /** Cached at */
+    cachedAt: Date;
+    /** Expires at */
+    expiresAt: Date;
+    /** Hit count */
+    hitCount: number;
+}
+/**
+ * Storage quota
+ */
+interface StorageQuota {
+    /** User ID */
+    userId: string;
+    /** Total allowed bytes */
+    totalAllowed: number;
+    /** Used bytes */
+    used: number;
+    /** Files count */
+    filesCount: number;
+    /** Reset date */
+    resetDate?: Date;
+}
+/**
+ * Multimodal processing event
+ */
+interface MultimodalEvent {
+    /** Event type */
+    type: MultimodalEventType;
+    /** Input ID */
+    inputId: string;
+    /** User ID */
+    userId: string;
+    /** Timestamp */
+    timestamp: Date;
+    /** Event data */
+    data: Record<string, unknown>;
+}
+/**
+ * Event types
+ */
+type MultimodalEventType = 'processing.started' | 'processing.completed' | 'processing.failed' | 'quality.assessed' | 'accessibility.generated' | 'assessment.graded' | 'file.uploaded' | 'file.deleted';
+/**
+ * Webhook configuration
+ */
+interface WebhookConfig {
+    /** Webhook URL */
+    url: string;
+    /** Events to subscribe */
+    events: MultimodalEventType[];
+    /** Secret for signing */
+    secret?: string;
+    /** Headers to include */
+    headers?: Record<string, string>;
+    /** Retry configuration */
+    retryConfig?: RetryConfig$1;
+}
+/**
+ * Retry configuration
+ */
+interface RetryConfig$1 {
+    /** Max retries */
+    maxRetries: number;
+    /** Initial delay ms */
+    initialDelay: number;
+    /** Max delay ms */
+    maxDelay: number;
+    /** Backoff multiplier */
+    backoffMultiplier: number;
+}
+
+/**
  * @sam-ai/educational - ExamEngine
  * Portable exam generation engine using adapter pattern
  */
@@ -6759,6 +11684,1049 @@ declare class SocraticTeachingEngine {
 declare function createSocraticTeachingEngine(config?: SocraticTeachingConfig): SocraticTeachingEngine;
 
 /**
+ * @sam-ai/educational - KnowledgeGraphEngine
+ *
+ * Engine for concept extraction, prerequisite tracking, and knowledge dependency graphs.
+ * Enables adaptive learning paths based on concept relationships.
+ */
+
+declare class KnowledgeGraphEngine {
+    private config;
+    private database?;
+    private logger;
+    private enableAIExtraction;
+    private confidenceThreshold;
+    private maxPrerequisiteDepth;
+    private graphCache;
+    private conceptCache;
+    private masteryCache;
+    constructor(engineConfig: KnowledgeGraphEngineConfig);
+    /**
+     * Extract concepts from educational content
+     */
+    extractConcepts(input: ConceptExtractionInput): Promise<ConceptExtractionResult>;
+    private extractConceptsWithAI;
+    private extractConceptsWithKeywords;
+    private detectConceptType;
+    private detectBloomsLevel;
+    private extractNounPhrases;
+    private deduplicateConcepts;
+    private titleCase;
+    /**
+     * Build a knowledge graph from extracted concepts
+     */
+    buildGraph(courseId: string, concepts: Concept[], relations: ConceptRelation[]): KnowledgeGraph;
+    private calculateGraphStats;
+    private calculateMaxDepth;
+    /**
+     * Analyze prerequisites for a concept
+     */
+    analyzePrerequisites(input: PrerequisiteAnalysisInput): Promise<PrerequisiteAnalysisResult>;
+    private buildPrerequisiteChain;
+    private isBottleneck;
+    private analyzePrerequisiteGaps;
+    private generateGapSuggestions;
+    /**
+     * Generate an optimal learning path to target concepts
+     */
+    generateLearningPath(input: LearningPathInput): Promise<LearningPath>;
+    private createLearningPathNode;
+    private applyPathStrategy;
+    /**
+     * Analyze a course for knowledge graph quality
+     */
+    analyzeCourse(input: CourseKnowledgeAnalysisInput): Promise<CourseKnowledgeAnalysisResult>;
+    private convertToFullConcept;
+    private assessStructureQuality;
+    private hasCircularDependencies;
+    private generateCourseRecommendations;
+    private assessCoverage;
+    /**
+     * Get or create concept mastery for a user
+     */
+    getConceptMastery(userId: string, conceptId: string): Promise<ConceptMastery>;
+    /**
+     * Update concept mastery based on performance
+     */
+    updateConceptMastery(userId: string, conceptId: string, score: number, evidenceType: 'QUIZ' | 'ASSIGNMENT' | 'PRACTICE' | 'INTERACTION'): Promise<ConceptMastery>;
+    private determineMasteryLevel;
+    private findGraphForConcept;
+    /**
+     * Get a cached concept by ID
+     */
+    getConcept(conceptId: string): Concept | undefined;
+    /**
+     * Get a cached graph by course ID
+     */
+    getGraph(courseId: string): KnowledgeGraph | undefined;
+    /**
+     * Clear all caches
+     */
+    clearCaches(): void;
+}
+declare function createKnowledgeGraphEngine(config: KnowledgeGraphEngineConfig): KnowledgeGraphEngine;
+
+/**
+ * @sam-ai/educational - MicrolearningEngine
+ *
+ * Engine for bite-sized learning modules, content chunking, spaced delivery,
+ * and mobile-optimized learning experiences.
+ */
+
+declare class MicrolearningEngine {
+    private config;
+    private database?;
+    private logger;
+    private targetDuration;
+    private maxDuration;
+    private enableAIChunking;
+    private defaultScheduleType;
+    private spacedRepetitionConfig;
+    private moduleCache;
+    private scheduleCache;
+    private sessionCache;
+    private progressCache;
+    constructor(engineConfig: MicrolearningEngineConfig);
+    /**
+     * Chunk content into micro-learning modules
+     */
+    chunkContent(input: ChunkingInput): Promise<ChunkingResult>;
+    private chunkWithAI;
+    private chunkWithRules;
+    private createChunkFromText;
+    private extractTitle;
+    private extractMainConcept;
+    private extractRelatedConcepts;
+    private detectBloomsLevel;
+    private suggestModuleType;
+    private estimateDuration;
+    private calculateCoverage;
+    /**
+     * Generate micro-learning modules from content
+     */
+    generateModules(input: GenerateModulesInput): Promise<GenerateModulesResult>;
+    private createModuleFromChunk;
+    private extractKeyTakeaways;
+    private generateQuickSummary;
+    private generatePracticeModules;
+    private generatePracticeContent;
+    private generatePracticeInteractions;
+    private createSummaryModule;
+    private calculateBloomsDistribution;
+    private calculateTypeDistribution;
+    private generateScheduleSuggestion;
+    /**
+     * Create a delivery schedule for modules
+     */
+    createSchedule(userId: string, modules: MicroModule[], preferences: Partial<DeliveryPreferences>, courseId?: string): DeliverySchedule;
+    private scheduleModules;
+    /**
+     * Create a learning session
+     */
+    createSession(input: CreateSessionInput): Promise<MicrolearningSession>;
+    private getModulesNeedingReview;
+    /**
+     * Update progress for a module
+     */
+    updateProgress(input: UpdateProgressInput): Promise<MicrolearningSRResult | null>;
+    private calculateSpacedRepetition;
+    /**
+     * Optimize content for mobile devices
+     */
+    optimizeForMobile(input: MobileOptimizationInput): MobileOptimizedContent;
+    private createMobileContent;
+    private createMobileCards;
+    private createLoadingChunks;
+    private optimizeMedia;
+    private calculateDataSize;
+    /**
+     * Get analytics for a user
+     */
+    getAnalytics(input: GetAnalyticsInput): Promise<MicrolearningAnalytics>;
+    private calculateOverallStats;
+    private calculateStreakStats;
+    private analyzeLearningPatterns;
+    private getUniqueDays;
+    private calculateModuleBreakdown;
+    private generateRecommendations;
+    /**
+     * Get a module by ID
+     */
+    getModule(moduleId: string): MicroModule | undefined;
+    /**
+     * Get a schedule by ID
+     */
+    getSchedule(scheduleId: string): DeliverySchedule | undefined;
+    /**
+     * Get a session by ID
+     */
+    getSession(sessionId: string): MicrolearningSession | undefined;
+    /**
+     * Clear all caches
+     */
+    clearCaches(): void;
+}
+declare function createMicrolearningEngine(config: MicrolearningEngineConfig): MicrolearningEngine;
+
+/**
+ * Metacognition Engine
+ *
+ * Handles self-reflection, learning awareness, study habit analysis,
+ * and learning strategy recommendations.
+ *
+ * Key features:
+ * - Reflection prompt generation (AI + template-based)
+ * - Study habit tracking and analysis
+ * - Learning strategy recommendations
+ * - Confidence calibration
+ * - Cognitive load assessment
+ * - Goal setting and monitoring
+ * - Metacognitive skill assessment
+ */
+
+declare class MetacognitionEngine {
+    private config;
+    private samConfig;
+    private logger?;
+    private sessionCache;
+    private goalCache;
+    private reflectionCache;
+    private strategyProfileCache;
+    private skillAssessmentCache;
+    private confidenceCache;
+    private regulationCache;
+    constructor(config: MetacognitionEngineConfig);
+    /**
+     * Generate reflection prompts for a learner
+     */
+    generateReflection(input: GenerateReflectionInput): Promise<GenerateReflectionResult>;
+    private getTargetSkillForReflectionType;
+    private generateFollowUpQuestions;
+    private getSuggestedTime;
+    private generateAIReflectionPrompts;
+    private extractThemes;
+    private parseAIResponse;
+    /**
+     * Analyze a reflection response
+     */
+    analyzeReflection(input: AnalyzeReflectionInput): Promise<ReflectionAnalysis>;
+    private assessReflectionDepth;
+    private identifySkillsFromResponse;
+    private extractInsights;
+    private identifyGrowthAreas;
+    private calculateReflectionQuality;
+    private analyzeSentiment;
+    private generateActionItems;
+    private storeReflection;
+    /**
+     * Record a study session
+     */
+    recordStudySession(input: RecordStudySessionInput): StudySession;
+    private updateStrategyProfile;
+    /**
+     * Analyze study habits for a user
+     */
+    analyzeStudyHabits(input: GetHabitAnalysisInput): StudyHabitAnalysis;
+    private analyzeOptimalTimes;
+    private analyzeEffectiveEnvironments;
+    private analyzeStrategyEffectiveness;
+    private analyzeFocusPatterns;
+    private getPeakFocusTime;
+    private identifyDistractions;
+    private analyzeBreakPatterns;
+    private calculateHabitScores;
+    private generateHabitRecommendations;
+    private getRecommendationForCategory;
+    /**
+     * Recommend learning strategies for a user
+     */
+    recommendStrategies(input: RecommendStrategiesInput): RecommendStrategiesResult;
+    /**
+     * Assess knowledge confidence calibration
+     */
+    assessConfidence(input: AssessConfidenceInput): KnowledgeConfidenceAssessment;
+    /**
+     * Assess current cognitive load
+     */
+    assessCognitiveLoad(input: AssessCognitiveLoadInput): CognitiveLoadAssessment;
+    private estimateCognitiveLoad;
+    private identifyLoadFactors;
+    private generateLoadRecommendations;
+    /**
+     * Set a learning goal
+     */
+    setGoal(input: SetGoalInput): LearningGoal;
+    /**
+     * Update goal progress
+     */
+    updateGoalProgress(input: UpdateGoalProgressInput): GoalMonitoringResult;
+    private monitorGoal;
+    private generateMotivationalMessage;
+    /**
+     * Get metacognitive skill assessment
+     */
+    getMetacognitiveAssessment(input: GetMetacognitiveAssessmentInput): MetacognitiveSkillAssessment;
+    private isAssessmentStale;
+    private calculateMetacognitiveAssessment;
+    private calculatePlanningScore;
+    private calculateMonitoringScore;
+    private calculateEvaluatingScore;
+    private calculateRegulatingScore;
+    private calculateSelfQuestioningScore;
+    private calculateElaborationScore;
+    private calculateOrganizationScore;
+    private calculateTimeManagementScore;
+    private generateMetacognitiveExercises;
+    /**
+     * Get self-regulation profile
+     */
+    getSelfRegulationProfile(userId: string): SelfRegulationProfile;
+    private createDefaultRegulationProfile;
+    /**
+     * Record a regulation intervention
+     */
+    recordIntervention(userId: string, type: 'EMOTIONAL' | 'MOTIVATION' | 'ATTENTION', trigger: string, intervention: string): RegulationIntervention;
+}
+/**
+ * Create a new MetacognitionEngine instance
+ */
+declare function createMetacognitionEngine(config: MetacognitionEngineConfig): MetacognitionEngine;
+
+/**
+ * Competency Engine
+ *
+ * Handles skill trees, job mapping, competency frameworks,
+ * career pathways, and portfolio building.
+ *
+ * Key features:
+ * - Skill management and relationships
+ * - Skill tree creation and visualization
+ * - User competency tracking
+ * - Job role matching
+ * - Career path analysis
+ * - Portfolio management
+ * - Skill assessment
+ * - AI-powered skill extraction
+ */
+
+declare class CompetencyEngine {
+    private config;
+    private samConfig;
+    private skills;
+    private skillRelations;
+    private skillTrees;
+    private userProficiencies;
+    private jobRoles;
+    private careerPaths;
+    private portfolios;
+    private assessments;
+    constructor(config: CompetencyEngineConfig);
+    private initializeDefaultSkills;
+    private initializeDefaultRoles;
+    /**
+     * Create a new skill
+     */
+    createSkill(input: {
+        name: string;
+        description: string;
+        category: SkillCategory;
+        parentId?: string;
+        tags?: string[];
+        frameworkMappings?: FrameworkMapping[];
+        typicalLearningHours?: number;
+        bloomsLevels?: BloomsLevel$1[];
+    }): CompetencySkill;
+    /**
+     * Get a skill by ID
+     */
+    getSkill(skillId: string): CompetencySkill | undefined;
+    /**
+     * Search skills by query
+     */
+    searchSkills(query: string, options?: {
+        category?: SkillCategory;
+        tags?: string[];
+        limit?: number;
+    }): CompetencySkill[];
+    /**
+     * Get related skills
+     */
+    getRelatedSkills(skillId: string, relationType?: SkillRelationType): CompetencySkill[];
+    /**
+     * Add a skill relation
+     */
+    addSkillRelation(relation: SkillRelation): void;
+    /**
+     * Create a skill tree
+     */
+    createSkillTree(input: CreateSkillTreeInput): SkillTree;
+    /**
+     * Get a skill tree by ID
+     */
+    getSkillTree(treeId: string): SkillTree | undefined;
+    /**
+     * Generate a skill tree based on target role
+     */
+    generateSkillTree(input: GenerateSkillTreeInput): Promise<SkillTree>;
+    /**
+     * Get user competency profile
+     */
+    getUserCompetency(input: GetUserCompetencyInput): CompetencyProfile;
+    /**
+     * Update user skill proficiency
+     */
+    updateProficiency(input: UpdateProficiencyInput): UserSkillProficiency;
+    private calculateConfidence;
+    /**
+     * Get skill gap analysis
+     */
+    getSkillGapAnalysis(input: GetSkillGapAnalysisInput): SkillGapAnalysisResult;
+    /**
+     * Match user to job roles
+     */
+    matchJobRoles(input: MatchJobRolesInput): MatchJobRolesResult;
+    private calculateRoleMatch;
+    /**
+     * Analyze career paths for a user
+     */
+    analyzeCareerPath(input: AnalyzeCareerPathInput): CareerPathAnalysis;
+    private calculatePathFit;
+    private identifyStrengthsForPath;
+    private identifyChallengesForPath;
+    private estimateYearsToGoal;
+    private projectCareerAt;
+    /**
+     * Add portfolio item
+     */
+    addPortfolioItem(input: AddPortfolioItemInput): PortfolioItem;
+    /**
+     * Get user portfolio
+     */
+    getUserPortfolio(userId: string): CompetencyPortfolio;
+    /**
+     * Create a skill assessment
+     */
+    createAssessment(input: {
+        skillId: string;
+        title: string;
+        description: string;
+        type: CompetencyAssessmentType;
+        items: AssessmentItem[];
+        timeLimitMinutes?: number;
+        passingScore: number;
+    }): SkillAssessment;
+    /**
+     * Submit assessment and calculate result
+     */
+    submitAssessment(input: {
+        assessmentId: string;
+        userId: string;
+        answers: Map<string, string | string[]>;
+        timeTakenMinutes: number;
+    }): AssessmentResult;
+    /**
+     * Extract skills from content using AI
+     */
+    extractSkills(input: ExtractSkillsInput): Promise<ExtractSkillsResult>;
+    private extractContext;
+    private inferProficiency;
+    private extractSkillsWithAI;
+    /**
+     * Get all skills
+     */
+    getAllSkills(): CompetencySkill[];
+    /**
+     * Get all job roles
+     */
+    getAllJobRoles(): JobRole[];
+    /**
+     * Get job role by ID
+     */
+    getJobRole(roleId: string): JobRole | undefined;
+    /**
+     * Add a job role
+     */
+    addJobRole(role: Omit<JobRole, 'id' | 'createdAt' | 'updatedAt'>): JobRole;
+    /**
+     * Add a career path
+     */
+    addCareerPath(path: Omit<CompetencyCareerPath, 'id'>): CompetencyCareerPath;
+    /**
+     * Get career path by ID
+     */
+    getCareerPath(pathId: string): CompetencyCareerPath | undefined;
+    /**
+     * Get all career paths
+     */
+    getAllCareerPaths(): CompetencyCareerPath[];
+    /**
+     * Get proficiency level description
+     */
+    getProficiencyDescription(level: ProficiencyLevel): string;
+    /**
+     * Get estimated hours to reach proficiency level
+     */
+    getHoursToReachProficiency(currentLevel: ProficiencyLevel, targetLevel: ProficiencyLevel, skill?: CompetencySkill): number;
+}
+/**
+ * Create a new CompetencyEngine instance
+ */
+declare function createCompetencyEngine(config: CompetencyEngineConfig): CompetencyEngine;
+
+/**
+ * @sam-ai/educational - Peer Learning Engine
+ *
+ * Comprehensive peer-to-peer learning system providing:
+ * - Intelligent peer matching based on skills and preferences
+ * - Study groups and learning circles management
+ * - Peer mentoring and tutoring relationships
+ * - Discussion forums and Q&A
+ * - Peer reviews and assessments
+ * - Collaborative project management
+ */
+
+declare class PeerLearningEngine {
+    private samConfig;
+    private config;
+    private profiles;
+    private groups;
+    private discussions;
+    private mentorships;
+    private reviewAssignments;
+    private rubrics;
+    private projects;
+    constructor(samConfig: SAMConfig, config?: PeerLearningEngineConfig);
+    /**
+     * Create a new peer profile
+     */
+    createPeerProfile(input: CreatePeerProfileInput): PeerProfile;
+    /**
+     * Get a peer profile by user ID
+     */
+    getPeerProfile(userId: string): PeerProfile | undefined;
+    /**
+     * Update a peer profile
+     */
+    updatePeerProfile(input: UpdatePeerProfileInput): PeerProfile;
+    /**
+     * Add expertise to a profile
+     */
+    addExpertise(userId: string, expertise: Omit<PeerExpertise, 'endorsements' | 'isVerified'>): PeerProfile;
+    /**
+     * Add a learning goal
+     */
+    addLearningGoal(userId: string, goal: Omit<PeerLearningGoal, 'id' | 'status'>): PeerLearningGoal;
+    /**
+     * Update learning goal status
+     */
+    updateLearningGoalStatus(userId: string, goalId: string, status: PeerGoalStatus): PeerLearningGoal;
+    /**
+     * Endorse a peer's expertise
+     */
+    endorseExpertise(endorserId: string, targetUserId: string, subject: string, message?: string): Endorsement;
+    /**
+     * Update user reputation
+     */
+    private updateReputation;
+    /**
+     * Award a badge to a user
+     */
+    awardBadge(userId: string, name: string, description: string, category: BadgeCategory, tier: BadgeTier, icon: string): PeerBadge;
+    /**
+     * Check and award badges based on stats
+     */
+    private checkBadgeEligibility;
+    private hasBadge;
+    /**
+     * Find peer matches based on criteria
+     */
+    findPeerMatches(input: FindPeerMatchesInput): PeerMatchResult;
+    private isMatchTypeCompatible;
+    private calculateMatchScore;
+    private calculateExpertiseAlignment;
+    private getMatchReasons;
+    private getCompatibilityFactors;
+    /**
+     * Create a new study group
+     */
+    createStudyGroup(input: CreateStudyGroupInput): StudyGroup;
+    /**
+     * Get a study group by ID
+     */
+    getStudyGroup(groupId: string): StudyGroup | undefined;
+    /**
+     * Search for study groups
+     */
+    searchStudyGroups(options: {
+        query?: string;
+        subject?: string;
+        topics?: string[];
+        type?: GroupType;
+        status?: GroupStatus;
+        visibility?: GroupVisibility;
+        limit?: number;
+        offset?: number;
+    }): GroupSearchResult;
+    /**
+     * Request to join a study group
+     */
+    joinGroup(input: JoinGroupInput): GroupMember;
+    /**
+     * Leave a study group
+     */
+    leaveGroup(groupId: string, userId: string): void;
+    /**
+     * Create a group session
+     */
+    createGroupSession(input: CreateGroupSessionInput): GroupSession;
+    /**
+     * Update session status
+     */
+    updateSessionStatus(groupId: string, sessionId: string, status: SessionStatus): GroupSession;
+    /**
+     * Add a resource to a group
+     */
+    addGroupResource(groupId: string, resource: Omit<GroupResource, 'id' | 'uploadedAt' | 'downloads' | 'likes'>): GroupResource;
+    private generateInviteCode;
+    /**
+     * Create a discussion thread
+     */
+    createDiscussion(input: CreateDiscussionInput): DiscussionThread;
+    /**
+     * Get a discussion thread
+     */
+    getDiscussion(threadId: string): DiscussionThread | undefined;
+    /**
+     * Reply to a discussion
+     */
+    createReply(input: CreateReplyInput): DiscussionReply;
+    /**
+     * Accept an answer
+     */
+    acceptAnswer(threadId: string, replyId: string, userId: string): DiscussionReply;
+    /**
+     * Add reaction to a reply
+     */
+    addReaction(threadId: string, replyId: string, userId: string, reactionType: ReactionType): Reaction;
+    /**
+     * Search discussions
+     */
+    searchDiscussions(options: {
+        query?: string;
+        type?: ThreadType;
+        status?: ThreadStatus;
+        tags?: string[];
+        groupId?: string;
+        courseId?: string;
+        limit?: number;
+        offset?: number;
+    }): DiscussionSearchResult;
+    /**
+     * Request mentorship
+     */
+    requestMentorship(input: RequestMentorshipInput): Mentorship;
+    /**
+     * Get a mentorship by ID
+     */
+    getMentorship(mentorshipId: string): Mentorship | undefined;
+    /**
+     * Update mentorship status
+     */
+    updateMentorshipStatus(mentorshipId: string, status: MentorshipStatus, userId: string): Mentorship;
+    /**
+     * Schedule a mentoring session
+     */
+    scheduleMentoringSession(mentorshipId: string, session: Omit<MentoringSession, 'id' | 'mentorshipId' | 'createdAt'>): MentoringSession;
+    /**
+     * Complete a mentoring session
+     */
+    completeMentoringSession(mentorshipId: string, sessionId: string, actualDuration: number, notes?: string, feedback?: SessionFeedback): MentoringSession;
+    /**
+     * Add mentorship feedback
+     */
+    addMentorshipFeedback(mentorshipId: string, feedback: Omit<MentorshipFeedback, 'id' | 'createdAt'>): MentorshipFeedback;
+    /**
+     * Search for mentors
+     */
+    searchMentors(options: {
+        subjects?: string[];
+        proficiencyLevel?: PeerProficiencyLevel;
+        minRating?: number;
+        limit?: number;
+        offset?: number;
+    }): MentorSearchResult;
+    /**
+     * Create a peer review rubric
+     */
+    createReviewRubric(rubric: Omit<PeerReviewRubric, 'id'>): PeerReviewRubric;
+    /**
+     * Get a review rubric
+     */
+    getReviewRubric(rubricId: string): PeerReviewRubric | undefined;
+    /**
+     * Create a peer review assignment
+     */
+    createPeerReviewAssignment(input: CreatePeerReviewAssignmentInput, submission: ReviewSubmission): PeerReviewAssignment;
+    /**
+     * Get a peer review assignment
+     */
+    getPeerReviewAssignment(assignmentId: string): PeerReviewAssignment | undefined;
+    /**
+     * Submit a peer review
+     */
+    submitPeerReview(input: SubmitPeerReviewInput): PeerReview;
+    /**
+     * Get reviews for a submission
+     */
+    getReviewsForSubmission(submissionId: string): PeerReview[];
+    /**
+     * Create a collaborative project
+     */
+    createProject(input: CreateProjectInput): CollaborativeProject;
+    /**
+     * Get a project by ID
+     */
+    getProject(projectId: string): CollaborativeProject | undefined;
+    /**
+     * Update project status
+     */
+    updateProjectStatus(projectId: string, status: ProjectStatus): CollaborativeProject;
+    /**
+     * Create a project task
+     */
+    createProjectTask(input: CreateProjectTaskInput): ProjectTask;
+    /**
+     * Update task status
+     */
+    updateTaskStatus(projectId: string, taskId: string, status: TaskStatus, actualHours?: number): ProjectTask;
+    /**
+     * Add task comment
+     */
+    addTaskComment(projectId: string, taskId: string, authorId: string, content: string): TaskComment;
+    /**
+     * Add project communication
+     */
+    addProjectCommunication(projectId: string, communication: Omit<ProjectCommunication, 'id' | 'createdAt'>): ProjectCommunication;
+    /**
+     * Add project review
+     */
+    addProjectReview(projectId: string, review: Omit<ProjectReview, 'id' | 'createdAt'>): ProjectReview;
+    /**
+     * Get leaderboard
+     */
+    getLeaderboard(options: {
+        category?: 'overall' | 'helpfulness' | 'sessions' | 'reviews';
+        limit?: number;
+    }): LeaderboardEntry[];
+    /**
+     * Get peer learning analytics
+     */
+    getAnalytics(startDate: Date, endDate: Date): PeerLearningAnalytics;
+    /**
+     * AI-enhanced peer matching suggestions
+     */
+    getAIMatchingSuggestions(userId: string, context?: string): Promise<PeerMatch[]>;
+    /**
+     * AI-generated study group recommendations
+     */
+    getGroupRecommendations(userId: string): Promise<StudyGroup[]>;
+}
+/**
+ * Create a new PeerLearningEngine instance
+ */
+declare function createPeerLearningEngine(samConfig: SAMConfig, config?: PeerLearningEngineConfig): PeerLearningEngine;
+
+/**
+ * SAM AI Educational Package - Multimodal Input Engine
+ *
+ * Processes images, voice recordings, and handwriting for assessments.
+ * Provides OCR, speech-to-text, handwriting recognition, and AI analysis.
+ */
+
+declare class MultimodalInputEngine implements IMultimodalInputEngine {
+    private samConfig;
+    private config;
+    private inputs;
+    private processingQueue;
+    private eventHandlers;
+    private storageQuotas;
+    constructor(samConfig: SAMConfig, config?: Partial<MultimodalConfig>);
+    /**
+     * Process a single multimodal input
+     */
+    processInput(input: ProcessMultimodalInput): Promise<ProcessMultimodalOutput>;
+    /**
+     * Process multiple inputs in batch
+     */
+    processBatch(request: BatchProcessingRequest): Promise<BatchProcessingResult>;
+    /**
+     * Process file based on type
+     */
+    private processFile;
+    /**
+     * Analyze image content
+     */
+    analyzeImage(file: MultimodalFile, options?: Partial<ProcessingOptions>): Promise<ImageAnalysisResult>;
+    /**
+     * Perform image analysis
+     */
+    private performImageAnalysis;
+    /**
+     * Classify image content type
+     */
+    private classifyImageContent;
+    /**
+     * Detect objects in image
+     */
+    private detectObjects;
+    /**
+     * Convert position description to bounding box
+     */
+    private positionToBoundingBox;
+    /**
+     * Extract text regions via OCR
+     */
+    private extractTextRegions;
+    /**
+     * Analyze diagram structure
+     */
+    private analyzeDiagram;
+    /**
+     * Calculate hierarchy levels from connections
+     */
+    private calculateHierarchyLevels;
+    /**
+     * Detect equations in image
+     */
+    private detectEquations;
+    /**
+     * Analyze colors in image
+     */
+    private analyzeColors;
+    /**
+     * Assess image quality
+     */
+    private assessImageQuality;
+    /**
+     * Detect educational content
+     */
+    private detectEducationalContent;
+    /**
+     * Check for image concerns
+     */
+    private checkImageConcerns;
+    /**
+     * Perform video frame analysis
+     */
+    private performVideoFrameAnalysis;
+    /**
+     * Analyze voice/audio content
+     */
+    analyzeVoice(file: MultimodalFile, options?: Partial<ProcessingOptions>): Promise<VoiceAnalysisResult>;
+    /**
+     * Perform voice analysis
+     */
+    private performVoiceAnalysis;
+    /**
+     * Transcribe audio to text
+     */
+    private transcribeAudio;
+    /**
+     * Split text into sentences with timing
+     */
+    private splitIntoSentences;
+    /**
+     * Analyze speakers in audio
+     */
+    private analyzeSpeakers;
+    /**
+     * Assess audio quality
+     */
+    private assessAudioQuality;
+    /**
+     * Detect language in transcription
+     */
+    private detectLanguage;
+    /**
+     * Calculate speech metrics
+     */
+    private calculateSpeechMetrics;
+    /**
+     * Analyze pronunciation
+     */
+    private analyzePronunciation;
+    /**
+     * Assess fluency
+     */
+    private assessFluency;
+    /**
+     * Analyze voice sentiment
+     */
+    private analyzeVoiceSentiment;
+    /**
+     * Extract keywords and topics
+     */
+    private extractKeywordsAndTopics;
+    /**
+     * Classify voice content type
+     */
+    private classifyVoiceContent;
+    /**
+     * Convert voice analysis to extracted text
+     */
+    private voiceToText;
+    /**
+     * Analyze handwriting
+     */
+    analyzeHandwriting(file: MultimodalFile, options?: Partial<ProcessingOptions>): Promise<HandwritingAnalysisResult>;
+    /**
+     * Perform handwriting analysis
+     */
+    private performHandwritingAnalysis;
+    /**
+     * Recognize handwritten text
+     */
+    private recognizeHandwriting;
+    /**
+     * Classify handwriting type
+     */
+    private classifyHandwritingType;
+    /**
+     * Assess writing quality
+     */
+    private assessWritingQuality;
+    /**
+     * Analyze characters
+     */
+    private analyzeCharacters;
+    /**
+     * Analyze lines
+     */
+    private analyzeLines;
+    /**
+     * Detect handwriting elements
+     */
+    private detectHandwritingElements;
+    /**
+     * Estimate writer profile
+     */
+    private estimateWriterProfile;
+    /**
+     * Educational assessment of handwriting
+     */
+    private assessHandwritingEducationally;
+    /**
+     * Perform OCR on input
+     */
+    private performOCR;
+    /**
+     * Extract text from any input
+     */
+    extractText(file: MultimodalFile): Promise<ExtractedText>;
+    /**
+     * Generate AI insights for content
+     */
+    private generateAIInsights;
+    /**
+     * Get AI insights for input
+     */
+    getAIInsights(input: MultimodalInput, context?: AssessmentContext): Promise<AIInsights>;
+    /**
+     * Generate accessibility content
+     */
+    generateAccessibilityContent(input: MultimodalInput): Promise<AccessibilityContent>;
+    /**
+     * Generate alt text for image
+     */
+    private generateAltText;
+    /**
+     * Generate long description
+     */
+    private generateLongDescription;
+    /**
+     * Generate captions for audio/video
+     */
+    private generateCaptions;
+    /**
+     * Assess quality of input file
+     */
+    assessQuality(file: MultimodalFile): Promise<MultimodalQualityAssessment>;
+    /**
+     * Create assessment submission
+     */
+    createAssessmentSubmission(studentId: string, assessmentId: string, questionId: string, inputs: MultimodalInput[]): Promise<MultimodalAssessmentSubmission>;
+    /**
+     * Combine content from multiple inputs
+     */
+    private combineContent;
+    /**
+     * Grade submission with AI
+     */
+    gradeSubmission(submission: MultimodalAssessmentSubmission, rubric?: MultimodalGradingRubric): Promise<AIAssessmentResult>;
+    /**
+     * Validate input format
+     */
+    validateInput(file: MultimodalFile): Promise<ValidationResult$1>;
+    /**
+     * Get processing status
+     */
+    getProcessingStatus(inputId: string): Promise<MultimodalProcessingStatus>;
+    /**
+     * Cancel processing
+     */
+    cancelProcessing(inputId: string): Promise<boolean>;
+    /**
+     * Create input record from request
+     */
+    private createInput;
+    /**
+     * Create input from file
+     */
+    private createInputFromFile;
+    /**
+     * Create failed input
+     */
+    private createFailedInput;
+    /**
+     * Emit event
+     */
+    private emitEvent;
+    /**
+     * Subscribe to events
+     */
+    onEvent(type: MultimodalEventType, handler: (event: MultimodalEvent) => void): void;
+    /**
+     * Get storage quota for user
+     */
+    getStorageQuota(userId: string): Promise<StorageQuota>;
+    /**
+     * Update storage usage
+     */
+    updateStorageUsage(userId: string, bytes: number): Promise<void>;
+    /**
+     * Update engine configuration
+     */
+    updateConfig(config: Partial<MultimodalConfig>): void;
+    /**
+     * Get current configuration
+     */
+    getConfig(): MultimodalConfig;
+    /**
+     * Get engine statistics
+     */
+    getStatistics(): {
+        totalInputs: number;
+        byType: Record<MultimodalInputType, number>;
+        byStatus: Record<MultimodalProcessingStatus, number>;
+        averageProcessingTime: number;
+    };
+}
+/**
+ * Create a new Multimodal Input Engine instance
+ */
+declare function createMultimodalInputEngine(samConfig: SAMConfig, config?: Partial<MultimodalConfig>): MultimodalInputEngine;
+
+/**
  * @sam-ai/educational - Validation Schemas
  * Zod schemas for strict AI response validation
  */
@@ -6988,6 +12956,7 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     text: string;
     id?: string | undefined;
     explanation?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
@@ -6996,7 +12965,6 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     questionType?: string | undefined;
     bloomsLevel?: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE" | undefined;
     difficulty?: "EASY" | "MEDIUM" | "HARD" | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7005,6 +12973,7 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     text: string;
     id?: string | undefined;
     explanation?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
@@ -7013,7 +12982,6 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     questionType?: string | undefined;
     bloomsLevel?: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE" | undefined;
     difficulty?: "EASY" | "MEDIUM" | "HARD" | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7039,6 +13007,7 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     text: string;
     id?: string | undefined;
     explanation?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
@@ -7047,7 +13016,6 @@ declare const AdaptiveQuestionResponseSchema: z.ZodEffects<z.ZodObject<{
     questionType?: string | undefined;
     bloomsLevel?: "REMEMBER" | "UNDERSTAND" | "APPLY" | "ANALYZE" | "EVALUATE" | "CREATE" | undefined;
     difficulty?: "EASY" | "MEDIUM" | "HARD" | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7088,12 +13056,12 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     id?: string | undefined;
     explanation?: string | undefined;
     learningObjective?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
         isCorrect?: boolean | undefined;
     }[] | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7106,12 +13074,12 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     id?: string | undefined;
     explanation?: string | undefined;
     learningObjective?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
         isCorrect?: boolean | undefined;
     }[] | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7142,12 +13110,12 @@ declare const AssessmentQuestionsResponseSchema: z.ZodEffects<z.ZodArray<z.ZodOb
     id?: string | undefined;
     explanation?: string | undefined;
     learningObjective?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
         isCorrect?: boolean | undefined;
     }[] | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7319,12 +13287,12 @@ declare const AssessmentQuestionSchema: z.ZodObject<{
     id?: string | undefined;
     explanation?: string | undefined;
     learningObjective?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
         isCorrect?: boolean | undefined;
     }[] | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7337,12 +13305,12 @@ declare const AssessmentQuestionSchema: z.ZodObject<{
     id?: string | undefined;
     explanation?: string | undefined;
     learningObjective?: string | undefined;
+    points?: number | undefined;
     options?: {
         text: string;
         id: string;
         isCorrect?: boolean | undefined;
     }[] | undefined;
-    points?: number | undefined;
     tags?: string[] | undefined;
     correctAnswer?: string | string[] | undefined;
     hints?: string[] | undefined;
@@ -7514,4 +13482,4 @@ declare function validateAssessmentQuestionsResponse(content: string): Validatio
  */
 declare function validateContentAnalysisResponse(content: string): ValidationResult<ContentAnalysisResponse>;
 
-export { type AIAnalysisDetails, type AIDetectionResult, type AIIndicator, type AccessibilityCompliance, type AccessibilityIssue, type AccessibilityReport, type Achievement, type AchievementCategory, type AchievementContext, type AchievementDatabaseAdapter, AchievementEngine, type AchievementEngineConfig, type AchievementProgress, type AchievementSummary, type AchievementTrackingResult, type AchievementUnlockConditions, type ActivityAnalysis, type ActivitySuggestion, type AdaptationOptions, type AdaptedChunk, type AdaptedContent, type AdaptiveContentConfig, type AdaptiveContentDatabaseAdapter, AdaptiveContentEngine, type AdaptiveLearnerProfile, type AdaptiveLearningStyle, type AdaptiveQuestionRequest, type AdaptiveQuestionResponse, AdaptiveQuestionResponseSchema, type AdaptiveQuestionResult, type AdaptiveQuestionSettings, type AdaptiveRule, type AdaptiveSettings, AdvancedExamEngine, type AlternativePath, type AlternativeResource, type AnalysisMetadata, type AnalysisOptions, type AnalyticsBehaviorPatterns, type AnalyticsContentInsights, AnalyticsEngine, type AnalyticsEngineConfig, type AnalyticsLearningMetrics, type AnalyticsOptions, type AnalyticsPersonalizedInsights, type AnalyticsSessionData, type AnalyticsTrends, type AncestralPattern, type AssessmentGenerationConfig, type AssessmentMetadata, type AssessmentOutput, AssessmentQuestionSchema, type AssessmentQuestionsResponse, AssessmentQuestionsResponseSchema, type AssessmentRecommendation, type AssessmentRecord, type AssessmentRubric, type AssessmentType, type AtRiskStudent, type AudioAnalysis, type AudioContent, type BloomsAnalysisConfig, BloomsAnalysisEngine, type BloomsAnalysisResult, type BloomsComparison, type BloomsDistribution, BloomsDistributionSchema, type BloomsLevel, BloomsLevelSchema, type BloomsLevelUpdate, type BloomsRecommendation, type BrandingAnalysis, type BuddyAdjustment, type BuddyAvatar, type BuddyCapability, type BuddyEffectiveness, type BuddyInteraction, type BuddyInteractionType, type BuddyPersonality, type BuddyPersonalityType, type BuddyPreferences, type BuddyRelationship, type BundleOption, type CacheEntry, type CacheStats, type CareerPath, type Challenge, type ChallengeCategory, type ChallengeDifficulty, type ChallengeRequirementType, type ChallengeRequirements, type ChallengeRewards, type ChapterBloomsAnalysis, type ChapterInput, type ChapterOutlineOutput, type CodeTestCase, type CognitiveDimension, type CognitiveDimensionName, type CognitiveFitness, type CognitivePath, type CognitiveProfile, type CognitiveProgressInput, type CognitiveProgressResult, type CognitiveProgressUpdate, type CognitiveStage, type CollaborationActivity, type CollaborationActivityType, type CollaborationAnalytics, type CollaborationCentralityScore, type CollaborationCommunity, type CollaborationConnection, type CollaborationContentAnalytics, type CollaborationContribution, type CollaborationContributionType, type CollaborationDatabaseAdapter, type CollaborationEngagementBucket, CollaborationEngine, type CollaborationEngineConfig, type CollaborationHotspot, type CollaborationInsights, type CollaborationNetworkAnalytics, type CollaborationNode, type CollaborationParticipant, type CollaborationParticipantAnalytics, type CollaborationParticipantMetric, type CollaborationPattern, type CollaborationReaction, type CollaborationReactionType, type CollaborationRealTimeMetrics, type CollaborationRoleMetric, type CollaborationSession, type CollaborationSessionAnalytics, type CollaborationSessionMetrics, type CollaborationSharedResource, type CollaborationTopic, type CollaborationTrendData, type ComparisonAnalysis, ComparisonToExpectedSchema, type CompetitionAnalysis, type CompetitorAnalysis, type CompetitorPricing, type ComprehensiveAnalytics, type ConceptInput, type ConsistencyResult, type ContentAdaptation, type ContentAnalysisResponse, ContentAnalysisResponseSchema, type ContentComplexity, type ContentFormat, ContentGenerationEngine, type ContentGenerationEngineConfig, type ContentInput, type ContentInteraction, type ContentInteractionData, type ContentRecommendation, type ContentToAdapt, type ContinueDialogueInput, type CorpusEntry, type CostBreakdown, type CostCategory, type CourseAnalysisInput, type CourseAnalysisOptions, type CourseBloomsAnalysisResult, type CourseComparison, type CourseContentOutput, type CourseForStudyGuide, type CourseGuideActionItem, type CourseGuideChapter, type CourseGuideContentRecommendation, type CourseGuideDatabaseAdapter, type CourseGuideDepthMetrics, type CourseGuideEngagementMetrics, type CourseGuideEngagementRecommendation, CourseGuideEngine, type CourseGuideEngineConfig, type CourseGuideEnrollment, type CourseGuideInput, type CourseGuideInsightItem, type CourseGuideMarketMetrics, type CourseGuideMetrics, type CourseGuidePurchase, type CourseGuideResponse, type CourseGuideReview, type CourseGuideSection, type CourseOutlineOutput, type CourseProfitability, type CourseRecommendations, type CourseSuccessPrediction, DEFAULT_RETRY_CONFIG, type DNAMutation, type DNASegment, type DNASequence, type DailyGoal, type DateRange, type DemographicData, type DeviceUsage, type DialogueExchange, type DialoguePerformance, type DialogueState, type DifficultyRecommendation, type DiscountRule, type EmbeddedKnowledgeCheck, type EmotionIndicator, type EmotionalState, type EnhancedQuestion, type EntanglementEffect, type EnvironmentFactors, type EvaluationContext, SAMEvaluationEngine as EvaluationEngine, type EvaluationEngineConfig, type EvaluationResult, type EvaluationRubric, type EvaluationSettings, type EvaluationType, type EvolutionStage, type ExamEngine, type ExamEngineConfig, type ExamGenerationConfig, type ExamGenerationDefaults, type ExamGenerationResponse, type ExamInput, type ExamMetadata, type ExerciseOutput, type ExerciseType, type ExternalResource, type FinancialAnalytics, FinancialEngine, type FinancialEngineConfig, type FinancialForecasts, type FinancialRecommendation, type FitnessExercise, type FitnessMilestone, type FitnessProgress, type FitnessRecommendation, type FitnessSession, type Forecast, type GeneratedAssessment, type GeneratedQuestion, type GenerationConfig, type GenerationDefaults, type GenerationDepth, type GenerationStyle, type GlossaryTermOutput, type GradingAssistance, type GradingAssistanceResponse, GradingAssistanceResponseSchema, type GrowthMetrics, type GrowthProjection, type HintType, type AchievementEngine$1 as IAchievementEngine, type AdaptiveContentEngine$1 as IAdaptiveContentEngine, type AnalyticsEngine$1 as IAnalyticsEngine, type BloomsAnalysisEngine$1 as IBloomsAnalysisEngine, type CollaborationEngine$1 as ICollaborationEngine, type ContentGenerationEngine$1 as IContentGenerationEngine, type CourseGuideEngine$1 as ICourseGuideEngine, type EvaluationEngine as IEvaluationEngine, type FinancialEngine$1 as IFinancialEngine, type InnovationEngine$1 as IInnovationEngine, type IntegrityEngine$1 as IIntegrityEngine, type MarketEngine$1 as IMarketEngine, type MemoryEngine$1 as IMemoryEngine, type MultimediaEngine$1 as IMultimediaEngine, type PracticeProblemsEngine$1 as IPracticeProblemsEngine, type PredictiveEngine$1 as IPredictiveEngine, type ResearchEngine$1 as IResearchEngine, type ResourceEngine$1 as IResourceEngine, type SocialEngine$1 as ISocialEngine, type SocraticTeachingEngine$1 as ISocraticTeachingEngine, type TrendsEngine$1 as ITrendsEngine, type UnifiedBloomsEngine$1 as IUnifiedBloomsEngine, type IndustryTrendReport, type InnovationAdaptation, type InnovationCapability, type InnovationDatabaseAdapter, InnovationEngine, type InnovationEngineConfig, type InnovationLearningData, type InnovationLimitation, type IntegrityCheckConfig, type IntegrityCheckOptions, type IntegrityDatabaseAdapter, IntegrityEngine, type IntegrityEngineConfig, type IntegrityReport, type IntegrityRiskLevel, type IntegritySubmission, type Interaction, type InteractiveAnalysis, type InteractiveContent, type InteractiveElement, type Intervention, type InterventionMilestone, type InterventionPlan, type InterventionRecommendation, type InterventionTimeline, type JsonExtractionOptions, type JsonExtractionResult, type KeyMoment, type KeyTopicOutput, type LanguageInput, type LearningBehavior, type LearningDNA, type LearningEdge, type LearningGap, type LearningHeritage, type LearningHistory, type LearningNode, type LearningObjectiveInput, type LearningPathway, type LearningPhenotype, type LearningRecommendation, type LearningStyle, type LearningStyleProfile, type LearningTrait, type LevelUpInfo, type LicenseStatus, type LicenseType, type LocalizedContentOutput, type MarketAnalysisRequest, type MarketAnalysisResponse, type MarketAnalysisType, type MarketCourseData, type MarketDatabaseAdapter, MarketEngine, type MarketEngineConfig, type MarketGrowthLevel, type MarketPricingAnalysis, type MarketRecommendations, type MarketTrendAnalysis, type MarketValueAssessment, type MarketingRecommendation, type MemoryConversationContext, type MemoryConversationHistory, type MemoryConversationSummary, type MemoryDatabaseAdapter, MemoryEngine, type MemoryEngineConfig, type MemoryEntry, type MemoryHistoryOptions, type MemoryInitOptions, type MemoryMessage, type MemoryPersonalizedContext, type MemorySAMConversation, type MemorySAMLearningProfile, type MemorySAMMessage, type MotivationFactor, type MotivationProfile, type MultiModalAnalysis, type MultiModalContentTypes, MultimediaEngine, type MultimediaEngineConfig, type ObjectiveAnswer, type ObservationImpact, type OptimizedContent, type OutcomeDistribution, type OutcomePrediction, type PartialCreditItem, type PathCollapse, type PathEntanglement, type PathObservation, type PathObservationType, type PathProbability, type PathSuperposition, type PathwayStage, type PerformanceAnalysis, type PerformanceThreshold, type PersonalityTrait, type PersonalizationContext, PersonalizationEngine, type PersonalizationEngineConfig, type PersonalizationInsight, type PersonalizationResult, type PersonalizedPath, type PlagiarismResult, type PlannedIntervention, type PotentialArea, type PracticeProblem, type PracticeProblemConfig, type PracticeProblemDatabaseAdapter, type PracticeProblemInput, type PracticeProblemOutput, type PracticeProblemType, PracticeProblemsEngine, type PracticeSessionStats, type PredictiveAction, type PredictiveBehaviorPatterns, type PredictiveCourseContext, PredictiveEngine, type PredictiveEngineConfig, type PredictiveLearningContext, type PredictiveLearningHistory, type PredictiveLearningSchedule, type PredictivePerformanceMetrics, type PredictiveRiskFactor, type PredictiveStudentProfile, type PricingAnalysis, type PricingExperiment, type PricingRecommendation, type PricingStrategy, type ProbabilityScore, type ProblemAttempt, type ProblemDifficulty, type ProblemEvaluation, type ProblemHint, type ProblemOption, type ProfitabilityAnalysis, type ProgressRecommendation, type QualityFactor, type QualityScore, type QuantumLearningNode, type QuantumPath, type QuantumPotentialOutcome, type QuantumProperties, type QuantumState, type QuestionBankEntry, type QuestionBankQuery, type QuestionBankStats, type QuestionDifficulty, type QuestionInput, type QuestionMetadata, type QuestionOption, QuestionOptionSchema, type QuestionType, type ROIAnalysis, type ReadingPace, type RegionPrice, type ResearchApplication, type ResearchAuthor, type ResearchCategory, type ResearchCodeRepository, type ResearchCollaborationInfo, type ResearchDatabaseAdapter, type ResearchDataset, type ResearchEducationalMetrics, ResearchEngine, type ResearchEngineConfig, type ResearchFinding, type ResearchFundingInfo, type ResearchLiteratureReview, type ResearchMetrics, type ResearchPaper, type ResearchPublication, type ResearchQuery, type ResearchReadingList, type ResearchReview, type ResearchTimeline, type ResearchTrend, type Resource, type ResourceCost, type ResourceDiscoveryConfig, ResourceEngine, type ResourceEngineConfig, type ResourceOutput, type ResourceRecommendation, type ResourceType, type ResponseAnalysis, type RetryConfig, type RetryOptions, type RevenueMetrics, type RevenueSource, type RiskAnalysis, RubricAlignmentSchema, type RubricCriterion, type RubricLevel, type RubricScore, SAMEvaluationEngine, type ScenarioAnalysis, type ScoringGuide, type SectionBloomsAnalysis, type SectionInput, type SectionOutlineOutput, type SessionPattern, type SharedExperience, type SimilarCourse, type SimilarityMatch, type Skill, type SkillDeveloped, type SocialActivityMetrics, type SocialCommunicationAnalysis, type SocialCommunicationPattern, type SocialCommunity, type SocialConflictAnalysis, type SocialDatabaseAdapter, type SocialDynamicsAnalysis, type SocialDynamicsRecommendation, type SocialEffectivenessFactor, type SocialEffectivenessScore, type SocialEngagementMetrics, type SocialEngagementTrend, SocialEngine, type SocialEngineConfig, type SocialGroupMember, type SocialInteraction, type SocialLeadershipAnalysis, type SocialLearningGroup, type SocialLearningOutcome, type SocialMatchingFactor, type SocialMatchingResult, type SocialMentorshipActivity, type SocialNetworkEffect, type SocialSharingImpact, type SocialUser, type SocraticDatabaseAdapter, type SocraticDialogue, type SocraticQuestion, type SocraticQuestionType, type SocraticResponse, type SocraticStudentResponse, type SocraticTeachingConfig, SocraticTeachingEngine, type SolutionStep, type SpacedRepetitionInput, type SpacedRepetitionResult, type SpacedRepetitionSchedule, type StartDialogueInput, type StoredMarketAnalysis, type StudentCohort, type StudentImpact, type StudentInfo, type StudentProfile, type StudentProfileInput, type StudentResourceProfile, type StudentResponse, type StudyBuddy, type StudyGuideOutput, type StyleAnomaly, type StyleDetectionResult, type StyleMetrics, type SubjectiveEvaluationResponse, SubjectiveEvaluationResponseSchema, type SubjectiveEvaluationResult, type SubscriptionMetrics, type SuccessFactor, type SummaryOutput, type SupplementaryResource, type TargetAudience, type TargetAudienceDemographics, type TeacherInsights, type TestCaseOutput, type TierMetrics, type TimeDistribution, type TimePreference, type TopicForResource, type TopicInput, type TrendAnalysis, type TrendCategory, type TrendComparison, type TrendFilter, type TrendMarketSignal, type TrendPrediction, type TrendSource, type TrendsDatabaseAdapter, TrendsEngine, type TrendsEngineConfig, type UncertaintyMeasure, UnifiedBloomsAdapterEngine, type UnifiedBloomsConfig, UnifiedBloomsEngine, type UnifiedBloomsMode, type UnifiedBloomsRecommendation, type UnifiedBloomsResult, type ChapterAnalysis as UnifiedChapterAnalysis, type UnifiedCourseInput, type UnifiedCourseOptions, type CourseRecommendation as UnifiedCourseRecommendation, type UnifiedCourseResult, type UnifiedLearningPath, type UnifiedSpacedRepetitionInput, type UnifiedSpacedRepetitionResult, type UserSAMStats, type UserStats, type ValidationError, type ValidationResult, type VelocityOptimization, type VelocityRecommendation, type VideoAnalysis, type VideoContent, type VisualElement, createAchievementEngine, createAdaptiveContentEngine, createAnalyticsEngine, createBloomsAnalysisEngine, createCollaborationEngine, createContentGenerationEngine, createCourseGuideEngine, createEvaluationEngine, createExamEngine, createFinancialEngine, createInnovationEngine, createIntegrityEngine, createMarketEngine, createMemoryEngine, createMultimediaEngine, createPartialSchema, createPersonalizationEngine, createPracticeProblemsEngine, createPredictiveEngine, createResearchEngine, createResourceEngine, createRetryPrompt, createSocialEngine, createSocraticTeachingEngine, createTrendsEngine, createUnifiedBloomsAdapterEngine, createUnifiedBloomsEngine, executeWithRetry, extractJson, extractJsonWithOptions, fixCommonJsonIssues, parseAndValidate, safeParseWithDefaults, validateAdaptiveQuestionResponse, validateAssessmentQuestionsResponse, validateContentAnalysisResponse, validateEvaluationResponse, validateGradingAssistanceResponse, validateSchema, validateWithDefaults };
+export { type AIAnalysisDetails, type AIAssessmentResult, type AIDetectionResult, type AIIndicator, type AIInsights, type AccessibilityCompliance, type AccessibilityContent, type AccessibilityIssue, type AccessibilityOptions, type AccessibilityReport, type AccessibilityRequirement, type Achievement, type AchievementCategory, type AchievementContext, type AchievementDatabaseAdapter, AchievementEngine, type AchievementEngineConfig, type AchievementProgress, type AchievementSummary, type AchievementTrackingResult, type AchievementUnlockConditions, type ActionItem, type ActivityAnalysis, type ActivitySuggestion, type AdaptationOptions, type AdaptedChunk, type AdaptedContent, type AdaptiveContentConfig, type AdaptiveContentDatabaseAdapter, AdaptiveContentEngine, type AdaptiveLearnerProfile, type AdaptiveLearningStyle, type AdaptiveQuestionRequest, type AdaptiveQuestionResponse, AdaptiveQuestionResponseSchema, type AdaptiveQuestionResult, type AdaptiveQuestionSettings, type AdaptiveRule, type AdaptiveSettings, type AddPortfolioItemInput, AdvancedExamEngine, type AgeRange, type AgreementExpectation, type AlignmentQuality, type AlternativePath, type AlternativeResource, type AnalysisMetadata, type AnalysisOptions, type AnalyticsBehaviorPatterns, type AnalyticsContentInsights, AnalyticsEngine, type AnalyticsEngineConfig, type AnalyticsLearningMetrics, type AnalyticsOptions, type AnalyticsPersonalizedInsights, type AnalyticsSessionData, type AnalyticsTrends, type AnalyzeCareerPathInput, type AnalyzeReflectionInput, type AncestralPattern, type AnnotationElement, type AssessCognitiveLoadInput, type AssessConfidenceInput, type AssessSkillInput, type AssessmentContext, type AssessmentFeedback, type AssessmentGenerationConfig, type AssessmentItem, type AssessmentMetadata, type AssessmentOutput, AssessmentQuestionSchema, type AssessmentQuestionsResponse, AssessmentQuestionsResponseSchema, type AssessmentRecommendation, type AssessmentRecord, type AssessmentResult, type AssessmentRubric, type AssessmentType, type AtRiskStudent, type AttendanceRecord, type AttendeeStatus, type AttentionRegulationMetrics, type AudioAnalysis, type AudioContent, type AudioQualityIssue, type AudioQualityMetrics, type BadgeCategory, type BadgeTier, type BatchProcessingRequest, type BatchProcessingResult, type BloomsAnalysisConfig, BloomsAnalysisEngine, type BloomsAnalysisResult, type BloomsComparison, type BloomsDistribution, BloomsDistributionSchema, type BloomsLevel, BloomsLevelSchema, type BloomsLevelUpdate, type BloomsRecommendation, type BoundingBox, type BrandingAnalysis, type BreakPattern, type BuddyAdjustment, type BuddyAvatar, type BuddyCapability, type BuddyEffectiveness, type BuddyInteraction, type BuddyInteractionType, type BuddyPersonality, type BuddyPersonalityType, type BuddyPreferences, type BuddyRelationship, type BundleOption, type CacheEntry, type CacheStats, type CachedResult, type Caption, type CareerBranch, type CareerLevel, type CareerPath, type CareerPathAnalysis, type CareerPathRecommendation, type CareerProjection, type CareerStage, type Challenge, type ChallengeCategory, type ChallengeDifficulty, type ChallengeRequirementType, type ChallengeRequirements, type ChallengeRewards, type ChapterBloomsAnalysis, type ChapterInput, type ChapterOutlineOutput, type CharacterAnalysis, type CharacterFormation, type ChunkingCoverage, type ChunkingInput, type ChunkingResult, type CodeTestCase, type CognitiveDimension, type CognitiveDimensionName, type CognitiveFitness, type CognitiveLoadAssessment, type CognitiveLoadFactor, type CognitiveLoadLevel, type CognitivePath, type CognitiveProfile, type CognitiveProgressInput, type CognitiveProgressResult, type CognitiveProgressUpdate, type CognitiveStage, type CollaborationActivity, type CollaborationActivityType, type CollaborationAnalytics, type CollaborationCentralityScore, type CollaborationCommunity, type CollaborationConnection, type CollaborationContentAnalytics, type CollaborationContribution, type CollaborationContributionType, type CollaborationDatabaseAdapter, type CollaborationEngagementBucket, CollaborationEngine, type CollaborationEngineConfig, type CollaborationHotspot, type CollaborationInsights, type CollaborationNetworkAnalytics, type CollaborationNode, type CollaborationParticipant, type CollaborationParticipantAnalytics, type CollaborationParticipantMetric, type CollaborationPattern, type CollaborationReaction, type CollaborationReactionType, type CollaborationRealTimeMetrics, type CollaborationRoleMetric, type CollaborationSession, type CollaborationSessionAnalytics, type CollaborationSessionMetrics, type CollaborationSharedResource, type CollaborationTopic, type CollaborationTrendData, type CollaborativeProject, type ColorAnalysis, type ColorInfo, type CombinedContent, type CombinedElement, type CommitmentLevel, type CommunicationStyle, type CommunicationType, type ComparisonAnalysis, ComparisonToExpectedSchema, type CompatibilityFactor, type CompetencyAssessmentRubric, type CompetencyAssessmentType, type CompetencyCareerPath, CompetencyEngine, type CompetencyEngineConfig, type CompetencyFramework, type CompetencyLearningResource, type CompetencyPortfolio, type CompetencyProfile, type CompetencyRubricCriterion, type CompetencySkill, type CompetitionAnalysis, type CompetitorAnalysis, type CompetitorPricing, type ComplementarySkill, type ComprehensiveAnalytics, type Concept, type ConceptCoverage, type ConceptExtractionInput, type ConceptExtractionResult, type ConceptGap, type ConceptInput, type ConceptMastery, type ConceptMasteryLevel, type ConceptRelation, type ConceptType, type ConfidenceItem, type ConfidenceLevel, type ConsistencyResult, type ContentAdaptation, type ContentAnalysisResponse, ContentAnalysisResponseSchema, type ContentBlock, type ContentChunk, type ContentComplexity, type ContentFormat, ContentGenerationEngine, type ContentGenerationEngineConfig, type ContentInput, type ContentInteraction, type ContentInteractionData, type ContentRecommendation, type ContentStrategyMatch, type ContentToAdapt, type ContinueDialogueInput, type CorpusEntry, type CorrectionElement, type CostBreakdown, type CostCategory, type CourseAnalysisInput, type CourseAnalysisOptions, type CourseBloomsAnalysisResult, type CourseComparison, type CourseContentOutput, type CourseForStudyGuide, type CourseGuideActionItem, type CourseGuideChapter, type CourseGuideContentRecommendation, type CourseGuideDatabaseAdapter, type CourseGuideDepthMetrics, type CourseGuideEngagementMetrics, type CourseGuideEngagementRecommendation, CourseGuideEngine, type CourseGuideEngineConfig, type CourseGuideEnrollment, type CourseGuideInput, type CourseGuideInsightItem, type CourseGuideMarketMetrics, type CourseGuideMetrics, type CourseGuidePurchase, type CourseGuideResponse, type CourseGuideReview, type CourseGuideSection, type CourseKnowledgeAnalysisInput, type CourseKnowledgeAnalysisResult, type CourseOutlineOutput, type CourseProfitability, type CourseRecommendations, type CourseStructureQuality, type CourseSuccessPrediction, type CreateDiscussionInput, type CreateGroupSessionInput, type CreatePeerProfileInput, type CreatePeerReviewAssignmentInput, type CreateProjectInput, type CreateProjectTaskInput, type CreateReplyInput, type CreateSessionInput, type CreateSkillTreeInput, type CreateStudyGroupInput, type CriterionLevel, type CriterionScore, DEFAULT_RETRY_CONFIG, type DNAMutation, type DNASegment, type DNASequence, type DailyGoal, type DateRange, type DeliveryPreferences, type DeliverySchedule, type DeliveryScheduleType, type DemographicData, type DemonstratedSkill, type DetectedEmotion, type DetectedEquation, type DetectedObject, type DetectedTopic, type DeviceInfo, type DeviceType, type DeviceUsage, type DiagramAnalysis, type DiagramComponent, type DiagramConnection, type DiagramElement, type DiagramStructure, type DiagramType, type DialogueExchange, type DialoguePerformance, type DialogueState, type DifficultyProgression, type DifficultyRecommendation, type DiscountRule, type DiscussionReply, type DiscussionSearchResult, type DiscussionThread, type EditRecord, type EducationalContentDetection, type EducationalElement, type EducationalValueAssessment, type EmbeddedKnowledgeCheck, type EmotionIndicator, type EmotionalRegulationMetrics, type EmotionalState, type Endorsement, type EnhancedQuestion, type EntanglementEffect, type EnvironmentFactors, type EquationType, type EvaluationContext, SAMEvaluationEngine as EvaluationEngine, type EvaluationEngineConfig, type EvaluationResult, type EvaluationRubric, type EvaluationSettings, type EvaluationType, type EvolutionStage, type ExamEngine, type ExamEngineConfig, type ExamGenerationConfig, type ExamGenerationDefaults, type ExamGenerationResponse, type ExamInput, type ExamMetadata, type ExerciseOutput, type ExerciseType, type ExternalResource, type ExtractSkillsInput, type ExtractSkillsResult, type ExtractedConcept, type ExtractedKeyword, type ExtractedRelation, type ExtractedSkillInfo, type ExtractedText, type FatigueIndicator, type FeedbackType, type FinancialAnalytics, FinancialEngine, type FinancialEngineConfig, type FinancialForecasts, type FinancialRecommendation, type FindPeerMatchesInput, type FitnessExercise, type FitnessMilestone, type FitnessProgress, type FitnessRecommendation, type FitnessSession, type FluencyAssessment, type FocusPattern, type FontInfo, type Forecast, type FrameworkMapping, type GapSuggestion, type GenerateModulesInput, type GenerateModulesResult, type GenerateReflectionInput, type GenerateReflectionResult, type GenerateSkillTreeInput, type GeneratedAssessment, type GeneratedQuestion, type GenerationConfig, type GenerationDefaults, type GenerationDepth, type GenerationStyle, type GeolocationData, type GetAnalyticsInput, type GetHabitAnalysisInput, type GetMetacognitiveAssessmentInput, type GetSkillGapAnalysisInput, type GetUserCompetencyInput, type GlossaryTermOutput, type GoalMetric, type GoalMilestone, type GoalMonitoringResult, type GoalReflection, type GoalType, type GradeThreshold, type GradingAssistance, type GradingAssistanceResponse, GradingAssistanceResponseSchema, type GradingScale, type GraphStats, type GroupGoal, type GroupMember, type GroupMilestone, type GroupResource, type GroupRole, type GroupSchedule, type GroupSearchResult, type GroupSession, type GroupSessionType, type GroupSettings, type GroupSizePreference, type GroupStats, type GroupStatus, type GroupType, type GroupVisibility, type GrowthMetrics, type GrowthOutlook, type GrowthProjection, type HandwritingAnalysisResult, type HandwritingEducationalAssessment, type HandwritingElements, type HandwritingRecognition, type HandwritingRecommendation, type HandwritingSkillsAssessment, type HandwritingType, type HintType, type AchievementEngine$1 as IAchievementEngine, type AdaptiveContentEngine$1 as IAdaptiveContentEngine, type AnalyticsEngine$1 as IAnalyticsEngine, type BloomsAnalysisEngine$1 as IBloomsAnalysisEngine, type CollaborationEngine$1 as ICollaborationEngine, type ContentGenerationEngine$1 as IContentGenerationEngine, type CourseGuideEngine$1 as ICourseGuideEngine, type EvaluationEngine as IEvaluationEngine, type FinancialEngine$1 as IFinancialEngine, type InnovationEngine$1 as IInnovationEngine, type IntegrityEngine$1 as IIntegrityEngine, type MarketEngine$1 as IMarketEngine, type MemoryEngine$1 as IMemoryEngine, type MultimediaEngine$1 as IMultimediaEngine, type IMultimodalInputEngine, type PracticeProblemsEngine$1 as IPracticeProblemsEngine, type PredictiveEngine$1 as IPredictiveEngine, type ResearchEngine$1 as IResearchEngine, type ResourceEngine$1 as IResourceEngine, type SocialEngine$1 as ISocialEngine, type SocraticTeachingEngine$1 as ISocraticTeachingEngine, type TrendsEngine$1 as ITrendsEngine, type UnifiedBloomsEngine$1 as IUnifiedBloomsEngine, type IdentifiedError, type ImageAnalysisResult, type ImageConcern, type ImageContentType, type ImageQualityIssue, type ImageQualityMetrics, type ImpactMetrics, type IndustryTrendReport, type InnovationAdaptation, type InnovationCapability, type InnovationDatabaseAdapter, InnovationEngine, type InnovationEngineConfig, type InnovationLearningData, type InnovationLimitation, type IntegrityCheckConfig, type IntegrityCheckOptions, type IntegrityDatabaseAdapter, IntegrityEngine, type IntegrityEngineConfig, type IntegrityReport, type IntegrityRiskLevel, type IntegritySubmission, type Interaction, type InteractionElement, type InteractiveAnalysis, type InteractiveContent, type InteractiveElement, type Intervention, type InterventionMilestone, type InterventionPlan, type InterventionRecommendation, type InterventionTimeline, type ItemResult, type JobRole, type JobRoleMatch, type JoinGroupInput, type JsonExtractionOptions, type JsonExtractionResult, type KeyMoment, type KeyTopicOutput, type KeywordsAndTopics, type KnowledgeConfidenceAssessment, type KnowledgeGraph, KnowledgeGraphEngine, type KnowledgeGraphEngineConfig, type KnowledgeGraphRecommendation, type LanguageDetection, type LanguageInput, type LeaderboardEntry, type LearningBehavior, type LearningDNA, type LearningEdge, type LearningGap, type LearningGoal, type LearningHeritage, type LearningHistory, type LearningNode, type LearningObjectiveInput, type LearningPath, type LearningPathInput, type LearningPathNode, type LearningPathProgress, type LearningPathway, type LearningPatterns, type LearningPhenotype, type LearningRecommendation, type LearningStrategy, type LearningStyle, type LearningStyleProfile, type LearningTrait, type LevelUpInfo, type LicenseStatus, type LicenseType, type LineAnalysis, type LineSlope, type LoadOptimizationRecommendation, type LoadingChunk, type LocalizedContentOutput, type MarketAnalysisRequest, type MarketAnalysisResponse, type MarketAnalysisType, type MarketCourseData, type MarketDatabaseAdapter, type MarketDemand, MarketEngine, type MarketEngineConfig, type MarketGrowthLevel, type MarketPricingAnalysis, type MarketRecommendations, type MarketTrendAnalysis, type MarketValueAssessment, type MarketingRecommendation, type MasteryEvidence, type MatchJobRolesInput, type MatchJobRolesResult, type MatchReason, type MatchType, type MatchingAlgorithm, type MathElement, type MediaAttachment, type MemberSkillEntry, type MemberStatus, type MemoryConversationContext, type MemoryConversationHistory, type MemoryConversationSummary, type MemoryDatabaseAdapter, MemoryEngine, type MemoryEngineConfig, type MemoryEntry, type MemoryHistoryOptions, type MemoryInitOptions, type MemoryMessage, type MemoryPersonalizedContext, type MemorySAMConversation, type MemorySAMLearningProfile, type MemorySAMMessage, type MenteeProfile, type MentorProfile, type MentorSearchResult, type MentoringSession, type MentoringSessionType, type MentoringStyle, type Mentorship, type MentorshipAgreement, type MentorshipFeedback, type MentorshipGoal, type MentorshipMilestone, type MentorshipStatus, type MentorshipType, MetacognitionEngine, type MetacognitionEngineConfig, type StudySession as MetacognitionStudySession, type MetacognitiveExercise, type MetacognitiveSkill, type MetacognitiveSkillAssessment, type MetacognitiveSkillScore, type MicroModule, type MicroModuleContent, type MicroModuleMetrics, type MicroModuleStatus, type MicroModuleType, type MicrolearningAnalytics, type MicrolearningContentFormat, MicrolearningEngine, type MicrolearningEngineConfig, type MicrolearningRecommendation, type MicrolearningSRResult, type MicrolearningSession, type MilestoneReview, type MilestoneStatus, type MobileCard, type MobileOptimizationInput, type MobileOptimizedContent, type ModerationSettings, type ModuleBreakdown, type ModulePerformance, type MotivationFactor, type MotivationProfile, type MotivationRegulationMetrics, type MultiModalAnalysis, type MultiModalContentTypes, MultimediaEngine, type MultimediaEngineConfig, type MultimodalAssessmentContext, type MultimodalAssessmentSubmission, type MultimodalConfig, type MultimodalEvent, type MultimodalEventType, type MultimodalFile, type MultimodalGradingRubric, type MultimodalInput, MultimodalInputEngine, type MultimodalInputType, type MultimodalLanguage, type MultimodalMetadata, type MultimodalProcessingResult, type MultimodalProcessingStatus, type MultimodalQualityAssessment, type MultimodalQualityLevel, type RetryConfig$1 as MultimodalRetryConfig, type MultimodalRubricCriterion, type MultimodalRubricLevel, type ValidationError$1 as MultimodalValidationError, type ValidationResult$1 as MultimodalValidationResult, type NamedEntity, type NotificationPreferences, type ObjectiveAnswer, type ObservationImpact, type OptimizedContent, type OutcomeDistribution, type OutcomePrediction, type OverallStats, type PartialCreditItem, type PartialSkillMatch, type PathActivity, type PathCollapse, type PathEntanglement, type PathObservation, type PathObservationType, type PathProbability, type PathSuperposition, type PathwayStage, type PauseAnalysis, type PeerActionItem, type PeerAvailability, type PeerBadge, type PeerConfidenceLevel, type PeerDateRange, type PeerExpertise, type PeerGoalPriority, type PeerGoalStatus, type PeerLearningAnalytics, PeerLearningEngine, type PeerLearningEngineConfig, type PeerLearningGoal, type PeerLearningStyle, type PeerMatch, type PeerMatchCriteria, type PeerMatchResult, type PeerPreferences, type PeerProficiencyLevel, type PeerProfile, type PeerResourceType, type PeerReview, type PeerReviewAssignment, type PeerReviewRubric, type PeerReviewType, type PeerStats, type PeerTimeSlot, type PerformanceAnalysis, type PerformanceThreshold, type PersonalityTrait, type PersonalizationContext, PersonalizationEngine, type PersonalizationEngineConfig, type PersonalizationInsight, type PersonalizationResult, type PersonalizedPath, type PhonemeAccuracy, type PlagiarismResult, type PlannedIntervention, type PortfolioArtifact, type PortfolioItem, type PortfolioItemType, type PortfolioRecommendation, type PortfolioSummary, type PortfolioVerification, type PotentialArea, type PracticeProblem, type PracticeProblemConfig, type PracticeProblemDatabaseAdapter, type PracticeProblemInput, type PracticeProblemOutput, type PracticeProblemType, PracticeProblemsEngine, type PracticeSessionStats, type PredictiveAction, type PredictiveBehaviorPatterns, type PredictiveCourseContext, PredictiveEngine, type PredictiveEngineConfig, type PredictiveLearningContext, type PredictiveLearningHistory, type PredictiveLearningSchedule, type PredictivePerformanceMetrics, type PredictiveRiskFactor, type PredictiveStudentProfile, type PrerequisiteAnalysisInput, type PrerequisiteAnalysisResult, type PrerequisiteGapAnalysis, type PrerequisiteNode, type PricingAnalysis, type PricingExperiment, type PricingRecommendation, type PricingStrategy, type ProbabilityScore, type ProblemAttempt, type ProblemCharacter, type ProblemDifficulty, type ProblemEvaluation, type ProblemHint, type ProblemOption, type ProcessMultimodalInput, type ProcessMultimodalOutput, type ProcessingError, type ProcessingHints, type ProcessingOptions, type ProficiencyEvidence, type ProficiencyLevel, type ProficiencyScoreMapping, type ProfitabilityAnalysis, type ProgressRecommendation, type ProjectCommunication, type ProjectMember, type ProjectMilestone, type ProjectResource, type ProjectReview, type ProjectReviewCriterion, type ProjectRoleDefinition, type ProjectStatus, type ProjectTask, type ProjectTeam, type ProjectType, type PronunciationAnalysis, type PronunciationError, type QualityFactor, type QualityRecommendation, type QualityScore, type QuantumLearningNode, type QuantumPath, type QuantumPotentialOutcome, type QuantumProperties, type QuantumState, type QuestionBankEntry, type QuestionBankQuery, type QuestionBankStats, type QuestionDifficulty, type QuestionInput, type QuestionMetadata, type QuestionOption, QuestionOptionSchema, type QuestionType, type ROIAnalysis, type Reaction, type ReactionType, type ReadingPace, type RecognizedLine, type RecognizedWord, type RecommendStrategiesInput, type RecommendStrategiesResult, type RecordStudySessionInput, type ReflectionAnalysis, type ReflectionContext, type ReflectionDepth, type ReflectionPrompt, type ReflectionResponse, type ReflectionType, type RegionPrice, type RegulationIntervention, type RelationType, type RepositoryInfo, type ReputationCategory, type ReputationChange, type ReputationScore, type ReputationWeights, type RequestMentorshipInput, type ResearchApplication, type ResearchAuthor, type ResearchCategory, type ResearchCodeRepository, type ResearchCollaborationInfo, type ResearchDatabaseAdapter, type ResearchDataset, type ResearchEducationalMetrics, ResearchEngine, type ResearchEngineConfig, type ResearchFinding, type ResearchFundingInfo, type ResearchLiteratureReview, type ResearchMetrics, type ResearchPaper, type ResearchPublication, type ResearchQuery, type ResearchReadingList, type ResearchReview, type ResearchTimeline, type ResearchTrend, type Resource, type ResourceCost, type ResourceDiscoveryConfig, ResourceEngine, type ResourceEngineConfig, type ResourceOutput, type ResourceRecommendation, type ResourceType, type ResourceVersion, type ResponseAnalysis, type RetryConfig, type RetryOptions, type RevenueMetrics, type RevenueSource, type ReviewAssignmentStatus, type ReviewCalibration, type ReviewCriterion, type ReviewSubmission, type ReviewerType, type RiskAnalysis, type RoleSkillRequirement, RubricAlignmentSchema, type RubricCriterion, type RubricLevel, type RubricScore, SAMEvaluationEngine, type SalaryRange, type ScenarioAnalysis, type ScheduleFrequency, type ScheduleSuggestion, type ScheduledModule, type ScoreBreakdown, type ScoringGuide, type SectionBloomsAnalysis, type SectionInput, type SectionOutlineOutput, type SelfRegulationProfile, type SentimentTimeline, type SessionAgenda, type SessionAttendee, type SessionFeedback, type SessionFollowUp, type SessionFormat, type SessionModule, type SessionOutcome, type SessionPattern, type SessionPerformance, type SessionRecording, type SessionStatus, type SetGoalInput, type SharedExperience, type SimilarCourse, type SimilarityMatch, type Skill, type SkillAssessment, type SkillCategory, type SkillCoverageAnalysis, type SkillDeveloped, type SkillEvolution, type SkillGap, type SkillGapAnalysisResult, type SkillProgressionMap, type SkillRecommendation, type SkillRelation, type SkillRelationType, type SkillTree, type SkillTreeEdge, type SkillTreeNode, type SocialActivityMetrics, type SocialCommunicationAnalysis, type SocialCommunicationPattern, type SocialCommunity, type SocialConflictAnalysis, type SocialDatabaseAdapter, type SocialDynamicsAnalysis, type SocialDynamicsRecommendation, type SocialEffectivenessFactor, type SocialEffectivenessScore, type SocialEngagementMetrics, type SocialEngagementTrend, SocialEngine, type SocialEngineConfig, type SocialGroupMember, type SocialInteraction, type SocialLeadershipAnalysis, type SocialLearningGroup, type SocialLearningOutcome, type SocialMatchingFactor, type SocialMatchingResult, type SocialMentorshipActivity, type SocialNetworkEffect, type SocialSharingImpact, type SocialUser, type SocraticDatabaseAdapter, type SocraticDialogue, type SocraticQuestion, type SocraticQuestionType, type SocraticResponse, type SocraticStudentResponse, type SocraticTeachingConfig, SocraticTeachingEngine, type SolutionStep, type SpacedRepetitionConfig, type SpacedRepetitionInput, type SpacedRepetitionResult, type SpacedRepetitionSchedule, type SpacedRepetitionUpdate, type SpacingQuality, type SpeakerAnalysis, type SpeakerInfo, type SpeakerSegment, type SpeechMetrics, type StandardAlignment, type StartDialogueInput, type StorageConfig, type StorageQuota, type StoredMarketAnalysis, type StrategyEffectiveness, type StrategyProfile, type StrategyRecommendation, type StrategyUsage, type StreakStats, type StructureIssue, type StudentCohort, type StudentImpact, type StudentInfo, type StudentProfile, type StudentProfileInput, type StudentResourceProfile, type StudentResponse, type StudyBreak, type StudyBuddy, type StudyEnvironment, type StudyGroup, type StudyGuideOutput, type StudyHabitAnalysis, type StudyHabitCategory, type StudyHabitRecommendation, type StyleAnomaly, type StyleDetectionResult, type StyleMetrics, type SubjectActivity, type SubjectiveEvaluationResponse, SubjectiveEvaluationResponseSchema, type SubjectiveEvaluationResult, type SubmissionAttachment, type SubmitPeerReviewInput, type SubscriptionMetrics, type SuccessFactor, type SuggestedResource, type SummaryOutput, type SupplementaryResource, type TargetAudience, type TargetAudienceDemographics, type TaskComment, type TaskPriority, type TaskStatus, type TeacherInsights, type TeamSkillMatrix, type TestCaseOutput, type Testimonial, type TextElement, type TextRegion, type TextSegment, type ThreadAuthor, type ThreadStatus, type ThreadType, type TierInfo, type TierMetrics, type TimeDistribution, type TimePreference, type TimeRange, type TimeSlot, type TopicForResource, type TopicInput, type TranscribedSentence, type TranscribedWord, type TrendAnalysis, type TrendCategory, type TrendComparison, type TrendDataPoint, type TrendFilter, type TrendMarketSignal, type TrendPrediction, type TrendSource, type TrendsDatabaseAdapter, TrendsEngine, type TrendsEngineConfig, type UncertainRegion, type UncertaintyMeasure, UnifiedBloomsAdapterEngine, type UnifiedBloomsConfig, UnifiedBloomsEngine, type UnifiedBloomsMode, type UnifiedBloomsRecommendation, type UnifiedBloomsResult, type ChapterAnalysis as UnifiedChapterAnalysis, type UnifiedCourseInput, type UnifiedCourseOptions, type CourseRecommendation as UnifiedCourseRecommendation, type UnifiedCourseResult, type UnifiedLearningPath, type UnifiedSpacedRepetitionInput, type UnifiedSpacedRepetitionResult, type UpdateGoalProgressInput, type UpdatePeerProfileInput, type UpdateProficiencyInput, type UpdateProgressInput, type UsabilityIssue, type UserSAMStats, type UserSkillProficiency, type UserStats, type ValidationError, type ValidationResult, type VelocityOptimization, type VelocityRecommendation, type VideoAnalysis, type VideoContent, type VisualElement, type VoiceAnalysisResult, type VoiceCharacteristics, type VoiceContentType, type VoiceSentimentAnalysis, type VoiceTranscription, type WebhookConfig, type WeeklySchedule, type WordPronunciation, type WriterProfile, type WritingQualityAssessment, type WritingQualityIssue, createAchievementEngine, createAdaptiveContentEngine, createAnalyticsEngine, createBloomsAnalysisEngine, createCollaborationEngine, createCompetencyEngine, createContentGenerationEngine, createCourseGuideEngine, createEvaluationEngine, createExamEngine, createFinancialEngine, createInnovationEngine, createIntegrityEngine, createKnowledgeGraphEngine, createMarketEngine, createMemoryEngine, createMetacognitionEngine, createMicrolearningEngine, createMultimediaEngine, createMultimodalInputEngine, createPartialSchema, createPeerLearningEngine, createPersonalizationEngine, createPracticeProblemsEngine, createPredictiveEngine, createResearchEngine, createResourceEngine, createRetryPrompt, createSocialEngine, createSocraticTeachingEngine, createTrendsEngine, createUnifiedBloomsAdapterEngine, createUnifiedBloomsEngine, executeWithRetry, extractJson, extractJsonWithOptions, fixCommonJsonIssues, parseAndValidate, safeParseWithDefaults, validateAdaptiveQuestionResponse, validateAssessmentQuestionsResponse, validateContentAnalysisResponse, validateEvaluationResponse, validateGradingAssistanceResponse, validateSchema, validateWithDefaults };

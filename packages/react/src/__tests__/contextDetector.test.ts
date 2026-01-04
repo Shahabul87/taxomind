@@ -40,27 +40,40 @@ function createMockContext(
     conversation: {
       id: 'conv-1',
       messages: [],
+      isStreaming: false,
       totalMessages: 0,
       lastMessageAt: null,
     },
     gamification: {
       points: 0,
       level: 1,
-      currentStreak: 0,
+      experience: 0,
+      experienceToNextLevel: 100,
       badges: [],
+      streak: {
+        current: 0,
+        longest: 0,
+        lastActivityDate: null,
+      },
       achievements: [],
     },
     ui: {
       isOpen: false,
-      isExpanded: false,
-      inputFocus: false,
-      scrollPosition: 0,
+      isMinimized: false,
+      position: 'floating',
+      theme: 'system',
+      size: 'normal',
+      isMobile: false,
+      isTablet: false,
+      isDesktop: true,
     },
     metadata: {
+      sessionId: 'test-session',
+      startedAt: new Date(),
+      lastActivityAt: new Date(),
       version: '1.0.0',
-      timestamp: new Date(),
-      environment: 'test',
     },
+    form: null,
   };
 }
 
@@ -217,7 +230,17 @@ describe('createContextDetector', () => {
     it('should use custom capability mappings', () => {
       const detector = createContextDetector({
         capabilityMappings: {
-          dashboard: ['custom-capability-1', 'custom-capability-2'],
+          'dashboard': ['custom-capability-1', 'custom-capability-2'],
+          'courses-list': [],
+          'course-detail': [],
+          'course-create': [],
+          'chapter-detail': [],
+          'section-detail': [],
+          'analytics': [],
+          'settings': [],
+          'learning': [],
+          'exam': [],
+          'other': [],
         },
       });
 
@@ -228,12 +251,6 @@ describe('createContextDetector', () => {
   });
 
   describe('detectFromDOM', () => {
-    let originalDocument: Document;
-
-    beforeEach(() => {
-      originalDocument = document;
-    });
-
     afterEach(() => {
       document.body.innerHTML = '';
     });

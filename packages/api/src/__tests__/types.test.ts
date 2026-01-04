@@ -194,10 +194,10 @@ describe('ChatRequest', () => {
   it('should allow optional context and history', () => {
     const request: ChatRequest = {
       message: 'Hello',
-      context: { page: { type: 'dashboard' } },
+      context: { page: { type: 'dashboard', path: '/dashboard', capabilities: [], breadcrumb: [] } },
       history: [
-        { id: '1', role: 'user', content: 'Hi' },
-        { id: '2', role: 'assistant', content: 'Hello!' },
+        { id: '1', role: 'user', content: 'Hi', timestamp: new Date() },
+        { id: '2', role: 'assistant', content: 'Hello!', timestamp: new Date() },
       ],
       stream: true,
     };
@@ -240,7 +240,7 @@ describe('ChatResponse', () => {
           CREATE: 0.1,
         },
         cognitiveDepth: 65,
-        balance: 0.8,
+        balance: 'well-balanced',
         gaps: [],
         recommendations: [],
         confidence: 0.9,

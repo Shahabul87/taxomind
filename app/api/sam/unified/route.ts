@@ -102,6 +102,24 @@ import { getAgenticMemorySystem } from '@/lib/sam/agentic-memory';
 import { planToolInvocation } from '@/lib/sam/tool-planner';
 import { queueMemoryIngestion } from '@/lib/sam/memory-ingestion';
 
+// Import Orchestration Integration for plan-driven tutoring
+import {
+  initializeOrchestration,
+  prepareTutoringContext,
+  injectPlanContext,
+  evaluateStepProgress,
+  advanceStepIfReady,
+  processTutoringLoop,
+  formatOrchestrationResponse,
+  type OrchestrationSubsystems,
+  type OrchestrationResponseData,
+} from '@/lib/sam/orchestration-integration';
+import {
+  createPrismaGoalStore,
+  createPrismaPlanStore,
+  createPrismaToolStore,
+} from '@/lib/sam/stores';
+
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
@@ -193,9 +211,10 @@ let qualityPipeline: ContentQualityGatePipeline | null = null;
 let pedagogyPipeline: PedagogicalPipeline | null = null;
 let masteryTracker: MasteryTracker | null = null;
 let spacedRepScheduler: SpacedRepetitionScheduler | null = null;
+let tutoringOrchestration: OrchestrationSubsystems | null = null;
 
 /**
- * Initialize all subsystems (orchestrator, quality gates, pedagogy, memory)
+ * Initialize all subsystems (orchestrator, quality gates, pedagogy, memory, tutoring)
  */
 function initializeSubsystems(): {
   orchestrator: SAMAgentOrchestrator;
@@ -204,6 +223,7 @@ function initializeSubsystems(): {
   pedagogy: PedagogicalPipeline;
   mastery: MasteryTracker;
   spacedRep: SpacedRepetitionScheduler;
+  tutoring: OrchestrationSubsystems | null;
 } {
   if (orchestrator && samConfig && qualityPipeline && pedagogyPipeline && masteryTracker && spacedRepScheduler) {
     return {
@@ -213,6 +233,7 @@ function initializeSubsystems(): {
       pedagogy: pedagogyPipeline,
       mastery: masteryTracker,
       spacedRep: spacedRepScheduler,
+      tutoring: tutoringOrchestration,
     };
   }
 
@@ -317,11 +338,30 @@ function initializeSubsystems(): {
   masteryTracker = createMasteryTracker(profileStore);
   spacedRepScheduler = createSpacedRepetitionScheduler(reviewStore);
 
+  // Initialize Tutoring Orchestration for plan-driven tutoring
+  try {
+    const goalStore = createPrismaGoalStore();
+    const planStore = createPrismaPlanStore();
+    const toolStore = createPrismaToolStore();
+
+    tutoringOrchestration = initializeOrchestration({
+      goalStore,
+      planStore,
+      toolStore,
+    });
+
+    logger.info('[SAM_UNIFIED] Tutoring orchestration initialized');
+  } catch (error) {
+    logger.warn('[SAM_UNIFIED] Failed to initialize tutoring orchestration:', error);
+    tutoringOrchestration = null;
+  }
+
   logger.info('[SAM_UNIFIED] All subsystems initialized:', {
     engines: ['context', 'blooms', 'content', 'personalization', 'assessment', 'response'],
     qualityGates: true,
     pedagogyPipeline: true,
     memoryTracking: true,
+    tutoringOrchestration: !!tutoringOrchestration,
   });
 
   return {
@@ -331,6 +371,7 @@ function initializeSubsystems(): {
     pedagogy: pedagogyPipeline,
     mastery: masteryTracker,
     spacedRep: spacedRepScheduler,
+    tutoring: tutoringOrchestration,
   };
 }
 
@@ -474,6 +515,46 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       capabilities: agenticBridge.getEnabledCapabilities(),
     });
+
+    // =========================================================================
+    // TUTORING ORCHESTRATION - Plan-Driven Context Preparation
+    // =========================================================================
+
+    // Prepare tutoring context for plan-driven tutoring (if active plan exists)
+    let tutoringContext: Awaited<ReturnType<typeof prepareTutoringContext>> = null;
+    let planContextInjection: ReturnType<typeof injectPlanContext> = null;
+
+    try {
+      const subsystems = initializeSubsystems();
+      if (subsystems.tutoring) {
+        // Generate a session ID for this conversation
+        const sessionId = `session_${user.id}_${Date.now()}`;
+
+        tutoringContext = await prepareTutoringContext(
+          user.id,
+          sessionId,
+          message,
+          {
+            planId: pageContext.entityId, // Use entity ID as potential plan ID
+            goalId: undefined, // Could be extracted from request if provided
+          }
+        );
+
+        if (tutoringContext) {
+          planContextInjection = injectPlanContext(tutoringContext);
+
+          logger.debug('[SAM_UNIFIED] Tutoring context prepared:', {
+            hasActivePlan: !!tutoringContext.activePlan,
+            currentStepId: tutoringContext.currentStep?.id,
+            stepObjectivesCount: tutoringContext.stepObjectives?.length || 0,
+            hasInjection: !!planContextInjection,
+          });
+        }
+      }
+    } catch (error) {
+      logger.warn('[SAM_UNIFIED] Failed to prepare tutoring context:', error);
+      // Continue without tutoring context - non-blocking
+    }
 
     logger.info('[SAM_UNIFIED] Processing request:', {
       userId: user.id,
@@ -620,6 +701,21 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.warn('[SAM_UNIFIED] Failed to retrieve agentic memory:', error);
       }
+
+      // Inject plan context into memory summary for plan-driven tutoring
+      if (planContextInjection?.systemPromptAdditions?.length) {
+        const planContextSummary = [
+          'Learning Plan Context:',
+          ...planContextInjection.systemPromptAdditions,
+        ].join('\n');
+        memorySummary = memorySummary
+          ? `${memorySummary}\n\n${planContextSummary}`
+          : planContextSummary;
+
+        logger.debug('[SAM_UNIFIED] Plan context injected into prompt:', {
+          additionsCount: planContextInjection.systemPromptAdditions.length,
+        });
+      }
     }
 
     // Build SAMContext with REAL entity data
@@ -700,6 +796,76 @@ export async function POST(request: NextRequest) {
         confidence: bloomsAnalysis.confidence,
         method: bloomsAnalysis.method,
       });
+    }
+
+    // =========================================================================
+    // TUTORING ORCHESTRATION - Step Progress Evaluation
+    // =========================================================================
+
+    // Evaluate step progress if we have an active tutoring context
+    let stepEvaluation: Awaited<ReturnType<typeof evaluateStepProgress>> = null;
+    let stepTransition: Awaited<ReturnType<typeof advanceStepIfReady>> = null;
+    let orchestrationData: OrchestrationResponseData | null = null;
+
+    if (tutoringContext && result.response?.message) {
+      try {
+        // Evaluate step progress based on the LLM response
+        stepEvaluation = await evaluateStepProgress(
+          tutoringContext,
+          result.response.message,
+          message
+        );
+
+        if (stepEvaluation) {
+          logger.debug('[SAM_UNIFIED] Step progress evaluated:', {
+            progressPercent: stepEvaluation.progressPercent,
+            stepComplete: stepEvaluation.stepComplete,
+            shouldAdvance: stepEvaluation.shouldAdvance,
+            confidence: stepEvaluation.confidence,
+          });
+
+          // Advance to next step if evaluation indicates completion
+          if (stepEvaluation.shouldAdvance && tutoringContext.activePlan?.id) {
+            stepTransition = await advanceStepIfReady(
+              tutoringContext.activePlan.id,
+              stepEvaluation
+            );
+
+            if (stepTransition) {
+              logger.info('[SAM_UNIFIED] Step transition occurred:', {
+                transitionType: stepTransition.transitionType,
+                planComplete: stepTransition.planComplete,
+                hasNextStep: !!stepTransition.currentStep,
+              });
+            }
+          }
+        }
+
+        // Format orchestration data for response
+        if (tutoringContext) {
+          orchestrationData = formatOrchestrationResponse({
+            response: result.response?.message || '',
+            modifiedResponse: null,
+            context: tutoringContext,
+            evaluation: stepEvaluation,
+            toolPlan: null, // Tool plan handled separately below
+            transition: stepTransition,
+            pendingConfirmations: [],
+            metadata: {
+              processingTime: Date.now() - startTime,
+              contextPrepTime: 0,
+              evaluationTime: 0,
+              toolPlanningTime: 0,
+              stepAdvanced: !!stepTransition,
+              planCompleted: stepTransition?.planComplete || false,
+              interventionsTriggered: 0,
+            },
+          });
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Failed to evaluate step progress:', error);
+        // Continue without step evaluation - non-blocking
+      }
     }
 
     // Run Quality Gates Pipeline for content generation requests
@@ -830,6 +996,17 @@ export async function POST(request: NextRequest) {
           pagePath: pageContext.path,
           entitySummary: entityContext.summary,
           memorySummary,
+          // Pass tutoring context for plan-driven tool planning
+          tutoringContext: tutoringContext ? {
+            activePlanTitle: tutoringContext.activeGoal?.title ?? `Plan ${tutoringContext.activePlan?.id ?? 'Unknown'}`,
+            currentStepTitle: tutoringContext.currentStep?.title,
+            currentStepType: tutoringContext.currentStep?.type,
+            stepObjectives: tutoringContext.stepObjectives,
+            stepProgress: stepEvaluation?.progressPercent !== undefined
+              ? stepEvaluation.progressPercent / 100
+              : undefined,
+            planContextAdditions: planContextInjection?.systemPromptAdditions,
+          } : undefined,
         },
       });
 
@@ -1232,6 +1409,15 @@ export async function POST(request: NextRequest) {
           interventions: interventions.length > 0 ? interventions : undefined,
           toolExecution: toolExecution ?? undefined,
         },
+        // NEW: Tutoring Orchestration (Plan-Driven Learning)
+        orchestration: orchestrationData ? {
+          hasActivePlan: orchestrationData.hasActivePlan,
+          currentStep: orchestrationData.currentStep,
+          stepProgress: orchestrationData.stepProgress,
+          transition: orchestrationData.transition,
+          pendingConfirmations: orchestrationData.pendingConfirmations,
+          metadata: orchestrationData.metadata,
+        } : undefined,
       },
       metadata: {
         enginesRun: result.metadata.enginesExecuted,
@@ -1253,6 +1439,12 @@ export async function POST(request: NextRequest) {
           agenticSession: sessionRecorded,
           agenticInterventions: interventions.length > 0,
           agenticToolExecution: !!toolExecution,
+          // NEW: Tutoring Orchestration subsystems
+          tutoringOrchestration: !!orchestrationData,
+          tutoringContext: !!tutoringContext,
+          stepEvaluation: !!stepEvaluation,
+          stepTransition: !!stepTransition,
+          planContextInjection: !!planContextInjection,
         },
         toolExecution: toolExecution ?? undefined,
       },

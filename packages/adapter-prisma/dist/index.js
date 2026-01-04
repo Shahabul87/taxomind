@@ -651,7 +651,6 @@ function createPrismaSAMAdapter(config) {
 
 // src/sample-store.ts
 var PrismaSampleStore = class {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma;
   tableName;
   constructor(config) {
@@ -758,7 +757,6 @@ var PrismaSampleStore = class {
     });
     return result.count;
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapToSample(result) {
     return {
       id: result.id,
@@ -799,7 +797,6 @@ function calculateConfidence(assessmentCount) {
   return Math.min(0.95, 0.5 + assessmentCount * 0.05);
 }
 var PrismaStudentProfileStore = class {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma;
   profileTableName;
   masteryTableName;
@@ -959,7 +956,6 @@ var PrismaStudentProfileStore = class {
   async delete(studentId) {
     await this.prisma[this.profileTableName].delete({ where: { id: studentId } });
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapToProfile(result) {
     const masteryByTopic = {};
     for (const m of result.masteryRecords ?? []) {
@@ -980,7 +976,6 @@ var PrismaStudentProfileStore = class {
       updatedAt: result.updatedAt
     };
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapToMastery(result) {
     return {
       topicId: result.topicId,
@@ -994,7 +989,6 @@ var PrismaStudentProfileStore = class {
       confidence: result.confidence
     };
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mapToPathway(result) {
     return {
       id: result.id,
@@ -1015,7 +1009,6 @@ function createPrismaStudentProfileStore(config) {
 
 // src/memory-store.ts
 var PrismaMemoryStore = class {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma;
   tableName;
   constructor(config) {
@@ -1070,7 +1063,6 @@ function createPrismaMemoryStore(config) {
 
 // src/review-schedule-store.ts
 var PrismaReviewScheduleStore = class {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma;
   tableName;
   constructor(config) {
@@ -1117,7 +1109,6 @@ function createPrismaReviewScheduleStore(config) {
 
 // src/golden-test-store.ts
 var PrismaGoldenTestStore = class {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   prisma;
   tableName;
   constructor(config) {

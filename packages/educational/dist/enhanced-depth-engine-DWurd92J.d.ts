@@ -1,4 +1,4 @@
-import { BloomsLevel } from '@sam-ai/core';
+import { BloomsLevel, SAMConfig } from '@sam-ai/core';
 
 /**
  * Enhanced Course Depth Analysis Types
@@ -381,9 +381,16 @@ interface CourseDepthAnalysisStore {
     createHistoricalSnapshot?: (snapshot: CourseDepthAnalysisSnapshotInput) => Promise<void>;
 }
 interface EnhancedDepthAnalysisEngineOptions {
+    /** Optional SAMConfig for AI-enhanced analysis */
+    samConfig?: SAMConfig;
+    /** Storage adapter for caching and persistence */
     storage?: CourseDepthAnalysisStore;
+    /** Logger for debugging and monitoring */
     logger?: DepthAnalysisLogger;
+    /** Custom content hasher function */
     contentHasher?: (courseData: CourseData) => string;
+    /** Enable AI-enhanced recommendations (requires samConfig) */
+    enableAIEnhancements?: boolean;
 }
 declare function generateCourseContentHash(course: CourseData): string;
 interface CourseData {
@@ -442,10 +449,20 @@ interface AttachmentData {
 }
 declare class EnhancedDepthAnalysisEngine {
     private startTime;
+    private readonly samConfig?;
     private readonly storage?;
     private readonly logger;
     private readonly contentHasher;
+    private readonly enableAIEnhancements;
     constructor(options?: EnhancedDepthAnalysisEngineOptions);
+    /**
+     * Check if AI-enhanced analysis is available
+     */
+    hasAICapabilities(): boolean;
+    /**
+     * Get the SAMConfig (for subclasses or testing)
+     */
+    protected getSAMConfig(): SAMConfig | undefined;
     /**
      * Perform comprehensive enhanced depth analysis
      */

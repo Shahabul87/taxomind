@@ -8,6 +8,11 @@
  * - Proactive Interventions: Context-aware mentor triggers
  * - Self-Evaluation: Confidence scoring and verification
  * - Learning Analytics: Progress analysis and recommendations
+ *
+ * Integration Profile Support:
+ * The bridge now supports an optional IntegrationProfile for portability.
+ * When provided, the profile's feature flags and capabilities will be used
+ * to determine which features are enabled and available.
  */
 
 import {
@@ -110,6 +115,9 @@ import {
 } from './stores';
 import { ensureToolingInitialized } from './agentic-tooling';
 
+// Import Integration Profile types (optional for backward compatibility)
+import type { IntegrationProfile, CapabilityRegistry } from '@sam-ai/integration';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -133,6 +141,19 @@ export interface SAMAgenticBridgeConfig {
    * @default true
    */
   usePrismaStores?: boolean;
+  /**
+   * Optional Integration Profile for portability.
+   * When provided, the profile's feature flags will be used to determine
+   * which capabilities are enabled. This enables SAM to adapt to different
+   * host environments and configurations.
+   */
+  integrationProfile?: IntegrationProfile;
+  /**
+   * Optional Capability Registry for runtime capability queries.
+   * If not provided but integrationProfile is set, a registry will be created
+   * automatically from the profile.
+   */
+  capabilityRegistry?: CapabilityRegistry;
 }
 
 /**
@@ -195,6 +216,10 @@ export class SAMAgenticBridge {
   private logger: AgenticLogger;
   private usePrismaStores: boolean;
 
+  // Integration Profile (for portability)
+  private integrationProfile?: IntegrationProfile;
+  private _capabilityRegistry?: CapabilityRegistry;
+
   // Components
   private goalStore?: GoalStore;
   private aiAdapter?: AIAdapter;
@@ -219,29 +244,60 @@ export class SAMAgenticBridge {
     this.logger = config.logger ?? defaultLogger;
     this.usePrismaStores = config.usePrismaStores !== false; // Default to true
 
+    // Store Integration Profile for portability
+    this.integrationProfile = config.integrationProfile;
+    this._capabilityRegistry = config.capabilityRegistry;
+
+    // Determine enabled features based on profile or config
+    // If integration profile is provided, use its feature flags
+    // Otherwise, fall back to config options
+    const features = this.integrationProfile?.features;
+
+    const enableGoalPlanning = features
+      ? features.goalPlanning
+      : config.enableGoalPlanning !== false;
+
+    const enableToolExecution = features
+      ? features.toolExecution
+      : config.enableToolExecution !== false;
+
+    const enableProactiveInterventions = features
+      ? features.proactiveInterventions
+      : config.enableProactiveInterventions !== false;
+
+    const enableSelfEvaluation = features
+      ? features.selfEvaluation
+      : config.enableSelfEvaluation !== false;
+
+    const enableLearningAnalytics = features
+      ? features.learningAnalytics
+      : config.enableLearningAnalytics !== false;
+
     // Initialize enabled components
-    if (config.enableGoalPlanning !== false) {
+    if (enableGoalPlanning) {
       this.initGoalPlanning();
     }
 
-    if (config.enableToolExecution !== false) {
+    if (enableToolExecution) {
       this.initToolExecution();
     }
 
-    if (config.enableProactiveInterventions !== false) {
+    if (enableProactiveInterventions) {
       this.initProactiveInterventions();
     }
 
-    if (config.enableSelfEvaluation !== false) {
+    if (enableSelfEvaluation) {
       this.initSelfEvaluation();
     }
 
-    if (config.enableLearningAnalytics !== false) {
+    if (enableLearningAnalytics) {
       this.initLearningAnalytics();
     }
 
     this.logger.info('SAM Agentic Bridge initialized', {
       userId: this.userId,
+      hasIntegrationProfile: !!this.integrationProfile,
+      profileId: this.integrationProfile?.id,
       capabilities: this.getEnabledCapabilities(),
     });
   }
@@ -1041,6 +1097,61 @@ export class SAMAgenticBridge {
    */
   getUserId(): string {
     return this.userId;
+  }
+
+  /**
+   * Get the Integration Profile (if configured)
+   * This provides information about the host environment's capabilities
+   */
+  getIntegrationProfile(): IntegrationProfile | undefined {
+    return this.integrationProfile;
+  }
+
+  /**
+   * Get the Capability Registry (if configured)
+   * This allows runtime queries about available capabilities
+   */
+  getCapabilityRegistry(): CapabilityRegistry | undefined {
+    return this._capabilityRegistry;
+  }
+
+  /**
+   * Check if an integration profile is configured
+   */
+  hasIntegrationProfile(): boolean {
+    return !!this.integrationProfile;
+  }
+
+  /**
+   * Check if a specific feature is available based on the integration profile
+   * Falls back to checking if the component is initialized
+   */
+  isFeatureAvailable(feature: keyof NonNullable<IntegrationProfile['features']>): boolean {
+    if (this.integrationProfile?.features) {
+      return this.integrationProfile.features[feature];
+    }
+
+    // Fallback: check if component is initialized
+    switch (feature) {
+      case 'goalPlanning':
+        return !!(this.goalStore || this.goalDecomposer);
+      case 'toolExecution':
+        return !!this.toolRegistry;
+      case 'proactiveInterventions':
+        return !!this.behaviorMonitor;
+      case 'selfEvaluation':
+        return !!this.confidenceScorer;
+      case 'learningAnalytics':
+        return !!this.progressAnalyzer;
+      case 'memorySystem':
+        return this.integrationProfile?.features?.memorySystem ?? false;
+      case 'knowledgeGraph':
+        return this.integrationProfile?.features?.knowledgeGraph ?? false;
+      case 'realTimeSync':
+        return this.integrationProfile?.features?.realTimeSync ?? false;
+      default:
+        return false;
+    }
   }
 }
 

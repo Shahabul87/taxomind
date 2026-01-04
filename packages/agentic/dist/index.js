@@ -31,38 +31,66 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 var index_exports = {};
 __export(index_exports, {
   ActionType: () => ActionType,
+  ActiveStepExecutor: () => ActiveStepExecutor,
   ActivityStatus: () => ActivityStatus,
   ActivityType: () => ActivityType,
   AdjustmentTrigger: () => AdjustmentTrigger,
   AgentStateMachine: () => AgentStateMachine,
+  AgenticMetricsCollector: () => AgenticMetricsCollector,
+  AlertSeverity: () => AlertSeverity,
   AnomalyType: () => AnomalyType,
   AssessmentSource: () => AssessmentSource,
   AuditLogLevel: () => AuditLogLevel,
   AuditLogger: () => AuditLogger,
+  BackgroundWorker: () => BackgroundWorker,
+  BaseJobSchema: () => BaseJobSchema,
   BehaviorEventSchema: () => BehaviorEventSchema,
   BehaviorEventType: () => BehaviorEventType,
   BehaviorMonitor: () => BehaviorMonitor,
   CAPABILITIES: () => CAPABILITIES,
+  CelebrationType: () => CelebrationType,
+  ChangeType: () => ChangeType,
   CheckInResponseSchema: () => CheckInResponseSchema,
   CheckInScheduler: () => CheckInScheduler,
   CheckInStatus: () => CheckInStatus,
   CheckInType: () => CheckInType,
+  ClientWebSocketManager: () => ClientWebSocketManager,
   ComplexityLevel: () => ComplexityLevel,
+  ConfidenceCalibrationTracker: () => ConfidenceCalibrationTracker,
   ConfidenceFactorType: () => ConfidenceFactorType,
   ConfidenceInputSchema: () => ConfidenceInputSchema,
   ConfidenceLevel: () => ConfidenceLevel,
   ConfidenceScorer: () => ConfidenceScorer,
+  ConfirmationGate: () => ConfirmationGate,
   ConfirmationManager: () => ConfirmationManager,
   ConfirmationType: () => ConfirmationType,
   ConfirmationTypeSchema: () => ConfirmationTypeSchema,
+  ConnectionConfigSchema: () => ConnectionConfigSchema,
+  ConnectionState: () => ConnectionState,
+  ContentChangeEventSchema: () => ContentChangeEventSchema,
+  ContentEntityType: () => ContentEntityType,
   ContentGenerationRequestSchema: () => ContentGenerationRequestSchema,
   ContentRecommendationRequestSchema: () => ContentRecommendationRequestSchema,
   ContentType: () => ContentType,
   ContextAction: () => ContextAction,
   CreateGoalInputSchema: () => CreateGoalInputSchema,
   CrossSessionContext: () => CrossSessionContext,
+  DEFAULT_CALIBRATION_CONFIG: () => DEFAULT_CALIBRATION_CONFIG,
+  DEFAULT_CONNECTION_CONFIG: () => DEFAULT_CONNECTION_CONFIG,
+  DEFAULT_DISPLAY_CONFIGS: () => DEFAULT_DISPLAY_CONFIGS,
+  DEFAULT_MEMORY_QUALITY_CONFIG: () => DEFAULT_MEMORY_QUALITY_CONFIG,
+  DEFAULT_METRICS_COLLECTOR_CONFIG: () => DEFAULT_METRICS_COLLECTOR_CONFIG,
+  DEFAULT_NORMALIZER_CONFIG: () => DEFAULT_NORMALIZER_CONFIG,
+  DEFAULT_PRESENCE_CONFIG: () => DEFAULT_PRESENCE_CONFIG,
+  DEFAULT_PUSH_DISPATCHER_CONFIG: () => DEFAULT_PUSH_DISPATCHER_CONFIG,
+  DEFAULT_QUEUE_CONFIG: () => DEFAULT_QUEUE_CONFIG,
   DEFAULT_ROLE_PERMISSIONS: () => DEFAULT_ROLE_PERMISSIONS,
+  DEFAULT_SURFACE_MANAGER_CONFIG: () => DEFAULT_SURFACE_MANAGER_CONFIG,
+  DEFAULT_TOOL_TELEMETRY_CONFIG: () => DEFAULT_TOOL_TELEMETRY_CONFIG,
+  DEFAULT_WORKER_CONFIG: () => DEFAULT_WORKER_CONFIG,
   DecompositionOptionsSchema: () => DecompositionOptionsSchema,
+  DeliveryChannel: () => DeliveryChannel,
+  DeliveryPriority: () => DeliveryPriority,
   EmbeddingSourceType: () => EmbeddingSourceType,
   EmotionalSignalType: () => EmotionalSignalType,
   EmotionalState: () => EmotionalState,
@@ -75,10 +103,12 @@ __export(index_exports, {
   GoalStatus: () => GoalStatus,
   GoalStatusSchema: () => GoalStatusSchema,
   GraphQueryOptionsSchema: () => GraphQueryOptionsSchema,
+  HealthStatus: () => HealthStatus,
   InMemoryAuditStore: () => InMemoryAuditStore,
   InMemoryBehaviorEventStore: () => InMemoryBehaviorEventStore,
   InMemoryCalibrationStore: () => InMemoryCalibrationStore,
   InMemoryCheckInStore: () => InMemoryCheckInStore,
+  InMemoryConfidencePredictionStore: () => InMemoryConfidencePredictionStore,
   InMemoryConfidenceScoreStore: () => InMemoryConfidenceScoreStore,
   InMemoryConfirmationStore: () => InMemoryConfirmationStore,
   InMemoryContentStore: () => InMemoryContentStore,
@@ -86,25 +116,44 @@ __export(index_exports, {
   InMemoryGraphStore: () => InMemoryGraphStore,
   InMemoryInterventionStore: () => InMemoryInterventionStore,
   InMemoryInvocationStore: () => InMemoryInvocationStore,
+  InMemoryJobQueue: () => InMemoryJobQueue,
   InMemoryLearningGapStore: () => InMemoryLearningGapStore,
   InMemoryLearningPlanStore: () => InMemoryLearningPlanStore,
   InMemoryLearningSessionStore: () => InMemoryLearningSessionStore,
+  InMemoryMemoryRetrievalStore: () => InMemoryMemoryRetrievalStore,
+  InMemoryOrchestrationConfirmationStore: () => InMemoryOrchestrationConfirmationStore,
   InMemoryPatternStore: () => InMemoryPatternStore,
   InMemoryPermissionStore: () => InMemoryPermissionStore,
+  InMemoryPlanLifecycleStore: () => InMemoryPlanLifecycleStore,
+  InMemoryPresenceStore: () => InMemoryPresenceStore,
+  InMemoryProactiveEventStore: () => InMemoryProactiveEventStore,
+  InMemoryPushQueueStore: () => InMemoryPushQueueStore,
   InMemoryQualityRecordStore: () => InMemoryQualityRecordStore,
   InMemoryRecommendationStore: () => InMemoryRecommendationStore,
+  InMemoryReindexJobStore: () => InMemoryReindexJobStore,
   InMemorySkillAssessmentStore: () => InMemorySkillAssessmentStore,
   InMemoryTimelineStore: () => InMemoryTimelineStore,
+  InMemoryToolExecutionStore: () => InMemoryToolExecutionStore,
   InMemoryToolStore: () => InMemoryToolStore,
   InMemoryTopicProgressStore: () => InMemoryTopicProgressStore,
+  InMemoryTutoringSessionStore: () => InMemoryTutoringSessionStore,
   InMemoryVectorAdapter: () => InMemoryVectorAdapter,
   InMemoryVerificationResultStore: () => InMemoryVerificationResultStore,
+  InterventionSurface: () => InterventionSurface,
+  InterventionSurfaceManagerImpl: () => InterventionSurfaceManagerImpl,
   InterventionType: () => InterventionType,
   InvokeToolInputSchema: () => InvokeToolInputSchema,
   IssueSeverity: () => IssueSeverity,
   IssueType: () => IssueType,
+  JobEvent: () => JobEvent,
+  JobQueueConfigSchema: () => JobQueueConfigSchema,
+  JobStatus: () => JobStatus,
+  JobType: () => JobType,
   JourneyEventType: () => JourneyEventType,
   JourneyTimelineManager: () => JourneyTimelineManager,
+  KGRefreshJobStatus: () => KGRefreshJobStatus,
+  KGRefreshJobType: () => KGRefreshJobType,
+  KGRefreshScheduler: () => KGRefreshScheduler,
   KnowledgeGraphManager: () => KnowledgeGraphManager,
   LearningPathRecommender: () => LearningPathRecommender,
   LearningPhase: () => LearningPhase,
@@ -115,15 +164,26 @@ __export(index_exports, {
   MEMORY_CAPABILITIES: () => MEMORY_CAPABILITIES,
   MasteryLevel: () => MasteryLevel2,
   MasteryLevelSchema: () => MasteryLevelSchema,
+  MemoryItemType: () => MemoryItemType,
+  MemoryLifecycleConfigSchema: () => MemoryLifecycleConfigSchema,
+  MemoryLifecycleManager: () => MemoryLifecycleManager,
+  MemoryNormalizer: () => MemoryNormalizer,
+  MemoryNormalizerConfigSchema: () => MemoryNormalizerConfigSchema,
+  MemoryQualityTracker: () => MemoryQualityTracker,
   MemoryRetriever: () => MemoryRetriever,
+  MemorySegmentType: () => MemorySegmentType,
+  MemorySourceType: () => MemorySourceType,
   MemoryType: () => MemoryType,
   MetricSource: () => MetricSource,
   MilestoneStatus: () => MilestoneStatus,
   MilestoneType: () => MilestoneType,
   MockEmbeddingProvider: () => MockEmbeddingProvider,
   MultiSessionPlanTracker: () => MultiSessionPlanTracker,
+  NormalizationRetrievalStrategy: () => NormalizationRetrievalStrategy,
+  NormalizedMemoryContextSchema: () => NormalizedMemoryContextSchema,
   NotificationChannel: () => NotificationChannel,
   NotificationRequestSchema: () => NotificationRequestSchema,
+  NudgeType: () => NudgeType,
   PACKAGE_NAME: () => PACKAGE_NAME,
   PACKAGE_VERSION: () => PACKAGE_VERSION,
   PatternType: () => PatternType,
@@ -131,12 +191,20 @@ __export(index_exports, {
   PermissionLevelSchema: () => PermissionLevelSchema,
   PermissionManager: () => PermissionManager,
   PlanBuilder: () => PlanBuilder,
+  PlanContextInjector: () => PlanContextInjector,
+  PlanEventType: () => PlanEventType,
   PlanStatus: () => PlanStatus,
   PlanStatusSchema: () => PlanStatusSchema,
+  PresenceChangeReason: () => PresenceChangeReason,
+  PresenceStatus: () => PresenceStatus,
+  PresenceTracker: () => PresenceTracker,
+  ProactiveEventType: () => ProactiveEventType,
   ProactivePlanStatus: () => LearningPlanStatus,
+  ProactivePushDispatcher: () => ProactivePushDispatcher,
   ProgressAnalyzer: () => ProgressAnalyzer,
   ProgressReportRequestSchema: () => ProgressReportRequestSchema,
   ProgressUpdateSchema: () => ProgressUpdateSchema,
+  PushDeliveryRequestSchema: () => PushDeliveryRequestSchema,
   QualityMetricType: () => QualityMetricType,
   QualityTracker: () => QualityTracker,
   QuestionType: () => QuestionType,
@@ -146,12 +214,18 @@ __export(index_exports, {
   RecommendationPriority: () => RecommendationPriority,
   RecommendationReason: () => RecommendationReason,
   RegisterToolInputSchema: () => RegisterToolInputSchema,
+  ReindexJobStatus: () => ReindexJobStatus,
+  ReindexJobType: () => ReindexJobType,
+  ReindexPriority: () => ReindexPriority,
   RelationshipType: () => RelationshipType,
   ReminderRequestSchema: () => ReminderRequestSchema,
   ResponseType: () => ResponseType,
   ResponseVerifier: () => ResponseVerifier,
   RetrievalQuerySchema: () => RetrievalQuerySchema,
   RetrievalStrategy: () => RetrievalStrategy,
+  SAMEventType: () => SAMEventType,
+  SAMWebSocketEventSchema: () => SAMWebSocketEventSchema,
+  ServerConnectionManager: () => ServerConnectionManager,
   SkillAssessmentInputSchema: () => SkillAssessmentInputSchema,
   SkillAssessor: () => SkillAssessor,
   SkillTracker: () => SkillTracker,
@@ -164,6 +238,9 @@ __export(index_exports, {
   StudySessionRequestSchema: () => StudySessionRequestSchema,
   SubGoalType: () => SubGoalType,
   SubGoalTypeSchema: () => SubGoalTypeSchema,
+  TelemetryMemorySource: () => MemorySource,
+  TelemetryResponseType: () => ResponseType4,
+  TelemetryToolExecutionStatus: () => ToolExecutionStatus2,
   TimePeriod: () => TimePeriod,
   ToolCategory: () => ToolCategory,
   ToolCategorySchema: () => ToolCategorySchema,
@@ -172,28 +249,55 @@ __export(index_exports, {
   ToolExecutionStatusSchema: () => ToolExecutionStatusSchema,
   ToolExecutor: () => ToolExecutor,
   ToolRegistry: () => ToolRegistry,
+  ToolTelemetry: () => ToolTelemetry,
   TrendDirection: () => TrendDirection,
   TriggerEvaluator: () => TriggerEvaluator,
   TriggerType: () => TriggerType,
+  TutoringLoopController: () => TutoringLoopController,
   UpdateGoalInputSchema: () => UpdateGoalInputSchema,
   UserRole: () => UserRole,
   VectorSearchOptionsSchema: () => VectorSearchOptionsSchema,
   VectorStore: () => VectorStore,
   VerificationInputSchema: () => VerificationInputSchema,
+  VerificationMethod: () => VerificationMethod,
   VerificationStatus: () => VerificationStatus,
+  WorkerConfigSchema: () => WorkerConfigSchema,
+  WorkerStatus: () => WorkerStatus,
   cosineSimilarity: () => cosineSimilarity,
+  createActiveStepExecutor: () => createActiveStepExecutor,
   createAgentStateMachine: () => createAgentStateMachine,
+  createAgenticMetricsCollector: () => createAgenticMetricsCollector,
   createAuditLogger: () => createAuditLogger,
+  createBackgroundWorker: () => createBackgroundWorker,
   createBehaviorMonitor: () => createBehaviorMonitor,
   createCheckInScheduler: () => createCheckInScheduler,
+  createClientWebSocketManager: () => createClientWebSocketManager,
+  createConfidenceCalibrationTracker: () => createConfidenceCalibrationTracker,
   createConfidenceScorer: () => createConfidenceScorer,
+  createConfirmationGate: () => createConfirmationGate,
   createConfirmationManager: () => createConfirmationManager,
   createContentTools: () => createContentTools,
   createCrossSessionContext: () => createCrossSessionContext,
   createGoalDecomposer: () => createGoalDecomposer,
+  createInMemoryConfidencePredictionStore: () => createInMemoryConfidencePredictionStore,
+  createInMemoryMemoryRetrievalStore: () => createInMemoryMemoryRetrievalStore,
+  createInMemoryOrchestrationConfirmationStore: () => createInMemoryOrchestrationConfirmationStore,
+  createInMemoryOrchestrationStores: () => createInMemoryOrchestrationStores,
+  createInMemoryPlanLifecycleStore: () => createInMemoryPlanLifecycleStore,
+  createInMemoryPresenceStore: () => createInMemoryPresenceStore,
+  createInMemoryProactiveEventStore: () => createInMemoryProactiveEventStore,
+  createInMemoryPushQueueStore: () => createInMemoryPushQueueStore,
+  createInMemorySessionStore: () => createInMemorySessionStore,
   createInMemoryStores: () => createInMemoryStores,
+  createInMemoryToolExecutionStore: () => createInMemoryToolExecutionStore,
+  createInterventionSurfaceManager: () => createInterventionSurfaceManager,
+  createJobQueue: () => createJobQueue,
   createJourneyTimeline: () => createJourneyTimeline,
+  createKGRefreshScheduler: () => createKGRefreshScheduler,
   createKnowledgeGraphManager: () => createKnowledgeGraphManager,
+  createMemoryLifecycleManager: () => createMemoryLifecycleManager,
+  createMemoryNormalizer: () => createMemoryNormalizer,
+  createMemoryQualityTracker: () => createMemoryQualityTracker,
   createMemoryRetriever: () => createMemoryRetriever,
   createMemorySystem: () => createMemorySystem,
   createMentorTools: () => createMentorTools,
@@ -202,22 +306,28 @@ __export(index_exports, {
   createPathRecommender: () => createPathRecommender,
   createPermissionManager: () => createPermissionManager,
   createPlanBuilder: () => createPlanBuilder,
+  createPlanContextInjector: () => createPlanContextInjector,
+  createPresenceTracker: () => createPresenceTracker,
   createPrismaAuditStore: () => createPrismaAuditStore,
   createPrismaConfirmationStore: () => createPrismaConfirmationStore,
   createPrismaInvocationStore: () => createPrismaInvocationStore,
   createPrismaPermissionStore: () => createPrismaPermissionStore,
   createPrismaToolStore: () => createPrismaToolStore,
   createProgressAnalyzer: () => createProgressAnalyzer,
+  createPushDispatcher: () => createPushDispatcher,
   createQualityTracker: () => createQualityTracker,
   createRecommendationEngine: () => createRecommendationEngine,
   createResponseVerifier: () => createResponseVerifier,
   createSchedulingTools: () => createSchedulingTools,
+  createServerConnectionManager: () => createServerConnectionManager,
   createSkillAssessor: () => createSkillAssessor,
   createSkillTracker: () => createSkillTracker,
   createStepExecutor: () => createStepExecutor,
   createStepExecutorFunction: () => createStepExecutorFunction,
   createToolExecutor: () => createToolExecutor,
   createToolRegistry: () => createToolRegistry,
+  createToolTelemetry: () => createToolTelemetry,
+  createTutoringLoopController: () => createTutoringLoopController,
   createVectorStore: () => createVectorStore,
   euclideanDistance: () => euclideanDistance,
   getMentorToolById: () => getMentorToolById,
@@ -9850,6 +9960,1997 @@ function createJourneyTimeline(config) {
   return new JourneyTimelineManager(config);
 }
 
+// src/memory/lifecycle/types.ts
+var import_zod9 = require("zod");
+var ContentEntityType = {
+  COURSE: "course",
+  CHAPTER: "chapter",
+  SECTION: "section",
+  LESSON: "lesson",
+  QUIZ: "quiz",
+  RESOURCE: "resource",
+  USER_NOTE: "user_note",
+  CONVERSATION: "conversation"
+};
+var ChangeType = {
+  CREATE: "create",
+  UPDATE: "update",
+  DELETE: "delete",
+  BULK_UPDATE: "bulk_update"
+};
+var ReindexJobType = {
+  SINGLE: "single",
+  BATCH: "batch",
+  FULL: "full",
+  INCREMENTAL: "incremental"
+};
+var ReindexJobStatus = {
+  PENDING: "pending",
+  QUEUED: "queued",
+  PROCESSING: "processing",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+  RETRYING: "retrying"
+};
+var ReindexPriority = {
+  LOW: 1,
+  NORMAL: 5,
+  HIGH: 10,
+  CRITICAL: 100
+};
+var ContentChangeEventSchema = import_zod9.z.object({
+  id: import_zod9.z.string().min(1),
+  entityType: import_zod9.z.enum([
+    "course",
+    "chapter",
+    "section",
+    "lesson",
+    "quiz",
+    "resource",
+    "user_note",
+    "conversation"
+  ]),
+  entityId: import_zod9.z.string().min(1),
+  changeType: import_zod9.z.enum(["create", "update", "delete", "bulk_update"]),
+  timestamp: import_zod9.z.date(),
+  metadata: import_zod9.z.object({
+    courseId: import_zod9.z.string().optional(),
+    chapterId: import_zod9.z.string().optional(),
+    sectionId: import_zod9.z.string().optional(),
+    userId: import_zod9.z.string().optional(),
+    previousHash: import_zod9.z.string().optional(),
+    newHash: import_zod9.z.string().optional(),
+    fieldsChanged: import_zod9.z.array(import_zod9.z.string()).optional(),
+    batchId: import_zod9.z.string().optional()
+  })
+});
+var MemoryLifecycleConfigSchema = import_zod9.z.object({
+  autoReindexEnabled: import_zod9.z.boolean().default(true),
+  debounceMs: import_zod9.z.number().min(0).default(5e3),
+  maxBatchSize: import_zod9.z.number().min(1).max(1e3).default(100),
+  maxConcurrentJobs: import_zod9.z.number().min(1).max(50).default(5),
+  retry: import_zod9.z.object({
+    maxAttempts: import_zod9.z.number().min(1).max(10).default(3),
+    backoffMs: import_zod9.z.number().min(100).max(6e4).default(1e3),
+    backoffMultiplier: import_zod9.z.number().min(1).max(10).default(2)
+  }),
+  priorityRules: import_zod9.z.array(import_zod9.z.any()).default([]),
+  entityConfigs: import_zod9.z.record(import_zod9.z.any()).default({})
+});
+
+// src/memory/lifecycle/memory-lifecycle-manager.ts
+var DEFAULT_CONFIG = {
+  autoReindexEnabled: true,
+  debounceMs: 5e3,
+  maxBatchSize: 100,
+  maxConcurrentJobs: 5,
+  retry: {
+    maxAttempts: 3,
+    backoffMs: 1e3,
+    backoffMultiplier: 2
+  },
+  priorityRules: [],
+  entityConfigs: {}
+};
+var InMemoryReindexJobStore = class {
+  jobs = /* @__PURE__ */ new Map();
+  async create(job) {
+    const now = /* @__PURE__ */ new Date();
+    const newJob = {
+      ...job,
+      id: v4_default(),
+      createdAt: now,
+      updatedAt: now
+    };
+    this.jobs.set(newJob.id, newJob);
+    return newJob;
+  }
+  async get(id) {
+    return this.jobs.get(id) ?? null;
+  }
+  async update(id, updates) {
+    const job = this.jobs.get(id);
+    if (!job) return null;
+    const updated = {
+      ...job,
+      ...updates,
+      id: job.id,
+      createdAt: job.createdAt,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.jobs.set(id, updated);
+    return updated;
+  }
+  async delete(id) {
+    return this.jobs.delete(id);
+  }
+  async findPending(limit) {
+    const pending = Array.from(this.jobs.values()).filter(
+      (j) => j.status === "pending" || j.status === "queued" || j.status === "retrying"
+    ).filter((j) => j.scheduledFor <= /* @__PURE__ */ new Date()).sort((a, b) => b.priority - a.priority || a.createdAt.getTime() - b.createdAt.getTime());
+    return pending.slice(0, limit);
+  }
+  async findByEntity(entityType, entityId) {
+    return Array.from(this.jobs.values()).filter(
+      (j) => j.entityType === entityType && j.entityId === entityId
+    );
+  }
+  async findByStatus(status, limit) {
+    const jobs = Array.from(this.jobs.values()).filter((j) => j.status === status);
+    return limit ? jobs.slice(0, limit) : jobs;
+  }
+  async countByStatus() {
+    const counts = {
+      pending: 0,
+      queued: 0,
+      processing: 0,
+      completed: 0,
+      failed: 0,
+      cancelled: 0,
+      retrying: 0
+    };
+    for (const job of this.jobs.values()) {
+      counts[job.status]++;
+    }
+    return counts;
+  }
+  async cleanupCompleted(olderThan) {
+    let count = 0;
+    for (const [id, job] of this.jobs) {
+      if (job.status === "completed" && job.completedAt && job.completedAt < olderThan) {
+        this.jobs.delete(id);
+        count++;
+      }
+    }
+    return count;
+  }
+  clear() {
+    this.jobs.clear();
+  }
+};
+var ChangeDebouncer = class {
+  constructor(debounceMs, onFlush) {
+    this.debounceMs = debounceMs;
+    this.onFlush = onFlush;
+  }
+  pending = /* @__PURE__ */ new Map();
+  add(event) {
+    const key = `${event.entityType}:${event.entityId}`;
+    const existing = this.pending.get(key);
+    if (existing) {
+      clearTimeout(existing.timer);
+      existing.events.push(event);
+    } else {
+      this.pending.set(key, {
+        events: [event],
+        timer: setTimeout(() => this.flush(key), this.debounceMs),
+        createdAt: /* @__PURE__ */ new Date()
+      });
+      return;
+    }
+    const updated = this.pending.get(key);
+    updated.timer = setTimeout(() => this.flush(key), this.debounceMs);
+  }
+  flush(key) {
+    const debounced = this.pending.get(key);
+    if (!debounced) return;
+    this.pending.delete(key);
+    this.onFlush(debounced.events);
+  }
+  flushAll() {
+    for (const key of this.pending.keys()) {
+      this.flush(key);
+    }
+  }
+  clear() {
+    for (const debounced of this.pending.values()) {
+      clearTimeout(debounced.timer);
+    }
+    this.pending.clear();
+  }
+};
+var MemoryLifecycleManager = class {
+  config;
+  store;
+  vectorAdapter;
+  logger;
+  debouncer;
+  isRunning = false;
+  processingInterval;
+  activeJobs = 0;
+  constructor(options) {
+    this.config = { ...DEFAULT_CONFIG, ...options.config };
+    this.store = options.store ?? new InMemoryReindexJobStore();
+    this.vectorAdapter = options.vectorAdapter;
+    this.logger = options.logger ?? console;
+    this.debouncer = new ChangeDebouncer(
+      this.config.debounceMs,
+      (events) => this.processDebouncedEvents(events)
+    );
+  }
+  // -------------------------------------------------------------------------
+  // Event Handling
+  // -------------------------------------------------------------------------
+  async handleContentChange(event) {
+    if (!this.config.autoReindexEnabled) {
+      this.logger.debug("Auto-reindex disabled, ignoring event", {
+        entityType: event.entityType,
+        entityId: event.entityId
+      });
+      return;
+    }
+    this.logger.info("Content change detected", {
+      entityType: event.entityType,
+      entityId: event.entityId,
+      changeType: event.changeType
+    });
+    this.debouncer.add(event);
+  }
+  async processDebouncedEvents(events) {
+    if (events.length === 0) return;
+    const firstEvent = events[0];
+    const lastEvent = events[events.length - 1];
+    let effectiveChangeType = firstEvent.changeType;
+    if (events.some((e) => e.changeType === "delete")) {
+      effectiveChangeType = "delete";
+    } else if (events.length > 1) {
+      effectiveChangeType = "bulk_update";
+    }
+    const priority = this.calculatePriority(firstEvent);
+    try {
+      await this.queueReindexJob({
+        type: events.length > 1 ? "batch" : "single",
+        status: "pending",
+        priority,
+        entityType: firstEvent.entityType,
+        entityId: firstEvent.entityId,
+        changeType: effectiveChangeType,
+        metadata: {
+          courseId: firstEvent.metadata.courseId,
+          source: "content_change",
+          triggeredBy: "lifecycle_manager",
+          custom: {
+            eventCount: events.length,
+            firstEventId: firstEvent.id,
+            lastEventId: lastEvent.id
+          }
+        },
+        attempts: 0,
+        maxAttempts: this.config.retry.maxAttempts,
+        scheduledFor: /* @__PURE__ */ new Date()
+      });
+    } catch (error) {
+      this.logger.error("Failed to queue reindex job", {
+        entityType: firstEvent.entityType,
+        entityId: firstEvent.entityId,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  }
+  calculatePriority(event) {
+    for (const rule of this.config.priorityRules) {
+      if (rule.condition.entityTypes?.includes(event.entityType)) {
+        if (!rule.condition.changeTypes || rule.condition.changeTypes.includes(event.changeType)) {
+          if (!rule.condition.custom || rule.condition.custom(event)) {
+            return rule.priority;
+          }
+        }
+      }
+    }
+    switch (event.entityType) {
+      case "course":
+        return 10;
+      // HIGH
+      case "chapter":
+        return 5;
+      // NORMAL
+      case "section":
+        return 5;
+      // NORMAL
+      default:
+        return 1;
+    }
+  }
+  // -------------------------------------------------------------------------
+  // Job Management
+  // -------------------------------------------------------------------------
+  async queueReindexJob(job) {
+    const existingJobs = await this.store.findByEntity(job.entityType, job.entityId);
+    const pendingJob = existingJobs.find(
+      (j) => j.status === "pending" || j.status === "queued"
+    );
+    if (pendingJob) {
+      if (job.priority > pendingJob.priority) {
+        const updated = await this.store.update(pendingJob.id, {
+          priority: job.priority,
+          changeType: job.changeType
+        });
+        this.logger.debug("Updated existing job priority", {
+          jobId: pendingJob.id,
+          newPriority: job.priority
+        });
+        return updated;
+      }
+      return pendingJob;
+    }
+    const newJob = await this.store.create(job);
+    this.logger.info("Reindex job queued", {
+      jobId: newJob.id,
+      entityType: newJob.entityType,
+      entityId: newJob.entityId,
+      priority: newJob.priority
+    });
+    return newJob;
+  }
+  async getPendingJobs(limit = 100) {
+    return this.store.findPending(limit);
+  }
+  async processJobs() {
+    const availableSlots = this.config.maxConcurrentJobs - this.activeJobs;
+    if (availableSlots <= 0) {
+      return [];
+    }
+    const jobs = await this.store.findPending(availableSlots);
+    if (jobs.length === 0) {
+      return [];
+    }
+    const results = [];
+    for (const job of jobs) {
+      try {
+        this.activeJobs++;
+        await this.store.update(job.id, {
+          status: "processing",
+          startedAt: /* @__PURE__ */ new Date()
+        });
+        const result = await this.processJob(job);
+        results.push(result);
+        await this.store.update(job.id, {
+          status: result.success ? "completed" : "failed",
+          completedAt: /* @__PURE__ */ new Date(),
+          lastError: result.errors.length > 0 ? result.errors[0].message : void 0
+        });
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        this.logger.error("Job processing failed", {
+          jobId: job.id,
+          error: errorMessage
+        });
+        if (job.attempts + 1 < job.maxAttempts) {
+          const backoffMs = this.config.retry.backoffMs * Math.pow(this.config.retry.backoffMultiplier, job.attempts);
+          await this.store.update(job.id, {
+            status: "retrying",
+            attempts: job.attempts + 1,
+            lastAttemptAt: /* @__PURE__ */ new Date(),
+            lastError: errorMessage,
+            scheduledFor: new Date(Date.now() + backoffMs)
+          });
+        } else {
+          await this.store.update(job.id, {
+            status: "failed",
+            attempts: job.attempts + 1,
+            lastAttemptAt: /* @__PURE__ */ new Date(),
+            lastError: errorMessage
+          });
+        }
+        results.push({
+          jobId: job.id,
+          success: false,
+          documentsProcessed: 0,
+          documentsAdded: 0,
+          documentsUpdated: 0,
+          documentsDeleted: 0,
+          errors: [{ message: errorMessage, code: "PROCESSING_ERROR", recoverable: true }],
+          duration: 0,
+          timestamp: /* @__PURE__ */ new Date()
+        });
+      } finally {
+        this.activeJobs--;
+      }
+    }
+    return results;
+  }
+  async processJob(job) {
+    const startTime = Date.now();
+    let documentsProcessed = 0;
+    let documentsAdded = 0;
+    let documentsUpdated = 0;
+    let documentsDeleted = 0;
+    const errors = [];
+    this.logger.info("Processing reindex job", {
+      jobId: job.id,
+      entityType: job.entityType,
+      entityId: job.entityId,
+      changeType: job.changeType
+    });
+    try {
+      const entityConfig = this.config.entityConfigs[job.entityType];
+      if (!entityConfig?.enabled) {
+        this.logger.warn("Entity type not configured for reindexing", {
+          entityType: job.entityType
+        });
+        return {
+          jobId: job.id,
+          success: true,
+          documentsProcessed: 0,
+          documentsAdded: 0,
+          documentsUpdated: 0,
+          documentsDeleted: 0,
+          errors: [],
+          duration: Date.now() - startTime,
+          timestamp: /* @__PURE__ */ new Date()
+        };
+      }
+      if (job.changeType === "delete") {
+        const deletedCount = await this.vectorAdapter.deleteByFilter({
+          sourceTypes: [job.entityType],
+          custom: { entityId: job.entityId }
+        });
+        documentsDeleted = deletedCount;
+        documentsProcessed = deletedCount;
+      } else {
+        const content = await entityConfig.extractContent(job.entityId);
+        if (!content) {
+          this.logger.warn("No content extracted for entity", {
+            entityType: job.entityType,
+            entityId: job.entityId
+          });
+        } else {
+          const chunks = content.chunks ?? [{ id: content.id, content: content.content, index: 0, metadata: {} }];
+          for (const chunk of chunks) {
+            try {
+              const vectorId = `${job.entityType}:${job.entityId}:${chunk.index}`;
+              const existing = await this.vectorAdapter.get(vectorId);
+              if (existing) {
+                await this.vectorAdapter.upsert({
+                  id: vectorId,
+                  content: chunk.content,
+                  metadata: {
+                    sourceType: job.entityType,
+                    sourceId: job.entityId,
+                    courseId: job.metadata.courseId,
+                    tags: [],
+                    ...chunk.metadata
+                  }
+                });
+                documentsUpdated++;
+              } else {
+                await this.vectorAdapter.insert({
+                  id: vectorId,
+                  content: chunk.content,
+                  metadata: {
+                    sourceType: job.entityType,
+                    sourceId: job.entityId,
+                    courseId: job.metadata.courseId,
+                    tags: [],
+                    ...chunk.metadata
+                  }
+                });
+                documentsAdded++;
+              }
+              documentsProcessed++;
+            } catch (chunkError) {
+              errors.push({
+                documentId: `${job.entityType}:${job.entityId}:${chunk.index}`,
+                entityId: job.entityId,
+                message: chunkError instanceof Error ? chunkError.message : "Unknown error",
+                code: "CHUNK_PROCESSING_ERROR",
+                recoverable: true
+              });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      errors.push({
+        entityId: job.entityId,
+        message: error instanceof Error ? error.message : "Unknown error",
+        code: "JOB_PROCESSING_ERROR",
+        recoverable: false
+      });
+    }
+    const result = {
+      jobId: job.id,
+      success: errors.filter((e) => !e.recoverable).length === 0,
+      documentsProcessed,
+      documentsAdded,
+      documentsUpdated,
+      documentsDeleted,
+      errors,
+      duration: Date.now() - startTime,
+      timestamp: /* @__PURE__ */ new Date()
+    };
+    this.logger.info("Reindex job completed", {
+      jobId: job.id,
+      success: result.success,
+      documentsProcessed: result.documentsProcessed,
+      duration: result.duration
+    });
+    return result;
+  }
+  async cancelJob(jobId) {
+    const job = await this.store.get(jobId);
+    if (!job) return false;
+    if (job.status === "processing") {
+      this.logger.warn("Cannot cancel job in processing state", { jobId });
+      return false;
+    }
+    await this.store.update(jobId, { status: "cancelled" });
+    this.logger.info("Job cancelled", { jobId });
+    return true;
+  }
+  async getJobStatus(jobId) {
+    return this.store.get(jobId);
+  }
+  async getStats() {
+    const counts = await this.store.countByStatus();
+    const today = /* @__PURE__ */ new Date();
+    today.setHours(0, 0, 0, 0);
+    return {
+      pendingJobs: counts.pending + counts.queued + counts.retrying,
+      processingJobs: counts.processing,
+      completedToday: counts.completed,
+      failedToday: counts.failed,
+      averageProcessingTime: 0,
+      // Would need to track this
+      queueDepthByPriority: {}
+    };
+  }
+  async triggerFullReindex(entityType) {
+    return this.queueReindexJob({
+      type: "full",
+      status: "pending",
+      priority: 1,
+      // LOW - full reindex runs in background
+      entityType,
+      entityId: "*",
+      changeType: "bulk_update",
+      metadata: {
+        source: "manual_trigger",
+        triggeredBy: "lifecycle_manager"
+      },
+      attempts: 0,
+      maxAttempts: this.config.retry.maxAttempts,
+      scheduledFor: /* @__PURE__ */ new Date()
+    });
+  }
+  // -------------------------------------------------------------------------
+  // Lifecycle Control
+  // -------------------------------------------------------------------------
+  async start() {
+    if (this.isRunning) {
+      this.logger.warn("Lifecycle manager already running");
+      return;
+    }
+    this.isRunning = true;
+    this.logger.info("Memory lifecycle manager started");
+    this.processingInterval = setInterval(
+      () => this.processJobs().catch((e) => this.logger.error("Job processing error", { error: e })),
+      5e3
+      // Process every 5 seconds
+    );
+  }
+  async stop() {
+    if (!this.isRunning) return;
+    this.isRunning = false;
+    this.debouncer.flushAll();
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+      this.processingInterval = void 0;
+    }
+    this.logger.info("Memory lifecycle manager stopped");
+  }
+};
+function createMemoryLifecycleManager(options) {
+  return new MemoryLifecycleManager(options);
+}
+
+// src/memory/lifecycle/kg-refresh-scheduler.ts
+var KGRefreshJobType = {
+  FULL_REBUILD: "full_rebuild",
+  INCREMENTAL: "incremental",
+  RELATIONSHIP_CHECK: "relationship_check",
+  STALE_PRUNING: "stale_pruning",
+  CONSISTENCY_CHECK: "consistency_check"
+};
+var KGRefreshJobStatus = {
+  PENDING: "pending",
+  RUNNING: "running",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled"
+};
+var DEFAULT_CONFIG2 = {
+  enabled: true,
+  scheduleIntervalMs: 6 * 60 * 60 * 1e3,
+  // 6 hours
+  staleRelationshipAgeMs: 7 * 24 * 60 * 60 * 1e3,
+  // 7 days
+  entityTypes: ["concept", "topic", "skill", "course", "chapter", "section"],
+  incrementalMode: true,
+  batchSize: 100,
+  minRelationshipConfidence: 0.5
+};
+var KGRefreshScheduler = class {
+  config;
+  kgStore;
+  logger;
+  jobs = /* @__PURE__ */ new Map();
+  isRunning = false;
+  schedulerInterval;
+  constructor(options) {
+    this.config = { ...DEFAULT_CONFIG2, ...options.config };
+    this.kgStore = options.kgStore;
+    this.logger = options.logger ?? console;
+  }
+  // -------------------------------------------------------------------------
+  // Job Management
+  // -------------------------------------------------------------------------
+  async scheduleRefresh(type, options) {
+    const now = /* @__PURE__ */ new Date();
+    const job = {
+      id: v4_default(),
+      type,
+      status: "pending",
+      entityTypes: options?.entityTypes ?? this.config.entityTypes,
+      relationshipTypes: options?.relationshipTypes,
+      scheduledFor: options?.scheduledFor ?? now,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.jobs.set(job.id, job);
+    this.logger.info("KG refresh job scheduled", {
+      jobId: job.id,
+      type: job.type,
+      scheduledFor: job.scheduledFor
+    });
+    return job;
+  }
+  async executePendingJobs() {
+    const now = /* @__PURE__ */ new Date();
+    const pendingJobs = Array.from(this.jobs.values()).filter((j) => j.status === "pending" && j.scheduledFor <= now).sort((a, b) => a.scheduledFor.getTime() - b.scheduledFor.getTime());
+    const results = [];
+    for (const job of pendingJobs) {
+      try {
+        job.status = "running";
+        job.startedAt = /* @__PURE__ */ new Date();
+        job.updatedAt = /* @__PURE__ */ new Date();
+        this.jobs.set(job.id, job);
+        const result = await this.executeJob(job);
+        results.push(result);
+        job.status = "completed";
+        job.completedAt = /* @__PURE__ */ new Date();
+        job.result = result;
+        job.updatedAt = /* @__PURE__ */ new Date();
+        this.jobs.set(job.id, job);
+        this.logger.info("KG refresh job completed", {
+          jobId: job.id,
+          type: job.type,
+          duration: result.duration,
+          entitiesProcessed: result.entitiesProcessed,
+          relationshipsProcessed: result.relationshipsProcessed
+        });
+      } catch (error) {
+        job.status = "failed";
+        job.error = error instanceof Error ? error.message : "Unknown error";
+        job.updatedAt = /* @__PURE__ */ new Date();
+        this.jobs.set(job.id, job);
+        this.logger.error("KG refresh job failed", {
+          jobId: job.id,
+          error: job.error
+        });
+      }
+    }
+    return results;
+  }
+  async executeJob(job) {
+    const startTime = Date.now();
+    const result = {
+      entitiesProcessed: 0,
+      entitiesAdded: 0,
+      entitiesUpdated: 0,
+      entitiesDeleted: 0,
+      relationshipsProcessed: 0,
+      relationshipsAdded: 0,
+      relationshipsUpdated: 0,
+      relationshipsDeleted: 0,
+      staleRelationshipsPruned: 0,
+      inconsistenciesFound: 0,
+      inconsistenciesFixed: 0,
+      duration: 0
+    };
+    switch (job.type) {
+      case "full_rebuild":
+        await this.executeFullRebuild(job, result);
+        break;
+      case "incremental":
+        await this.executeIncrementalRefresh(job, result);
+        break;
+      case "relationship_check":
+        await this.executeRelationshipCheck(job, result);
+        break;
+      case "stale_pruning":
+        await this.executeStalePruning(job, result);
+        break;
+      case "consistency_check":
+        await this.executeConsistencyCheck(job, result);
+        break;
+    }
+    result.duration = Date.now() - startTime;
+    return result;
+  }
+  async executeFullRebuild(job, result) {
+    this.logger.info("Executing full KG rebuild", { jobId: job.id });
+    for (const entityType of job.entityTypes ?? this.config.entityTypes) {
+      const entities = await this.kgStore.findEntities(
+        entityType,
+        void 0,
+        this.config.batchSize
+      );
+      for (const entity of entities) {
+        result.entitiesProcessed++;
+        const relationships = await this.kgStore.getRelationships(entity.id);
+        result.relationshipsProcessed += relationships.length;
+        for (const rel of relationships) {
+          const isValid = await this.validateRelationship(rel);
+          if (!isValid) {
+            await this.kgStore.deleteRelationship(rel.id);
+            result.relationshipsDeleted++;
+          }
+        }
+      }
+    }
+  }
+  async executeIncrementalRefresh(job, result) {
+    this.logger.info("Executing incremental KG refresh", { jobId: job.id });
+    const cutoff = new Date(Date.now() - this.config.scheduleIntervalMs);
+    for (const entityType of job.entityTypes ?? this.config.entityTypes) {
+      const entities = await this.kgStore.findEntities(
+        entityType,
+        void 0,
+        this.config.batchSize
+      );
+      const recentEntities = entities.filter((e) => e.updatedAt >= cutoff);
+      for (const entity of recentEntities) {
+        result.entitiesProcessed++;
+        const relationships = await this.kgStore.getRelationships(entity.id);
+        result.relationshipsProcessed += relationships.length;
+      }
+    }
+  }
+  async executeRelationshipCheck(job, result) {
+    this.logger.info("Executing relationship check", { jobId: job.id });
+    for (const entityType of job.entityTypes ?? this.config.entityTypes) {
+      const entities = await this.kgStore.findEntities(
+        entityType,
+        void 0,
+        this.config.batchSize
+      );
+      for (const entity of entities) {
+        const relationships = await this.kgStore.getRelationships(entity.id);
+        for (const rel of relationships) {
+          result.relationshipsProcessed++;
+          const target = await this.kgStore.getEntity(rel.targetId);
+          if (!target) {
+            await this.kgStore.deleteRelationship(rel.id);
+            result.relationshipsDeleted++;
+            result.inconsistenciesFound++;
+            result.inconsistenciesFixed++;
+          }
+        }
+      }
+    }
+  }
+  async executeStalePruning(job, result) {
+    this.logger.info("Executing stale relationship pruning", { jobId: job.id });
+    const staleThreshold = new Date(Date.now() - this.config.staleRelationshipAgeMs);
+    for (const entityType of job.entityTypes ?? this.config.entityTypes) {
+      const entities = await this.kgStore.findEntities(
+        entityType,
+        void 0,
+        this.config.batchSize
+      );
+      for (const entity of entities) {
+        const relationships = await this.kgStore.getRelationships(entity.id);
+        for (const rel of relationships) {
+          result.relationshipsProcessed++;
+          if (rel.createdAt < staleThreshold && rel.weight < this.config.minRelationshipConfidence) {
+            await this.kgStore.deleteRelationship(rel.id);
+            result.staleRelationshipsPruned++;
+          }
+        }
+      }
+    }
+  }
+  async executeConsistencyCheck(job, result) {
+    this.logger.info("Executing consistency check", { jobId: job.id });
+    for (const entityType of job.entityTypes ?? this.config.entityTypes) {
+      const entities = await this.kgStore.findEntities(
+        entityType,
+        void 0,
+        this.config.batchSize
+      );
+      for (const entity of entities) {
+        result.entitiesProcessed++;
+        const relationships = await this.kgStore.getRelationships(entity.id);
+        if (relationships.length === 0) {
+          result.inconsistenciesFound++;
+        }
+        const relMap = /* @__PURE__ */ new Map();
+        for (const rel of relationships) {
+          result.relationshipsProcessed++;
+          const key = `${rel.type}:${rel.sourceId}:${rel.targetId}`;
+          if (relMap.has(key)) {
+            const existing = relMap.get(key);
+            const toDelete = rel.createdAt < existing.createdAt ? rel : existing;
+            await this.kgStore.deleteRelationship(toDelete.id);
+            result.inconsistenciesFound++;
+            result.inconsistenciesFixed++;
+          } else {
+            relMap.set(key, rel);
+          }
+        }
+      }
+    }
+  }
+  async validateRelationship(rel) {
+    const source = await this.kgStore.getEntity(rel.sourceId);
+    const target = await this.kgStore.getEntity(rel.targetId);
+    return source !== null && target !== null;
+  }
+  // -------------------------------------------------------------------------
+  // Status and Control
+  // -------------------------------------------------------------------------
+  async getJobStatus(jobId) {
+    return this.jobs.get(jobId) ?? null;
+  }
+  async cancelJob(jobId) {
+    const job = this.jobs.get(jobId);
+    if (!job) return false;
+    if (job.status === "running") {
+      this.logger.warn("Cannot cancel running job", { jobId });
+      return false;
+    }
+    job.status = "cancelled";
+    job.updatedAt = /* @__PURE__ */ new Date();
+    this.jobs.set(jobId, job);
+    return true;
+  }
+  async getStats() {
+    const now = /* @__PURE__ */ new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1e3);
+    const completedJobs = Array.from(this.jobs.values()).filter(
+      (j) => j.status === "completed" && j.completedAt && j.completedAt >= oneDayAgo
+    );
+    const lastCompleted = completedJobs.sort(
+      (a, b) => (b.completedAt?.getTime() ?? 0) - (a.completedAt?.getTime() ?? 0)
+    )[0];
+    return {
+      lastRefreshAt: lastCompleted?.completedAt,
+      lastRefreshDuration: lastCompleted?.result?.duration,
+      totalEntities: 0,
+      // Would need to query KG store
+      totalRelationships: 0,
+      staleRelationships: 0,
+      pendingJobs: Array.from(this.jobs.values()).filter((j) => j.status === "pending").length,
+      completedJobs24h: completedJobs.length
+    };
+  }
+  // -------------------------------------------------------------------------
+  // Lifecycle
+  // -------------------------------------------------------------------------
+  async start() {
+    if (this.isRunning) {
+      this.logger.warn("KG refresh scheduler already running");
+      return;
+    }
+    this.isRunning = true;
+    this.logger.info("KG refresh scheduler started", {
+      intervalMs: this.config.scheduleIntervalMs,
+      incrementalMode: this.config.incrementalMode
+    });
+    await this.scheduleRefresh(
+      this.config.incrementalMode ? "incremental" : "full_rebuild"
+    );
+    this.schedulerInterval = setInterval(async () => {
+      try {
+        await this.executePendingJobs();
+        const nextRun = new Date(Date.now() + this.config.scheduleIntervalMs);
+        await this.scheduleRefresh(
+          this.config.incrementalMode ? "incremental" : "full_rebuild",
+          { scheduledFor: nextRun }
+        );
+      } catch (error) {
+        this.logger.error("KG refresh scheduler error", {
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }, this.config.scheduleIntervalMs);
+  }
+  async stop() {
+    if (!this.isRunning) return;
+    this.isRunning = false;
+    if (this.schedulerInterval) {
+      clearInterval(this.schedulerInterval);
+      this.schedulerInterval = void 0;
+    }
+    this.logger.info("KG refresh scheduler stopped");
+  }
+};
+function createKGRefreshScheduler(options) {
+  return new KGRefreshScheduler(options);
+}
+
+// src/memory/normalization/types.ts
+var import_zod10 = require("zod");
+var MemorySegmentType = {
+  COURSE_CONTENT: "course_content",
+  USER_HISTORY: "user_history",
+  PREVIOUS_CONVERSATIONS: "previous_conversations",
+  RELATED_CONCEPTS: "related_concepts",
+  LEARNING_PROGRESS: "learning_progress",
+  USER_NOTES: "user_notes",
+  EXTERNAL_KNOWLEDGE: "external_knowledge",
+  RECENT_ACTIVITY: "recent_activity"
+};
+var MemoryItemType = {
+  TEXT: "text",
+  CONVERSATION_TURN: "conversation_turn",
+  CONCEPT: "concept",
+  SKILL: "skill",
+  PROGRESS: "progress",
+  NOTE: "note",
+  QUESTION: "question",
+  ANSWER: "answer",
+  ARTIFACT: "artifact"
+};
+var MemorySourceType = {
+  VECTOR_STORE: "vector_store",
+  KNOWLEDGE_GRAPH: "knowledge_graph",
+  SESSION_CONTEXT: "session_context",
+  JOURNEY_TIMELINE: "journey_timeline",
+  DATABASE: "database",
+  EXTERNAL_API: "external_api"
+};
+var NormalizationRetrievalStrategy = {
+  SEMANTIC_SEARCH: "semantic_search",
+  KEYWORD_SEARCH: "keyword_search",
+  GRAPH_TRAVERSAL: "graph_traversal",
+  RECENCY_BOOST: "recency_boost",
+  HYBRID: "hybrid",
+  CONTEXTUAL: "contextual"
+};
+var DEFAULT_NORMALIZER_CONFIG = {
+  maxItems: 50,
+  maxItemsPerSegment: 10,
+  maxContentLength: 2e3,
+  minRelevanceScore: 0.3,
+  includeSummaries: true,
+  maxSummaryLength: 200,
+  segmentPriority: [
+    "course_content",
+    "previous_conversations",
+    "related_concepts",
+    "learning_progress",
+    "user_notes",
+    "user_history",
+    "recent_activity",
+    "external_knowledge"
+  ],
+  tokenBudget: 4e3,
+  charsPerToken: 4
+};
+var NormalizedMemoryContextSchema = import_zod10.z.object({
+  id: import_zod10.z.string().min(1),
+  userId: import_zod10.z.string().min(1),
+  courseId: import_zod10.z.string().optional(),
+  generatedAt: import_zod10.z.date(),
+  generationTimeMs: import_zod10.z.number().min(0),
+  segments: import_zod10.z.array(
+    import_zod10.z.object({
+      type: import_zod10.z.string(),
+      title: import_zod10.z.string(),
+      items: import_zod10.z.array(import_zod10.z.any()),
+      relevanceScore: import_zod10.z.number().min(0).max(1),
+      priority: import_zod10.z.number()
+    })
+  ),
+  relevanceScore: import_zod10.z.number().min(0).max(1),
+  sources: import_zod10.z.array(
+    import_zod10.z.object({
+      type: import_zod10.z.string(),
+      id: import_zod10.z.string(),
+      name: import_zod10.z.string().optional(),
+      url: import_zod10.z.string().optional()
+    })
+  ),
+  strategies: import_zod10.z.array(
+    import_zod10.z.object({
+      type: import_zod10.z.string(),
+      durationMs: import_zod10.z.number(),
+      resultsCount: import_zod10.z.number(),
+      avgRelevance: import_zod10.z.number()
+    })
+  ),
+  metadata: import_zod10.z.object({
+    query: import_zod10.z.string().optional(),
+    totalItemsFound: import_zod10.z.number(),
+    filteredItems: import_zod10.z.number(),
+    estimatedTokens: import_zod10.z.number(),
+    truncated: import_zod10.z.boolean(),
+    custom: import_zod10.z.record(import_zod10.z.unknown()).optional()
+  })
+});
+var MemoryNormalizerConfigSchema = import_zod10.z.object({
+  maxItems: import_zod10.z.number().min(1).max(1e3),
+  maxItemsPerSegment: import_zod10.z.number().min(1).max(100),
+  maxContentLength: import_zod10.z.number().min(100).max(1e4),
+  minRelevanceScore: import_zod10.z.number().min(0).max(1),
+  includeSummaries: import_zod10.z.boolean(),
+  maxSummaryLength: import_zod10.z.number().min(50).max(1e3),
+  segmentPriority: import_zod10.z.array(import_zod10.z.string()),
+  tokenBudget: import_zod10.z.number().min(100).max(1e5),
+  charsPerToken: import_zod10.z.number().min(1).max(10)
+});
+
+// src/memory/normalization/memory-normalizer.ts
+var MemoryNormalizer = class {
+  config;
+  logger;
+  constructor(options) {
+    this.config = { ...DEFAULT_NORMALIZER_CONFIG, ...options?.config };
+    this.logger = options?.logger ?? console;
+  }
+  // -------------------------------------------------------------------------
+  // Configuration
+  // -------------------------------------------------------------------------
+  getConfig() {
+    return { ...this.config };
+  }
+  updateConfig(config) {
+    this.config = { ...this.config, ...config };
+  }
+  // -------------------------------------------------------------------------
+  // Normalization
+  // -------------------------------------------------------------------------
+  async normalize(input) {
+    const startTime = Date.now();
+    const sources = [];
+    const strategies = [];
+    const segments = [];
+    let totalItemsFound = 0;
+    this.logger.debug("Normalizing memory input", {
+      userId: input.userId,
+      courseId: input.courseId,
+      hasQuery: !!input.query
+    });
+    if (input.vectorResults?.length) {
+      const vectorStartTime = Date.now();
+      const vectorSegments = this.processVectorResults(input.vectorResults, input.courseId);
+      segments.push(...vectorSegments);
+      totalItemsFound += input.vectorResults.length;
+      sources.push({
+        type: "vector_store",
+        id: "primary",
+        name: "Vector Store"
+      });
+      strategies.push({
+        type: "semantic_search",
+        durationMs: Date.now() - vectorStartTime,
+        resultsCount: input.vectorResults.length,
+        avgRelevance: this.calculateAvgRelevance(input.vectorResults.map((r) => r.score))
+      });
+    }
+    if (input.graphResults?.length) {
+      const graphStartTime = Date.now();
+      const graphSegments = this.processGraphResults(input.graphResults);
+      segments.push(...graphSegments);
+      totalItemsFound += input.graphResults.length;
+      sources.push({
+        type: "knowledge_graph",
+        id: "primary",
+        name: "Knowledge Graph"
+      });
+      strategies.push({
+        type: "graph_traversal",
+        durationMs: Date.now() - graphStartTime,
+        resultsCount: input.graphResults.length,
+        avgRelevance: 0.7
+        // Default relevance for graph results
+      });
+    }
+    if (input.sessionContext) {
+      const sessionSegment = this.processSessionContext(input.sessionContext);
+      if (sessionSegment.items.length > 0) {
+        segments.push(sessionSegment);
+        totalItemsFound += sessionSegment.items.length;
+        sources.push({
+          type: "session_context",
+          id: "current",
+          name: "Current Session"
+        });
+      }
+    }
+    if (input.journeyEvents?.length) {
+      const journeySegment = this.processJourneyEvents(input.journeyEvents);
+      if (journeySegment.items.length > 0) {
+        segments.push(journeySegment);
+        totalItemsFound += input.journeyEvents.length;
+        sources.push({
+          type: "journey_timeline",
+          id: "user",
+          name: "Learning Journey"
+        });
+      }
+    }
+    segments.sort((a, b) => b.priority - a.priority);
+    const { truncatedSegments, truncated, estimatedTokens } = this.applyTokenBudget(segments);
+    const relevanceScore = this.calculateOverallRelevance(truncatedSegments);
+    const context = {
+      id: v4_default(),
+      userId: input.userId,
+      courseId: input.courseId,
+      generatedAt: /* @__PURE__ */ new Date(),
+      generationTimeMs: Date.now() - startTime,
+      segments: truncatedSegments,
+      relevanceScore,
+      sources,
+      strategies,
+      metadata: {
+        query: input.query,
+        totalItemsFound,
+        filteredItems: this.countItems(truncatedSegments),
+        estimatedTokens,
+        truncated
+      }
+    };
+    this.logger.info("Memory normalization complete", {
+      contextId: context.id,
+      segmentCount: context.segments.length,
+      itemCount: context.metadata.filteredItems,
+      estimatedTokens: context.metadata.estimatedTokens,
+      durationMs: context.generationTimeMs
+    });
+    return context;
+  }
+  // -------------------------------------------------------------------------
+  // Processing Methods
+  // -------------------------------------------------------------------------
+  processVectorResults(results, _courseId) {
+    if (!results?.length) return [];
+    const groups = {};
+    for (const result of results) {
+      const sourceType = result.metadata.sourceType || "unknown";
+      const segmentType = this.mapSourceToSegmentType(sourceType);
+      if (!groups[segmentType]) {
+        groups[segmentType] = [];
+      }
+      if (result.score < this.config.minRelevanceScore) {
+        continue;
+      }
+      const item = {
+        id: result.id,
+        type: this.mapToItemType(sourceType),
+        content: this.truncateContent(result.content),
+        summary: this.config.includeSummaries ? this.generateSummary(result.content) : void 0,
+        relevanceScore: result.score,
+        source: {
+          type: "vector_store",
+          id: result.id,
+          name: result.metadata.title || void 0
+        },
+        createdAt: new Date(result.metadata.createdAt || Date.now()),
+        metadata: result.metadata
+      };
+      groups[segmentType].push(item);
+    }
+    const segments = [];
+    for (const [type, items] of Object.entries(groups)) {
+      const sortedItems = items.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, this.config.maxItemsPerSegment);
+      if (sortedItems.length > 0) {
+        segments.push({
+          type,
+          title: this.getSegmentTitle(type),
+          items: sortedItems,
+          relevanceScore: this.calculateAvgRelevance(sortedItems.map((i) => i.relevanceScore)),
+          priority: this.getSegmentPriority(type)
+        });
+      }
+    }
+    return segments;
+  }
+  processGraphResults(results) {
+    if (!results?.length) return [];
+    const items = results.map((result) => ({
+      id: result.entity.id,
+      type: "concept",
+      content: `${result.entity.name}: ${JSON.stringify(result.entity.properties)}`,
+      relevanceScore: 0.7,
+      // Default for graph results
+      source: {
+        type: "knowledge_graph",
+        id: result.entity.id,
+        name: result.entity.name
+      },
+      createdAt: /* @__PURE__ */ new Date(),
+      metadata: {
+        entityType: result.entity.type,
+        relationships: result.relationships,
+        depth: result.depth
+      }
+    }));
+    return [
+      {
+        type: "related_concepts",
+        title: "Related Concepts",
+        items: items.slice(0, this.config.maxItemsPerSegment),
+        relevanceScore: 0.7,
+        priority: this.getSegmentPriority("related_concepts")
+      }
+    ];
+  }
+  processSessionContext(context) {
+    const items = [];
+    if (context?.currentTopic) {
+      items.push({
+        id: "current-topic",
+        type: "text",
+        content: `Current topic: ${context.currentTopic}`,
+        relevanceScore: 0.9,
+        source: { type: "session_context", id: "topic" },
+        createdAt: /* @__PURE__ */ new Date(),
+        metadata: {}
+      });
+    }
+    if (context?.recentConcepts?.length) {
+      items.push({
+        id: "recent-concepts",
+        type: "concept",
+        content: `Recently discussed: ${context.recentConcepts.join(", ")}`,
+        relevanceScore: 0.8,
+        source: { type: "session_context", id: "concepts" },
+        createdAt: /* @__PURE__ */ new Date(),
+        metadata: { concepts: context.recentConcepts }
+      });
+    }
+    if (context?.pendingQuestions?.length) {
+      items.push({
+        id: "pending-questions",
+        type: "question",
+        content: `Pending questions: ${context.pendingQuestions.join("; ")}`,
+        relevanceScore: 0.85,
+        source: { type: "session_context", id: "questions" },
+        createdAt: /* @__PURE__ */ new Date(),
+        metadata: { questions: context.pendingQuestions }
+      });
+    }
+    return {
+      type: "user_history",
+      title: "Current Session",
+      items,
+      relevanceScore: items.length > 0 ? 0.85 : 0,
+      priority: this.getSegmentPriority("user_history")
+    };
+  }
+  processJourneyEvents(events) {
+    if (!events?.length) {
+      return {
+        type: "recent_activity",
+        title: "Recent Activity",
+        items: [],
+        relevanceScore: 0,
+        priority: this.getSegmentPriority("recent_activity")
+      };
+    }
+    const items = events.slice(0, this.config.maxItemsPerSegment).map((event) => ({
+      id: `journey-${event.timestamp.getTime()}`,
+      type: "progress",
+      content: `${event.type}: ${JSON.stringify(event.data)}`,
+      relevanceScore: 0.6,
+      source: { type: "journey_timeline", id: event.type },
+      createdAt: event.timestamp,
+      metadata: event.data
+    }));
+    return {
+      type: "recent_activity",
+      title: "Recent Activity",
+      items,
+      relevanceScore: items.length > 0 ? 0.6 : 0,
+      priority: this.getSegmentPriority("recent_activity")
+    };
+  }
+  // -------------------------------------------------------------------------
+  // Formatting Methods
+  // -------------------------------------------------------------------------
+  formatForPrompt(context) {
+    const lines = ["## Relevant Context"];
+    for (const segment of context.segments) {
+      if (segment.items.length === 0) continue;
+      lines.push(`
+### ${segment.title}`);
+      for (const item of segment.items) {
+        const content = item.summary ?? item.content;
+        lines.push(`- ${content}`);
+      }
+    }
+    if (context.metadata.truncated) {
+      lines.push("\n*Note: Context has been summarized due to length constraints.*");
+    }
+    return lines.join("\n");
+  }
+  formatAsStructuredData(context) {
+    const segments = context.segments.map((segment) => ({
+      type: segment.type,
+      title: segment.title,
+      itemCount: segment.items.length,
+      topItems: segment.items.slice(0, 3).map((item) => ({
+        content: item.summary ?? item.content.substring(0, 200),
+        relevance: item.relevanceScore
+      }))
+    }));
+    const allItems = context.segments.flatMap((s) => s.items);
+    const avgRelevance = this.calculateAvgRelevance(allItems.map((i) => i.relevanceScore));
+    return {
+      summary: this.generateContextSummary(context),
+      segments,
+      sources: context.sources.map((s) => s.name ?? s.type),
+      stats: {
+        totalItems: allItems.length,
+        avgRelevance,
+        tokenEstimate: context.metadata.estimatedTokens
+      }
+    };
+  }
+  // -------------------------------------------------------------------------
+  // Helper Methods
+  // -------------------------------------------------------------------------
+  mapSourceToSegmentType(sourceType) {
+    const mapping = {
+      course_content: "course_content",
+      chapter_content: "course_content",
+      section_content: "course_content",
+      conversation: "previous_conversations",
+      user_note: "user_notes",
+      question: "previous_conversations",
+      answer: "previous_conversations",
+      external_resource: "external_knowledge"
+    };
+    return mapping[sourceType] ?? "course_content";
+  }
+  mapToItemType(sourceType) {
+    const mapping = {
+      conversation: "conversation_turn",
+      question: "question",
+      answer: "answer",
+      user_note: "note",
+      artifact: "artifact"
+    };
+    return mapping[sourceType] ?? "text";
+  }
+  getSegmentTitle(type) {
+    const titles = {
+      course_content: "Course Content",
+      user_history: "Your History",
+      previous_conversations: "Previous Discussions",
+      related_concepts: "Related Concepts",
+      learning_progress: "Learning Progress",
+      user_notes: "Your Notes",
+      external_knowledge: "Additional Resources",
+      recent_activity: "Recent Activity"
+    };
+    return titles[type] ?? type;
+  }
+  getSegmentPriority(type) {
+    const index = this.config.segmentPriority.indexOf(type);
+    return index >= 0 ? this.config.segmentPriority.length - index : 0;
+  }
+  truncateContent(content) {
+    if (content.length <= this.config.maxContentLength) {
+      return content;
+    }
+    return content.substring(0, this.config.maxContentLength - 3) + "...";
+  }
+  generateSummary(content) {
+    if (content.length <= this.config.maxSummaryLength) {
+      return void 0;
+    }
+    const firstSentence = content.match(/^[^.!?]*[.!?]/)?.[0];
+    if (firstSentence && firstSentence.length <= this.config.maxSummaryLength) {
+      return firstSentence;
+    }
+    return content.substring(0, this.config.maxSummaryLength - 3) + "...";
+  }
+  generateContextSummary(context) {
+    const segmentNames = context.segments.filter((s) => s.items.length > 0).map((s) => s.title).join(", ");
+    const itemCount = this.countItems(context.segments);
+    return `Context includes ${itemCount} items from: ${segmentNames}`;
+  }
+  calculateAvgRelevance(scores) {
+    if (scores.length === 0) return 0;
+    return scores.reduce((sum, s) => sum + s, 0) / scores.length;
+  }
+  calculateOverallRelevance(segments) {
+    if (segments.length === 0) return 0;
+    const weightedSum = segments.reduce(
+      (sum, seg) => sum + seg.relevanceScore * seg.priority,
+      0
+    );
+    const totalWeight = segments.reduce((sum, seg) => sum + seg.priority, 0);
+    return totalWeight > 0 ? weightedSum / totalWeight : 0;
+  }
+  countItems(segments) {
+    return segments.reduce((sum, seg) => sum + seg.items.length, 0);
+  }
+  applyTokenBudget(segments) {
+    let totalChars = 0;
+    const truncatedSegments = [];
+    let truncated = false;
+    for (const segment of segments) {
+      const segmentChars = segment.items.reduce(
+        (sum, item) => sum + (item.summary ?? item.content).length,
+        0
+      );
+      if (totalChars + segmentChars <= this.config.tokenBudget * this.config.charsPerToken) {
+        truncatedSegments.push(segment);
+        totalChars += segmentChars;
+      } else {
+        const remainingBudget = this.config.tokenBudget * this.config.charsPerToken - totalChars;
+        if (remainingBudget > 200) {
+          let includedChars = 0;
+          const includedItems = [];
+          for (const item of segment.items) {
+            const itemChars = (item.summary ?? item.content).length;
+            if (includedChars + itemChars <= remainingBudget) {
+              includedItems.push(item);
+              includedChars += itemChars;
+            }
+          }
+          if (includedItems.length > 0) {
+            truncatedSegments.push({
+              ...segment,
+              items: includedItems
+            });
+            totalChars += includedChars;
+          }
+        }
+        truncated = true;
+        break;
+      }
+    }
+    return {
+      truncatedSegments,
+      truncated,
+      estimatedTokens: Math.ceil(totalChars / this.config.charsPerToken)
+    };
+  }
+};
+function createMemoryNormalizer(options) {
+  return new MemoryNormalizer(options);
+}
+
+// src/memory/worker/types.ts
+var import_zod11 = require("zod");
+var JobType = {
+  REINDEX: "reindex",
+  KG_REFRESH: "kg_refresh",
+  EMBEDDING_GENERATION: "embedding_generation",
+  CONTENT_ANALYSIS: "content_analysis",
+  MEMORY_CLEANUP: "memory_cleanup",
+  NOTIFICATION: "notification",
+  SCHEDULED_TASK: "scheduled_task",
+  CUSTOM: "custom"
+};
+var JobStatus = {
+  PENDING: "pending",
+  QUEUED: "queued",
+  ACTIVE: "active",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
+  DELAYED: "delayed",
+  PAUSED: "paused"
+};
+var DEFAULT_QUEUE_CONFIG = {
+  name: "default",
+  concurrency: 5,
+  defaultPriority: 5,
+  defaultMaxAttempts: 3,
+  retryDelayMs: 1e3,
+  retryBackoffMultiplier: 2,
+  jobTimeoutMs: 3e5,
+  // 5 minutes
+  cleanupAfterMs: 864e5,
+  // 24 hours
+  persistJobs: false
+};
+var DEFAULT_WORKER_CONFIG = {
+  id: "worker-default",
+  queues: ["default"],
+  concurrency: 5,
+  pollIntervalMs: 1e3,
+  maxJobsPerCycle: 100,
+  gracefulShutdown: true,
+  shutdownTimeoutMs: 3e4
+};
+var WorkerStatus = {
+  IDLE: "idle",
+  RUNNING: "running",
+  PAUSED: "paused",
+  STOPPING: "stopping",
+  STOPPED: "stopped"
+};
+var JobEvent = {
+  CREATED: "created",
+  STARTED: "started",
+  PROGRESS: "progress",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  RETRYING: "retrying",
+  CANCELLED: "cancelled"
+};
+var BaseJobSchema = import_zod11.z.object({
+  id: import_zod11.z.string().min(1),
+  type: import_zod11.z.enum([
+    "reindex",
+    "kg_refresh",
+    "embedding_generation",
+    "content_analysis",
+    "memory_cleanup",
+    "notification",
+    "scheduled_task",
+    "custom"
+  ]),
+  status: import_zod11.z.enum([
+    "pending",
+    "queued",
+    "active",
+    "completed",
+    "failed",
+    "cancelled",
+    "delayed",
+    "paused"
+  ]),
+  priority: import_zod11.z.number().min(0).max(100),
+  data: import_zod11.z.unknown(),
+  result: import_zod11.z.unknown().optional(),
+  error: import_zod11.z.string().optional(),
+  attempts: import_zod11.z.number().min(0),
+  maxAttempts: import_zod11.z.number().min(1),
+  createdAt: import_zod11.z.date(),
+  updatedAt: import_zod11.z.date(),
+  scheduledFor: import_zod11.z.date(),
+  startedAt: import_zod11.z.date().optional(),
+  completedAt: import_zod11.z.date().optional(),
+  progress: import_zod11.z.number().min(0).max(100).optional()
+});
+var JobQueueConfigSchema = import_zod11.z.object({
+  name: import_zod11.z.string().min(1),
+  concurrency: import_zod11.z.number().min(1).max(100),
+  defaultPriority: import_zod11.z.number().min(0).max(100),
+  defaultMaxAttempts: import_zod11.z.number().min(1).max(10),
+  retryDelayMs: import_zod11.z.number().min(100).max(36e5),
+  retryBackoffMultiplier: import_zod11.z.number().min(1).max(10),
+  jobTimeoutMs: import_zod11.z.number().min(1e3).max(36e5),
+  cleanupAfterMs: import_zod11.z.number().min(6e4),
+  persistJobs: import_zod11.z.boolean()
+});
+var WorkerConfigSchema = import_zod11.z.object({
+  id: import_zod11.z.string().min(1),
+  queues: import_zod11.z.array(import_zod11.z.string().min(1)),
+  concurrency: import_zod11.z.number().min(1).max(50),
+  pollIntervalMs: import_zod11.z.number().min(100).max(6e4),
+  maxJobsPerCycle: import_zod11.z.number().min(1).max(1e3),
+  gracefulShutdown: import_zod11.z.boolean(),
+  shutdownTimeoutMs: import_zod11.z.number().min(1e3).max(3e5)
+});
+
+// src/memory/worker/background-worker.ts
+var InMemoryJobQueue = class {
+  config;
+  logger;
+  jobs = /* @__PURE__ */ new Map();
+  listeners = /* @__PURE__ */ new Map();
+  isPaused = false;
+  processedCount = 0;
+  totalProcessingTime = 0;
+  lastProcessedAt;
+  constructor(options) {
+    this.config = { ...DEFAULT_QUEUE_CONFIG, ...options?.config };
+    this.logger = options?.logger ?? console;
+  }
+  async add(type, data, options) {
+    const now = /* @__PURE__ */ new Date();
+    const job = {
+      id: v4_default(),
+      type,
+      status: "pending",
+      priority: options?.priority ?? this.config.defaultPriority,
+      data,
+      attempts: 0,
+      maxAttempts: options?.maxAttempts ?? this.config.defaultMaxAttempts,
+      createdAt: now,
+      updatedAt: now,
+      scheduledFor: options?.scheduledFor ?? now,
+      ...options
+    };
+    this.jobs.set(job.id, job);
+    this.emit("created", job);
+    this.logger.debug("Job added to queue", {
+      jobId: job.id,
+      type: job.type,
+      priority: job.priority
+    });
+    return job;
+  }
+  async get(jobId) {
+    return this.jobs.get(jobId) ?? null;
+  }
+  async update(jobId, updates) {
+    const job = this.jobs.get(jobId);
+    if (!job) return null;
+    const updated = {
+      ...job,
+      ...updates,
+      id: job.id,
+      createdAt: job.createdAt,
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    this.jobs.set(jobId, updated);
+    return updated;
+  }
+  async remove(jobId) {
+    return this.jobs.delete(jobId);
+  }
+  async getNextPending() {
+    if (this.isPaused) return null;
+    const now = /* @__PURE__ */ new Date();
+    const pendingJobs = Array.from(this.jobs.values()).filter(
+      (j) => (j.status === "pending" || j.status === "queued") && j.scheduledFor <= now
+    ).sort((a, b) => b.priority - a.priority || a.createdAt.getTime() - b.createdAt.getTime());
+    return pendingJobs[0] ?? null;
+  }
+  async getByStatus(status, limit) {
+    const jobs = Array.from(this.jobs.values()).filter((j) => j.status === status);
+    return limit ? jobs.slice(0, limit) : jobs;
+  }
+  async getStats() {
+    const jobs = Array.from(this.jobs.values());
+    return {
+      name: this.config.name,
+      pending: jobs.filter((j) => j.status === "pending").length,
+      active: jobs.filter((j) => j.status === "active").length,
+      completed: jobs.filter((j) => j.status === "completed").length,
+      failed: jobs.filter((j) => j.status === "failed").length,
+      delayed: jobs.filter((j) => j.status === "delayed").length,
+      paused: jobs.filter((j) => j.status === "paused").length,
+      totalProcessed: this.processedCount,
+      avgProcessingTime: this.processedCount > 0 ? this.totalProcessingTime / this.processedCount : 0,
+      lastProcessedAt: this.lastProcessedAt
+    };
+  }
+  async pause() {
+    this.isPaused = true;
+    this.logger.info("Queue paused", { name: this.config.name });
+  }
+  async resume() {
+    this.isPaused = false;
+    this.logger.info("Queue resumed", { name: this.config.name });
+  }
+  async cleanup(olderThan) {
+    let count = 0;
+    for (const [id, job] of this.jobs) {
+      if ((job.status === "completed" || job.status === "failed") && job.completedAt && job.completedAt < olderThan) {
+        this.jobs.delete(id);
+        count++;
+      }
+    }
+    return count;
+  }
+  on(event, listener) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, /* @__PURE__ */ new Set());
+    }
+    this.listeners.get(event).add(listener);
+  }
+  off(event, listener) {
+    this.listeners.get(event)?.delete(listener);
+  }
+  emit(event, job) {
+    this.listeners.get(event)?.forEach((listener) => listener(event, job));
+  }
+  recordProcessing(durationMs) {
+    this.processedCount++;
+    this.totalProcessingTime += durationMs;
+    this.lastProcessedAt = /* @__PURE__ */ new Date();
+  }
+  clear() {
+    this.jobs.clear();
+    this.processedCount = 0;
+    this.totalProcessingTime = 0;
+    this.lastProcessedAt = void 0;
+  }
+};
+var BackgroundWorker = class {
+  config;
+  queues;
+  handlers;
+  logger;
+  status = "stopped";
+  startedAt;
+  processedJobs = 0;
+  failedJobs = 0;
+  activeJobs = 0;
+  totalProcessingTime = 0;
+  lastActivityAt;
+  pollInterval;
+  shutdownPromise;
+  constructor(options) {
+    this.config = { ...DEFAULT_WORKER_CONFIG, ...options.config };
+    this.queues = options.queues ?? /* @__PURE__ */ new Map();
+    this.handlers = /* @__PURE__ */ new Map();
+    this.logger = options.logger ?? console;
+    if (this.queues.size === 0) {
+      for (const queueName of this.config.queues) {
+        this.queues.set(
+          queueName,
+          new InMemoryJobQueue({ config: { name: queueName }, logger: this.logger })
+        );
+      }
+    }
+  }
+  // -------------------------------------------------------------------------
+  // Lifecycle
+  // -------------------------------------------------------------------------
+  async start() {
+    if (this.status === "running") {
+      this.logger.warn("Worker already running", { id: this.config.id });
+      return;
+    }
+    this.status = "running";
+    this.startedAt = /* @__PURE__ */ new Date();
+    this.logger.info("Worker started", {
+      id: this.config.id,
+      queues: this.config.queues,
+      concurrency: this.config.concurrency
+    });
+    this.pollInterval = setInterval(() => this.poll(), this.config.pollIntervalMs);
+    await this.poll();
+  }
+  async stop() {
+    if (this.status === "stopped") return;
+    this.status = "stopping";
+    this.logger.info("Worker stopping", { id: this.config.id, activeJobs: this.activeJobs });
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = void 0;
+    }
+    if (this.config.gracefulShutdown && this.activeJobs > 0) {
+      this.shutdownPromise = new Promise((resolve) => {
+        const checkInterval = setInterval(() => {
+          if (this.activeJobs === 0) {
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 100);
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          this.logger.warn("Shutdown timeout, forcing stop", {
+            id: this.config.id,
+            remainingJobs: this.activeJobs
+          });
+          resolve();
+        }, this.config.shutdownTimeoutMs);
+      });
+      await this.shutdownPromise;
+    }
+    this.status = "stopped";
+    this.logger.info("Worker stopped", { id: this.config.id });
+  }
+  async pause() {
+    if (this.status !== "running") return;
+    this.status = "paused";
+    for (const queue of this.queues.values()) {
+      await queue.pause();
+    }
+    this.logger.info("Worker paused", { id: this.config.id });
+  }
+  async resume() {
+    if (this.status !== "paused") return;
+    this.status = "running";
+    for (const queue of this.queues.values()) {
+      await queue.resume();
+    }
+    this.logger.info("Worker resumed", { id: this.config.id });
+  }
+  // -------------------------------------------------------------------------
+  // Handler Management
+  // -------------------------------------------------------------------------
+  registerHandler(type, handler) {
+    this.handlers.set(type, handler);
+    this.logger.debug("Handler registered", { type });
+  }
+  unregisterHandler(type) {
+    this.handlers.delete(type);
+    this.logger.debug("Handler unregistered", { type });
+  }
+  // -------------------------------------------------------------------------
+  // Status
+  // -------------------------------------------------------------------------
+  getStatus() {
+    return this.status;
+  }
+  getStats() {
+    return {
+      id: this.config.id,
+      status: this.status,
+      startedAt: this.startedAt,
+      activeJobs: this.activeJobs,
+      processedJobs: this.processedJobs,
+      failedJobs: this.failedJobs,
+      avgProcessingTime: this.processedJobs > 0 ? this.totalProcessingTime / this.processedJobs : 0,
+      lastActivityAt: this.lastActivityAt,
+      uptime: this.startedAt ? Date.now() - this.startedAt.getTime() : 0
+    };
+  }
+  // -------------------------------------------------------------------------
+  // Processing
+  // -------------------------------------------------------------------------
+  async processJob(jobId) {
+    let job = null;
+    let queue = null;
+    for (const q of this.queues.values()) {
+      const found = await q.get(jobId);
+      if (found) {
+        job = found;
+        queue = q;
+        break;
+      }
+    }
+    if (!job || !queue) {
+      throw new Error(`Job not found: ${jobId}`);
+    }
+    await this.executeJob(job, queue);
+  }
+  async poll() {
+    if (this.status !== "running") return;
+    const availableSlots = this.config.concurrency - this.activeJobs;
+    if (availableSlots <= 0) return;
+    let jobsProcessed = 0;
+    for (const queue of this.queues.values()) {
+      if (jobsProcessed >= this.config.maxJobsPerCycle) break;
+      if (this.activeJobs >= this.config.concurrency) break;
+      const job = await queue.getNextPending();
+      if (job) {
+        this.executeJob(job, queue).catch((error) => {
+          this.logger.error("Job execution error", {
+            jobId: job.id,
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        });
+        jobsProcessed++;
+      }
+    }
+  }
+  async executeJob(job, queue) {
+    const handler = this.handlers.get(job.type);
+    if (!handler) {
+      this.logger.warn("No handler for job type", { type: job.type, jobId: job.id });
+      await queue.update(job.id, {
+        status: "failed",
+        error: `No handler registered for job type: ${job.type}`
+      });
+      return;
+    }
+    this.activeJobs++;
+    const startTime = Date.now();
+    try {
+      await queue.update(job.id, {
+        status: "active",
+        startedAt: /* @__PURE__ */ new Date(),
+        attempts: job.attempts + 1
+      });
+      this.logger.debug("Executing job", {
+        jobId: job.id,
+        type: job.type,
+        attempt: job.attempts + 1
+      });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Job timeout")), DEFAULT_QUEUE_CONFIG.jobTimeoutMs);
+      });
+      const result = await Promise.race([handler(job), timeoutPromise]);
+      const duration = Date.now() - startTime;
+      await queue.update(job.id, {
+        status: "completed",
+        result,
+        completedAt: /* @__PURE__ */ new Date()
+      });
+      this.processedJobs++;
+      this.totalProcessingTime += duration;
+      this.lastActivityAt = /* @__PURE__ */ new Date();
+      if (queue instanceof InMemoryJobQueue) {
+        queue.recordProcessing(duration);
+      }
+      this.logger.info("Job completed", {
+        jobId: job.id,
+        type: job.type,
+        durationMs: duration
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      void (Date.now() - startTime);
+      this.logger.error("Job failed", {
+        jobId: job.id,
+        type: job.type,
+        error: errorMessage,
+        attempt: job.attempts + 1
+      });
+      if (job.attempts + 1 < job.maxAttempts) {
+        const retryDelayMs = DEFAULT_QUEUE_CONFIG.retryDelayMs * Math.pow(DEFAULT_QUEUE_CONFIG.retryBackoffMultiplier, job.attempts);
+        await queue.update(job.id, {
+          status: "delayed",
+          error: errorMessage,
+          scheduledFor: new Date(Date.now() + retryDelayMs)
+        });
+        this.logger.debug("Job scheduled for retry", {
+          jobId: job.id,
+          retryIn: retryDelayMs,
+          nextAttempt: job.attempts + 2
+        });
+      } else {
+        await queue.update(job.id, {
+          status: "failed",
+          error: errorMessage,
+          completedAt: /* @__PURE__ */ new Date()
+        });
+        this.failedJobs++;
+      }
+      this.lastActivityAt = /* @__PURE__ */ new Date();
+    } finally {
+      this.activeJobs--;
+    }
+  }
+  // -------------------------------------------------------------------------
+  // Queue Access
+  // -------------------------------------------------------------------------
+  getQueue(name) {
+    return this.queues.get(name);
+  }
+  async addJob(type, data, options) {
+    const queueName = options?.queue ?? this.config.queues[0];
+    const queue = this.queues.get(queueName);
+    if (!queue) {
+      throw new Error(`Queue not found: ${queueName}`);
+    }
+    return queue.add(type, data, options);
+  }
+};
+function createBackgroundWorker(options) {
+  return new BackgroundWorker(options ?? {});
+}
+function createJobQueue(options) {
+  return new InMemoryJobQueue(options);
+}
+
 // src/memory/index.ts
 function createMemorySystem(config = {}) {
   const logger = config.logger ?? console;
@@ -9894,7 +11995,7 @@ var MEMORY_CAPABILITIES = {
 };
 
 // src/proactive-intervention/types.ts
-var import_zod9 = require("zod");
+var import_zod12 = require("zod");
 var LearningPlanStatus = {
   DRAFT: "draft",
   ACTIVE: "active",
@@ -10043,68 +12144,68 @@ var InterventionType = {
   PROGRESS_CELEBRATION: "progress_celebration",
   STREAK_REMINDER: "streak_reminder"
 };
-var LearningPlanInputSchema = import_zod9.z.object({
-  userId: import_zod9.z.string().min(1),
-  goalTitle: import_zod9.z.string().min(1).max(200),
-  goalDescription: import_zod9.z.string().min(1).max(1e3),
-  targetDate: import_zod9.z.date().optional(),
-  courseId: import_zod9.z.string().optional(),
-  chapterId: import_zod9.z.string().optional(),
-  currentLevel: import_zod9.z.enum(["beginner", "intermediate", "advanced"]),
-  targetLevel: import_zod9.z.enum(["beginner", "intermediate", "advanced", "mastery"]),
-  preferredDailyMinutes: import_zod9.z.number().min(5).max(480),
-  preferredDaysPerWeek: import_zod9.z.number().min(1).max(7),
-  constraints: import_zod9.z.array(
-    import_zod9.z.object({
-      type: import_zod9.z.enum(["time", "content", "pace", "style"]),
-      description: import_zod9.z.string(),
-      value: import_zod9.z.unknown()
+var LearningPlanInputSchema = import_zod12.z.object({
+  userId: import_zod12.z.string().min(1),
+  goalTitle: import_zod12.z.string().min(1).max(200),
+  goalDescription: import_zod12.z.string().min(1).max(1e3),
+  targetDate: import_zod12.z.date().optional(),
+  courseId: import_zod12.z.string().optional(),
+  chapterId: import_zod12.z.string().optional(),
+  currentLevel: import_zod12.z.enum(["beginner", "intermediate", "advanced"]),
+  targetLevel: import_zod12.z.enum(["beginner", "intermediate", "advanced", "mastery"]),
+  preferredDailyMinutes: import_zod12.z.number().min(5).max(480),
+  preferredDaysPerWeek: import_zod12.z.number().min(1).max(7),
+  constraints: import_zod12.z.array(
+    import_zod12.z.object({
+      type: import_zod12.z.enum(["time", "content", "pace", "style"]),
+      description: import_zod12.z.string(),
+      value: import_zod12.z.unknown()
     })
   ).optional()
 });
-var ProgressUpdateSchema = import_zod9.z.object({
-  planId: import_zod9.z.string().min(1),
-  date: import_zod9.z.date(),
-  completedActivities: import_zod9.z.array(import_zod9.z.string()),
-  actualMinutes: import_zod9.z.number().min(0),
-  notes: import_zod9.z.string().max(1e3).optional(),
-  emotionalState: import_zod9.z.string().optional(),
-  difficultyFeedback: import_zod9.z.enum(["too_easy", "just_right", "too_hard"]).optional()
+var ProgressUpdateSchema = import_zod12.z.object({
+  planId: import_zod12.z.string().min(1),
+  date: import_zod12.z.date(),
+  completedActivities: import_zod12.z.array(import_zod12.z.string()),
+  actualMinutes: import_zod12.z.number().min(0),
+  notes: import_zod12.z.string().max(1e3).optional(),
+  emotionalState: import_zod12.z.string().optional(),
+  difficultyFeedback: import_zod12.z.enum(["too_easy", "just_right", "too_hard"]).optional()
 });
-var CheckInResponseSchema = import_zod9.z.object({
-  checkInId: import_zod9.z.string().min(1),
-  respondedAt: import_zod9.z.date(),
-  answers: import_zod9.z.array(
-    import_zod9.z.object({
-      questionId: import_zod9.z.string().min(1),
-      answer: import_zod9.z.union([import_zod9.z.string(), import_zod9.z.array(import_zod9.z.string()), import_zod9.z.number(), import_zod9.z.boolean()])
+var CheckInResponseSchema = import_zod12.z.object({
+  checkInId: import_zod12.z.string().min(1),
+  respondedAt: import_zod12.z.date(),
+  answers: import_zod12.z.array(
+    import_zod12.z.object({
+      questionId: import_zod12.z.string().min(1),
+      answer: import_zod12.z.union([import_zod12.z.string(), import_zod12.z.array(import_zod12.z.string()), import_zod12.z.number(), import_zod12.z.boolean()])
     })
   ),
-  selectedActions: import_zod9.z.array(import_zod9.z.string()),
-  feedback: import_zod9.z.string().max(1e3).optional(),
-  emotionalState: import_zod9.z.string().optional()
+  selectedActions: import_zod12.z.array(import_zod12.z.string()),
+  feedback: import_zod12.z.string().max(1e3).optional(),
+  emotionalState: import_zod12.z.string().optional()
 });
-var BehaviorEventSchema = import_zod9.z.object({
-  userId: import_zod9.z.string().min(1),
-  sessionId: import_zod9.z.string().min(1),
-  timestamp: import_zod9.z.date(),
-  type: import_zod9.z.string(),
-  data: import_zod9.z.record(import_zod9.z.unknown()),
-  pageContext: import_zod9.z.object({
-    url: import_zod9.z.string(),
-    courseId: import_zod9.z.string().optional(),
-    chapterId: import_zod9.z.string().optional(),
-    sectionId: import_zod9.z.string().optional(),
-    contentType: import_zod9.z.string().optional(),
-    timeOnPage: import_zod9.z.number().optional(),
-    scrollDepth: import_zod9.z.number().optional()
+var BehaviorEventSchema = import_zod12.z.object({
+  userId: import_zod12.z.string().min(1),
+  sessionId: import_zod12.z.string().min(1),
+  timestamp: import_zod12.z.date(),
+  type: import_zod12.z.string(),
+  data: import_zod12.z.record(import_zod12.z.unknown()),
+  pageContext: import_zod12.z.object({
+    url: import_zod12.z.string(),
+    courseId: import_zod12.z.string().optional(),
+    chapterId: import_zod12.z.string().optional(),
+    sectionId: import_zod12.z.string().optional(),
+    contentType: import_zod12.z.string().optional(),
+    timeOnPage: import_zod12.z.number().optional(),
+    scrollDepth: import_zod12.z.number().optional()
   }),
-  emotionalSignals: import_zod9.z.array(
-    import_zod9.z.object({
-      type: import_zod9.z.string(),
-      intensity: import_zod9.z.number().min(0).max(1),
-      source: import_zod9.z.enum(["text", "behavior", "timing", "pattern"]),
-      timestamp: import_zod9.z.date()
+  emotionalSignals: import_zod12.z.array(
+    import_zod12.z.object({
+      type: import_zod12.z.string(),
+      intensity: import_zod12.z.number().min(0).max(1),
+      source: import_zod12.z.enum(["text", "behavior", "timing", "pattern"]),
+      timestamp: import_zod12.z.date()
     })
   ).optional()
 });
@@ -12390,7 +14491,7 @@ function createBehaviorMonitor(config) {
 }
 
 // src/self-evaluation/types.ts
-var import_zod10 = require("zod");
+var import_zod13 = require("zod");
 var ConfidenceLevel = {
   HIGH: "high",
   MEDIUM: "medium",
@@ -12480,12 +14581,12 @@ var MetricSource = {
   OUTCOME_BASED: "outcome_based",
   COMPARATIVE: "comparative"
 };
-var ConfidenceInputSchema = import_zod10.z.object({
-  responseId: import_zod10.z.string().min(1),
-  userId: import_zod10.z.string().min(1),
-  sessionId: import_zod10.z.string().min(1),
-  responseText: import_zod10.z.string().min(1),
-  responseType: import_zod10.z.enum([
+var ConfidenceInputSchema = import_zod13.z.object({
+  responseId: import_zod13.z.string().min(1),
+  userId: import_zod13.z.string().min(1),
+  sessionId: import_zod13.z.string().min(1),
+  responseText: import_zod13.z.string().min(1),
+  responseType: import_zod13.z.enum([
     "explanation",
     "answer",
     "hint",
@@ -12494,65 +14595,65 @@ var ConfidenceInputSchema = import_zod10.z.object({
     "recommendation",
     "clarification"
   ]),
-  topic: import_zod10.z.string().optional(),
-  context: import_zod10.z.object({
-    courseId: import_zod10.z.string().optional(),
-    chapterId: import_zod10.z.string().optional(),
-    sectionId: import_zod10.z.string().optional(),
-    questionText: import_zod10.z.string().optional(),
-    studentLevel: import_zod10.z.string().optional(),
-    previousAttempts: import_zod10.z.number().optional(),
-    relatedConcepts: import_zod10.z.array(import_zod10.z.string()).optional()
+  topic: import_zod13.z.string().optional(),
+  context: import_zod13.z.object({
+    courseId: import_zod13.z.string().optional(),
+    chapterId: import_zod13.z.string().optional(),
+    sectionId: import_zod13.z.string().optional(),
+    questionText: import_zod13.z.string().optional(),
+    studentLevel: import_zod13.z.string().optional(),
+    previousAttempts: import_zod13.z.number().optional(),
+    relatedConcepts: import_zod13.z.array(import_zod13.z.string()).optional()
   }).optional(),
-  sources: import_zod10.z.array(
-    import_zod10.z.object({
-      id: import_zod10.z.string(),
-      type: import_zod10.z.string(),
-      title: import_zod10.z.string(),
-      url: import_zod10.z.string().optional(),
-      reliability: import_zod10.z.number().min(0).max(1),
-      lastVerified: import_zod10.z.date().optional()
+  sources: import_zod13.z.array(
+    import_zod13.z.object({
+      id: import_zod13.z.string(),
+      type: import_zod13.z.string(),
+      title: import_zod13.z.string(),
+      url: import_zod13.z.string().optional(),
+      reliability: import_zod13.z.number().min(0).max(1),
+      lastVerified: import_zod13.z.date().optional()
     })
   ).optional()
 });
-var VerificationInputSchema = import_zod10.z.object({
-  responseId: import_zod10.z.string().min(1),
-  userId: import_zod10.z.string().min(1),
-  responseText: import_zod10.z.string().min(1),
-  claims: import_zod10.z.array(import_zod10.z.string()).optional(),
-  sources: import_zod10.z.array(
-    import_zod10.z.object({
-      id: import_zod10.z.string(),
-      type: import_zod10.z.string(),
-      title: import_zod10.z.string(),
-      url: import_zod10.z.string().optional(),
-      reliability: import_zod10.z.number().min(0).max(1),
-      lastVerified: import_zod10.z.date().optional()
+var VerificationInputSchema = import_zod13.z.object({
+  responseId: import_zod13.z.string().min(1),
+  userId: import_zod13.z.string().min(1),
+  responseText: import_zod13.z.string().min(1),
+  claims: import_zod13.z.array(import_zod13.z.string()).optional(),
+  sources: import_zod13.z.array(
+    import_zod13.z.object({
+      id: import_zod13.z.string(),
+      type: import_zod13.z.string(),
+      title: import_zod13.z.string(),
+      url: import_zod13.z.string().optional(),
+      reliability: import_zod13.z.number().min(0).max(1),
+      lastVerified: import_zod13.z.date().optional()
     })
   ).optional(),
-  context: import_zod10.z.object({
-    courseId: import_zod10.z.string().optional(),
-    chapterId: import_zod10.z.string().optional(),
-    sectionId: import_zod10.z.string().optional(),
-    questionText: import_zod10.z.string().optional(),
-    studentLevel: import_zod10.z.string().optional(),
-    previousAttempts: import_zod10.z.number().optional(),
-    relatedConcepts: import_zod10.z.array(import_zod10.z.string()).optional()
+  context: import_zod13.z.object({
+    courseId: import_zod13.z.string().optional(),
+    chapterId: import_zod13.z.string().optional(),
+    sectionId: import_zod13.z.string().optional(),
+    questionText: import_zod13.z.string().optional(),
+    studentLevel: import_zod13.z.string().optional(),
+    previousAttempts: import_zod13.z.number().optional(),
+    relatedConcepts: import_zod13.z.array(import_zod13.z.string()).optional()
   }).optional(),
-  strictMode: import_zod10.z.boolean().optional()
+  strictMode: import_zod13.z.boolean().optional()
 });
-var StudentFeedbackSchema = import_zod10.z.object({
-  responseId: import_zod10.z.string().min(1),
-  userId: import_zod10.z.string().min(1),
-  helpful: import_zod10.z.boolean(),
-  rating: import_zod10.z.number().min(1).max(5).optional(),
-  clarity: import_zod10.z.number().min(1).max(5).optional(),
-  comment: import_zod10.z.string().max(1e3).optional(),
-  didUnderstand: import_zod10.z.boolean(),
-  needMoreHelp: import_zod10.z.boolean(),
-  askedFollowUp: import_zod10.z.boolean().optional(),
-  triedAgain: import_zod10.z.boolean().optional(),
-  succeededAfter: import_zod10.z.boolean().optional()
+var StudentFeedbackSchema = import_zod13.z.object({
+  responseId: import_zod13.z.string().min(1),
+  userId: import_zod13.z.string().min(1),
+  helpful: import_zod13.z.boolean(),
+  rating: import_zod13.z.number().min(1).max(5).optional(),
+  clarity: import_zod13.z.number().min(1).max(5).optional(),
+  comment: import_zod13.z.string().max(1e3).optional(),
+  didUnderstand: import_zod13.z.boolean(),
+  needMoreHelp: import_zod13.z.boolean(),
+  askedFollowUp: import_zod13.z.boolean().optional(),
+  triedAgain: import_zod13.z.boolean().optional(),
+  succeededAfter: import_zod13.z.boolean().optional()
 });
 
 // src/self-evaluation/confidence-scorer.ts
@@ -14241,7 +16342,7 @@ function createQualityTracker(config) {
 }
 
 // src/learning-analytics/types.ts
-var import_zod11 = require("zod");
+var import_zod14 = require("zod");
 var TrendDirection = /* @__PURE__ */ ((TrendDirection2) => {
   TrendDirection2["IMPROVING"] = "improving";
   TrendDirection2["STABLE"] = "stable";
@@ -14308,45 +16409,45 @@ var AssessmentSource = /* @__PURE__ */ ((AssessmentSource2) => {
   AssessmentSource2["AI_EVALUATION"] = "ai_evaluation";
   return AssessmentSource2;
 })(AssessmentSource || {});
-var LearningSessionInputSchema = import_zod11.z.object({
-  userId: import_zod11.z.string().min(1),
-  topicId: import_zod11.z.string().min(1),
-  startTime: import_zod11.z.date().optional(),
-  duration: import_zod11.z.number().min(0).optional(),
-  activitiesCompleted: import_zod11.z.number().min(0).optional(),
-  questionsAnswered: import_zod11.z.number().min(0).optional(),
-  correctAnswers: import_zod11.z.number().min(0).optional(),
-  conceptsCovered: import_zod11.z.array(import_zod11.z.string()).optional(),
-  focusScore: import_zod11.z.number().min(0).max(1).optional()
+var LearningSessionInputSchema = import_zod14.z.object({
+  userId: import_zod14.z.string().min(1),
+  topicId: import_zod14.z.string().min(1),
+  startTime: import_zod14.z.date().optional(),
+  duration: import_zod14.z.number().min(0).optional(),
+  activitiesCompleted: import_zod14.z.number().min(0).optional(),
+  questionsAnswered: import_zod14.z.number().min(0).optional(),
+  correctAnswers: import_zod14.z.number().min(0).optional(),
+  conceptsCovered: import_zod14.z.array(import_zod14.z.string()).optional(),
+  focusScore: import_zod14.z.number().min(0).max(1).optional()
 });
-var SkillAssessmentInputSchema = import_zod11.z.object({
-  userId: import_zod11.z.string().min(1),
-  skillId: import_zod11.z.string().min(1),
-  skillName: import_zod11.z.string().min(1).optional(),
-  score: import_zod11.z.number().min(0).max(100),
-  maxScore: import_zod11.z.number().min(1).optional().default(100),
-  source: import_zod11.z.nativeEnum(AssessmentSource),
-  duration: import_zod11.z.number().min(0).optional(),
-  questionsAnswered: import_zod11.z.number().min(0).optional(),
-  correctAnswers: import_zod11.z.number().min(0).optional(),
-  evidence: import_zod11.z.array(
-    import_zod11.z.object({
-      type: import_zod11.z.string(),
-      description: import_zod11.z.string(),
-      score: import_zod11.z.number().optional(),
-      timestamp: import_zod11.z.date(),
-      weight: import_zod11.z.number().min(0).max(1)
+var SkillAssessmentInputSchema = import_zod14.z.object({
+  userId: import_zod14.z.string().min(1),
+  skillId: import_zod14.z.string().min(1),
+  skillName: import_zod14.z.string().min(1).optional(),
+  score: import_zod14.z.number().min(0).max(100),
+  maxScore: import_zod14.z.number().min(1).optional().default(100),
+  source: import_zod14.z.nativeEnum(AssessmentSource),
+  duration: import_zod14.z.number().min(0).optional(),
+  questionsAnswered: import_zod14.z.number().min(0).optional(),
+  correctAnswers: import_zod14.z.number().min(0).optional(),
+  evidence: import_zod14.z.array(
+    import_zod14.z.object({
+      type: import_zod14.z.string(),
+      description: import_zod14.z.string(),
+      score: import_zod14.z.number().optional(),
+      timestamp: import_zod14.z.date(),
+      weight: import_zod14.z.number().min(0).max(1)
     })
   ).optional()
 });
-var RecommendationFeedbackSchema = import_zod11.z.object({
-  recommendationId: import_zod11.z.string().min(1),
-  userId: import_zod11.z.string().min(1),
-  isHelpful: import_zod11.z.boolean(),
-  rating: import_zod11.z.number().min(1).max(5).optional(),
-  comment: import_zod11.z.string().optional(),
-  timeSpent: import_zod11.z.number().min(0).optional(),
-  completed: import_zod11.z.boolean().optional()
+var RecommendationFeedbackSchema = import_zod14.z.object({
+  recommendationId: import_zod14.z.string().min(1),
+  userId: import_zod14.z.string().min(1),
+  isHelpful: import_zod14.z.boolean(),
+  rating: import_zod14.z.number().min(1).max(5).optional(),
+  comment: import_zod14.z.string().optional(),
+  timeSpent: import_zod14.z.number().min(0).optional(),
+  completed: import_zod14.z.boolean().optional()
 });
 
 // src/learning-analytics/progress-analyzer.ts
@@ -15944,6 +18045,1712 @@ function createRecommendationEngine(config) {
   return new RecommendationEngine(config);
 }
 
+// src/orchestration/tutoring-loop-controller.ts
+var TutoringLoopController = class {
+  config;
+  logger;
+  constructor(config) {
+    this.config = {
+      ...config,
+      stepCompletionThreshold: config.stepCompletionThreshold ?? 0.8,
+      autoAdvance: config.autoAdvance ?? true,
+      maxStepRetries: config.maxStepRetries ?? 3,
+      sessionTimeoutMinutes: config.sessionTimeoutMinutes ?? 60,
+      logger: config.logger ?? this.createDefaultLogger()
+    };
+    this.logger = this.config.logger;
+  }
+  /**
+   * Prepare complete tutoring context for an LLM call
+   */
+  async prepareContext(userId, sessionId, _message, options = {}) {
+    const startTime = Date.now();
+    this.logger.debug("Preparing tutoring context", { userId, sessionId });
+    const session = await this.config.sessionStore.getOrCreate(userId, options.planId);
+    const [activeGoal, activePlan] = await Promise.all([
+      this.getActiveGoal(userId, options.goalId),
+      this.getActivePlan(userId, options.planId)
+    ]);
+    const currentStep = activePlan ? this.getCurrentStep(activePlan) : null;
+    const stepObjectives = currentStep ? this.extractStepObjectives(currentStep) : [];
+    const allowedTools = await this.getAllowedTools(currentStep);
+    const memoryContext = await this.buildMemoryContext(
+      userId,
+      options.sessionContext
+    );
+    const pendingInterventions = await this.getPendingInterventions(
+      userId,
+      sessionId
+    );
+    const previousStepResults = activePlan ? this.getPreviousStepResults(activePlan) : [];
+    const sessionMetadata = this.buildSessionMetadata(session);
+    const context = {
+      userId,
+      sessionId: session.id,
+      activeGoal,
+      activePlan,
+      currentStep,
+      stepObjectives,
+      allowedTools,
+      memoryContext,
+      pendingInterventions,
+      previousStepResults,
+      sessionMetadata
+    };
+    this.logger.debug("Context prepared", {
+      userId,
+      hasGoal: !!activeGoal,
+      hasPlan: !!activePlan,
+      hasStep: !!currentStep,
+      toolCount: allowedTools.length,
+      prepTimeMs: Date.now() - startTime
+    });
+    return context;
+  }
+  /**
+   * Evaluate whether the current step can be advanced
+   */
+  async evaluateProgress(context, response, userMessage) {
+    const startTime = Date.now();
+    this.logger.debug("Evaluating step progress", {
+      userId: context.userId,
+      stepId: context.currentStep?.id
+    });
+    if (!context.currentStep) {
+      return this.createEmptyEvaluation();
+    }
+    const step = context.currentStep;
+    const evaluatedCriteria = [];
+    const pendingCriteria = [];
+    const successCriteria = step.metadata?.successCriteria || [];
+    for (const criterion of successCriteria) {
+      const evaluation2 = await this.evaluateCriterion(
+        criterion,
+        context,
+        response,
+        userMessage
+      );
+      if (evaluation2.met) {
+        evaluatedCriteria.push(evaluation2);
+      } else {
+        pendingCriteria.push(criterion);
+      }
+    }
+    const totalCriteria = successCriteria.length;
+    const metCriteria = evaluatedCriteria.filter((c) => c.met).length;
+    const progressPercent = totalCriteria > 0 ? Math.round(metCriteria / totalCriteria * 100) : 0;
+    const avgConfidence = evaluatedCriteria.length > 0 ? evaluatedCriteria.reduce((sum, c) => sum + c.confidence, 0) / evaluatedCriteria.length : 0;
+    const stepComplete = pendingCriteria.length === 0 && avgConfidence >= this.config.stepCompletionThreshold;
+    const recommendations = this.generateRecommendations(
+      context,
+      evaluatedCriteria,
+      pendingCriteria,
+      progressPercent
+    );
+    const shouldAdvance = stepComplete && this.config.autoAdvance;
+    const recommendedNextStepId = shouldAdvance ? this.getNextStepId(context.activePlan, step.id) : null;
+    const evaluation = {
+      stepComplete,
+      confidence: avgConfidence,
+      evaluatedCriteria,
+      pendingCriteria,
+      progressPercent,
+      recommendations,
+      shouldAdvance,
+      recommendedNextStepId
+    };
+    this.logger.debug("Evaluation complete", {
+      stepId: step.id,
+      stepComplete,
+      progressPercent,
+      evaluationTimeMs: Date.now() - startTime
+    });
+    return evaluation;
+  }
+  /**
+   * Advance to the next step in the plan
+   */
+  async advanceStep(planId, evaluation, options = {}) {
+    this.logger.debug("Advancing step", { planId, shouldAdvance: evaluation.shouldAdvance });
+    const plan = await this.config.planStore.get(planId);
+    if (!plan) {
+      throw new Error(`Plan not found: ${planId}`);
+    }
+    const currentStep = this.getCurrentStep(plan);
+    const transitionType = this.determineTransitionType(evaluation, options);
+    const nextStepId = options.targetStepId || evaluation.recommendedNextStepId;
+    const nextStep = nextStepId ? plan.steps.find((s) => s.id === nextStepId) ?? null : null;
+    const updatedPlanState = await this.updatePlanState(
+      plan,
+      currentStep,
+      nextStep,
+      evaluation,
+      transitionType
+    );
+    const planComplete = this.isPlanComplete(plan, nextStep);
+    const celebration = this.generateCelebration(
+      currentStep,
+      nextStep,
+      planComplete
+    );
+    const transitionMessage = this.generateTransitionMessage(
+      transitionType,
+      currentStep,
+      nextStep,
+      planComplete
+    );
+    const transition = {
+      previousStep: currentStep,
+      currentStep: nextStep,
+      transitionType,
+      updatedPlanState,
+      transitionMessage,
+      planComplete,
+      celebration
+    };
+    this.logger.info("Step transition complete", {
+      planId,
+      transitionType,
+      planComplete,
+      previousStepId: currentStep?.id,
+      currentStepId: nextStep?.id
+    });
+    return transition;
+  }
+  /**
+   * Plan tool usage based on the current tutoring context
+   */
+  async planToolUsage(context, userMessage) {
+    const startTime = Date.now();
+    this.logger.debug("Planning tool usage", {
+      userId: context.userId,
+      stepId: context.currentStep?.id
+    });
+    const plannedTools = [];
+    let stepContext = null;
+    if (context.currentStep) {
+      stepContext = {
+        stepId: context.currentStep.id,
+        stepType: context.currentStep.type,
+        objectives: context.stepObjectives,
+        allowedTools: context.allowedTools.map((t) => t.id)
+      };
+      const toolRecommendations = await this.analyzeToolNeeds(
+        context,
+        userMessage
+      );
+      for (const rec of toolRecommendations) {
+        const tool = context.allowedTools.find((t) => t.id === rec.toolId);
+        if (tool) {
+          plannedTools.push({
+            toolId: tool.id,
+            toolName: tool.name,
+            input: rec.suggestedInput,
+            priority: rec.priority,
+            requiresConfirmation: tool.confirmationType !== "none",
+            reasoning: rec.reasoning
+          });
+        }
+      }
+    }
+    plannedTools.sort((a, b) => b.priority - a.priority);
+    const plan = {
+      tools: plannedTools,
+      reasoning: this.generateToolPlanReasoning(plannedTools, context),
+      confidence: this.calculateToolPlanConfidence(plannedTools),
+      requiresConfirmation: plannedTools.some((t) => t.requiresConfirmation),
+      stepContext
+    };
+    this.logger.debug("Tool plan created", {
+      toolCount: plannedTools.length,
+      requiresConfirmation: plan.requiresConfirmation,
+      planTimeMs: Date.now() - startTime
+    });
+    return plan;
+  }
+  /**
+   * Process the complete tutoring loop
+   */
+  async processLoop(userId, sessionId, userMessage, llmResponse, options = {}) {
+    const loopStartTime = Date.now();
+    const contextStartTime = Date.now();
+    const context = await this.prepareContext(userId, sessionId, userMessage, {
+      planId: options.planId,
+      goalId: options.goalId,
+      sessionContext: options.sessionContext
+    });
+    const contextPrepTime = Date.now() - contextStartTime;
+    const toolPlanStartTime = Date.now();
+    const toolPlan = await this.planToolUsage(context, userMessage);
+    const toolPlanningTime = Date.now() - toolPlanStartTime;
+    const evalStartTime = Date.now();
+    const evaluation = await this.evaluateProgress(context, llmResponse, userMessage);
+    const evaluationTime = Date.now() - evalStartTime;
+    let transition = null;
+    if (evaluation.shouldAdvance && context.activePlan) {
+      transition = await this.advanceStep(context.activePlan.id, evaluation);
+    }
+    const pendingConfirmations = await this.config.confirmationStore.getByUser(
+      userId,
+      { status: ["pending"] }
+    );
+    await this.config.sessionStore.update(context.sessionId, {
+      messageCount: context.sessionMetadata.messageCount + 1,
+      metadata: { ...context.sessionMetadata, lastActiveAt: (/* @__PURE__ */ new Date()).toISOString() }
+    });
+    const metadata = {
+      processingTime: Date.now() - loopStartTime,
+      contextPrepTime,
+      evaluationTime,
+      toolPlanningTime,
+      stepAdvanced: !!transition,
+      planCompleted: transition?.planComplete ?? false,
+      interventionsTriggered: context.pendingInterventions.length
+    };
+    return {
+      response: llmResponse,
+      modifiedResponse: null,
+      // Can be enhanced with step context
+      context,
+      evaluation,
+      transition,
+      toolPlan,
+      pendingConfirmations,
+      metadata
+    };
+  }
+  // ============================================================================
+  // PRIVATE HELPER METHODS
+  // ============================================================================
+  async getActiveGoal(userId, goalId) {
+    if (goalId) {
+      return this.config.goalStore.get(goalId);
+    }
+    const goals = await this.config.goalStore.getByUser(userId, {
+      status: ["active"],
+      limit: 1
+    });
+    return goals[0] ?? null;
+  }
+  async getActivePlan(userId, planId) {
+    if (planId) {
+      return this.config.planStore.get(planId);
+    }
+    const plans = await this.config.planStore.getByUser(userId, {
+      status: ["active"],
+      limit: 1
+    });
+    return plans[0] ?? null;
+  }
+  getCurrentStep(plan) {
+    return plan.steps.find(
+      (s) => s.status === "pending" || s.status === "in_progress"
+    ) ?? null;
+  }
+  extractStepObjectives(step) {
+    const objectives = [];
+    if (step.description) {
+      objectives.push(step.description);
+    }
+    const successCriteria = step.metadata?.successCriteria;
+    if (successCriteria) {
+      objectives.push(...successCriteria);
+    }
+    return objectives;
+  }
+  async getAllowedTools(step) {
+    const allowedToolIds = step?.metadata?.allowedTools || [];
+    if (allowedToolIds.length === 0) {
+      return this.config.toolStore.list({
+        enabled: true,
+        category: "content",
+        limit: 10
+      });
+    }
+    const tools = [];
+    for (const toolId of allowedToolIds) {
+      const tool = await this.config.toolStore.get(toolId);
+      if (tool && tool.enabled) {
+        tools.push(tool);
+      }
+    }
+    return tools;
+  }
+  async buildMemoryContext(_userId, sessionContext) {
+    const insights = sessionContext?.insights;
+    return {
+      recentTopics: sessionContext?.currentState?.recentConcepts || [],
+      strugglingConcepts: insights?.strugglingConcepts || [],
+      masteredConcepts: insights?.masteredConcepts || [],
+      sessionSummary: null,
+      // Can be populated from memory system
+      knowledgeSnippets: [],
+      learningStyle: sessionContext?.preferences?.learningStyle || null,
+      currentMasteryLevel: null
+    };
+  }
+  async getPendingInterventions(_userId, _sessionId) {
+    return [];
+  }
+  getPreviousStepResults(plan) {
+    const results = [];
+    for (const step of plan.steps) {
+      if (step.status === "completed" || step.status === "failed") {
+        results.push({
+          stepId: step.id,
+          success: step.status === "completed",
+          outputs: step.outputs || [],
+          completedAt: step.completedAt ?? /* @__PURE__ */ new Date(),
+          duration: step.actualMinutes ?? step.estimatedMinutes
+        });
+      }
+    }
+    return results;
+  }
+  buildSessionMetadata(session) {
+    const now = /* @__PURE__ */ new Date();
+    const startedAt = session.startedAt;
+    const totalMinutes = Math.round(
+      (now.getTime() - startedAt.getTime()) / 6e4
+    );
+    return {
+      startedAt,
+      lastActiveAt: session.endedAt ?? now,
+      messageCount: session.messageCount,
+      stepsCompletedThisSession: session.stepsCompleted.length,
+      totalSessionTime: totalMinutes
+    };
+  }
+  async evaluateCriterion(criterion, _context, _response, _userMessage) {
+    return {
+      criterion,
+      met: false,
+      evidence: null,
+      confidence: 0.5
+    };
+  }
+  generateRecommendations(_context, _evaluatedCriteria, pendingCriteria, progressPercent) {
+    const recommendations = [];
+    if (progressPercent >= 80) {
+      recommendations.push({
+        type: "continue",
+        reason: "Good progress, continue with current approach",
+        priority: 1
+      });
+    } else if (progressPercent >= 50) {
+      recommendations.push({
+        type: "practice",
+        reason: "Some practice exercises may help solidify understanding",
+        priority: 2
+      });
+    } else if (pendingCriteria.length > 2) {
+      recommendations.push({
+        type: "simplify",
+        reason: "Consider breaking down the topic into smaller parts",
+        priority: 3
+      });
+    }
+    return recommendations;
+  }
+  getNextStepId(plan, currentStepId) {
+    if (!plan) return null;
+    const currentIndex = plan.steps.findIndex((s) => s.id === currentStepId);
+    if (currentIndex === -1 || currentIndex >= plan.steps.length - 1) {
+      return null;
+    }
+    return plan.steps[currentIndex + 1].id;
+  }
+  determineTransitionType(evaluation, options) {
+    if (options.skip) return "skip";
+    if (options.retry) return "retry";
+    if (options.rollback) return "rollback";
+    if (options.targetStepId) return "jump";
+    if (evaluation.stepComplete) return "advance";
+    return "advance";
+  }
+  async updatePlanState(plan, currentStep, nextStep, _evaluation, transitionType) {
+    const now = /* @__PURE__ */ new Date();
+    if (currentStep) {
+      const stepIndex = plan.steps.findIndex((s) => s.id === currentStep.id);
+      if (stepIndex !== -1) {
+        await this.config.planStore.updateStep(plan.id, currentStep.id, {
+          status: transitionType === "advance" ? "completed" : plan.steps[stepIndex].status,
+          completedAt: transitionType === "advance" ? now : void 0
+        });
+      }
+    }
+    if (nextStep) {
+      await this.config.planStore.updateStep(plan.id, nextStep.id, {
+        status: "in_progress",
+        startedAt: now
+      });
+    }
+    const existingState = await this.config.planStore.loadState(plan.id);
+    const completedStepIds = plan.steps.filter((s) => s.status === "completed").map((s) => s.id);
+    const failedStepIds = plan.steps.filter((s) => s.status === "failed").map((s) => s.id);
+    const skippedStepIds = plan.steps.filter((s) => s.status === "skipped").map((s) => s.id);
+    const newState = {
+      planId: plan.id,
+      goalId: plan.goalId,
+      userId: plan.userId,
+      currentStepId: nextStep?.id ?? null,
+      currentStepProgress: 0,
+      completedSteps: completedStepIds,
+      failedSteps: failedStepIds,
+      skippedSteps: skippedStepIds,
+      startedAt: existingState?.startedAt ?? now,
+      lastActiveAt: now,
+      totalActiveTime: existingState?.totalActiveTime ?? 0,
+      context: existingState?.context ?? {
+        recentTopics: [],
+        strugglingConcepts: [],
+        masteredConcepts: []
+      },
+      checkpointData: existingState?.checkpointData ?? {},
+      sessionCount: existingState?.sessionCount ?? 1
+    };
+    await this.config.planStore.saveState(newState);
+    return newState;
+  }
+  isPlanComplete(plan, nextStep) {
+    if (nextStep) return false;
+    return plan.steps.every((s) => s.status === "completed" || s.status === "skipped");
+  }
+  generateCelebration(currentStep, nextStep, planComplete) {
+    if (planComplete) {
+      return {
+        type: "goal_complete",
+        title: "Goal Achieved! \u{1F389}",
+        message: "Congratulations! You have completed all steps in your learning plan.",
+        xpEarned: 100
+      };
+    }
+    if (currentStep && !nextStep) {
+      return {
+        type: "step_complete",
+        title: "Step Complete! \u2728",
+        message: `Great work completing: ${currentStep.title}`,
+        xpEarned: 25
+      };
+    }
+    return null;
+  }
+  generateTransitionMessage(transitionType, currentStep, nextStep, planComplete) {
+    if (planComplete) {
+      return "Congratulations! You have completed your learning plan.";
+    }
+    switch (transitionType) {
+      case "advance":
+        return nextStep ? `Moving on to: ${nextStep.title}` : "All steps completed!";
+      case "skip":
+        return currentStep ? `Skipped: ${currentStep.title}` : "Step skipped.";
+      case "retry":
+        return currentStep ? `Retrying: ${currentStep.title}` : "Retrying step.";
+      case "rollback":
+        return nextStep ? `Going back to: ${nextStep.title}` : "Rolling back.";
+      case "jump":
+        return nextStep ? `Jumping to: ${nextStep.title}` : "Jumping to step.";
+      default:
+        return "Continuing with your learning plan.";
+    }
+  }
+  async analyzeToolNeeds(_context, _userMessage) {
+    return [];
+  }
+  generateToolPlanReasoning(tools, _context) {
+    if (tools.length === 0) {
+      return "No tools needed for this interaction.";
+    }
+    const toolNames = tools.map((t) => t.toolName).join(", ");
+    return `Planned to use: ${toolNames}. ${tools[0]?.reasoning ?? ""}`;
+  }
+  calculateToolPlanConfidence(tools) {
+    if (tools.length === 0) return 1;
+    const avgPriority = tools.reduce((sum, t) => sum + t.priority, 0) / tools.length;
+    return Math.min(avgPriority / 10, 1);
+  }
+  createEmptyEvaluation() {
+    return {
+      stepComplete: false,
+      confidence: 0,
+      evaluatedCriteria: [],
+      pendingCriteria: [],
+      progressPercent: 0,
+      recommendations: [],
+      shouldAdvance: false,
+      recommendedNextStepId: null
+    };
+  }
+  createDefaultLogger() {
+    return {
+      debug: (_message, _data) => {
+      },
+      info: (_message, _data) => {
+      },
+      warn: (message, data) => {
+        console.warn(`[TutoringLoop] ${message}`, data);
+      },
+      error: (message, error, data) => {
+        console.error(`[TutoringLoop] ${message}`, error, data);
+      }
+    };
+  }
+};
+function createTutoringLoopController(config) {
+  return new TutoringLoopController(config);
+}
+
+// src/orchestration/active-step-executor.ts
+var ActiveStepExecutor = class {
+  config;
+  logger;
+  pendingConfirmations = /* @__PURE__ */ new Map();
+  constructor(config) {
+    this.config = {
+      ...config,
+      defaultTimeoutMs: config.defaultTimeoutMs ?? 3e4,
+      maxConcurrentTools: config.maxConcurrentTools ?? 3,
+      requireConfirmation: config.requireConfirmation ?? true,
+      confirmationExpiryMs: config.confirmationExpiryMs ?? 3e5,
+      // 5 minutes
+      logger: config.logger ?? this.createDefaultLogger()
+    };
+    this.logger = this.config.logger;
+  }
+  /**
+   * Execute a step with its associated tools
+   */
+  async executeStep(step, context, toolPlan) {
+    const startedAt = /* @__PURE__ */ new Date();
+    this.logger.info("Executing step", {
+      stepId: step.id,
+      stepType: step.type,
+      toolCount: toolPlan.tools.length
+    });
+    const toolResults = [];
+    const errors = [];
+    const artifacts = [];
+    if (toolPlan.tools.length > 0) {
+      const results = await this.executeToolPlan(toolPlan, context);
+      toolResults.push(...results.summaries);
+      errors.push(...results.errors);
+      artifacts.push(...results.artifacts);
+    }
+    const hasErrors = errors.some((e) => !e.recoverable);
+    const hasPendingConfirmations = toolResults.some(
+      (r) => r.status === "pending_confirmation"
+    );
+    let status;
+    if (hasErrors) {
+      status = "failed";
+    } else if (hasPendingConfirmations) {
+      status = "blocked";
+    } else {
+      status = "completed";
+    }
+    const completedAt = /* @__PURE__ */ new Date();
+    const duration = completedAt.getTime() - startedAt.getTime();
+    const estimatedMs = step.estimatedMinutes * 60 * 1e3;
+    const timeEfficiency = estimatedMs > 0 ? estimatedMs / duration : 1;
+    const metrics = {
+      engagement: 1,
+      // Would be calculated from user interaction patterns
+      comprehension: errors.length === 0 ? 1 : 0.5,
+      // Based on error rate
+      timeEfficiency: Math.min(timeEfficiency, 2),
+      // Cap at 2x efficiency
+      ...this.calculateAdditionalMetrics(toolResults)
+    };
+    const output = {
+      message: this.generateOutputMessage(step, status, toolResults),
+      data: this.aggregateToolOutputs(toolResults),
+      artifacts
+    };
+    const result = {
+      stepId: step.id,
+      status,
+      output,
+      metrics,
+      toolResults,
+      errors,
+      startedAt,
+      completedAt
+    };
+    this.logger.info("Step execution complete", {
+      stepId: step.id,
+      status,
+      duration,
+      toolsExecuted: toolResults.length,
+      errorsCount: errors.length
+    });
+    return result;
+  }
+  /**
+   * Execute a tool plan with confirmation handling
+   */
+  async executeToolPlan(toolPlan, context) {
+    const summaries = [];
+    const errors = [];
+    const artifacts = [];
+    const { needsConfirmation, canExecute } = this.categorizeTools(
+      toolPlan.tools,
+      context
+    );
+    const immediateResults = await this.executeToolsBatch(
+      canExecute,
+      context
+    );
+    summaries.push(...immediateResults.summaries);
+    errors.push(...immediateResults.errors);
+    artifacts.push(...immediateResults.artifacts);
+    for (const tool of needsConfirmation) {
+      const confirmationResult = await this.requestToolConfirmation(
+        tool,
+        context
+      );
+      summaries.push(confirmationResult);
+    }
+    return { summaries, errors, artifacts };
+  }
+  /**
+   * Execute a single tool
+   */
+  async executeTool(tool, context) {
+    const startTime = Date.now();
+    this.logger.debug("Executing tool", {
+      toolId: tool.toolId,
+      toolName: tool.toolName
+    });
+    try {
+      const toolDef = await this.config.toolStore.get(tool.toolId);
+      if (!toolDef) {
+        return {
+          toolId: tool.toolId,
+          toolName: tool.toolName,
+          status: "failed",
+          error: `Tool not found: ${tool.toolId}`,
+          duration: Date.now() - startTime
+        };
+      }
+      if (!toolDef.enabled) {
+        return {
+          toolId: tool.toolId,
+          toolName: tool.toolName,
+          status: "skipped",
+          error: "Tool is disabled",
+          duration: Date.now() - startTime
+        };
+      }
+      const validatedInput = await this.validateToolInput(toolDef, tool.input);
+      const execContext = {
+        userId: context.userId,
+        sessionId: context.sessionId,
+        requestId: `exec-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        grantedPermissions: toolDef.requiredPermissions,
+        userConfirmed: !tool.requiresConfirmation,
+        previousCalls: []
+      };
+      const result = await this.executeWithTimeout(
+        toolDef.handler(validatedInput, execContext),
+        toolDef.timeoutMs ?? this.config.defaultTimeoutMs
+      );
+      return {
+        toolId: tool.toolId,
+        toolName: tool.toolName,
+        status: result.success ? "success" : "failed",
+        result,
+        error: result.error?.message,
+        duration: Date.now() - startTime
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      this.logger.error("Tool execution failed", error, {
+        toolId: tool.toolId
+      });
+      return {
+        toolId: tool.toolId,
+        toolName: tool.toolName,
+        status: "failed",
+        error: errorMessage,
+        duration: Date.now() - startTime
+      };
+    }
+  }
+  /**
+   * Handle confirmation response for a pending tool execution
+   */
+  async handleConfirmation(confirmationId, response, context) {
+    const pending = this.pendingConfirmations.get(confirmationId);
+    if (!pending) {
+      this.logger.warn("Confirmation not found", { confirmationId });
+      return null;
+    }
+    await this.config.confirmationStore.respond(confirmationId, response);
+    this.pendingConfirmations.delete(confirmationId);
+    if (!response.approved) {
+      return {
+        toolId: pending.tool.toolId,
+        toolName: pending.tool.toolName,
+        status: "skipped",
+        error: response.rejectionReason ?? "User declined",
+        duration: 0,
+        confirmationId
+      };
+    }
+    const toolToExecute = {
+      ...pending.tool,
+      input: response.modifiedInput ?? pending.tool.input,
+      requiresConfirmation: false
+      // Already confirmed
+    };
+    return this.executeTool(toolToExecute, context);
+  }
+  /**
+   * Get all pending confirmations for a user
+   */
+  async getPendingConfirmations(userId) {
+    return this.config.confirmationStore.getByUser(userId, {
+      status: ["pending"]
+    });
+  }
+  /**
+   * Cancel a pending confirmation
+   */
+  async cancelConfirmation(confirmationId) {
+    const pending = this.pendingConfirmations.get(confirmationId);
+    if (!pending) {
+      return false;
+    }
+    await this.config.confirmationStore.update(confirmationId, {
+      status: "expired"
+    });
+    this.pendingConfirmations.delete(confirmationId);
+    return true;
+  }
+  // ============================================================================
+  // PRIVATE HELPER METHODS
+  // ============================================================================
+  categorizeTools(tools, _context) {
+    const needsConfirmation = [];
+    const canExecute = [];
+    for (const tool of tools) {
+      if (tool.requiresConfirmation && this.config.requireConfirmation) {
+        needsConfirmation.push(tool);
+      } else {
+        canExecute.push(tool);
+      }
+    }
+    return { needsConfirmation, canExecute };
+  }
+  async executeToolsBatch(tools, context) {
+    const summaries = [];
+    const errors = [];
+    const artifacts = [];
+    const batches = this.chunkArray(tools, this.config.maxConcurrentTools);
+    for (const batch of batches) {
+      const batchResults = await Promise.all(
+        batch.map((tool) => this.executeTool(tool, context))
+      );
+      for (const result of batchResults) {
+        summaries.push(result);
+        if (result.status === "failed" && result.error) {
+          errors.push({
+            code: "TOOL_EXECUTION_ERROR",
+            message: result.error,
+            toolId: result.toolId,
+            recoverable: true
+          });
+        }
+        if (result.status === "success" && result.result?.output) {
+          const extractedArtifacts = this.extractArtifacts(
+            result.toolId,
+            result.result.output
+          );
+          artifacts.push(...extractedArtifacts);
+        }
+      }
+    }
+    return { summaries, errors, artifacts };
+  }
+  async requestToolConfirmation(tool, context) {
+    const expiresAt = new Date(Date.now() + this.config.confirmationExpiryMs);
+    const request = await this.config.confirmationStore.create({
+      userId: context.userId,
+      sessionId: context.sessionId,
+      toolId: tool.toolId,
+      toolName: tool.toolName,
+      toolDescription: tool.reasoning,
+      plannedInput: tool.input,
+      reasoning: tool.reasoning,
+      riskLevel: this.assessRiskLevel(tool),
+      stepId: context.currentStep?.id ?? null,
+      stepTitle: context.currentStep?.title ?? null,
+      status: "pending",
+      expiresAt,
+      respondedAt: null,
+      approvedBy: null,
+      rejectionReason: null
+    });
+    this.pendingConfirmations.set(request.id, {
+      request,
+      tool,
+      context,
+      createdAt: /* @__PURE__ */ new Date()
+    });
+    this.logger.info("Confirmation requested", {
+      confirmationId: request.id,
+      toolId: tool.toolId
+    });
+    return {
+      toolId: tool.toolId,
+      toolName: tool.toolName,
+      status: "pending_confirmation",
+      duration: 0,
+      confirmationId: request.id
+    };
+  }
+  async validateToolInput(toolDef, input) {
+    try {
+      return toolDef.inputSchema.parse(input);
+    } catch (error) {
+      throw new Error(`Invalid tool input: ${error instanceof Error ? error.message : "validation failed"}`);
+    }
+  }
+  async executeWithTimeout(promise, timeoutMs) {
+    return Promise.race([
+      promise,
+      new Promise(
+        (_, reject) => setTimeout(() => reject(new Error("Tool execution timeout")), timeoutMs)
+      )
+    ]);
+  }
+  assessRiskLevel(tool) {
+    if (!tool.requiresConfirmation) return "safe";
+    if (tool.priority >= 8) return "low";
+    if (tool.priority >= 5) return "medium";
+    if (tool.priority >= 3) return "high";
+    return "critical";
+  }
+  extractArtifacts(toolId, output) {
+    const artifacts = [];
+    if (typeof output === "object" && output !== null) {
+      const outputObj = output;
+      if (outputObj.content && outputObj.type) {
+        artifacts.push({
+          id: `artifact-${toolId}-${Date.now()}`,
+          type: outputObj.type || "content",
+          title: outputObj.title || "Generated Content",
+          content: outputObj.content,
+          metadata: outputObj.metadata
+        });
+      }
+    }
+    return artifacts;
+  }
+  calculateAdditionalMetrics(results) {
+    const successCount = results.filter((r) => r.status === "success").length;
+    const successRate = results.length > 0 ? successCount / results.length : 1;
+    return {
+      masteryGain: successRate * 0.1
+      // Small mastery gain per step
+    };
+  }
+  generateOutputMessage(step, status, results) {
+    const successCount = results.filter((r) => r.status === "success").length;
+    switch (status) {
+      case "completed":
+        return `Step "${step.title}" completed successfully. ${successCount} tools executed.`;
+      case "failed":
+        return `Step "${step.title}" failed. Please check the errors and try again.`;
+      case "blocked":
+        return `Step "${step.title}" is waiting for confirmation to proceed.`;
+      default:
+        return `Step "${step.title}" status: ${status}`;
+    }
+  }
+  aggregateToolOutputs(results) {
+    const aggregated = {};
+    for (const result of results) {
+      if (result.status === "success" && result.result?.output) {
+        aggregated[result.toolId] = result.result.output;
+      }
+    }
+    return aggregated;
+  }
+  chunkArray(array, size) {
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  }
+  createDefaultLogger() {
+    return {
+      debug: (_message, _data) => {
+      },
+      info: (_message, _data) => {
+      },
+      warn: (message, data) => {
+        console.warn(`[ActiveStepExecutor] ${message}`, data);
+      },
+      error: (message, error, data) => {
+        console.error(`[ActiveStepExecutor] ${message}`, error, data);
+      }
+    };
+  }
+};
+function createActiveStepExecutor(config) {
+  return new ActiveStepExecutor(config);
+}
+
+// src/orchestration/plan-context-injector.ts
+var PlanContextInjector = class {
+  config;
+  logger;
+  constructor(config = {}) {
+    this.config = {
+      logger: config.logger ?? this.createDefaultLogger(),
+      maxObjectives: config.maxObjectives ?? 5,
+      maxPreviousResults: config.maxPreviousResults ?? 3,
+      includeMemoryContext: config.includeMemoryContext ?? true,
+      includeGamification: config.includeGamification ?? false,
+      templateFormat: config.templateFormat ?? "markdown"
+    };
+    this.logger = this.config.logger;
+  }
+  /**
+   * Create plan context injection for LLM prompt
+   */
+  createInjection(context) {
+    this.logger.debug("Creating plan context injection", {
+      userId: context.userId,
+      hasGoal: !!context.activeGoal,
+      hasPlan: !!context.activePlan,
+      hasStep: !!context.currentStep
+    });
+    const systemPromptAdditions = this.buildSystemPromptAdditions(context);
+    const messagePrefix = this.buildMessagePrefix(context);
+    const messageSuffix = this.buildMessageSuffix(context);
+    const structuredContext = this.buildStructuredContext(context);
+    return {
+      systemPromptAdditions,
+      messagePrefix,
+      messageSuffix,
+      structuredContext
+    };
+  }
+  /**
+   * Format context as a single string for system prompt
+   */
+  formatForSystemPrompt(context) {
+    const injection = this.createInjection(context);
+    return injection.systemPromptAdditions.join("\n\n");
+  }
+  /**
+   * Format context as structured data
+   */
+  formatAsStructuredData(context) {
+    return this.buildStructuredContext(context);
+  }
+  /**
+   * Build the complete prompt with context
+   */
+  buildCompletePrompt(context, userMessage, systemPrompt) {
+    const injection = this.createInjection(context);
+    const enhancedSystemPrompt = [
+      systemPrompt ?? "",
+      ...injection.systemPromptAdditions
+    ].filter(Boolean).join("\n\n");
+    const enhancedUserMessage = [
+      injection.messagePrefix,
+      userMessage,
+      injection.messageSuffix
+    ].filter(Boolean).join("\n\n");
+    return {
+      systemPrompt: enhancedSystemPrompt,
+      userMessage: enhancedUserMessage,
+      structuredContext: injection.structuredContext
+    };
+  }
+  // ============================================================================
+  // PRIVATE BUILDER METHODS
+  // ============================================================================
+  buildSystemPromptAdditions(context) {
+    const additions = [];
+    if (context.activePlan && context.currentStep) {
+      additions.push(this.formatPlanContext(context));
+    }
+    if (context.stepObjectives.length > 0) {
+      additions.push(this.formatStepObjectives(context.stepObjectives));
+    }
+    if (this.config.includeMemoryContext) {
+      const memoryPrompt = this.formatMemoryContext(context);
+      if (memoryPrompt) {
+        additions.push(memoryPrompt);
+      }
+    }
+    if (context.allowedTools.length > 0) {
+      additions.push(this.formatAvailableTools(context));
+    }
+    if (context.pendingInterventions.length > 0) {
+      additions.push(this.formatInterventions(context));
+    }
+    return additions;
+  }
+  buildMessagePrefix(context) {
+    if (!context.currentStep) {
+      return null;
+    }
+    const step = context.currentStep;
+    return this.formatTemplate("prefix", {
+      stepTitle: step.title,
+      stepType: step.type,
+      progress: this.calculateProgress(context)
+    });
+  }
+  buildMessageSuffix(context) {
+    if (context.stepObjectives.length === 0) {
+      return null;
+    }
+    return this.formatTemplate("suffix", {
+      objectives: context.stepObjectives.slice(0, this.config.maxObjectives)
+    });
+  }
+  buildStructuredContext(context) {
+    return {
+      goalSummary: context.activeGoal ? `${context.activeGoal.title}: ${context.activeGoal.description ?? ""}` : null,
+      stepDetails: context.currentStep ? this.buildStepDetails(context.currentStep) : null,
+      progressSummary: this.buildProgressSummary(context),
+      availableActions: this.getAvailableActions(context),
+      constraints: this.getConstraints(context)
+    };
+  }
+  buildStepDetails(step) {
+    const successCriteria = step.metadata?.successCriteria || [];
+    return {
+      title: step.title,
+      type: step.type,
+      description: step.description ?? null,
+      objectives: successCriteria,
+      estimatedMinutes: step.estimatedMinutes,
+      currentProgress: 0
+      // Would be calculated from evaluation
+    };
+  }
+  buildProgressSummary(context) {
+    if (!context.activePlan) {
+      return "No active learning plan.";
+    }
+    const plan = context.activePlan;
+    const totalSteps = plan.steps.length;
+    const completedSteps = plan.steps.filter((s) => s.status === "completed").length;
+    const progress = Math.round(completedSteps / totalSteps * 100);
+    return `Progress: ${completedSteps}/${totalSteps} steps completed (${progress}%)`;
+  }
+  getAvailableActions(context) {
+    const actions = [];
+    actions.push("ask questions", "request clarification", "get examples");
+    if (context.currentStep) {
+      const stepActions = this.getStepTypeActions(context.currentStep.type);
+      actions.push(...stepActions);
+    }
+    for (const tool of context.allowedTools) {
+      actions.push(tool.name);
+    }
+    return actions;
+  }
+  getStepTypeActions(stepType) {
+    const actionMap = {
+      read_content: ["summarize content", "explain concept", "provide examples"],
+      watch_video: ["summarize video", "ask about section", "note key points"],
+      complete_exercise: ["check solution", "get hints", "show answer"],
+      take_quiz: ["submit answer", "request feedback", "review explanation"],
+      reflect: ["guided reflection", "connect concepts", "identify gaps"],
+      practice_problem: ["check solution", "get hints", "show steps"],
+      socratic_dialogue: ["ask questions", "explore reasoning", "challenge assumptions"],
+      spaced_review: ["test recall", "highlight key points", "create summary"],
+      create_summary: ["organize notes", "highlight key points", "create outline"],
+      peer_discussion: ["share perspective", "ask clarifying questions"],
+      project_work: ["validate approach", "suggest improvements", "debug code"],
+      research: ["explore sources", "verify information", "synthesize findings"]
+    };
+    return actionMap[stepType] || [];
+  }
+  getConstraints(context) {
+    const constraints = [];
+    if (context.currentStep) {
+      const step = context.currentStep;
+      if (step.type === "take_quiz") {
+        constraints.push("Do not reveal answers directly");
+        constraints.push("Guide toward understanding rather than giving solutions");
+      }
+      if (step.type === "practice_problem" || step.type === "complete_exercise") {
+        constraints.push("Provide hints before solutions");
+        constraints.push("Encourage multiple attempts");
+      }
+    }
+    if (context.memoryContext.strugglingConcepts.length > 0) {
+      constraints.push(
+        `Be patient with: ${context.memoryContext.strugglingConcepts.slice(0, 3).join(", ")}`
+      );
+    }
+    return constraints;
+  }
+  // ============================================================================
+  // FORMATTING METHODS
+  // ============================================================================
+  formatPlanContext(context) {
+    const { activePlan, currentStep, activeGoal } = context;
+    if (!activePlan || !currentStep) {
+      return "";
+    }
+    const template = this.getTemplate("planContext");
+    return template.replace("{{goalTitle}}", activeGoal?.title ?? "Learning Goal").replace("{{planTitle}}", `Plan for Goal: ${activeGoal?.title ?? "Unknown"}`).replace("{{currentStep}}", currentStep.title).replace("{{stepType}}", currentStep.type).replace("{{progress}}", this.calculateProgress(context));
+  }
+  formatStepObjectives(objectives) {
+    const limitedObjectives = objectives.slice(0, this.config.maxObjectives);
+    const template = this.getTemplate("objectives");
+    const objectivesList = limitedObjectives.map((obj, i) => `${i + 1}. ${obj}`).join("\n");
+    return template.replace("{{objectives}}", objectivesList);
+  }
+  formatMemoryContext(context) {
+    const { memoryContext } = context;
+    const parts = [];
+    if (memoryContext.masteredConcepts.length > 0) {
+      parts.push(`Mastered: ${memoryContext.masteredConcepts.slice(0, 5).join(", ")}`);
+    }
+    if (memoryContext.strugglingConcepts.length > 0) {
+      parts.push(`Needs work: ${memoryContext.strugglingConcepts.slice(0, 5).join(", ")}`);
+    }
+    if (memoryContext.learningStyle) {
+      parts.push(`Learning style: ${memoryContext.learningStyle}`);
+    }
+    if (parts.length === 0) {
+      return null;
+    }
+    return this.getTemplate("memory").replace("{{memoryContext}}", parts.join("\n"));
+  }
+  formatAvailableTools(context) {
+    const toolList = context.allowedTools.map((t) => `- ${t.name}: ${t.description}`).join("\n");
+    return this.getTemplate("tools").replace("{{tools}}", toolList);
+  }
+  formatInterventions(context) {
+    const interventions = context.pendingInterventions.slice(0, 3).map((i) => `- [${i.priority}] ${i.message}`).join("\n");
+    return this.getTemplate("interventions").replace("{{interventions}}", interventions);
+  }
+  formatTemplate(type, data) {
+    switch (type) {
+      case "prefix":
+        return `[Current Step: ${data.stepTitle} (${data.stepType}) - Progress: ${data.progress}]`;
+      case "suffix":
+        const objectives = data.objectives;
+        if (objectives.length === 0) return "";
+        return `
+
+[Objectives for this step: ${objectives.join("; ")}]`;
+      default:
+        return "";
+    }
+  }
+  // ============================================================================
+  // TEMPLATE METHODS
+  // ============================================================================
+  getTemplate(type) {
+    const templates = {
+      markdown: {
+        planContext: `## Current Learning Context
+**Goal:** {{goalTitle}}
+**Plan:** {{planTitle}}
+**Current Step:** {{currentStep}} ({{stepType}})
+**Progress:** {{progress}}`,
+        objectives: `## Step Objectives
+{{objectives}}`,
+        memory: `## Learner Context
+{{memoryContext}}`,
+        tools: `## Available Tools
+{{tools}}`,
+        interventions: `## Pending Interventions
+{{interventions}}`
+      },
+      xml: {
+        planContext: `<learning-context>
+  <goal>{{goalTitle}}</goal>
+  <plan>{{planTitle}}</plan>
+  <current-step type="{{stepType}}">{{currentStep}}</current-step>
+  <progress>{{progress}}</progress>
+</learning-context>`,
+        objectives: `<step-objectives>
+{{objectives}}
+</step-objectives>`,
+        memory: `<learner-context>
+{{memoryContext}}
+</learner-context>`,
+        tools: `<available-tools>
+{{tools}}
+</available-tools>`,
+        interventions: `<interventions>
+{{interventions}}
+</interventions>`
+      },
+      json: {
+        planContext: `{"learningContext":{"goal":"{{goalTitle}}","plan":"{{planTitle}}","currentStep":"{{currentStep}}","stepType":"{{stepType}}","progress":"{{progress}}"}}`,
+        objectives: `{"objectives":[{{objectives}}]}`,
+        memory: `{"learnerContext":{{memoryContext}}}`,
+        tools: `{"tools":[{{tools}}]}`,
+        interventions: `{"interventions":[{{interventions}}]}`
+      }
+    };
+    return templates[this.config.templateFormat]?.[type] ?? templates.markdown[type] ?? "";
+  }
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+  calculateProgress(context) {
+    if (!context.activePlan) {
+      return "0%";
+    }
+    const plan = context.activePlan;
+    const total = plan.steps.length;
+    const completed = plan.steps.filter((s) => s.status === "completed").length;
+    return `${Math.round(completed / total * 100)}%`;
+  }
+  createDefaultLogger() {
+    return {
+      debug: (_message, _data) => {
+      },
+      info: (_message, _data) => {
+      },
+      warn: (message, data) => {
+        console.warn(`[PlanContextInjector] ${message}`, data);
+      },
+      error: (message, error, data) => {
+        console.error(`[PlanContextInjector] ${message}`, error, data);
+      }
+    };
+  }
+};
+function createPlanContextInjector(config) {
+  return new PlanContextInjector(config);
+}
+
+// src/orchestration/confirmation-gate.ts
+var ConfirmationGate = class {
+  config;
+  logger;
+  constructor(config) {
+    this.config = {
+      ...config,
+      defaultExpiryMs: config.defaultExpiryMs ?? 3e5,
+      // 5 minutes
+      autoApproveForSafe: config.autoApproveForSafe ?? true,
+      maxPendingPerUser: config.maxPendingPerUser ?? 10,
+      logger: config.logger ?? this.createDefaultLogger(),
+      onConfirmationRequired: config.onConfirmationRequired ?? (() => {
+      })
+    };
+    this.logger = this.config.logger;
+  }
+  /**
+   * Check if a tool requires confirmation
+   */
+  requiresConfirmation(tool) {
+    if (this.config.autoApproveForSafe && tool.confirmationType === "none") {
+      return false;
+    }
+    return tool.confirmationType !== "none";
+  }
+  /**
+   * Get the confirmation type for a tool
+   */
+  getConfirmationType(tool) {
+    return tool.confirmationType;
+  }
+  /**
+   * Request confirmation for a tool execution
+   */
+  async requestConfirmation(userId, sessionId, tool, input, options = {}) {
+    this.logger.info("Requesting confirmation", {
+      userId,
+      toolId: tool.id,
+      confirmationType: tool.confirmationType
+    });
+    const pending = await this.config.confirmationStore.getByUser(userId, {
+      status: ["pending"]
+    });
+    if (pending.length >= this.config.maxPendingPerUser) {
+      const oldest = pending.sort(
+        (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+      )[0];
+      await this.expireConfirmation(oldest.id);
+    }
+    const riskLevel = this.assessRiskLevel(tool, input);
+    const expiryMs = options.expiryMs ?? this.config.defaultExpiryMs;
+    const expiresAt = new Date(Date.now() + expiryMs);
+    const request = await this.config.confirmationStore.create({
+      userId,
+      sessionId,
+      toolId: tool.id,
+      toolName: tool.name,
+      toolDescription: tool.description,
+      plannedInput: input,
+      reasoning: options.reasoning ?? this.generateReasoning(tool, input),
+      riskLevel,
+      stepId: options.stepId ?? null,
+      stepTitle: options.stepTitle ?? null,
+      status: "pending",
+      expiresAt,
+      respondedAt: null,
+      approvedBy: null,
+      rejectionReason: null
+    });
+    this.config.onConfirmationRequired(request);
+    this.logger.debug("Confirmation created", {
+      confirmationId: request.id,
+      riskLevel,
+      expiresAt
+    });
+    return request;
+  }
+  /**
+   * Respond to a confirmation request
+   */
+  async respond(confirmationId, response) {
+    this.logger.info("Processing confirmation response", {
+      confirmationId,
+      approved: response.approved
+    });
+    const request = await this.config.confirmationStore.get(confirmationId);
+    if (!request) {
+      throw new Error(`Confirmation not found: ${confirmationId}`);
+    }
+    if (request.status !== "pending") {
+      throw new Error(`Confirmation already processed: ${request.status}`);
+    }
+    if (/* @__PURE__ */ new Date() > request.expiresAt) {
+      await this.expireConfirmation(confirmationId);
+      throw new Error("Confirmation has expired");
+    }
+    const updatedRequest = await this.config.confirmationStore.respond(
+      confirmationId,
+      response
+    );
+    this.logger.info("Confirmation processed", {
+      confirmationId,
+      status: updatedRequest.status
+    });
+    return updatedRequest;
+  }
+  /**
+   * Approve a confirmation request
+   */
+  async approve(confirmationId, _approvedBy, modifiedInput) {
+    return this.respond(confirmationId, {
+      requestId: confirmationId,
+      approved: true,
+      modifiedInput
+    });
+  }
+  /**
+   * Reject a confirmation request
+   */
+  async reject(confirmationId, reason) {
+    return this.respond(confirmationId, {
+      requestId: confirmationId,
+      approved: false,
+      rejectionReason: reason
+    });
+  }
+  /**
+   * Get pending confirmations for a user
+   */
+  async getPendingConfirmations(userId) {
+    const pending = await this.config.confirmationStore.getByUser(userId, {
+      status: ["pending"]
+    });
+    const now = /* @__PURE__ */ new Date();
+    const valid = [];
+    const expired = [];
+    for (const request of pending) {
+      if (now > request.expiresAt) {
+        expired.push(request.id);
+      } else {
+        valid.push(request);
+      }
+    }
+    if (expired.length > 0) {
+      Promise.all(expired.map((id) => this.expireConfirmation(id))).catch((err) => {
+        this.logger.error("Failed to expire confirmations", err);
+      });
+    }
+    return valid;
+  }
+  /**
+   * Expire a confirmation request
+   */
+  async expireConfirmation(confirmationId) {
+    await this.config.confirmationStore.update(confirmationId, {
+      status: "expired"
+    });
+    this.logger.debug("Confirmation expired", { confirmationId });
+  }
+  /**
+   * Expire all old confirmations
+   */
+  async expireOldConfirmations(maxAgeMinutes) {
+    const minutes = maxAgeMinutes ?? Math.round(this.config.defaultExpiryMs / 6e4);
+    return this.config.confirmationStore.expireOld(minutes);
+  }
+  /**
+   * Check if a confirmation is still valid
+   */
+  async isValid(confirmationId) {
+    const request = await this.config.confirmationStore.get(confirmationId);
+    if (!request) {
+      return false;
+    }
+    if (request.status !== "pending") {
+      return false;
+    }
+    if (/* @__PURE__ */ new Date() > request.expiresAt) {
+      await this.expireConfirmation(confirmationId);
+      return false;
+    }
+    return true;
+  }
+  /**
+   * Get confirmation request by ID
+   */
+  async getConfirmation(confirmationId) {
+    return this.config.confirmationStore.get(confirmationId);
+  }
+  // ============================================================================
+  // PRIVATE HELPER METHODS
+  // ============================================================================
+  assessRiskLevel(tool, _input) {
+    const riskMap = {
+      none: "safe",
+      implicit: "low",
+      explicit: "medium",
+      critical: "critical"
+    };
+    return riskMap[tool.confirmationType] ?? "medium";
+  }
+  generateReasoning(tool, _input) {
+    switch (tool.confirmationType) {
+      case "critical":
+        return `This action (${tool.name}) requires explicit confirmation as it may have significant impact.`;
+      case "explicit":
+        return `Please confirm you want to proceed with ${tool.name}.`;
+      case "implicit":
+        return `Proceeding with ${tool.name}. Cancel if this is not intended.`;
+      default:
+        return `Tool ${tool.name} execution planned.`;
+    }
+  }
+  createDefaultLogger() {
+    return {
+      debug: (_message, _data) => {
+      },
+      info: (_message, _data) => {
+      },
+      warn: (message, data) => {
+        console.warn(`[ConfirmationGate] ${message}`, data);
+      },
+      error: (message, error, data) => {
+        console.error(`[ConfirmationGate] ${message}`, error, data);
+      }
+    };
+  }
+};
+function createConfirmationGate(config) {
+  return new ConfirmationGate(config);
+}
+
+// src/orchestration/stores.ts
+var InMemoryOrchestrationConfirmationStore = class {
+  requests = /* @__PURE__ */ new Map();
+  async create(request) {
+    const id = `confirm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const createdAt = /* @__PURE__ */ new Date();
+    const fullRequest = {
+      ...request,
+      id,
+      createdAt
+    };
+    this.requests.set(id, fullRequest);
+    return fullRequest;
+  }
+  async get(requestId) {
+    return this.requests.get(requestId) ?? null;
+  }
+  async getByUser(userId, options) {
+    let requests = Array.from(this.requests.values()).filter(
+      (r) => r.userId === userId
+    );
+    if (options?.status) {
+      requests = requests.filter((r) => options.status.includes(r.status));
+    }
+    requests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    if (options?.limit) {
+      requests = requests.slice(0, options.limit);
+    }
+    return requests;
+  }
+  async update(requestId, updates) {
+    const existing = this.requests.get(requestId);
+    if (!existing) {
+      throw new Error(`Confirmation request not found: ${requestId}`);
+    }
+    const updated = {
+      ...existing,
+      ...updates
+    };
+    this.requests.set(requestId, updated);
+    return updated;
+  }
+  async respond(requestId, response) {
+    const existing = this.requests.get(requestId);
+    if (!existing) {
+      throw new Error(`Confirmation request not found: ${requestId}`);
+    }
+    const updated = {
+      ...existing,
+      status: response.approved ? "approved" : "rejected",
+      respondedAt: /* @__PURE__ */ new Date(),
+      rejectionReason: response.rejectionReason ?? null
+    };
+    this.requests.set(requestId, updated);
+    return updated;
+  }
+  async expireOld(maxAgeMinutes) {
+    const cutoff = new Date(Date.now() - maxAgeMinutes * 60 * 1e3);
+    let expired = 0;
+    for (const [id, request] of this.requests) {
+      if (request.status === "pending" && request.createdAt < cutoff) {
+        request.status = "expired";
+        this.requests.set(id, request);
+        expired++;
+      }
+    }
+    return expired;
+  }
+  // Utility methods for testing/management
+  clear() {
+    this.requests.clear();
+  }
+  size() {
+    return this.requests.size;
+  }
+  getAll() {
+    return Array.from(this.requests.values());
+  }
+};
+var InMemoryTutoringSessionStore = class {
+  sessions = /* @__PURE__ */ new Map();
+  userActiveSessions = /* @__PURE__ */ new Map();
+  async getOrCreate(userId, planId) {
+    const activeSessionId = this.userActiveSessions.get(userId);
+    if (activeSessionId) {
+      const existingSession = this.sessions.get(activeSessionId);
+      if (existingSession && !existingSession.endedAt) {
+        existingSession.startedAt = existingSession.startedAt;
+        return existingSession;
+      }
+    }
+    const id = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const now = /* @__PURE__ */ new Date();
+    const session = {
+      id,
+      userId,
+      planId: planId ?? null,
+      startedAt: now,
+      endedAt: null,
+      messageCount: 0,
+      stepsCompleted: [],
+      toolsExecuted: [],
+      metadata: {}
+    };
+    this.sessions.set(id, session);
+    this.userActiveSessions.set(userId, id);
+    return session;
+  }
+  async update(sessionId, updates) {
+    const existing = this.sessions.get(sessionId);
+    if (!existing) {
+      throw new Error(`Tutoring session not found: ${sessionId}`);
+    }
+    const updated = {
+      ...existing,
+      ...updates
+    };
+    this.sessions.set(sessionId, updated);
+    return updated;
+  }
+  async end(sessionId) {
+    const existing = this.sessions.get(sessionId);
+    if (!existing) {
+      throw new Error(`Tutoring session not found: ${sessionId}`);
+    }
+    const ended = {
+      ...existing,
+      endedAt: /* @__PURE__ */ new Date()
+    };
+    this.sessions.set(sessionId, ended);
+    if (this.userActiveSessions.get(existing.userId) === sessionId) {
+      this.userActiveSessions.delete(existing.userId);
+    }
+    return ended;
+  }
+  async getActive(userId) {
+    const activeSessionId = this.userActiveSessions.get(userId);
+    if (!activeSessionId) {
+      return null;
+    }
+    const session = this.sessions.get(activeSessionId);
+    if (!session || session.endedAt) {
+      this.userActiveSessions.delete(userId);
+      return null;
+    }
+    return session;
+  }
+  async getRecent(userId, limit) {
+    let sessions = Array.from(this.sessions.values()).filter(
+      (s) => s.userId === userId
+    );
+    sessions.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    if (limit) {
+      sessions = sessions.slice(0, limit);
+    }
+    return sessions;
+  }
+  // Utility methods for testing/management
+  async get(sessionId) {
+    return this.sessions.get(sessionId) ?? null;
+  }
+  clear() {
+    this.sessions.clear();
+    this.userActiveSessions.clear();
+  }
+  size() {
+    return this.sessions.size;
+  }
+  getAll() {
+    return Array.from(this.sessions.values());
+  }
+};
+function createInMemoryOrchestrationConfirmationStore() {
+  return new InMemoryOrchestrationConfirmationStore();
+}
+function createInMemorySessionStore() {
+  return new InMemoryTutoringSessionStore();
+}
+function createInMemoryOrchestrationStores() {
+  return {
+    confirmationStore: new InMemoryOrchestrationConfirmationStore(),
+    sessionStore: new InMemoryTutoringSessionStore()
+  };
+}
+
 // src/learning-path/skill-tracker.ts
 var SkillTracker = class {
   store;
@@ -16719,6 +20526,3309 @@ function createPathRecommender(config) {
   return new LearningPathRecommender(config);
 }
 
+// src/realtime/types.ts
+var import_zod15 = require("zod");
+var SAMEventType = {
+  // Proactive events (server -> client)
+  INTERVENTION: "intervention",
+  CHECKIN: "checkin",
+  RECOMMENDATION: "recommendation",
+  STEP_COMPLETED: "step_completed",
+  GOAL_PROGRESS: "goal_progress",
+  NUDGE: "nudge",
+  PRESENCE_UPDATE: "presence_update",
+  SESSION_SYNC: "session_sync",
+  CELEBRATION: "celebration",
+  // Client events (client -> server)
+  ACTIVITY: "activity",
+  HEARTBEAT: "heartbeat",
+  ACKNOWLEDGE: "acknowledge",
+  DISMISS: "dismiss",
+  RESPOND: "respond",
+  SUBSCRIBE: "subscribe",
+  UNSUBSCRIBE: "unsubscribe",
+  // System events
+  CONNECTED: "connected",
+  DISCONNECTED: "disconnected",
+  ERROR: "error",
+  RECONNECTING: "reconnecting"
+};
+var NudgeType = {
+  REMINDER: "reminder",
+  ENCOURAGEMENT: "encouragement",
+  TIP: "tip",
+  STREAK_ALERT: "streak_alert",
+  BREAK_SUGGESTION: "break_suggestion",
+  STUDY_PROMPT: "study_prompt",
+  ACHIEVEMENT: "achievement"
+};
+var CelebrationType = {
+  GOAL_COMPLETED: "goal_completed",
+  MILESTONE_REACHED: "milestone_reached",
+  STREAK_MILESTONE: "streak_milestone",
+  BADGE_EARNED: "badge_earned",
+  LEVEL_UP: "level_up",
+  COURSE_COMPLETED: "course_completed",
+  MASTERY_ACHIEVED: "mastery_achieved"
+};
+var PresenceStatus = {
+  ONLINE: "online",
+  AWAY: "away",
+  IDLE: "idle",
+  STUDYING: "studying",
+  OFFLINE: "offline",
+  DO_NOT_DISTURB: "do_not_disturb"
+};
+var PresenceChangeReason = {
+  CONNECTED: "connected",
+  DISCONNECTED: "disconnected",
+  ACTIVITY: "activity",
+  IDLE_TIMEOUT: "idle_timeout",
+  AWAY_TIMEOUT: "away_timeout",
+  USER_SET: "user_set",
+  SESSION_END: "session_end"
+};
+var ConnectionState = {
+  CONNECTING: "connecting",
+  CONNECTED: "connected",
+  RECONNECTING: "reconnecting",
+  DISCONNECTED: "disconnected",
+  FAILED: "failed"
+};
+var DEFAULT_CONNECTION_CONFIG = {
+  url: "/api/sam/ws",
+  maxReconnectAttempts: 5,
+  reconnectDelay: 1e3,
+  heartbeatInterval: 3e4,
+  idleTimeout: 6e4,
+  // 1 minute
+  awayTimeout: 3e5,
+  // 5 minutes
+  autoReconnect: true
+};
+var DeliveryChannel = {
+  WEBSOCKET: "websocket",
+  SSE: "sse",
+  PUSH_NOTIFICATION: "push_notification",
+  EMAIL: "email",
+  IN_APP: "in_app"
+};
+var DeliveryPriority = {
+  CRITICAL: "critical",
+  HIGH: "high",
+  NORMAL: "normal",
+  LOW: "low"
+};
+var DEFAULT_PUSH_DISPATCHER_CONFIG = {
+  maxQueueSize: 1e3,
+  batchSize: 50,
+  processingInterval: 100,
+  retryAttempts: 3,
+  retryDelay: 1e3,
+  defaultExpirationMs: 36e5
+  // 1 hour
+};
+var InterventionSurface = {
+  TOAST: "toast",
+  MODAL: "modal",
+  SIDEBAR: "sidebar",
+  INLINE: "inline",
+  FLOATING: "floating",
+  BANNER: "banner",
+  ASSISTANT_PANEL: "assistant_panel",
+  DASHBOARD_WIDGET: "dashboard_widget"
+};
+var SAMWebSocketEventSchema = import_zod15.z.object({
+  type: import_zod15.z.string(),
+  payload: import_zod15.z.unknown(),
+  timestamp: import_zod15.z.date(),
+  eventId: import_zod15.z.string().min(1),
+  userId: import_zod15.z.string().optional(),
+  sessionId: import_zod15.z.string().optional()
+});
+var ConnectionConfigSchema = import_zod15.z.object({
+  url: import_zod15.z.string().url(),
+  maxReconnectAttempts: import_zod15.z.number().min(0).max(20),
+  reconnectDelay: import_zod15.z.number().min(100).max(6e4),
+  heartbeatInterval: import_zod15.z.number().min(5e3).max(3e5),
+  idleTimeout: import_zod15.z.number().min(1e4).max(6e5),
+  awayTimeout: import_zod15.z.number().min(6e4).max(36e5),
+  autoReconnect: import_zod15.z.boolean(),
+  authToken: import_zod15.z.string().optional()
+});
+var PushDeliveryRequestSchema = import_zod15.z.object({
+  id: import_zod15.z.string().min(1),
+  userId: import_zod15.z.string().min(1),
+  event: SAMWebSocketEventSchema,
+  priority: import_zod15.z.enum(["critical", "high", "normal", "low"]),
+  channels: import_zod15.z.array(import_zod15.z.enum(["websocket", "sse", "push_notification", "email", "in_app"])),
+  fallbackChannels: import_zod15.z.array(import_zod15.z.enum(["websocket", "sse", "push_notification", "email", "in_app"])).optional(),
+  expiresAt: import_zod15.z.date().optional(),
+  metadata: import_zod15.z.record(import_zod15.z.unknown()).optional()
+});
+
+// src/realtime/presence-tracker.ts
+var InMemoryPresenceStore = class {
+  presences = /* @__PURE__ */ new Map();
+  connectionIndex = /* @__PURE__ */ new Map();
+  // connectionId -> userId
+  async get(userId) {
+    return this.presences.get(userId) ?? null;
+  }
+  async getByConnection(connectionId) {
+    const userId = this.connectionIndex.get(connectionId);
+    if (!userId) return null;
+    return this.presences.get(userId) ?? null;
+  }
+  async set(presence) {
+    this.presences.set(presence.userId, presence);
+    this.connectionIndex.set(presence.connectionId, presence.userId);
+  }
+  async update(userId, updates) {
+    const existing = this.presences.get(userId);
+    if (!existing) return null;
+    const updated = { ...existing, ...updates };
+    this.presences.set(userId, updated);
+    return updated;
+  }
+  async delete(userId) {
+    const presence = this.presences.get(userId);
+    if (presence) {
+      this.connectionIndex.delete(presence.connectionId);
+    }
+    return this.presences.delete(userId);
+  }
+  async deleteByConnection(connectionId) {
+    const userId = this.connectionIndex.get(connectionId);
+    if (!userId) return false;
+    this.connectionIndex.delete(connectionId);
+    return this.presences.delete(userId);
+  }
+  async getOnline() {
+    return Array.from(this.presences.values()).filter(
+      (p) => p.status === PresenceStatus.ONLINE || p.status === PresenceStatus.STUDYING
+    );
+  }
+  async getByStatus(status) {
+    return Array.from(this.presences.values()).filter((p) => p.status === status);
+  }
+  async cleanup(olderThan) {
+    let count = 0;
+    for (const [userId, presence] of this.presences) {
+      if (presence.lastActivityAt < olderThan && presence.status === PresenceStatus.OFFLINE) {
+        this.connectionIndex.delete(presence.connectionId);
+        this.presences.delete(userId);
+        count++;
+      }
+    }
+    return count;
+  }
+  clear() {
+    this.presences.clear();
+    this.connectionIndex.clear();
+  }
+};
+var DEFAULT_PRESENCE_CONFIG = {
+  idleTimeoutMs: 6e4,
+  awayTimeoutMs: 3e5,
+  offlineTimeoutMs: 18e5,
+  checkIntervalMs: 1e4,
+  autoCheckTimeouts: true
+};
+var PresenceTracker = class {
+  store;
+  config;
+  logger;
+  listeners = /* @__PURE__ */ new Set();
+  checkInterval;
+  isRunning = false;
+  constructor(options) {
+    this.store = options.store ?? new InMemoryPresenceStore();
+    this.config = { ...DEFAULT_PRESENCE_CONFIG, ...options.config };
+    this.logger = options.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
+  start() {
+    if (this.isRunning) return;
+    this.isRunning = true;
+    if (this.config.autoCheckTimeouts) {
+      this.checkInterval = setInterval(() => {
+        this.checkTimeouts().catch((err) => {
+          this.logger.error("Error checking presence timeouts", {
+            error: err instanceof Error ? err.message : "Unknown error"
+          });
+        });
+      }, this.config.checkIntervalMs);
+    }
+    this.logger.info("Presence tracker started", {
+      idleTimeoutMs: this.config.idleTimeoutMs,
+      awayTimeoutMs: this.config.awayTimeoutMs
+    });
+  }
+  stop() {
+    if (!this.isRunning) return;
+    this.isRunning = false;
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = void 0;
+    }
+    this.logger.info("Presence tracker stopped");
+  }
+  // ---------------------------------------------------------------------------
+  // Connection Management
+  // ---------------------------------------------------------------------------
+  async connect(userId, connectionId, metadata) {
+    const now = /* @__PURE__ */ new Date();
+    const presence = {
+      userId,
+      connectionId,
+      status: PresenceStatus.ONLINE,
+      lastActivityAt: now,
+      connectedAt: now,
+      metadata,
+      subscriptions: []
+    };
+    await this.store.set(presence);
+    this.emitChange({
+      userId,
+      previousStatus: PresenceStatus.OFFLINE,
+      newStatus: PresenceStatus.ONLINE,
+      changedAt: now,
+      reason: PresenceChangeReason.CONNECTED
+    });
+    this.logger.info("User connected", {
+      userId,
+      connectionId,
+      deviceType: metadata.deviceType
+    });
+    return presence;
+  }
+  async disconnect(connectionId, reason) {
+    const presence = await this.store.getByConnection(connectionId);
+    if (!presence) return;
+    const previousStatus = presence.status;
+    await this.store.update(presence.userId, {
+      status: PresenceStatus.OFFLINE,
+      lastActivityAt: /* @__PURE__ */ new Date()
+    });
+    this.emitChange({
+      userId: presence.userId,
+      previousStatus,
+      newStatus: PresenceStatus.OFFLINE,
+      changedAt: /* @__PURE__ */ new Date(),
+      reason: PresenceChangeReason.DISCONNECTED
+    });
+    this.logger.info("User disconnected", {
+      userId: presence.userId,
+      connectionId,
+      reason
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Activity Recording
+  // ---------------------------------------------------------------------------
+  async recordActivity(userId, activity) {
+    const presence = await this.store.get(userId);
+    if (!presence) {
+      this.logger.warn("Activity recorded for unknown user", { userId, type: activity.type });
+      return;
+    }
+    const now = /* @__PURE__ */ new Date();
+    const previousStatus = presence.status;
+    let newStatus = presence.status;
+    if (activity.type === "interaction" || activity.type === "typing" || activity.type === "scroll") {
+      if (activity.pageContext?.courseId) {
+        newStatus = PresenceStatus.STUDYING;
+      } else if (previousStatus !== PresenceStatus.ONLINE) {
+        newStatus = PresenceStatus.ONLINE;
+      }
+    } else if (activity.type === "focus") {
+      if (previousStatus === PresenceStatus.IDLE || previousStatus === PresenceStatus.AWAY) {
+        newStatus = PresenceStatus.ONLINE;
+      }
+    } else if (activity.type === "blur") {
+    }
+    await this.store.update(userId, {
+      lastActivityAt: now,
+      status: newStatus,
+      metadata: {
+        ...presence.metadata,
+        location: activity.pageContext ? {
+          pageUrl: activity.pageContext.url,
+          courseId: activity.pageContext.courseId,
+          sectionId: activity.pageContext.sectionId
+        } : presence.metadata.location
+      }
+    });
+    if (previousStatus !== newStatus) {
+      this.emitChange({
+        userId,
+        previousStatus,
+        newStatus,
+        changedAt: now,
+        reason: PresenceChangeReason.ACTIVITY
+      });
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Status Management
+  // ---------------------------------------------------------------------------
+  async getPresence(userId) {
+    return this.store.get(userId);
+  }
+  async updateStatus(userId, status) {
+    const presence = await this.store.get(userId);
+    if (!presence) {
+      this.logger.warn("Status update for unknown user", { userId, status });
+      return;
+    }
+    const previousStatus = presence.status;
+    if (previousStatus === status) return;
+    await this.store.update(userId, {
+      status,
+      lastActivityAt: /* @__PURE__ */ new Date()
+    });
+    this.emitChange({
+      userId,
+      previousStatus,
+      newStatus: status,
+      changedAt: /* @__PURE__ */ new Date(),
+      reason: PresenceChangeReason.USER_SET
+    });
+    this.logger.info("User status updated", { userId, previousStatus, newStatus: status });
+  }
+  // ---------------------------------------------------------------------------
+  // Timeout Checking
+  // ---------------------------------------------------------------------------
+  async checkTimeouts() {
+    const changes = [];
+    const now = Date.now();
+    const onlineUsers = await this.store.getOnline();
+    const idleUsers = await this.store.getByStatus(PresenceStatus.IDLE);
+    const awayUsers = await this.store.getByStatus(PresenceStatus.AWAY);
+    for (const presence of onlineUsers) {
+      const inactiveMs = now - presence.lastActivityAt.getTime();
+      if (inactiveMs >= this.config.awayTimeoutMs) {
+        const change = await this.transitionStatus(
+          presence,
+          PresenceStatus.AWAY,
+          PresenceChangeReason.AWAY_TIMEOUT
+        );
+        if (change) changes.push(change);
+      } else if (inactiveMs >= this.config.idleTimeoutMs) {
+        const change = await this.transitionStatus(
+          presence,
+          PresenceStatus.IDLE,
+          PresenceChangeReason.IDLE_TIMEOUT
+        );
+        if (change) changes.push(change);
+      }
+    }
+    for (const presence of idleUsers) {
+      const inactiveMs = now - presence.lastActivityAt.getTime();
+      if (inactiveMs >= this.config.awayTimeoutMs) {
+        const change = await this.transitionStatus(
+          presence,
+          PresenceStatus.AWAY,
+          PresenceChangeReason.AWAY_TIMEOUT
+        );
+        if (change) changes.push(change);
+      }
+    }
+    for (const presence of awayUsers) {
+      const inactiveMs = now - presence.lastActivityAt.getTime();
+      if (inactiveMs >= this.config.offlineTimeoutMs) {
+        const change = await this.transitionStatus(
+          presence,
+          PresenceStatus.OFFLINE,
+          PresenceChangeReason.SESSION_END
+        );
+        if (change) changes.push(change);
+      }
+    }
+    if (changes.length > 0) {
+      this.logger.debug("Presence timeout changes", { count: changes.length });
+    }
+    return changes;
+  }
+  async transitionStatus(presence, newStatus, reason) {
+    const previousStatus = presence.status;
+    if (previousStatus === newStatus) return null;
+    await this.store.update(presence.userId, { status: newStatus });
+    const change = {
+      userId: presence.userId,
+      previousStatus,
+      newStatus,
+      changedAt: /* @__PURE__ */ new Date(),
+      reason
+    };
+    this.emitChange(change);
+    return change;
+  }
+  // ---------------------------------------------------------------------------
+  // Query Methods
+  // ---------------------------------------------------------------------------
+  async getOnlineUsers() {
+    return this.store.getOnline();
+  }
+  async getStudyingUsers() {
+    return this.store.getByStatus(PresenceStatus.STUDYING);
+  }
+  async getIdleUsers() {
+    return this.store.getByStatus(PresenceStatus.IDLE);
+  }
+  async isUserOnline(userId) {
+    const presence = await this.store.get(userId);
+    if (!presence) return false;
+    return presence.status === PresenceStatus.ONLINE || presence.status === PresenceStatus.STUDYING || presence.status === PresenceStatus.IDLE;
+  }
+  // ---------------------------------------------------------------------------
+  // Subscriptions
+  // ---------------------------------------------------------------------------
+  async subscribe(userId, channels) {
+    const presence = await this.store.get(userId);
+    if (!presence) return;
+    const currentSubs = new Set(presence.subscriptions);
+    channels.forEach((ch) => currentSubs.add(ch));
+    await this.store.update(userId, {
+      subscriptions: Array.from(currentSubs)
+    });
+  }
+  async unsubscribe(userId, channels) {
+    const presence = await this.store.get(userId);
+    if (!presence) return;
+    const currentSubs = new Set(presence.subscriptions);
+    channels.forEach((ch) => currentSubs.delete(ch));
+    await this.store.update(userId, {
+      subscriptions: Array.from(currentSubs)
+    });
+  }
+  async getSubscribedUsers(channel) {
+    const online = await this.store.getOnline();
+    return online.filter((p) => p.subscriptions.includes(channel)).map((p) => p.userId);
+  }
+  // ---------------------------------------------------------------------------
+  // Event Emitting
+  // ---------------------------------------------------------------------------
+  onPresenceChange(callback) {
+    this.listeners.add(callback);
+    return () => {
+      this.listeners.delete(callback);
+    };
+  }
+  emitChange(change) {
+    for (const listener of this.listeners) {
+      try {
+        listener(change);
+      } catch (err) {
+        this.logger.error("Error in presence change listener", {
+          error: err instanceof Error ? err.message : "Unknown error",
+          userId: change.userId
+        });
+      }
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Cleanup
+  // ---------------------------------------------------------------------------
+  async cleanup(olderThanMs = 864e5) {
+    const cutoff = new Date(Date.now() - olderThanMs);
+    return this.store.cleanup(cutoff);
+  }
+};
+function createPresenceTracker(options) {
+  return new PresenceTracker(options ?? {});
+}
+function createInMemoryPresenceStore() {
+  return new InMemoryPresenceStore();
+}
+
+// src/realtime/push-dispatcher.ts
+var InMemoryPushQueueStore = class {
+  queue = /* @__PURE__ */ new Map();
+  completed = /* @__PURE__ */ new Map();
+  failed = /* @__PURE__ */ new Map();
+  processing = 0;
+  totalProcessingTime = 0;
+  processedCount = 0;
+  async enqueue(request) {
+    const queuedRequest = {
+      ...request,
+      queuedAt: /* @__PURE__ */ new Date(),
+      attempts: 0,
+      processing: false
+    };
+    this.queue.set(request.id, queuedRequest);
+  }
+  async dequeue(count) {
+    const requests = [];
+    const priorityOrder = ["critical", "high", "normal", "low"];
+    const sortedQueue = Array.from(this.queue.values()).filter((r) => !r.processing).sort((a, b) => {
+      const priorityDiff = priorityOrder.indexOf(a.priority) - priorityOrder.indexOf(b.priority);
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.queuedAt.getTime() - b.queuedAt.getTime();
+    });
+    for (let i = 0; i < Math.min(count, sortedQueue.length); i++) {
+      const request = sortedQueue[i];
+      request.processing = true;
+      this.processing++;
+      requests.push(request);
+    }
+    return requests;
+  }
+  async peek(count) {
+    const priorityOrder = ["critical", "high", "normal", "low"];
+    return Array.from(this.queue.values()).filter((r) => !r.processing).sort((a, b) => {
+      const priorityDiff = priorityOrder.indexOf(a.priority) - priorityOrder.indexOf(b.priority);
+      if (priorityDiff !== 0) return priorityDiff;
+      return a.queuedAt.getTime() - b.queuedAt.getTime();
+    }).slice(0, count);
+  }
+  async acknowledge(requestId, result) {
+    const request = this.queue.get(requestId);
+    if (request) {
+      this.processing--;
+      if (result.success) {
+        this.completed.set(requestId, result);
+        this.queue.delete(requestId);
+      } else {
+        this.failed.set(requestId, result);
+        this.queue.delete(requestId);
+      }
+      if (result.deliveredAt && request.queuedAt) {
+        const processingTime = result.deliveredAt.getTime() - request.queuedAt.getTime();
+        this.totalProcessingTime += processingTime;
+        this.processedCount++;
+      }
+    }
+  }
+  async requeue(request) {
+    const existing = this.queue.get(request.id);
+    if (existing) {
+      existing.processing = false;
+      existing.attempts++;
+      existing.lastAttemptAt = /* @__PURE__ */ new Date();
+      this.processing--;
+    } else {
+      await this.enqueue(request);
+    }
+  }
+  async getStats() {
+    const pendingItems = Array.from(this.queue.values()).filter((r) => !r.processing);
+    const oldestPending = pendingItems.length > 0 ? pendingItems.sort((a, b) => a.queuedAt.getTime() - b.queuedAt.getTime())[0]?.queuedAt : void 0;
+    return {
+      pending: pendingItems.length,
+      processing: this.processing,
+      completed: this.completed.size,
+      failed: this.failed.size,
+      avgProcessingTimeMs: this.processedCount > 0 ? this.totalProcessingTime / this.processedCount : 0,
+      oldestPendingAt: oldestPending
+    };
+  }
+  async cleanup(olderThan) {
+    let count = 0;
+    for (const [id, result] of this.completed) {
+      if (result.deliveredAt && result.deliveredAt < olderThan) {
+        this.completed.delete(id);
+        count++;
+      }
+    }
+    for (const [id, result] of this.failed) {
+      if (result.deliveredAt && result.deliveredAt < olderThan) {
+        this.failed.delete(id);
+        count++;
+      }
+    }
+    return count;
+  }
+  getQueueSize() {
+    return this.queue.size;
+  }
+  clear() {
+    this.queue.clear();
+    this.completed.clear();
+    this.failed.clear();
+    this.processing = 0;
+  }
+};
+var ProactivePushDispatcher = class {
+  store;
+  config;
+  logger;
+  handlers = /* @__PURE__ */ new Map();
+  presenceTracker;
+  isRunning = false;
+  processInterval;
+  deliveredCount = 0;
+  failedCount = 0;
+  lastProcessedAt;
+  constructor(options) {
+    this.store = options.store ?? new InMemoryPushQueueStore();
+    this.config = { ...DEFAULT_PUSH_DISPATCHER_CONFIG, ...options.config };
+    this.presenceTracker = options.presenceTracker;
+    this.logger = options.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Handler Registration
+  // ---------------------------------------------------------------------------
+  registerHandler(handler) {
+    this.handlers.set(handler.channel, handler);
+    this.logger.debug("Delivery handler registered", { channel: handler.channel });
+  }
+  unregisterHandler(channel) {
+    this.handlers.delete(channel);
+    this.logger.debug("Delivery handler unregistered", { channel });
+  }
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
+  start() {
+    if (this.isRunning) {
+      this.logger.warn("Push dispatcher already running");
+      return;
+    }
+    this.isRunning = true;
+    this.processInterval = setInterval(
+      () => this.processQueue(),
+      this.config.processingInterval
+    );
+    this.logger.info("Push dispatcher started", {
+      processingInterval: this.config.processingInterval,
+      batchSize: this.config.batchSize
+    });
+  }
+  stop() {
+    if (!this.isRunning) return;
+    this.isRunning = false;
+    if (this.processInterval) {
+      clearInterval(this.processInterval);
+      this.processInterval = void 0;
+    }
+    this.logger.info("Push dispatcher stopped");
+  }
+  // ---------------------------------------------------------------------------
+  // Dispatch
+  // ---------------------------------------------------------------------------
+  async dispatch(request) {
+    const stats = await this.store.getStats();
+    if (stats.pending >= this.config.maxQueueSize) {
+      this.logger.warn("Push queue full, dropping request", {
+        requestId: request.id,
+        userId: request.userId,
+        queueSize: stats.pending
+      });
+      return;
+    }
+    if (!request.expiresAt) {
+      request.expiresAt = new Date(Date.now() + this.config.defaultExpirationMs);
+    }
+    await this.store.enqueue(request);
+    this.logger.debug("Request enqueued", {
+      requestId: request.id,
+      userId: request.userId,
+      priority: request.priority,
+      channels: request.channels
+    });
+    if (request.priority === "critical") {
+      await this.processQueue();
+    }
+  }
+  /**
+   * Create and dispatch an event with defaults
+   */
+  async dispatchEvent(userId, event, options) {
+    const request = {
+      id: v4_default(),
+      userId,
+      event,
+      priority: options?.priority ?? "normal",
+      channels: options?.channels ?? [DeliveryChannel.WEBSOCKET, DeliveryChannel.IN_APP],
+      fallbackChannels: options?.fallbackChannels,
+      expiresAt: options?.expiresAt
+    };
+    await this.dispatch(request);
+  }
+  // ---------------------------------------------------------------------------
+  // Processing
+  // ---------------------------------------------------------------------------
+  async processQueue() {
+    if (!this.isRunning) return [];
+    const results = [];
+    const batch = await this.store.dequeue(this.config.batchSize);
+    for (const request of batch) {
+      try {
+        const result = await this.processRequest(request);
+        results.push(result);
+        await this.store.acknowledge(request.id, result);
+        if (result.success) {
+          this.deliveredCount++;
+        } else {
+          this.failedCount++;
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        const result = {
+          requestId: request.id,
+          userId: request.userId,
+          deliveredVia: null,
+          success: false,
+          error: errorMessage,
+          attemptedChannels: request.channels,
+          deliveredAt: /* @__PURE__ */ new Date()
+        };
+        results.push(result);
+        this.failedCount++;
+        if (this.shouldRetry(request)) {
+          await this.store.requeue(request);
+        } else {
+          await this.store.acknowledge(request.id, result);
+        }
+        this.logger.error("Request processing failed", {
+          requestId: request.id,
+          error: errorMessage
+        });
+      }
+    }
+    if (batch.length > 0) {
+      this.lastProcessedAt = /* @__PURE__ */ new Date();
+    }
+    return results;
+  }
+  async processRequest(request) {
+    const now = /* @__PURE__ */ new Date();
+    if (request.expiresAt && request.expiresAt < now) {
+      return {
+        requestId: request.id,
+        userId: request.userId,
+        deliveredVia: null,
+        success: false,
+        error: "Request expired",
+        attemptedChannels: [],
+        deliveredAt: now
+      };
+    }
+    const attemptedChannels = [];
+    for (const channel of request.channels) {
+      attemptedChannels.push(channel);
+      const handler = this.handlers.get(channel);
+      if (!handler) {
+        this.logger.debug("No handler for channel", { channel, requestId: request.id });
+        continue;
+      }
+      try {
+        const canDeliver = await handler.canDeliver(request.userId);
+        if (!canDeliver) {
+          this.logger.debug("Cannot deliver via channel", {
+            channel,
+            requestId: request.id,
+            userId: request.userId
+          });
+          continue;
+        }
+        const delivered = await handler.deliver(request.userId, request.event);
+        if (delivered) {
+          return {
+            requestId: request.id,
+            userId: request.userId,
+            deliveredVia: channel,
+            success: true,
+            attemptedChannels,
+            deliveredAt: now
+          };
+        }
+      } catch (error) {
+        this.logger.warn("Delivery attempt failed", {
+          channel,
+          requestId: request.id,
+          error: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+    if (request.fallbackChannels) {
+      for (const channel of request.fallbackChannels) {
+        if (attemptedChannels.includes(channel)) continue;
+        attemptedChannels.push(channel);
+        const handler = this.handlers.get(channel);
+        if (!handler) continue;
+        try {
+          const canDeliver = await handler.canDeliver(request.userId);
+          if (!canDeliver) continue;
+          const delivered = await handler.deliver(request.userId, request.event);
+          if (delivered) {
+            return {
+              requestId: request.id,
+              userId: request.userId,
+              deliveredVia: channel,
+              success: true,
+              attemptedChannels,
+              deliveredAt: now
+            };
+          }
+        } catch (error) {
+          this.logger.warn("Fallback delivery failed", {
+            channel,
+            requestId: request.id,
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
+      }
+    }
+    return {
+      requestId: request.id,
+      userId: request.userId,
+      deliveredVia: null,
+      success: false,
+      error: "All delivery channels failed",
+      attemptedChannels,
+      deliveredAt: now
+    };
+  }
+  shouldRetry(request) {
+    const queuedRequest = request;
+    return (queuedRequest.attempts ?? 0) < this.config.retryAttempts;
+  }
+  // ---------------------------------------------------------------------------
+  // Status
+  // ---------------------------------------------------------------------------
+  async isUserOnline(userId) {
+    if (this.presenceTracker) {
+      const presence = await this.presenceTracker.getPresence(userId);
+      return presence !== null && presence.status !== "offline";
+    }
+    const wsHandler = this.handlers.get(DeliveryChannel.WEBSOCKET);
+    if (wsHandler) {
+      return wsHandler.canDeliver(userId);
+    }
+    return false;
+  }
+  async getStats() {
+    const queueStats = await this.store.getStats();
+    const online = this.presenceTracker ? (await this.presenceTracker.getOnlineUsers()).length : 0;
+    return {
+      queueSize: queueStats.pending + queueStats.processing,
+      deliveredCount: this.deliveredCount,
+      failedCount: this.failedCount,
+      activeConnections: online,
+      avgDeliveryTimeMs: queueStats.avgProcessingTimeMs,
+      lastProcessedAt: this.lastProcessedAt
+    };
+  }
+  // ---------------------------------------------------------------------------
+  // Cleanup
+  // ---------------------------------------------------------------------------
+  async cleanup(olderThanMs = 864e5) {
+    const cutoff = new Date(Date.now() - olderThanMs);
+    return this.store.cleanup(cutoff);
+  }
+};
+function createPushDispatcher(options) {
+  return new ProactivePushDispatcher(options ?? {});
+}
+function createInMemoryPushQueueStore() {
+  return new InMemoryPushQueueStore();
+}
+
+// src/realtime/websocket-manager.ts
+var ClientWebSocketManager = class {
+  config;
+  logger;
+  socket = null;
+  state = ConnectionState.DISCONNECTED;
+  connectionId = null;
+  userId = null;
+  metadata = null;
+  reconnectAttempts = 0;
+  reconnectTimeout;
+  heartbeatInterval;
+  eventHandlers = /* @__PURE__ */ new Map();
+  connectionHandlers = /* @__PURE__ */ new Set();
+  errorHandlers = /* @__PURE__ */ new Set();
+  stats = {
+    connectionId: "",
+    connectedAt: /* @__PURE__ */ new Date(),
+    lastHeartbeatAt: /* @__PURE__ */ new Date(),
+    messagesSent: 0,
+    messagesReceived: 0,
+    reconnectCount: 0,
+    latencyMs: 0
+  };
+  constructor(options) {
+    this.config = { ...DEFAULT_CONNECTION_CONFIG, ...options?.config };
+    this.logger = options?.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Connection Management
+  // ---------------------------------------------------------------------------
+  async connect(userId, metadata) {
+    if (this.state === ConnectionState.CONNECTED) {
+      this.logger.warn("Already connected");
+      return;
+    }
+    this.userId = userId;
+    this.metadata = metadata ?? {
+      deviceType: this.detectDeviceType(),
+      browser: this.detectBrowser()
+    };
+    this.setState(ConnectionState.CONNECTING);
+    return new Promise((resolve, reject) => {
+      try {
+        const url = this.buildWebSocketUrl();
+        this.socket = new WebSocket(url);
+        this.socket.onopen = () => {
+          this.handleOpen();
+          resolve();
+        };
+        this.socket.onclose = (event) => {
+          this.handleClose(event);
+        };
+        this.socket.onerror = () => {
+          this.handleError(new Error("WebSocket error"));
+          if (this.state === ConnectionState.CONNECTING) {
+            reject(new Error("Failed to connect"));
+          }
+        };
+        this.socket.onmessage = (event) => {
+          this.handleMessage(event);
+        };
+      } catch (error) {
+        this.handleError(error instanceof Error ? error : new Error("Connection failed"));
+        reject(error);
+      }
+    });
+  }
+  disconnect() {
+    this.clearTimers();
+    if (this.socket) {
+      this.socket.close(1e3, "Client disconnect");
+      this.socket = null;
+    }
+    this.setState(ConnectionState.DISCONNECTED);
+    this.reconnectAttempts = 0;
+  }
+  // ---------------------------------------------------------------------------
+  // Message Handling
+  // ---------------------------------------------------------------------------
+  async send(event) {
+    if (!this.socket || this.state !== ConnectionState.CONNECTED) {
+      throw new Error("Not connected");
+    }
+    const message = JSON.stringify({
+      ...event,
+      timestamp: event.timestamp.toISOString(),
+      userId: this.userId,
+      sessionId: this.connectionId
+    });
+    this.socket.send(message);
+    this.stats.messagesSent++;
+  }
+  // ---------------------------------------------------------------------------
+  // Event Subscription
+  // ---------------------------------------------------------------------------
+  on(eventType, handler) {
+    if (!this.eventHandlers.has(eventType)) {
+      this.eventHandlers.set(eventType, /* @__PURE__ */ new Set());
+    }
+    this.eventHandlers.get(eventType).add(handler);
+    return () => {
+      this.eventHandlers.get(eventType)?.delete(handler);
+    };
+  }
+  onConnectionChange(handler) {
+    this.connectionHandlers.add(handler);
+    return () => {
+      this.connectionHandlers.delete(handler);
+    };
+  }
+  onError(handler) {
+    this.errorHandlers.add(handler);
+    return () => {
+      this.errorHandlers.delete(handler);
+    };
+  }
+  // ---------------------------------------------------------------------------
+  // Status
+  // ---------------------------------------------------------------------------
+  getState() {
+    return this.state;
+  }
+  getStats() {
+    return { ...this.stats };
+  }
+  isConnected() {
+    return this.state === ConnectionState.CONNECTED;
+  }
+  getConnectionId() {
+    return this.connectionId;
+  }
+  // ---------------------------------------------------------------------------
+  // Activity Reporting
+  // ---------------------------------------------------------------------------
+  async reportActivity(activity) {
+    if (!this.isConnected()) return;
+    await this.send({
+      type: SAMEventType.ACTIVITY,
+      payload: {
+        type: activity.type,
+        data: activity.data ?? {},
+        pageContext: activity.pageContext
+      },
+      timestamp: /* @__PURE__ */ new Date(),
+      eventId: v4_default(),
+      userId: this.userId ?? void 0,
+      sessionId: this.connectionId ?? void 0
+    });
+  }
+  async acknowledgeEvent(eventId, action) {
+    if (!this.isConnected()) return;
+    await this.send({
+      type: SAMEventType.ACKNOWLEDGE,
+      payload: {
+        eventId,
+        received: true,
+        action
+      },
+      timestamp: /* @__PURE__ */ new Date(),
+      eventId: v4_default(),
+      userId: this.userId ?? void 0,
+      sessionId: this.connectionId ?? void 0
+    });
+  }
+  async dismissEvent(targetEventId, reason) {
+    if (!this.isConnected()) return;
+    await this.send({
+      type: SAMEventType.DISMISS,
+      payload: {
+        eventId: targetEventId,
+        reason: reason ?? "user_action"
+      },
+      timestamp: /* @__PURE__ */ new Date(),
+      eventId: v4_default(),
+      userId: this.userId ?? void 0,
+      sessionId: this.connectionId ?? void 0
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Internal Handlers
+  // ---------------------------------------------------------------------------
+  handleOpen() {
+    this.connectionId = v4_default();
+    this.setState(ConnectionState.CONNECTED);
+    this.reconnectAttempts = 0;
+    this.stats = {
+      connectionId: this.connectionId,
+      connectedAt: /* @__PURE__ */ new Date(),
+      lastHeartbeatAt: /* @__PURE__ */ new Date(),
+      messagesSent: 0,
+      messagesReceived: 0,
+      reconnectCount: this.stats.reconnectCount,
+      latencyMs: 0
+    };
+    this.startHeartbeat();
+    this.logger.info("WebSocket connected", {
+      connectionId: this.connectionId,
+      userId: this.userId
+    });
+  }
+  handleClose(event) {
+    this.clearTimers();
+    const wasConnected = this.state === ConnectionState.CONNECTED;
+    if (event.code === 1e3) {
+      this.setState(ConnectionState.DISCONNECTED);
+    } else if (this.config.autoReconnect && wasConnected) {
+      this.scheduleReconnect();
+    } else {
+      this.setState(ConnectionState.DISCONNECTED);
+    }
+    this.logger.info("WebSocket closed", {
+      code: event.code,
+      reason: event.reason,
+      wasConnected
+    });
+  }
+  handleError(error) {
+    this.logger.error("WebSocket error", {
+      error: error.message,
+      state: this.state
+    });
+    for (const handler of this.errorHandlers) {
+      try {
+        handler(error);
+      } catch (e) {
+        this.logger.error("Error in error handler", {
+          error: e instanceof Error ? e.message : "Unknown"
+        });
+      }
+    }
+  }
+  handleMessage(event) {
+    try {
+      const data = JSON.parse(event.data);
+      const samEvent = {
+        ...data,
+        timestamp: new Date(data.timestamp)
+      };
+      this.stats.messagesReceived++;
+      if (samEvent.type === SAMEventType.HEARTBEAT) {
+        this.stats.lastHeartbeatAt = /* @__PURE__ */ new Date();
+        return;
+      }
+      if (samEvent.type === SAMEventType.CONNECTED) {
+        this.connectionId = samEvent.payload.connectionId;
+        this.stats.connectionId = this.connectionId;
+      }
+      const handlers = this.eventHandlers.get(samEvent.type);
+      if (handlers) {
+        for (const handler of handlers) {
+          try {
+            handler(samEvent);
+          } catch (e) {
+            this.logger.error("Error in message handler", {
+              type: samEvent.type,
+              error: e instanceof Error ? e.message : "Unknown"
+            });
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error("Failed to parse message", {
+        error: error instanceof Error ? error.message : "Unknown"
+      });
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Reconnection
+  // ---------------------------------------------------------------------------
+  scheduleReconnect() {
+    if (this.reconnectAttempts >= this.config.maxReconnectAttempts) {
+      this.setState(ConnectionState.FAILED);
+      this.logger.error("Max reconnect attempts reached");
+      return;
+    }
+    this.setState(ConnectionState.RECONNECTING);
+    this.reconnectAttempts++;
+    this.stats.reconnectCount++;
+    const delay = this.config.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+    this.logger.info("Scheduling reconnect", {
+      attempt: this.reconnectAttempts,
+      delayMs: delay
+    });
+    this.reconnectTimeout = setTimeout(async () => {
+      try {
+        if (this.userId && this.metadata) {
+          await this.connect(this.userId, this.metadata);
+        }
+      } catch (error) {
+        this.scheduleReconnect();
+      }
+    }, delay);
+  }
+  // ---------------------------------------------------------------------------
+  // Heartbeat
+  // ---------------------------------------------------------------------------
+  startHeartbeat() {
+    this.heartbeatInterval = setInterval(async () => {
+      if (!this.isConnected()) return;
+      try {
+        await this.send({
+          type: SAMEventType.HEARTBEAT,
+          payload: {
+            status: "alive",
+            timestamp: /* @__PURE__ */ new Date(),
+            connectionId: this.connectionId ?? ""
+          },
+          timestamp: /* @__PURE__ */ new Date(),
+          eventId: v4_default(),
+          userId: this.userId ?? void 0,
+          sessionId: this.connectionId ?? void 0
+        });
+      } catch (error) {
+        this.logger.warn("Heartbeat failed", {
+          error: error instanceof Error ? error.message : "Unknown"
+        });
+      }
+    }, this.config.heartbeatInterval);
+  }
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+  setState(state) {
+    const previousState = this.state;
+    this.state = state;
+    if (previousState !== state) {
+      for (const handler of this.connectionHandlers) {
+        try {
+          handler(state);
+        } catch (e) {
+          this.logger.error("Error in connection handler", {
+            error: e instanceof Error ? e.message : "Unknown"
+          });
+        }
+      }
+    }
+  }
+  clearTimers() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = void 0;
+    }
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = void 0;
+    }
+  }
+  buildWebSocketUrl() {
+    const url = new URL(this.config.url, window.location.origin);
+    url.protocol = url.protocol.replace("http", "ws");
+    if (this.userId) {
+      url.searchParams.set("userId", this.userId);
+    }
+    if (this.config.authToken) {
+      url.searchParams.set("token", this.config.authToken);
+    }
+    return url.toString();
+  }
+  detectDeviceType() {
+    if (typeof window === "undefined") return "desktop";
+    const ua = navigator.userAgent.toLowerCase();
+    if (/tablet|ipad|playbook|silk/i.test(ua)) return "tablet";
+    if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) return "mobile";
+    return "desktop";
+  }
+  detectBrowser() {
+    if (typeof window === "undefined") return "unknown";
+    const ua = navigator.userAgent;
+    if (ua.includes("Chrome")) return "Chrome";
+    if (ua.includes("Firefox")) return "Firefox";
+    if (ua.includes("Safari")) return "Safari";
+    if (ua.includes("Edge")) return "Edge";
+    return "unknown";
+  }
+};
+var ServerConnectionManager = class {
+  logger;
+  connections = /* @__PURE__ */ new Map();
+  userConnections = /* @__PURE__ */ new Map();
+  handlers = /* @__PURE__ */ new Set();
+  constructor(options) {
+    this.logger = options?.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Connection Management
+  // ---------------------------------------------------------------------------
+  registerConnection(connectionId, userId, socket, metadata) {
+    const connection = {
+      id: connectionId,
+      userId,
+      socket,
+      metadata,
+      connectedAt: /* @__PURE__ */ new Date(),
+      lastActivityAt: /* @__PURE__ */ new Date(),
+      subscriptions: /* @__PURE__ */ new Set()
+    };
+    this.connections.set(connectionId, connection);
+    if (!this.userConnections.has(userId)) {
+      this.userConnections.set(userId, /* @__PURE__ */ new Set());
+    }
+    this.userConnections.get(userId).add(connectionId);
+    for (const handler of this.handlers) {
+      handler.onConnect(connectionId, userId, metadata).catch((err) => {
+        this.logger.error("Error in connection handler", {
+          error: err instanceof Error ? err.message : "Unknown"
+        });
+      });
+    }
+    this.logger.info("Connection registered", {
+      connectionId,
+      userId,
+      totalConnections: this.connections.size
+    });
+  }
+  removeConnection(connectionId, reason) {
+    const connection = this.connections.get(connectionId);
+    if (!connection) return;
+    const userConns = this.userConnections.get(connection.userId);
+    if (userConns) {
+      userConns.delete(connectionId);
+      if (userConns.size === 0) {
+        this.userConnections.delete(connection.userId);
+      }
+    }
+    this.connections.delete(connectionId);
+    for (const handler of this.handlers) {
+      handler.onDisconnect(connectionId, reason).catch((err) => {
+        this.logger.error("Error in disconnect handler", {
+          error: err instanceof Error ? err.message : "Unknown"
+        });
+      });
+    }
+    this.logger.info("Connection removed", {
+      connectionId,
+      userId: connection.userId,
+      reason
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Messaging
+  // ---------------------------------------------------------------------------
+  async sendToConnection(connectionId, event) {
+    const connection = this.connections.get(connectionId);
+    if (!connection) return false;
+    try {
+      const message = JSON.stringify({
+        ...event,
+        timestamp: event.timestamp.toISOString()
+      });
+      const socket = connection.socket;
+      if (socket.send) {
+        socket.send(message);
+        connection.lastActivityAt = /* @__PURE__ */ new Date();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      this.logger.error("Failed to send to connection", {
+        connectionId,
+        error: error instanceof Error ? error.message : "Unknown"
+      });
+      return false;
+    }
+  }
+  async sendToUser(userId, event) {
+    const connectionIds = this.userConnections.get(userId);
+    if (!connectionIds || connectionIds.size === 0) return 0;
+    let sent = 0;
+    for (const connectionId of connectionIds) {
+      const success = await this.sendToConnection(connectionId, event);
+      if (success) sent++;
+    }
+    return sent;
+  }
+  async broadcast(event, filter) {
+    let sent = 0;
+    for (const [connectionId, connection] of this.connections) {
+      if (filter && !filter(connection)) continue;
+      const success = await this.sendToConnection(connectionId, event);
+      if (success) sent++;
+    }
+    return sent;
+  }
+  // ---------------------------------------------------------------------------
+  // Query
+  // ---------------------------------------------------------------------------
+  getConnection(connectionId) {
+    return this.connections.get(connectionId);
+  }
+  getUserConnections(userId) {
+    const connectionIds = this.userConnections.get(userId);
+    if (!connectionIds) return [];
+    return Array.from(connectionIds).map((id) => this.connections.get(id)).filter((c) => c !== void 0);
+  }
+  isUserConnected(userId) {
+    const connections = this.userConnections.get(userId);
+    return connections !== void 0 && connections.size > 0;
+  }
+  getConnectionCount() {
+    return this.connections.size;
+  }
+  getConnectedUserIds() {
+    return Array.from(this.userConnections.keys());
+  }
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+  addHandler(handler) {
+    this.handlers.add(handler);
+  }
+  removeHandler(handler) {
+    this.handlers.delete(handler);
+  }
+  // ---------------------------------------------------------------------------
+  // Message Processing
+  // ---------------------------------------------------------------------------
+  async handleMessage(connectionId, rawMessage) {
+    const connection = this.connections.get(connectionId);
+    if (!connection) return;
+    try {
+      const event = JSON.parse(rawMessage);
+      event.timestamp = new Date(event.timestamp);
+      connection.lastActivityAt = /* @__PURE__ */ new Date();
+      for (const handler of this.handlers) {
+        await handler.onMessage(connectionId, event);
+      }
+    } catch (error) {
+      this.logger.error("Failed to handle message", {
+        connectionId,
+        error: error instanceof Error ? error.message : "Unknown"
+      });
+    }
+  }
+};
+function createClientWebSocketManager(options) {
+  return new ClientWebSocketManager(options);
+}
+function createServerConnectionManager(options) {
+  return new ServerConnectionManager(options);
+}
+
+// src/realtime/intervention-surface.ts
+var DEFAULT_DISPLAY_CONFIGS = {
+  // Proactive events
+  intervention: {
+    surface: InterventionSurface.MODAL,
+    position: "center",
+    dismissible: true,
+    blocking: false,
+    priority: 80,
+    animation: "fade"
+  },
+  checkin: {
+    surface: InterventionSurface.SIDEBAR,
+    position: "right",
+    dismissible: true,
+    blocking: false,
+    priority: 70,
+    animation: "slide"
+  },
+  recommendation: {
+    surface: InterventionSurface.TOAST,
+    position: "bottom-right",
+    duration: 1e4,
+    dismissible: true,
+    blocking: false,
+    priority: 40,
+    animation: "slide"
+  },
+  step_completed: {
+    surface: InterventionSurface.TOAST,
+    position: "top",
+    duration: 5e3,
+    dismissible: true,
+    blocking: false,
+    priority: 50,
+    animation: "bounce",
+    sound: true
+  },
+  goal_progress: {
+    surface: InterventionSurface.TOAST,
+    position: "bottom-right",
+    duration: 8e3,
+    dismissible: true,
+    blocking: false,
+    priority: 45,
+    animation: "slide"
+  },
+  nudge: {
+    surface: InterventionSurface.FLOATING,
+    position: "bottom-right",
+    duration: 6e3,
+    dismissible: true,
+    blocking: false,
+    priority: 30,
+    animation: "fade"
+  },
+  celebration: {
+    surface: InterventionSurface.MODAL,
+    position: "center",
+    duration: 5e3,
+    dismissible: true,
+    blocking: true,
+    priority: 90,
+    animation: "bounce",
+    sound: true
+  },
+  // System events
+  presence_update: {
+    surface: InterventionSurface.TOAST,
+    position: "top",
+    duration: 3e3,
+    dismissible: true,
+    blocking: false,
+    priority: 20,
+    animation: "fade"
+  },
+  session_sync: {
+    surface: InterventionSurface.BANNER,
+    position: "top",
+    dismissible: true,
+    blocking: false,
+    priority: 60,
+    animation: "slide"
+  },
+  // Client events (typically not displayed)
+  activity: {
+    surface: InterventionSurface.TOAST,
+    dismissible: false,
+    blocking: false,
+    priority: 0
+  },
+  heartbeat: {
+    surface: InterventionSurface.TOAST,
+    dismissible: false,
+    blocking: false,
+    priority: 0
+  },
+  acknowledge: {
+    surface: InterventionSurface.TOAST,
+    dismissible: false,
+    blocking: false,
+    priority: 0
+  },
+  dismiss: {
+    surface: InterventionSurface.TOAST,
+    dismissible: false,
+    blocking: false,
+    priority: 0
+  },
+  respond: {
+    surface: InterventionSurface.TOAST,
+    dismissible: false,
+    blocking: false,
+    priority: 0
+  },
+  subscribe: {
+    surface: InterventionSurface.TOAST,
+    dismissible: false,
+    blocking: false,
+    priority: 0
+  },
+  unsubscribe: {
+    surface: InterventionSurface.TOAST,
+    dismissible: false,
+    blocking: false,
+    priority: 0
+  },
+  // System events
+  connected: {
+    surface: InterventionSurface.TOAST,
+    position: "bottom",
+    duration: 2e3,
+    dismissible: true,
+    blocking: false,
+    priority: 10,
+    animation: "fade"
+  },
+  disconnected: {
+    surface: InterventionSurface.BANNER,
+    position: "top",
+    dismissible: false,
+    blocking: false,
+    priority: 95,
+    animation: "slide"
+  },
+  error: {
+    surface: InterventionSurface.TOAST,
+    position: "top",
+    duration: 8e3,
+    dismissible: true,
+    blocking: false,
+    priority: 85,
+    animation: "slide"
+  },
+  reconnecting: {
+    surface: InterventionSurface.BANNER,
+    position: "top",
+    dismissible: false,
+    blocking: false,
+    priority: 90,
+    animation: "fade"
+  }
+};
+var DEFAULT_SURFACE_MANAGER_CONFIG = {
+  maxVisible: 3,
+  maxQueueSize: 20,
+  defaultDuration: 5e3,
+  enableSound: true,
+  enableHaptics: true,
+  autoAcknowledge: true
+};
+var InterventionSurfaceManagerImpl = class {
+  config;
+  logger;
+  items = /* @__PURE__ */ new Map();
+  visibleItems = /* @__PURE__ */ new Set();
+  dismissTimers = /* @__PURE__ */ new Map();
+  listeners = /* @__PURE__ */ new Set();
+  constructor(options) {
+    this.config = { ...DEFAULT_SURFACE_MANAGER_CONFIG, ...options?.config };
+    this.logger = options?.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Queue Management
+  // ---------------------------------------------------------------------------
+  queue(event, config) {
+    if (!this.isDisplayableEvent(event.type)) {
+      return;
+    }
+    if (this.items.size >= this.config.maxQueueSize) {
+      this.removeLowestPriority();
+    }
+    const defaultConfig = DEFAULT_DISPLAY_CONFIGS[event.type] ?? {};
+    const displayConfig = {
+      surface: config?.surface ?? defaultConfig.surface ?? InterventionSurface.TOAST,
+      position: config?.position ?? defaultConfig.position ?? "bottom-right",
+      duration: config?.duration ?? defaultConfig.duration,
+      dismissible: config?.dismissible ?? defaultConfig.dismissible ?? true,
+      blocking: config?.blocking ?? defaultConfig.blocking ?? false,
+      priority: config?.priority ?? defaultConfig.priority ?? 50,
+      animation: config?.animation ?? defaultConfig.animation ?? "fade",
+      sound: config?.sound ?? defaultConfig.sound ?? false,
+      vibrate: config?.vibrate ?? defaultConfig.vibrate ?? false
+    };
+    const state = {
+      id: event.eventId,
+      event,
+      displayConfig,
+      visible: false,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    this.items.set(state.id, state);
+    this.logger.debug("Intervention queued", {
+      id: state.id,
+      type: event.type,
+      surface: displayConfig.surface,
+      priority: displayConfig.priority
+    });
+    this.processQueue();
+  }
+  isDisplayableEvent(type) {
+    const displayableTypes = [
+      SAMEventType.INTERVENTION,
+      SAMEventType.CHECKIN,
+      SAMEventType.RECOMMENDATION,
+      SAMEventType.STEP_COMPLETED,
+      SAMEventType.GOAL_PROGRESS,
+      SAMEventType.NUDGE,
+      SAMEventType.CELEBRATION,
+      SAMEventType.SESSION_SYNC,
+      SAMEventType.CONNECTED,
+      SAMEventType.DISCONNECTED,
+      SAMEventType.ERROR,
+      SAMEventType.RECONNECTING
+    ];
+    return displayableTypes.includes(type);
+  }
+  removeLowestPriority() {
+    let lowestItem = null;
+    for (const [_, item] of this.items) {
+      if (this.visibleItems.has(item.id)) continue;
+      if (!lowestItem || item.displayConfig.priority < lowestItem.displayConfig.priority) {
+        lowestItem = item;
+      }
+    }
+    if (lowestItem) {
+      this.items.delete(lowestItem.id);
+      this.logger.debug("Removed low priority item from queue", {
+        id: lowestItem.id,
+        priority: lowestItem.displayConfig.priority
+      });
+    }
+  }
+  processQueue() {
+    if (this.visibleItems.size >= this.config.maxVisible) {
+      return;
+    }
+    const pending = Array.from(this.items.values()).filter((item) => !item.visible).sort((a, b) => b.displayConfig.priority - a.displayConfig.priority);
+    const availableSlots = this.config.maxVisible - this.visibleItems.size;
+    for (let i = 0; i < Math.min(availableSlots, pending.length); i++) {
+      this.show(pending[i].id);
+    }
+  }
+  show(id) {
+    const item = this.items.get(id);
+    if (!item || item.visible) return;
+    item.visible = true;
+    item.displayedAt = /* @__PURE__ */ new Date();
+    this.visibleItems.add(id);
+    if (item.displayConfig.duration) {
+      const timer = setTimeout(() => {
+        this.dismiss(id, "timeout");
+      }, item.displayConfig.duration);
+      this.dismissTimers.set(id, timer);
+    }
+    if (item.displayConfig.sound && this.config.enableSound) {
+      this.playSound(item.event.type);
+    }
+    if (item.displayConfig.vibrate && this.config.enableHaptics) {
+      this.vibrate();
+    }
+    this.notifyListeners();
+    this.logger.debug("Intervention shown", {
+      id,
+      type: item.event.type,
+      surface: item.displayConfig.surface
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Dismiss
+  // ---------------------------------------------------------------------------
+  dismiss(eventId, reason) {
+    const item = this.items.get(eventId);
+    if (!item) return;
+    const timer = this.dismissTimers.get(eventId);
+    if (timer) {
+      clearTimeout(timer);
+      this.dismissTimers.delete(eventId);
+    }
+    item.visible = false;
+    item.dismissedAt = /* @__PURE__ */ new Date();
+    item.interactionType = reason === "timeout" ? "timeout" : "dismiss";
+    this.visibleItems.delete(eventId);
+    this.items.delete(eventId);
+    this.notifyListeners();
+    this.processQueue();
+    this.logger.debug("Intervention dismissed", {
+      id: eventId,
+      reason
+    });
+  }
+  dismissAll() {
+    for (const id of this.visibleItems) {
+      this.dismiss(id, "replaced");
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Interaction
+  // ---------------------------------------------------------------------------
+  markInteracted(eventId, interactionType) {
+    const item = this.items.get(eventId);
+    if (!item) return;
+    item.interactedAt = /* @__PURE__ */ new Date();
+    item.interactionType = interactionType;
+    this.notifyListeners();
+  }
+  // ---------------------------------------------------------------------------
+  // Query
+  // ---------------------------------------------------------------------------
+  getQueue() {
+    const items = Array.from(this.items.values());
+    const priorityOrder = items.sort((a, b) => b.displayConfig.priority - a.displayConfig.priority).map((item) => item.id);
+    return {
+      items,
+      maxVisible: this.config.maxVisible,
+      currentlyVisible: Array.from(this.visibleItems),
+      priorityOrder
+    };
+  }
+  getVisible() {
+    return Array.from(this.visibleItems).map((id) => this.items.get(id)).filter((item) => item !== void 0);
+  }
+  getVisibleBySurface(surface) {
+    return this.getVisible().filter((item) => item.displayConfig.surface === surface);
+  }
+  getItem(eventId) {
+    return this.items.get(eventId);
+  }
+  // ---------------------------------------------------------------------------
+  // Clear
+  // ---------------------------------------------------------------------------
+  clearAll() {
+    for (const timer of this.dismissTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.dismissTimers.clear();
+    this.items.clear();
+    this.visibleItems.clear();
+    this.notifyListeners();
+    this.logger.info("All interventions cleared");
+  }
+  clearBySurface(surface) {
+    const toRemove = [];
+    for (const [id, item] of this.items) {
+      if (item.displayConfig.surface === surface) {
+        toRemove.push(id);
+      }
+    }
+    for (const id of toRemove) {
+      this.dismiss(id, "replaced");
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Listeners
+  // ---------------------------------------------------------------------------
+  onQueueChange(callback) {
+    this.listeners.add(callback);
+    return () => {
+      this.listeners.delete(callback);
+    };
+  }
+  notifyListeners() {
+    const queue = this.getQueue();
+    for (const listener of this.listeners) {
+      try {
+        listener(queue);
+      } catch (error) {
+        this.logger.error("Error in queue listener", {
+          error: error instanceof Error ? error.message : "Unknown"
+        });
+      }
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Audio/Haptics
+  // ---------------------------------------------------------------------------
+  playSound(eventType) {
+    if (typeof window === "undefined") return;
+    try {
+      const soundMap = {
+        celebration: "/sounds/celebration.mp3",
+        step_completed: "/sounds/complete.mp3",
+        intervention: "/sounds/notification.mp3",
+        checkin: "/sounds/gentle.mp3"
+      };
+      const soundUrl = soundMap[eventType];
+      if (soundUrl) {
+        const audio = new Audio(soundUrl);
+        audio.volume = 0.5;
+        audio.play().catch(() => {
+        });
+      }
+    } catch {
+    }
+  }
+  vibrate() {
+    if (typeof window === "undefined" || !navigator.vibrate) return;
+    try {
+      navigator.vibrate(100);
+    } catch {
+    }
+  }
+};
+function createInterventionSurfaceManager(options) {
+  return new InterventionSurfaceManagerImpl(options);
+}
+
+// src/observability/types.ts
+var ToolExecutionStatus2 = {
+  PENDING: "pending",
+  CONFIRMED: "confirmed",
+  REJECTED: "rejected",
+  EXECUTING: "executing",
+  SUCCESS: "success",
+  FAILED: "failed",
+  TIMEOUT: "timeout",
+  CANCELLED: "cancelled"
+};
+var MemorySource = {
+  VECTOR_SEARCH: "vector_search",
+  KNOWLEDGE_GRAPH: "knowledge_graph",
+  SESSION_CONTEXT: "session_context",
+  CROSS_SESSION: "cross_session",
+  CURRICULUM: "curriculum",
+  EXTERNAL: "external"
+};
+var ResponseType4 = {
+  EXPLANATION: "explanation",
+  ANSWER: "answer",
+  RECOMMENDATION: "recommendation",
+  ASSESSMENT: "assessment",
+  INTERVENTION: "intervention",
+  TOOL_RESULT: "tool_result"
+};
+var VerificationMethod = {
+  USER_FEEDBACK: "user_feedback",
+  EXPERT_REVIEW: "expert_review",
+  AUTOMATED_CHECK: "automated_check",
+  OUTCOME_TRACKING: "outcome_tracking",
+  SELF_VERIFICATION: "self_verification"
+};
+var PlanEventType = {
+  CREATED: "created",
+  ACTIVATED: "activated",
+  STEP_STARTED: "step_started",
+  STEP_COMPLETED: "step_completed",
+  STEP_FAILED: "step_failed",
+  STEP_SKIPPED: "step_skipped",
+  PAUSED: "paused",
+  RESUMED: "resumed",
+  COMPLETED: "completed",
+  ABANDONED: "abandoned",
+  MODIFIED: "modified"
+};
+var ProactiveEventType = {
+  CHECKIN_SCHEDULED: "checkin_scheduled",
+  CHECKIN_TRIGGERED: "checkin_triggered",
+  CHECKIN_DELIVERED: "checkin_delivered",
+  CHECKIN_RESPONDED: "checkin_responded",
+  CHECKIN_DISMISSED: "checkin_dismissed",
+  CHECKIN_EXPIRED: "checkin_expired",
+  INTERVENTION_TRIGGERED: "intervention_triggered",
+  INTERVENTION_DELIVERED: "intervention_delivered",
+  INTERVENTION_ACCEPTED: "intervention_accepted",
+  INTERVENTION_DISMISSED: "intervention_dismissed",
+  NUDGE_SENT: "nudge_sent",
+  NUDGE_CLICKED: "nudge_clicked",
+  RECOMMENDATION_SHOWN: "recommendation_shown",
+  RECOMMENDATION_CLICKED: "recommendation_clicked"
+};
+var HealthStatus = {
+  HEALTHY: "healthy",
+  DEGRADED: "degraded",
+  UNHEALTHY: "unhealthy",
+  UNKNOWN: "unknown"
+};
+var AlertSeverity = {
+  INFO: "info",
+  WARNING: "warning",
+  CRITICAL: "critical"
+};
+
+// src/observability/tool-telemetry.ts
+var InMemoryToolExecutionStore = class {
+  events = /* @__PURE__ */ new Map();
+  maxEvents;
+  constructor(maxEvents = 1e4) {
+    this.maxEvents = maxEvents;
+  }
+  async record(event) {
+    if (this.events.size >= this.maxEvents) {
+      const oldestKey = this.events.keys().next().value;
+      if (oldestKey) {
+        this.events.delete(oldestKey);
+      }
+    }
+    this.events.set(event.executionId, event);
+  }
+  async getById(executionId) {
+    return this.events.get(executionId) ?? null;
+  }
+  async query(options) {
+    let results = Array.from(this.events.values());
+    if (options.userId) {
+      results = results.filter((e) => e.userId === options.userId);
+    }
+    if (options.toolId) {
+      results = results.filter((e) => e.toolId === options.toolId);
+    }
+    if (options.status) {
+      const statuses = Array.isArray(options.status) ? options.status : [options.status];
+      results = results.filter((e) => statuses.includes(e.status));
+    }
+    if (options.planId) {
+      results = results.filter((e) => e.planId === options.planId);
+    }
+    if (options.startTime) {
+      results = results.filter((e) => e.startedAt >= options.startTime);
+    }
+    if (options.endTime) {
+      results = results.filter((e) => e.startedAt <= options.endTime);
+    }
+    results.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    const offset = options.offset ?? 0;
+    const limit = options.limit ?? 100;
+    return results.slice(offset, offset + limit);
+  }
+  async getMetrics(periodStart, periodEnd) {
+    const events = Array.from(this.events.values()).filter(
+      (e) => e.startedAt >= periodStart && e.startedAt <= periodEnd
+    );
+    const completedEvents = events.filter(
+      (e) => e.status === ToolExecutionStatus2.SUCCESS || e.status === ToolExecutionStatus2.FAILED
+    );
+    const successfulEvents = events.filter((e) => e.status === ToolExecutionStatus2.SUCCESS);
+    const latencies = completedEvents.filter((e) => e.durationMs !== void 0).map((e) => e.durationMs).sort((a, b) => a - b);
+    const confirmationRequiredEvents = events.filter((e) => e.confirmationRequired);
+    const confirmationGivenEvents = events.filter(
+      (e) => e.confirmationRequired && e.confirmationGiven
+    );
+    const failuresByCode = {};
+    events.filter((e) => e.status === ToolExecutionStatus2.FAILED && e.error).forEach((e) => {
+      const code = e.error.code;
+      failuresByCode[code] = (failuresByCode[code] ?? 0) + 1;
+    });
+    const executionsByTool = {};
+    events.forEach((e) => {
+      executionsByTool[e.toolId] = (executionsByTool[e.toolId] ?? 0) + 1;
+    });
+    return {
+      executionCount: events.length,
+      successRate: completedEvents.length > 0 ? successfulEvents.length / completedEvents.length : 0,
+      avgLatencyMs: latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0,
+      p50LatencyMs: this.percentile(latencies, 50),
+      p95LatencyMs: this.percentile(latencies, 95),
+      p99LatencyMs: this.percentile(latencies, 99),
+      confirmationRate: events.length > 0 ? confirmationRequiredEvents.length / events.length : 0,
+      confirmationAcceptRate: confirmationRequiredEvents.length > 0 ? confirmationGivenEvents.length / confirmationRequiredEvents.length : 0,
+      failuresByCode,
+      executionsByTool,
+      periodStart,
+      periodEnd
+    };
+  }
+  percentile(sortedValues, p) {
+    if (sortedValues.length === 0) return 0;
+    const index = Math.ceil(p / 100 * sortedValues.length) - 1;
+    return sortedValues[Math.max(0, index)];
+  }
+  clear() {
+    this.events.clear();
+  }
+};
+var DEFAULT_TOOL_TELEMETRY_CONFIG = {
+  enabled: true,
+  sampleRate: 1,
+  maxEvents: 1e4,
+  sanitize: true,
+  redactFields: ["password", "token", "secret", "apiKey", "authorization"]
+};
+var ToolTelemetry = class {
+  store;
+  config;
+  logger;
+  activeExecutions = /* @__PURE__ */ new Map();
+  constructor(options) {
+    this.config = { ...DEFAULT_TOOL_TELEMETRY_CONFIG, ...options.config };
+    this.store = options.store ?? new InMemoryToolExecutionStore(this.config.maxEvents);
+    this.logger = options.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Event Recording
+  // ---------------------------------------------------------------------------
+  /**
+   * Start tracking a tool execution
+   */
+  startExecution(params) {
+    if (!this.config.enabled || !this.shouldSample()) {
+      return "";
+    }
+    const executionId = v4_default();
+    const event = {
+      executionId,
+      toolId: params.toolId,
+      toolName: params.toolName,
+      userId: params.userId,
+      sessionId: params.sessionId,
+      planId: params.planId,
+      stepId: params.stepId,
+      startedAt: /* @__PURE__ */ new Date(),
+      status: ToolExecutionStatus2.PENDING,
+      confirmationRequired: params.confirmationRequired,
+      inputSummary: this.sanitizeAndSummarize(params.input),
+      tags: params.tags
+    };
+    this.activeExecutions.set(executionId, event);
+    this.logger.debug("Tool execution started", {
+      executionId,
+      toolId: params.toolId,
+      userId: params.userId
+    });
+    return executionId;
+  }
+  /**
+   * Record confirmation response
+   */
+  recordConfirmation(executionId, confirmed) {
+    const event = this.activeExecutions.get(executionId);
+    if (!event) return;
+    event.confirmationGiven = confirmed;
+    event.status = confirmed ? ToolExecutionStatus2.CONFIRMED : ToolExecutionStatus2.REJECTED;
+    if (!confirmed) {
+      this.completeExecution(executionId, false, void 0, {
+        code: "CONFIRMATION_REJECTED",
+        message: "User rejected tool execution",
+        retryable: false
+      });
+    }
+  }
+  /**
+   * Mark execution as started (after confirmation)
+   */
+  markExecuting(executionId) {
+    const event = this.activeExecutions.get(executionId);
+    if (!event) return;
+    event.status = ToolExecutionStatus2.EXECUTING;
+  }
+  /**
+   * Complete a tool execution
+   */
+  async completeExecution(executionId, success, output, error) {
+    const event = this.activeExecutions.get(executionId);
+    if (!event) return;
+    event.completedAt = /* @__PURE__ */ new Date();
+    event.durationMs = event.completedAt.getTime() - event.startedAt.getTime();
+    event.status = success ? ToolExecutionStatus2.SUCCESS : ToolExecutionStatus2.FAILED;
+    event.outputSummary = success ? this.sanitizeAndSummarize(output) : void 0;
+    event.error = error;
+    this.activeExecutions.delete(executionId);
+    await this.store.record(event);
+    this.logger.debug("Tool execution completed", {
+      executionId,
+      toolId: event.toolId,
+      success,
+      durationMs: event.durationMs
+    });
+  }
+  /**
+   * Record a timeout
+   */
+  async recordTimeout(executionId) {
+    const event = this.activeExecutions.get(executionId);
+    if (!event) return;
+    event.completedAt = /* @__PURE__ */ new Date();
+    event.durationMs = event.completedAt.getTime() - event.startedAt.getTime();
+    event.status = ToolExecutionStatus2.TIMEOUT;
+    event.error = {
+      code: "TIMEOUT",
+      message: "Tool execution timed out",
+      retryable: true
+    };
+    this.activeExecutions.delete(executionId);
+    await this.store.record(event);
+    this.logger.warn("Tool execution timeout", {
+      executionId,
+      toolId: event.toolId,
+      durationMs: event.durationMs
+    });
+  }
+  /**
+   * Record a cancellation
+   */
+  async recordCancellation(executionId) {
+    const event = this.activeExecutions.get(executionId);
+    if (!event) return;
+    event.completedAt = /* @__PURE__ */ new Date();
+    event.durationMs = event.completedAt.getTime() - event.startedAt.getTime();
+    event.status = ToolExecutionStatus2.CANCELLED;
+    this.activeExecutions.delete(executionId);
+    await this.store.record(event);
+    this.logger.info("Tool execution cancelled", {
+      executionId,
+      toolId: event.toolId
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Query Methods
+  // ---------------------------------------------------------------------------
+  async getExecution(executionId) {
+    const active = this.activeExecutions.get(executionId);
+    if (active) return active;
+    return this.store.getById(executionId);
+  }
+  async queryExecutions(query) {
+    return this.store.query(query);
+  }
+  async getMetrics(periodStart, periodEnd) {
+    return this.store.getMetrics(periodStart, periodEnd);
+  }
+  /**
+   * Get metrics for the last N minutes
+   */
+  async getRecentMetrics(minutes = 60) {
+    const now = /* @__PURE__ */ new Date();
+    const start = new Date(now.getTime() - minutes * 60 * 1e3);
+    return this.getMetrics(start, now);
+  }
+  /**
+   * Get active execution count
+   */
+  getActiveExecutionCount() {
+    return this.activeExecutions.size;
+  }
+  // ---------------------------------------------------------------------------
+  // Helper Methods
+  // ---------------------------------------------------------------------------
+  shouldSample() {
+    return Math.random() < this.config.sampleRate;
+  }
+  sanitizeAndSummarize(data) {
+    if (data === void 0 || data === null) return void 0;
+    try {
+      let str = typeof data === "string" ? data : JSON.stringify(data);
+      if (this.config.sanitize) {
+        for (const field of this.config.redactFields) {
+          const regex = new RegExp(`"${field}"\\s*:\\s*"[^"]*"`, "gi");
+          str = str.replace(regex, `"${field}":"[REDACTED]"`);
+        }
+      }
+      if (str.length > 500) {
+        str = str.substring(0, 500) + "...[truncated]";
+      }
+      return str;
+    } catch {
+      return "[serialization failed]";
+    }
+  }
+};
+function createToolTelemetry(options) {
+  return new ToolTelemetry(options ?? {});
+}
+function createInMemoryToolExecutionStore(maxEvents) {
+  return new InMemoryToolExecutionStore(maxEvents);
+}
+
+// src/observability/memory-quality-tracker.ts
+var InMemoryMemoryRetrievalStore = class {
+  events = /* @__PURE__ */ new Map();
+  maxEvents;
+  constructor(maxEvents = 1e4) {
+    this.maxEvents = maxEvents;
+  }
+  async record(event) {
+    if (this.events.size >= this.maxEvents) {
+      const oldestKey = this.events.keys().next().value;
+      if (oldestKey) {
+        this.events.delete(oldestKey);
+      }
+    }
+    this.events.set(event.retrievalId, event);
+  }
+  async getById(retrievalId) {
+    return this.events.get(retrievalId) ?? null;
+  }
+  async recordFeedback(retrievalId, feedback) {
+    const event = this.events.get(retrievalId);
+    if (event) {
+      event.userFeedback = feedback;
+    }
+  }
+  async getMetrics(periodStart, periodEnd) {
+    const events = Array.from(this.events.values()).filter(
+      (e) => e.timestamp >= periodStart && e.timestamp <= periodEnd
+    );
+    const bySource = {
+      [MemorySource.VECTOR_SEARCH]: this.emptySourceMetrics(),
+      [MemorySource.KNOWLEDGE_GRAPH]: this.emptySourceMetrics(),
+      [MemorySource.SESSION_CONTEXT]: this.emptySourceMetrics(),
+      [MemorySource.CROSS_SESSION]: this.emptySourceMetrics(),
+      [MemorySource.CURRICULUM]: this.emptySourceMetrics(),
+      [MemorySource.EXTERNAL]: this.emptySourceMetrics()
+    };
+    const relevanceScores = [];
+    const latencies = [];
+    let cacheHits = 0;
+    let emptyResults = 0;
+    let positiveFeedback = 0;
+    let feedbackCount = 0;
+    for (const event of events) {
+      relevanceScores.push(event.avgRelevanceScore);
+      latencies.push(event.latencyMs);
+      if (event.cacheHit) cacheHits++;
+      if (event.resultCount === 0) emptyResults++;
+      if (event.userFeedback) {
+        feedbackCount++;
+        if (event.userFeedback.helpful) positiveFeedback++;
+      }
+      const sourceMetrics = bySource[event.source];
+      sourceMetrics.searchCount++;
+      sourceMetrics.avgRelevanceScore = (sourceMetrics.avgRelevanceScore * (sourceMetrics.searchCount - 1) + event.avgRelevanceScore) / sourceMetrics.searchCount;
+      sourceMetrics.avgLatencyMs = (sourceMetrics.avgLatencyMs * (sourceMetrics.searchCount - 1) + event.latencyMs) / sourceMetrics.searchCount;
+      if (event.cacheHit) {
+        sourceMetrics.cacheHitRate = (sourceMetrics.cacheHitRate * (sourceMetrics.searchCount - 1) + 1) / sourceMetrics.searchCount;
+      }
+    }
+    relevanceScores.sort((a, b) => a - b);
+    latencies.sort((a, b) => a - b);
+    return {
+      searchCount: events.length,
+      avgRelevanceScore: relevanceScores.length > 0 ? relevanceScores.reduce((a, b) => a + b, 0) / relevanceScores.length : 0,
+      medianRelevanceScore: this.median(relevanceScores),
+      cacheHitRate: events.length > 0 ? cacheHits / events.length : 0,
+      avgLatencyMs: latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0,
+      p95LatencyMs: this.percentile(latencies, 95),
+      emptyResultRate: events.length > 0 ? emptyResults / events.length : 0,
+      positiveFeedbackRate: feedbackCount > 0 ? positiveFeedback / feedbackCount : 0,
+      bySource,
+      reindexQueueDepth: 0,
+      // Would be populated by lifecycle manager
+      lastReindexAt: void 0,
+      periodStart,
+      periodEnd
+    };
+  }
+  emptySourceMetrics() {
+    return {
+      searchCount: 0,
+      avgRelevanceScore: 0,
+      avgLatencyMs: 0,
+      cacheHitRate: 0
+    };
+  }
+  median(sortedValues) {
+    if (sortedValues.length === 0) return 0;
+    const mid = Math.floor(sortedValues.length / 2);
+    return sortedValues.length % 2 !== 0 ? sortedValues[mid] : (sortedValues[mid - 1] + sortedValues[mid]) / 2;
+  }
+  percentile(sortedValues, p) {
+    if (sortedValues.length === 0) return 0;
+    const index = Math.ceil(p / 100 * sortedValues.length) - 1;
+    return sortedValues[Math.max(0, index)];
+  }
+  clear() {
+    this.events.clear();
+  }
+};
+var DEFAULT_MEMORY_QUALITY_CONFIG = {
+  enabled: true,
+  sampleRate: 1,
+  maxEvents: 1e4,
+  lowRelevanceThreshold: 0.3,
+  highLatencyThreshold: 2e3
+};
+var MemoryQualityTracker = class {
+  store;
+  config;
+  logger;
+  alertListeners = /* @__PURE__ */ new Set();
+  constructor(options) {
+    this.config = { ...DEFAULT_MEMORY_QUALITY_CONFIG, ...options.config };
+    this.store = options.store ?? new InMemoryMemoryRetrievalStore(this.config.maxEvents);
+    this.logger = options.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Event Recording
+  // ---------------------------------------------------------------------------
+  /**
+   * Record a memory retrieval event
+   */
+  async recordRetrieval(params) {
+    if (!this.config.enabled || !this.shouldSample()) {
+      return "";
+    }
+    const retrievalId = v4_default();
+    const event = {
+      retrievalId,
+      userId: params.userId,
+      sessionId: params.sessionId,
+      query: params.query,
+      source: params.source,
+      resultCount: params.resultCount,
+      topRelevanceScore: params.topRelevanceScore,
+      avgRelevanceScore: params.avgRelevanceScore,
+      cacheHit: params.cacheHit,
+      latencyMs: params.latencyMs,
+      timestamp: /* @__PURE__ */ new Date(),
+      metadata: params.metadata
+    };
+    await this.store.record(event);
+    this.checkAlerts(event);
+    this.logger.debug("Memory retrieval recorded", {
+      retrievalId,
+      source: params.source,
+      resultCount: params.resultCount,
+      avgRelevanceScore: params.avgRelevanceScore,
+      latencyMs: params.latencyMs
+    });
+    return retrievalId;
+  }
+  /**
+   * Record user feedback for a retrieval
+   */
+  async recordFeedback(retrievalId, feedback) {
+    await this.store.recordFeedback(retrievalId, {
+      ...feedback,
+      providedAt: /* @__PURE__ */ new Date()
+    });
+    this.logger.info("Memory retrieval feedback recorded", {
+      retrievalId,
+      helpful: feedback.helpful,
+      relevanceRating: feedback.relevanceRating
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Query Methods
+  // ---------------------------------------------------------------------------
+  async getRetrieval(retrievalId) {
+    return this.store.getById(retrievalId);
+  }
+  async getMetrics(periodStart, periodEnd) {
+    return this.store.getMetrics(periodStart, periodEnd);
+  }
+  /**
+   * Get metrics for the last N minutes
+   */
+  async getRecentMetrics(minutes = 60) {
+    const now = /* @__PURE__ */ new Date();
+    const start = new Date(now.getTime() - minutes * 60 * 1e3);
+    return this.getMetrics(start, now);
+  }
+  /**
+   * Get quality summary for a specific source
+   */
+  async getSourceQuality(source, periodStart, periodEnd) {
+    const metrics = await this.getMetrics(periodStart, periodEnd);
+    return metrics.bySource[source];
+  }
+  // ---------------------------------------------------------------------------
+  // Alerts
+  // ---------------------------------------------------------------------------
+  checkAlerts(event) {
+    const alerts = [];
+    if (event.avgRelevanceScore < this.config.lowRelevanceThreshold) {
+      alerts.push({
+        type: "low_relevance",
+        message: `Low relevance score: ${event.avgRelevanceScore.toFixed(2)}`,
+        retrievalId: event.retrievalId,
+        value: event.avgRelevanceScore,
+        threshold: this.config.lowRelevanceThreshold
+      });
+    }
+    if (event.latencyMs > this.config.highLatencyThreshold) {
+      alerts.push({
+        type: "high_latency",
+        message: `High latency: ${event.latencyMs}ms`,
+        retrievalId: event.retrievalId,
+        value: event.latencyMs,
+        threshold: this.config.highLatencyThreshold
+      });
+    }
+    if (event.resultCount === 0) {
+      alerts.push({
+        type: "empty_results",
+        message: "No results returned for query",
+        retrievalId: event.retrievalId,
+        value: 0,
+        threshold: 1
+      });
+    }
+    for (const alert of alerts) {
+      this.emitAlert(alert);
+    }
+  }
+  /**
+   * Subscribe to quality alerts
+   */
+  onAlert(callback) {
+    this.alertListeners.add(callback);
+    return () => {
+      this.alertListeners.delete(callback);
+    };
+  }
+  emitAlert(alert) {
+    for (const listener of this.alertListeners) {
+      try {
+        listener(alert);
+      } catch (err) {
+        this.logger.error("Error in alert listener", {
+          error: err instanceof Error ? err.message : "Unknown"
+        });
+      }
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Helper Methods
+  // ---------------------------------------------------------------------------
+  shouldSample() {
+    return Math.random() < this.config.sampleRate;
+  }
+};
+function createMemoryQualityTracker(options) {
+  return new MemoryQualityTracker(options ?? {});
+}
+function createInMemoryMemoryRetrievalStore(maxEvents) {
+  return new InMemoryMemoryRetrievalStore(maxEvents);
+}
+
+// src/observability/confidence-calibration.ts
+var InMemoryConfidencePredictionStore = class {
+  predictions = /* @__PURE__ */ new Map();
+  maxPredictions;
+  constructor(maxPredictions = 1e4) {
+    this.maxPredictions = maxPredictions;
+  }
+  async record(prediction) {
+    if (this.predictions.size >= this.maxPredictions) {
+      const oldestKey = this.predictions.keys().next().value;
+      if (oldestKey) {
+        this.predictions.delete(oldestKey);
+      }
+    }
+    this.predictions.set(prediction.predictionId, prediction);
+  }
+  async getById(predictionId) {
+    return this.predictions.get(predictionId) ?? null;
+  }
+  async recordOutcome(predictionId, outcome) {
+    const prediction = this.predictions.get(predictionId);
+    if (prediction) {
+      prediction.actualOutcome = outcome;
+    }
+  }
+  async getCalibrationMetrics(periodStart, periodEnd) {
+    const predictions = Array.from(this.predictions.values()).filter(
+      (p) => p.predictedAt >= periodStart && p.predictedAt <= periodEnd
+    );
+    const withOutcomes = predictions.filter((p) => p.actualOutcome !== void 0);
+    const avgPredictedConfidence = predictions.length > 0 ? predictions.reduce((sum, p) => sum + p.predictedConfidence, 0) / predictions.length : 0;
+    const avgActualAccuracy = withOutcomes.length > 0 ? withOutcomes.reduce(
+      (sum, p) => sum + (p.actualOutcome.accurate ? 1 : 0),
+      0
+    ) / withOutcomes.length : 0;
+    const calibrationError = Math.abs(avgPredictedConfidence - avgActualAccuracy);
+    const brierScore = withOutcomes.length > 0 ? withOutcomes.reduce((sum, p) => {
+      const actual = p.actualOutcome.accurate ? 1 : 0;
+      return sum + Math.pow(p.predictedConfidence - actual, 2);
+    }, 0) / withOutcomes.length : 0;
+    const calibrationBuckets = this.calculateBuckets(withOutcomes);
+    const verificationOverrideRate = this.calculateOverrideRate(withOutcomes);
+    const byResponseType = this.calculateByResponseType(predictions, withOutcomes);
+    return {
+      predictionCount: predictions.length,
+      outcomesRecorded: withOutcomes.length,
+      avgPredictedConfidence,
+      avgActualAccuracy,
+      calibrationError,
+      brierScore,
+      calibrationBuckets,
+      verificationOverrideRate,
+      byResponseType,
+      periodStart,
+      periodEnd
+    };
+  }
+  calculateBuckets(withOutcomes) {
+    const buckets = [];
+    const bucketRanges = [
+      [0, 0.1],
+      [0.1, 0.2],
+      [0.2, 0.3],
+      [0.3, 0.4],
+      [0.4, 0.5],
+      [0.5, 0.6],
+      [0.6, 0.7],
+      [0.7, 0.8],
+      [0.8, 0.9],
+      [0.9, 1]
+    ];
+    for (const [rangeStart, rangeEnd] of bucketRanges) {
+      const inBucket = withOutcomes.filter(
+        (p) => p.predictedConfidence >= rangeStart && p.predictedConfidence < rangeEnd
+      );
+      if (inBucket.length === 0) {
+        buckets.push({
+          rangeStart,
+          rangeEnd,
+          count: 0,
+          avgPredicted: 0,
+          actualAccuracy: 0,
+          error: 0
+        });
+        continue;
+      }
+      const avgPredicted = inBucket.reduce((sum, p) => sum + p.predictedConfidence, 0) / inBucket.length;
+      const actualAccuracy = inBucket.reduce((sum, p) => sum + (p.actualOutcome.accurate ? 1 : 0), 0) / inBucket.length;
+      buckets.push({
+        rangeStart,
+        rangeEnd,
+        count: inBucket.length,
+        avgPredicted,
+        actualAccuracy,
+        error: Math.abs(avgPredicted - actualAccuracy)
+      });
+    }
+    return buckets;
+  }
+  calculateOverrideRate(withOutcomes) {
+    const overrides = withOutcomes.filter((p) => {
+      const confident = p.predictedConfidence >= 0.7;
+      const accurate = p.actualOutcome.accurate;
+      return confident && !accurate || !confident && accurate;
+    });
+    return withOutcomes.length > 0 ? overrides.length / withOutcomes.length : 0;
+  }
+  calculateByResponseType(predictions, withOutcomes) {
+    const types = Object.values(ResponseType4);
+    const result = {};
+    for (const type of types) {
+      const typePredictions = predictions.filter((p) => p.responseType === type);
+      const typeWithOutcomes = withOutcomes.filter((p) => p.responseType === type);
+      const avgPredictedConfidence = typePredictions.length > 0 ? typePredictions.reduce((sum, p) => sum + p.predictedConfidence, 0) / typePredictions.length : 0;
+      const avgActualAccuracy = typeWithOutcomes.length > 0 ? typeWithOutcomes.reduce(
+        (sum, p) => sum + (p.actualOutcome.accurate ? 1 : 0),
+        0
+      ) / typeWithOutcomes.length : 0;
+      result[type] = {
+        predictionCount: typePredictions.length,
+        avgPredictedConfidence,
+        avgActualAccuracy,
+        calibrationError: Math.abs(avgPredictedConfidence - avgActualAccuracy)
+      };
+    }
+    return result;
+  }
+  clear() {
+    this.predictions.clear();
+  }
+};
+var DEFAULT_CALIBRATION_CONFIG = {
+  enabled: true,
+  sampleRate: 1,
+  maxPredictions: 1e4,
+  bucketCount: 10,
+  calibrationErrorThreshold: 0.15
+};
+var ConfidenceCalibrationTracker = class {
+  store;
+  config;
+  logger;
+  alertListeners = /* @__PURE__ */ new Set();
+  constructor(options) {
+    this.config = { ...DEFAULT_CALIBRATION_CONFIG, ...options.config };
+    this.store = options.store ?? new InMemoryConfidencePredictionStore(this.config.maxPredictions);
+    this.logger = options.logger ?? console;
+  }
+  // ---------------------------------------------------------------------------
+  // Event Recording
+  // ---------------------------------------------------------------------------
+  /**
+   * Record a confidence prediction
+   */
+  async recordPrediction(params) {
+    if (!this.config.enabled || !this.shouldSample()) {
+      return "";
+    }
+    const predictionId = v4_default();
+    const prediction = {
+      predictionId,
+      userId: params.userId,
+      sessionId: params.sessionId,
+      responseId: params.responseId,
+      responseType: params.responseType,
+      predictedConfidence: params.predictedConfidence,
+      factors: params.factors,
+      predictedAt: /* @__PURE__ */ new Date()
+    };
+    await this.store.record(prediction);
+    this.logger.debug("Confidence prediction recorded", {
+      predictionId,
+      responseType: params.responseType,
+      predictedConfidence: params.predictedConfidence
+    });
+    return predictionId;
+  }
+  /**
+   * Record the actual outcome for a prediction
+   */
+  async recordOutcome(predictionId, params) {
+    const outcome = {
+      accurate: params.accurate,
+      userVerified: params.userVerified,
+      verificationMethod: params.verificationMethod,
+      qualityScore: params.qualityScore,
+      notes: params.notes,
+      recordedAt: /* @__PURE__ */ new Date()
+    };
+    await this.store.recordOutcome(predictionId, outcome);
+    await this.checkCalibrationAlerts(predictionId);
+    this.logger.debug("Confidence outcome recorded", {
+      predictionId,
+      accurate: params.accurate,
+      verificationMethod: params.verificationMethod
+    });
+  }
+  /**
+   * Record outcome from user feedback
+   */
+  async recordUserFeedback(predictionId, helpful, rating) {
+    await this.recordOutcome(predictionId, {
+      accurate: helpful,
+      userVerified: true,
+      verificationMethod: VerificationMethod.USER_FEEDBACK,
+      qualityScore: rating ? rating / 5 : void 0
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Query Methods
+  // ---------------------------------------------------------------------------
+  async getPrediction(predictionId) {
+    return this.store.getById(predictionId);
+  }
+  async getCalibrationMetrics(periodStart, periodEnd) {
+    return this.store.getCalibrationMetrics(periodStart, periodEnd);
+  }
+  /**
+   * Get metrics for the last N days
+   */
+  async getRecentMetrics(days = 7) {
+    const now = /* @__PURE__ */ new Date();
+    const start = new Date(now.getTime() - days * 24 * 60 * 60 * 1e3);
+    return this.getCalibrationMetrics(start, now);
+  }
+  /**
+   * Get calibration summary
+   */
+  async getCalibrationSummary() {
+    const metrics = await this.getRecentMetrics(7);
+    const calibrationQuality = metrics.calibrationError < 0.05 ? "excellent" : metrics.calibrationError < 0.1 ? "good" : metrics.calibrationError < 0.15 ? "fair" : "poor";
+    const recommendations = [];
+    if (metrics.calibrationError > 0.1) {
+      recommendations.push("Consider adjusting confidence scoring weights");
+    }
+    if (metrics.verificationOverrideRate > 0.2) {
+      recommendations.push("High override rate indicates miscalibration");
+    }
+    const worstBucket = metrics.calibrationBuckets.filter((b) => b.count > 0).sort((a, b) => b.error - a.error)[0];
+    if (worstBucket && worstBucket.error > 0.2) {
+      recommendations.push(
+        `Focus on improving calibration in ${(worstBucket.rangeStart * 100).toFixed(0)}-${(worstBucket.rangeEnd * 100).toFixed(0)}% confidence range`
+      );
+    }
+    return {
+      calibrationQuality,
+      calibrationError: metrics.calibrationError,
+      brierScore: metrics.brierScore,
+      sampleSize: metrics.outcomesRecorded,
+      recommendations,
+      lastUpdated: /* @__PURE__ */ new Date()
+    };
+  }
+  // ---------------------------------------------------------------------------
+  // Alerts
+  // ---------------------------------------------------------------------------
+  async checkCalibrationAlerts(predictionId) {
+    const recentMetrics = await this.getRecentMetrics(1);
+    if (recentMetrics.calibrationError > this.config.calibrationErrorThreshold) {
+      this.emitAlert({
+        type: "high_calibration_error",
+        message: `Calibration error (${recentMetrics.calibrationError.toFixed(3)}) exceeds threshold`,
+        predictionId,
+        calibrationError: recentMetrics.calibrationError,
+        threshold: this.config.calibrationErrorThreshold
+      });
+    }
+  }
+  /**
+   * Subscribe to calibration alerts
+   */
+  onAlert(callback) {
+    this.alertListeners.add(callback);
+    return () => {
+      this.alertListeners.delete(callback);
+    };
+  }
+  emitAlert(alert) {
+    for (const listener of this.alertListeners) {
+      try {
+        listener(alert);
+      } catch (err) {
+        this.logger.error("Error in calibration alert listener", {
+          error: err instanceof Error ? err.message : "Unknown"
+        });
+      }
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Helper Methods
+  // ---------------------------------------------------------------------------
+  shouldSample() {
+    return Math.random() < this.config.sampleRate;
+  }
+};
+function createConfidenceCalibrationTracker(options) {
+  return new ConfidenceCalibrationTracker(options ?? {});
+}
+function createInMemoryConfidencePredictionStore(maxPredictions) {
+  return new InMemoryConfidencePredictionStore(maxPredictions);
+}
+
+// src/observability/metrics-collector.ts
+var InMemoryPlanLifecycleStore = class {
+  events = /* @__PURE__ */ new Map();
+  maxEventsPerPlan;
+  constructor(maxEventsPerPlan = 100) {
+    this.maxEventsPerPlan = maxEventsPerPlan;
+  }
+  async record(event) {
+    const planEvents = this.events.get(event.planId) ?? [];
+    if (planEvents.length >= this.maxEventsPerPlan) {
+      planEvents.shift();
+    }
+    planEvents.push(event);
+    this.events.set(event.planId, planEvents);
+  }
+  async getByPlanId(planId) {
+    return this.events.get(planId) ?? [];
+  }
+  async getMetrics(periodStart, periodEnd) {
+    const allEvents = Array.from(this.events.values()).flat();
+    const periodEvents = allEvents.filter(
+      (e) => e.timestamp >= periodStart && e.timestamp <= periodEnd
+    );
+    const planIds = new Set(periodEvents.map((e) => e.planId));
+    let totalCreated = 0;
+    let completed = 0;
+    let abandoned = 0;
+    const stepsPerPlan = [];
+    const completionTimes = [];
+    const stepCompletionByPosition = {};
+    const dropoffByStep = {};
+    const byStatus = {};
+    for (const planId of planIds) {
+      const planEvents = periodEvents.filter((e) => e.planId === planId);
+      const created = planEvents.find((e) => e.eventType === PlanEventType.CREATED);
+      if (created) totalCreated++;
+      const completedEvent = planEvents.find(
+        (e) => e.eventType === PlanEventType.COMPLETED
+      );
+      if (completedEvent) {
+        completed++;
+        if (created) {
+          completionTimes.push(
+            completedEvent.timestamp.getTime() - created.timestamp.getTime()
+          );
+        }
+      }
+      const abandonedEvent = planEvents.find(
+        (e) => e.eventType === PlanEventType.ABANDONED
+      );
+      if (abandonedEvent) abandoned++;
+      const stepEvents = planEvents.filter(
+        (e) => e.eventType === PlanEventType.STEP_COMPLETED || e.eventType === PlanEventType.STEP_STARTED
+      );
+      stepsPerPlan.push(stepEvents.length);
+      for (const event of stepEvents) {
+        if (event.eventType === PlanEventType.STEP_COMPLETED) {
+          const position = event.metadata?.stepPosition;
+          if (position !== void 0) {
+            stepCompletionByPosition[position] = (stepCompletionByPosition[position] ?? 0) + 1;
+          }
+        }
+      }
+      const lastEvent = planEvents[planEvents.length - 1];
+      if (lastEvent?.newState) {
+        byStatus[lastEvent.newState] = (byStatus[lastEvent.newState] ?? 0) + 1;
+      }
+    }
+    const maxStep = Math.max(...Object.keys(stepCompletionByPosition).map(Number), 0);
+    for (let i = 1; i <= maxStep; i++) {
+      const current = stepCompletionByPosition[i] ?? 0;
+      const previous = stepCompletionByPosition[i - 1] ?? totalCreated;
+      dropoffByStep[i] = previous - current;
+    }
+    const activePlansCount = byStatus["in_progress"] ?? 0;
+    return {
+      activePlansCount,
+      totalCreated,
+      completionRate: totalCreated > 0 ? completed / totalCreated : 0,
+      abandonmentRate: totalCreated > 0 ? abandoned / totalCreated : 0,
+      avgStepsPerPlan: stepsPerPlan.length > 0 ? stepsPerPlan.reduce((a, b) => a + b, 0) / stepsPerPlan.length : 0,
+      avgCompletionTimeMs: completionTimes.length > 0 ? completionTimes.reduce((a, b) => a + b, 0) / completionTimes.length : 0,
+      stepCompletionByPosition,
+      dropoffByStep,
+      byStatus,
+      periodStart,
+      periodEnd
+    };
+  }
+  clear() {
+    this.events.clear();
+  }
+};
+var InMemoryProactiveEventStore = class {
+  events = [];
+  maxEvents;
+  constructor(maxEvents = 1e4) {
+    this.maxEvents = maxEvents;
+  }
+  async record(event) {
+    if (this.events.length >= this.maxEvents) {
+      this.events.shift();
+    }
+    this.events.push(event);
+  }
+  async getByUserId(userId, limit = 100) {
+    return this.events.filter((e) => e.userId === userId).slice(-limit);
+  }
+  async getMetrics(periodStart, periodEnd) {
+    const periodEvents = this.events.filter(
+      (e) => e.timestamp >= periodStart && e.timestamp <= periodEnd
+    );
+    const checkInsSent = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.CHECKIN_DELIVERED
+    ).length;
+    const checkInsResponded = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.CHECKIN_RESPONDED
+    ).length;
+    const checkInResponseTimes = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.CHECKIN_RESPONDED && e.response
+    ).map((e) => e.response.responseTimeMs);
+    const interventionsTriggered = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.INTERVENTION_TRIGGERED
+    ).length;
+    const interventionsAccepted = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.INTERVENTION_ACCEPTED
+    ).length;
+    const nudgesSent = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.NUDGE_SENT
+    ).length;
+    const nudgesClicked = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.NUDGE_CLICKED
+    ).length;
+    const recommendationsShown = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.RECOMMENDATION_SHOWN
+    ).length;
+    const recommendationsClicked = periodEvents.filter(
+      (e) => e.eventType === ProactiveEventType.RECOMMENDATION_CLICKED
+    ).length;
+    const byChannel = {};
+    for (const event of periodEvents) {
+      if (event.channel) {
+        if (!byChannel[event.channel]) {
+          byChannel[event.channel] = {
+            sent: 0,
+            delivered: 0,
+            deliveryRate: 0,
+            responseRate: 0
+          };
+        }
+        byChannel[event.channel].sent++;
+        if (event.delivered) {
+          byChannel[event.channel].delivered++;
+        }
+      }
+    }
+    for (const channel of Object.keys(byChannel)) {
+      const stats = byChannel[channel];
+      stats.deliveryRate = stats.sent > 0 ? stats.delivered / stats.sent : 0;
+    }
+    return {
+      checkInsSent,
+      checkInResponseRate: checkInsSent > 0 ? checkInsResponded / checkInsSent : 0,
+      avgCheckInResponseTimeMs: checkInResponseTimes.length > 0 ? checkInResponseTimes.reduce((a, b) => a + b, 0) / checkInResponseTimes.length : 0,
+      interventionsTriggered,
+      interventionAcceptRate: interventionsTriggered > 0 ? interventionsAccepted / interventionsTriggered : 0,
+      nudgesSent,
+      nudgeClickRate: nudgesSent > 0 ? nudgesClicked / nudgesSent : 0,
+      recommendationsShown,
+      recommendationClickRate: recommendationsShown > 0 ? recommendationsClicked / recommendationsShown : 0,
+      byChannel,
+      periodStart,
+      periodEnd
+    };
+  }
+  clear() {
+    this.events = [];
+  }
+};
+var DEFAULT_METRICS_COLLECTOR_CONFIG = {
+  enabled: true,
+  defaultPeriodHours: 24,
+  healthCheckIntervalMs: 6e4,
+  alertsEnabled: true
+};
+var AgenticMetricsCollector = class {
+  config;
+  logger;
+  // Sub-collectors
+  toolTelemetry;
+  memoryQualityTracker;
+  confidenceCalibration;
+  planLifecycleStore;
+  proactiveEventStore;
+  // Alerts
+  alertRules = [];
+  activeAlerts = [];
+  alertListeners = /* @__PURE__ */ new Set();
+  // Health check
+  healthCheckInterval;
+  lastHealthCheck;
+  constructor(options) {
+    this.config = { ...DEFAULT_METRICS_COLLECTOR_CONFIG, ...options.config };
+    this.logger = options.logger ?? console;
+    this.toolTelemetry = options.toolTelemetry ?? new ToolTelemetry({ logger: this.logger });
+    this.memoryQualityTracker = options.memoryQualityTracker ?? new MemoryQualityTracker({ logger: this.logger });
+    this.confidenceCalibration = options.confidenceCalibration ?? new ConfidenceCalibrationTracker({ logger: this.logger });
+    this.planLifecycleStore = options.planLifecycleStore ?? new InMemoryPlanLifecycleStore();
+    this.proactiveEventStore = options.proactiveEventStore ?? new InMemoryProactiveEventStore();
+  }
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
+  start() {
+    if (this.healthCheckInterval) return;
+    this.healthCheckInterval = setInterval(() => {
+      this.runHealthCheck().catch((err) => {
+        this.logger.error("Health check failed", {
+          error: err instanceof Error ? err.message : "Unknown"
+        });
+      });
+    }, this.config.healthCheckIntervalMs);
+    this.logger.info("Agentic metrics collector started");
+  }
+  stop() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = void 0;
+    }
+    this.logger.info("Agentic metrics collector stopped");
+  }
+  // ---------------------------------------------------------------------------
+  // Sub-Collector Access
+  // ---------------------------------------------------------------------------
+  getToolTelemetry() {
+    return this.toolTelemetry;
+  }
+  getMemoryQualityTracker() {
+    return this.memoryQualityTracker;
+  }
+  getConfidenceCalibration() {
+    return this.confidenceCalibration;
+  }
+  getPlanLifecycleStore() {
+    return this.planLifecycleStore;
+  }
+  getProactiveEventStore() {
+    return this.proactiveEventStore;
+  }
+  // ---------------------------------------------------------------------------
+  // Unified Metrics
+  // ---------------------------------------------------------------------------
+  /**
+   * Get complete agentic metrics snapshot
+   */
+  async getMetrics(periodStart, periodEnd) {
+    const end = periodEnd ?? /* @__PURE__ */ new Date();
+    const start = periodStart ?? new Date(end.getTime() - this.config.defaultPeriodHours * 60 * 60 * 1e3);
+    const [tools, memory, confidence, plans, proactive] = await Promise.all([
+      this.toolTelemetry.getMetrics(start, end),
+      this.memoryQualityTracker.getMetrics(start, end),
+      this.confidenceCalibration.getCalibrationMetrics(start, end),
+      this.planLifecycleStore.getMetrics(start, end),
+      this.proactiveEventStore.getMetrics(start, end)
+    ]);
+    const system = await this.getSystemHealth();
+    return {
+      tools,
+      memory,
+      confidence,
+      plans,
+      proactive,
+      system,
+      generatedAt: /* @__PURE__ */ new Date(),
+      periodStart: start,
+      periodEnd: end
+    };
+  }
+  /**
+   * Get quick summary metrics for dashboard
+   */
+  async getQuickSummary() {
+    const now = /* @__PURE__ */ new Date();
+    const hourAgo = new Date(now.getTime() - 60 * 60 * 1e3);
+    const [tools, memory, confidence] = await Promise.all([
+      this.toolTelemetry.getMetrics(hourAgo, now),
+      this.memoryQualityTracker.getMetrics(hourAgo, now),
+      this.confidenceCalibration.getCalibrationMetrics(hourAgo, now)
+    ]);
+    return {
+      toolSuccessRate: tools.successRate,
+      avgToolLatencyMs: tools.avgLatencyMs,
+      memoryRelevanceScore: memory.avgRelevanceScore,
+      memoryCacheHitRate: memory.cacheHitRate,
+      confidenceCalibrationError: confidence.calibrationError,
+      activeToolExecutions: this.toolTelemetry.getActiveExecutionCount(),
+      healthScore: this.lastHealthCheck?.healthScore ?? 1,
+      activeAlerts: this.activeAlerts.length,
+      timestamp: now
+    };
+  }
+  // ---------------------------------------------------------------------------
+  // System Health
+  // ---------------------------------------------------------------------------
+  async runHealthCheck() {
+    const health = await this.getSystemHealth();
+    this.lastHealthCheck = health;
+    if (this.config.alertsEnabled) {
+      await this.evaluateAlerts(health);
+    }
+  }
+  async getSystemHealth() {
+    const components = {};
+    components["tool_telemetry"] = {
+      name: "Tool Telemetry",
+      status: HealthStatus.HEALTHY,
+      lastCheckAt: /* @__PURE__ */ new Date()
+    };
+    const recentMemory = await this.memoryQualityTracker.getRecentMetrics(5);
+    components["memory_quality"] = {
+      name: "Memory Quality",
+      status: recentMemory.avgRelevanceScore > 0.5 ? HealthStatus.HEALTHY : recentMemory.avgRelevanceScore > 0.3 ? HealthStatus.DEGRADED : HealthStatus.UNHEALTHY,
+      lastCheckAt: /* @__PURE__ */ new Date(),
+      latencyMs: recentMemory.avgLatencyMs
+    };
+    const calibration = await this.confidenceCalibration.getRecentMetrics(1);
+    components["confidence_calibration"] = {
+      name: "Confidence Calibration",
+      status: calibration.calibrationError < 0.1 ? HealthStatus.HEALTHY : calibration.calibrationError < 0.2 ? HealthStatus.DEGRADED : HealthStatus.UNHEALTHY,
+      lastCheckAt: /* @__PURE__ */ new Date()
+    };
+    const healthScores = Object.values(components).map(
+      (c) => c.status === HealthStatus.HEALTHY ? 1 : c.status === HealthStatus.DEGRADED ? 0.5 : 0
+    );
+    const healthScore = healthScores.length > 0 ? healthScores.reduce((a, b) => a + b, 0) / healthScores.length : 1;
+    return {
+      healthScore,
+      components,
+      activeConnections: 0,
+      // Would be populated by realtime module
+      memoryUsageMb: process.memoryUsage().heapUsed / 1024 / 1024,
+      queueDepths: {},
+      errorRate: 0,
+      latencyP50Ms: recentMemory.avgLatencyMs,
+      latencyP95Ms: recentMemory.p95LatencyMs,
+      latencyP99Ms: 0
+    };
+  }
+  // ---------------------------------------------------------------------------
+  // Alerts
+  // ---------------------------------------------------------------------------
+  /**
+   * Add an alert rule
+   */
+  addAlertRule(rule) {
+    this.alertRules.push(rule);
+  }
+  /**
+   * Remove an alert rule
+   */
+  removeAlertRule(ruleId) {
+    this.alertRules = this.alertRules.filter((r) => r.id !== ruleId);
+  }
+  /**
+   * Get active alerts
+   */
+  getActiveAlerts() {
+    return [...this.activeAlerts];
+  }
+  /**
+   * Acknowledge an alert
+   */
+  acknowledgeAlert(alertId) {
+    const alert = this.activeAlerts.find((a) => a.id === alertId);
+    if (alert) {
+      alert.acknowledgedAt = /* @__PURE__ */ new Date();
+    }
+  }
+  /**
+   * Subscribe to alerts
+   */
+  onAlert(callback) {
+    this.alertListeners.add(callback);
+    return () => {
+      this.alertListeners.delete(callback);
+    };
+  }
+  async evaluateAlerts(health) {
+    for (const rule of this.alertRules) {
+      if (!rule.enabled) continue;
+      const value = this.getMetricValue(rule.metric, health);
+      if (value === null) continue;
+      const triggered = this.evaluateCondition(value, rule.operator, rule.threshold);
+      if (triggered) {
+        const existingAlert = this.activeAlerts.find((a) => a.ruleId === rule.id);
+        if (!existingAlert) {
+          const alert = {
+            id: v4_default(),
+            ruleId: rule.id,
+            ruleName: rule.name,
+            severity: rule.severity,
+            message: `${rule.name}: ${value} ${rule.operator} ${rule.threshold}`,
+            currentValue: value,
+            threshold: rule.threshold,
+            triggeredAt: /* @__PURE__ */ new Date()
+          };
+          this.activeAlerts.push(alert);
+          this.emitAlert(alert);
+        }
+      } else {
+        const alertIndex = this.activeAlerts.findIndex((a) => a.ruleId === rule.id);
+        if (alertIndex >= 0) {
+          this.activeAlerts[alertIndex].resolvedAt = /* @__PURE__ */ new Date();
+          this.activeAlerts.splice(alertIndex, 1);
+        }
+      }
+    }
+  }
+  getMetricValue(metric, health) {
+    switch (metric) {
+      case "healthScore":
+        return health.healthScore;
+      case "errorRate":
+        return health.errorRate;
+      case "latencyP95":
+        return health.latencyP95Ms;
+      case "latencyP99":
+        return health.latencyP99Ms;
+      case "memoryUsage":
+        return health.memoryUsageMb;
+      default:
+        return null;
+    }
+  }
+  evaluateCondition(value, operator, threshold) {
+    switch (operator) {
+      case "gt":
+        return value > threshold;
+      case "lt":
+        return value < threshold;
+      case "eq":
+        return value === threshold;
+      case "gte":
+        return value >= threshold;
+      case "lte":
+        return value <= threshold;
+      default:
+        return false;
+    }
+  }
+  emitAlert(alert) {
+    this.logger.warn("Alert triggered", {
+      alertId: alert.id,
+      ruleName: alert.ruleName,
+      severity: alert.severity,
+      message: alert.message
+    });
+    for (const listener of this.alertListeners) {
+      try {
+        listener(alert);
+      } catch (err) {
+        this.logger.error("Error in alert listener", {
+          error: err instanceof Error ? err.message : "Unknown"
+        });
+      }
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // Plan Lifecycle Recording
+  // ---------------------------------------------------------------------------
+  async recordPlanEvent(event) {
+    const fullEvent = {
+      ...event,
+      eventId: v4_default(),
+      timestamp: /* @__PURE__ */ new Date()
+    };
+    await this.planLifecycleStore.record(fullEvent);
+    this.logger.debug("Plan lifecycle event recorded", {
+      planId: event.planId,
+      eventType: event.eventType
+    });
+  }
+  // ---------------------------------------------------------------------------
+  // Proactive Event Recording
+  // ---------------------------------------------------------------------------
+  async recordProactiveEvent(event) {
+    const fullEvent = {
+      ...event,
+      eventId: v4_default(),
+      timestamp: /* @__PURE__ */ new Date()
+    };
+    await this.proactiveEventStore.record(fullEvent);
+    this.logger.debug("Proactive event recorded", {
+      userId: event.userId,
+      eventType: event.eventType
+    });
+  }
+};
+function createAgenticMetricsCollector(options) {
+  return new AgenticMetricsCollector(options ?? {});
+}
+function createInMemoryPlanLifecycleStore(maxEventsPerPlan) {
+  return new InMemoryPlanLifecycleStore(maxEventsPerPlan);
+}
+function createInMemoryProactiveEventStore(maxEvents) {
+  return new InMemoryProactiveEventStore(maxEvents);
+}
+
 // src/index.ts
 var PACKAGE_NAME = "@sam-ai/agentic";
 var PACKAGE_VERSION = "0.1.0";
@@ -16730,7 +23840,9 @@ var CAPABILITIES = {
   PROACTIVE_INTERVENTIONS: "proactive-interventions",
   SELF_EVALUATION: "self-evaluation",
   LEARNING_ANALYTICS: "learning-analytics",
-  LEARNING_PATH: "learning-path"
+  LEARNING_PATH: "learning-path",
+  ORCHESTRATION: "orchestration",
+  OBSERVABILITY: "observability"
 };
 function hasCapability(capability) {
   switch (capability) {
@@ -16754,6 +23866,12 @@ function hasCapability(capability) {
     case CAPABILITIES.LEARNING_PATH:
       return true;
     // Phase G - Knowledge Graph Integration
+    case CAPABILITIES.ORCHESTRATION:
+      return true;
+    // Phase 2 - Plan-Driven Tutoring
+    case CAPABILITIES.OBSERVABILITY:
+      return true;
+    // Phase 5 - Observability & Operations
     default:
       return false;
   }
@@ -16761,38 +23879,66 @@ function hasCapability(capability) {
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ActionType,
+  ActiveStepExecutor,
   ActivityStatus,
   ActivityType,
   AdjustmentTrigger,
   AgentStateMachine,
+  AgenticMetricsCollector,
+  AlertSeverity,
   AnomalyType,
   AssessmentSource,
   AuditLogLevel,
   AuditLogger,
+  BackgroundWorker,
+  BaseJobSchema,
   BehaviorEventSchema,
   BehaviorEventType,
   BehaviorMonitor,
   CAPABILITIES,
+  CelebrationType,
+  ChangeType,
   CheckInResponseSchema,
   CheckInScheduler,
   CheckInStatus,
   CheckInType,
+  ClientWebSocketManager,
   ComplexityLevel,
+  ConfidenceCalibrationTracker,
   ConfidenceFactorType,
   ConfidenceInputSchema,
   ConfidenceLevel,
   ConfidenceScorer,
+  ConfirmationGate,
   ConfirmationManager,
   ConfirmationType,
   ConfirmationTypeSchema,
+  ConnectionConfigSchema,
+  ConnectionState,
+  ContentChangeEventSchema,
+  ContentEntityType,
   ContentGenerationRequestSchema,
   ContentRecommendationRequestSchema,
   ContentType,
   ContextAction,
   CreateGoalInputSchema,
   CrossSessionContext,
+  DEFAULT_CALIBRATION_CONFIG,
+  DEFAULT_CONNECTION_CONFIG,
+  DEFAULT_DISPLAY_CONFIGS,
+  DEFAULT_MEMORY_QUALITY_CONFIG,
+  DEFAULT_METRICS_COLLECTOR_CONFIG,
+  DEFAULT_NORMALIZER_CONFIG,
+  DEFAULT_PRESENCE_CONFIG,
+  DEFAULT_PUSH_DISPATCHER_CONFIG,
+  DEFAULT_QUEUE_CONFIG,
   DEFAULT_ROLE_PERMISSIONS,
+  DEFAULT_SURFACE_MANAGER_CONFIG,
+  DEFAULT_TOOL_TELEMETRY_CONFIG,
+  DEFAULT_WORKER_CONFIG,
   DecompositionOptionsSchema,
+  DeliveryChannel,
+  DeliveryPriority,
   EmbeddingSourceType,
   EmotionalSignalType,
   EmotionalState,
@@ -16805,10 +23951,12 @@ function hasCapability(capability) {
   GoalStatus,
   GoalStatusSchema,
   GraphQueryOptionsSchema,
+  HealthStatus,
   InMemoryAuditStore,
   InMemoryBehaviorEventStore,
   InMemoryCalibrationStore,
   InMemoryCheckInStore,
+  InMemoryConfidencePredictionStore,
   InMemoryConfidenceScoreStore,
   InMemoryConfirmationStore,
   InMemoryContentStore,
@@ -16816,25 +23964,44 @@ function hasCapability(capability) {
   InMemoryGraphStore,
   InMemoryInterventionStore,
   InMemoryInvocationStore,
+  InMemoryJobQueue,
   InMemoryLearningGapStore,
   InMemoryLearningPlanStore,
   InMemoryLearningSessionStore,
+  InMemoryMemoryRetrievalStore,
+  InMemoryOrchestrationConfirmationStore,
   InMemoryPatternStore,
   InMemoryPermissionStore,
+  InMemoryPlanLifecycleStore,
+  InMemoryPresenceStore,
+  InMemoryProactiveEventStore,
+  InMemoryPushQueueStore,
   InMemoryQualityRecordStore,
   InMemoryRecommendationStore,
+  InMemoryReindexJobStore,
   InMemorySkillAssessmentStore,
   InMemoryTimelineStore,
+  InMemoryToolExecutionStore,
   InMemoryToolStore,
   InMemoryTopicProgressStore,
+  InMemoryTutoringSessionStore,
   InMemoryVectorAdapter,
   InMemoryVerificationResultStore,
+  InterventionSurface,
+  InterventionSurfaceManagerImpl,
   InterventionType,
   InvokeToolInputSchema,
   IssueSeverity,
   IssueType,
+  JobEvent,
+  JobQueueConfigSchema,
+  JobStatus,
+  JobType,
   JourneyEventType,
   JourneyTimelineManager,
+  KGRefreshJobStatus,
+  KGRefreshJobType,
+  KGRefreshScheduler,
   KnowledgeGraphManager,
   LearningPathRecommender,
   LearningPhase,
@@ -16845,15 +24012,26 @@ function hasCapability(capability) {
   MEMORY_CAPABILITIES,
   MasteryLevel,
   MasteryLevelSchema,
+  MemoryItemType,
+  MemoryLifecycleConfigSchema,
+  MemoryLifecycleManager,
+  MemoryNormalizer,
+  MemoryNormalizerConfigSchema,
+  MemoryQualityTracker,
   MemoryRetriever,
+  MemorySegmentType,
+  MemorySourceType,
   MemoryType,
   MetricSource,
   MilestoneStatus,
   MilestoneType,
   MockEmbeddingProvider,
   MultiSessionPlanTracker,
+  NormalizationRetrievalStrategy,
+  NormalizedMemoryContextSchema,
   NotificationChannel,
   NotificationRequestSchema,
+  NudgeType,
   PACKAGE_NAME,
   PACKAGE_VERSION,
   PatternType,
@@ -16861,12 +24039,20 @@ function hasCapability(capability) {
   PermissionLevelSchema,
   PermissionManager,
   PlanBuilder,
+  PlanContextInjector,
+  PlanEventType,
   PlanStatus,
   PlanStatusSchema,
+  PresenceChangeReason,
+  PresenceStatus,
+  PresenceTracker,
+  ProactiveEventType,
   ProactivePlanStatus,
+  ProactivePushDispatcher,
   ProgressAnalyzer,
   ProgressReportRequestSchema,
   ProgressUpdateSchema,
+  PushDeliveryRequestSchema,
   QualityMetricType,
   QualityTracker,
   QuestionType,
@@ -16876,12 +24062,18 @@ function hasCapability(capability) {
   RecommendationPriority,
   RecommendationReason,
   RegisterToolInputSchema,
+  ReindexJobStatus,
+  ReindexJobType,
+  ReindexPriority,
   RelationshipType,
   ReminderRequestSchema,
   ResponseType,
   ResponseVerifier,
   RetrievalQuerySchema,
   RetrievalStrategy,
+  SAMEventType,
+  SAMWebSocketEventSchema,
+  ServerConnectionManager,
   SkillAssessmentInputSchema,
   SkillAssessor,
   SkillTracker,
@@ -16894,6 +24086,9 @@ function hasCapability(capability) {
   StudySessionRequestSchema,
   SubGoalType,
   SubGoalTypeSchema,
+  TelemetryMemorySource,
+  TelemetryResponseType,
+  TelemetryToolExecutionStatus,
   TimePeriod,
   ToolCategory,
   ToolCategorySchema,
@@ -16902,28 +24097,55 @@ function hasCapability(capability) {
   ToolExecutionStatusSchema,
   ToolExecutor,
   ToolRegistry,
+  ToolTelemetry,
   TrendDirection,
   TriggerEvaluator,
   TriggerType,
+  TutoringLoopController,
   UpdateGoalInputSchema,
   UserRole,
   VectorSearchOptionsSchema,
   VectorStore,
   VerificationInputSchema,
+  VerificationMethod,
   VerificationStatus,
+  WorkerConfigSchema,
+  WorkerStatus,
   cosineSimilarity,
+  createActiveStepExecutor,
   createAgentStateMachine,
+  createAgenticMetricsCollector,
   createAuditLogger,
+  createBackgroundWorker,
   createBehaviorMonitor,
   createCheckInScheduler,
+  createClientWebSocketManager,
+  createConfidenceCalibrationTracker,
   createConfidenceScorer,
+  createConfirmationGate,
   createConfirmationManager,
   createContentTools,
   createCrossSessionContext,
   createGoalDecomposer,
+  createInMemoryConfidencePredictionStore,
+  createInMemoryMemoryRetrievalStore,
+  createInMemoryOrchestrationConfirmationStore,
+  createInMemoryOrchestrationStores,
+  createInMemoryPlanLifecycleStore,
+  createInMemoryPresenceStore,
+  createInMemoryProactiveEventStore,
+  createInMemoryPushQueueStore,
+  createInMemorySessionStore,
   createInMemoryStores,
+  createInMemoryToolExecutionStore,
+  createInterventionSurfaceManager,
+  createJobQueue,
   createJourneyTimeline,
+  createKGRefreshScheduler,
   createKnowledgeGraphManager,
+  createMemoryLifecycleManager,
+  createMemoryNormalizer,
+  createMemoryQualityTracker,
   createMemoryRetriever,
   createMemorySystem,
   createMentorTools,
@@ -16932,22 +24154,28 @@ function hasCapability(capability) {
   createPathRecommender,
   createPermissionManager,
   createPlanBuilder,
+  createPlanContextInjector,
+  createPresenceTracker,
   createPrismaAuditStore,
   createPrismaConfirmationStore,
   createPrismaInvocationStore,
   createPrismaPermissionStore,
   createPrismaToolStore,
   createProgressAnalyzer,
+  createPushDispatcher,
   createQualityTracker,
   createRecommendationEngine,
   createResponseVerifier,
   createSchedulingTools,
+  createServerConnectionManager,
   createSkillAssessor,
   createSkillTracker,
   createStepExecutor,
   createStepExecutorFunction,
   createToolExecutor,
   createToolRegistry,
+  createToolTelemetry,
+  createTutoringLoopController,
   createVectorStore,
   euclideanDistance,
   getMentorToolById,

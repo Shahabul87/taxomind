@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useAgentic } from '../hooks/useAgentic';
+import { useAgentic, type Goal, type Plan } from '../hooks/useAgentic';
 
 // ============================================================================
 // MOCK DATA
@@ -309,7 +309,7 @@ describe('useAgentic', () => {
     it('should create a new goal', async () => {
       const { result } = renderHook(() => useAgentic());
 
-      let createdGoal;
+      let createdGoal: Goal | null | undefined;
       await act(async () => {
         createdGoal = await result.current.createGoal({
           title: 'Master React Hooks',
@@ -318,7 +318,7 @@ describe('useAgentic', () => {
       });
 
       expect(createdGoal).toBeDefined();
-      expect(createdGoal?.title).toBe('Master React Hooks');
+      expect((createdGoal as Goal).title).toBe('Master React Hooks');
       expect(result.current.goals).toContainEqual(expect.objectContaining({ title: 'Master React Hooks' }));
     });
 
@@ -331,7 +331,7 @@ describe('useAgentic', () => {
       });
 
       // Then update
-      let updatedGoal;
+      let updatedGoal: Goal | null = null;
       await act(async () => {
         updatedGoal = await result.current.updateGoal('goal_1', { title: 'Updated Goal' });
       });
@@ -347,13 +347,13 @@ describe('useAgentic', () => {
         await result.current.fetchGoals();
       });
 
-      let decomposedGoal;
+      let decomposedGoal: Goal | null | undefined;
       await act(async () => {
         decomposedGoal = await result.current.decomposeGoal('goal_1');
       });
 
-      expect(decomposedGoal?.subGoals).toBeDefined();
-      expect(decomposedGoal?.subGoals).toHaveLength(1);
+      expect((decomposedGoal as Goal).subGoals).toBeDefined();
+      expect((decomposedGoal as Goal).subGoals).toHaveLength(1);
     });
 
     it('should delete a goal', async () => {
@@ -394,13 +394,13 @@ describe('useAgentic', () => {
     it('should create a plan for a goal', async () => {
       const { result } = renderHook(() => useAgentic());
 
-      let createdPlan;
+      let createdPlan: Plan | null | undefined;
       await act(async () => {
         createdPlan = await result.current.createPlan('goal_1', 30);
       });
 
       expect(createdPlan).toBeDefined();
-      expect(createdPlan?.dailyMinutes).toBe(30);
+      expect((createdPlan as Plan).dailyMinutes).toBe(30);
     });
 
     it('should start, pause, and resume a plan', async () => {
