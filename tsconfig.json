@@ -88,6 +88,12 @@
       ],
       "@sam-ai/safety/*": [
         "./packages/safety/src/*"
+      ],
+      "@sam-ai/agentic": [
+        "./packages/agentic/src/index.ts"
+      ],
+      "@sam-ai/agentic/*": [
+        "./packages/agentic/src/*"
       ]
     }
   },

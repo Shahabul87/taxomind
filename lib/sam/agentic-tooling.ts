@@ -27,6 +27,8 @@ import {
   createPrismaConfirmationStore,
 } from '@sam-ai/agentic';
 import { createPrismaToolStore, getToolRegistryCache } from '@/lib/sam/stores/prisma-tool-store';
+import { createToolRepositories } from '@/lib/sam/tool-repositories';
+import { createExternalAPITools } from '@/lib/sam/agentic-external-api-tools';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -40,6 +42,7 @@ interface ToolingSystem {
 
 let toolingSystem: ToolingSystem | null = null;
 let toolRegistrationDone = false;
+let externalToolsRegistered = false;
 let toolAiAdapter: AIAdapter | null = null;
 
 function getToolAiAdapter(): AIAdapter {
@@ -61,9 +64,26 @@ function getToolAiAdapter(): AIAdapter {
 async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   if (toolRegistrationDone) return;
 
+  // Create database-backed repositories for mentor tools
+  const repositories = createToolRepositories();
+
   const tools = createMentorTools({
     aiAdapter: getToolAiAdapter(),
     logger,
+    // Wire content tools with content repository
+    content: {
+      contentRepository: repositories.contentRepository,
+    },
+    // Wire scheduling tools with session and reminder repositories
+    scheduling: {
+      sessionRepository: repositories.sessionRepository,
+      reminderRepository: repositories.reminderRepository,
+    },
+    // Wire notification tools with notification and progress repositories
+    notification: {
+      notificationRepository: repositories.notificationRepository,
+      progressRepository: repositories.progressRepository,
+    },
   });
 
   const toolCache = getToolRegistryCache();
@@ -97,6 +117,52 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   }
 
   toolRegistrationDone = true;
+}
+
+async function registerExternalAPITools(toolRegistry: ToolRegistry): Promise<void> {
+  if (externalToolsRegistered) return;
+
+  logger.info('[Tooling] Registering external API tools');
+
+  const externalTools = createExternalAPITools({
+    logger,
+    rateLimitPerMinute: 30, // Conservative rate limiting
+  });
+
+  const toolCache = getToolRegistryCache();
+
+  for (const tool of externalTools) {
+    // Ensure handler/schema are always in memory
+    toolCache.set(tool.id, tool);
+
+    const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
+    if (!existing) {
+      await toolRegistry.register(tool);
+      logger.debug('[Tooling] Registered external tool', { id: tool.id });
+    } else {
+      await toolRegistry.update(tool.id, {
+        name: tool.name,
+        description: tool.description,
+        version: tool.version,
+        category: tool.category,
+        confirmationType: tool.confirmationType,
+        requiredPermissions: tool.requiredPermissions,
+        timeoutMs: tool.timeoutMs,
+        maxRetries: tool.maxRetries,
+        rateLimit: tool.rateLimit,
+        tags: tool.tags,
+        examples: tool.examples,
+        metadata: tool.metadata,
+        enabled: tool.enabled,
+        deprecated: tool.deprecated,
+        deprecationMessage: tool.deprecationMessage,
+      });
+      logger.debug('[Tooling] Updated external tool', { id: tool.id });
+    }
+  }
+
+  externalToolsRegistered = true;
+  logger.info('[Tooling] External API tools registered', { count: externalTools.length });
 }
 
 export function getToolingSystem(): ToolingSystem {
@@ -163,6 +229,7 @@ export function getToolingSystem(): ToolingSystem {
 export async function ensureToolingInitialized(): Promise<ToolingSystem> {
   const system = getToolingSystem();
   await registerMentorTools(system.toolRegistry);
+  await registerExternalAPITools(system.toolRegistry);
   return system;
 }
 
@@ -192,3 +259,10 @@ export function mapUserToToolRole(user: { role?: string; isTeacher?: boolean } |
 export function getRolePermissions(role: UserRole) {
   return DEFAULT_ROLE_PERMISSIONS.find((entry) => entry.role === role);
 }
+
+// Re-export external API tools utilities
+export {
+  createExternalAPITools,
+  getExternalAPIToolIds,
+  isExternalAPITool,
+} from '@/lib/sam/agentic-external-api-tools';

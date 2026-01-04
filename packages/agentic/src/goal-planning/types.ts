@@ -579,6 +579,62 @@ export interface GoalQueryOptions {
   orderDir?: 'asc' | 'desc';
 }
 
+// ============================================================================
+// SUB-GOAL STORE INTERFACE
+// ============================================================================
+
+export interface CreateSubGoalInput {
+  goalId: string;
+  title: string;
+  description?: string;
+  type: SubGoalType;
+  order: number;
+  estimatedMinutes: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  prerequisites?: string[];
+  successCriteria?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpdateSubGoalInput {
+  title?: string;
+  description?: string;
+  type?: SubGoalType;
+  order?: number;
+  estimatedMinutes?: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  prerequisites?: string[];
+  successCriteria?: string[];
+  status?: StepStatus;
+  completedAt?: Date;
+  metadata?: Record<string, unknown>;
+}
+
+export interface SubGoalQueryOptions {
+  status?: StepStatus[];
+  type?: SubGoalType[];
+  limit?: number;
+  offset?: number;
+  orderBy?: 'order' | 'createdAt';
+  orderDir?: 'asc' | 'desc';
+}
+
+export interface SubGoalStore {
+  // CRUD
+  create(input: CreateSubGoalInput): Promise<SubGoal>;
+  createMany(inputs: CreateSubGoalInput[]): Promise<SubGoal[]>;
+  get(subGoalId: string): Promise<SubGoal | null>;
+  getByGoal(goalId: string, options?: SubGoalQueryOptions): Promise<SubGoal[]>;
+  update(subGoalId: string, input: UpdateSubGoalInput): Promise<SubGoal>;
+  delete(subGoalId: string): Promise<void>;
+  deleteByGoal(goalId: string): Promise<void>;
+
+  // Status updates
+  markComplete(subGoalId: string): Promise<SubGoal>;
+  markFailed(subGoalId: string): Promise<SubGoal>;
+  markSkipped(subGoalId: string): Promise<SubGoal>;
+}
+
 export interface PlanStore {
   // CRUD
   create(plan: Omit<ExecutionPlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<ExecutionPlan>;

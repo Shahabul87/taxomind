@@ -25,6 +25,7 @@ PACKAGES=(
   "pedagogy"
   "memory"
   "safety"
+  "agentic"
   "adapter-prisma"
   "educational"
   "api"

@@ -78,6 +78,10 @@ export {
   // Store Interfaces
   type GoalStore,
   type GoalQueryOptions,
+  type SubGoalStore,
+  type SubGoalQueryOptions,
+  type CreateSubGoalInput,
+  type UpdateSubGoalInput,
   type PlanStore,
   type PlanQueryOptions,
 } from './types';

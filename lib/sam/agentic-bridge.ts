@@ -24,6 +24,8 @@ import {
   type GoalDecomposerConfig,
   type PlanBuilderConfig,
   type AgentStateMachineConfig,
+  type GoalStore,
+  type CreateGoalInput,
   GoalStatus,
   PlanStatus,
 
@@ -85,6 +87,9 @@ import {
   hasCapability,
 } from '@sam-ai/agentic';
 
+// Import AI Adapter from @sam-ai/core for GoalDecomposer
+import { AnthropicAdapter, type AIAdapter } from '@sam-ai/core';
+
 // Import Prisma stores for persistent proactive feature storage
 import {
   createPrismaBehaviorEventStore,
@@ -93,6 +98,7 @@ import {
   createPrismaCheckInStore,
   createPrismaGoalStore,
   createPrismaPlanStore,
+  createPrismaLearningPlanStore,
 } from './stores';
 import {
   createPrismaLearningSessionStore,
@@ -190,6 +196,8 @@ export class SAMAgenticBridge {
   private usePrismaStores: boolean;
 
   // Components
+  private goalStore?: GoalStore;
+  private aiAdapter?: AIAdapter;
   private goalDecomposer?: GoalDecomposer;
   private planBuilder?: PlanBuilder;
   private stateMachine?: AgentStateMachine;
@@ -243,22 +251,53 @@ export class SAMAgenticBridge {
   // ============================================================================
 
   private initGoalPlanning(): void {
-    // Note: GoalDecomposer requires an AIAdapter which we don't have in this bridge.
-    // The goal decomposer, plan builder, and state machine are left uninitialized.
-    // They can be initialized later if an AIAdapter becomes available.
-    // For now, the bridge will gracefully handle null checks on these components.
+    const samLogger = this.createSamLogger();
 
+    // Initialize GoalStore for persistence
+    if (this.usePrismaStores) {
+      this.goalStore = createPrismaGoalStore();
+    }
+
+    // Initialize AIAdapter for GoalDecomposer
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (apiKey) {
+      try {
+        this.aiAdapter = new AnthropicAdapter({
+          apiKey,
+          model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514',
+        });
+
+        // Initialize GoalDecomposer with AIAdapter
+        this.goalDecomposer = createGoalDecomposer({
+          aiAdapter: this.aiAdapter,
+          logger: samLogger,
+        });
+
+        this.logger.debug('GoalDecomposer initialized with AIAdapter');
+      } catch (error) {
+        this.logger.warn('Failed to initialize AIAdapter for GoalDecomposer', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      this.logger.warn('ANTHROPIC_API_KEY not set - GoalDecomposer will not be available');
+    }
+
+    // Initialize PlanBuilder and StateMachine
     if (this.usePrismaStores) {
       const planStore = createPrismaPlanStore();
-      // Initialize only the components that don't require AIAdapter
-      const samLogger = this.createSamLogger();
       this.planBuilder = createPlanBuilder({ logger: samLogger });
       this.stateMachine = createAgentStateMachine({ planStore, logger: samLogger });
     } else {
-      this.planBuilder = createPlanBuilder({ logger: this.createSamLogger() });
-      // State machine requires planStore, so we can't initialize it without one
+      this.planBuilder = createPlanBuilder({ logger: samLogger });
     }
-    this.logger.debug('Goal Planning initialized (partial - no AIAdapter)', { usePrismaStores: this.usePrismaStores });
+
+    this.logger.debug('Goal Planning initialized', {
+      usePrismaStores: this.usePrismaStores,
+      hasAIAdapter: !!this.aiAdapter,
+      hasGoalDecomposer: !!this.goalDecomposer,
+      hasGoalStore: !!this.goalStore,
+    });
   }
 
   private initToolExecution(): void {
@@ -308,8 +347,12 @@ export class SAMAgenticBridge {
       }
     }
 
-    // LearningPlanStore adapter does not exist yet, so keep plan tracker in-memory.
-    this.planTracker = createMultiSessionPlanTracker({ logger: proactiveLogger });
+    // Use Prisma LearningPlanStore for persistent multi-session plan tracking
+    const learningPlanStore = this.usePrismaStores ? createPrismaLearningPlanStore() : undefined;
+    this.planTracker = createMultiSessionPlanTracker({
+      store: learningPlanStore,
+      logger: proactiveLogger,
+    });
     this.checkInScheduler = createCheckInScheduler(checkInConfig);
     this.behaviorMonitor = createBehaviorMonitor(behaviorConfig);
     this.logger.debug('Proactive Interventions initialized', { usePrismaStores: this.usePrismaStores });
@@ -373,14 +416,40 @@ export class SAMAgenticBridge {
       skillIds?: string[];
     }
   ): Promise<LearningGoal> {
-    // Note: GoalDecomposer doesn't have a createGoal method.
-    // This would require a separate GoalStore or PlanStore implementation.
-    // For now, we create goals through the PlanBuilder workflow.
     if (!this.planBuilder) {
       throw new Error('Goal Planning not enabled');
     }
 
-    // Create a goal structure that can be used with the plan builder
+    // If we have a goal store, persist the goal
+    if (this.goalStore) {
+      const createInput: CreateGoalInput = {
+        userId: this.userId,
+        title,
+        description,
+        priority: options?.priority ?? 'medium',
+        targetDate: options?.targetDate,
+        context: {
+          courseId: this.courseId,
+          topicIds: options?.topicIds ?? [],
+          skillIds: options?.skillIds ?? [],
+        },
+      };
+
+      const goal = await this.goalStore.create(createInput);
+
+      // Activate the goal immediately after creation
+      const activatedGoal = await this.goalStore.activate(goal.id);
+
+      this.logger.info('Goal created and persisted', {
+        goalId: activatedGoal.id,
+        title,
+        status: activatedGoal.status,
+      });
+
+      return activatedGoal;
+    }
+
+    // Fallback: Create an in-memory goal if no store available
     const goal: LearningGoal = {
       id: `goal_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
       userId: this.userId,
@@ -399,7 +468,7 @@ export class SAMAgenticBridge {
       metadata: {},
     };
 
-    this.logger.info('Goal created', { goalId: goal.id, title });
+    this.logger.info('Goal created (in-memory only)', { goalId: goal.id, title });
     return goal;
   }
 
@@ -441,15 +510,85 @@ export class SAMAgenticBridge {
    * Get user's active goals
    */
   async getActiveGoals(): Promise<LearningGoal[]> {
-    // Note: GoalDecomposer doesn't have a getGoalsByStatus method.
-    // This would require a separate GoalStore implementation.
-    // For now, return empty array - goals are tracked through plans.
     if (!this.planBuilder) {
       throw new Error('Goal Planning not enabled');
     }
 
-    this.logger.debug('getActiveGoals called - returning empty (goals tracked via plans)');
+    // If we have a goal store, retrieve from database
+    if (this.goalStore) {
+      const goals = await this.goalStore.getByUser(this.userId, {
+        status: [GoalStatus.ACTIVE],
+        courseId: this.courseId,
+        orderBy: 'createdAt',
+        orderDir: 'desc',
+      });
+
+      this.logger.debug('Active goals retrieved', { count: goals.length });
+      return goals;
+    }
+
+    // Fallback: Return empty if no store
+    this.logger.debug('getActiveGoals called - no store available');
     return [];
+  }
+
+  /**
+   * Get a specific goal by ID
+   */
+  async getGoal(goalId: string): Promise<LearningGoal | null> {
+    if (!this.goalStore) {
+      throw new Error('Goal Store not available');
+    }
+
+    return this.goalStore.get(goalId);
+  }
+
+  /**
+   * Update a goal
+   */
+  async updateGoal(
+    goalId: string,
+    updates: {
+      title?: string;
+      description?: string;
+      targetDate?: Date;
+      priority?: 'low' | 'medium' | 'high' | 'critical';
+      status?: 'draft' | 'active' | 'paused' | 'completed' | 'abandoned';
+    }
+  ): Promise<LearningGoal> {
+    if (!this.goalStore) {
+      throw new Error('Goal Store not available');
+    }
+
+    const goal = await this.goalStore.update(goalId, updates);
+    this.logger.info('Goal updated', { goalId, updates: Object.keys(updates) });
+    return goal;
+  }
+
+  /**
+   * Complete a goal
+   */
+  async completeGoal(goalId: string): Promise<LearningGoal> {
+    if (!this.goalStore) {
+      throw new Error('Goal Store not available');
+    }
+
+    const goal = await this.goalStore.complete(goalId);
+    this.logger.info('Goal completed', { goalId });
+    return goal;
+  }
+
+  /**
+   * Abandon a goal
+   */
+  async abandonGoal(goalId: string, reason?: string): Promise<LearningGoal> {
+    if (!this.goalStore) {
+      throw new Error('Goal Store not available');
+    }
+
+    const goal = await this.goalStore.abandon(goalId, reason);
+    this.logger.info('Goal abandoned', { goalId, reason });
+    return goal;
   }
 
   // ============================================================================
@@ -859,13 +998,28 @@ export class SAMAgenticBridge {
   getEnabledCapabilities(): string[] {
     const enabled: string[] = [];
 
-    if (this.goalDecomposer) enabled.push(CAPABILITIES.GOAL_PLANNING);
+    // Goal planning is enabled if we have either goalStore (persistence) or goalDecomposer (AI)
+    if (this.goalStore || this.goalDecomposer) enabled.push(CAPABILITIES.GOAL_PLANNING);
     if (this.toolRegistry) enabled.push(CAPABILITIES.TOOL_REGISTRY);
     if (this.behaviorMonitor) enabled.push(CAPABILITIES.PROACTIVE_INTERVENTIONS);
     if (this.confidenceScorer) enabled.push(CAPABILITIES.SELF_EVALUATION);
     if (this.progressAnalyzer) enabled.push(CAPABILITIES.LEARNING_ANALYTICS);
 
     return enabled;
+  }
+
+  /**
+   * Check if goal decomposition (AI-powered) is available
+   */
+  hasGoalDecomposition(): boolean {
+    return !!this.goalDecomposer;
+  }
+
+  /**
+   * Check if goal persistence is available
+   */
+  hasGoalPersistence(): boolean {
+    return !!this.goalStore;
   }
 
   /**

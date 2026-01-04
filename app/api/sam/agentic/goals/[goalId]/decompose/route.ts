@@ -2,15 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createPrismaGoalStore } from '@/lib/sam/stores';
+import {
+  createPrismaGoalStore,
+  createPrismaSubGoalStore,
+} from '@/lib/sam/stores';
 import {
   createGoalDecomposer,
   type GoalDecomposition,
+  type CreateSubGoalInput,
 } from '@sam-ai/agentic';
 import { AnthropicAdapter } from '@sam-ai/core';
 
 // Initialize stores and decomposer
 const goalStore = createPrismaGoalStore();
+const subGoalStore = createPrismaSubGoalStore();
 
 // Lazy initialize AI-dependent components
 let decomposerInstance: ReturnType<typeof createGoalDecomposer> | null = null;
@@ -86,33 +91,49 @@ export async function POST(req: NextRequest, context: RouteContext) {
       availableTimePerDay: options.availableTimePerDay,
     });
 
-    // Note: SAMSubGoal and SAMLearningGoal models don't exist in the schema yet
-    // Sub-goals are returned directly from the decomposer without persistence
-    // TODO: Add schema models when implementing full goal tracking
+    // Delete existing sub-goals for this goal (if re-decomposing)
+    await subGoalStore.deleteByGoal(goalId);
+
+    // Persist sub-goals to database
+    const subGoalInputs: CreateSubGoalInput[] = decomposition.subGoals.map(
+      (sg, index) => ({
+        goalId,
+        title: sg.title,
+        description: sg.description,
+        type: sg.type,
+        order: sg.order ?? index,
+        estimatedMinutes: sg.estimatedMinutes,
+        difficulty: sg.difficulty,
+        prerequisites: sg.prerequisites ?? [],
+        successCriteria: sg.successCriteria ?? [],
+      })
+    );
+
+    const persistedSubGoals = await subGoalStore.createMany(subGoalInputs);
 
     logger.info(
-      `Decomposed goal ${goalId} into ${decomposition.subGoals.length} sub-goals using GoalDecomposer`
+      `Decomposed goal ${goalId} into ${persistedSubGoals.length} sub-goals and persisted to database`
     );
 
     return NextResponse.json({
       success: true,
       data: {
         goal,
-        subGoals: decomposition.subGoals.map((sg, index) => ({
+        subGoals: persistedSubGoals.map((sg) => ({
           id: sg.id,
-          goalId,
+          goalId: sg.goalId,
           title: sg.title,
           description: sg.description ?? null,
           type: sg.type.toUpperCase(),
-          order: sg.order ?? index,
+          order: sg.order,
           estimatedMinutes: sg.estimatedMinutes,
           difficulty: sg.difficulty,
           prerequisites: sg.prerequisites ?? [],
           successCriteria: sg.successCriteria ?? [],
-          status: 'PENDING',
+          status: sg.status.toUpperCase(),
         })),
         decomposition: {
-          subGoalCount: decomposition.subGoals.length,
+          subGoalCount: persistedSubGoals.length,
           estimatedDuration: decomposition.estimatedDuration,
           difficulty: decomposition.difficulty,
           confidence: decomposition.confidence,

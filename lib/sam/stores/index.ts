@@ -6,6 +6,12 @@
 // Goal Store
 export { PrismaGoalStore, createPrismaGoalStore } from './prisma-goal-store';
 
+// SubGoal Store
+export {
+  PrismaSubGoalStore,
+  createPrismaSubGoalStore,
+} from './prisma-subgoal-store';
+
 // Plan Store
 export { PrismaPlanStore, createPrismaPlanStore } from './prisma-plan-store';
 
@@ -74,3 +80,9 @@ export {
   PrismaCourseGraphStore,
   createPrismaCourseGraphStore,
 } from './prisma-course-graph-store';
+
+// Multi-Session Learning Plan Store
+export {
+  PrismaLearningPlanStore,
+  createPrismaLearningPlanStore,
+} from './prisma-learning-plan-store';

@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createPrismaGoalStore, createPrismaPlanStore } from '@/lib/sam/stores';
+import {
+  createPrismaGoalStore,
+  createPrismaPlanStore,
+  createPrismaSubGoalStore,
+} from '@/lib/sam/stores';
 import {
   createPlanBuilder,
   type PlanStatus,
@@ -13,6 +17,7 @@ import {
 // Initialize stores and builders
 const goalStore = createPrismaGoalStore();
 const planStore = createPrismaPlanStore();
+const subGoalStore = createPrismaSubGoalStore();
 
 // Lazy initialize plan builder
 let planBuilderInstance: ReturnType<typeof createPlanBuilder> | null = null;
@@ -159,35 +164,63 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }
 
-    // Note: SAMSubGoal model doesn't exist in the schema yet
-    // For now, we create a simple decomposition from the goal itself
-    // TODO: Implement sub-goals when the model is added
+    // Fetch sub-goals from database - they should be created via the decompose endpoint first
+    const subGoals = await subGoalStore.getByGoal(goal.id, {
+      orderBy: 'order',
+      orderDir: 'asc',
+    });
 
-    // Create a simple single-step decomposition from the goal
-    // SubGoalType values are: 'learn', 'practice', 'assess', 'review', 'reflect', 'create'
-    const subGoal: SubGoal = {
-      id: `subgoal-${goal.id}-1`,
-      goalId: goal.id,
-      title: goal.title,
-      description: goal.description ?? undefined,
-      type: 'learn',
-      order: 0,
-      status: 'pending',
-      estimatedMinutes: 60,
-      difficulty: 'medium',
-      prerequisites: [],
-      successCriteria: [`Complete: ${goal.title}`],
-    };
+    if (subGoals.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'Goal has no sub-goals',
+          message: 'Please decompose the goal first using POST /api/sam/agentic/goals/{goalId}/decompose',
+        },
+        { status: 400 }
+      );
+    }
 
-    // Create a decomposition structure for the PlanBuilder
+    // Build the decomposition structure from persisted sub-goals
     const decomposition: GoalDecomposition = {
       goalId: goal.id,
-      subGoals: [subGoal],
-      dependencies: { nodes: [subGoal.id], edges: [] },
-      estimatedDuration: subGoal.estimatedMinutes,
-      difficulty: 'medium',
-      confidence: 0.8,
+      subGoals: subGoals.map((sg: SubGoal) => ({
+        id: sg.id,
+        goalId: sg.goalId,
+        title: sg.title,
+        description: sg.description,
+        type: sg.type,
+        order: sg.order,
+        status: sg.status,
+        estimatedMinutes: sg.estimatedMinutes,
+        difficulty: sg.difficulty,
+        prerequisites: sg.prerequisites ?? [],
+        successCriteria: sg.successCriteria ?? [],
+      })),
+      dependencies: {
+        nodes: subGoals.map((sg: SubGoal) => sg.id),
+        edges: subGoals
+          .filter((sg: SubGoal) => sg.prerequisites && sg.prerequisites.length > 0)
+          .flatMap((sg: SubGoal) =>
+            (sg.prerequisites ?? []).map((prereq: string) => ({
+              from: prereq,
+              to: sg.id,
+              type: 'prerequisite' as const,
+            }))
+          ),
+      },
+      estimatedDuration: subGoals.reduce((sum: number, sg: SubGoal) => sum + sg.estimatedMinutes, 0),
+      difficulty: calculateOverallDifficulty(subGoals),
+      confidence: 0.9, // High confidence since sub-goals are already decomposed
     };
+
+    // Helper function to calculate overall difficulty
+    function calculateOverallDifficulty(sgs: SubGoal[]): 'easy' | 'medium' | 'hard' {
+      const difficultyScores = { easy: 1, medium: 2, hard: 3 };
+      const avg = sgs.reduce((sum, sg) => sum + difficultyScores[sg.difficulty], 0) / sgs.length;
+      if (avg <= 1.5) return 'easy';
+      if (avg <= 2.5) return 'medium';
+      return 'hard';
+    }
 
     // Use the PlanBuilder to create the plan
     const planBuilder = getPlanBuilder();

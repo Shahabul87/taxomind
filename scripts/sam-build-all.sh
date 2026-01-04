@@ -24,6 +24,7 @@ PACKAGES=(
   "pedagogy"       # No internal deps
   "memory"         # No internal deps
   "safety"         # No internal deps
+  "agentic"        # Depends on core (goal planning, tools, memory, analytics)
   "adapter-prisma" # Depends on core
   "educational"    # Depends on core
   "api"            # Depends on core, educational
