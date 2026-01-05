@@ -208,6 +208,7 @@
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/sdk-trace-base": "^2.2.0",
     "@opentelemetry/semantic-conventions": "^1.36.0",
+    "@prisma/instrumentation": "^7.2.0",
     "@radix-ui/react-accordion": "^1.2.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
