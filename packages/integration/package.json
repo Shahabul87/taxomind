@@ -31,6 +31,8 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@sam-ai/core": "workspace:*",
+    "@sam-ai/agentic": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -38,18 +40,6 @@
     "tsup": "^8.2.4",
     "typescript": "^5.6.2",
     "vitest": "^2.0.0"
-  },
-  "peerDependencies": {
-    "@sam-ai/core": ">=0.1.0",
-    "@sam-ai/agentic": ">=0.1.0"
-  },
-  "peerDependenciesMeta": {
-    "@sam-ai/core": {
-      "optional": true
-    },
-    "@sam-ai/agentic": {
-      "optional": true
-    }
   },
   "keywords": [
     "sam-ai",

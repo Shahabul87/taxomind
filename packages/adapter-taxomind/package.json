@@ -27,14 +27,20 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@sam-ai/integration": "0.1.0",
-    "@prisma/client": "^6.3.0",
-    "@anthropic-ai/sdk": "^0.39.1",
-    "openai": "^4.77.3"
+    "@sam-ai/core": "workspace:*",
+    "@sam-ai/agentic": "workspace:*",
+    "@sam-ai/integration": "workspace:*",
+    "zod": "^3.23.8"
   },
   "peerDependencies": {
-    "@sam-ai/core": "*",
-    "@sam-ai/agentic": "*"
+    "@prisma/client": ">=5.0.0",
+    "@anthropic-ai/sdk": ">=0.27.0",
+    "openai": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@prisma/client": { "optional": true },
+    "@anthropic-ai/sdk": { "optional": true },
+    "openai": { "optional": true }
   },
   "devDependencies": {
     "tsup": "^8.5.1",
