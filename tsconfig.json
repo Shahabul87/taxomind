@@ -119,6 +119,9 @@
   "exclude": [
     "node_modules",
     "playwright.config.ts",
+    "**/vitest.config.ts",
+    "**/jest.config.ts",
+    "**/jest.config.js",
     "e2e/**",
     "backups/**",
     "data/backups/**",
