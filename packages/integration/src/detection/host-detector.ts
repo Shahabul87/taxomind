@@ -165,47 +165,13 @@ export class HostDetector {
       }
     }
 
-    // Try to detect from package.json dependencies
-    try {
-      // In Node.js environment
-      if (typeof require !== 'undefined') {
-        // Check for Next.js
-        try {
-          require.resolve('next');
-          return HostFrameworkType.NEXTJS;
-        } catch {
-          // Not Next.js
-        }
+    // Note: We avoid require.resolve() here as it causes issues with bundlers
+    // like Turbopack that statically analyze imports. Instead, rely on
+    // environment variable detection above which covers most use cases.
 
-        // Check for Express
-        try {
-          require.resolve('express');
-          return HostFrameworkType.EXPRESS;
-        } catch {
-          // Not Express
-        }
-
-        // Check for Fastify
-        try {
-          require.resolve('fastify');
-          return HostFrameworkType.FASTIFY;
-        } catch {
-          // Not Fastify
-        }
-
-        // Check for Hono
-        try {
-          require.resolve('hono');
-          return HostFrameworkType.HONO;
-        } catch {
-          // Not Hono
-        }
-      }
-    } catch {
-      // Ignore require errors
-    }
-
-    return HostFrameworkType.UNKNOWN;
+    // Default to Next.js for Taxomind (known environment)
+    // This can be overridden by explicit configuration
+    return HostFrameworkType.NEXTJS;
   }
 
   /**
@@ -254,56 +220,16 @@ export class HostDetector {
       );
     }
 
-    // Try to detect modules
-    try {
-      if (typeof require !== 'undefined') {
-        // Prisma
-        try {
-          require.resolve('@prisma/client');
-          features.hasPrisma = true;
-        } catch {
-          // Not installed
-        }
+    // Note: We avoid require.resolve() here as it causes issues with bundlers
+    // like Turbopack that statically analyze imports. Environment variable
+    // detection above covers the main use cases. For Taxomind, we know:
+    // - Prisma is used (DATABASE_URL check above)
+    // - NextAuth is used (NEXTAUTH_URL check above)
+    // - Anthropic/OpenAI are used (API key checks above)
 
-        // Drizzle
-        try {
-          require.resolve('drizzle-orm');
-          features.hasDrizzle = true;
-        } catch {
-          // Not installed
-        }
-
-        // NextAuth
-        try {
-          require.resolve('next-auth');
-          features.hasNextAuth = true;
-        } catch {
-          // Not installed
-        }
-
-        // Clerk
-        try {
-          require.resolve('@clerk/nextjs');
-          features.hasClerk = true;
-        } catch {
-          // Not installed
-        }
-
-        // WebSocket
-        try {
-          require.resolve('ws');
-          features.hasWebSocket = true;
-        } catch {
-          try {
-            require.resolve('socket.io');
-            features.hasWebSocket = true;
-          } catch {
-            // Not installed
-          }
-        }
-      }
-    } catch {
-      // Ignore errors
+    // Mark known Taxomind features based on typical setup
+    if (features.hasPrisma || process.env.DATABASE_URL) {
+      features.hasPrisma = true;
     }
 
     return features;

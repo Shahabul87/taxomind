@@ -5,6 +5,7 @@ import {
   PgVectorAdapter,
   PrismaDatabaseAdapter,
   PrismaRepositoryFactory,
+  SAMVectorEmbeddingAdapter,
   TaxomindAIService,
   TaxomindVectorService,
   createAnthropicAIAdapter,
@@ -13,9 +14,11 @@ import {
   createPgVectorAdapter,
   createPrismaDatabaseAdapter,
   createPrismaRepositoryFactory,
+  createSAMVectorEmbeddingAdapter,
   createTaxomindAIService,
+  createTaxomindSAMVectorService,
   createTaxomindVectorService
-} from "./chunk-WO62XLS3.js";
+} from "./chunk-KFVC7I7R.js";
 
 // src/index.ts
 import {
@@ -410,11 +413,9 @@ function createTaxomindIntegrationProfile(options) {
         }
       },
       realtime: {
-        available: false,
-        // WebSocket not yet implemented
-        type: RealtimeType.SSE,
-        // Using SSE for now
-        supportsPresence: false,
+        available: true,
+        type: RealtimeType.WEBSOCKET,
+        supportsPresence: true,
         supportsRooms: false,
         maxConnectionsPerUser: 3
       },
@@ -514,7 +515,7 @@ function initializeTaxomindIntegration(options) {
     anthropicApiKey: options.anthropicApiKey,
     openaiApiKey: options.openaiApiKey
   });
-  const vector = createTaxomindVectorService(options.prisma, {
+  const vector = createTaxomindSAMVectorService(options.prisma, {
     openaiApiKey: options.openaiApiKey
   });
   factory.registerDatabaseAdapter(() => database);
@@ -560,6 +561,7 @@ export {
   PgVectorAdapter,
   PrismaDatabaseAdapter,
   PrismaRepositoryFactory,
+  SAMVectorEmbeddingAdapter,
   TAXOMIND_PROFILE_ID,
   TAXOMIND_PROFILE_VERSION,
   TaxomindAIService,
@@ -572,8 +574,10 @@ export {
   createPgVectorAdapter,
   createPrismaDatabaseAdapter,
   createPrismaRepositoryFactory,
+  createSAMVectorEmbeddingAdapter,
   createTaxomindAIService,
   createTaxomindIntegrationProfile,
+  createTaxomindSAMVectorService,
   createTaxomindVectorService,
   getTaxomindIntegration,
   initializeTaxomindIntegration,

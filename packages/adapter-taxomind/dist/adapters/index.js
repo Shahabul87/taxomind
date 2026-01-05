@@ -5,6 +5,7 @@ import {
   PgVectorAdapter,
   PrismaDatabaseAdapter,
   PrismaRepositoryFactory,
+  SAMVectorEmbeddingAdapter,
   TaxomindAIService,
   TaxomindVectorService,
   createAnthropicAIAdapter,
@@ -13,9 +14,11 @@ import {
   createPgVectorAdapter,
   createPrismaDatabaseAdapter,
   createPrismaRepositoryFactory,
+  createSAMVectorEmbeddingAdapter,
   createTaxomindAIService,
+  createTaxomindSAMVectorService,
   createTaxomindVectorService
-} from "../chunk-WO62XLS3.js";
+} from "../chunk-KFVC7I7R.js";
 export {
   AnthropicAIAdapter,
   NextAuthAdapter,
@@ -23,6 +26,7 @@ export {
   PgVectorAdapter,
   PrismaDatabaseAdapter,
   PrismaRepositoryFactory,
+  SAMVectorEmbeddingAdapter,
   TaxomindAIService,
   TaxomindVectorService,
   createAnthropicAIAdapter,
@@ -31,7 +35,9 @@ export {
   createPgVectorAdapter,
   createPrismaDatabaseAdapter,
   createPrismaRepositoryFactory,
+  createSAMVectorEmbeddingAdapter,
   createTaxomindAIService,
+  createTaxomindSAMVectorService,
   createTaxomindVectorService
 };
 //# sourceMappingURL=index.js.map

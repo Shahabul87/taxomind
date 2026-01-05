@@ -87,11 +87,15 @@ import { dispatchInterventionNotifications } from '@/lib/sam/agentic-notificatio
 // Import SAM Agentic Bridge for autonomous capabilities
 import {
   createSAMAgenticBridge,
-  type SAMAgenticBridge,
   type AgenticAnalysisResult,
   ConfidenceLevel,
   type Intervention,
 } from '@/lib/sam/agentic-bridge';
+import {
+  getSAMIntegrationProfile,
+  getSAMCapabilityRegistry,
+} from '@/lib/sam/integration-profile';
+import { buildSAMSessionId } from '@/lib/sam/session-utils';
 import type { VerificationResult } from '@sam-ai/agentic';
 import {
   ensureToolingInitialized,
@@ -107,8 +111,6 @@ import {
   initializeOrchestration,
   prepareTutoringContext,
   injectPlanContext,
-  evaluateStepProgress,
-  advanceStepIfReady,
   processTutoringLoop,
   formatOrchestrationResponse,
   type OrchestrationSubsystems,
@@ -129,6 +131,7 @@ export const runtime = 'nodejs';
 
 const UnifiedRequestSchema = z.object({
   message: z.string().min(1, 'Message is required'),
+  sessionId: z.string().optional(),
   pageContext: z.object({
     type: z.string(),
     path: z.string(),
@@ -496,9 +499,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { message, pageContext, formContext, conversationHistory, options } = validation.data;
+    const {
+      message,
+      sessionId: requestedSessionId,
+      pageContext,
+      formContext,
+      conversationHistory,
+      options,
+    } = validation.data;
+
+    const sessionId = requestedSessionId
+      ?? buildSAMSessionId({
+        userId: user.id,
+        entityId: pageContext.entityId,
+        pagePath: pageContext.path,
+      });
 
     const hasClientEntityData = !!pageContext.entityData?.title;
+
+    const integrationProfile = getSAMIntegrationProfile({
+      goalPlanning: false, // Keep goal planning disabled for standard chat flow
+      toolExecution: true,
+      proactiveInterventions: true,
+      selfEvaluation: true,
+      learningAnalytics: true,
+    });
+    const capabilityRegistry = getSAMCapabilityRegistry(integrationProfile);
 
     // Initialize SAM Agentic Bridge for autonomous capabilities
     const agenticBridge = createSAMAgenticBridge({
@@ -509,6 +535,8 @@ export async function POST(request: NextRequest) {
       enableProactiveInterventions: true,
       enableSelfEvaluation: true,
       enableLearningAnalytics: true,
+      integrationProfile,
+      capabilityRegistry,
     });
 
     logger.debug('[SAM_UNIFIED] Agentic bridge initialized:', {
@@ -527,9 +555,6 @@ export async function POST(request: NextRequest) {
     try {
       const subsystems = initializeSubsystems();
       if (subsystems.tutoring) {
-        // Generate a session ID for this conversation
-        const sessionId = `session_${user.id}_${Date.now()}`;
-
         tutoringContext = await prepareTutoringContext(
           user.id,
           sessionId,
@@ -774,6 +799,12 @@ export async function POST(request: NextRequest) {
         lastMessageAt: new Date(),
         totalMessages: conversationHistory?.length || 0,
       },
+      metadata: {
+        sessionId,
+        startedAt: new Date(),
+        lastActivityAt: new Date(),
+        version: '1.0.0',
+      },
     });
 
     // Determine which engines to run based on message intent
@@ -799,72 +830,36 @@ export async function POST(request: NextRequest) {
     }
 
     // =========================================================================
-    // TUTORING ORCHESTRATION - Step Progress Evaluation
+    // TUTORING ORCHESTRATION - Full Loop Processing
     // =========================================================================
 
-    // Evaluate step progress if we have an active tutoring context
-    let stepEvaluation: Awaited<ReturnType<typeof evaluateStepProgress>> = null;
-    let stepTransition: Awaited<ReturnType<typeof advanceStepIfReady>> = null;
     let orchestrationData: OrchestrationResponseData | null = null;
 
     if (tutoringContext && result.response?.message) {
       try {
-        // Evaluate step progress based on the LLM response
-        stepEvaluation = await evaluateStepProgress(
-          tutoringContext,
+        const loopResult = await processTutoringLoop(
+          user.id,
+          sessionId,
+          message,
           result.response.message,
-          message
+          {
+            planId: pageContext.entityId,
+            goalId: undefined,
+          }
         );
 
-        if (stepEvaluation) {
-          logger.debug('[SAM_UNIFIED] Step progress evaluated:', {
-            progressPercent: stepEvaluation.progressPercent,
-            stepComplete: stepEvaluation.stepComplete,
-            shouldAdvance: stepEvaluation.shouldAdvance,
-            confidence: stepEvaluation.confidence,
-          });
+        orchestrationData = formatOrchestrationResponse(loopResult);
 
-          // Advance to next step if evaluation indicates completion
-          if (stepEvaluation.shouldAdvance && tutoringContext.activePlan?.id) {
-            stepTransition = await advanceStepIfReady(
-              tutoringContext.activePlan.id,
-              stepEvaluation
-            );
-
-            if (stepTransition) {
-              logger.info('[SAM_UNIFIED] Step transition occurred:', {
-                transitionType: stepTransition.transitionType,
-                planComplete: stepTransition.planComplete,
-                hasNextStep: !!stepTransition.currentStep,
-              });
-            }
-          }
-        }
-
-        // Format orchestration data for response
-        if (tutoringContext) {
-          orchestrationData = formatOrchestrationResponse({
-            response: result.response?.message || '',
-            modifiedResponse: null,
-            context: tutoringContext,
-            evaluation: stepEvaluation,
-            toolPlan: null, // Tool plan handled separately below
-            transition: stepTransition,
-            pendingConfirmations: [],
-            metadata: {
-              processingTime: Date.now() - startTime,
-              contextPrepTime: 0,
-              evaluationTime: 0,
-              toolPlanningTime: 0,
-              stepAdvanced: !!stepTransition,
-              planCompleted: stepTransition?.planComplete || false,
-              interventionsTriggered: 0,
-            },
+        if (loopResult?.transition) {
+          logger.info('[SAM_UNIFIED] Step transition occurred:', {
+            transitionType: loopResult.transition.transitionType,
+            planComplete: loopResult.transition.planComplete,
+            hasNextStep: !!loopResult.transition.currentStep,
           });
         }
       } catch (error) {
-        logger.warn('[SAM_UNIFIED] Failed to evaluate step progress:', error);
-        // Continue without step evaluation - non-blocking
+        logger.warn('[SAM_UNIFIED] Failed to process tutoring loop:', error);
+        // Continue without orchestration updates - non-blocking
       }
     }
 
@@ -1002,8 +997,8 @@ export async function POST(request: NextRequest) {
             currentStepTitle: tutoringContext.currentStep?.title,
             currentStepType: tutoringContext.currentStep?.type,
             stepObjectives: tutoringContext.stepObjectives,
-            stepProgress: stepEvaluation?.progressPercent !== undefined
-              ? stepEvaluation.progressPercent / 100
+            stepProgress: orchestrationData?.stepProgress?.progressPercent !== undefined
+              ? orchestrationData.stepProgress.progressPercent / 100
               : undefined,
             planContextAdditions: planContextInjection?.systemPromptAdditions,
           } : undefined,
@@ -1442,8 +1437,8 @@ export async function POST(request: NextRequest) {
           // NEW: Tutoring Orchestration subsystems
           tutoringOrchestration: !!orchestrationData,
           tutoringContext: !!tutoringContext,
-          stepEvaluation: !!stepEvaluation,
-          stepTransition: !!stepTransition,
+          stepEvaluation: !!orchestrationData?.stepProgress,
+          stepTransition: !!orchestrationData?.transition,
           planContextInjection: !!planContextInjection,
         },
         toolExecution: toolExecution ?? undefined,

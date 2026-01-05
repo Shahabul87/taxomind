@@ -65,6 +65,12 @@
       "@sam-ai/adapter-prisma/*": [
         "./packages/adapter-prisma/src/*"
       ],
+      "@sam-ai/adapter-taxomind": [
+        "./packages/adapter-taxomind/src/index.ts"
+      ],
+      "@sam-ai/adapter-taxomind/*": [
+        "./packages/adapter-taxomind/src/*"
+      ],
       "@sam-ai/quality": [
         "./packages/quality/src/index.ts"
       ],
@@ -82,6 +88,12 @@
       ],
       "@sam-ai/memory/*": [
         "./packages/memory/src/*"
+      ],
+      "@sam-ai/integration": [
+        "./packages/integration/src/index.ts"
+      ],
+      "@sam-ai/integration/*": [
+        "./packages/integration/src/*"
       ],
       "@sam-ai/safety": [
         "./packages/safety/src/index.ts"

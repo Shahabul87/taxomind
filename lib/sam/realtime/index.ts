@@ -10,6 +10,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { v4 as uuidv4 } from 'uuid';
 import {
   // Presence
   PresenceTracker,
@@ -35,6 +36,7 @@ import {
   type InterventionQueue,
   type InterventionUIState,
   type PresenceMetadata,
+  type ActivityPayload,
   DeliveryChannel as DeliveryChannelConst,
   SAMEventType as SAMEventTypeConst,
 } from '@sam-ai/agentic';
@@ -412,11 +414,13 @@ export class SAMRealtimeServer {
   ): Promise<void> {
     this.connectionManager.registerConnection(connectionId, userId, socket, metadata);
     await this.presenceTracker.connect(userId, connectionId, metadata);
+    await this.sendConnectedEvent(connectionId, userId);
 
     logger.info('User connected', { userId, connectionId });
   }
 
   async handleDisconnection(connectionId: string, reason?: string): Promise<void> {
+    this.connectionManager.removeConnection(connectionId, reason);
     await this.presenceTracker.disconnect(connectionId, reason);
   }
 
@@ -424,13 +428,36 @@ export class SAMRealtimeServer {
     // Parse and handle WebSocket messages
     try {
       const event = JSON.parse(message) as SAMWebSocketEvent;
+      if (typeof event.timestamp === 'string') {
+        event.timestamp = new Date(event.timestamp);
+      }
+
+      if (event.type === SAMEventTypeConst.HEARTBEAT) {
+        await this.connectionManager.sendToConnection(connectionId, {
+          type: SAMEventTypeConst.HEARTBEAT,
+          payload: {
+            status: 'alive',
+            timestamp: new Date(),
+            connectionId,
+          },
+          timestamp: new Date(),
+          eventId: uuidv4(),
+          userId: event.userId,
+          sessionId: connectionId,
+        } as SAMWebSocketEvent);
+        return;
+      }
 
       // Record activity for presence tracking
       if (event.userId) {
-        await this.presenceTracker.recordActivity(event.userId, {
-          type: 'interaction',
-          data: { eventType: event.type },
-        });
+        const activityPayload =
+          event.type === SAMEventTypeConst.ACTIVITY && event.payload
+            ? event.payload
+            : {
+                type: 'interaction',
+                data: { eventType: event.type },
+              };
+        await this.presenceTracker.recordActivity(event.userId, activityPayload as ActivityPayload);
       }
     } catch (error) {
       logger.warn('Failed to parse WebSocket message', {
@@ -438,6 +465,25 @@ export class SAMRealtimeServer {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
+  }
+
+  private async sendConnectedEvent(connectionId: string, userId: string): Promise<void> {
+    const event: SAMWebSocketEvent = {
+      type: SAMEventTypeConst.CONNECTED,
+      payload: {
+        connectionId,
+        userId,
+        sessionId: connectionId,
+        serverTime: new Date(),
+        capabilities: ['presence', 'proactive', 'notifications'],
+      },
+      timestamp: new Date(),
+      eventId: uuidv4(),
+      userId,
+      sessionId: connectionId,
+    } as SAMWebSocketEvent;
+
+    await this.connectionManager.sendToConnection(connectionId, event);
   }
 
   // ---------------------------------------------------------------------------

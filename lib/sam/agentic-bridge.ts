@@ -116,7 +116,11 @@ import {
 import { ensureToolingInitialized } from './agentic-tooling';
 
 // Import Integration Profile types (optional for backward compatibility)
-import type { IntegrationProfile, CapabilityRegistry } from '@sam-ai/integration';
+import {
+  createCapabilityRegistry,
+  type IntegrationProfile,
+  type CapabilityRegistry,
+} from '@sam-ai/integration';
 
 // ============================================================================
 // TYPES
@@ -247,6 +251,9 @@ export class SAMAgenticBridge {
     // Store Integration Profile for portability
     this.integrationProfile = config.integrationProfile;
     this._capabilityRegistry = config.capabilityRegistry;
+    if (this.integrationProfile && !this._capabilityRegistry) {
+      this._capabilityRegistry = createCapabilityRegistry(this.integrationProfile);
+    }
 
     // Determine enabled features based on profile or config
     // If integration profile is provided, use its feature flags

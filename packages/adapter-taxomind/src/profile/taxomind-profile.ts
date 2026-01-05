@@ -429,9 +429,9 @@ export function createTaxomindIntegrationProfile(
         },
       },
       realtime: {
-        available: false, // WebSocket not yet implemented
-        type: RealtimeType.SSE, // Using SSE for now
-        supportsPresence: false,
+        available: true,
+        type: RealtimeType.WEBSOCKET,
+        supportsPresence: true,
         supportsRooms: false,
         maxConnectionsPerUser: 3,
       },

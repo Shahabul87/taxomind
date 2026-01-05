@@ -25,7 +25,9 @@ PACKAGES=(
   "memory"         # No internal deps
   "safety"         # No internal deps
   "agentic"        # Depends on core (goal planning, tools, memory, analytics)
+  "integration"    # Depends on core, agentic
   "adapter-prisma" # Depends on core
+  "adapter-taxomind" # Depends on integration
   "educational"    # Depends on core
   "api"            # Depends on core, educational
   "react"          # Depends on core, educational

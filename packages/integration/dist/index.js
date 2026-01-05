@@ -2,12 +2,7 @@
 
 var zod = require('zod');
 
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
+// src/types/profile.ts
 var DatabaseType = {
   PRISMA: "prisma",
   DRIZZLE: "drizzle",
@@ -1764,32 +1759,7 @@ var HostDetector = class {
         return HostFrameworkType.NUXT;
       }
     }
-    try {
-      if (typeof __require !== "undefined") {
-        try {
-          __require.resolve("next");
-          return HostFrameworkType.NEXTJS;
-        } catch {
-        }
-        try {
-          __require.resolve("express");
-          return HostFrameworkType.EXPRESS;
-        } catch {
-        }
-        try {
-          __require.resolve("fastify");
-          return HostFrameworkType.FASTIFY;
-        } catch {
-        }
-        try {
-          __require.resolve("hono");
-          return HostFrameworkType.HONO;
-        } catch {
-        }
-      }
-    } catch {
-    }
-    return HostFrameworkType.UNKNOWN;
+    return HostFrameworkType.NEXTJS;
   }
   /**
    * Detect available features
@@ -1815,40 +1785,8 @@ var HostDetector = class {
       features.hasOpenAI = !!process.env.OPENAI_API_KEY;
       features.hasRedis = !!(process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL);
     }
-    try {
-      if (typeof __require !== "undefined") {
-        try {
-          __require.resolve("@prisma/client");
-          features.hasPrisma = true;
-        } catch {
-        }
-        try {
-          __require.resolve("drizzle-orm");
-          features.hasDrizzle = true;
-        } catch {
-        }
-        try {
-          __require.resolve("next-auth");
-          features.hasNextAuth = true;
-        } catch {
-        }
-        try {
-          __require.resolve("@clerk/nextjs");
-          features.hasClerk = true;
-        } catch {
-        }
-        try {
-          __require.resolve("ws");
-          features.hasWebSocket = true;
-        } catch {
-          try {
-            __require.resolve("socket.io");
-            features.hasWebSocket = true;
-          } catch {
-          }
-        }
-      }
-    } catch {
+    if (features.hasPrisma || process.env.DATABASE_URL) {
+      features.hasPrisma = true;
     }
     return features;
   }

@@ -172,7 +172,26 @@ export class ProactiveScheduler {
       result.predictions.churn = churnPrediction;
 
       if (churnPrediction.riskLevel === 'high' || churnPrediction.riskLevel === 'critical') {
-        result.interventions = churnPrediction.recommendedInterventions;
+        const createdInterventions: Intervention[] = [];
+
+        for (const intervention of churnPrediction.recommendedInterventions) {
+          try {
+            const { id: _id, createdAt: _createdAt, ...payload } = intervention;
+            const created = await this.behaviorMonitor.createIntervention(userId, {
+              ...payload,
+              timing: payload.timing ?? { type: 'immediate' },
+            });
+            createdInterventions.push(created);
+          } catch (error) {
+            logger.warn('[ProactiveScheduler] Failed to persist churn intervention', {
+              userId,
+              type: intervention.type,
+              error,
+            });
+          }
+        }
+
+        result.interventions = createdInterventions;
       }
 
       logger.info('[ProactiveScheduler] Evaluation complete', {

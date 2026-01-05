@@ -89,14 +89,32 @@ import {
 } from '@/lib/sam/agentic-tooling';
 import { planToolInvocation } from '@/lib/sam/tool-planner';
 import { queueMemoryIngestion } from '@/lib/sam/memory-ingestion';
+import { buildSAMSessionId } from '@/lib/sam/session-utils';
 
 // Import SAM Agentic Bridge for autonomous capabilities
 import {
   createSAMAgenticBridge,
-  type SAMAgenticBridge,
   ConfidenceLevel,
   type Intervention,
 } from '@/lib/sam/agentic-bridge';
+import {
+  getSAMIntegrationProfile,
+  getSAMCapabilityRegistry,
+} from '@/lib/sam/integration-profile';
+import {
+  initializeOrchestration,
+  prepareTutoringContext,
+  injectPlanContext,
+  processTutoringLoop,
+  formatOrchestrationResponse,
+  type OrchestrationSubsystems,
+  type OrchestrationResponseData,
+} from '@/lib/sam/orchestration-integration';
+import {
+  createPrismaGoalStore,
+  createPrismaPlanStore,
+  createPrismaToolStore,
+} from '@/lib/sam/stores';
 import type { VerificationResult } from '@sam-ai/agentic';
 
 // Force Node.js runtime
@@ -108,6 +126,7 @@ export const runtime = 'nodejs';
 
 const StreamRequestSchema = z.object({
   message: z.string().min(1, 'Message is required'),
+  sessionId: z.string().optional(),
   pageContext: z.object({
     type: z.string(),
     path: z.string(),
@@ -197,6 +216,7 @@ interface StreamingSubsystems {
   pedagogy: PedagogicalPipeline;
   mastery: MasteryTracker;
   spacedRep: SpacedRepetitionScheduler;
+  tutoring: OrchestrationSubsystems | null;
 }
 
 // ============================================================================
@@ -304,11 +324,30 @@ function initializeSubsystems(): StreamingSubsystems {
   const masteryTracker = createMasteryTracker(profileStore);
   const spacedRepScheduler = createSpacedRepetitionScheduler(reviewStore);
 
+  let tutoringOrchestration: OrchestrationSubsystems | null = null;
+  try {
+    const goalStore = createPrismaGoalStore();
+    const planStore = createPrismaPlanStore();
+    const toolStore = createPrismaToolStore();
+
+    tutoringOrchestration = initializeOrchestration({
+      goalStore,
+      planStore,
+      toolStore,
+    });
+
+    logger.info('[SAM_STREAM] Tutoring orchestration initialized');
+  } catch (error) {
+    logger.warn('[SAM_STREAM] Failed to initialize tutoring orchestration:', error);
+    tutoringOrchestration = null;
+  }
+
   logger.info('[SAM_STREAM] All subsystems initialized:', {
     engines: ['context', 'blooms', 'content', 'personalization', 'assessment', 'response'],
     qualityGates: true,
     pedagogyPipeline: true,
     memoryTracking: true,
+    tutoringOrchestration: !!tutoringOrchestration,
   });
 
   subsystems = {
@@ -318,6 +357,7 @@ function initializeSubsystems(): StreamingSubsystems {
     pedagogy: pedagogyPipeline,
     mastery: masteryTracker,
     spacedRep: spacedRepScheduler,
+    tutoring: tutoringOrchestration,
   };
 
   return subsystems;
@@ -397,7 +437,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { message, pageContext, formContext, conversationHistory, options } = validation.data;
+    const {
+      message,
+      sessionId: requestedSessionId,
+      pageContext,
+      formContext,
+      conversationHistory,
+      options,
+    } = validation.data;
+
+    const sessionId = requestedSessionId
+      ?? buildSAMSessionId({
+        userId: user.id,
+        entityId: pageContext.entityId,
+        pagePath: pageContext.path,
+      });
+
+    const integrationProfile = getSAMIntegrationProfile({
+      goalPlanning: false, // Keep goal planning disabled for standard chat flow
+      toolExecution: true,
+      proactiveInterventions: true,
+      selfEvaluation: true,
+      learningAnalytics: true,
+    });
+    const capabilityRegistry = getSAMCapabilityRegistry(integrationProfile);
 
     // Initialize SAM Agentic Bridge for autonomous capabilities
     const agenticBridge = createSAMAgenticBridge({
@@ -408,6 +471,8 @@ export async function POST(request: NextRequest) {
       enableProactiveInterventions: true,
       enableSelfEvaluation: true,
       enableLearningAnalytics: true,
+      integrationProfile,
+      capabilityRegistry,
     });
 
     logger.info('[SAM_STREAM] Processing streaming request:', {
@@ -419,6 +484,40 @@ export async function POST(request: NextRequest) {
     });
 
     const subs = initializeSubsystems();
+
+    // =========================================================================
+    // TUTORING ORCHESTRATION - Plan-Driven Context Preparation
+    // =========================================================================
+
+    let tutoringContext: Awaited<ReturnType<typeof prepareTutoringContext>> = null;
+    let planContextInjection: ReturnType<typeof injectPlanContext> = null;
+
+    try {
+      if (subs.tutoring) {
+        tutoringContext = await prepareTutoringContext(
+          user.id,
+          sessionId,
+          message,
+          {
+            planId: pageContext.entityId,
+            goalId: undefined,
+          }
+        );
+
+        if (tutoringContext) {
+          planContextInjection = injectPlanContext(tutoringContext);
+
+          logger.debug('[SAM_STREAM] Tutoring context prepared:', {
+            hasActivePlan: !!tutoringContext.activePlan,
+            currentStepId: tutoringContext.currentStep?.id,
+            stepObjectivesCount: tutoringContext.stepObjectives?.length || 0,
+            hasInjection: !!planContextInjection,
+          });
+        }
+      }
+    } catch (error) {
+      logger.warn('[SAM_STREAM] Failed to prepare tutoring context:', error);
+    }
 
     // Build memory summary for prompt injection
     let memorySummary: string | undefined;
@@ -464,6 +563,21 @@ export async function POST(request: NextRequest) {
         }
       } catch (error) {
         logger.warn('[SAM_STREAM] Failed to retrieve agentic memory:', error);
+      }
+
+      // Inject plan context into memory summary for plan-driven tutoring
+      if (planContextInjection?.systemPromptAdditions?.length) {
+        const planContextSummary = [
+          'Learning Plan Context:',
+          ...planContextInjection.systemPromptAdditions,
+        ].join('\n');
+        memorySummary = memorySummary
+          ? `${memorySummary}\n\n${planContextSummary}`
+          : planContextSummary;
+
+        logger.debug('[SAM_STREAM] Plan context injected into prompt:', {
+          additionsCount: planContextInjection.systemPromptAdditions.length,
+        });
       }
     }
 
@@ -612,6 +726,12 @@ export async function POST(request: NextRequest) {
         lastMessageAt: new Date(),
         totalMessages: conversationHistory?.length || 0,
       },
+      metadata: {
+        sessionId,
+        startedAt: new Date(),
+        lastActivityAt: new Date(),
+        version: '1.0.0',
+      },
     });
 
     // Determine which engines to run
@@ -629,7 +749,7 @@ export async function POST(request: NextRequest) {
           // Send initial event with metadata
           controller.enqueue(encoder.encode(`event: start\ndata: ${JSON.stringify({
             engines: enginesToRun,
-            subsystems: ['unifiedBlooms', 'qualityGates', 'pedagogy', 'memory'],
+            subsystems: ['unifiedBlooms', 'qualityGates', 'pedagogy', 'memory', 'tutoring'],
             timestamp: new Date().toISOString(),
           })}\n\n`));
 
@@ -714,7 +834,8 @@ export async function POST(request: NextRequest) {
           // AGENTIC TOOL CALLING - LLM-DRIVEN EXECUTION
           // =========================================================================
 
-          let responseText = result.response?.message || '';
+          const baseResponse = result.response?.message || '';
+          let responseText = baseResponse;
           let toolExecution: {
             toolId: string;
             toolName: string;
@@ -745,6 +866,14 @@ export async function POST(request: NextRequest) {
                 pagePath: pageContext.path,
                 entitySummary: entityContext.summary,
                 memorySummary,
+                tutoringContext: tutoringContext ? {
+                  activePlanTitle: tutoringContext.activeGoal?.title
+                    ?? `Plan ${tutoringContext.activePlan?.id ?? 'Unknown'}`,
+                  currentStepTitle: tutoringContext.currentStep?.title,
+                  currentStepType: tutoringContext.currentStep?.type,
+                  stepObjectives: tutoringContext.stepObjectives,
+                  planContextAdditions: planContextInjection?.systemPromptAdditions,
+                } : undefined,
               },
             });
 
@@ -801,6 +930,38 @@ export async function POST(request: NextRequest) {
             }
           } catch (error) {
             logger.warn('[SAM_STREAM] Tool execution planning failed:', error);
+          }
+
+          // =========================================================================
+          // TUTORING ORCHESTRATION - Full Loop Processing
+          // =========================================================================
+
+          let orchestrationData: OrchestrationResponseData | null = null;
+          if (tutoringContext && baseResponse) {
+            try {
+              const loopResult = await processTutoringLoop(
+                user.id,
+                sessionId,
+                message,
+                baseResponse,
+                {
+                  planId: pageContext.entityId,
+                  goalId: undefined,
+                }
+              );
+
+              orchestrationData = formatOrchestrationResponse(loopResult);
+
+              if (loopResult?.transition) {
+                logger.info('[SAM_STREAM] Step transition occurred:', {
+                  transitionType: loopResult.transition.transitionType,
+                  planComplete: loopResult.transition.planComplete,
+                  hasNextStep: !!loopResult.transition.currentStep,
+                });
+              }
+            } catch (error) {
+              logger.warn('[SAM_STREAM] Failed to process tutoring loop:', error);
+            }
           }
 
           // =========================================================================
@@ -1114,6 +1275,7 @@ export async function POST(request: NextRequest) {
               interventions: interventions.length > 0 ? interventions : undefined,
               toolExecution: toolExecution ?? undefined,
             },
+            orchestration: orchestrationData ?? undefined,
           };
 
           controller.enqueue(encoder.encode(`event: insights\ndata: ${JSON.stringify(insights)}\n\n`));
@@ -1160,8 +1322,10 @@ export async function POST(request: NextRequest) {
                 agenticSession: sessionRecorded,
                 agenticInterventions: interventions.length > 0,
                 agenticToolExecution: !!toolExecution,
+                tutoringOrchestration: !!orchestrationData,
               },
               toolExecution: toolExecution ?? undefined,
+              orchestration: orchestrationData ?? undefined,
             },
           })}\n\n`));
 

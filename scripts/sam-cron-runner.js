@@ -2,12 +2,12 @@
 
 const DEFAULT_BASE_URL = 'http://localhost:3000';
 
-const TASKS = new Set(['checkins', 'rollups', 'all']);
+const TASKS = new Set(['checkins', 'rollups', 'proactive', 'all']);
 
 const task = process.argv[2] || 'all';
 
 if (!TASKS.has(task)) {
-  console.error('Usage: node scripts/sam-cron-runner.js [checkins|rollups|all]');
+  console.error('Usage: node scripts/sam-cron-runner.js [checkins|rollups|proactive|all]');
   process.exit(1);
 }
 
@@ -80,6 +80,16 @@ async function run() {
     const url = buildUrl('/api/cron/sam-analytics-rollups', {
       period,
       limit,
+    });
+    await callEndpoint(url);
+  }
+
+  if (task === 'proactive' || task === 'all') {
+    const limit = process.env.SAM_PROACTIVE_LIMIT;
+    const notify = process.env.SAM_PROACTIVE_NOTIFY;
+    const url = buildUrl('/api/cron/sam-proactive', {
+      limit,
+      notify,
     });
     await callEndpoint(url);
   }

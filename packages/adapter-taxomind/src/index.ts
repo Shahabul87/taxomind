@@ -10,6 +10,7 @@
  * - PrismaDatabaseAdapter: Database operations via Prisma
  * - NextAuthAdapter: Authentication via NextAuth.js
  * - AnthropicAIAdapter: AI chat via Claude API
+ * - SAMVectorEmbeddingAdapter: Vector storage via SAMVectorEmbedding table
  * - PgVectorAdapter: Vector search via PostgreSQL pgvector
  * - TaxomindVectorService: Combined embedding + vector storage
  */
@@ -55,10 +56,8 @@ import {
   TaxomindAIService,
 } from './adapters/anthropic-ai-adapter';
 
-import {
-  createTaxomindVectorService,
-  TaxomindVectorService,
-} from './adapters/pgvector-adapter';
+import { TaxomindVectorService } from './adapters/pgvector-adapter';
+import { createTaxomindSAMVectorService } from './adapters/sam-vector-embedding-adapter';
 
 // ============================================================================
 // TAXOMIND INTEGRATION CONTEXT
@@ -121,7 +120,7 @@ export function initializeTaxomindIntegration(
     anthropicApiKey: options.anthropicApiKey,
     openaiApiKey: options.openaiApiKey,
   });
-  const vector = createTaxomindVectorService(options.prisma, {
+  const vector = createTaxomindSAMVectorService(options.prisma, {
     openaiApiKey: options.openaiApiKey,
   });
 

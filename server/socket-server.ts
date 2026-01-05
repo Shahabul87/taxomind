@@ -1,6 +1,10 @@
-import { Server as HTTPServer } from "http";
+import { IncomingMessage } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { createServer } from "http";
+import { WebSocketServer } from "ws";
+import { v4 as uuidv4 } from "uuid";
+import { getSAMRealtimeServer } from "@/lib/sam/realtime";
+import type { PresenceMetadata } from "@sam-ai/agentic";
 
 interface TypingData {
   conversationId: string;
@@ -42,6 +46,82 @@ const io = new SocketIOServer(httpServer, {
     credentials: true,
   },
   transports: ["websocket", "polling"],
+});
+
+// SAM realtime WebSocket server (raw WS on /ws/sam)
+const samRealtimeServer = getSAMRealtimeServer();
+samRealtimeServer.start();
+
+const samWss = new WebSocketServer({ noServer: true });
+
+const buildPresenceMetadata = (req: IncomingMessage): PresenceMetadata => {
+  const ua = String(req.headers["user-agent"] ?? "").toLowerCase();
+  let deviceType: PresenceMetadata["deviceType"] = "desktop";
+
+  if (/tablet|ipad|playbook|silk/.test(ua)) {
+    deviceType = "tablet";
+  } else if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/.test(ua)) {
+    deviceType = "mobile";
+  }
+
+  let browser: string | undefined;
+  if (ua.includes("edg")) {
+    browser = "Edge";
+  } else if (ua.includes("chrome")) {
+    browser = "Chrome";
+  } else if (ua.includes("firefox")) {
+    browser = "Firefox";
+  } else if (ua.includes("safari")) {
+    browser = "Safari";
+  }
+
+  return {
+    deviceType,
+    browser,
+  };
+};
+
+httpServer.on("upgrade", (req, socket, head) => {
+  const host = req.headers.host ?? "localhost";
+  const url = req.url ? new URL(req.url, `http://${host}`) : null;
+
+  if (!url || url.pathname !== "/ws/sam") {
+    return;
+  }
+
+  samWss.handleUpgrade(req, socket, head, (ws) => {
+    samWss.emit("connection", ws, req);
+  });
+});
+
+samWss.on("connection", (ws, req) => {
+  const host = req.headers.host ?? "localhost";
+  const url = req.url ? new URL(req.url, `http://${host}`) : null;
+  const userId = url?.searchParams.get("userId");
+
+  if (!userId) {
+    ws.close(1008, "userId required");
+    return;
+  }
+
+  const connectionId = uuidv4();
+  const metadata = buildPresenceMetadata(req);
+
+  void samRealtimeServer.handleConnection(connectionId, userId, ws, metadata);
+
+  ws.on("message", (data) => {
+    const message = typeof data === "string" ? data : data.toString();
+    void samRealtimeServer.handleMessage(connectionId, message);
+  });
+
+  ws.on("close", (code, reason) => {
+    const reasonText = reason.toString() || `code:${code}`;
+    void samRealtimeServer.handleDisconnection(connectionId, reasonText);
+  });
+
+  ws.on("error", (error) => {
+    console.error("SAM WebSocket error:", error);
+  });
 });
 
 // Authentication middleware
