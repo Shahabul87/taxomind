@@ -78,8 +78,6 @@ export async function GET(req: NextRequest) {
     });
 
     // Fetch related course data for each goal
-    // Note: SAMSubGoal and SAMExecutionPlan models don't exist in the schema yet
-    // TODO: Add these models when implementing full goal tracking
     const courses = await db.course.findMany({
       where: {
         id: {
@@ -94,6 +92,54 @@ export async function GET(req: NextRequest) {
     // Build a map for quick lookups
     const coursesById = new Map(courses.map((c) => [c.id, c]));
 
+    // Fetch subGoals and plans for all goals
+    const goalIds = goals.map((g) => g.id);
+
+    const [subGoalsData, plansData] = await Promise.all([
+      db.sAMSubGoal.findMany({
+        where: { goalId: { in: goalIds } },
+        select: {
+          id: true,
+          goalId: true,
+          title: true,
+          order: true,
+          status: true,
+          type: true,
+          estimatedMinutes: true,
+          difficulty: true,
+        },
+        orderBy: { order: 'asc' },
+      }),
+      db.sAMExecutionPlan.findMany({
+        where: { goalId: { in: goalIds } },
+        select: {
+          id: true,
+          goalId: true,
+          status: true,
+          overallProgress: true,
+          currentStepId: true,
+          startDate: true,
+          targetDate: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ]);
+
+    // Build maps for quick lookups
+    const subGoalsByGoalId = new Map<string, typeof subGoalsData>();
+    for (const sg of subGoalsData) {
+      const existing = subGoalsByGoalId.get(sg.goalId) ?? [];
+      existing.push(sg);
+      subGoalsByGoalId.set(sg.goalId, existing);
+    }
+
+    const plansByGoalId = new Map<string, typeof plansData>();
+    for (const plan of plansData) {
+      const existing = plansByGoalId.get(plan.goalId) ?? [];
+      existing.push(plan);
+      plansByGoalId.set(plan.goalId, existing);
+    }
+
     // Merge goal data with related data
     const enrichedGoals = goals.map((goal) => ({
       ...goal,
@@ -107,9 +153,9 @@ export async function GET(req: NextRequest) {
       course: goal.context.courseId
         ? coursesById.get(goal.context.courseId) ?? null
         : null,
-      // Sub-goals and plans are not persisted yet - return empty arrays
-      subGoals: [] as Array<{ id: string; title: string; order: number; status: string }>,
-      plans: [] as Array<{ id: string; status: string }>,
+      // Sub-goals and plans from database
+      subGoals: subGoalsByGoalId.get(goal.id) ?? [],
+      plans: plansByGoalId.get(goal.id) ?? [],
     }));
 
     // Get total count for pagination

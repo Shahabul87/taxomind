@@ -96,7 +96,7 @@ import {
   getSAMCapabilityRegistry,
 } from '@/lib/sam/integration-profile';
 import { buildSAMSessionId } from '@/lib/sam/session-utils';
-import type { VerificationResult } from '@sam-ai/agentic';
+import type { VerificationResult, SessionContext } from '@sam-ai/agentic';
 import {
   ensureToolingInitialized,
   ensureDefaultToolPermissions,
@@ -122,6 +122,16 @@ import {
   createPrismaToolStore,
 } from '@/lib/sam/stores';
 
+// Import Proactive Intervention Integration for behavior tracking
+import {
+  initializeProactiveInterventions,
+  processProactiveInterventions,
+  formatProactiveResponse,
+  trackSessionStart,
+  type ProactiveInterventionSubsystems,
+  type ProactiveResponseData,
+} from '@/lib/sam/proactive-intervention-integration';
+
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
@@ -132,6 +142,13 @@ export const runtime = 'nodejs';
 const UnifiedRequestSchema = z.object({
   message: z.string().min(1, 'Message is required'),
   sessionId: z.string().optional(),
+  // Orchestration context for plan-driven tutoring
+  orchestrationContext: z.object({
+    planId: z.string().optional(),
+    goalId: z.string().optional(),
+    // If true, automatically find the user's active plan
+    autoDetectPlan: z.boolean().optional().default(true),
+  }).optional(),
   pageContext: z.object({
     type: z.string(),
     path: z.string(),
@@ -215,6 +232,7 @@ let pedagogyPipeline: PedagogicalPipeline | null = null;
 let masteryTracker: MasteryTracker | null = null;
 let spacedRepScheduler: SpacedRepetitionScheduler | null = null;
 let tutoringOrchestration: OrchestrationSubsystems | null = null;
+let proactiveSubsystems: ProactiveInterventionSubsystems | null = null;
 
 /**
  * Initialize all subsystems (orchestrator, quality gates, pedagogy, memory, tutoring)
@@ -227,6 +245,7 @@ function initializeSubsystems(): {
   mastery: MasteryTracker;
   spacedRep: SpacedRepetitionScheduler;
   tutoring: OrchestrationSubsystems | null;
+  proactive: ProactiveInterventionSubsystems | null;
 } {
   if (orchestrator && samConfig && qualityPipeline && pedagogyPipeline && masteryTracker && spacedRepScheduler) {
     return {
@@ -237,6 +256,7 @@ function initializeSubsystems(): {
       mastery: masteryTracker,
       spacedRep: spacedRepScheduler,
       tutoring: tutoringOrchestration,
+      proactive: proactiveSubsystems,
     };
   }
 
@@ -359,12 +379,28 @@ function initializeSubsystems(): {
     tutoringOrchestration = null;
   }
 
+  // Initialize Proactive Intervention subsystems for behavior tracking
+  try {
+    proactiveSubsystems = initializeProactiveInterventions({
+      patternDetectionThreshold: 3,
+      churnPredictionWindow: 14,
+      frustrationThreshold: 0.7,
+      checkInExpirationHours: 24,
+    });
+
+    logger.info('[SAM_UNIFIED] Proactive intervention subsystems initialized');
+  } catch (error) {
+    logger.warn('[SAM_UNIFIED] Failed to initialize proactive interventions:', error);
+    proactiveSubsystems = null;
+  }
+
   logger.info('[SAM_UNIFIED] All subsystems initialized:', {
     engines: ['context', 'blooms', 'content', 'personalization', 'assessment', 'response'],
     qualityGates: true,
     pedagogyPipeline: true,
     memoryTracking: true,
     tutoringOrchestration: !!tutoringOrchestration,
+    proactiveInterventions: !!proactiveSubsystems,
   });
 
   return {
@@ -375,6 +411,7 @@ function initializeSubsystems(): {
     mastery: masteryTracker,
     spacedRep: spacedRepScheduler,
     tutoring: tutoringOrchestration,
+    proactive: proactiveSubsystems,
   };
 }
 
@@ -502,6 +539,7 @@ export async function POST(request: NextRequest) {
     const {
       message,
       sessionId: requestedSessionId,
+      orchestrationContext,
       pageContext,
       formContext,
       conversationHistory,
@@ -518,7 +556,7 @@ export async function POST(request: NextRequest) {
     const hasClientEntityData = !!pageContext.entityData?.title;
 
     const integrationProfile = getSAMIntegrationProfile({
-      goalPlanning: false, // Keep goal planning disabled for standard chat flow
+      goalPlanning: true, // Enable goal planning for autonomous learning
       toolExecution: true,
       proactiveInterventions: true,
       selfEvaluation: true,
@@ -530,7 +568,7 @@ export async function POST(request: NextRequest) {
     const agenticBridge = createSAMAgenticBridge({
       userId: user.id,
       courseId: pageContext.entityId,
-      enableGoalPlanning: false, // Not needed for basic response flow
+      enableGoalPlanning: true, // Enable goal planning for agentic capabilities
       enableToolExecution: true,
       enableProactiveInterventions: true,
       enableSelfEvaluation: true,
@@ -551,28 +589,87 @@ export async function POST(request: NextRequest) {
     // Prepare tutoring context for plan-driven tutoring (if active plan exists)
     let tutoringContext: Awaited<ReturnType<typeof prepareTutoringContext>> = null;
     let planContextInjection: ReturnType<typeof injectPlanContext> = null;
+    let activePlanId: string | undefined = orchestrationContext?.planId;
+    let activeGoalId: string | undefined = orchestrationContext?.goalId;
+    let memorySessionContext: SessionContext | null = null;
 
     try {
       const subsystems = initializeSubsystems();
       if (subsystems.tutoring) {
+        // Auto-detect active plan if not explicitly provided
+        const autoDetect = orchestrationContext?.autoDetectPlan !== false;
+
+        if (!activePlanId && autoDetect) {
+          // Find user's active plan from database
+          const activePlans = await db.sAMExecutionPlan.findMany({
+            where: {
+              userId: user.id,
+              status: 'ACTIVE',
+            },
+            orderBy: { updatedAt: 'desc' },
+            take: 1,
+            include: {
+              goal: true,
+            },
+          });
+
+          if (activePlans.length > 0) {
+            activePlanId = activePlans[0].id;
+            activeGoalId = activePlans[0].goalId;
+            logger.info('[SAM_UNIFIED] Auto-detected active plan:', {
+              planId: activePlanId,
+              goalId: activeGoalId,
+              goalTitle: activePlans[0].goal?.title,
+            });
+          }
+        }
+
+        // Get memory session context for enriched tutoring context
+        try {
+          const memorySystem = getAgenticMemorySystem();
+          const courseIdForContext = pageContext.entityId ?? undefined;
+          memorySessionContext = await memorySystem.sessionContext.getOrCreateContext(
+            user.id,
+            courseIdForContext
+          );
+          logger.debug('[SAM_UNIFIED] Retrieved memory session context:', {
+            userId: user.id,
+            contextId: memorySessionContext.id,
+            sessionCount: memorySessionContext.currentState.sessionCount,
+            masteredConcepts: memorySessionContext.insights.masteredConcepts.length,
+            strugglingConcepts: memorySessionContext.insights.strugglingConcepts.length,
+          });
+        } catch (memError) {
+          logger.warn('[SAM_UNIFIED] Failed to get memory session context:', memError);
+          // Continue without memory context
+        }
+
+        // Prepare tutoring context with actual plan/goal IDs and memory context
         tutoringContext = await prepareTutoringContext(
           user.id,
           sessionId,
           message,
           {
-            planId: pageContext.entityId, // Use entity ID as potential plan ID
-            goalId: undefined, // Could be extracted from request if provided
+            planId: activePlanId,
+            goalId: activeGoalId,
+            sessionContext: memorySessionContext ?? undefined,
           }
         );
 
         if (tutoringContext) {
           planContextInjection = injectPlanContext(tutoringContext);
 
-          logger.debug('[SAM_UNIFIED] Tutoring context prepared:', {
+          logger.info('[SAM_UNIFIED] Tutoring orchestration ACTIVE:', {
             hasActivePlan: !!tutoringContext.activePlan,
+            planId: tutoringContext.activePlan?.id,
+            goalTitle: tutoringContext.activeGoal?.title,
             currentStepId: tutoringContext.currentStep?.id,
+            currentStepTitle: tutoringContext.currentStep?.title,
             stepObjectivesCount: tutoringContext.stepObjectives?.length || 0,
             hasInjection: !!planContextInjection,
+            hasMemoryContext: !!memorySessionContext,
+            memoryMasteredConcepts: tutoringContext.memoryContext.masteredConcepts.length,
+            memoryStrugglingConcepts: tutoringContext.memoryContext.strugglingConcepts.length,
           });
         }
       }
@@ -837,14 +934,15 @@ export async function POST(request: NextRequest) {
 
     if (tutoringContext && result.response?.message) {
       try {
+        // Process the full tutoring loop with step evaluation and transitions
         const loopResult = await processTutoringLoop(
           user.id,
           sessionId,
           message,
           result.response.message,
           {
-            planId: pageContext.entityId,
-            goalId: undefined,
+            planId: activePlanId,
+            goalId: activeGoalId,
           }
         );
 
@@ -855,7 +953,82 @@ export async function POST(request: NextRequest) {
             transitionType: loopResult.transition.transitionType,
             planComplete: loopResult.transition.planComplete,
             hasNextStep: !!loopResult.transition.currentStep,
+            celebrationType: loopResult.transition.celebration?.type,
           });
+
+          // If step completed, append transition message to response
+          if (loopResult.transition.transitionMessage) {
+            const transitionNote = `\n\n---\n**${loopResult.transition.transitionMessage}**`;
+            // Store in orchestrationData for frontend to display appropriately
+          }
+        }
+
+        // Log detailed orchestration results
+        logger.info('[SAM_UNIFIED] Tutoring loop processed:', {
+          hasActivePlan: orchestrationData?.hasActivePlan,
+          currentStepTitle: orchestrationData?.currentStep?.title,
+          progressPercent: orchestrationData?.stepProgress?.progressPercent,
+          stepComplete: orchestrationData?.stepProgress?.stepComplete,
+          pendingCriteria: orchestrationData?.stepProgress?.pendingCriteria?.length,
+          toolPlanCount: orchestrationData?.toolPlan?.toolCount,
+          interventionsTriggered: orchestrationData?.metadata?.interventionsTriggered,
+        });
+
+        // Store learning interactions in memory for future context
+        if (memorySessionContext && loopResult) {
+          try {
+            const memorySystem = getAgenticMemorySystem();
+            const courseIdForMemory = pageContext.entityId ?? undefined;
+
+            // Record concept as learned when step completes
+            if (loopResult.evaluation?.stepComplete && orchestrationData?.currentStep?.title) {
+              await memorySystem.sessionContext.recordConceptLearned(
+                user.id,
+                orchestrationData.currentStep.title,
+                courseIdForMemory
+              );
+              logger.info('[SAM_UNIFIED] Recorded concept learned in memory:', {
+                concept: orchestrationData.currentStep.title,
+                confidence: loopResult.evaluation.confidence,
+                stepComplete: true,
+              });
+            }
+
+            // Track struggling concepts when progress is low
+            if (loopResult.evaluation &&
+                loopResult.evaluation.progressPercent < 50 &&
+                orchestrationData?.currentStep?.title) {
+              await memorySystem.sessionContext.updateInsights(user.id, {
+                strugglingConcepts: [
+                  ...memorySessionContext.insights.strugglingConcepts,
+                  orchestrationData.currentStep.title,
+                ].filter((v, i, a) => a.indexOf(v) === i).slice(-10),
+              }, courseIdForMemory);
+              logger.debug('[SAM_UNIFIED] Updated struggling concept:', {
+                concept: orchestrationData.currentStep.title,
+                progress: loopResult.evaluation.progressPercent,
+              });
+            }
+
+            // Record step objectives as mastered when step transitions
+            if (loopResult.transition?.transitionType === 'complete') {
+              const masteredObjectives = tutoringContext.stepObjectives;
+              if (masteredObjectives.length > 0) {
+                await memorySystem.sessionContext.updateInsights(user.id, {
+                  masteredConcepts: [
+                    ...memorySessionContext.insights.masteredConcepts,
+                    ...masteredObjectives,
+                  ].filter((v, i, a) => a.indexOf(v) === i).slice(-50),
+                }, courseIdForMemory);
+                logger.info('[SAM_UNIFIED] Recorded mastered objectives:', {
+                  objectives: masteredObjectives,
+                });
+              }
+            }
+          } catch (memError) {
+            logger.warn('[SAM_UNIFIED] Failed to store learning interaction in memory:', memError);
+            // Non-blocking - continue without memory storage
+          }
         }
       } catch (error) {
         logger.warn('[SAM_UNIFIED] Failed to process tutoring loop:', error);
@@ -1182,7 +1355,7 @@ export async function POST(request: NextRequest) {
       // Continue without recording - non-blocking
     }
 
-    // Check for proactive interventions
+    // Check for proactive interventions (via agentic bridge)
     let interventions: Array<{ type: string; reason: string; priority: string }> = [];
     let interventionResults: Intervention[] = [];
     try {
@@ -1208,6 +1381,59 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.warn('[SAM_UNIFIED] Agentic intervention check failed:', error);
       // Continue without interventions - non-blocking
+    }
+
+    // =========================================================================
+    // PROACTIVE INTERVENTION SYSTEM - Behavior Tracking & Pattern Detection
+    // =========================================================================
+
+    let proactiveData: ProactiveResponseData | null = null;
+    try {
+      // Process proactive interventions - tracks behavior and detects patterns
+      const proactiveResult = await processProactiveInterventions(
+        user.id,
+        sessionId,
+        message,
+        {
+          path: pageContext.path,
+          type: pageContext.type,
+          courseId: entityContext.course?.id ?? entityContext.chapter?.courseId ?? entityContext.section?.courseId,
+          chapterId: entityContext.chapter?.id ?? entityContext.section?.chapterId,
+          sectionId: entityContext.section?.id,
+        },
+        {
+          bloomsLevel: bloomsAnalysis?.dominantLevel,
+          confidence: agenticConfidence?.score,
+          topic: entityContext.section?.title ?? entityContext.chapter?.title ?? entityContext.course?.title,
+          frustrationDetected: (agenticConfidence?.score ?? 1) < 0.5,
+          frustrationLevel: agenticConfidence?.score !== undefined ? 1 - agenticConfidence.score : undefined,
+        }
+      );
+
+      proactiveData = formatProactiveResponse(proactiveResult);
+
+      // Add proactive interventions to the agentic interventions list
+      if (proactiveResult.interventionsTriggered.length > 0) {
+        for (const intervention of proactiveResult.interventionsTriggered) {
+          interventions.push({
+            type: intervention.type,
+            reason: intervention.message,
+            priority: intervention.priority,
+          });
+        }
+      }
+
+      logger.info('[SAM_UNIFIED] Proactive interventions processed:', {
+        eventsTracked: proactiveData.eventsTracked,
+        patternsDetected: proactiveData.patterns?.count ?? 0,
+        interventions: proactiveData.interventions?.length ?? 0,
+        checkIns: proactiveData.checkIns?.length ?? 0,
+        churnRiskLevel: proactiveData.predictions?.churnRisk?.level,
+        struggleProbability: proactiveData.predictions?.struggleRisk?.probability,
+      });
+    } catch (error) {
+      logger.warn('[SAM_UNIFIED] Proactive intervention processing failed:', error);
+      // Continue without proactive data - non-blocking
     }
 
     // Dispatch intervention notifications (presence-aware)
@@ -1413,6 +1639,14 @@ export async function POST(request: NextRequest) {
           pendingConfirmations: orchestrationData.pendingConfirmations,
           metadata: orchestrationData.metadata,
         } : undefined,
+        // NEW: Proactive Intervention System (Behavior Tracking & Pattern Detection)
+        proactive: proactiveData ? {
+          eventsTracked: proactiveData.eventsTracked,
+          patterns: proactiveData.patterns,
+          interventions: proactiveData.interventions,
+          checkIns: proactiveData.checkIns,
+          predictions: proactiveData.predictions,
+        } : undefined,
       },
       metadata: {
         enginesRun: result.metadata.enginesExecuted,
@@ -1440,6 +1674,12 @@ export async function POST(request: NextRequest) {
           stepEvaluation: !!orchestrationData?.stepProgress,
           stepTransition: !!orchestrationData?.transition,
           planContextInjection: !!planContextInjection,
+          // NEW: Proactive Intervention subsystems
+          proactiveInterventions: !!proactiveData,
+          behaviorTracking: (proactiveData?.eventsTracked ?? 0) > 0,
+          patternDetection: (proactiveData?.patterns?.count ?? 0) > 0,
+          churnPrediction: !!proactiveData?.predictions?.churnRisk,
+          strugglePrediction: !!proactiveData?.predictions?.struggleRisk,
         },
         toolExecution: toolExecution ?? undefined,
       },
