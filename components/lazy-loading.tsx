@@ -193,11 +193,11 @@ export const withLazyLoading = <P extends object>(
 
 // Route-based lazy loading for pages
 export const LazyRoutes = {
-  Analytics: lazy(() => import('@/app/analytics/user/page')),
+  Analytics: lazy(() => import('@/app/dashboard/user/analytics/page')),
   AITutor: lazy(() => Promise.resolve({ default: () => null })),
   Calendar: lazy(() => import('@/app/calendar/page')),
   Search: lazy(() => import('@/app/(protected)/search/page')),
-  Messages: lazy(() => import('@/app/messages/page')),
+  Messages: lazy(() => import('@/app/dashboard/user/messages/page')),
 };
 
 // Bundle split utilities

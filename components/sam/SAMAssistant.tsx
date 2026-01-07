@@ -65,6 +65,14 @@ import {
   type FormFillSuggestion,
 } from '@/lib/sam/form-actions';
 
+// Import Tool Approval Dialog for user confirmations
+import {
+  ToolApprovalDialog,
+  type ToolApprovalRequest,
+  type RiskLevel,
+  type ToolCategory,
+} from '@/components/sam/ToolApprovalDialog';
+
 // ============================================================================
 // WINDOW CONTEXT TYPES
 // ============================================================================
@@ -145,6 +153,14 @@ import {
   type XPEvent,
   type GamificationEvent,
 } from '@/lib/sam/gamification';
+
+// Import SAM Realtime Client for WebSocket-based proactive features
+import {
+  getSAMRealtimeClient,
+  isWebSocketEnabled,
+  type SAMWebSocketEvent,
+  SAMEventType,
+} from '@/lib/sam/realtime';
 
 // ============================================================================
 // TYPES
@@ -464,6 +480,11 @@ function SAMAssistantInner({
   const [toolConfirmations, setToolConfirmations] = useState<ToolConfirmation[]>([]);
   const [toolConfirmationsError, setToolConfirmationsError] = useState<string | null>(null);
 
+  // Tool Approval Dialog state
+  const [activeApprovalRequest, setActiveApprovalRequest] = useState<ToolApprovalRequest | null>(null);
+  const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const [isApprovalProcessing, setIsApprovalProcessing] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize gamification engine
@@ -487,14 +508,65 @@ function SAMAssistantInner({
     }
   }, [enableGamification, session?.user?.id]);
 
-  // Fetch proactive check-ins and interventions when SAM opens
+  // Initialize realtime WebSocket connection for proactive features
   useEffect(() => {
     if (!isOpen || !session?.user?.id) return;
 
-    const fetchProactiveData = async () => {
+    let realtimeClient: ReturnType<typeof getSAMRealtimeClient> | null = null;
+    let unsubscribeCheckIn: (() => void) | null = null;
+    let unsubscribeIntervention: (() => void) | null = null;
+    let unsubscribeRecommendation: (() => void) | null = null;
+    let pollingInterval: NodeJS.Timeout | null = null;
+
+    const initRealtime = async () => {
+      // Check if WebSocket is configured before attempting connection
+      if (!isWebSocketEnabled()) {
+        console.log('[SAMAssistant] WebSocket not configured, using REST polling');
+        await initRestPolling();
+        return;
+      }
+
       try {
-        // Fetch pending check-ins
-        const checkInsRes = await fetch('/api/sam/agentic/checkins?status=pending');
+        // Get or create the realtime client singleton
+        realtimeClient = getSAMRealtimeClient();
+
+        // Connect to WebSocket server
+        await realtimeClient.connect(session.user.id);
+
+        console.log('[SAMAssistant] Realtime WebSocket connected');
+
+        // Subscribe to check-in events
+        unsubscribeCheckIn = realtimeClient.on(SAMEventType.CHECKIN, (event: SAMWebSocketEvent) => {
+          const checkIn = event.payload as ProactiveCheckIn;
+          setPendingCheckIns((prev) => {
+            // Avoid duplicates
+            if (prev.some((c) => c.id === checkIn.id)) return prev;
+            return [...prev, checkIn];
+          });
+        });
+
+        // Subscribe to intervention events
+        unsubscribeIntervention = realtimeClient.on(SAMEventType.INTERVENTION, (event: SAMWebSocketEvent) => {
+          const intervention = event.payload as ProactiveIntervention;
+          setPendingInterventions((prev) => {
+            // Avoid duplicates
+            if (prev.some((i) => i.id === intervention.id)) return prev;
+            return [...prev, intervention];
+          });
+        });
+
+        // Subscribe to recommendation events (optional enhancement)
+        unsubscribeRecommendation = realtimeClient.on(SAMEventType.RECOMMENDATION, (event: SAMWebSocketEvent) => {
+          console.log('[SAMAssistant] Received recommendation:', event.payload);
+          // Could be used to show personalized suggestions in the UI
+        });
+
+        // Initial fetch of existing pending items (one-time on connect)
+        const [checkInsRes, interventionsRes] = await Promise.all([
+          fetch('/api/sam/agentic/checkins?status=pending'),
+          fetch('/api/sam/agentic/behavior/interventions?pending=true'),
+        ]);
+
         if (checkInsRes.ok) {
           const checkInsData = await checkInsRes.json();
           if (checkInsData.success && checkInsData.data?.checkIns) {
@@ -502,8 +574,6 @@ function SAMAssistantInner({
           }
         }
 
-        // Fetch pending interventions
-        const interventionsRes = await fetch('/api/sam/agentic/behavior/interventions?pending=true');
         if (interventionsRes.ok) {
           const interventionsData = await interventionsRes.json();
           if (interventionsData.success && interventionsData.data?.interventions) {
@@ -511,18 +581,75 @@ function SAMAssistantInner({
           }
         }
 
-        // Evaluate triggers to see if any new check-ins should be created
+        // Evaluate triggers once on connect
         await fetch('/api/sam/agentic/checkins/evaluate', { method: 'POST' });
+
       } catch (error) {
-        console.error('[SAMAssistant] Failed to fetch proactive data:', error);
+        // Only log as error if it's not expected WebSocket not configured case
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('WebSocket not configured')) {
+          console.log('[SAMAssistant] WebSocket not configured, using REST polling fallback');
+        } else {
+          console.warn('[SAMAssistant] Failed to initialize realtime:', errorMessage);
+        }
+        // Fallback to REST polling if WebSocket fails
+        await initRestPolling();
       }
     };
 
-    fetchProactiveData();
+    // REST polling fallback function
+    const initRestPolling = async () => {
+      const fetchProactiveData = async () => {
+        try {
+          const [checkInsRes, interventionsRes] = await Promise.all([
+            fetch('/api/sam/agentic/checkins?status=pending'),
+            fetch('/api/sam/agentic/behavior/interventions?pending=true'),
+          ]);
 
-    // Refresh every 5 minutes while SAM is open
-    const interval = setInterval(fetchProactiveData, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+          if (checkInsRes.ok) {
+            const checkInsData = await checkInsRes.json();
+            if (checkInsData.success && checkInsData.data?.checkIns) {
+              setPendingCheckIns(checkInsData.data.checkIns);
+            }
+          }
+
+          if (interventionsRes.ok) {
+            const interventionsData = await interventionsRes.json();
+            if (interventionsData.success && interventionsData.data?.interventions) {
+              setPendingInterventions(interventionsData.data.interventions);
+            }
+          }
+
+          await fetch('/api/sam/agentic/checkins/evaluate', { method: 'POST' });
+        } catch (fetchError) {
+          console.error('[SAMAssistant] REST polling fetch failed:', fetchError);
+        }
+      };
+
+      // Initial fetch
+      await fetchProactiveData();
+
+      // Set up polling interval (every 30 seconds)
+      pollingInterval = setInterval(fetchProactiveData, 30000);
+    };
+
+    void initRealtime().catch((error) => {
+      console.warn('[SAMAssistant] Realtime init failed unexpectedly:', error);
+      void initRestPolling();
+    });
+
+    return () => {
+      // Cleanup subscriptions
+      unsubscribeCheckIn?.();
+      unsubscribeIntervention?.();
+      unsubscribeRecommendation?.();
+      // Clear polling interval if active
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+      // Note: We don't disconnect the client here since it's a singleton
+      // and may be used by other components. The client handles reconnection automatically.
+    };
   }, [isOpen, session?.user?.id]);
 
   const fetchTools = useCallback(async () => {
@@ -532,17 +659,20 @@ function SAMAssistantInner({
 
     try {
       const response = await fetch('/api/sam/agentic/tools');
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to load tools');
+        const errorMsg = data.details || data.error || 'Failed to load tools';
+        throw new Error(errorMsg);
       }
 
-      const data = await response.json();
       if (data.success && data.data?.tools) {
         setTools(data.data.tools as ToolSummary[]);
       } else {
         setTools([]);
       }
     } catch (fetchError) {
+      console.error('[SAM] Failed to fetch tools:', fetchError);
       setToolsError((fetchError as Error).message);
     } finally {
       setIsLoadingTools(false);
@@ -555,17 +685,20 @@ function SAMAssistantInner({
 
     try {
       const response = await fetch('/api/sam/agentic/tools/confirmations');
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to load confirmations');
+        const errorMsg = data.details || data.error || 'Failed to load confirmations';
+        throw new Error(errorMsg);
       }
 
-      const data = await response.json();
       if (data.success && data.data?.confirmations) {
         setToolConfirmations(data.data.confirmations as ToolConfirmation[]);
       } else {
         setToolConfirmations([]);
       }
     } catch (fetchError) {
+      console.error('[SAM] Failed to fetch confirmations:', fetchError);
       setToolConfirmationsError((fetchError as Error).message);
     }
   }, [session?.user?.id]);
@@ -1201,6 +1334,154 @@ function SAMAssistantInner({
     }
   }, [fetchToolConfirmations, selectedTool?.id, session?.user?.id]);
 
+  // Convert ToolConfirmation to ToolApprovalRequest for the dialog
+  const convertToApprovalRequest = useCallback((confirmation: ToolConfirmation): ToolApprovalRequest => {
+    // Map severity to risk level
+    const riskLevelMap: Record<string, RiskLevel> = {
+      low: 'low',
+      medium: 'medium',
+      high: 'high',
+      critical: 'high',
+    };
+
+    // Try to determine category from tool name or default to 'content'
+    const categoryMap: Record<string, ToolCategory> = {
+      generate: 'content',
+      create: 'content',
+      assess: 'assessment',
+      evaluate: 'assessment',
+      quiz: 'assessment',
+      memory: 'memory',
+      recall: 'memory',
+      context: 'memory',
+      send: 'communication',
+      notify: 'communication',
+      email: 'communication',
+      analyze: 'analysis',
+      review: 'analysis',
+      course: 'course',
+      chapter: 'course',
+      section: 'course',
+      external: 'external',
+      fetch: 'external',
+      api: 'external',
+      admin: 'admin',
+      modify: 'admin',
+      delete: 'admin',
+    };
+
+    const toolNameLower = confirmation.toolName.toLowerCase();
+    let category: ToolCategory = 'content';
+    for (const [key, value] of Object.entries(categoryMap)) {
+      if (toolNameLower.includes(key)) {
+        category = value;
+        break;
+      }
+    }
+
+    // Extract permissions from details
+    const reads: string[] = [];
+    const writes: string[] = [];
+    const external: string[] = [];
+
+    if (confirmation.details) {
+      for (const detail of confirmation.details) {
+        if (detail.type === 'warning' || detail.label.toLowerCase().includes('access')) {
+          if (detail.label.toLowerCase().includes('read')) {
+            reads.push(detail.value);
+          } else if (detail.label.toLowerCase().includes('write') || detail.label.toLowerCase().includes('modify')) {
+            writes.push(detail.value);
+          } else if (detail.label.toLowerCase().includes('external')) {
+            external.push(detail.value);
+          }
+        }
+      }
+    }
+
+    // Build parameters from details
+    const parameters: Record<string, unknown> = {};
+    if (confirmation.details) {
+      for (const detail of confirmation.details) {
+        if (detail.type === 'json' || detail.type === 'code') {
+          try {
+            parameters[detail.label] = JSON.parse(detail.value);
+          } catch {
+            parameters[detail.label] = detail.value;
+          }
+        } else if (detail.type === 'text') {
+          parameters[detail.label] = detail.value;
+        }
+      }
+    }
+
+    return {
+      id: confirmation.id,
+      toolId: confirmation.toolId,
+      toolName: confirmation.toolName,
+      description: confirmation.title,
+      category,
+      riskLevel: riskLevelMap[confirmation.severity] || 'medium',
+      reason: confirmation.message,
+      parameters: Object.keys(parameters).length > 0 ? parameters : undefined,
+      estimatedDuration: confirmation.timeout,
+      permissions: {
+        reads: reads.length > 0 ? reads : undefined,
+        writes: writes.length > 0 ? writes : undefined,
+        external: external.length > 0 ? external : undefined,
+      },
+      context: {
+        conversationId: samContext?.metadata?.sessionId,
+      },
+    };
+  }, [samContext?.metadata?.sessionId]);
+
+  // Open the approval dialog for a confirmation
+  const openApprovalDialog = useCallback((confirmation: ToolConfirmation) => {
+    const request = convertToApprovalRequest(confirmation);
+    setActiveApprovalRequest(request);
+    setIsApprovalDialogOpen(true);
+  }, [convertToApprovalRequest]);
+
+  // Handle approval from the dialog
+  const handleApprovalDialogApprove = useCallback(async (requestId: string, rememberChoice: boolean) => {
+    setIsApprovalProcessing(true);
+    try {
+      await handleToolConfirmation(requestId, true);
+      // TODO: If rememberChoice is true, store the preference for auto-approval
+      if (rememberChoice) {
+        console.log(`User wants to remember approval for tool in request ${requestId}`);
+        // Could store in localStorage or send to API for persistence
+      }
+    } finally {
+      setIsApprovalProcessing(false);
+      setIsApprovalDialogOpen(false);
+      setActiveApprovalRequest(null);
+    }
+  }, [handleToolConfirmation]);
+
+  // Handle denial from the dialog
+  const handleApprovalDialogDeny = useCallback(async (requestId: string) => {
+    setIsApprovalProcessing(true);
+    try {
+      await handleToolConfirmation(requestId, false);
+    } finally {
+      setIsApprovalProcessing(false);
+      setIsApprovalDialogOpen(false);
+      setActiveApprovalRequest(null);
+    }
+  }, [handleToolConfirmation]);
+
+  // Auto-open dialog when new confirmations arrive
+  useEffect(() => {
+    if (toolConfirmations.length > 0 && !isApprovalDialogOpen && !activeApprovalRequest) {
+      // Open dialog for the first pending confirmation
+      const firstPending = toolConfirmations.find(c => c.status === 'pending');
+      if (firstPending) {
+        openApprovalDialog(firstPending);
+      }
+    }
+  }, [toolConfirmations, isApprovalDialogOpen, activeApprovalRequest, openApprovalDialog]);
+
   // Handle form fill suggestion
   const handleFormFillClick = (suggestion: FormFillSuggestion) => {
     sendMessage(`Generate content for the ${suggestion.field} field`);
@@ -1429,9 +1710,18 @@ function SAMAssistantInner({
     }
   };
 
-  // Don't render on auth pages or if no session
-  const hideRoutes = ['/auth', '/login', '/register'];
-  if (!session || hideRoutes.some(route => pathname?.startsWith(route))) {
+  // Don't render on auth pages
+  const hideRoutes = ['/auth', '/login', '/register', '/admin/auth'];
+  if (hideRoutes.some(route => pathname?.startsWith(route))) {
+    return null;
+  }
+
+  // For admin pages (/dashboard/admin/*), allow rendering even without regular session
+  // Admin users have a separate auth system (adminAuth) that doesn't use useSession()
+  const isAdminPage = pathname?.startsWith('/dashboard/admin');
+
+  // Require session for non-admin pages
+  if (!session && !isAdminPage) {
     return null;
   }
 
@@ -2013,16 +2303,17 @@ function SAMAssistantInner({
                           )}
                           <div className="flex gap-2 mt-2">
                             <button
-                              onClick={() => handleToolConfirmation(confirmation.id, true)}
-                              className="flex-1 px-2 py-1 text-xs bg-slate-800 text-white rounded hover:bg-slate-900"
+                              onClick={() => openApprovalDialog(confirmation)}
+                              className="flex-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 flex items-center justify-center gap-1"
                             >
-                              {confirmation.confirmText ?? 'Confirm'}
+                              <Shield className="h-3 w-3" />
+                              Review &amp; Approve
                             </button>
                             <button
                               onClick={() => handleToolConfirmation(confirmation.id, false)}
-                              className="flex-1 px-2 py-1 text-xs text-slate-600 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                              className="px-2 py-1 text-xs text-slate-600 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700 hover:border-slate-300"
                             >
-                              {confirmation.cancelText ?? 'Cancel'}
+                              Deny
                             </button>
                           </div>
                         </div>
@@ -2380,6 +2671,16 @@ function SAMAssistantInner({
           </div>
         </>
       )}
+
+      {/* Tool Approval Dialog */}
+      <ToolApprovalDialog
+        request={activeApprovalRequest}
+        open={isApprovalDialogOpen}
+        onOpenChange={setIsApprovalDialogOpen}
+        onApprove={handleApprovalDialogApprove}
+        onDeny={handleApprovalDialogDeny}
+        isProcessing={isApprovalProcessing}
+      />
     </div>
   );
 }

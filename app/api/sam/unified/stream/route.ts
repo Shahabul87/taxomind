@@ -10,7 +10,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { currentUser } from '@/lib/auth';
+import { currentUserOrAdmin } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
@@ -410,8 +410,8 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Authentication check
-    const user = await currentUser();
+    // Authentication check - supports both regular users AND admin users
+    const user = await currentUserOrAdmin();
     if (!user?.id) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized', message: 'Please sign in to use SAM' }),
@@ -519,6 +519,41 @@ export async function POST(request: NextRequest) {
       logger.warn('[SAM_STREAM] Failed to prepare tutoring context:', error);
     }
 
+    // Build tool awareness summary for prompt injection
+    let toolsSummary: string | undefined;
+    try {
+      const tooling = await ensureToolingInitialized();
+      const allTools = await tooling.toolRegistry.listTools({
+        enabled: true,
+        deprecated: false,
+      });
+
+      if (allTools.length > 0) {
+        const toolCategories = new Map<string, string[]>();
+        for (const tool of allTools) {
+          const category = tool.category || 'other';
+          if (!toolCategories.has(category)) {
+            toolCategories.set(category, []);
+          }
+          toolCategories.get(category)!.push(tool.name);
+        }
+
+        const categoryLines: string[] = [];
+        for (const [category, tools] of toolCategories) {
+          categoryLines.push(`- ${category}: ${tools.join(', ')}`);
+        }
+
+        toolsSummary = [
+          `Available Mentor Tools (${allTools.length} total):`,
+          ...categoryLines,
+          '',
+          'You have access to these tools and can use them when appropriate to help the learner.',
+        ].join('\n');
+      }
+    } catch (error) {
+      logger.warn('[SAM_STREAM] Failed to build tools summary:', error);
+    }
+
     // Build memory summary for prompt injection
     let memorySummary: string | undefined;
     let reviewSummary: string | undefined;
@@ -579,6 +614,17 @@ export async function POST(request: NextRequest) {
           additionsCount: planContextInjection.systemPromptAdditions.length,
         });
       }
+    }
+
+    // Inject tools summary into memory summary so SAM knows its available tools
+    if (toolsSummary) {
+      memorySummary = memorySummary
+        ? `${memorySummary}\n\n${toolsSummary}`
+        : toolsSummary;
+
+      logger.debug('[SAM_STREAM] Tools summary injected into prompt:', {
+        summary: toolsSummary.substring(0, 100) + '...',
+      });
     }
 
     // Build entity context - use client data if available, otherwise fetch from database
@@ -692,6 +738,7 @@ export async function POST(request: NextRequest) {
           formSummary,
           memorySummary,
           reviewSummary,
+          toolsSummary, // Available mentor tools
           // Include specific entity data for easy access
           courseTitle: entityContext.course?.title,
           courseDescription: entityContext.course?.description,

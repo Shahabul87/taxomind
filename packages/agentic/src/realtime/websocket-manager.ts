@@ -115,6 +115,22 @@ export class ClientWebSocketManager implements WebSocketManagerInterface {
       return;
     }
 
+    // CRITICAL: Validate URL before attempting connection
+    // Must be a valid ws:// or wss:// URL, not a relative path
+    const configUrl = this.config.url;
+
+    // Check if WebSocket is available in this environment
+    if (typeof WebSocket === 'undefined') {
+      throw new Error('WebSocket not available in this environment');
+    }
+
+    const isValidWsUrl = configUrl && (configUrl.startsWith('ws://') || configUrl.startsWith('wss://'));
+    if (!isValidWsUrl) {
+      // Use debug level logging - this is expected when WebSocket is not configured
+      this.logger.debug('WebSocket not configured', { url: configUrl || 'not set' });
+      throw new Error('WebSocket not configured - no valid URL provided');
+    }
+
     this.userId = userId;
     this.metadata = metadata ?? {
       deviceType: this.detectDeviceType(),
@@ -128,19 +144,35 @@ export class ClientWebSocketManager implements WebSocketManagerInterface {
         const url = this.buildWebSocketUrl();
         this.socket = new WebSocket(url);
 
+        // Set a connection timeout to fail fast if server is unreachable
+        const connectionTimeout = setTimeout(() => {
+          if (this.state === ConnectionStateConst.CONNECTING) {
+            this.socket?.close();
+            const error = new Error('WebSocket connection timeout - server may not be running');
+            this.handleError(error);
+            reject(error);
+          }
+        }, 5000); // 5 second timeout
+
         this.socket.onopen = () => {
+          clearTimeout(connectionTimeout);
           this.handleOpen();
           resolve();
         };
 
         this.socket.onclose = (event) => {
+          clearTimeout(connectionTimeout);
           this.handleClose(event);
         };
 
         this.socket.onerror = () => {
-          this.handleError(new Error('WebSocket error'));
+          clearTimeout(connectionTimeout);
+          // Create a more descriptive error - native WebSocket errors often have no details
+          const errorUrl = this.config.url || 'unknown URL';
+          const error = new Error(`WebSocket connection failed to ${errorUrl}`);
+          this.handleError(error);
           if (this.state === ConnectionStateConst.CONNECTING) {
-            reject(new Error('Failed to connect'));
+            reject(new Error(`Failed to connect to WebSocket server at ${errorUrl}. Server may not be running.`));
           }
         };
 
@@ -347,16 +379,33 @@ export class ClientWebSocketManager implements WebSocketManagerInterface {
   }
 
   private handleError(error: Error): void {
-    this.logger.error('WebSocket error', {
-      error: error.message,
-      state: this.state,
-    });
+    // During initial connection, use debug level logging since connection failures
+    // are expected when no WebSocket server is running
+    // This prevents scary console errors from appearing in development
+    if (this.state === ConnectionStateConst.CONNECTING) {
+      this.logger.debug('WebSocket connection not available', {
+        message: error.message,
+        hint: 'This is expected if no WebSocket server is running. The app will fallback to REST polling.',
+      });
+    } else if (this.state === ConnectionStateConst.RECONNECTING) {
+      // During reconnection attempts, use warn level
+      this.logger.warn('WebSocket reconnection attempt failed', {
+        message: error.message,
+        attemptNumber: this.reconnectAttempts,
+      });
+    } else {
+      // Only show error level for unexpected errors during established connections
+      this.logger.warn('WebSocket error', {
+        message: error.message,
+        state: this.state,
+      });
+    }
 
     for (const handler of this.errorHandlers) {
       try {
         handler(error);
       } catch (e) {
-        this.logger.error('Error in error handler', {
+        this.logger.warn('Error in error handler', {
           error: e instanceof Error ? e.message : 'Unknown',
         });
       }
@@ -501,7 +550,22 @@ export class ClientWebSocketManager implements WebSocketManagerInterface {
   }
 
   private buildWebSocketUrl(): string {
-    const url = new URL(this.config.url, window.location.origin);
+    const configUrl = this.config.url;
+
+    // If config.url is already a full ws:// or wss:// URL, use it directly
+    if (configUrl.startsWith('ws://') || configUrl.startsWith('wss://')) {
+      const url = new URL(configUrl);
+      if (this.userId) {
+        url.searchParams.set('userId', this.userId);
+      }
+      if (this.config.authToken) {
+        url.searchParams.set('token', this.config.authToken);
+      }
+      return url.toString();
+    }
+
+    // For relative URLs or http/https URLs, construct WebSocket URL
+    const url = new URL(configUrl, window.location.origin);
     url.protocol = url.protocol.replace('http', 'ws');
 
     if (this.userId) {

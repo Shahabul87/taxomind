@@ -35,6 +35,7 @@ import {
   type SAMWebSocketEvent,
   type InterventionQueue,
   type InterventionUIState,
+  type RealtimeLogger,
   type PresenceMetadata,
   type ActivityPayload,
   DeliveryChannel as DeliveryChannelConst,
@@ -70,7 +71,7 @@ export interface SAMRealtimeConfig {
 }
 
 const DEFAULT_REALTIME_CONFIG: Required<SAMRealtimeConfig> = {
-  wsUrl: process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001/ws/sam',
+  wsUrl: process.env.NEXT_PUBLIC_WS_URL ?? '',
   enablePersistence: true,
   enableSound: true,
   enableHaptics: true,
@@ -80,6 +81,33 @@ const DEFAULT_REALTIME_CONFIG: Required<SAMRealtimeConfig> = {
   offlineTimeoutMs: 30 * 60 * 1000, // 30 minutes
   heartbeatIntervalMs: 30000, // 30 seconds
 };
+
+/**
+ * Check if WebSocket is enabled (NEXT_PUBLIC_WS_URL is set with a valid ws:// or wss:// URL)
+ * Returns false if not in browser environment or URL is not a valid WebSocket URL
+ */
+export function isWebSocketEnabled(): boolean {
+  // Only enable WebSocket in browser environment with explicit URL configuration
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  // Check if WebSocket API is available
+  if (typeof WebSocket === 'undefined') {
+    return false;
+  }
+
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+
+  // Must have a valid WebSocket URL (ws:// or wss://)
+  const isEnabled = Boolean(
+    wsUrl &&
+      wsUrl.trim().length > 0 &&
+      (wsUrl.startsWith('ws://') || wsUrl.startsWith('wss://'))
+  );
+
+  return isEnabled;
+}
 
 // ============================================================================
 // SAM REALTIME MANAGER (CLIENT-SIDE)
@@ -100,8 +128,25 @@ export class SAMRealtimeClient {
   private readonly eventHandlers: Map<string, Set<(event: SAMWebSocketEvent) => void>> = new Map();
   private readonly presenceHandlers: Set<(presence: UserPresence) => void> = new Set();
 
+  // Flag to track if WebSocket is actually available
+  private readonly wsAvailable: boolean;
+
   constructor(config: SAMRealtimeConfig = {}) {
     this.config = { ...DEFAULT_REALTIME_CONFIG, ...config };
+
+    // Check if WebSocket is actually available:
+    // 1. Must be in browser environment
+    // 2. WebSocket API must be available
+    // 3. Must have a valid ws:// or wss:// URL configured
+    const isBrowser = typeof window !== 'undefined';
+    const hasWebSocketAPI = typeof WebSocket !== 'undefined';
+    const hasValidUrl = Boolean(
+      this.config.wsUrl &&
+        this.config.wsUrl.trim().length > 0 &&
+        (this.config.wsUrl.startsWith('ws://') || this.config.wsUrl.startsWith('wss://'))
+    );
+
+    this.wsAvailable = isBrowser && hasWebSocketAPI && hasValidUrl;
 
     // Initialize intervention surface manager
     this.surfaceManager = createInterventionSurfaceManager({
@@ -119,6 +164,13 @@ export class SAMRealtimeClient {
   // ---------------------------------------------------------------------------
 
   async connect(userId: string, metadata?: PresenceMetadata): Promise<void> {
+    // CRITICAL: Check wsAvailable flag FIRST - prevents any WebSocket attempt
+    if (!this.wsAvailable) {
+      // Use debug level - this is expected behavior when WebSocket is not configured
+      logger.debug('WebSocket not configured, REST polling will be used');
+      throw new Error('WebSocket not configured - using REST polling fallback');
+    }
+
     if (this.isConnected && this.userId === userId) {
       logger.debug('Already connected with same user');
       return;
@@ -126,18 +178,40 @@ export class SAMRealtimeClient {
 
     this.userId = userId;
 
-    // Create WebSocket manager
+    // Check if WebSocket server is reachable before attempting connection
+    const isReachable = await this.isWebSocketReachable(this.config.wsUrl);
+    if (!isReachable) {
+      logger.debug('WebSocket endpoint not reachable, REST polling will be used');
+      throw new Error('WebSocket server unreachable - using REST polling fallback');
+    }
+
+    // Create WebSocket manager with custom logger that downgrades WebSocket errors to debug/warn
+    const realtimeLogger: RealtimeLogger = {
+      debug: (message, meta) => logger.debug(message, meta),
+      info: (message, meta) => logger.info(message, meta),
+      warn: (message, meta) => logger.warn(message, meta),
+      error: (message, meta) => {
+        // Downgrade WebSocket-related errors to warnings since they're expected
+        // when no WebSocket server is running
+        if (message.toLowerCase().includes('websocket')) {
+          logger.debug(message, meta);
+          return;
+        }
+        logger.error(message, meta);
+      },
+    };
+
     this.wsManager = createClientWebSocketManager({
       config: {
         url: this.config.wsUrl,
-        maxReconnectAttempts: 5,
+        maxReconnectAttempts: 3, // Reduced from 5 to fail faster
         reconnectDelay: 1000,
         heartbeatInterval: this.config.heartbeatIntervalMs,
         idleTimeout: this.config.idleTimeoutMs,
         awayTimeout: this.config.awayTimeoutMs,
-        autoReconnect: true,
+        autoReconnect: false, // Disable auto-reconnect - let caller handle fallback
       },
-      logger,
+      logger: realtimeLogger,
     });
 
     // Set up event handlers
@@ -160,6 +234,30 @@ export class SAMRealtimeClient {
     this.userId = null;
 
     logger.info('SAM realtime client disconnected');
+  }
+
+  private async isWebSocketReachable(url: string): Promise<boolean> {
+    if (!url || typeof window === 'undefined') {
+      return false;
+    }
+
+    const httpUrl = url.replace(/^ws/, 'http');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+    try {
+      await fetch(httpUrl, {
+        method: 'GET',
+        mode: 'no-cors',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      return true;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private setupEventHandlers(): void {
@@ -605,6 +703,7 @@ let serverInstance: SAMRealtimeServer | null = null;
 
 /**
  * Get or create the client-side realtime manager (browser only)
+ * Note: Check isWebSocketEnabled() before calling this function to avoid unnecessary client creation
  */
 export function getSAMRealtimeClient(config?: SAMRealtimeConfig): SAMRealtimeClient {
   if (typeof window === 'undefined') {

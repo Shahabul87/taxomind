@@ -159,7 +159,7 @@ export function createLazyComponent(
 export const LazyRoutes = {
   // Dashboard routes
   Dashboard: createLazyComponent(
-    () => import('@/app/dashboard/page'),
+    () => import('@/app/dashboard/user/page'),
     { fallback: 'Dashboard', preload: true, criticalResource: true }
   ),
 
@@ -398,7 +398,7 @@ export class PreloadStrategy {
     try {
       // Map routes to their respective lazy components
       const routeMap: Record<string, () => Promise<unknown>> = {
-        '/dashboard': () => import('@/app/dashboard/page'),
+        '/dashboard': () => import('@/app/dashboard/user/page'),
         '/analytics': () => import('@/components/analytics/enhanced-analytics-dashboard'),
         // '/courses': () => import('@/app/courses/[courseId]/page'), // Module doesn't exist
         '/profile': () => import('@/app/dashboard/user/page'),

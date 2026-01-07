@@ -10,6 +10,8 @@ import { getCourseData, getCourseStats } from './data-fetchers';
 import { getCategoryLayout } from '../_config/category-layouts';
 import type { BaseCourse } from '../_types/course.types';
 
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
+
 /**
  * Category-specific keywords for SEO
  */
@@ -76,56 +78,99 @@ export async function generateCourseMetadata(courseId: string): Promise<Metadata
   const layout = getCategoryLayout(course.category?.name);
   const stats = await getCourseStats(courseId);
 
-  const title = `${course.title} | Taxomind`;
-  const description = course.description ?? `Learn ${course.title} with Taxomind. ${stats.enrollmentCount} students enrolled.`;
-  const imageUrl = course.imageUrl || '/og-image-default.png';
-  const url = `/courses/${courseId}`;
+  // Calculate average rating for rich snippets
+  const avgRating = course.reviews && course.reviews.length > 0
+    ? (course.reviews.reduce((sum, r) => sum + r.rating, 0) / course.reviews.length).toFixed(1)
+    : null;
 
-  // Build comprehensive keywords
+  const title = `${course.title} | Taxomind`;
+
+  // Build a compelling meta description with stats
+  const descriptionParts = [
+    course.description?.slice(0, 120) || `Learn ${course.title} with Taxomind.`,
+    stats.enrollmentCount > 0 ? `${stats.enrollmentCount.toLocaleString()} students enrolled.` : '',
+    avgRating ? `${avgRating}★ rating.` : '',
+    course.chapters?.length ? `${course.chapters.length} chapters.` : '',
+  ].filter(Boolean);
+  const description = descriptionParts.join(' ').slice(0, 160);
+
+  // Ensure absolute image URL
+  const imageUrl = course.imageUrl?.startsWith('http')
+    ? course.imageUrl
+    : `${baseUrl}${course.imageUrl || '/og-default.png'}`;
+  const url = `${baseUrl}/courses/${courseId}`;
+
+  // Build comprehensive keywords array
   const categoryKeywords = CATEGORY_KEYWORDS[layout.variant] || CATEGORY_KEYWORDS.default;
   const keywords = [
     course.title,
     course.category?.name || '',
     ...categoryKeywords,
     course.difficulty || '',
-  ].filter(Boolean).join(', ');
+    'Taxomind',
+    'online learning',
+    course.user?.name ? `${course.user.name} course` : '',
+  ].filter(Boolean);
 
   return {
+    metadataBase: new URL(baseUrl),
     title,
     description,
     keywords,
-    authors: course.user?.name ? [{ name: course.user.name }] : undefined,
+    authors: course.user?.name ? [{ name: course.user.name }] : [{ name: 'Taxomind' }],
+    creator: course.user?.name || 'Taxomind',
+    publisher: 'Taxomind',
     alternates: {
-      canonical: url,
+      canonical: `/courses/${courseId}`,
     },
     openGraph: {
-      title,
+      title: course.title,
       description,
       url,
       type: 'article',
       siteName: 'Taxomind',
+      locale: 'en_US',
       images: [
         {
           url: imageUrl,
           width: 1200,
           height: 630,
-          alt: course.title,
+          alt: `${course.title} - Online Course on Taxomind`,
         },
       ],
       publishedTime: course.createdAt.toISOString(),
       modifiedTime: course.updatedAt.toISOString(),
+      authors: course.user?.name ? [course.user.name] : undefined,
+      section: course.category?.name || 'Education',
+      tags: keywords.slice(0, 6),
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: course.title,
       description,
       images: [imageUrl],
-      creator: course.user?.name || '@taxomind',
+      creator: '@taxomind',
+      site: '@taxomind',
     },
     robots: {
       index: course.isPublished,
       follow: course.isPublished,
       nocache: !course.isPublished,
+      googleBot: {
+        index: course.isPublished,
+        follow: course.isPublished,
+        'max-snippet': -1,
+        'max-image-preview': 'large',
+        'max-video-preview': -1,
+      },
+    },
+    other: {
+      // Additional meta tags for course-specific SEO
+      'course:instructor': course.user?.name || '',
+      'course:price': course.price?.toString() || '0',
+      'course:currency': 'USD',
+      'course:duration': `${course.chapters?.length || 0} chapters`,
+      ...(avgRating && { 'course:rating': avgRating }),
     },
   };
 }
@@ -142,55 +187,107 @@ export function generateCourseJsonLd(course: BaseCourse) {
     ? course.reviews.reduce((sum, r) => sum + r.rating, 0) / course.reviews.length
     : undefined;
 
+  // Calculate total duration if available
+  const totalSections = course.chapters?.reduce(
+    (sum, ch) => sum + (ch.sections?.length || 0),
+    0
+  ) || 0;
+
+  // Ensure absolute image URL
+  const imageUrl = course.imageUrl?.startsWith('http')
+    ? course.imageUrl
+    : `${baseUrl}${course.imageUrl || '/og-default.png'}`;
+
+  const courseUrl = `${baseUrl}/courses/${course.id}`;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Course',
+    '@id': courseUrl,
     name: course.title,
-    description: course.description,
-    image: course.imageUrl,
+    description: course.description || `Learn ${course.title} with Taxomind`,
+    url: courseUrl,
+    image: {
+      '@type': 'ImageObject',
+      url: imageUrl,
+      width: 1200,
+      height: 630,
+    },
     provider: {
       '@type': 'Organization',
+      '@id': `${baseUrl}/#organization`,
       name: 'Taxomind',
-      sameAs: 'https://taxomind.com',
+      url: baseUrl,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${baseUrl}/logo.png`,
+      },
     },
-    instructor: course.user ? {
-      '@type': 'Person',
-      name: course.user.name,
-      image: course.user.image,
-    } : undefined,
-    aggregateRating: avgRating ? {
-      '@type': 'AggregateRating',
-      ratingValue: avgRating.toFixed(1),
-      reviewCount: course.reviews?.length || 0,
-      bestRating: '5',
-      worstRating: '1',
-    } : undefined,
+    ...(course.user && {
+      instructor: {
+        '@type': 'Person',
+        name: course.user.name,
+        image: course.user.image?.startsWith('http')
+          ? course.user.image
+          : `${baseUrl}${course.user.image || '/default-avatar.png'}`,
+        url: `${baseUrl}/instructors/${course.user.id}`,
+      },
+    }),
+    ...(avgRating && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: avgRating.toFixed(1),
+        ratingCount: course.reviews?.length || 0,
+        reviewCount: course.reviews?.length || 0,
+        bestRating: '5',
+        worstRating: '1',
+      },
+    }),
     hasCourseInstance: {
       '@type': 'CourseInstance',
-      courseMode: 'Online',
-      courseWorkload: `${course.chapters?.length || 0} chapters`,
-      educationalLevel: course.difficulty || 'All Levels',
+      courseMode: 'online',
+      courseWorkload: `PT${(course.chapters?.length || 1) * 2}H`, // ISO 8601 duration estimate
+      educationalLevel: course.difficulty || 'Beginner',
+      instructor: course.user ? {
+        '@type': 'Person',
+        name: course.user.name,
+      } : undefined,
     },
-    offers: course.price ? {
+    offers: {
       '@type': 'Offer',
-      price: course.price,
+      '@id': `${courseUrl}#offer`,
+      price: (course.price || 0).toString(),
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
+      url: courseUrl,
       validFrom: course.createdAt.toISOString(),
-    } : {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'USD',
-      availability: 'https://schema.org/InStock',
+      seller: {
+        '@type': 'Organization',
+        name: 'Taxomind',
+      },
     },
     numberOfCredits: course.chapters?.length || 0,
+    numberOfLessons: totalSections,
     about: {
       '@type': 'Thing',
-      name: course.category?.name || 'General',
+      name: course.category?.name || 'General Education',
     },
+    educationalLevel: course.difficulty || 'Beginner',
+    teaches: course.title,
+    assesses: course.category?.name || 'Skills',
+    competencyRequired: 'None',
     datePublished: course.createdAt.toISOString(),
     dateModified: course.updatedAt.toISOString(),
-    inLanguage: 'en-US',
+    inLanguage: 'en',
+    isAccessibleForFree: !course.price || course.price === 0,
+    ...(course.chapters && course.chapters.length > 0 && {
+      syllabusSections: course.chapters.slice(0, 10).map((chapter, index) => ({
+        '@type': 'Syllabus',
+        name: chapter.title,
+        position: index + 1,
+        description: chapter.description || `Chapter ${index + 1}: ${chapter.title}`,
+      })),
+    }),
   };
 }
 
@@ -201,35 +298,41 @@ export function generateCourseJsonLd(course: BaseCourse) {
  * @returns JSON-LD breadcrumb list
  */
 export function generateBreadcrumbJsonLd(course: BaseCourse) {
+  const items = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: baseUrl,
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Courses',
+      item: `${baseUrl}/courses`,
+    },
+  ];
+
+  if (course.category) {
+    items.push({
+      '@type': 'ListItem',
+      position: 3,
+      name: course.category.name,
+      item: `${baseUrl}/courses?category=${course.categoryId}`,
+    });
+  }
+
+  items.push({
+    '@type': 'ListItem',
+    position: course.category ? 4 : 3,
+    name: course.title,
+    item: `${baseUrl}/courses/${course.id}`,
+  });
+
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Home',
-        item: 'https://taxomind.com',
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Courses',
-        item: 'https://taxomind.com/courses',
-      },
-      course.category ? {
-        '@type': 'ListItem',
-        position: 3,
-        name: course.category.name,
-        item: `https://taxomind.com/courses?category=${course.categoryId}`,
-      } : null,
-      {
-        '@type': 'ListItem',
-        position: course.category ? 4 : 3,
-        name: course.title,
-        item: `https://taxomind.com/courses/${course.id}`,
-      },
-    ].filter(Boolean),
+    itemListElement: items,
   };
 }
 
