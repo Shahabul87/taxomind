@@ -26,7 +26,8 @@ import {
   createPrismaPermissionStore,
   createPrismaConfirmationStore,
 } from '@sam-ai/agentic';
-import { createPrismaToolStore, getToolRegistryCache } from '@/lib/sam/stores/prisma-tool-store';
+import { getToolRegistryCache } from '@/lib/sam/stores/prisma-tool-store';
+import { getStore } from '@/lib/sam/taxomind-context';
 import { createToolRepositories } from '@/lib/sam/tool-repositories';
 import { createExternalAPITools } from '@/lib/sam/agentic-external-api-tools';
 
@@ -36,7 +37,7 @@ interface ToolingSystem {
   permissionManager: PermissionManager;
   confirmationManager: ConfirmationManager;
   auditLogger: AuditLogger;
-  toolStore: ReturnType<typeof createPrismaToolStore>;
+  toolStore: ReturnType<typeof getStore<'tool'>>;
   permissionStore: ReturnType<typeof createPrismaPermissionStore>;
 }
 
@@ -45,11 +46,12 @@ let toolRegistrationDone = false;
 let externalToolsRegistered = false;
 let toolAiAdapter: AIAdapter | null = null;
 
-function getToolAiAdapter(): AIAdapter {
+function getToolAiAdapter(): AIAdapter | null {
   if (!toolAiAdapter) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+      logger.warn('[Tooling] ANTHROPIC_API_KEY not set - AI-powered tools will be unavailable');
+      return null;
     }
     toolAiAdapter = createAnthropicAdapter({
       apiKey,
@@ -64,11 +66,18 @@ function getToolAiAdapter(): AIAdapter {
 async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   if (toolRegistrationDone) return;
 
+  const aiAdapter = getToolAiAdapter();
+  if (!aiAdapter) {
+    logger.warn('[Tooling] Skipping mentor tools registration - AI adapter not available');
+    toolRegistrationDone = true;
+    return;
+  }
+
   // Create database-backed repositories for mentor tools
   const repositories = createToolRepositories();
 
   const tools = createMentorTools({
-    aiAdapter: getToolAiAdapter(),
+    aiAdapter,
     logger,
     // Wire content tools with content repository
     content: {
@@ -89,13 +98,13 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   const toolCache = getToolRegistryCache();
 
   for (const tool of tools) {
-    // Ensure handler/schema are always in memory
-    toolCache.set(tool.id, tool);
-
     const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
     if (!existing) {
+      // Tool not in DB - register it (this also adds to cache)
       await toolRegistry.register(tool);
     } else {
+      // Tool exists in DB - add to cache first, then update
+      toolCache.set(tool.id, tool);
       await toolRegistry.update(tool.id, {
         name: tool.name,
         description: tool.description,
@@ -132,14 +141,14 @@ async function registerExternalAPITools(toolRegistry: ToolRegistry): Promise<voi
   const toolCache = getToolRegistryCache();
 
   for (const tool of externalTools) {
-    // Ensure handler/schema are always in memory
-    toolCache.set(tool.id, tool);
-
     const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
     if (!existing) {
+      // Tool not in DB - register it (this also adds to cache)
       await toolRegistry.register(tool);
       logger.debug('[Tooling] Registered external tool', { id: tool.id });
     } else {
+      // Tool exists in DB - add to cache first, then update
+      toolCache.set(tool.id, tool);
       await toolRegistry.update(tool.id, {
         name: tool.name,
         description: tool.description,
@@ -170,7 +179,8 @@ export function getToolingSystem(): ToolingSystem {
     return toolingSystem;
   }
 
-  const toolStore = createPrismaToolStore();
+  // Get toolStore from TaxomindContext singleton (consistent store access)
+  const toolStore = getStore('tool');
   // Cast db to avoid type incompatibility with Prisma extensions
   const prismaClient = db as unknown as Parameters<typeof createPrismaInvocationStore>[0];
   const invocationStore = createPrismaInvocationStore(prismaClient);
@@ -200,7 +210,9 @@ export function getToolingSystem(): ToolingSystem {
     permissionStore,
     confirmationStore,
     logger,
-    enableAuditLogging: true,
+    // Disable audit logging for registry operations (registration happens at startup without user context)
+    // Tool execution audit logging is handled separately by the toolExecutor
+    enableAuditLogging: false,
   });
 
   const toolExecutor = createToolExecutor({
@@ -227,10 +239,22 @@ export function getToolingSystem(): ToolingSystem {
 }
 
 export async function ensureToolingInitialized(): Promise<ToolingSystem> {
-  const system = getToolingSystem();
-  await registerMentorTools(system.toolRegistry);
-  await registerExternalAPITools(system.toolRegistry);
-  return system;
+  logger.info('[Tooling] ensureToolingInitialized called');
+  try {
+    const system = getToolingSystem();
+    logger.info('[Tooling] Got tooling system');
+
+    await registerMentorTools(system.toolRegistry);
+    logger.info('[Tooling] Mentor tools registered');
+
+    await registerExternalAPITools(system.toolRegistry);
+    logger.info('[Tooling] External API tools registered');
+
+    return system;
+  } catch (error) {
+    logger.error('[Tooling] Error during initialization:', error);
+    throw error;
+  }
 }
 
 export async function ensureDefaultToolPermissions(

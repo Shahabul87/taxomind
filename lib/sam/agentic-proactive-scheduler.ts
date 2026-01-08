@@ -11,7 +11,7 @@
 
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
-import { createPrismaCheckInStore } from '@/lib/sam/stores';
+import { getProactiveStores } from '@/lib/sam/taxomind-context';
 import {
   createCheckInScheduler,
   createBehaviorMonitor,
@@ -88,15 +88,21 @@ export class ProactiveScheduler {
       streakRiskHours: config.streakRiskHours ?? 20,
     };
 
-    // Initialize scheduler with Prisma store
+    // Get Prisma stores from the centralized context
+    const proactiveStores = getProactiveStores();
+
+    // Initialize scheduler with Prisma store from context
     this.checkInScheduler = createCheckInScheduler({
-      store: createPrismaCheckInStore(),
+      store: proactiveStores.checkIn,
       logger,
       defaultChannel: this.config.defaultChannel,
     });
 
-    // Initialize behavior monitor
+    // Initialize behavior monitor with Prisma stores for persistent storage
     this.behaviorMonitor = createBehaviorMonitor({
+      eventStore: proactiveStores.behaviorEvent,
+      patternStore: proactiveStores.pattern,
+      interventionStore: proactiveStores.intervention,
       logger,
       frustrationThreshold: 0.7,
       churnPredictionWindow: 14,

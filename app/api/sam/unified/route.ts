@@ -104,6 +104,11 @@ import {
 } from '@/lib/sam/agentic-tooling';
 import { getAgenticMemorySystem } from '@/lib/sam/agentic-memory';
 import { planToolInvocation } from '@/lib/sam/tool-planner';
+import {
+  extractConceptsFromResponse,
+  addConceptsToKnowledgeGraph,
+  recordConceptInteraction,
+} from '@/lib/sam/services/knowledge-graph-builder';
 import { queueMemoryIngestion } from '@/lib/sam/memory-ingestion';
 
 // Import Orchestration Integration for plan-driven tutoring
@@ -113,14 +118,24 @@ import {
   injectPlanContext,
   processTutoringLoop,
   formatOrchestrationResponse,
+  executeCurrentStep,
+  isStepExecutorReady,
   type OrchestrationSubsystems,
   type OrchestrationResponseData,
 } from '@/lib/sam/orchestration-integration';
+
+// Import SAM Feature Flags for gradual rollout
 import {
-  createPrismaGoalStore,
-  createPrismaPlanStore,
-  createPrismaToolStore,
-} from '@/lib/sam/stores';
+  SAM_FEATURES,
+  isFeatureEnabled,
+} from '@/lib/sam/feature-flags';
+
+// Import SAM Telemetry for observability
+import {
+  getSAMTelemetryService,
+  MemorySource,
+} from '@/lib/sam/telemetry';
+import { getTaxomindContext } from '@/lib/sam/taxomind-context';
 
 // Import Proactive Intervention Integration for behavior tracking
 import {
@@ -363,14 +378,13 @@ function initializeSubsystems(): {
 
   // Initialize Tutoring Orchestration for plan-driven tutoring
   try {
-    const goalStore = createPrismaGoalStore();
-    const planStore = createPrismaPlanStore();
-    const toolStore = createPrismaToolStore();
+    // Get stores from TaxomindContext singleton (consistent with other API routes)
+    const { stores } = getTaxomindContext();
 
     tutoringOrchestration = initializeOrchestration({
-      goalStore,
-      planStore,
-      toolStore,
+      goalStore: stores.goal,
+      planStore: stores.plan,
+      toolStore: stores.tool,
     });
 
     logger.info('[SAM_UNIFIED] Tutoring orchestration initialized');
@@ -592,10 +606,15 @@ export async function POST(request: NextRequest) {
     let activePlanId: string | undefined = orchestrationContext?.planId;
     let activeGoalId: string | undefined = orchestrationContext?.goalId;
     let memorySessionContext: SessionContext | null = null;
+    let sessionResumptionContext: string | null = null;
+
+    // Check feature flag for orchestration
+    const orchestrationEnabled = SAM_FEATURES.ORCHESTRATION_ACTIVE;
+    logger.debug('[SAM_UNIFIED] Orchestration feature flag:', { enabled: orchestrationEnabled });
 
     try {
       const subsystems = initializeSubsystems();
-      if (subsystems.tutoring) {
+      if (subsystems.tutoring && orchestrationEnabled) {
         // Auto-detect active plan if not explicitly provided
         const autoDetect = orchestrationContext?.autoDetectPlan !== false;
 
@@ -659,6 +678,50 @@ export async function POST(request: NextRequest) {
         if (tutoringContext) {
           planContextInjection = injectPlanContext(tutoringContext);
 
+          // =====================================================================
+          // SESSION RESUMPTION - "Welcome back" context for returning users
+          // =====================================================================
+          // Check if user is returning to an active plan (session count > 1 or
+          // significant time since last interaction)
+          const sessionCount = memorySessionContext?.currentState?.sessionCount ?? 0;
+          const lastActiveAt = memorySessionContext?.currentState?.lastActiveAt;
+          const minutesSinceLastActive = lastActiveAt
+            ? (Date.now() - new Date(lastActiveAt).getTime()) / (1000 * 60)
+            : 0;
+
+          // Trigger session resumption if:
+          // - More than 1 session (returning user)
+          // - OR more than 30 minutes since last active
+          const isReturningUser = sessionCount > 1 || minutesSinceLastActive > 30;
+
+          if (isReturningUser && tutoringContext.activePlan && tutoringContext.currentStep) {
+            const plan = tutoringContext.activePlan;
+            const step = tutoringContext.currentStep;
+            const completedSteps = plan.steps.filter(s => s.status === 'completed').length;
+            const progressPercent = Math.round((completedSteps / plan.steps.length) * 100);
+
+            // Build "welcome back" context for the LLM
+            sessionResumptionContext = [
+              '## Session Resumption Context',
+              `The learner is returning to their learning plan after ${minutesSinceLastActive > 60 ? Math.round(minutesSinceLastActive / 60) + ' hours' : Math.round(minutesSinceLastActive) + ' minutes'}.`,
+              '',
+              `**Current Goal**: ${tutoringContext.activeGoal?.title ?? 'Learning Goal'}`,
+              `**Plan Progress**: ${progressPercent}% complete (${completedSteps}/${plan.steps.length} steps)`,
+              `**Current Step**: ${step.title}`,
+              step.description ? `**Step Description**: ${step.description}` : '',
+              '',
+              'Please acknowledge their return and help them continue from where they left off.',
+              'Provide a brief recap of what they were working on and what comes next.',
+            ].filter(Boolean).join('\n');
+
+            logger.info('[SAM_UNIFIED] Session resumption detected:', {
+              sessionCount,
+              minutesSinceLastActive: Math.round(minutesSinceLastActive),
+              planProgress: progressPercent,
+              currentStepTitle: step.title,
+            });
+          }
+
           logger.info('[SAM_UNIFIED] Tutoring orchestration ACTIVE:', {
             hasActivePlan: !!tutoringContext.activePlan,
             planId: tutoringContext.activePlan?.id,
@@ -670,6 +733,7 @@ export async function POST(request: NextRequest) {
             hasMemoryContext: !!memorySessionContext,
             memoryMasteredConcepts: tutoringContext.memoryContext.masteredConcepts.length,
             memoryStrugglingConcepts: tutoringContext.memoryContext.strugglingConcepts.length,
+            hasSessionResumption: !!sessionResumptionContext,
           });
         }
       }
@@ -839,12 +903,35 @@ export async function POST(request: NextRequest) {
         await memorySystem.sessionContext.getOrCreateContext(user.id, courseIdForMemory);
         await memorySystem.sessionContext.recordQuestion(user.id, message, courseIdForMemory);
 
+        // Track memory retrieval with telemetry
+        const memoryRetrievalStartTime = Date.now();
         agenticMemorySnippets = await memorySystem.memoryRetriever.retrieveForContext(
           message,
           user.id,
           courseIdForMemory,
           5
         );
+        const memoryRetrievalLatency = Date.now() - memoryRetrievalStartTime;
+
+        // Record memory retrieval telemetry
+        if (SAM_FEATURES.OBSERVABILITY_ENABLED && agenticMemorySnippets.length >= 0) {
+          try {
+            const telemetry = getSAMTelemetryService();
+            await telemetry.recordMemoryRetrieval({
+              userId: user.id,
+              sessionId: sessionId, // Use sessionId that's already declared
+              query: message.substring(0, 200), // Truncate for privacy
+              source: 'VECTOR_SEARCH',
+              resultCount: agenticMemorySnippets.length,
+              topRelevanceScore: agenticMemorySnippets.length > 0 ? 0.8 : 0, // Estimate if not available
+              avgRelevanceScore: agenticMemorySnippets.length > 0 ? 0.7 : 0,
+              cacheHit: false,
+              latencyMs: memoryRetrievalLatency,
+            });
+          } catch (telemetryError) {
+            logger.warn('[SAM_UNIFIED] Memory retrieval telemetry failed:', telemetryError);
+          }
+        }
 
         if (agenticMemorySnippets.length > 0) {
           const agenticSummary = [
@@ -872,6 +959,15 @@ export async function POST(request: NextRequest) {
         logger.debug('[SAM_UNIFIED] Plan context injected into prompt:', {
           additionsCount: planContextInjection.systemPromptAdditions.length,
         });
+      }
+
+      // Inject session resumption context for returning users
+      if (sessionResumptionContext) {
+        memorySummary = memorySummary
+          ? `${memorySummary}\n\n${sessionResumptionContext}`
+          : sessionResumptionContext;
+
+        logger.debug('[SAM_UNIFIED] Session resumption context injected into prompt');
       }
     }
 
@@ -991,6 +1087,44 @@ export async function POST(request: NextRequest) {
 
         orchestrationData = formatOrchestrationResponse(loopResult);
 
+        // =====================================================================
+        // STEP EXECUTION - Generate learning artifacts when orchestration is active
+        // =====================================================================
+        if (orchestrationEnabled && loopResult?.toolPlan && isStepExecutorReady()) {
+          try {
+            const stepExecution = await executeCurrentStep(
+              loopResult.context,
+              loopResult.toolPlan
+            );
+
+            if (stepExecution) {
+              logger.info('[SAM_UNIFIED] Step execution completed:', {
+                success: stepExecution.success,
+                executedToolsCount: stepExecution.executedTools.length,
+                artifactsCount: stepExecution.artifacts.length,
+                requiresConfirmation: stepExecution.requiresConfirmation,
+              });
+
+              // Add artifacts to response for frontend to render
+              if (orchestrationData && stepExecution.artifacts.length > 0) {
+                (orchestrationData as OrchestrationResponseData & {
+                  stepArtifacts?: Array<{ type: string; title: string; content: unknown }>;
+                }).stepArtifacts = stepExecution.artifacts;
+              }
+
+              // Track pending confirmations from step execution
+              if (stepExecution.requiresConfirmation && stepExecution.pendingConfirmationIds.length > 0) {
+                logger.info('[SAM_UNIFIED] Step execution requires confirmation:', {
+                  pendingCount: stepExecution.pendingConfirmationIds.length,
+                });
+              }
+            }
+          } catch (stepError) {
+            logger.warn('[SAM_UNIFIED] Step execution failed:', stepError);
+            // Non-blocking - continue without step artifacts
+          }
+        }
+
         if (loopResult?.transition) {
           logger.info('[SAM_UNIFIED] Step transition occurred:', {
             transitionType: loopResult.transition.transitionType,
@@ -1076,6 +1210,44 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logger.warn('[SAM_UNIFIED] Failed to process tutoring loop:', error);
         // Continue without orchestration updates - non-blocking
+      }
+    }
+
+    // Extract concepts from response and add to knowledge graph
+    if (result.response?.message) {
+      try {
+        const concepts = extractConceptsFromResponse(result.response.message, message);
+        if (concepts.length > 0) {
+          const courseIdForKg = pageContext.entityId ?? undefined;
+          const kgResult = await addConceptsToKnowledgeGraph(user.id, concepts, courseIdForKg);
+          logger.debug('[SAM_UNIFIED] Knowledge graph updated:', {
+            conceptsExtracted: kgResult.conceptsExtracted,
+            entitiesCreated: kgResult.entitiesCreated,
+            relationshipsCreated: kgResult.relationshipsCreated,
+          });
+
+          // Record concept interactions based on orchestration evaluation
+          if (orchestrationData?.stepProgress?.stepComplete && orchestrationData.currentStep?.title) {
+            await recordConceptInteraction(
+              user.id,
+              orchestrationData.currentStep.title,
+              'mastered',
+              courseIdForKg
+            );
+          } else if (orchestrationData?.stepProgress && orchestrationData.stepProgress.progressPercent < 50) {
+            if (orchestrationData.currentStep?.title) {
+              await recordConceptInteraction(
+                user.id,
+                orchestrationData.currentStep.title,
+                'struggled',
+                courseIdForKg
+              );
+            }
+          }
+        }
+      } catch (kgError) {
+        logger.warn('[SAM_UNIFIED] Failed to update knowledge graph:', kgError);
+        // Non-blocking - continue without knowledge graph update
       }
     }
 
@@ -1222,6 +1394,25 @@ export async function POST(request: NextRequest) {
       });
 
       if (plan) {
+        // Start telemetry tracking for tool execution
+        let telemetryExecutionId: string | undefined;
+        if (SAM_FEATURES.OBSERVABILITY_ENABLED) {
+          try {
+            const telemetry = getSAMTelemetryService();
+            telemetryExecutionId = telemetry.startToolExecution({
+              toolId: plan.tool.id,
+              toolName: plan.tool.name,
+              userId: user.id,
+              sessionId: samContext.metadata.sessionId,
+              planId: activePlanId,
+              confirmationRequired: (plan.tool as { requiresConfirmation?: boolean }).requiresConfirmation ?? false,
+              input: plan.input,
+            });
+          } catch (telemetryError) {
+            logger.warn('[SAM_UNIFIED] Tool telemetry start failed:', telemetryError);
+          }
+        }
+
         const execution = await tooling.toolExecutor.execute(
           plan.tool.id,
           user.id,
@@ -1241,6 +1432,26 @@ export async function POST(request: NextRequest) {
             },
           }
         );
+
+        // Complete telemetry tracking
+        if (SAM_FEATURES.OBSERVABILITY_ENABLED && telemetryExecutionId) {
+          try {
+            const telemetry = getSAMTelemetryService();
+            const isSuccess = execution.status === 'success';
+            await telemetry.completeToolExecution(
+              telemetryExecutionId,
+              isSuccess,
+              execution.result,
+              !isSuccess ? {
+                code: 'EXECUTION_FAILED',
+                message: 'Tool execution failed',
+                retryable: true,
+              } : undefined
+            );
+          } catch (telemetryError) {
+            logger.warn('[SAM_UNIFIED] Tool telemetry completion failed:', telemetryError);
+          }
+        }
 
         toolExecution = {
           toolId: plan.tool.id,
@@ -1303,6 +1514,29 @@ export async function POST(request: NextRequest) {
             weight: f.weight,
           })),
         };
+
+        // Record confidence prediction telemetry
+        if (SAM_FEATURES.OBSERVABILITY_ENABLED) {
+          try {
+            const telemetry = getSAMTelemetryService();
+            await telemetry.recordConfidencePrediction({
+              userId: user.id,
+              sessionId: samContext.metadata.sessionId,
+              responseId: `resp_${Date.now()}`,
+              responseType: 'EXPLANATION',
+              predictedConfidence: confidenceResult.overallScore,
+              factors: confidenceResult.factors.map(f => ({
+                type: f.type,
+                name: f.type,
+                weight: f.weight,
+                score: f.score,
+                contribution: f.weight * f.score,
+              })),
+            });
+          } catch (telemetryError) {
+            logger.warn('[SAM_UNIFIED] Confidence telemetry failed:', telemetryError);
+          }
+        }
 
         logger.debug('[SAM_UNIFIED] Agentic confidence scored:', {
           level: confidenceResult.level,

@@ -5,7 +5,7 @@ import {
   EmbeddingSourceType,
 } from '@sam-ai/agentic';
 import { OpenAI } from 'openai';
-import { createPrismaVectorAdapter, createPrismaKnowledgeGraphStore, createPrismaSessionContextStore } from '@/lib/sam/stores';
+import { getMemoryStores } from '@/lib/sam/taxomind-context';
 
 class OpenAIEmbeddingProvider {
   private readonly client: OpenAI;
@@ -60,9 +60,9 @@ export function getAgenticMemorySystem(): MemorySystem {
   const model = process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
 
   const embeddingProvider = new OpenAIEmbeddingProvider(apiKey, model);
-  const vectorAdapter = createPrismaVectorAdapter();
-  const graphStore = createPrismaKnowledgeGraphStore();
-  const contextStore = createPrismaSessionContextStore();
+
+  // Get memory stores from TaxomindContext singleton (consistent store access)
+  const { vector: vectorAdapter, knowledgeGraph: graphStore, sessionContext: contextStore } = getMemoryStores();
 
   memorySystem = createMemorySystem({
     embeddingProvider,

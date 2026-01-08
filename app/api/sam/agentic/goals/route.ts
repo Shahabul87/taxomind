@@ -3,14 +3,14 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createPrismaGoalStore } from '@/lib/sam/stores';
+import { getStore } from '@/lib/sam/taxomind-context';
 import {
   type GoalPriority,
   type GoalStatus,
 } from '@sam-ai/agentic';
 
-// Initialize the Goal Store
-const goalStore = createPrismaGoalStore();
+// Get the Goal Store from TaxomindContext singleton
+const goalStore = getStore('goal');
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -246,6 +246,8 @@ export async function POST(req: NextRequest) {
       data: {
         ...goal,
         course: courseData,
+        subGoals: [], // New goals have no sub-goals yet
+        plans: [], // New goals have no plans yet
       },
     });
   } catch (error) {

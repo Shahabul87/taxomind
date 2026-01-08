@@ -355,40 +355,110 @@ ChartBar  // Use BarChart3
 
 ## SAM Agentic AI Mentor Development
 
-**Master Plan**: `/SAM_AGENTIC_AI_MENTOR_MASTER_PLAN.md` (44-week implementation)
+### 🔴 MANDATORY: Architecture Reference
 
-### Current SAM Architecture (10 Packages)
-- `@sam-ai/core` - Orchestrator, StateMachine, 6 Core Engines
-- `@sam-ai/educational` - 40+ specialized engines
-- `@sam-ai/memory` - MasteryTracker, SpacedRepetition, Pathways
-- `@sam-ai/pedagogy` - Blooms, Scaffolding, ZPD
-- `@sam-ai/safety` - Bias, Fairness, Accessibility
-- `@sam-ai/quality` - 6 Quality Gates
-- `@sam-ai/react` - 11+ Hooks, Provider
-- `@sam-ai/api` - Route Handlers, Middleware
-- `@sam-ai/adapter-prisma` - Database Integration
+**Before writing ANY SAM-related code, you MUST read:**
+```
+codebase-memory/architecture/SAM_AGENTIC_ARCHITECTURE.md
+```
 
-### Planned Agentic Packages (New)
-- `@sam-ai/agentic` - Goal planning, tool execution, self-evaluation
-- `@sam-ai/realtime` - WebSocket, presence, live collaboration
-- `@sam-ai/knowledge` - External knowledge integrations
+This file contains:
+- Complete system architecture diagram
+- TaxomindContext usage patterns (SINGLE ENTRY POINT for all stores)
+- Store categories and their purposes
+- API routes structure
+- Code integration guidelines
+- Common patterns with examples
+- File reference map
 
-### Key Agentic Capabilities to Build
-1. **Goal Planning** - Task decomposition, resumable state machines
-2. **Tool Execution** - Registry, permissions, audit logging
-3. **Long-Term Memory** - Vector store, knowledge graph
-4. **Proactive Intervention** - Check-ins, behavior monitoring
-5. **Self-Evaluation** - Confidence scoring, source citations
+### 🚨 SAM Integration Rules
+
+#### Rule 1: ALWAYS Use TaxomindContext for Store Access
+```typescript
+// ✅ CORRECT - Use TaxomindContext
+import { getTaxomindContext, getStore, getGoalStores } from '@/lib/sam/taxomind-context';
+const goalStore = getStore('goal');
+const { goal, subGoal, plan } = getGoalStores();
+
+// ❌ WRONG - Never create stores directly
+import { createPrismaGoalStore } from '@/lib/sam/stores';
+const goalStore = createPrismaGoalStore(); // FORBIDDEN!
+```
+
+#### Rule 2: Import Types from @sam-ai/agentic
+```typescript
+// ✅ CORRECT
+import { type Goal, type GoalStatus, type Plan } from '@sam-ai/agentic';
+
+// ❌ WRONG - Don't import types from stores directly in API routes
+```
+
+#### Rule 3: Use Package Factories for Business Logic
+```typescript
+// ✅ CORRECT - Use package factories with context stores
+import { createBehaviorMonitor } from '@sam-ai/agentic';
+import { getProactiveStores } from '@/lib/sam/taxomind-context';
+
+const stores = getProactiveStores();
+const monitor = createBehaviorMonitor({
+  eventStore: stores.behaviorEvent,
+  patternStore: stores.pattern,
+  interventionStore: stores.intervention,
+});
+```
+
+### SAM Packages (11 Total)
+
+| Package | Purpose |
+|---------|---------|
+| `@sam-ai/agentic` | Goal planning, tool execution, proactive interventions, memory |
+| `@sam-ai/core` | Orchestrator, StateMachine, AI Adapters |
+| `@sam-ai/educational` | 40+ specialized educational engines |
+| `@sam-ai/memory` | MasteryTracker, SpacedRepetition, Pathways |
+| `@sam-ai/pedagogy` | Bloom's Taxonomy, Scaffolding, ZPD |
+| `@sam-ai/safety` | Bias detection, Fairness, Accessibility |
+| `@sam-ai/quality` | 6 Quality Gates |
+| `@sam-ai/react` | 11+ Hooks, Provider |
+| `@sam-ai/api` | Route Handlers, Middleware |
+| `@sam-ai/adapter-prisma` | Database Integration |
+| `@sam-ai/adapter-taxomind` | Taxomind-specific adapters |
+
+### Key Integration Files
+
+| File | Purpose |
+|------|---------|
+| `lib/sam/taxomind-context.ts` | **SINGLE ENTRY POINT** - All store access |
+| `lib/sam/index.ts` | Main SAM exports |
+| `lib/sam/agentic-bridge.ts` | Main integration bridge |
+| `lib/sam/agentic-tooling.ts` | Tool registry integration |
+| `lib/sam/agentic-memory.ts` | Memory system integration |
+| `lib/sam/stores/` | Prisma store adapters |
+
+### Store Access Quick Reference
+
+```typescript
+// Full context
+const { stores } = getTaxomindContext();
+
+// Specific store
+const toolStore = getStore('tool');
+
+// Store groups
+const { goal, subGoal, plan } = getGoalStores();
+const { behaviorEvent, pattern, intervention, checkIn } = getProactiveStores();
+const { vector, knowledgeGraph, sessionContext } = getMemoryStores();
+const { skill, learningPath, courseGraph } = getLearningPathStores();
+```
 
 ### Quick Links
+- **Architecture Doc**: `codebase-memory/architecture/SAM_AGENTIC_ARCHITECTURE.md`
+- Master Plan: `SAM_AGENTIC_AI_MENTOR_MASTER_PLAN.md`
+- Prisma Schema: `prisma/domains/17-sam-agentic.prisma`
 - Existing Plans: `docs/features/sam-ai-system/improvement-plan/`
-- Phase 4 Thinking: `docs/features/sam-ai-system/improvement-plan/phase-4-thinking/`
-- Gaps Analysis: `docs/features/sam-ai-system/reports/SAM_ENGINE_GAPS_AND_IMPROVEMENTS.md`
-- Test Plan: `docs/testing/SAM_AI_TESTING_PLAN.md`
 
 ---
 
 **Quick Reference**: See `/Users/CLAUDE.md` for full enterprise standards. Always verify schema before database queries.
 
-*Last updated: December 2024*
+*Last updated: January 2025*
 *Stack: Next.js 15 + Prisma + PostgreSQL + NextAuth.js v5*

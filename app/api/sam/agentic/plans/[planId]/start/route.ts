@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
-import { createPrismaPlanStore } from '@/lib/sam/stores';
+import { getGoalStores } from '@/lib/sam/taxomind-context';
 import {
   createAgentStateMachine,
   type AgentStateMachine,
 } from '@sam-ai/agentic';
+import { recordPlanStarted } from '@/lib/sam/journey-timeline-service';
 
-// Initialize stores
-const planStore = createPrismaPlanStore();
+// Get the Plan Store from TaxomindContext singleton
+const { plan: planStore } = getGoalStores();
 
 // Create a lazy-initialized state machine
 let stateMachineInstance: AgentStateMachine | null = null;
@@ -70,6 +71,21 @@ export async function POST(req: NextRequest, context: RouteContext) {
     // Note: SAMLearningGoal model doesn't exist in the schema yet
     // Goal status update would be done through the goal store
     const goal = null;
+
+    // Record journey timeline event for plan start
+    try {
+      // Note: courseId would come from the associated goal's context,
+      // but goal lookup is not yet implemented
+      await recordPlanStarted(
+        session.user.id,
+        planId,
+        plan.goalId,
+        undefined // courseId - to be fetched from goal context when available
+      );
+      logger.info(`[JourneyTimeline] Recorded plan start: ${planId}`);
+    } catch (timelineError) {
+      logger.warn('[JourneyTimeline] Failed to record plan start:', timelineError);
+    }
 
     logger.info(
       `Started execution plan ${planId} using AgentStateMachine (state: ${stateMachine.getState()})`

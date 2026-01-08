@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import {
-  createPrismaGoalStore,
-  createPrismaSubGoalStore,
-} from '@/lib/sam/stores';
+import { getGoalStores } from '@/lib/sam/taxomind-context';
 import {
   createGoalDecomposer,
   type GoalDecomposition,
@@ -13,9 +10,8 @@ import {
 } from '@sam-ai/agentic';
 import { AnthropicAdapter } from '@sam-ai/core';
 
-// Initialize stores and decomposer
-const goalStore = createPrismaGoalStore();
-const subGoalStore = createPrismaSubGoalStore();
+// Get the stores from TaxomindContext singleton
+const { goal: goalStore, subGoal: subGoalStore } = getGoalStores();
 
 // Lazy initialize AI-dependent components
 let decomposerInstance: ReturnType<typeof createGoalDecomposer> | null = null;
@@ -70,7 +66,18 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
 
     const { goalId } = await context.params;
-    const body = await req.json();
+
+    // Parse request body with error handling
+    let body: Record<string, unknown>;
+    try {
+      const text = await req.text();
+      logger.info(`[Decompose] Request body text: ${text || '(empty)'}`);
+      body = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      logger.error(`[Decompose] Failed to parse request body:`, parseError);
+      body = {};
+    }
+
     const options = DecomposeOptionsSchema.parse(body);
 
     // Use the GoalStore from @sam-ai/agentic package to fetch the goal
@@ -81,8 +88,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
 
     // Use the GoalDecomposer from @sam-ai/agentic package
+    logger.info(`[Decompose] Starting decomposition for goal: ${goal.title}`);
     const decomposer = getGoalDecomposer();
-    const decomposition: GoalDecomposition = await decomposer.decompose(goal, {
+
+    let decomposition: GoalDecomposition;
+    try {
+      decomposition = await decomposer.decompose(goal, {
       maxSubGoals: options.maxSubGoals,
       minSubGoals: options.minSubGoals,
       includeAssessments: options.includeAssessments,
@@ -90,6 +101,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
       preferredLearningStyle: options.preferredLearningStyle,
       availableTimePerDay: options.availableTimePerDay,
     });
+      logger.info(`[Decompose] Successfully decomposed goal into ${decomposition.subGoals.length} sub-goals`);
+    } catch (decomposeError) {
+      logger.error(`[Decompose] Decomposition failed:`, decomposeError);
+      throw decomposeError;
+    }
 
     // Delete existing sub-goals for this goal (if re-decomposing)
     await subGoalStore.deleteByGoal(goalId);

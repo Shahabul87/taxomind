@@ -683,19 +683,6 @@ export {
   type SafeEvaluationWrapperConfig,
 } from './safety';
 
-// Unified Chat Integration - Main chat path with all subsystems (NEW)
-export {
-  UnifiedChatIntegration,
-  createUnifiedChatIntegration,
-  getUnifiedChatIntegration,
-  resetUnifiedChatIntegration,
-  type UnifiedChatConfig,
-  type UnifiedChatResult,
-  type PedagogyCheckResult,
-  type MemoryUpdateResult,
-  type UnifiedChatMetadata,
-} from './unified-chat-integration';
-
 // Real-Time Integration - WebSocket, Presence, Push Dispatcher (Phase 4)
 export {
   // Client-side manager
@@ -751,3 +738,20 @@ export {
   type PlanLifecycleEvent,
   type ProactiveEvent,
 } from './telemetry';
+
+// Taxomind Integration Context - Centralized Store Access
+export {
+  // Singleton context
+  getTaxomindContext,
+  resetTaxomindContext,
+  isTaxomindContextInitialized,
+  // Convenience functions
+  getStore,
+  getProactiveStores,
+  getGoalStores,
+  getMemoryStores,
+  getLearningPathStores,
+  // Types
+  type TaxomindAgenticStores,
+  type TaxomindIntegrationContext,
+} from './taxomind-context';

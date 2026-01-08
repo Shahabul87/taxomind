@@ -3,14 +3,18 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createPrismaGoalStore } from '@/lib/sam/stores';
+import { getGoalStores } from '@/lib/sam/taxomind-context';
 import {
   type GoalPriority,
   type GoalStatus,
 } from '@sam-ai/agentic';
+import {
+  recordGoalCompleted,
+  recordGoalProgressUpdated,
+} from '@/lib/sam/journey-timeline-service';
 
-// Initialize the Goal Store
-const goalStore = createPrismaGoalStore();
+// Get the stores from TaxomindContext singleton
+const { goal: goalStore, subGoal: subGoalStore, plan: planStore } = getGoalStores();
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -63,8 +67,6 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     // Fetch related data (course) for UI
-    // Note: SAMSubGoal and SAMExecutionPlan models don't exist in the schema yet
-    // TODO: Add these models when implementing full goal tracking
     const course = goal.context.courseId
       ? await db.course.findUnique({
           where: { id: goal.context.courseId },
@@ -72,9 +74,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
         })
       : null;
 
-    // Sub-goals and plans are not persisted yet - return empty arrays
-    const subGoals: Array<{ id: string; title: string; order: number; status: string }> = [];
-    const plans: Array<{ id: string; createdAt: Date; steps: unknown[] }> = [];
+    // Fetch sub-goals from the SubGoalStore
+    const subGoals = await subGoalStore.getByGoal(goalId);
+
+    // Fetch execution plans from the PlanStore
+    const plans = await planStore.getByGoal(goalId);
 
     // Combine goal data with related data
     const enrichedGoal = {
@@ -150,8 +154,40 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       },
     });
 
+    // Record journey timeline events for status changes
+    if (validated.status && validated.status !== existing.status) {
+      try {
+        if (validated.status === 'completed') {
+          // Goal completed - major milestone!
+          await recordGoalCompleted(
+            session.user.id,
+            goalId,
+            goal.title,
+            goal.context.courseId
+          );
+          logger.info(`[JourneyTimeline] Recorded goal completion: ${goalId}`);
+        }
+      } catch (timelineError) {
+        // Don't fail the main operation if timeline recording fails
+        logger.warn('[JourneyTimeline] Failed to record event:', timelineError);
+      }
+    }
+
+    // Record progress updates
+    if (goal.progress !== existing.progress) {
+      try {
+        await recordGoalProgressUpdated(
+          session.user.id,
+          goalId,
+          goal.progress,
+          goal.context.courseId
+        );
+      } catch (timelineError) {
+        logger.warn('[JourneyTimeline] Failed to record progress:', timelineError);
+      }
+    }
+
     // Fetch related data for response
-    // Note: SAMSubGoal model doesn't exist in the schema yet
     const course = goal.context.courseId
       ? await db.course.findUnique({
           where: { id: goal.context.courseId },
@@ -159,8 +195,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         })
       : null;
 
-    // Sub-goals are not persisted yet - return empty array
-    const subGoals: Array<{ id: string; title: string; order: number; status: string }> = [];
+    // Fetch sub-goals from the SubGoalStore
+    const subGoals = await subGoalStore.getByGoal(goalId);
+
+    // Fetch execution plans from the PlanStore
+    const plans = await planStore.getByGoal(goalId);
 
     logger.info(`Updated learning goal: ${goalId}`);
 
@@ -176,6 +215,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         skillIds: goal.context.skillIds,
         course,
         subGoals,
+        plans,
       },
     });
   } catch (error) {
