@@ -14,8 +14,8 @@ import {
   DialogContent,
   DialogTrigger,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useUnreadNotificationCount } from '@/hooks/use-learning-notifications';
 import { NotificationsList } from './NotificationsList';
@@ -149,9 +149,8 @@ export function LearningNotificationBell({
       {/* Full Preferences Dialog */}
       <Dialog open={showPreferencesDialog} onOpenChange={setShowPreferencesDialog}>
         <DialogContent className="max-w-2xl p-0">
-          <VisuallyHidden>
-            <DialogTitle>Notification Preferences</DialogTitle>
-          </VisuallyHidden>
+          <DialogTitle className="sr-only">Notification Preferences</DialogTitle>
+          <DialogDescription className="sr-only">Configure your notification settings</DialogDescription>
           <NotificationPreferences onClose={() => setShowPreferencesDialog(false)} />
         </DialogContent>
       </Dialog>
