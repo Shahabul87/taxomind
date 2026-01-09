@@ -1159,3 +1159,91 @@ enum SAMRecommendationReason {
   REVIEW
 }
 
+// ==========================================
+// SAM AI OBSERVABILITY ENUMS
+// ==========================================
+
+// Tool execution status for telemetry
+enum SAMToolExecutionStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  EXECUTING
+  SUCCESS
+  FAILED
+  TIMEOUT
+  CANCELLED
+}
+
+// Response types for confidence scoring
+enum SAMConfidenceResponseType {
+  EXPLANATION
+  ANSWER
+  RECOMMENDATION
+  ASSESSMENT
+  INTERVENTION
+  TOOL_RESULT
+}
+
+// Verification methods for confidence outcomes
+enum SAMVerificationMethod {
+  USER_FEEDBACK
+  EXPERT_REVIEW
+  AUTOMATED_CHECK
+  OUTCOME_TRACKING
+  SELF_VERIFICATION
+}
+
+// Memory sources for retrieval tracking
+enum SAMMemorySourceType {
+  VECTOR_SEARCH
+  KNOWLEDGE_GRAPH
+  SESSION_CONTEXT
+  CROSS_SESSION
+  CURRICULUM
+  EXTERNAL
+}
+
+// Plan lifecycle event types
+enum SAMPlanEventType {
+  CREATED
+  ACTIVATED
+  PAUSED
+  RESUMED
+  STEP_STARTED
+  STEP_COMPLETED
+  STEP_FAILED
+  STEP_SKIPPED
+  CHECKPOINT_REACHED
+  COMPLETED
+  ABANDONED
+}
+
+
+// User presence status for real-time tracking
+enum SAMPresenceStatus {
+  ONLINE
+  AWAY
+  IDLE
+  STUDYING
+  OFFLINE
+  DO_NOT_DISTURB
+}
+
+// Presence change reason
+enum SAMPresenceChangeReason {
+  CONNECTED
+  DISCONNECTED
+  ACTIVITY
+  IDLE_TIMEOUT
+  AWAY_TIMEOUT
+  USER_SET
+  SESSION_END
+}
+
+// Course skill level (for mapping skills to courses)
+enum CourseSkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}

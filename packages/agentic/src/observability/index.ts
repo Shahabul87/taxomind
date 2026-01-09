@@ -139,3 +139,21 @@ export {
   type MetricsCollectorConfig,
   type QuickMetricsSummary,
 } from './metrics-collector';
+
+// ============================================================================
+// EXPORTERS
+// ============================================================================
+
+export {
+  RailwayMetricsExporter,
+  getRailwayExporter,
+  createRailwayExporter,
+  logMetric,
+  logToolExecution,
+  logMemoryRetrieval,
+  logConfidencePrediction,
+  logPlanLifecycleEvent,
+  type RailwayExporterConfig,
+  type RailwayMetricLog,
+  type RailwayEventLog,
+} from './exporters';

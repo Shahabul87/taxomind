@@ -36,4 +36,33 @@ export async function register() {
   //       console.warn('Failed to load OpenTelemetry:', error.message);
   //     });
   // }
+
+  // Initialize SAM Memory Lifecycle Manager (background jobs for memory reindexing)
+  // Gated by SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED feature flag
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Import feature flags to check if memory lifecycle is enabled
+    import('@/lib/sam/feature-flags')
+      .then(({ SAM_FEATURES }) => {
+        if (SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED) {
+          import('@/lib/sam/memory-lifecycle-service')
+            .then(({ startMemoryLifecycle }) => {
+              startMemoryLifecycle()
+                .then(() => {
+                  console.log('[SAM] Memory lifecycle scheduler started');
+                })
+                .catch((error) => {
+                  console.warn('[SAM] Failed to start memory lifecycle:', error.message);
+                });
+            })
+            .catch((error) => {
+              console.warn('[SAM] Failed to load memory lifecycle service:', error.message);
+            });
+        } else {
+          console.log('[SAM] Memory lifecycle disabled (SAM_MEMORY_LIFECYCLE=false)');
+        }
+      })
+      .catch((error) => {
+        console.warn('[SAM] Failed to load feature flags:', error.message);
+      });
+  }
 }

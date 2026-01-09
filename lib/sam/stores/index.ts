@@ -92,3 +92,9 @@ export {
   PrismaTutoringSessionStore,
   createPrismaTutoringSessionStore,
 } from './prisma-tutoring-session-store';
+
+// SkillBuildTrack Store (Skill Development & Tracking)
+export {
+  PrismaSkillBuildTrackStore,
+  createPrismaSkillBuildTrackStore,
+} from './prisma-skill-build-track-store';

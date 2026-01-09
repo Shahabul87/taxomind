@@ -2,6 +2,9 @@
  * SAM Proactive Intervention Integration
  * Integrates the BehaviorMonitor, CheckInScheduler, and MultiSessionPlanTracker
  * with the unified API route for proactive user engagement.
+ *
+ * ARCHITECTURE NOTE: This module uses the TaxomindContext to get Prisma stores
+ * for persistent storage. All data is stored in the database, not in-memory.
  */
 
 import { logger } from '@/lib/logger';
@@ -26,6 +29,13 @@ import {
   BehaviorEventType as EventType,
   InterventionType,
 } from '@sam-ai/agentic';
+
+// Import the centralized context for Prisma stores
+import { getProactiveStores } from './taxomind-context';
+import {
+  createPrismaCheckInStore,
+  createPrismaLearningPlanStore,
+} from './stores';
 
 // ============================================================================
 // SINGLETON INSTANCES
@@ -81,22 +91,30 @@ export function initializeProactiveInterventions(
     };
   }
 
-  // Initialize Behavior Monitor
+  // Get Prisma stores from the centralized context
+  const proactiveStores = getProactiveStores();
+
+  // Initialize Behavior Monitor with Prisma stores for persistent storage
   behaviorMonitor = createBehaviorMonitor({
+    eventStore: proactiveStores.behaviorEvent,
+    patternStore: proactiveStores.pattern,
+    interventionStore: proactiveStores.intervention,
     logger: proactiveLogger,
     patternDetectionThreshold: config.patternDetectionThreshold ?? 3,
     churnPredictionWindow: config.churnPredictionWindow ?? 14,
     frustrationThreshold: config.frustrationThreshold ?? 0.7,
   });
 
-  // Initialize Check-In Scheduler
+  // Initialize Check-In Scheduler with Prisma store for persistent storage
   checkInScheduler = createCheckInScheduler({
+    store: createPrismaCheckInStore(),
     logger: proactiveLogger,
     checkInExpirationHours: config.checkInExpirationHours ?? 24,
   });
 
-  // Initialize Multi-Session Plan Tracker
+  // Initialize Multi-Session Plan Tracker with Prisma store for persistent storage
   planTracker = createMultiSessionPlanTracker({
+    store: createPrismaLearningPlanStore(),
     logger: proactiveLogger,
     defaultDailyMinutes: config.defaultDailyMinutes ?? 30,
     streakGracePeriodDays: config.streakGracePeriodDays ?? 1,

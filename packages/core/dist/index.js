@@ -31,12 +31,14 @@ __export(index_exports, {
   ConfigurationError: () => ConfigurationError,
   ContentEngine: () => ContentEngine,
   ContextEngine: () => ContextEngine,
+  DeepSeekAdapter: () => DeepSeekAdapter,
   DependencyError: () => DependencyError,
   EngineError: () => EngineError,
   InMemoryDatabaseAdapter: () => InMemoryDatabaseAdapter,
   InitializationError: () => InitializationError,
   MemoryCacheAdapter: () => MemoryCacheAdapter,
   NoopDatabaseAdapter: () => NoopDatabaseAdapter,
+  OpenAIAdapter: () => OpenAIAdapter,
   OrchestrationError: () => OrchestrationError,
   PersonalizationEngine: () => PersonalizationEngine,
   RateLimitError: () => RateLimitError,
@@ -53,6 +55,7 @@ __export(index_exports, {
   createBloomsEngine: () => createBloomsEngine,
   createContentEngine: () => createContentEngine,
   createContextEngine: () => createContextEngine,
+  createDeepSeekAdapter: () => createDeepSeekAdapter,
   createDefaultContext: () => createDefaultContext,
   createDefaultConversationContext: () => createDefaultConversationContext,
   createDefaultGamificationContext: () => createDefaultGamificationContext,
@@ -62,6 +65,7 @@ __export(index_exports, {
   createInMemoryDatabase: () => createInMemoryDatabase,
   createMemoryCache: () => createMemoryCache,
   createNoopDatabaseAdapter: () => createNoopDatabaseAdapter,
+  createOpenAIAdapter: () => createOpenAIAdapter,
   createOrchestrator: () => createOrchestrator,
   createPersonalizationEngine: () => createPersonalizationEngine,
   createResponseEngine: () => createResponseEngine,
@@ -3896,6 +3900,7 @@ var AnthropicAdapter = class {
   async chat(params) {
     const model = params.model ?? this.model;
     const messages = this.formatMessages(params.messages);
+    const systemMessage = params.systemPrompt ?? this.extractSystemMessage(params.messages);
     const requestBody = {
       model,
       max_tokens: params.maxTokens ?? 4096,
@@ -3903,8 +3908,8 @@ var AnthropicAdapter = class {
       temperature: params.temperature,
       stop_sequences: params.stopSequences
     };
-    if (params.systemPrompt) {
-      requestBody.system = params.systemPrompt;
+    if (systemMessage) {
+      requestBody.system = systemMessage;
     }
     let lastError;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -3942,6 +3947,7 @@ var AnthropicAdapter = class {
   async *chatStream(params) {
     const model = params.model ?? this.model;
     const messages = this.formatMessages(params.messages);
+    const systemMessage = params.systemPrompt ?? this.extractSystemMessage(params.messages);
     const requestBody = {
       model,
       max_tokens: params.maxTokens ?? 4096,
@@ -3950,8 +3956,8 @@ var AnthropicAdapter = class {
       stop_sequences: params.stopSequences,
       stream: true
     };
-    if (params.systemPrompt) {
-      requestBody.system = params.systemPrompt;
+    if (systemMessage) {
+      requestBody.system = systemMessage;
     }
     const response = await fetch(`${this.baseURL}/v1/messages`, {
       method: "POST",
@@ -4013,6 +4019,14 @@ var AnthropicAdapter = class {
       role: m.role,
       content: m.content
     }));
+  }
+  /**
+   * Extract system message from messages array
+   * Anthropic API requires system message as a separate field, not in messages array
+   */
+  extractSystemMessage(messages) {
+    const systemMessage = messages.find((m) => m.role === "system");
+    return systemMessage?.content;
   }
   /**
    * Make a request to the Anthropic API
@@ -4078,6 +4092,478 @@ var AnthropicAdapter = class {
 };
 function createAnthropicAdapter(options) {
   return new AnthropicAdapter(options);
+}
+
+// src/adapters/deepseek.ts
+var DeepSeekAdapter = class {
+  name = "deepseek";
+  version = "1.0.0";
+  apiKey;
+  model;
+  baseURL;
+  maxRetries;
+  timeout;
+  constructor(options) {
+    if (!options.apiKey) {
+      throw new ConfigurationError("DeepSeek API key is required");
+    }
+    this.apiKey = options.apiKey;
+    this.model = options.model ?? "deepseek-reasoner";
+    this.baseURL = options.baseURL ?? "https://api.deepseek.com";
+    this.maxRetries = options.maxRetries ?? 2;
+    this.timeout = options.timeout ?? 6e4;
+  }
+  /**
+   * Check if the adapter is properly configured
+   */
+  isConfigured() {
+    return Boolean(this.apiKey);
+  }
+  /**
+   * Get the current model being used
+   */
+  getModel() {
+    return this.model;
+  }
+  /**
+   * Generate a chat completion
+   */
+  async chat(params) {
+    const model = params.model ?? this.model;
+    const messages = this.formatMessages(params.messages, params.systemPrompt);
+    const requestBody = {
+      model,
+      max_tokens: params.maxTokens ?? 4096,
+      messages,
+      temperature: params.temperature,
+      stop: params.stopSequences
+    };
+    let lastError;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await this.makeRequest(
+          "/v1/chat/completions",
+          requestBody
+        );
+        const choice = response.choices[0];
+        if (!choice) {
+          throw new AIError("No response choice returned from DeepSeek");
+        }
+        return {
+          content: choice.message.content,
+          model: response.model,
+          usage: {
+            inputTokens: response.usage.prompt_tokens,
+            outputTokens: response.usage.completion_tokens
+          },
+          finishReason: choice.finish_reason === "length" ? "max_tokens" : "stop"
+        };
+      } catch (error) {
+        lastError = error;
+        if (error instanceof AIError && !error.recoverable) {
+          throw error;
+        }
+        if (attempt < this.maxRetries) {
+          const delay = Math.min(1e3 * Math.pow(2, attempt), 1e4);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+    throw lastError ?? new AIError("Unknown error occurred");
+  }
+  /**
+   * Generate a streaming chat completion
+   */
+  async *chatStream(params) {
+    const model = params.model ?? this.model;
+    const messages = this.formatMessages(params.messages, params.systemPrompt);
+    const requestBody = {
+      model,
+      max_tokens: params.maxTokens ?? 4096,
+      messages,
+      temperature: params.temperature,
+      stop: params.stopSequences,
+      stream: true
+    };
+    const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+    if (!response.ok) {
+      await this.handleErrorResponse(response);
+    }
+    if (!response.body) {
+      throw new AIError("No response body for streaming");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          yield { content: "", done: true };
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine || trimmedLine === "") {
+            continue;
+          }
+          if (trimmedLine.startsWith("data: ")) {
+            const data = trimmedLine.slice(6);
+            if (data === "[DONE]") {
+              yield { content: "", done: true };
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices[0]?.delta;
+              if (delta?.content) {
+                yield { content: delta.content, done: false };
+              }
+            } catch {
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+  /**
+   * Format messages for DeepSeek API (OpenAI format)
+   */
+  formatMessages(messages, systemPrompt) {
+    const formattedMessages = [];
+    if (systemPrompt) {
+      formattedMessages.push({
+        role: "system",
+        content: systemPrompt
+      });
+    }
+    for (const m of messages) {
+      formattedMessages.push({
+        role: m.role,
+        content: m.content
+      });
+    }
+    return formattedMessages;
+  }
+  /**
+   * Make a request to the DeepSeek API
+   */
+  async makeRequest(endpoint, body) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        await this.handleErrorResponse(response);
+      }
+      return await response.json();
+    } catch (error) {
+      if (error.name === "AbortError") {
+        throw new AIError("Request timed out", { recoverable: true });
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  /**
+   * Handle error responses from the API
+   */
+  async handleErrorResponse(response) {
+    let errorMessage = `DeepSeek API error: ${response.status}`;
+    let recoverable = true;
+    try {
+      const errorBody = await response.json();
+      errorMessage = errorBody.error?.message || errorMessage;
+    } catch {
+    }
+    switch (response.status) {
+      case 400:
+        recoverable = false;
+        break;
+      case 401:
+        throw new AIError("Invalid API key", { recoverable: false });
+      case 403:
+        throw new AIError("Access forbidden", { recoverable: false });
+      case 429:
+        throw new AIError("Rate limit exceeded", {
+          recoverable: true,
+          details: { retryAfter: response.headers.get("retry-after") }
+        });
+      case 500:
+      case 502:
+      case 503:
+        throw new AIError("DeepSeek service error", { recoverable: true });
+    }
+    throw new AIError(errorMessage, { recoverable });
+  }
+};
+function createDeepSeekAdapter(options) {
+  return new DeepSeekAdapter(options);
+}
+
+// src/adapters/openai.ts
+var OpenAIAdapter = class {
+  name = "openai";
+  version = "1.0.0";
+  apiKey;
+  model;
+  baseURL;
+  organization;
+  maxRetries;
+  timeout;
+  constructor(options) {
+    if (!options.apiKey) {
+      throw new ConfigurationError("OpenAI API key is required");
+    }
+    this.apiKey = options.apiKey;
+    this.model = options.model ?? "gpt-4o";
+    this.baseURL = options.baseURL ?? "https://api.openai.com";
+    this.organization = options.organization;
+    this.maxRetries = options.maxRetries ?? 2;
+    this.timeout = options.timeout ?? 6e4;
+  }
+  /**
+   * Check if the adapter is properly configured
+   */
+  isConfigured() {
+    return Boolean(this.apiKey);
+  }
+  /**
+   * Get the current model being used
+   */
+  getModel() {
+    return this.model;
+  }
+  /**
+   * Generate a chat completion
+   */
+  async chat(params) {
+    const model = params.model ?? this.model;
+    const messages = this.formatMessages(params.messages, params.systemPrompt);
+    const requestBody = {
+      model,
+      max_tokens: params.maxTokens ?? 4096,
+      messages,
+      temperature: params.temperature,
+      stop: params.stopSequences
+    };
+    let lastError;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const response = await this.makeRequest(
+          "/v1/chat/completions",
+          requestBody
+        );
+        const choice = response.choices[0];
+        if (!choice) {
+          throw new AIError("No response choice returned from OpenAI");
+        }
+        return {
+          content: choice.message.content,
+          model: response.model,
+          usage: {
+            inputTokens: response.usage.prompt_tokens,
+            outputTokens: response.usage.completion_tokens
+          },
+          finishReason: choice.finish_reason === "length" ? "max_tokens" : "stop"
+        };
+      } catch (error) {
+        lastError = error;
+        if (error instanceof AIError && !error.recoverable) {
+          throw error;
+        }
+        if (attempt < this.maxRetries) {
+          const delay = Math.min(1e3 * Math.pow(2, attempt), 1e4);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+    throw lastError ?? new AIError("Unknown error occurred");
+  }
+  /**
+   * Generate a streaming chat completion
+   */
+  async *chatStream(params) {
+    const model = params.model ?? this.model;
+    const messages = this.formatMessages(params.messages, params.systemPrompt);
+    const requestBody = {
+      model,
+      max_tokens: params.maxTokens ?? 4096,
+      messages,
+      temperature: params.temperature,
+      stop: params.stopSequences,
+      stream: true
+    };
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${this.apiKey}`
+    };
+    if (this.organization) {
+      headers["OpenAI-Organization"] = this.organization;
+    }
+    const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(requestBody)
+    });
+    if (!response.ok) {
+      await this.handleErrorResponse(response);
+    }
+    if (!response.body) {
+      throw new AIError("No response body for streaming");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          yield { content: "", done: true };
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine || trimmedLine === "") {
+            continue;
+          }
+          if (trimmedLine.startsWith("data: ")) {
+            const data = trimmedLine.slice(6);
+            if (data === "[DONE]") {
+              yield { content: "", done: true };
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices[0]?.delta;
+              if (delta?.content) {
+                yield { content: delta.content, done: false };
+              }
+            } catch {
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+  /**
+   * Format messages for OpenAI API
+   */
+  formatMessages(messages, systemPrompt) {
+    const formattedMessages = [];
+    if (systemPrompt) {
+      formattedMessages.push({
+        role: "system",
+        content: systemPrompt
+      });
+    }
+    for (const m of messages) {
+      formattedMessages.push({
+        role: m.role,
+        content: m.content
+      });
+    }
+    return formattedMessages;
+  }
+  /**
+   * Make a request to the OpenAI API
+   */
+  async makeRequest(endpoint, body) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${this.apiKey}`
+    };
+    if (this.organization) {
+      headers["OpenAI-Organization"] = this.organization;
+    }
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      if (!response.ok) {
+        await this.handleErrorResponse(response);
+      }
+      return await response.json();
+    } catch (error) {
+      if (error.name === "AbortError") {
+        throw new AIError("Request timed out", { recoverable: true });
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  /**
+   * Handle error responses from the API
+   */
+  async handleErrorResponse(response) {
+    let errorMessage = `OpenAI API error: ${response.status}`;
+    let recoverable = true;
+    try {
+      const errorBody = await response.json();
+      errorMessage = errorBody.error?.message || errorMessage;
+    } catch {
+    }
+    switch (response.status) {
+      case 400:
+        recoverable = false;
+        break;
+      case 401:
+        throw new AIError("Invalid API key", { recoverable: false });
+      case 403:
+        throw new AIError("Access forbidden", { recoverable: false });
+      case 429:
+        throw new AIError("Rate limit exceeded", {
+          recoverable: true,
+          details: { retryAfter: response.headers.get("retry-after") }
+        });
+      case 500:
+      case 502:
+      case 503:
+        throw new AIError("OpenAI service error", { recoverable: true });
+    }
+    throw new AIError(errorMessage, { recoverable });
+  }
+};
+function createOpenAIAdapter(options) {
+  return new OpenAIAdapter(options);
 }
 
 // src/adapters/memory-cache.ts
@@ -4796,12 +5282,14 @@ var VERSION = "0.1.0";
   ConfigurationError,
   ContentEngine,
   ContextEngine,
+  DeepSeekAdapter,
   DependencyError,
   EngineError,
   InMemoryDatabaseAdapter,
   InitializationError,
   MemoryCacheAdapter,
   NoopDatabaseAdapter,
+  OpenAIAdapter,
   OrchestrationError,
   PersonalizationEngine,
   RateLimitError,
@@ -4818,6 +5306,7 @@ var VERSION = "0.1.0";
   createBloomsEngine,
   createContentEngine,
   createContextEngine,
+  createDeepSeekAdapter,
   createDefaultContext,
   createDefaultConversationContext,
   createDefaultGamificationContext,
@@ -4827,6 +5316,7 @@ var VERSION = "0.1.0";
   createInMemoryDatabase,
   createMemoryCache,
   createNoopDatabaseAdapter,
+  createOpenAIAdapter,
   createOrchestrator,
   createPersonalizationEngine,
   createResponseEngine,

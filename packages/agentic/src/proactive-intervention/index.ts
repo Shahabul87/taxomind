@@ -46,6 +46,7 @@ export type {
   Intervention,
   InterventionTiming,
   InterventionResult,
+  InterventionCheckResult,
   // Store Interfaces
   LearningPlanStore,
   CheckInStore,

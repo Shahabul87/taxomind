@@ -187,7 +187,7 @@ async function handleAdminRoute(req: NextRequest) {
       console.log('[Admin Proxy] Non-admin attempting to access admin route');
 
       const response = NextResponse.redirect(
-        new URL('/dashboard?error=admin_access_denied', nextUrl)
+        new URL('/dashboard/user?error=admin_access_denied', nextUrl)
       );
       response.headers.set('X-Access-Denied', 'true');
       response.headers.set('X-Required-Role', 'ADMIN');
@@ -276,6 +276,11 @@ async function handleUserRoute(req: NextRequest) {
       return applySecurityHeaders(response);
     }
 
+    // Redirect /dashboard to /dashboard/user (there's no page at /dashboard)
+    if (pathname === '/dashboard') {
+      return NextResponse.redirect(new URL('/dashboard/user', nextUrl));
+    }
+
     // Check if route is public
     const isPublic = isPublicRoute(pathname);
     if (isPublic) {
@@ -316,7 +321,7 @@ async function handleUserRoute(req: NextRequest) {
         console.log('[User Proxy] User attempting to access admin route');
 
         const response = NextResponse.redirect(
-          new URL('/dashboard?error=admin_access_denied', nextUrl)
+          new URL('/dashboard/user?error=admin_access_denied', nextUrl)
         );
         response.headers.set('X-Access-Denied', 'true');
         response.headers.set('X-Required-Role', 'ADMIN');
@@ -336,7 +341,7 @@ async function handleUserRoute(req: NextRequest) {
         console.log(`[ACCESS_DENIED] User ${userIdentifier} denied access to ${pathname}`);
 
         const response = NextResponse.redirect(
-          new URL('/dashboard?error=unauthorized', nextUrl)
+          new URL('/dashboard/user?error=unauthorized', nextUrl)
         );
         response.headers.set('X-Access-Denied', 'true');
         response.headers.set('X-Required-Capability', 'Check route requirements');
@@ -346,7 +351,7 @@ async function handleUserRoute(req: NextRequest) {
     }
 
     // Handle context switching via query parameters
-    if (pathname === '/dashboard' && nextUrl.searchParams.has('context')) {
+    if (pathname === '/dashboard/user' && nextUrl.searchParams.has('context')) {
       const requestedContext = nextUrl.searchParams.get('context');
 
       if (requestedContext && isLoggedIn) {
@@ -369,7 +374,7 @@ async function handleUserRoute(req: NextRequest) {
               : 'student';
 
             const response = NextResponse.redirect(
-              new URL(`/dashboard?context=${defaultContext}&error=capability_required`, nextUrl)
+              new URL(`/dashboard/user?context=${defaultContext}&error=capability_required`, nextUrl)
             );
 
             return applySecurityHeaders(response);

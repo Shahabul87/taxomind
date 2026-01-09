@@ -138,6 +138,7 @@ const toAgenticGoal = (prismaGoal: {
   targetDate: prismaGoal.targetDate ?? undefined,
   priority: mapPrismaPriority(prismaGoal.priority),
   status: mapPrismaStatus(prismaGoal.status),
+  progress: 0, // Default progress value - Prisma model doesn't store progress
   context: {
     courseId: prismaGoal.courseId ?? undefined,
     chapterId: prismaGoal.chapterId ?? undefined,

@@ -45,7 +45,10 @@ function toToolSummary(tool: ToolDefinition) {
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
+    logger.info('[Tools API] GET request received', { userId: session?.user?.id });
+
     if (!session?.user?.id) {
+      logger.warn('[Tools API] Unauthorized - no session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -53,7 +56,9 @@ export async function GET(req: NextRequest) {
       Object.fromEntries(new URL(req.url).searchParams)
     );
 
+    logger.info('[Tools API] Initializing tooling system...');
     const tooling = await ensureToolingInitialized();
+    logger.info('[Tools API] Tooling system initialized');
 
     const tools = await tooling.toolRegistry.listTools({
       category: query.category as ToolDefinition['category'] | undefined,
@@ -69,9 +74,13 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error listing tools:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Error listing tools:', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
     return NextResponse.json(
-      { error: 'Failed to list tools' },
+      {
+        error: 'Failed to list tools',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }

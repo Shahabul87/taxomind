@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { buildStage1Prompt } from '@/lib/sam/course-creation/prompts';
 import {
@@ -61,9 +61,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage1Res
       previousChapters
     );
 
-    // Call SAM AI
-    const responseText = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
+    // Call SAM AI with user's preferred provider
+    const responseText = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'course',
       maxTokens: 2000,
       messages: [{ role: 'user', content: prompt }],
       extended: true,

@@ -295,6 +295,7 @@ model Skill {
   // Relations
   skillProgress SkillProgress[]
   skillGaps     SkillGap[]
+  courseSkills  CourseSkill[]   @relation("SkillCourseSkills")
 
   @@index([category])
   @@index([bloomsLevel])

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import {
   BLOOMS_TAXONOMY,
@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
       samContext,
       existingObjectives,
       bloomsFocus,
-      preferredContentTypes
+      preferredContentTypes,
+      userId: user.id
     });
 
     return NextResponse.json({ 
@@ -103,15 +104,17 @@ async function generateCompleteStructureWithSAM({
   samContext,
   existingObjectives,
   bloomsFocus,
-  preferredContentTypes
+  preferredContentTypes,
+  userId
 }: {
   formData: any;
   samContext: string[];
   existingObjectives: string[];
   bloomsFocus: string[];
   preferredContentTypes: string[];
+  userId: string;
 }) {
-  
+
   // Build comprehensive context for SAM
   const contextualKnowledge = buildSAMContext({
     formData,
@@ -122,18 +125,20 @@ async function generateCompleteStructureWithSAM({
   });
 
   // Step 1: Generate enhanced course description using SAM context
-  const courseDescription = await generateContextualCourseDescription(contextualKnowledge);
+  const courseDescription = await generateContextualCourseDescription(contextualKnowledge, userId);
 
   // Step 2: Generate comprehensive learning objectives with existing ones
   const learningObjectives = await generateContextualLearningObjectives(
     contextualKnowledge,
-    existingObjectives
+    existingObjectives,
+    userId
   );
 
   // Step 3: Generate Bloom's-focused chapters with SAM context
   const chapters = await generateBloomsContextualChapters(
     contextualKnowledge,
-    learningObjectives
+    learningObjectives,
+    userId
   );
 
   return {
@@ -202,7 +207,7 @@ I follow pedagogical best practices and ensure every piece of content has clear 
   };
 }
 
-async function generateContextualCourseDescription(context: any) {
+async function generateContextualCourseDescription(context: any, userId: string) {
   // Build Bloom's progression description
   const bloomsProgressionDesc = context.bloomsFocus.map((level: string) => {
     const info = BLOOMS_TAXONOMY[level as keyof typeof BLOOMS_TAXONOMY];
@@ -275,8 +280,9 @@ Write in second person ("you will learn...") to directly engage the learner. Be 
 
 Return only the course description, no additional formatting.`;
 
-  const responseText = await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
+  const responseText = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     maxTokens: 500,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -284,7 +290,7 @@ Return only the course description, no additional formatting.`;
   return responseText.trim() || context.courseOverview;
 }
 
-async function generateContextualLearningObjectives(context: any, existingObjectives: string[]) {
+async function generateContextualLearningObjectives(context: any, existingObjectives: string[], userId: string) {
   // Build Bloom's verb reference for the AI
   const bloomsVerbReference = context.bloomsFocus.map((level: string) => {
     const info = BLOOMS_TAXONOMY[level as keyof typeof BLOOMS_TAXONOMY];
@@ -377,8 +383,9 @@ Example format:
   "Design and implement [solutions] that demonstrate mastery of [skills]"
 ]`;
 
-  const responseText = await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
+  const responseText = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     maxTokens: 1200,
     messages: [{ role: 'user', content: prompt }],
   });
@@ -396,7 +403,7 @@ Example format:
   }
 }
 
-async function generateBloomsContextualChapters(context: any, learningObjectives: string[]) {
+async function generateBloomsContextualChapters(context: any, learningObjectives: string[], userId: string) {
   // Get Bloom's level details for enhanced prompting
   const bloomsDetails = context.bloomsFocus.map((level: string) => {
     const info = BLOOMS_TAXONOMY[level as keyof typeof BLOOMS_TAXONOMY];
@@ -512,8 +519,9 @@ IMPORTANT QUALITY REQUIREMENTS:
 4. Content MUST progress logically from chapter to chapter
 5. Skills developed MUST be concrete and measurable`;
 
-  const responseText = await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
+  const responseText = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     maxTokens: 4000,
     messages: [{ role: 'user', content: prompt }],
     extended: true, // Use extended timeout for complex chapter generation

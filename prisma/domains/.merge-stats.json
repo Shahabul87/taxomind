@@ -1,7 +1,7 @@
 {
-  "filesProcessed": 20,
-  "totalLines": 9450,
-  "timestamp": "2026-01-03T07:45:37.304Z",
+  "filesProcessed": 23,
+  "totalLines": 11116,
+  "timestamp": "2026-01-09T03:35:15.967Z",
   "domains": [
     "base",
     "enums",
@@ -22,6 +22,9 @@
     "discussion-forum",
     "sam-agentic",
     "dashboard",
-    "exam-evaluation"
+    "exam-evaluation",
+    "enhanced-gamification",
+    "learning-command-center",
+    "skill-build-track"
   ]
 }

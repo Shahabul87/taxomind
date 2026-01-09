@@ -79,7 +79,7 @@ export default function LearningProgressHub({
             </p>
           </div>
         </div>
-        <Link href="/my-courses">
+        <Link href="/dashboard/user/my-courses">
           <Button variant="outline" className="hidden sm:flex">
             View All Courses
             <ArrowRight className="h-4 w-4 ml-2" />
@@ -199,7 +199,7 @@ export default function LearningProgressHub({
               <Play className="h-5 w-5 text-blue-600" />
               Continue Learning
             </h3>
-            <Link href="/my-courses">
+            <Link href="/dashboard/user/my-courses">
               <Button variant="ghost" size="sm">
                 View All
                 <ChevronRight className="h-4 w-4 ml-1" />
@@ -315,7 +315,7 @@ export default function LearningProgressHub({
                 <span className="text-sm text-gray-700 dark:text-gray-300">In Progress</span>
                 <span className="font-semibold text-green-600 dark:text-green-400">{learningStats.inProgress}</span>
               </div>
-              <Link href="/my-courses">
+              <Link href="/dashboard/user/my-courses">
                 <Button variant="outline" size="sm" className="w-full">
                   View All Courses
                 </Button>

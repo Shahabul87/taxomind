@@ -104,6 +104,9 @@ export interface LearningGoal {
   // Context
   context: GoalContext;
 
+  // Progress (0-100)
+  progress: number;
+
   // Mastery targets
   currentMastery?: MasteryLevel;
   targetMastery?: MasteryLevel;

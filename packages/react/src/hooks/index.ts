@@ -41,3 +41,81 @@ export type {
   CreateGoalData,
   CheckInResponse,
 } from './useAgentic';
+
+// Phase 5 Hooks - Real-Time Communication
+export { useRealtime } from './useRealtime';
+export type { UseRealtimeOptions, UseRealtimeReturn } from './useRealtime';
+
+export { usePresence } from './usePresence';
+export type { UsePresenceOptions, UsePresenceReturn } from './usePresence';
+
+export { useInterventions } from './useInterventions';
+export type { UseInterventionsOptions, UseInterventionsReturn } from './useInterventions';
+
+export { usePushNotifications } from './usePushNotifications';
+export type {
+  UsePushNotificationsOptions,
+  UsePushNotificationsReturn,
+  PushNotificationOptions,
+  PushPermissionState,
+  PushSubscription,
+} from './usePushNotifications';
+
+// Phase 5 Hooks - Memory System
+export { useSAMMemory } from './useSAMMemory';
+export type {
+  UseSAMMemoryOptions,
+  UseSAMMemoryReturn,
+  MemorySearchResult,
+  LongTermMemory,
+  ConversationTurn,
+  MemorySearchOptions,
+  StoreMemoryData,
+  StoreConversationData,
+} from './useSAMMemory';
+
+// Phase 5 Hooks - Tutoring Orchestration
+export {
+  useTutoringOrchestration,
+  useCurrentStep,
+  useStepProgress,
+  useStepCelebration,
+  TutoringOrchestrationProvider,
+  useTutoringOrchestrationContext,
+} from './useTutoringOrchestration';
+export type {
+  TutoringStep,
+  StepProgress,
+  StepTransition,
+  PendingConfirmation,
+  OrchestrationMetadata,
+  TutoringOrchestrationState,
+} from './useTutoringOrchestration';
+
+// Phase 5 Hooks - Notifications, Behavior Patterns, Recommendations
+export { useNotifications } from './useNotifications';
+export type {
+  UseNotificationsOptions,
+  UseNotificationsReturn,
+  SAMNotification,
+  NotificationType,
+  NotificationFeedback,
+} from './useNotifications';
+
+export { useBehaviorPatterns } from './useBehaviorPatterns';
+export type {
+  UseBehaviorPatternsOptions,
+  UseBehaviorPatternsReturn,
+  BehaviorPattern,
+  PatternType,
+} from './useBehaviorPatterns';
+
+export { useRecommendations } from './useRecommendations';
+export type {
+  UseRecommendationsOptions,
+  UseRecommendationsReturn,
+  LearningRecommendation,
+  RecommendationType,
+  RecommendationPriority,
+  RecommendationContext,
+} from './useRecommendations';

@@ -4,6 +4,13 @@ import { logger } from '@/lib/logger';
 import { realTimeCacheManager, RealTimeCacheUtils } from '@/lib/redis/realtime-cache';
 import type { Intervention } from '@sam-ai/agentic';
 
+/**
+ * Notification channels for SAM AI interventions
+ * - 'in_app': In-app notifications (IMPLEMENTED - stored in Notification table)
+ * - 'email': Email via Resend (IMPLEMENTED - requires RESEND_API_KEY)
+ * - 'push': Push notifications (NOT IMPLEMENTED - requires FCM/APNs integration)
+ * - 'sms': SMS notifications (NOT IMPLEMENTED - requires Twilio integration)
+ */
 export type AgenticNotificationChannel = 'in_app' | 'email' | 'push' | 'sms';
 export type AgenticNotificationPreference = AgenticNotificationChannel | 'auto';
 
@@ -162,20 +169,28 @@ export async function sendAgenticNotification(
     }
   }
 
+  // Push notifications - NOT IMPLEMENTED
+  // FCM/APNs integration required for real push notifications
   if (channels.includes('push')) {
-    logger.info('[SAM_NOTIFICATIONS] Push channel requested', {
+    logger.warn('[SAM_NOTIFICATIONS] Push channel requested but NOT IMPLEMENTED', {
       userId: payload.userId,
       type: payload.type,
+      note: 'FCM/APNs integration required. Falling back to in_app.',
     });
-    channelsSent.push('push');
+    // Do NOT mark as sent since it's not actually delivered
+    // channelsSent.push('push');
   }
 
+  // SMS notifications - NOT IMPLEMENTED
+  // Twilio integration required for real SMS notifications
   if (channels.includes('sms')) {
-    logger.info('[SAM_NOTIFICATIONS] SMS channel requested', {
+    logger.warn('[SAM_NOTIFICATIONS] SMS channel requested but NOT IMPLEMENTED', {
       userId: payload.userId,
       type: payload.type,
+      note: 'Twilio integration required. Falling back to in_app.',
     });
-    channelsSent.push('sms');
+    // Do NOT mark as sent since it's not actually delivered
+    // channelsSent.push('sms');
   }
 
   return { channelsSent, inAppId, emailId };

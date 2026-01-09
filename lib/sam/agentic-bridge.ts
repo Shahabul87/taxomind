@@ -95,24 +95,13 @@ import {
 // Import AI Adapter from @sam-ai/core for GoalDecomposer
 import { AnthropicAdapter, type AIAdapter } from '@sam-ai/core';
 
-// Import Prisma stores for persistent proactive feature storage
+// Import centralized context for all Prisma stores
+// ARCHITECTURE: All store access should go through getTaxomindContext()
 import {
-  createPrismaBehaviorEventStore,
-  createPrismaPatternStore,
-  createPrismaInterventionStore,
-  createPrismaCheckInStore,
-  createPrismaGoalStore,
-  createPrismaPlanStore,
-  createPrismaLearningPlanStore,
-} from './stores';
-import {
-  createPrismaLearningSessionStore,
-  createPrismaTopicProgressStore,
-  createPrismaLearningGapStore,
-  createPrismaSkillAssessmentStore,
-  createPrismaRecommendationStore,
-  createPrismaContentStore,
-} from './stores';
+  getTaxomindContext,
+  getProactiveStores,
+  getGoalStores,
+} from './taxomind-context';
 import { ensureToolingInitialized } from './agentic-tooling';
 
 // Import Integration Profile types (optional for backward compatibility)
@@ -316,9 +305,10 @@ export class SAMAgenticBridge {
   private initGoalPlanning(): void {
     const samLogger = this.createSamLogger();
 
-    // Initialize GoalStore for persistence
+    // Get goal stores from centralized context
     if (this.usePrismaStores) {
-      this.goalStore = createPrismaGoalStore();
+      const goalStores = getGoalStores();
+      this.goalStore = goalStores.goal;
     }
 
     // Initialize AIAdapter for GoalDecomposer
@@ -346,11 +336,11 @@ export class SAMAgenticBridge {
       this.logger.warn('ANTHROPIC_API_KEY not set - GoalDecomposer will not be available');
     }
 
-    // Initialize PlanBuilder and StateMachine
+    // Initialize PlanBuilder and StateMachine with stores from context
     if (this.usePrismaStores) {
-      const planStore = createPrismaPlanStore();
+      const goalStores = getGoalStores();
       this.planBuilder = createPlanBuilder({ logger: samLogger });
-      this.stateMachine = createAgentStateMachine({ planStore, logger: samLogger });
+      this.stateMachine = createAgentStateMachine({ planStore: goalStores.plan, logger: samLogger });
     } else {
       this.planBuilder = createPlanBuilder({ logger: samLogger });
     }
@@ -387,19 +377,17 @@ export class SAMAgenticBridge {
 
     if (this.usePrismaStores) {
       try {
-        const eventStore = createPrismaBehaviorEventStore();
-        const patternStore = createPrismaPatternStore();
-        const interventionStore = createPrismaInterventionStore();
-        const checkInStore = createPrismaCheckInStore();
+        // Get all proactive stores from centralized context
+        const proactiveStores = getProactiveStores();
 
         behaviorConfig = {
-          eventStore,
-          patternStore,
-          interventionStore,
+          eventStore: proactiveStores.behaviorEvent,
+          patternStore: proactiveStores.pattern,
+          interventionStore: proactiveStores.intervention,
           logger: proactiveLogger,
         };
         checkInConfig = {
-          store: checkInStore,
+          store: proactiveStores.checkIn,
           logger: proactiveLogger,
           defaultChannel: NotificationChannel.IN_APP,
         };
@@ -410,8 +398,8 @@ export class SAMAgenticBridge {
       }
     }
 
-    // Use Prisma LearningPlanStore for persistent multi-session plan tracking
-    const learningPlanStore = this.usePrismaStores ? createPrismaLearningPlanStore() : undefined;
+    // Use Prisma LearningPlanStore from context for persistent multi-session plan tracking
+    const learningPlanStore = this.usePrismaStores ? getTaxomindContext().stores.learningPlan : undefined;
     this.planTracker = createMultiSessionPlanTracker({
       store: learningPlanStore,
       logger: proactiveLogger,
@@ -431,24 +419,21 @@ export class SAMAgenticBridge {
 
   private initLearningAnalytics(): void {
     const logger = this.logger;
-    const sessionStore = createPrismaLearningSessionStore();
-    const progressStore = createPrismaTopicProgressStore();
-    const gapStore = createPrismaLearningGapStore();
-    const skillStore = createPrismaSkillAssessmentStore();
-    const recommendationStore = createPrismaRecommendationStore();
-    const contentStore = createPrismaContentStore();
+    // Get all analytics stores from centralized context
+    const context = getTaxomindContext();
+    const { stores } = context;
 
     this.progressAnalyzer = createProgressAnalyzer({
       logger,
-      sessionStore,
-      progressStore,
-      gapStore,
+      sessionStore: stores.learningSession,
+      progressStore: stores.topicProgress,
+      gapStore: stores.learningGap,
     });
-    this.skillAssessor = createSkillAssessor({ logger, store: skillStore });
+    this.skillAssessor = createSkillAssessor({ logger, store: stores.skillAssessment });
     this.recommendationEngine = createRecommendationEngine({
       logger,
-      recommendationStore,
-      contentStore,
+      recommendationStore: stores.recommendation,
+      contentStore: stores.content,
     });
     this.logger.debug('Learning Analytics initialized');
   }
@@ -521,6 +506,7 @@ export class SAMAgenticBridge {
       status: GoalStatus.ACTIVE,
       priority: options?.priority ?? 'medium',
       targetDate: options?.targetDate,
+      progress: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
       context: {

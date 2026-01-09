@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +9,17 @@ import { cn } from '@/lib/utils';
 import { StepComponentProps, COURSE_CATEGORIES, COURSE_INTENTS } from '../../types/sam-creator.types';
 import { EnhancedInput, EnhancedTextarea, FormFieldWrapper } from '../ui/FormField';
 import { BookOpen, Layers, Target, Lightbulb, CheckCircle2, Sparkles, Wand2, ArrowRight } from 'lucide-react';
-import { SAMTitleGeneratorModal } from '@/components/ai/sam-title-generator-modal';
-import { SAMOverviewGeneratorModal } from '@/components/ai/sam-overview-generator-modal';
+
+// Dynamic imports with SSR disabled to fix Radix UI hydration mismatch
+// See: https://github.com/radix-ui/primitives/issues/3700
+const SAMTitleGeneratorModal = dynamic(
+  () => import('@/components/ai/sam-title-generator-modal').then(mod => mod.SAMTitleGeneratorModal),
+  { ssr: false }
+);
+const SAMOverviewGeneratorModal = dynamic(
+  () => import('@/components/ai/sam-overview-generator-modal').then(mod => mod.SAMOverviewGeneratorModal),
+  { ssr: false }
+);
 
 export function CourseBasicsStep({ formData, setFormData, validationErrors }: StepComponentProps) {
   const titleIsValid = (formData.courseTitle?.length || 0) >= 10;

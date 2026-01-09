@@ -203,6 +203,13 @@ model User {
   // SAM Session Context
   samSessionContexts                      SAMSessionContext[]
 
+  // SAM Observability Relations (Phase J)
+  samMetrics                              SAMMetric[]                          @relation("SAMMetrics")
+  samToolExecutions                       SAMToolExecution[]                   @relation("SAMToolExecutions")
+  samConfidenceScores                     SAMConfidenceScore[]                 @relation("SAMConfidenceScores")
+  samMemoryRetrievals                     SAMMemoryRetrieval[]                 @relation("SAMMemoryRetrievals")
+  samPlanLifecycleEvents                  SAMPlanLifecycleEvent[]              @relation("SAMPlanLifecycleEvents")
+
   authSessions                            AuthSession[]
   study_streaks                           study_streaks[]
   user_achievements                       user_achievements[]
@@ -333,6 +340,35 @@ model User {
   xAPIStatements             xAPIStatement[]
   scormProgress              SCORMProgress[]
   accessibilityAccommodations AccessibilityAccommodation[]
+
+  // Enhanced Gamification System Relations (Phase 6 - added January 2026)
+  gamificationAchievements   GamificationUserAchievement[] @relation("UserGamificationAchievements")
+  gamificationXP             GamificationUserXP?           @relation("UserGamificationXP")
+  leaderboardEntries         GamificationLeaderboardEntry[] @relation("UserLeaderboardEntries")
+  gamificationPreferences    GamificationPreferences?      @relation("UserGamificationPreferences")
+
+  // SAM Real-Time Presence Tracking (Phase I - added January 2026)
+  samUserPresence            SAMUserPresence?              @relation("SAMUserPresence")
+  samPresenceHistory         SAMPresenceHistory[]          @relation("SAMPresenceHistory")
+  samFeedback                SAMFeedback[]                 @relation("SAMFeedback")
+
+  // Learning Command Center Relations (added January 2026)
+  learningActivities         LearningActivity[]            @relation("UserLearningActivities")
+  dailyLearningLogs          DailyLearningLog[]            @relation("UserDailyLearningLogs")
+  learningStreak             LearningStreak?               @relation("UserLearningStreak")
+  learningGoals              LearningGoal[]                @relation("UserLearningGoals")
+  learningNotificationPrefs  LearningNotificationPreference? @relation("UserLearningNotificationPrefs")
+  learningNotifications      LearningNotification[]        @relation("UserLearningNotifications")
+
+  // Google Calendar Integration (Phase 4 - added January 2026)
+  googleCalendarIntegration  GoogleCalendarIntegration?    @relation("UserGoogleCalendarIntegration")
+  calendarEventMappings      CalendarEventMapping[]        @relation("UserCalendarMappings")
+
+  // SkillBuildTrack Engine Relations (added January 2026)
+  skillBuildProfiles         SkillBuildProfile[]           @relation("SkillBuildProfiles")
+  skillBuildRoadmaps         SkillBuildRoadmap[]           @relation("SkillBuildRoadmaps")
+  skillBuildPracticeLogs     SkillBuildPracticeLog[]       @relation("SkillBuildPracticeLogs")
+  skillBuildAchievements     SkillBuildAchievement[]       @relation("SkillBuildAchievements")
 }
 
 model Account {

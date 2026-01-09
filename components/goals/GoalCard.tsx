@@ -94,7 +94,7 @@ export function GoalCard({ goal, onClick, variant = 'grid' }: GoalCardProps) {
   const StatusIcon = status.icon;
 
   const isOverdue = goal.targetDate && isPast(new Date(goal.targetDate)) && goal.status !== 'completed';
-  const completedSubGoals = goal.subGoals.filter((sg) => sg.status === 'completed').length;
+  const completedSubGoals = (goal.subGoals ?? []).filter((sg) => sg.status === 'completed').length;
 
   if (variant === 'list') {
     return (
@@ -157,10 +157,10 @@ export function GoalCard({ goal, onClick, variant = 'grid' }: GoalCardProps) {
                   {format(new Date(goal.targetDate), 'MMM d')}
                 </span>
               )}
-              {goal.subGoals.length > 0 && (
+              {(goal.subGoals ?? []).length > 0 && (
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  {completedSubGoals}/{goal.subGoals.length} tasks
+                  {completedSubGoals}/{(goal.subGoals ?? []).length} tasks
                 </span>
               )}
             </div>
@@ -286,16 +286,16 @@ export function GoalCard({ goal, onClick, variant = 'grid' }: GoalCardProps) {
         </div>
 
         {/* Sub-goals indicator */}
-        {goal.subGoals.length > 0 && (
+        {(goal.subGoals ?? []).length > 0 && (
           <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-500 dark:text-slate-400">Sub-goals</span>
               <span className="font-medium text-slate-700 dark:text-slate-200">
-                {completedSubGoals} / {goal.subGoals.length} completed
+                {completedSubGoals} / {(goal.subGoals ?? []).length} completed
               </span>
             </div>
             <div className="flex gap-1 mt-2">
-              {goal.subGoals.slice(0, 8).map((sg) => (
+              {(goal.subGoals ?? []).slice(0, 8).map((sg) => (
                 <div
                   key={sg.id}
                   className={cn(
@@ -306,17 +306,17 @@ export function GoalCard({ goal, onClick, variant = 'grid' }: GoalCardProps) {
                   )}
                 />
               ))}
-              {goal.subGoals.length > 8 && (
-                <span className="text-xs text-slate-400">+{goal.subGoals.length - 8}</span>
+              {(goal.subGoals ?? []).length > 8 && (
+                <span className="text-xs text-slate-400">+{(goal.subGoals ?? []).length - 8}</span>
               )}
             </div>
           </div>
         )}
 
         {/* Tags */}
-        {goal.tags.length > 0 && (
+        {(goal.tags ?? []).length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3">
-            {goal.tags.slice(0, 3).map((tag) => (
+            {(goal.tags ?? []).slice(0, 3).map((tag) => (
               <span
                 key={tag}
                 className="px-2 py-0.5 text-xs rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
@@ -324,9 +324,9 @@ export function GoalCard({ goal, onClick, variant = 'grid' }: GoalCardProps) {
                 {tag}
               </span>
             ))}
-            {goal.tags.length > 3 && (
+            {(goal.tags ?? []).length > 3 && (
               <span className="px-2 py-0.5 text-xs rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500">
-                +{goal.tags.length - 3}
+                +{(goal.tags ?? []).length - 3}
               </span>
             )}
           </div>

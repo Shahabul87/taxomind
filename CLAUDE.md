@@ -187,6 +187,52 @@ const validatedData = Schema.parse(body);
 
 ## React Best Practices
 
+### 🚨 NEVER Disable ESLint react-hooks Rules
+
+**FORBIDDEN: `// eslint-disable-next-line react-hooks/exhaustive-deps`**
+
+The exhaustive-deps rule prevents stale closures and bugs. Fix the root cause instead.
+
+### ✅ CORRECT: Use useRef for Stable Callbacks
+```typescript
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+// Problem: offset in deps causes callback to change → infinite loops
+// Solution: Store mutable values in refs
+
+const offsetRef = useRef(0);
+
+// Callback is stable - only depends on immutable values
+const fetchData = useCallback(async (reset = true) => {
+  const currentOffset = reset ? 0 : offsetRef.current;
+  const data = await fetch(`/api?offset=${currentOffset}`);
+  offsetRef.current = currentOffset + limit;
+}, [limit]); // Stable deps
+
+// Use refs to access latest state in stable callbacks
+const isLoadingRef = useRef(isLoading);
+isLoadingRef.current = isLoading;
+
+const loadMore = useCallback(async () => {
+  if (isLoadingRef.current) return;
+  await fetchData(false);
+}, [fetchData]); // Stable - no ESLint warnings
+
+// Effect includes the stable callback - no lint disable needed
+useEffect(() => {
+  fetchData(true);
+}, [fetchData]);
+```
+
+### When to Use useRef vs useState
+| Use Case | Solution |
+|----------|----------|
+| Value triggers UI re-render | `useState` |
+| Value for callback, no re-render needed | `useRef` |
+| Pagination offset, cursor | `useRef` |
+| Loading state for UI + callbacks | `useState` + `useRef` |
+| Array types in deps (unstable) | `useRef` |
+
 ### ✅ CORRECT Patterns
 ```typescript
 // 1. Complete dependencies
@@ -207,6 +253,8 @@ import Image from 'next/image';
 useEffect(() => {
   fetchData(courseId);
 }, []); // ❌ Missing dependencies
+
+// eslint-disable-next-line react-hooks/exhaustive-deps  // ❌ NEVER
 
 <img src={url} /> // ❌ Use Next.js Image
 

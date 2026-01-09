@@ -22,6 +22,8 @@ import { PrivacyTab } from "./privacy-tab";
 import { ProfileTab } from "./profile-tab";
 import { NotificationsTab } from "./notifications-tab";
 import { FinancialTab } from "./financial-tab";
+import { CalendarTab } from "./calendar-tab";
+import { AIProvidersTab } from "./ai-providers-tab";
 import { SettingsTab, SettingsUser } from "@/types/settings";
 
 interface EnterpriseSettingsProps {
@@ -39,7 +41,7 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
 
   // Handle URL tab parameter changes
   useEffect(() => {
-    if (tabParam && ['account', 'security', 'privacy', 'profile', 'notifications', 'financial'].includes(tabParam)) {
+    if (tabParam && ['account', 'security', 'privacy', 'profile', 'notifications', 'financial', 'calendar', 'ai-providers'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -219,10 +221,16 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
                     isAffiliate={user.isAffiliate}
                   />
                 )}
+                {activeTab === "calendar" && (
+                  <CalendarTab />
+                )}
+                {activeTab === "ai-providers" && (
+                  <AIProvidersTab />
+                )}
               </AnimatePresence>
 
-              {/* Submit Button - Hide for Financial tab */}
-              {activeTab !== "financial" && (
+              {/* Submit Button - Hide for Financial, Calendar, and AI Providers tabs */}
+              {activeTab !== "financial" && activeTab !== "calendar" && activeTab !== "ai-providers" && (
                 <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <Button
                     type="button"

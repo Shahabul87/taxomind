@@ -87,6 +87,36 @@ export type {
 } from './golden-test-store';
 
 // ============================================================================
+// PRESENCE STORE
+// ============================================================================
+
+export {
+  PrismaPresenceStore,
+  createPrismaPresenceStore,
+} from './presence-store';
+
+export type {
+  PrismaPresenceStoreConfig,
+} from './presence-store';
+
+// ============================================================================
+// OBSERVABILITY STORES
+// ============================================================================
+
+export {
+  PrismaToolTelemetryStore,
+  PrismaConfidenceCalibrationStore,
+  PrismaMemoryQualityStore,
+  PrismaPlanLifecycleStore,
+  PrismaMetricsStore,
+  createPrismaObservabilityStores,
+} from './observability-store';
+
+export type {
+  PrismaObservabilityStoreConfig,
+} from './observability-store';
+
+// ============================================================================
 // UNIFIED ADAPTER FACTORY
 // ============================================================================
 

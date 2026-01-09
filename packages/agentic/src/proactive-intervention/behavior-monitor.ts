@@ -24,6 +24,7 @@ import {
   InterventionStore,
   InterventionType,
   InterventionResult,
+  InterventionCheckResult,
   EmotionalSignal,
   EmotionalSignalType,
   EventQueryOptions,
@@ -818,6 +819,219 @@ export class BehaviorMonitor {
     result: InterventionResult
   ): Promise<void> {
     await this.interventionStore.recordResult(interventionId, result);
+  }
+
+  /**
+   * Check for interventions based on recent events
+   * Call this after recording events to evaluate if any interventions should be triggered
+   */
+  async checkInterventions(userId: string): Promise<InterventionCheckResult> {
+    this.logger.info('Checking interventions', { userId });
+
+    const result: InterventionCheckResult = {
+      anomaliesDetected: [],
+      patternsDetected: [],
+      interventionsCreated: [],
+      existingPendingInterventions: [],
+    };
+
+    try {
+      // Get existing pending interventions first
+      const pendingInterventions = await this.interventionStore.getByUser(userId, true);
+      result.existingPendingInterventions = pendingInterventions;
+
+      // Detect anomalies
+      const anomalies = await this.detectAnomalies(userId);
+      result.anomaliesDetected = anomalies;
+
+      // Create interventions for high-severity anomalies that don't have existing interventions
+      for (const anomaly of anomalies) {
+        if (anomaly.severity === 'high') {
+          // Check if we already have a pending intervention for this type
+          const hasExisting = pendingInterventions.some(
+            (i) => i.type === this.mapAnomalyToInterventionType(anomaly.type)
+          );
+
+          if (!hasExisting) {
+            const intervention = await this.createInterventionForAnomaly(userId, anomaly);
+            if (intervention) {
+              result.interventionsCreated.push(intervention);
+            }
+          }
+        }
+      }
+
+      // Detect patterns
+      const patterns = await this.detectPatterns(userId);
+      result.patternsDetected = patterns;
+
+      // Create interventions for concerning patterns that don't have existing interventions
+      for (const pattern of patterns) {
+        if (pattern.confidence >= 0.6) {
+          const interventionType = this.mapPatternToInterventionType(pattern.type);
+          const hasExisting = pendingInterventions.some((i) => i.type === interventionType);
+
+          if (!hasExisting) {
+            const intervention = this.createInterventionForPattern(pattern);
+            if (intervention) {
+              const created = await this.interventionStore.create(intervention);
+              this.interventionStore.setUserIntervention(userId, created.id);
+              result.interventionsCreated.push(created);
+            }
+          }
+        }
+      }
+
+      this.logger.info('Intervention check completed', {
+        userId,
+        anomaliesCount: result.anomaliesDetected.length,
+        patternsCount: result.patternsDetected.length,
+        interventionsCreatedCount: result.interventionsCreated.length,
+        pendingCount: result.existingPendingInterventions.length,
+      });
+    } catch (error) {
+      this.logger.error('Failed to check interventions', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Map anomaly type to intervention type
+   */
+  private mapAnomalyToInterventionType(anomalyType: AnomalyType): InterventionType {
+    switch (anomalyType) {
+      case AnomalyType.SUDDEN_DISENGAGEMENT:
+        return InterventionType.STREAK_REMINDER;
+      case AnomalyType.REPEATED_FAILURES:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      case AnomalyType.PERFORMANCE_DROP:
+        return InterventionType.BREAK_SUGGESTION;
+      case AnomalyType.SESSION_ABNORMALITY:
+        return InterventionType.GOAL_REVISION;
+      case AnomalyType.UNUSUAL_ACTIVITY_TIME:
+        return InterventionType.ENCOURAGEMENT;
+      case AnomalyType.CONTENT_AVOIDANCE:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      default:
+        return InterventionType.ENCOURAGEMENT;
+    }
+  }
+
+  /**
+   * Map pattern type to intervention type
+   */
+  private mapPatternToInterventionType(patternType: PatternType): InterventionType {
+    switch (patternType) {
+      case PatternType.STRUGGLE_PATTERN:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      case PatternType.HELP_SEEKING:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      case PatternType.FATIGUE_PATTERN:
+        return InterventionType.BREAK_SUGGESTION;
+      case PatternType.SUCCESS_PATTERN:
+        return InterventionType.ENCOURAGEMENT;
+      default:
+        return InterventionType.ENCOURAGEMENT;
+    }
+  }
+
+  /**
+   * Create an intervention for an anomaly
+   */
+  private async createInterventionForAnomaly(
+    userId: string,
+    anomaly: BehaviorAnomaly
+  ): Promise<Intervention | null> {
+    let intervention: Omit<Intervention, 'id' | 'createdAt'> | null = null;
+
+    switch (anomaly.type) {
+      case AnomalyType.SUDDEN_DISENGAGEMENT:
+        intervention = {
+          type: InterventionType.STREAK_REMINDER,
+          priority: 'high',
+          message: 'We noticed you have not been as active recently. Would you like to get back on track?',
+          suggestedActions: [
+            {
+              id: uuidv4(),
+              title: 'Quick Review',
+              description: 'Do a quick 5-minute review session',
+              type: ActionType.START_ACTIVITY,
+              priority: 'high',
+            },
+            {
+              id: uuidv4(),
+              title: 'Adjust Goals',
+              description: 'Update your learning goals if needed',
+              type: ActionType.ADJUST_GOAL,
+              priority: 'medium',
+            },
+          ],
+          timing: { type: 'immediate' },
+        };
+        break;
+
+      case AnomalyType.REPEATED_FAILURES:
+        intervention = {
+          type: InterventionType.CONTENT_RECOMMENDATION,
+          priority: 'high',
+          message: anomaly.description,
+          suggestedActions: [
+            {
+              id: uuidv4(),
+              title: 'Review Materials',
+              description: 'Go back to review the fundamentals',
+              type: ActionType.REVIEW_CONTENT,
+              priority: 'high',
+            },
+            {
+              id: uuidv4(),
+              title: 'Get Help',
+              description: 'Connect with a mentor for assistance',
+              type: ActionType.CONTACT_MENTOR,
+              priority: 'medium',
+            },
+          ],
+          timing: { type: 'immediate' },
+        };
+        break;
+
+      case AnomalyType.PERFORMANCE_DROP:
+        intervention = {
+          type: InterventionType.BREAK_SUGGESTION,
+          priority: 'high',
+          message: anomaly.description,
+          suggestedActions: [
+            {
+              id: uuidv4(),
+              title: 'Take a Break',
+              description: 'A short break can help refresh your mind',
+              type: ActionType.TAKE_BREAK,
+              priority: 'high',
+            },
+            {
+              id: uuidv4(),
+              title: 'Talk to Someone',
+              description: 'Connect with support',
+              type: ActionType.CONTACT_MENTOR,
+              priority: 'medium',
+            },
+          ],
+          timing: { type: 'immediate' },
+        };
+        break;
+    }
+
+    if (intervention) {
+      const created = await this.interventionStore.create(intervention);
+      this.interventionStore.setUserIntervention(userId, created.id);
+      return created;
+    }
+
+    return null;
   }
 
   /**

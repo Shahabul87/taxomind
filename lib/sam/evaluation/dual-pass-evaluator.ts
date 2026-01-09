@@ -675,71 +675,6 @@ export class DualPassEvaluator {
 }
 
 // ============================================================================
-// MOCK LLM SCORER FOR TESTING
-// ============================================================================
-
-/**
- * Mock LLM Scorer for testing and development
- */
-export class MockLLMScorer implements LLMScorer {
-  private readonly modelId: string;
-  private readonly variability: number;
-
-  constructor(modelId: string = 'mock-model', variability: number = 0.1) {
-    this.modelId = modelId;
-    this.variability = variability;
-  }
-
-  async score(request: LLMScoreRequest): Promise<LLMScoreResponse> {
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    const { response, rubric } = request;
-
-    // Calculate a base score based on response length and rubric
-    const wordCount = response.content.split(/\s+/).length;
-    const expectedWords = 200; // Arbitrary expected length
-    const lengthScore = Math.min(1, wordCount / expectedWords);
-
-    // Add some randomness
-    const randomFactor = 1 + (Math.random() - 0.5) * this.variability * 2;
-
-    const baseScore = lengthScore * rubric.maxPoints * randomFactor;
-    const score = Math.max(0, Math.min(rubric.maxPoints, Math.round(baseScore * 10) / 10));
-
-    // Generate mock criterion scores
-    const criterionScores: CriterionScore[] = rubric.criteria.map((criterion) => {
-      const criterionScore = Math.round(
-        criterion.maxPoints * lengthScore * randomFactor * criterion.weight * 10
-      ) / 10;
-
-      return {
-        criterionId: criterion.id,
-        score: Math.max(0, Math.min(criterion.maxPoints, criterionScore)),
-        maxScore: criterion.maxPoints,
-        levelAchieved: criterionScore >= criterion.maxPoints * 0.8 ? 'Excellent' : 'Good',
-        justification: `Mock evaluation for ${criterion.name}`,
-      };
-    });
-
-    return {
-      score,
-      maxScore: rubric.maxPoints,
-      confidence: 0.8 + Math.random() * 0.15,
-      feedback: 'This is a mock evaluation response.',
-      strengths: ['Good structure', 'Clear writing'],
-      improvements: ['Add more examples', 'Expand on key points'],
-      criterionScores,
-      modelVersion: this.modelId,
-    };
-  }
-
-  getModelId(): string {
-    return this.modelId;
-  }
-}
-
-// ============================================================================
 // FACTORY FUNCTIONS
 // ============================================================================
 
@@ -750,18 +685,6 @@ export function createDualPassEvaluator(
   config?: DualPassEvaluatorConfig
 ): DualPassEvaluator {
   return new DualPassEvaluator(config);
-}
-
-/**
- * Create a dual-pass evaluator with mock scorers for testing
- */
-export function createMockDualPassEvaluator(): DualPassEvaluator {
-  return new DualPassEvaluator({
-    primaryScorer: new MockLLMScorer('primary-mock', 0.05),
-    secondaryScorer: new MockLLMScorer('secondary-mock', 0.1),
-    alwaysUseDualPass: true,
-    useRulesBasedScoring: true,
-  });
 }
 
 /**

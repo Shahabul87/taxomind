@@ -102,6 +102,9 @@ export class AnthropicAdapter implements AIAdapter {
     const model = params.model ?? this.model;
     const messages = this.formatMessages(params.messages);
 
+    // Extract system message from messages array if not provided via systemPrompt
+    const systemMessage = params.systemPrompt ?? this.extractSystemMessage(params.messages);
+
     const requestBody: AnthropicRequest = {
       model,
       max_tokens: params.maxTokens ?? 4096,
@@ -110,8 +113,8 @@ export class AnthropicAdapter implements AIAdapter {
       stop_sequences: params.stopSequences,
     };
 
-    if (params.systemPrompt) {
-      requestBody.system = params.systemPrompt;
+    if (systemMessage) {
+      requestBody.system = systemMessage;
     }
 
     let lastError: Error | undefined;
@@ -163,6 +166,9 @@ export class AnthropicAdapter implements AIAdapter {
     const model = params.model ?? this.model;
     const messages = this.formatMessages(params.messages);
 
+    // Extract system message from messages array if not provided via systemPrompt
+    const systemMessage = params.systemPrompt ?? this.extractSystemMessage(params.messages);
+
     const requestBody: AnthropicRequest = {
       model,
       max_tokens: params.maxTokens ?? 4096,
@@ -172,8 +178,8 @@ export class AnthropicAdapter implements AIAdapter {
       stream: true,
     };
 
-    if (params.systemPrompt) {
-      requestBody.system = params.systemPrompt;
+    if (systemMessage) {
+      requestBody.system = systemMessage;
     }
 
     const response = await fetch(`${this.baseURL}/v1/messages`, {
@@ -251,6 +257,15 @@ export class AnthropicAdapter implements AIAdapter {
         role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
+  }
+
+  /**
+   * Extract system message from messages array
+   * Anthropic API requires system message as a separate field, not in messages array
+   */
+  private extractSystemMessage(messages: AIChatParams['messages']): string | undefined {
+    const systemMessage = messages.find((m) => m.role === 'system');
+    return systemMessage?.content;
   }
 
   /**

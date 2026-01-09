@@ -411,7 +411,7 @@ export default function CourseSuccessPage({
                 Access your complete course library and track progress across all courses.
               </p>
 
-              <Link href="/my-courses">
+              <Link href="/dashboard/user/my-courses">
                 <Button
                   variant="outline"
                   size="lg"

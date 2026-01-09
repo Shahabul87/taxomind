@@ -73,12 +73,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Handle callback URLs from OAuth providers
       // These come back as absolute URLs with the callback path
       if (url.includes('/api/auth/callback')) {
-        return `${baseUrl}/dashboard`;
+        return `${baseUrl}/dashboard/user`;
       }
 
       // Handle role-based redirects after login
-      if (url === baseUrl || url === `${baseUrl}/` || url.includes('/dashboard/user')) {
-        return `${baseUrl}/dashboard`;
+      if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/dashboard`) {
+        return `${baseUrl}/dashboard/user`;
       }
 
       // If the URL is already an absolute URL (contains the baseUrl), use it
@@ -92,7 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       // Default fallback to dashboard (safer than baseUrl for authenticated users)
-      return `${baseUrl}/dashboard`;
+      return `${baseUrl}/dashboard/user`;
     },
     async signIn({ user, account }) {
       // Ensure we return early if missing critical data

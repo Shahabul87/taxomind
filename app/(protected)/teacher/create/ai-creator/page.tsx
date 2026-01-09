@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,11 +37,20 @@ import { TargetAudienceStep } from "./components/steps/target-audience-step";
 import { CourseStructureStep } from "./components/steps/course-structure-step";
 import { AdvancedSettingsStep } from "./components/steps/advanced-settings-step";
 import { MobileStepNav } from "./components/navigation/MobileStepNav";
-import { SAMCompleteGenerationModal } from "./components/sam-complete-generation-modal";
 import { useSAMCourseCreationOrchestrator } from "@/hooks/use-sam-course-creation-orchestrator";
 import { CourseCreationProgress } from "@/components/sam/course-creation-progress";
-import { SequentialCreationModal } from "@/components/sam/sequential-creation-modal";
 import { useSequentialCreation } from "@/hooks/use-sam-sequential-creation";
+
+// Dynamic imports with SSR disabled to fix Radix UI hydration mismatch
+// See: https://github.com/radix-ui/primitives/issues/3700
+const SAMCompleteGenerationModal = dynamic(
+  () => import("./components/sam-complete-generation-modal").then(mod => mod.SAMCompleteGenerationModal),
+  { ssr: false }
+);
+const SequentialCreationModal = dynamic(
+  () => import("@/components/sam/sequential-creation-modal").then(mod => mod.SequentialCreationModal),
+  { ssr: false }
+);
 
 const STEPS = [
   {

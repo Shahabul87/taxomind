@@ -41,7 +41,7 @@ export const MessagesPopover = () => {
           >
             <div className="p-3 sm:p-4 border-b dark:border-slate-700/50 border-slate-200 flex justify-between items-center">
               <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Messages</h3>
-              <Link href="/messages" className="text-xs sm:text-sm text-purple-600 hover:text-purple-700">
+              <Link href="/dashboard/user/messages" className="text-xs sm:text-sm text-purple-600 hover:text-purple-700">
                 View All
               </Link>
             </div>

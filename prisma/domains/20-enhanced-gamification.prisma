@@ -1,0 +1,289 @@
+// ==========================================
+// Enhanced Gamification System (Phase 6)
+// ==========================================
+// XP System, Achievement Engine, Leaderboards
+// Implements the full gamification from dashboard enhancement plan
+//
+// Total Models: 6
+// Priority: 10
+//
+// Created: January 2025
+// ==========================================
+
+// ==========================================
+// Enums for Enhanced Gamification
+// ==========================================
+
+enum AchievementCategory {
+  STREAK           // Consecutive days of learning
+  COMPLETION       // Completing courses, chapters, lessons
+  MASTERY          // High quiz scores, perfect completions
+  ENGAGEMENT       // Discussion participation, notes, bookmarks
+  SPEED            // Fast completions, early finishes
+  DEDICATION       // Study time milestones
+  SOCIAL           // Helping others, group activities
+  SPECIAL          // Limited time, seasonal, hidden
+}
+
+enum AchievementRarity {
+  COMMON           // Easy to get (gray border)
+  UNCOMMON         // Moderate effort (green border)
+  RARE             // Significant effort (blue border)
+  EPIC             // Major milestone (purple border)
+  LEGENDARY        // Exceptional achievement (gold border)
+}
+
+enum XPSource {
+  ACHIEVEMENT      // From unlocking achievements
+  LESSON           // Completing lessons
+  QUIZ             // Taking quizzes (bonus for high scores)
+  COURSE           // Course milestones and completion
+  STREAK           // Daily streak bonuses
+  BONUS            // Special events, promotions
+  ADMIN            // Manual adjustment by admin
+  CHALLENGE        // From completing challenges
+  REFERRAL         // From referral program
+}
+
+enum LeaderboardPeriod {
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+}
+
+// ==========================================
+// Achievement Definition Model
+// ==========================================
+
+model GamificationAchievement {
+  id                String              @id @default(cuid())
+
+  // Basic Info
+  name              String
+  slug              String              @unique
+  description       String
+  icon              String              // Emoji or Lucide icon name
+
+  // Classification
+  category          AchievementCategory
+  rarity            AchievementRarity
+
+  // Unlock Criteria (JSON for flexibility)
+  // Structure: { type: 'COUNT' | 'STREAK' | 'PERCENTAGE' | 'TIME' | 'COMPOUND',
+  //              target: number, metric: string, conditions?: [...] }
+  criteria          Json
+
+  // Rewards
+  xpReward          Int                 @default(0)
+  badgeUrl          String?
+  unlockMessage     String?
+
+  // Settings
+  isHidden          Boolean             @default(false)  // Hidden achievements (surprise!)
+  isRepeatable      Boolean             @default(false)  // Can be earned multiple times
+  maxRepeats        Int?                                 // Max times it can be repeated
+  isActive          Boolean             @default(true)
+
+  // Ordering & Display
+  displayOrder      Int                 @default(0)
+  tier              Int                 @default(1)      // For tiered achievements (Bronze -> Gold)
+
+  // Metadata
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  userProgress      GamificationUserAchievement[]
+
+  @@index([category])
+  @@index([rarity])
+  @@index([isActive])
+  @@index([isHidden])
+  @@map("gamification_achievements")
+}
+
+// ==========================================
+// User Achievement Progress Model
+// ==========================================
+
+model GamificationUserAchievement {
+  id                String                    @id @default(cuid())
+  userId            String
+  achievementId     String
+
+  // Progress Tracking
+  currentProgress   Int                       @default(0)
+  targetProgress    Int
+  progressData      Json?                     // Additional progress data
+
+  // Status
+  isUnlocked        Boolean                   @default(false)
+  unlockedAt        DateTime?
+  timesEarned       Int                       @default(0)
+
+  // Display
+  isNew             Boolean                   @default(true)   // Show "NEW" badge
+  isPinned          Boolean                   @default(false)  // User pinned to profile
+  seenAt            DateTime?                                  // When user viewed it
+
+  // Metadata
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  // Relations
+  user              User                      @relation("UserGamificationAchievements", fields: [userId], references: [id], onDelete: Cascade)
+  achievement       GamificationAchievement   @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+  @@index([isUnlocked])
+  @@index([unlockedAt])
+  @@map("gamification_user_achievements")
+}
+
+// ==========================================
+// User XP & Level Model
+// ==========================================
+
+model GamificationUserXP {
+  id                String              @id @default(cuid())
+  userId            String              @unique
+
+  // XP & Level
+  totalXP           Int                 @default(0)
+  currentLevel      Int                 @default(1)
+  xpInCurrentLevel  Int                 @default(0)      // XP earned in current level
+  xpToNextLevel     Int                 @default(100)    // XP needed for next level
+
+  // Stats
+  totalAchievements Int                 @default(0)
+
+  // Streak Info (denormalized for quick access)
+  currentStreak     Int                 @default(0)
+  longestStreak     Int                 @default(0)
+  lastActivityDate  DateTime?
+  streakFreezeCount Int                 @default(0)      // Available streak freezes
+
+  // Timestamps
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  user              User                @relation("UserGamificationXP", fields: [userId], references: [id], onDelete: Cascade)
+  transactions      GamificationXPTransaction[]
+
+  @@index([totalXP])
+  @@index([currentLevel])
+  @@map("gamification_user_xp")
+}
+
+// ==========================================
+// XP Transaction Log Model
+// ==========================================
+
+model GamificationXPTransaction {
+  id                String              @id @default(cuid())
+  userXPId          String
+
+  // Transaction Details
+  amount            Int                 // Can be negative for penalties/adjustments
+  source            XPSource
+  sourceId          String?             // ID of the source (achievementId, lessonId, etc.)
+  description       String
+
+  // Balance Tracking
+  balanceBefore     Int
+  balanceAfter      Int
+  levelBefore       Int
+  levelAfter        Int
+
+  // Metadata
+  metadata          Json?               // Additional context data
+  createdAt         DateTime            @default(now())
+
+  // Relations
+  userXP            GamificationUserXP  @relation(fields: [userXPId], references: [id], onDelete: Cascade)
+
+  @@index([userXPId])
+  @@index([source])
+  @@index([createdAt])
+  @@map("gamification_xp_transactions")
+}
+
+// ==========================================
+// Leaderboard Entry Model
+// ==========================================
+
+model GamificationLeaderboardEntry {
+  id                String              @id @default(cuid())
+  userId            String
+
+  // Period Info
+  period            LeaderboardPeriod
+  periodStart       DateTime            @db.Date
+  periodEnd         DateTime?           @db.Date         // Null for ALL_TIME
+
+  // Stats for the Period
+  xpEarned          Int                 @default(0)
+  achievementsUnlocked Int              @default(0)
+  lessonsCompleted  Int                 @default(0)
+  quizzesTaken      Int                 @default(0)
+  studyMinutes      Int                 @default(0)
+
+  // Ranking
+  rank              Int?
+  previousRank      Int?
+  rankChange        Int?                // Positive = moved up, negative = moved down
+
+  // Privacy Settings
+  isVisible         Boolean             @default(true)
+  showOnlyToFriends Boolean             @default(false)
+
+  // Timestamps
+  lastCalculatedAt  DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  // Relations
+  user              User                @relation("UserLeaderboardEntries", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period, periodStart])
+  @@index([period, periodStart])
+  @@index([xpEarned])
+  @@index([rank])
+  @@map("gamification_leaderboard_entries")
+}
+
+// ==========================================
+// User Gamification Preferences
+// ==========================================
+
+model GamificationPreferences {
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+
+  // Notification Preferences
+  achievementNotifications Boolean  @default(true)
+  levelUpNotifications    Boolean   @default(true)
+  streakReminders         Boolean   @default(true)
+  leaderboardUpdates      Boolean   @default(false)
+
+  // Privacy
+  showOnLeaderboard       Boolean   @default(true)
+  showAchievements        Boolean   @default(true)
+  showLevel               Boolean   @default(true)
+  showStreak              Boolean   @default(true)
+
+  // Display
+  pinnedAchievements      String[]  @default([])  // Achievement IDs to pin on profile
+
+  // Timestamps
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  // Relations
+  user                    User      @relation("UserGamificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("gamification_preferences")
+}

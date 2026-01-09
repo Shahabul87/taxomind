@@ -1,12 +1,64 @@
 import { Suspense } from "react";
+import { Metadata } from "next";
+import Script from "next/script";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { CoursesPageClient } from "./_components/courses-page-client";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const metadata = {
-  title: 'Courses | Taxomind - Explore Our Course Catalog',
-  description: 'Browse our comprehensive catalog of expert-led courses. Learn at your own pace with AI-powered adaptive learning, personalized recommendations, and industry-recognized certificates.'
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
+
+export const metadata: Metadata = {
+  title: 'Courses | Taxomind - Explore Our AI-Powered Course Catalog',
+  description: 'Browse our comprehensive catalog of expert-led courses. Learn at your own pace with AI-powered adaptive learning, personalized recommendations, and industry-recognized certificates.',
+  keywords: [
+    'online courses',
+    'AI-powered learning',
+    'adaptive education',
+    'professional development',
+    'skill development',
+    'online certification',
+    'e-learning platform',
+    'Taxomind courses',
+  ],
+  alternates: {
+    canonical: '/courses',
+  },
+  openGraph: {
+    title: 'Explore Our Course Catalog | Taxomind',
+    description: 'Discover hundreds of expert-led courses with AI-powered adaptive learning. Get personalized recommendations and earn industry-recognized certificates.',
+    url: `${baseUrl}/courses`,
+    siteName: 'Taxomind',
+    type: 'website',
+    images: [
+      {
+        url: `${baseUrl}/og-courses.png`,
+        width: 1200,
+        height: 630,
+        alt: 'Taxomind Course Catalog - AI-Powered Learning',
+      },
+    ],
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Explore Our Course Catalog | Taxomind',
+    description: 'Discover hundreds of expert-led courses with AI-powered adaptive learning.',
+    images: [`${baseUrl}/og-courses.png`],
+    creator: '@taxomind',
+    site: '@taxomind',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+      'max-video-preview': -1,
+    },
+  },
 };
 
 export const dynamic = 'force-dynamic';
@@ -303,19 +355,139 @@ function LoadingSkeleton() {
   );
 }
 
+// Generate JSON-LD structured data for the courses page
+function generateCoursesSchema(courses: Array<{
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  price: number;
+  rating: number;
+  reviewsCount: number;
+  instructor?: { name: string };
+  difficulty: string;
+}>) {
+  // ItemList schema for course catalog
+  const itemListSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Taxomind Course Catalog',
+    description: 'Browse our comprehensive catalog of AI-powered courses',
+    url: `${baseUrl}/courses`,
+    numberOfItems: courses.length,
+    itemListElement: courses.slice(0, 10).map((course, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'Course',
+        '@id': `${baseUrl}/courses/${course.id}`,
+        name: course.title,
+        description: course.description?.slice(0, 200) || course.title,
+        url: `${baseUrl}/courses/${course.id}`,
+        image: course.imageUrl?.startsWith('http')
+          ? course.imageUrl
+          : `${baseUrl}${course.imageUrl}`,
+        provider: {
+          '@type': 'Organization',
+          name: 'Taxomind',
+          sameAs: baseUrl,
+        },
+        ...(course.instructor?.name && {
+          instructor: {
+            '@type': 'Person',
+            name: course.instructor.name,
+          },
+        }),
+        ...(course.rating > 0 && {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: course.rating.toFixed(1),
+            ratingCount: course.reviewsCount.toString(),
+            bestRating: '5',
+            worstRating: '1',
+          },
+        }),
+        offers: {
+          '@type': 'Offer',
+          price: course.price.toString(),
+          priceCurrency: 'USD',
+          availability: 'https://schema.org/InStock',
+          url: `${baseUrl}/courses/${course.id}`,
+        },
+        educationalLevel: course.difficulty,
+        inLanguage: 'en',
+        isAccessibleForFree: course.price === 0,
+      },
+    })),
+  };
+
+  // CollectionPage schema
+  const collectionPageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Taxomind Course Catalog',
+    description: 'Browse our comprehensive catalog of expert-led courses with AI-powered adaptive learning.',
+    url: `${baseUrl}/courses`,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: courses.length,
+    },
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: baseUrl,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Courses',
+          item: `${baseUrl}/courses`,
+        },
+      ],
+    },
+  };
+
+  return { itemListSchema, collectionPageSchema };
+}
+
 export default async function CoursesPage() {
   const initialData = await getInitialData();
+  const { itemListSchema, collectionPageSchema } = generateCoursesSchema(initialData.courses);
 
   return (
-    <Suspense fallback={<LoadingSkeleton />}>
-      <CoursesPageClient
-        initialCourses={initialData.courses}
-        filterOptions={initialData.filterOptions}
-        totalCourses={initialData.totalCourses}
-        userId={initialData.userId || undefined}
-        user={initialData.user || undefined}
+    <>
+      {/* JSON-LD Structured Data for SEO */}
+      <Script
+        id="courses-itemlist-schema"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(itemListSchema),
+        }}
       />
-    </Suspense>
+      <Script
+        id="courses-collection-schema"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(collectionPageSchema),
+        }}
+      />
+
+      <Suspense fallback={<LoadingSkeleton />}>
+        <CoursesPageClient
+          initialCourses={initialData.courses}
+          filterOptions={initialData.filterOptions}
+          totalCourses={initialData.totalCourses}
+          userId={initialData.userId || undefined}
+          user={initialData.user || undefined}
+        />
+      </Suspense>
+    </>
   );
 }
 

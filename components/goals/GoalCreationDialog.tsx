@@ -83,9 +83,9 @@ export function GoalCreationDialog({
   const [description, setDescription] = useState('');
   const [targetDate, setTargetDate] = useState<Date | undefined>();
   const [priority, setPriority] = useState('medium');
-  const [courseId, setCourseId] = useState<string>('');
-  const [currentMastery, setCurrentMastery] = useState<string>('');
-  const [targetMastery, setTargetMastery] = useState<string>('');
+  const [courseId, setCourseId] = useState<string>('none');
+  const [currentMastery, setCurrentMastery] = useState<string>('none');
+  const [targetMastery, setTargetMastery] = useState<string>('none');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
 
@@ -102,7 +102,9 @@ export function GoalCreationDialog({
       const response = await fetch('/api/courses?limit=50');
       if (response.ok) {
         const data = await response.json();
-        setCourses(data.courses || []);
+        // API returns array directly, not { courses: [...] }
+        const coursesArray = Array.isArray(data) ? data : (data.courses || []);
+        setCourses(coursesArray);
       }
     } catch (error) {
       console.error('Failed to fetch courses:', error);
@@ -117,9 +119,9 @@ export function GoalCreationDialog({
     setDescription('');
     setTargetDate(undefined);
     setPriority('medium');
-    setCourseId('');
-    setCurrentMastery('');
-    setTargetMastery('');
+    setCourseId('none');
+    setCurrentMastery('none');
+    setTargetMastery('none');
     setTags([]);
     setTagInput('');
   };
@@ -156,9 +158,9 @@ export function GoalCreationDialog({
           description: description.trim() || undefined,
           targetDate: targetDate?.toISOString(),
           priority,
-          courseId: courseId || undefined,
-          currentMastery: currentMastery || undefined,
-          targetMastery: targetMastery || undefined,
+          courseId: courseId === 'none' ? undefined : courseId,
+          currentMastery: currentMastery === 'none' ? undefined : currentMastery,
+          targetMastery: targetMastery === 'none' ? undefined : targetMastery,
           tags,
         }),
       });
@@ -234,13 +236,9 @@ export function GoalCreationDialog({
 
         {/* Content */}
         <div className="p-6">
-          <AnimatePresence mode="wait">
+          {/* Temporarily removed AnimatePresence to debug Select issue */}
             {step === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
+              <div
                 className="space-y-5"
               >
                 {/* Title */}
@@ -332,15 +330,11 @@ export function GoalCreationDialog({
                     </PopoverContent>
                   </Popover>
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {step === 2 && (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+              <div
                 className="space-y-5"
               >
                 {/* Course Selection */}
@@ -351,15 +345,17 @@ export function GoalCreationDialog({
                   </Label>
                   <Select value={courseId} onValueChange={setCourseId}>
                     <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Select a course" />
+                      <SelectValue placeholder="Select a course..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No course</SelectItem>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.title}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="none">No course linked</SelectItem>
+                      {courses
+                        .filter((course) => course.id && course.id.trim() !== '')
+                        .map((course) => (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.title}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -373,10 +369,10 @@ export function GoalCreationDialog({
                     </Label>
                     <Select value={currentMastery} onValueChange={setCurrentMastery}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
+                        <SelectValue placeholder="Select level..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Not specified</SelectItem>
+                        <SelectItem value="none">Not specified</SelectItem>
                         {masteryOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
@@ -390,10 +386,10 @@ export function GoalCreationDialog({
                     <Label className="text-sm font-medium">Target Level</Label>
                     <Select value={targetMastery} onValueChange={setTargetMastery}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
+                        <SelectValue placeholder="Select level..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Not specified</SelectItem>
+                        <SelectItem value="none">Not specified</SelectItem>
                         {masteryOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
@@ -448,9 +444,8 @@ export function GoalCreationDialog({
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
         </div>
 
         {/* Footer */}

@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 
 // ============================================================================
 // Request Schema
@@ -167,7 +167,8 @@ function validateQuality(
 
 async function generateCourseStructure(
   formData: CreateCourseCompleteRequest['formData'],
-  samContext: string[]
+  samContext: string[],
+  userId: string
 ): Promise<NonNullable<CreateCourseCompleteRequest['generatedStructure']>> {
   const prompt = `You are SAM, an expert AI course designer. Create a comprehensive course structure.
 
@@ -216,11 +217,13 @@ Requirements:
 5. Use action verbs in learning objectives
 6. Make content appropriate for ${formData.difficulty} level learners`;
 
-  const response = await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
+  const response = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     maxTokens: 4000,
     temperature: 0.7,
     messages: [{ role: 'user', content: prompt }],
+    extended: true,
   });
 
   try {
@@ -292,7 +295,7 @@ export async function POST(request: NextRequest) {
     let structure = validatedData.generatedStructure;
     if (!structure && options.generateIfMissing) {
       logger.info('Generating course structure with SAM AI...');
-      structure = await generateCourseStructure(formData, samContext);
+      structure = await generateCourseStructure(formData, samContext, user.id);
     }
 
     if (!structure) {

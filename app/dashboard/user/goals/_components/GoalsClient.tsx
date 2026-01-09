@@ -200,10 +200,34 @@ export function GoalsClient({ user }: GoalsClientProps) {
   // Form submission handlers for Quick Create modals
   const handleStudyPlanSubmit = async (data: StudyPlanData) => {
     try {
-      // Study plan API may not exist yet - log for now
-      console.log('Study Plan data:', data);
-      toast.success('Study plan created successfully!');
-      setIsStudyPlanModalOpen(false);
+      const response = await fetch('/api/dashboard/study-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planType: data.planType,
+          enrolledCourseId: data.enrolledCourseId,
+          newCourseTitle: data.newCourseTitle,
+          newCourseDescription: data.newCourseDescription,
+          newCourseUrl: data.newCourseUrl || undefined,
+          newCoursePlatform: data.newCoursePlatform,
+          title: data.title,
+          description: data.description,
+          startDate: data.startDate.toISOString(),
+          endDate: data.endDate.toISOString(),
+          weeklyHoursGoal: data.weeklyHoursGoal,
+          dailyStudyTime: data.dailyStudyTime,
+          studyDaysPerWeek: data.studyDaysPerWeek,
+          aiGenerated: false,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        toast.success('Study plan created successfully!');
+        setIsStudyPlanModalOpen(false);
+      } else {
+        toast.error(result.error?.message || 'Failed to create study plan');
+      }
     } catch (error) {
       console.error('Error creating study plan:', error);
       toast.error('Failed to create study plan');
@@ -342,6 +366,7 @@ export function GoalsClient({ user }: GoalsClientProps) {
       showBottomBar={true}
       enableGestures={true}
       contentClassName="bg-gradient-to-br from-slate-50 via-violet-50/20 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/20"
+      quickActionHandlers={quickActionHandlers}
     >
       <div className="min-h-screen w-full">
         {/* Hero Header */}

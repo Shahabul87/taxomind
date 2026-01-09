@@ -25,6 +25,7 @@ import {
   User,
   Briefcase,
   Microscope,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { User as NextAuthUser } from 'next-auth';
@@ -106,19 +107,19 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
   const navigationItems: NavItem[] = [
     {
       label: 'Dashboard',
-      href: user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard',
+      href: user.role === 'ADMIN' ? '/dashboard/admin' : '/dashboard/user',
       icon: LayoutDashboard,
       roles: ['all'],
     },
     {
-      label: 'My Plans',
-      href: '/my-plan',
-      icon: Briefcase,
+      label: 'My Goals',
+      href: '/dashboard/user/goals',
+      icon: Target,
       roles: ['all'],
     },
     {
       label: 'Profile Manager',
-      href: '/profile',
+      href: '/dashboard/user/profile',
       icon: User,
       roles: ['all'],
     },
@@ -127,7 +128,7 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
       icon: BookOpen,
       roles: ['all'],
       submenu: [
-        { label: 'My Courses', href: '/my-courses' },
+        { label: 'My Courses', href: '/dashboard/user/my-courses' },
         { label: 'All Courses', href: '/teacher/courses' },
         { label: 'Create Course', href: '/teacher/create' },
       ],
@@ -144,7 +145,7 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
     },
     {
       label: 'Analytics',
-      href: '/analytics',
+      href: '/dashboard/user/analytics',
       icon: BarChart3,
       roles: ['all'],
     },
@@ -156,26 +157,26 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
     },
     {
       label: 'Study Groups',
-      href: '/groups',
+      href: '/dashboard/user/groups',
       icon: Users,
       roles: ['all'],
     },
     {
       label: 'Messages',
-      href: '/messages',
+      href: '/dashboard/user/messages',
       icon: MessageSquare,
       badge: unreadMessagesCount > 0 ? String(unreadMessagesCount) : undefined,
       roles: ['all'],
     },
     {
       label: 'Certificates',
-      href: '/certificates',
+      href: '/dashboard/user/certificates',
       icon: Award,
       roles: ['all'],
     },
     {
       label: 'Favorites',
-      href: '/favorites',
+      href: '/dashboard/user/favorites',
       icon: Heart,
       roles: ['all'],
     },
@@ -210,7 +211,8 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
   const filteredBottomItems = filterByRole(bottomNavigationItems);
 
   const isActiveLink = (href: string) => {
-    if (href === '/dashboard') {
+    // Dashboard links should only be active on exact match
+    if (href === '/dashboard/user' || href === '/dashboard/admin' || href === '/dashboard') {
       return pathname === href;
     }
     return pathname.startsWith(href);

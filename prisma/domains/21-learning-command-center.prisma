@@ -1,0 +1,531 @@
+// ==========================================
+// Learning Command Center
+// ==========================================
+// Models for the enhanced Learning Command Center dashboard
+// Provides daily agenda, planned vs actual tracking, and streak management
+// Created: 2026-01-06
+// ==========================================
+
+// ==========================================
+// Enums
+// ==========================================
+
+enum ScheduledActivityStatus {
+  COMPLETED
+  IN_PROGRESS
+  NOT_STARTED
+  OVERDUE
+  SKIPPED
+  RESCHEDULED
+}
+
+enum ScheduledActivityType {
+  STUDY_SESSION
+  VIDEO_LESSON
+  READING
+  QUIZ
+  ASSIGNMENT
+  PROJECT
+  PRACTICE
+  LIVE_CLASS
+  DISCUSSION
+  REVIEW
+  EXAM
+  GOAL_MILESTONE
+}
+
+enum UserGoalStatus {
+  ON_TRACK
+  AHEAD
+  BEHIND
+  AT_RISK
+  COMPLETED
+  PAUSED
+}
+
+enum LearningAlertType {
+  REMINDER
+  DEADLINE
+  STREAK_WARNING
+  STREAK_ACHIEVEMENT
+  GOAL_PROGRESS
+  GOAL_COMPLETED
+  WEEKLY_SUMMARY
+  STUDY_SUGGESTION
+  BREAK_REMINDER
+}
+
+enum AlertChannel {
+  IN_APP
+  EMAIL
+  PUSH
+  SMS
+}
+
+// ==========================================
+// Learning Activity - Scheduled activities
+// ==========================================
+
+model LearningActivity {
+  id                String                 @id @default(cuid())
+  userId            String
+  user              User                   @relation("UserLearningActivities", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Activity details
+  type              ScheduledActivityType
+  title             String
+  description       String?                @db.Text
+
+  // Course/Content association
+  courseId          String?
+  course            Course?                @relation("CourseLearningActivities", fields: [courseId], references: [id], onDelete: SetNull)
+  chapterId         String?
+  chapter           Chapter?               @relation("ChapterLearningActivities", fields: [chapterId], references: [id], onDelete: SetNull)
+  sectionId         String?
+
+  // Time scheduling
+  scheduledDate     DateTime
+  startTime         String?                // Format: "HH:mm" (e.g., "09:00")
+  endTime           String?                // Format: "HH:mm" (e.g., "10:30")
+  estimatedDuration Int                    @default(30) // minutes
+
+  // Actual tracking
+  actualDuration    Int?                   // minutes
+  actualStartTime   DateTime?
+  actualEndTime     DateTime?
+
+  // Status and progress
+  status            ScheduledActivityStatus @default(NOT_STARTED)
+  progress          Int                    @default(0) // 0-100
+
+  // Priority and categorization
+  priority          Priority               @default(MEDIUM)
+  tags              String[]               @default([])
+
+  // Recurrence
+  isRecurring       Boolean                @default(false)
+  recurrenceRule    String?                // iCal RRULE format
+  parentActivityId  String?
+  parentActivity    LearningActivity?      @relation("RecurringActivities", fields: [parentActivityId], references: [id], onDelete: SetNull)
+  childActivities   LearningActivity[]     @relation("RecurringActivities")
+
+  // Google Calendar sync
+  googleEventId     String?                @unique
+  calendarSynced    Boolean                @default(false)
+  lastSyncedAt      DateTime?
+
+  // Metadata
+  notes             String?                @db.Text
+  completedAt       DateTime?
+
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@index([userId, scheduledDate])
+  @@index([userId, status])
+  @@index([courseId])
+  @@index([chapterId])
+  @@map("learning_activities")
+}
+
+// ==========================================
+// Daily Learning Log - Planned vs Actual
+// ==========================================
+
+model DailyLearningLog {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation("UserDailyLearningLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Date for this log entry
+  date              DateTime  @db.Date
+
+  // Planned metrics (set at start of day or previous night)
+  plannedMinutes    Int       @default(0)
+  plannedActivities Int       @default(0)
+  plannedTasks      Int       @default(0)
+
+  // Actual metrics (updated throughout the day)
+  actualMinutes     Int       @default(0)
+  completedActivities Int     @default(0)
+  completedTasks    Int       @default(0)
+  skippedActivities Int       @default(0)
+
+  // Focus and productivity
+  focusScore        Int?                   // 0-100, calculated from session quality
+  productivityScore Int?                   // 0-100, calculated from completion rate
+
+  // Study patterns
+  peakHour          String?                // Best performing hour of the day
+  totalBreaks       Int       @default(0)
+  longestSession    Int?                   // minutes
+
+  // Mood and energy (optional self-reporting)
+  energyLevel       Int?                   // 1-5
+  moodRating        Int?                   // 1-5
+
+  // Notes
+  dailyNotes        String?   @db.Text
+  aiSummary         String?   @db.Text     // AI-generated daily summary
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_learning_logs")
+}
+
+// ==========================================
+// Learning Streak - Streak tracking
+// ==========================================
+
+model LearningStreak {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation("UserLearningStreak", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Current streak
+  currentStreak     Int       @default(0)
+  longestStreak     Int       @default(0)
+
+  // Streak dates
+  streakStartDate   DateTime?
+  lastActiveDate    DateTime?
+
+  // Weekly goals
+  weeklyGoalMinutes Int       @default(420) // 7 hours default
+  weeklyCompletedMinutes Int  @default(0)
+  weekStartDate     DateTime?
+
+  // Streak protection
+  freezesAvailable  Int       @default(0)  // Streak freezes earned
+  freezesUsed       Int       @default(0)  // Total freezes used
+  lastFreezeDate    DateTime?
+
+  // Statistics
+  totalActiveDays   Int       @default(0)
+  totalMinutesAllTime Int     @default(0)
+  averageDailyMinutes Float   @default(0)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("learning_streaks")
+}
+
+// ==========================================
+// Learning Goal (enhanced)
+// ==========================================
+
+model LearningGoal {
+  id                String             @id @default(cuid())
+  userId            String
+  user              User               @relation("UserLearningGoals", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Goal details
+  title             String
+  description       String?            @db.Text
+  category          String?            // e.g., "career", "certification", "skill"
+
+  // Course association
+  courseId          String?
+  course            Course?            @relation("CourseLearningGoals", fields: [courseId], references: [id], onDelete: SetNull)
+
+  // Target and progress
+  targetDate        DateTime
+  startDate         DateTime           @default(now())
+  progress          Int                @default(0) // 0-100
+  status            UserGoalStatus     @default(ON_TRACK)
+
+  // Metrics
+  targetMinutes     Int?               // Total learning minutes target
+  completedMinutes  Int                @default(0)
+
+  // Milestones
+  milestones        LearningGoalMilestone[]
+
+  // Metadata
+  color             String?            // UI color for the goal
+  icon              String?            // Icon identifier
+  priority          Int                @default(0)
+
+  completedAt       DateTime?
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, targetDate])
+  @@map("learning_goals")
+}
+
+model LearningGoalMilestone {
+  id                String        @id @default(cuid())
+  goalId            String
+  goal              LearningGoal  @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  // Milestone details
+  title             String
+  description       String?
+  targetDate        DateTime?
+  targetProgress    Int?          // Progress percentage to reach (e.g., 25, 50, 75)
+
+  // Status
+  completed         Boolean       @default(false)
+  completedAt       DateTime?
+
+  // Ordering
+  position          Int           @default(0)
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([goalId, position])
+  @@map("learning_goal_milestones")
+}
+
+// ==========================================
+// Learning Notification Preference
+// ==========================================
+
+model LearningNotificationPreference {
+  id                String                       @id @default(cuid())
+  userId            String                       @unique
+  user              User                         @relation("UserLearningNotificationPrefs", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Global settings
+  enabled           Boolean                      @default(true)
+  quietHoursStart   String?                      // Format: "HH:mm"
+  quietHoursEnd     String?                      // Format: "HH:mm"
+  timezone          String                       @default("UTC")
+
+  // Notification type preferences
+  remindersBefore   Int                          @default(15) // minutes before activity
+  streakReminders   Boolean                      @default(true)
+  goalUpdates       Boolean                      @default(true)
+  weeklySummary     Boolean                      @default(true)
+  dailyDigest       Boolean                      @default(true)
+  breakReminders    Boolean                      @default(true)
+  studySuggestions  Boolean                      @default(true)
+
+  // Break reminder settings
+  breakIntervalMinutes Int                       @default(60) // Remind to take break every N minutes
+  breakDurationMinutes Int                       @default(5)  // Suggested break duration
+
+  // Channel preferences (stored as JSON for flexibility)
+  channelPreferences Json?                       // { "reminder": ["in_app", "push"], "streak": ["email"] }
+
+  // Digest settings
+  digestTime        String                       @default("08:00") // When to send daily digest
+  weeklyDigestDay   Int                          @default(1) // 0 = Sunday, 1 = Monday, etc.
+
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  @@map("learning_notification_preferences")
+}
+
+// ==========================================
+// Learning Notification Queue
+// ==========================================
+
+model LearningNotification {
+  id                String                    @id @default(cuid())
+  userId            String
+  user              User                      @relation("UserLearningNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Notification content
+  type              LearningAlertType
+  title             String
+  message           String                    @db.Text
+
+  // Visual styling
+  icon              String?
+  color             String?
+
+  // Associated entities
+  activityId        String?
+  goalId            String?
+  courseId          String?
+
+  // Status
+  read              Boolean                   @default(false)
+  readAt            DateTime?
+  dismissed         Boolean                   @default(false)
+  dismissedAt       DateTime?
+
+  // Delivery
+  channels          AlertChannel[]            @default([IN_APP])
+  deliveredAt       DateTime?
+  deliveryStatus    String?                   // "pending", "delivered", "failed"
+
+  // Scheduling
+  scheduledFor      DateTime?                 // For scheduled notifications
+  expiresAt         DateTime?
+
+  // Action
+  actionUrl         String?
+  actionLabel       String?
+
+  // Metadata
+  metadata          Json?
+
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([userId, read])
+  @@index([userId, type])
+  @@index([scheduledFor])
+  @@map("learning_notifications")
+}
+
+// ==========================================
+// Google Calendar Integration
+// ==========================================
+
+enum CalendarSyncDirection {
+  TAXOMIND_TO_GOOGLE       // One-way: Taxomind → Google
+  GOOGLE_TO_TAXOMIND       // One-way: Google → Taxomind
+  TWO_WAY                  // Bidirectional sync
+}
+
+enum CalendarSyncStatus {
+  CONNECTED
+  DISCONNECTED
+  SYNCING
+  ERROR
+  EXPIRED
+}
+
+enum CalendarEventType {
+  STUDY_SESSION
+  QUIZ_EXAM
+  ASSIGNMENT
+  GOAL_MILESTONE
+  LIVE_CLASS
+  DAILY_TODO
+}
+
+model GoogleCalendarIntegration {
+  id                    String                @id @default(cuid())
+  userId                String                @unique
+  user                  User                  @relation("UserGoogleCalendarIntegration", fields: [userId], references: [id], onDelete: Cascade)
+
+  // OAuth tokens (encrypted in production)
+  accessToken           String                @db.Text
+  refreshToken          String                @db.Text
+  tokenExpiresAt        DateTime
+  scope                 String                @default("https://www.googleapis.com/auth/calendar")
+
+  // Google account info
+  googleEmail           String
+  googleAccountId       String?
+
+  // Selected calendar
+  selectedCalendarId    String?               // null = primary calendar
+  selectedCalendarName  String?
+  createDedicatedCalendar Boolean             @default(false)
+
+  // Connection status
+  status                CalendarSyncStatus    @default(CONNECTED)
+  lastSyncAt            DateTime?
+  lastSyncError         String?
+  syncErrorCount        Int                   @default(0)
+
+  // Sync settings
+  syncDirection         CalendarSyncDirection @default(TAXOMIND_TO_GOOGLE)
+  autoSyncEnabled       Boolean               @default(true)
+  autoSyncIntervalMinutes Int                 @default(15)
+
+  // What to sync
+  syncStudySessions     Boolean               @default(true)
+  syncQuizzes           Boolean               @default(true)
+  syncAssignments       Boolean               @default(true)
+  syncGoalMilestones    Boolean               @default(true)
+  syncLiveClasses       Boolean               @default(true)
+  syncDailyTodos        Boolean               @default(false)
+
+  // Event colors (Google Calendar color IDs: 1-11)
+  studySessionColor     String                @default("1")  // Blue
+  quizColor             String                @default("11") // Red
+  assignmentColor       String                @default("5")  // Yellow
+  goalColor             String                @default("10") // Green
+  liveClassColor        String                @default("3")  // Purple
+
+  // Event preferences
+  defaultReminderMinutes Int                  @default(15)
+  includeDescription    Boolean               @default(true)
+  includeCourseLink     Boolean               @default(true)
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Related sync logs
+  syncLogs              CalendarSyncLog[]
+
+  @@map("google_calendar_integrations")
+}
+
+model CalendarSyncLog {
+  id                    String                @id @default(cuid())
+  integrationId         String
+  integration           GoogleCalendarIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  // Sync details
+  syncType              String                // "full", "incremental", "manual"
+  direction             CalendarSyncDirection
+  status                String                // "success", "partial", "failed"
+
+  // Statistics
+  eventsCreated         Int                   @default(0)
+  eventsUpdated         Int                   @default(0)
+  eventsDeleted         Int                   @default(0)
+  eventsFailed          Int                   @default(0)
+
+  // Timing
+  startedAt             DateTime
+  completedAt           DateTime?
+  durationMs            Int?
+
+  // Error details
+  errorMessage          String?               @db.Text
+  errorDetails          Json?
+
+  createdAt             DateTime              @default(now())
+
+  @@index([integrationId, createdAt])
+  @@map("calendar_sync_logs")
+}
+
+model CalendarEventMapping {
+  id                    String                @id @default(cuid())
+  userId                String
+  user                  User                  @relation("UserCalendarMappings", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Taxomind entity reference
+  entityType            CalendarEventType
+  entityId              String                // ID of the activity, goal, etc.
+
+  // Google Calendar reference
+  googleEventId         String
+  googleCalendarId      String
+
+  // Sync metadata
+  lastSyncedAt          DateTime
+  googleEtag            String?               // For conflict detection
+  taxomindVersion       Int                   @default(1) // For optimistic locking
+
+  // Status
+  isDeleted             Boolean               @default(false)
+  deleteReason          String?
+
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  @@unique([userId, entityType, entityId])
+  @@unique([userId, googleEventId])
+  @@index([userId, entityType])
+  @@index([googleEventId])
+  @@map("calendar_event_mappings")
+}

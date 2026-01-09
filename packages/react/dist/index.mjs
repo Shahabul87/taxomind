@@ -3012,6 +3012,35 @@ function useAgentic(options = {}) {
   };
 }
 
+// src/hooks/useRealtime.ts
+import { useState as useState11, useEffect as useEffect10, useCallback as useCallback14, useRef as useRef9 } from "react";
+
+// src/hooks/usePresence.ts
+import { useState as useState12, useEffect as useEffect11, useCallback as useCallback15, useRef as useRef10, useMemo as useMemo4 } from "react";
+
+// src/hooks/useInterventions.ts
+import { useState as useState13, useEffect as useEffect12, useCallback as useCallback16, useRef as useRef11, useMemo as useMemo5 } from "react";
+
+// src/hooks/usePushNotifications.ts
+import { useState as useState14, useEffect as useEffect13, useCallback as useCallback17, useRef as useRef12, useMemo as useMemo6 } from "react";
+
+// src/hooks/useSAMMemory.ts
+import { useState as useState15, useCallback as useCallback18, useRef as useRef13 } from "react";
+
+// src/hooks/useTutoringOrchestration.tsx
+import { useState as useState16, useCallback as useCallback19, useMemo as useMemo7, createContext as createContext2, useContext as useContext2 } from "react";
+import { jsx as jsx2 } from "react/jsx-runtime";
+var TutoringOrchestrationContext = createContext2(null);
+
+// src/hooks/useNotifications.ts
+import { useState as useState17, useEffect as useEffect14, useCallback as useCallback20, useRef as useRef14 } from "react";
+
+// src/hooks/useBehaviorPatterns.ts
+import { useState as useState18, useEffect as useEffect15, useCallback as useCallback21 } from "react";
+
+// src/hooks/useRecommendations.ts
+import { useState as useState19, useEffect as useEffect16, useCallback as useCallback22, useRef as useRef15 } from "react";
+
 // src/utils/contextDetector.ts
 var DEFAULT_ROUTE_PATTERNS = [
   // Teacher routes

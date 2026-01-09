@@ -1706,6 +1706,11 @@ declare class AnthropicAdapter implements AIAdapter {
      */
     private formatMessages;
     /**
+     * Extract system message from messages array
+     * Anthropic API requires system message as a separate field, not in messages array
+     */
+    private extractSystemMessage;
+    /**
      * Make a request to the Anthropic API
      */
     private makeRequest;
@@ -1715,6 +1720,112 @@ declare class AnthropicAdapter implements AIAdapter {
     private handleErrorResponse;
 }
 declare function createAnthropicAdapter(options: AnthropicAdapterOptions): AnthropicAdapter;
+
+/**
+ * @sam-ai/core - DeepSeek AI Adapter
+ * Adapter for DeepSeek API (OpenAI-compatible)
+ */
+
+interface DeepSeekAdapterOptions {
+    apiKey: string;
+    model?: string;
+    baseURL?: string;
+    maxRetries?: number;
+    timeout?: number;
+}
+declare class DeepSeekAdapter implements AIAdapter {
+    readonly name = "deepseek";
+    readonly version = "1.0.0";
+    private readonly apiKey;
+    private readonly model;
+    private readonly baseURL;
+    private readonly maxRetries;
+    private readonly timeout;
+    constructor(options: DeepSeekAdapterOptions);
+    /**
+     * Check if the adapter is properly configured
+     */
+    isConfigured(): boolean;
+    /**
+     * Get the current model being used
+     */
+    getModel(): string;
+    /**
+     * Generate a chat completion
+     */
+    chat(params: AIChatParams): Promise<AIChatResponse>;
+    /**
+     * Generate a streaming chat completion
+     */
+    chatStream(params: AIChatParams): AsyncIterable<AIChatStreamChunk>;
+    /**
+     * Format messages for DeepSeek API (OpenAI format)
+     */
+    private formatMessages;
+    /**
+     * Make a request to the DeepSeek API
+     */
+    private makeRequest;
+    /**
+     * Handle error responses from the API
+     */
+    private handleErrorResponse;
+}
+declare function createDeepSeekAdapter(options: DeepSeekAdapterOptions): DeepSeekAdapter;
+
+/**
+ * @sam-ai/core - OpenAI AI Adapter
+ * Adapter for OpenAI GPT API
+ */
+
+interface OpenAIAdapterOptions {
+    apiKey: string;
+    model?: string;
+    baseURL?: string;
+    organization?: string;
+    maxRetries?: number;
+    timeout?: number;
+}
+declare class OpenAIAdapter implements AIAdapter {
+    readonly name = "openai";
+    readonly version = "1.0.0";
+    private readonly apiKey;
+    private readonly model;
+    private readonly baseURL;
+    private readonly organization?;
+    private readonly maxRetries;
+    private readonly timeout;
+    constructor(options: OpenAIAdapterOptions);
+    /**
+     * Check if the adapter is properly configured
+     */
+    isConfigured(): boolean;
+    /**
+     * Get the current model being used
+     */
+    getModel(): string;
+    /**
+     * Generate a chat completion
+     */
+    chat(params: AIChatParams): Promise<AIChatResponse>;
+    /**
+     * Generate a streaming chat completion
+     */
+    chatStream(params: AIChatParams): AsyncIterable<AIChatStreamChunk>;
+    /**
+     * Format messages for OpenAI API
+     */
+    private formatMessages;
+    /**
+     * Make a request to the OpenAI API
+     */
+    private makeRequest;
+    /**
+     * Handle error responses from the API
+     */
+    private handleErrorResponse;
+}
+declare function createOpenAIAdapter(options: OpenAIAdapterOptions): OpenAIAdapter;
 
 /**
  * @sam-ai/core - Memory Cache Adapter
@@ -2075,4 +2186,4 @@ declare function withRetry<T>(fn: () => Promise<T>, options: {
 
 declare const VERSION = "0.1.0";
 
-export { type AIAdapter, type AIChatParams, type AIChatResponse, type AIChatStreamChunk, AIError, type AIMessage, type AggregatedResponse, type AnalysisRequest, type AnalysisResponse, type AnalysisType, type AnalyticsAdapter, type AnalyticsEvent, type AnalyzeEvent, AnthropicAdapter, type AnthropicAdapterOptions, type AssessmentAnalysis, type AssessmentConfig, AssessmentEngine, type AssessmentEngineOutput, type AssessmentRequest, type AssessmentResponse, BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER, type BadgeData, BaseEngine, type BaseEngineOptions, type BloomsAnalysis, type BloomsDistribution, BloomsEngine, type BloomsEngineInput, type BloomsEngineOutput, type BloomsLevel, type CacheAdapter, CacheError, type CognitiveLoad, type CognitiveLoadProfile, ConfigurationError, type ContentAdaptation, ContentEngine, type ContentEngineOutput, type ContentMetrics, type ContentSuggestion, type ContentType, ContextEngine, type ContextEngineOutput, type ConversationData, type CountResult, type DatabaseAdapterOptions, DependencyError, type EmotionalProfile, type EmotionalState, type EngineConfig, EngineError, type EngineErrorInfo, type EngineInput, type EngineRegistration, type EngineResult, type EngineResultData, type EngineResultMetadata, type ErrorEvent, type ExecuteActionEvent, type GamificationData, type GeneratedContent, type GeneratedQuestion, type GenerationRequest, type GenerationResponse, InMemoryDatabaseAdapter, type InMemoryDatabaseOptions, InitializationError, type InteractionData, type LearningPathNode, type LearningProfileData, type LearningStyleProfile, MemoryCacheAdapter, type MemoryCacheOptions, type MotivationProfile, NoopDatabaseAdapter, OrchestrationError, type OrchestrationMetadata, type OrchestrationOptions, type OrchestrationResult, PersonalizationEngine, type PersonalizationEngineOutput, type PersonalizedLearningPath, type QueryIntent, type QueryOptions, type Question, type QuestionOption, type QuestionType, RateLimitError, type ReceiveResponseEvent, ResponseEngine, type ResponseEngineOutput, type SAMAchievement, type SAMAction, SAMAgentOrchestrator, type SAMBadge, type SAMBadgeLevel, type SAMBloomsProgress, type SAMChapter, type SAMCognitiveProgress, type SAMConfig, type SAMConfigInput, type SAMContext, type SAMContextMetadata, type SAMConversationContext, type SAMCourse, type SAMCourseAnalysis, type SAMDatabaseAdapter, type SAMEmotion, type SAMEngineSettings, SAMError, type SAMErrorCode, type SAMErrorDetails, type SAMEvent, type SAMEventType, type SAMFeatureFlags, type SAMFormContext, type SAMFormField, type SAMGamificationContext, type SAMInteractionLog, type SAMLearningStyle, type SAMLogger, type SAMMessage, type SAMMessageMetadata, type SAMMessageRole, type SAMModelConfig, type SAMPageContext, type SAMPageType, type SAMPosition, type SAMQuestion, type SAMRateLimitConfig, type SAMRoutePatterns, type SAMSection, type SAMSize, type SAMState, type SAMStateListener, SAMStateMachine, type SAMStreak, type SAMSuggestion, type SAMTeachingMethod, type SAMTheme, type SAMTone, type SAMUIContext, type SAMUser, type SAMUserContext, type SAMUserPreferences, type SAMUserRole, type SendMessageEvent, type StorageAdapter, StorageError, type StreamChunkEvent, type StudyGuide, TimeoutError, type TransactionContext, type UpdateContextEvent, type UpdateFormEvent, type UpdateGamificationEvent, type UpdatePageEvent, VERSION, ValidationError, createAnthropicAdapter, createAssessmentEngine, createBloomsEngine, createContentEngine, createContextEngine, createDefaultContext, createDefaultConversationContext, createDefaultGamificationContext, createDefaultPageContext, createDefaultUIContext, createDefaultUserContext, createInMemoryDatabase, createMemoryCache, createNoopDatabaseAdapter, createOrchestrator, createPersonalizationEngine, createResponseEngine, createSAMConfig, createStateMachine, createTimeoutPromise, isSAMError, withRetry, withTimeout, wrapError };
+export { type AIAdapter, type AIChatParams, type AIChatResponse, type AIChatStreamChunk, AIError, type AIMessage, type AggregatedResponse, type AnalysisRequest, type AnalysisResponse, type AnalysisType, type AnalyticsAdapter, type AnalyticsEvent, type AnalyzeEvent, AnthropicAdapter, type AnthropicAdapterOptions, type AssessmentAnalysis, type AssessmentConfig, AssessmentEngine, type AssessmentEngineOutput, type AssessmentRequest, type AssessmentResponse, BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER, type BadgeData, BaseEngine, type BaseEngineOptions, type BloomsAnalysis, type BloomsDistribution, BloomsEngine, type BloomsEngineInput, type BloomsEngineOutput, type BloomsLevel, type CacheAdapter, CacheError, type CognitiveLoad, type CognitiveLoadProfile, ConfigurationError, type ContentAdaptation, ContentEngine, type ContentEngineOutput, type ContentMetrics, type ContentSuggestion, type ContentType, ContextEngine, type ContextEngineOutput, type ConversationData, type CountResult, type DatabaseAdapterOptions, DeepSeekAdapter, type DeepSeekAdapterOptions, DependencyError, type EmotionalProfile, type EmotionalState, type EngineConfig, EngineError, type EngineErrorInfo, type EngineInput, type EngineRegistration, type EngineResult, type EngineResultData, type EngineResultMetadata, type ErrorEvent, type ExecuteActionEvent, type GamificationData, type GeneratedContent, type GeneratedQuestion, type GenerationRequest, type GenerationResponse, InMemoryDatabaseAdapter, type InMemoryDatabaseOptions, InitializationError, type InteractionData, type LearningPathNode, type LearningProfileData, type LearningStyleProfile, MemoryCacheAdapter, type MemoryCacheOptions, type MotivationProfile, NoopDatabaseAdapter, OpenAIAdapter, type OpenAIAdapterOptions, OrchestrationError, type OrchestrationMetadata, type OrchestrationOptions, type OrchestrationResult, PersonalizationEngine, type PersonalizationEngineOutput, type PersonalizedLearningPath, type QueryIntent, type QueryOptions, type Question, type QuestionOption, type QuestionType, RateLimitError, type ReceiveResponseEvent, ResponseEngine, type ResponseEngineOutput, type SAMAchievement, type SAMAction, SAMAgentOrchestrator, type SAMBadge, type SAMBadgeLevel, type SAMBloomsProgress, type SAMChapter, type SAMCognitiveProgress, type SAMConfig, type SAMConfigInput, type SAMContext, type SAMContextMetadata, type SAMConversationContext, type SAMCourse, type SAMCourseAnalysis, type SAMDatabaseAdapter, type SAMEmotion, type SAMEngineSettings, SAMError, type SAMErrorCode, type SAMErrorDetails, type SAMEvent, type SAMEventType, type SAMFeatureFlags, type SAMFormContext, type SAMFormField, type SAMGamificationContext, type SAMInteractionLog, type SAMLearningStyle, type SAMLogger, type SAMMessage, type SAMMessageMetadata, type SAMMessageRole, type SAMModelConfig, type SAMPageContext, type SAMPageType, type SAMPosition, type SAMQuestion, type SAMRateLimitConfig, type SAMRoutePatterns, type SAMSection, type SAMSize, type SAMState, type SAMStateListener, SAMStateMachine, type SAMStreak, type SAMSuggestion, type SAMTeachingMethod, type SAMTheme, type SAMTone, type SAMUIContext, type SAMUser, type SAMUserContext, type SAMUserPreferences, type SAMUserRole, type SendMessageEvent, type StorageAdapter, StorageError, type StreamChunkEvent, type StudyGuide, TimeoutError, type TransactionContext, type UpdateContextEvent, type UpdateFormEvent, type UpdateGamificationEvent, type UpdatePageEvent, VERSION, ValidationError, createAnthropicAdapter, createAssessmentEngine, createBloomsEngine, createContentEngine, createContextEngine, createDeepSeekAdapter, createDefaultContext, createDefaultConversationContext, createDefaultGamificationContext, createDefaultPageContext, createDefaultUIContext, createDefaultUserContext, createInMemoryDatabase, createMemoryCache, createNoopDatabaseAdapter, createOpenAIAdapter, createOrchestrator, createPersonalizationEngine, createResponseEngine, createSAMConfig, createStateMachine, createTimeoutPromise, isSAMError, withRetry, withTimeout, wrapError };

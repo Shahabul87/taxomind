@@ -85,6 +85,7 @@ export {
   type Intervention,
   type InterventionTiming,
   type InterventionResult,
+  type InterventionCheckResult,
   type LearningPlanStore,
   type CheckInStore,
   type BehaviorEventStore,

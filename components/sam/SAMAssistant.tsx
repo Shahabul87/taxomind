@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import {
   X,
@@ -37,6 +38,15 @@ import {
   Clock,
   Wrench,
   Play,
+  ListChecks,
+  PartyPopper,
+  Rocket,
+  CircleDot,
+  CheckCircle2,
+  Circle,
+  BarChart3,
+  Milestone,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -72,6 +82,17 @@ import {
   type RiskLevel,
   type ToolCategory,
 } from '@/components/sam/ToolApprovalDialog';
+
+// Import Celebration Overlay for orchestration milestones
+import {
+  CelebrationOverlay,
+  useCelebration,
+  type CelebrationData,
+  type CelebrationType,
+} from '@/components/sam/CelebrationOverlay';
+
+// Import Feedback Buttons for quality tracking
+import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
 
 // ============================================================================
 // WINDOW CONTEXT TYPES
@@ -303,6 +324,59 @@ interface ToolConfirmation {
   createdAt: string;
 }
 
+// Orchestration types for plan-driven tutoring
+interface OrchestrationStepProgress {
+  progressPercent: number;
+  stepComplete: boolean;
+  pendingCriteria: string[];
+  completedCriteria: string[];
+  recommendations: Array<{ type: string; reason: string; data?: Record<string, unknown> }>;
+}
+
+interface OrchestrationTransition {
+  type: 'STEP_COMPLETE' | 'PLAN_COMPLETE' | 'STEP_STARTED' | 'NO_CHANGE';
+  message: string;
+  planComplete?: boolean;
+  celebration?: {
+    title: string;
+    message: string;
+    xpEarned?: number;
+    achievementsUnlocked?: string[];
+  };
+  nextStep?: {
+    id: string;
+    title: string;
+    type: string;
+    objectives: string[];
+  };
+}
+
+interface OrchestrationInsight {
+  hasActivePlan: boolean;
+  planId?: string;
+  goalId?: string;
+  planTitle?: string;
+  planProgress?: number;
+  currentStepIndex?: number;
+  totalSteps?: number;
+  allSteps?: Array<{
+    id: string;
+    title: string;
+    type: string;
+    status: string;
+    estimatedMinutes?: number;
+  }>;
+  currentStep?: {
+    id: string;
+    title: string;
+    type: string;
+    objectives: string[];
+    estimatedMinutes?: number;
+  };
+  stepProgress?: OrchestrationStepProgress;
+  transition?: OrchestrationTransition;
+}
+
 interface SAMInsights {
   blooms?: BloomsInsight;
   content?: {
@@ -321,6 +395,7 @@ interface SAMInsights {
     complexity?: string;
   };
   agentic?: AgenticInsight;
+  orchestration?: OrchestrationInsight;
 }
 
 interface SAMAssistantProps {
@@ -329,11 +404,24 @@ interface SAMAssistantProps {
   enableGamification?: boolean;
 }
 
-function buildUnifiedRequest(input: {
-  message: string;
-  context: SAMContext;
-  history: SAMMessage[];
-}) {
+/**
+ * Orchestration context for plan-driven learning sessions.
+ * Pass planId/goalId explicitly to maintain continuity across requests.
+ */
+interface OrchestrationContextInput {
+  planId?: string;
+  goalId?: string;
+  autoDetectPlan?: boolean;
+}
+
+function buildUnifiedRequest(
+  input: {
+    message: string;
+    context: SAMContext;
+    history: SAMMessage[];
+  },
+  orchestrationContext?: OrchestrationContextInput
+) {
   const { message, context, history } = input;
   const metadata = context.page.metadata ?? {} as Record<string, unknown>;
   const formFields = context.form
@@ -370,6 +458,8 @@ function buildUnifiedRequest(input: {
       role: msg.role,
       content: msg.content,
     })),
+    // Include orchestration context for plan-driven learning
+    orchestrationContext: orchestrationContext ?? { autoDetectPlan: true },
   };
 }
 
@@ -388,6 +478,48 @@ function buildUnifiedRequest(input: {
  * - Bloom's taxonomy visualization
  * - Intelligent suggestions and actions
  */
+// ============================================================================
+// TOOL APPROVAL PERSISTENCE
+// ============================================================================
+
+const TOOL_APPROVAL_PREFS_KEY = 'sam-tool-approval-preferences';
+
+interface ToolApprovalPreference {
+  toolId: string;
+  autoApprove: boolean;
+  approvedAt: number;
+}
+
+function getToolApprovalPreferences(): Record<string, ToolApprovalPreference> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const stored = localStorage.getItem(TOOL_APPROVAL_PREFS_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setToolApprovalPreference(toolId: string, autoApprove: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const prefs = getToolApprovalPreferences();
+    prefs[toolId] = {
+      toolId,
+      autoApprove,
+      approvedAt: Date.now(),
+    };
+    localStorage.setItem(TOOL_APPROVAL_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    console.warn('[SAMAssistant] Failed to save tool approval preference');
+  }
+}
+
+function isToolPreApproved(toolId: string): boolean {
+  const prefs = getToolApprovalPreferences();
+  return prefs[toolId]?.autoApprove ?? false;
+}
+
 function SAMAssistantInner({
   className,
   enableGamification = true,
@@ -429,6 +561,18 @@ function SAMAssistantInner({
     const responseInsights = lastResult?.response.insights as SAMInsights | undefined;
     return responseInsights ?? null;
   }, [lastResult]);
+
+  // Update orchestration state for plan/goal continuity across requests
+  useEffect(() => {
+    if (insights?.orchestration) {
+      updateOrchestrationState(insights.orchestration);
+
+      // Clear orchestration state when plan is completed
+      if (insights.orchestration.transition?.planComplete) {
+        clearOrchestrationState();
+      }
+    }
+  }, [insights?.orchestration]);
 
   const enginesInfo = useMemo(() => {
     if (!lastResult?.metadata) return null;
@@ -480,10 +624,17 @@ function SAMAssistantInner({
   const [toolConfirmations, setToolConfirmations] = useState<ToolConfirmation[]>([]);
   const [toolConfirmationsError, setToolConfirmationsError] = useState<string | null>(null);
 
+  // Steps Timeline state (for orchestration panel)
+  const [showStepsTimeline, setShowStepsTimeline] = useState(false);
+
   // Tool Approval Dialog state
   const [activeApprovalRequest, setActiveApprovalRequest] = useState<ToolApprovalRequest | null>(null);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
   const [isApprovalProcessing, setIsApprovalProcessing] = useState(false);
+
+  // Celebration overlay state
+  const { celebration, showCelebration, dismissCelebration } = useCelebration();
+  const [lastCelebrationId, setLastCelebrationId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -1046,6 +1197,35 @@ function SAMAssistantInner({
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // Trigger celebration from orchestration transitions
+  useEffect(() => {
+    const orchestration = insights?.orchestration;
+    if (!orchestration?.transition?.celebration) return;
+
+    const celebrationData = orchestration.transition.celebration;
+    const celebrationId = `${celebrationData.title}-${Date.now()}`;
+
+    // Prevent duplicate celebrations
+    if (lastCelebrationId === celebrationId) return;
+    setLastCelebrationId(celebrationId);
+
+    // Map orchestration transition type to celebration type
+    let celebrationType: CelebrationType = 'step_complete';
+    if (orchestration.transition.planComplete) {
+      celebrationType = 'plan_complete';
+    } else if (orchestration.transition.type === 'PLAN_COMPLETE') {
+      // When a plan is complete, check if there's associated goal achievement
+      celebrationType = 'goal_achieved';
+    }
+
+    showCelebration({
+      type: celebrationType,
+      title: celebrationData.title,
+      message: celebrationData.message,
+      xpEarned: celebrationData.xpEarned,
+    });
+  }, [insights?.orchestration, lastCelebrationId, showCelebration]);
+
   // Send message (API transport via @sam-ai/react)
   const sendMessage = async (content: string) => {
     if (!content.trim() || isProcessing) return;
@@ -1447,17 +1627,16 @@ function SAMAssistantInner({
     setIsApprovalProcessing(true);
     try {
       await handleToolConfirmation(requestId, true);
-      // TODO: If rememberChoice is true, store the preference for auto-approval
-      if (rememberChoice) {
-        console.log(`User wants to remember approval for tool in request ${requestId}`);
-        // Could store in localStorage or send to API for persistence
+      // Save preference for auto-approval if user wants to remember
+      if (rememberChoice && activeApprovalRequest?.toolId) {
+        setToolApprovalPreference(activeApprovalRequest.toolId, true);
       }
     } finally {
       setIsApprovalProcessing(false);
       setIsApprovalDialogOpen(false);
       setActiveApprovalRequest(null);
     }
-  }, [handleToolConfirmation]);
+  }, [handleToolConfirmation, activeApprovalRequest?.toolId]);
 
   // Handle denial from the dialog
   const handleApprovalDialogDeny = useCallback(async (requestId: string) => {
@@ -1471,16 +1650,23 @@ function SAMAssistantInner({
     }
   }, [handleToolConfirmation]);
 
-  // Auto-open dialog when new confirmations arrive
+  // Auto-open dialog when new confirmations arrive (or auto-approve if pre-approved)
   useEffect(() => {
     if (toolConfirmations.length > 0 && !isApprovalDialogOpen && !activeApprovalRequest) {
-      // Open dialog for the first pending confirmation
+      // Find the first pending confirmation
       const firstPending = toolConfirmations.find(c => c.status === 'pending');
       if (firstPending) {
-        openApprovalDialog(firstPending);
+        // Check if this tool is pre-approved
+        if (isToolPreApproved(firstPending.toolId)) {
+          // Auto-approve without showing dialog
+          handleToolConfirmation(firstPending.id, true);
+        } else {
+          // Open dialog for user approval
+          openApprovalDialog(firstPending);
+        }
       }
     }
-  }, [toolConfirmations, isApprovalDialogOpen, activeApprovalRequest, openApprovalDialog]);
+  }, [toolConfirmations, isApprovalDialogOpen, activeApprovalRequest, openApprovalDialog, handleToolConfirmation]);
 
   // Handle form fill suggestion
   const handleFormFillClick = (suggestion: FormFillSuggestion) => {
@@ -1977,6 +2163,346 @@ function SAMAssistantInner({
               )}
             </div>
           )}
+
+          {/* Orchestration Status Panel - Plan-Driven Learning (Enhanced) */}
+          <AnimatePresence>
+            {insights?.orchestration?.hasActivePlan && insights.orchestration.currentStep && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="relative px-4 py-3 bg-gradient-to-r from-violet-50 via-indigo-50 to-purple-50 dark:from-violet-900/30 dark:via-indigo-900/20 dark:to-purple-900/20 border-b border-violet-200/80 dark:border-violet-800/60 shrink-0 overflow-hidden"
+              >
+                {/* Animated background pattern */}
+                <div className="absolute inset-0 opacity-30 dark:opacity-20">
+                  <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <pattern id="orchestration-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <circle cx="1" cy="1" r="1" fill="currentColor" className="text-violet-400" />
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#orchestration-grid)" />
+                  </svg>
+                </div>
+
+                {/* Shimmer effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'linear', repeatDelay: 2 }}
+                />
+
+                <div className="relative z-10">
+                  {/* Plan Header */}
+                  <div className="flex items-center justify-between mb-2">
+                    <motion.span
+                      className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5"
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <motion.div
+                        animate={{ rotate: [0, 15, -15, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                      >
+                        <Rocket className="h-3.5 w-3.5" />
+                      </motion.div>
+                      Active Learning Plan
+                    </motion.span>
+                    <div className="flex items-center gap-2">
+                      {/* Step Sequence Indicator (Step X of Y) */}
+                      {(insights.orchestration?.totalSteps ?? 0) > 0 && (
+                        <motion.div
+                          className="flex items-center gap-1 bg-indigo-100/80 dark:bg-indigo-800/40 px-2 py-0.5 rounded-full"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', delay: 0.15 }}
+                        >
+                          <span className="text-xs font-medium text-indigo-600 dark:text-indigo-300">
+                            Step {insights.orchestration?.currentStepIndex ?? 0} of {insights.orchestration?.totalSteps ?? 0}
+                          </span>
+                        </motion.div>
+                      )}
+                      {/* Plan Progress Indicator */}
+                      {insights.orchestration.planProgress !== undefined && (
+                        <motion.div
+                          className="flex items-center gap-1.5 bg-violet-100/80 dark:bg-violet-800/40 px-2 py-0.5 rounded-full"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', delay: 0.2 }}
+                        >
+                          <motion.div
+                            className="w-1.5 h-1.5 rounded-full bg-violet-500"
+                            animate={{ scale: [1, 1.3, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                          <span className="text-xs font-medium text-violet-600 dark:text-violet-300">
+                            {insights.orchestration.planProgress}%
+                          </span>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Current Step - Card */}
+                  <motion.div
+                    className="p-2.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-violet-200/60 dark:border-violet-700/50 mb-2 shadow-sm"
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.15 }}
+                    whileHover={{ scale: 1.01 }}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <motion.div
+                        className="p-1.5 bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-800/60 dark:to-indigo-800/60 rounded-lg"
+                        whileHover={{ rotate: 5 }}
+                      >
+                        <ListChecks className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                      </motion.div>
+                      <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                        {insights.orchestration.currentStep.title}
+                      </span>
+                    </div>
+                    {insights.orchestration.currentStep.objectives?.length > 0 && (
+                      <div className="mt-1.5 space-y-1">
+                        {insights.orchestration.currentStep.objectives.slice(0, 2).map((obj, idx) => (
+                          <motion.p
+                            key={idx}
+                            className="text-xs text-slate-600 dark:text-slate-400 flex items-start gap-1.5"
+                            initial={{ x: -5, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 + idx * 0.1 }}
+                          >
+                            <CircleDot className="h-3 w-3 text-violet-500 mt-0.5 flex-shrink-0" />
+                            <span className="line-clamp-1">{obj}</span>
+                          </motion.p>
+                        ))}
+                        {insights.orchestration.currentStep.objectives.length > 2 && (
+                          <p className="text-xs text-violet-500 dark:text-violet-400 pl-4">
+                            +{insights.orchestration.currentStep.objectives.length - 2} more objectives
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+
+                  {/* Step Progress */}
+                  {insights.orchestration.stepProgress && (
+                    <motion.div
+                      className="mb-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.25 }}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-violet-600 dark:text-violet-400">Step Progress</span>
+                        <span className="text-xs font-semibold text-violet-700 dark:text-violet-300">
+                          {insights.orchestration.stepProgress.progressPercent}%
+                        </span>
+                      </div>
+                      <div className="relative h-2 bg-violet-200/60 dark:bg-violet-900/40 rounded-full overflow-hidden">
+                        {/* Progress bar */}
+                        <motion.div
+                          className="absolute inset-y-0 left-0 bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-500 rounded-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${insights.orchestration.stepProgress.progressPercent}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                        />
+                        {/* Shimmer on progress */}
+                        <motion.div
+                          className="absolute inset-y-0 left-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                          style={{ width: `${insights.orchestration.stepProgress.progressPercent}%` }}
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', repeatDelay: 1 }}
+                        />
+                      </div>
+
+                      {/* Pending Criteria - Next Goal */}
+                      {insights.orchestration.stepProgress.pendingCriteria?.length > 0 && (
+                        <motion.div
+                          className="mt-2 flex items-start gap-1.5 p-1.5 bg-amber-50/80 dark:bg-amber-900/20 rounded-lg border border-amber-200/50 dark:border-amber-800/30"
+                          initial={{ y: 5, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 0.35 }}
+                        >
+                          <motion.div
+                            animate={{ scale: [1, 1.1, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          >
+                            <Target className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                          </motion.div>
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            <span className="font-medium">Next:</span> {insights.orchestration.stepProgress.pendingCriteria[0]}
+                          </p>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Inline Celebration Banner (full celebration triggers overlay) */}
+                  {insights.orchestration.transition?.celebration && (
+                    <motion.div
+                      className="p-3 bg-gradient-to-r from-emerald-100 via-teal-100 to-cyan-100 dark:from-emerald-900/40 dark:via-teal-900/30 dark:to-cyan-900/30 rounded-xl border border-emerald-300/60 dark:border-emerald-700/50 shadow-sm"
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 300 }}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <motion.div
+                          animate={{ rotate: [0, -10, 10, -10, 0] }}
+                          transition={{ duration: 0.5, repeat: 3 }}
+                        >
+                          <PartyPopper className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </motion.div>
+                        <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                          {insights.orchestration.transition.celebration.title}
+                        </span>
+                      </div>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 mb-1.5">
+                        {insights.orchestration.transition.celebration.message}
+                      </p>
+                      {insights.orchestration.transition.celebration.xpEarned && (
+                        <motion.div
+                          className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-200/60 dark:bg-emerald-800/40 rounded-full text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', delay: 0.2 }}
+                        >
+                          <Trophy className="h-3 w-3" />
+                          +{insights.orchestration.transition.celebration.xpEarned} XP
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Next Step Preview */}
+                  {insights.orchestration.transition?.nextStep && (
+                    <motion.div
+                      className="mt-2 p-2 bg-violet-100/60 dark:bg-violet-900/30 rounded-lg border border-violet-200/50 dark:border-violet-700/40"
+                      initial={{ y: 5, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <div className="flex items-center gap-1.5 text-xs text-violet-700 dark:text-violet-300">
+                        <motion.div
+                          animate={{ x: [0, 3, 0] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                          <Milestone className="h-3 w-3" />
+                        </motion.div>
+                        <span className="font-medium">Up Next:</span>
+                        <span className="truncate">{insights.orchestration.transition.nextStep.title}</span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Steps Timeline/Checklist (Collapsible) */}
+                  {insights.orchestration?.allSteps && insights.orchestration.allSteps.length > 0 && (
+                    <motion.div
+                      className="mt-2"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.45 }}
+                    >
+                      <button
+                        onClick={() => setShowStepsTimeline(!showStepsTimeline)}
+                        className="w-full flex items-center justify-between p-2 bg-slate-100/80 dark:bg-slate-800/60 hover:bg-slate-200/80 dark:hover:bg-slate-700/60 rounded-lg border border-slate-200/50 dark:border-slate-700/40 transition-colors"
+                      >
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                          <ListChecks className="h-3 w-3 text-violet-500" />
+                          View All Steps ({(insights.orchestration?.allSteps ?? []).filter(s => s.status === 'completed').length}/{insights.orchestration?.totalSteps ?? 0} complete)
+                        </span>
+                        <motion.div
+                          animate={{ rotate: showStepsTimeline ? 180 : 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ChevronDown className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                        </motion.div>
+                      </button>
+
+                      <AnimatePresence>
+                        {showStepsTimeline && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: 'easeOut' }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mt-2 p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg border border-slate-200/50 dark:border-slate-700/40 max-h-40 overflow-y-auto">
+                              <div className="space-y-1.5">
+                                {(insights.orchestration?.allSteps ?? []).map((step, idx) => {
+                                  const isCurrentStep = step.id === insights.orchestration?.currentStep?.id;
+                                  const isCompleted = step.status === 'completed';
+                                  const isSkipped = step.status === 'skipped';
+
+                                  return (
+                                    <motion.div
+                                      key={step.id}
+                                      initial={{ x: -10, opacity: 0 }}
+                                      animate={{ x: 0, opacity: 1 }}
+                                      transition={{ delay: idx * 0.03 }}
+                                      className={cn(
+                                        'flex items-center gap-2 p-1.5 rounded-md transition-colors',
+                                        isCurrentStep && 'bg-violet-100/80 dark:bg-violet-900/40 border border-violet-300/50 dark:border-violet-700/50',
+                                        isCompleted && !isCurrentStep && 'bg-emerald-50/60 dark:bg-emerald-900/20',
+                                        isSkipped && 'opacity-50'
+                                      )}
+                                    >
+                                      {/* Step Status Icon */}
+                                      <div className="flex-shrink-0">
+                                        {isCompleted ? (
+                                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                                        ) : isCurrentStep ? (
+                                          <motion.div
+                                            animate={{ scale: [1, 1.2, 1] }}
+                                            transition={{ duration: 1.5, repeat: Infinity }}
+                                          >
+                                            <CircleDot className="h-3.5 w-3.5 text-violet-500" />
+                                          </motion.div>
+                                        ) : (
+                                          <Circle className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+                                        )}
+                                      </div>
+
+                                      {/* Step Info */}
+                                      <div className="flex-1 min-w-0">
+                                        <p className={cn(
+                                          'text-xs truncate',
+                                          isCurrentStep ? 'font-medium text-violet-700 dark:text-violet-300' :
+                                          isCompleted ? 'text-emerald-700 dark:text-emerald-400 line-through' :
+                                          'text-slate-600 dark:text-slate-400'
+                                        )}>
+                                          {idx + 1}. {step.title}
+                                        </p>
+                                      </div>
+
+                                      {/* Step Type Badge */}
+                                      <div className={cn(
+                                        'flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full',
+                                        step.type === 'learning' && 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+                                        step.type === 'practice' && 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400',
+                                        step.type === 'assessment' && 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400',
+                                        step.type === 'review' && 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400',
+                                        !['learning', 'practice', 'assessment', 'review'].includes(step.type) && 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                      )}>
+                                        {step.type}
+                                      </div>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Proactive Check-Ins Panel */}
           {pendingCheckIns.length > 0 && !activeCheckIn && (
@@ -2571,6 +3097,16 @@ function SAMAssistantInner({
                       </button>
                     </div>
                   )}
+
+                  {/* Feedback Buttons for AI responses */}
+                  {message.role === 'assistant' && !isMessageStreaming && samContext?.metadata?.sessionId && (
+                    <FeedbackButtons
+                      messageId={message.id}
+                      sessionId={samContext.metadata.sessionId}
+                      className="mt-1.5 ml-1"
+                      size="sm"
+                    />
+                  )}
                 </div>
               );
             })}
@@ -2681,8 +3217,56 @@ function SAMAssistantInner({
         onDeny={handleApprovalDialogDeny}
         isProcessing={isApprovalProcessing}
       />
+
+      {/* Celebration Overlay for orchestration milestones */}
+      <CelebrationOverlay
+        celebration={celebration}
+        onDismiss={dismissCelebration}
+        autoDismissMs={5000}
+      />
     </div>
   );
+}
+
+// Track orchestration state across requests (module-level for closure access)
+const orchestrationStateRef = { current: { planId: undefined as string | undefined, goalId: undefined as string | undefined } };
+
+/**
+ * Update orchestration state from API response.
+ * Call this after receiving response with insights.orchestration.
+ */
+export function updateOrchestrationState(orchestration?: OrchestrationInsight) {
+  if (orchestration?.planId) {
+    orchestrationStateRef.current.planId = orchestration.planId;
+  }
+  if (orchestration?.goalId) {
+    orchestrationStateRef.current.goalId = orchestration.goalId;
+  }
+}
+
+/**
+ * Clear orchestration state (e.g., when plan is completed or user switches context).
+ */
+export function clearOrchestrationState() {
+  orchestrationStateRef.current = { planId: undefined, goalId: undefined };
+}
+
+/**
+ * Build request with current orchestration context.
+ * Reads from module-level state to maintain plan/goal continuity.
+ */
+function buildUnifiedRequestWithOrchestration(input: {
+  message: string;
+  context: SAMContext;
+  history: SAMMessage[];
+}) {
+  const { planId, goalId } = orchestrationStateRef.current;
+  const orchestrationContext: OrchestrationContextInput = {
+    autoDetectPlan: !planId, // Only auto-detect if no explicit plan
+    ...(planId && { planId }),
+    ...(goalId && { goalId }),
+  };
+  return buildUnifiedRequest(input, orchestrationContext);
 }
 
 export function SAMAssistant(props: SAMAssistantProps) {
@@ -2691,7 +3275,7 @@ export function SAMAssistant(props: SAMAssistantProps) {
     () => ({
       endpoint: '/api/sam/unified',
       streamEndpoint: enableStreaming ? '/api/sam/unified/stream' : undefined,
-      buildRequest: buildUnifiedRequest,
+      buildRequest: buildUnifiedRequestWithOrchestration,
     }),
     [enableStreaming]
   );

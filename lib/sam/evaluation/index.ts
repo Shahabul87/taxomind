@@ -64,9 +64,7 @@ export {
 // Dual-Pass Evaluator
 export {
   DualPassEvaluator,
-  MockLLMScorer,
   createDualPassEvaluator,
-  createMockDualPassEvaluator,
   createRulesOnlyEvaluator,
   type LLMScoreRequest,
   type LLMScoreResponse,

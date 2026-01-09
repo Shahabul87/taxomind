@@ -93,17 +93,23 @@ export const protectedRoutes: string[] = [
   "/dashboard/user",
   "/dashboard/admin",
   "/become-instructor",
-  "/my-courses",
+  // User dashboard routes (new unified structure)
+  "/dashboard/user/goals",
+  "/dashboard/user/profile",
+  "/dashboard/user/my-courses",
+  "/dashboard/user/analytics",
+  "/dashboard/user/groups",
+  "/dashboard/user/groups/[groupId]",
+  "/dashboard/user/groups/[groupId]/settings",
+  "/dashboard/user/groups/create",
+  "/dashboard/user/groups/my-groups",
+  "/dashboard/user/messages",
+  "/dashboard/user/certificates",
+  "/dashboard/user/favorites",
+  // Legacy routes (kept for compatibility)
   "/my-posts",
-  "/profile",
   "/settings",
-  "/messages",
   "/calendar",
-  "/groups",
-  "/groups/[groupId]",
-  "/groups/[groupId]/settings",
-  "/groups/create",
-  "/groups/my-groups",
   // SECURITY FIX: Course learning routes now require authentication
   // These routes will also check for purchase/enrollment in the page component
   "/courses/[courseId]", // Course details page - requires auth to view full details
@@ -123,8 +129,6 @@ export const protectedRoutes: string[] = [
   "/teacher/analytics",
   "/teacher/posts/all-posts",
   "/teacher/posts/create-post",
-  "/analytics",
-  "/analytics/user",
   "/analytics/admin",
   "/resources",
   "/support",
@@ -138,16 +142,16 @@ export const protectedRoutes: string[] = [
  * @returns {string} The redirect path
  */
 const getDefaultRedirect = (): string => {
-  // All regular users go to /dashboard
+  // All regular users go to /dashboard/user
   // Admin auth is completely separate via AdminAccount model
-  return "/dashboard";
+  return "/dashboard/user";
 };
 
 /**
  * The default redirect path after logging in
  * @type {string}
  */
-export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
+export const DEFAULT_LOGIN_REDIRECT = "/dashboard/user";
 
 /**
  * Get redirect URL for authenticated users

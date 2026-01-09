@@ -230,7 +230,7 @@ export function DashboardHero({
               <li aria-hidden="true"><span className="text-white/30">|</span></li>
               <li>
                 <Link
-                  href="/my-courses"
+                  href="/dashboard/user/my-courses"
                   className="text-white/70 hover:text-white transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-900 rounded-md px-2 py-1 -mx-2 -my-1"
                 >
                   My Courses

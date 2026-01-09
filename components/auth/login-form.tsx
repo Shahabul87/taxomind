@@ -105,7 +105,7 @@ export const LoginForm = ({ stats = DEFAULT_STATS }: LoginFormProps) => {
                 if (result?.error) {
                   setError("Failed to sign in");
                 } else if (result?.ok) {
-                  window.location.href = callbackUrl || "/dashboard";
+                  window.location.href = callbackUrl || "/dashboard/user";
                 }
               }
             }

@@ -2,22 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import {
-  createPrismaGoalStore,
-  createPrismaPlanStore,
-  createPrismaSubGoalStore,
-} from '@/lib/sam/stores';
+import { getGoalStores } from '@/lib/sam/taxomind-context';
 import {
   createPlanBuilder,
   type PlanStatus,
   type GoalDecomposition,
   type SubGoal,
 } from '@sam-ai/agentic';
-
-// Initialize stores and builders
-const goalStore = createPrismaGoalStore();
-const planStore = createPrismaPlanStore();
-const subGoalStore = createPrismaSubGoalStore();
 
 // Lazy initialize plan builder
 let planBuilderInstance: ReturnType<typeof createPlanBuilder> | null = null;
@@ -29,6 +20,11 @@ function getPlanBuilder() {
     });
   }
   return planBuilderInstance;
+}
+
+// Get stores from TaxomindContext (singleton pattern)
+function getStores() {
+  return getGoalStores();
 }
 
 // ============================================================================
@@ -80,7 +76,8 @@ export async function GET(req: NextRequest) {
       offset: searchParams.get('offset') ?? undefined,
     });
 
-    // Use the PlanStore from @sam-ai/agentic package
+    // Use the PlanStore from TaxomindContext (singleton pattern)
+    const { goal: goalStore, plan: planStore, subGoal: subGoalStore } = getStores();
     const plans = await planStore.getByUser(session.user.id, {
       status: query.status ? [query.status as PlanStatus] : undefined,
       goalId: query.goalId,
@@ -157,7 +154,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = CreatePlanSchema.parse(body);
 
-    // Use the GoalStore to fetch the goal
+    // Use stores from TaxomindContext (singleton pattern)
+    const { goal: goalStore, plan: planStore, subGoal: subGoalStore } = getStores();
     const goal = await goalStore.get(validated.goalId);
 
     if (!goal || goal.userId !== session.user.id) {

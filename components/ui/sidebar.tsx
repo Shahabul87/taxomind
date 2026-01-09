@@ -104,7 +104,7 @@ export const DesktopSidebar = ({
     <>
       <div
         className={cn(
-          'h-full px-3 py-4 hidden md:flex md:flex-col bg-slate-100 dark:bg-slate-900/95 border-r border-slate-200 dark:border-slate-700/50 flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
+          'h-full px-3 py-4 hidden md:flex md:flex-col bg-slate-100 border-r border-slate-200 flex-shrink-0 overflow-hidden transition-[width] duration-300 ease-out',
           className
         )}
         style={{
@@ -127,14 +127,14 @@ export const MobileSidebar = ({ className, children, ...props }: React.Component
       {/* Fixed mobile header bar */}
       <div
         className={cn(
-          'fixed top-0 left-0 right-0 h-14 px-4 flex flex-row md:hidden items-center justify-between bg-slate-100 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-700/50 w-full z-50'
+          'fixed top-0 left-0 right-0 h-14 px-4 flex flex-row md:hidden items-center justify-between bg-slate-100 border-b border-slate-200 w-full z-50'
         )}
         {...props}
       >
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
             <Menu
-              className="h-6 w-6 text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="h-6 w-6 text-slate-700 cursor-pointer"
               onClick={() => setOpen(!open)}
               aria-label="Open menu"
             />
@@ -166,19 +166,19 @@ export const MobileSidebar = ({ className, children, ...props }: React.Component
               }}
               className={cn(
                 // Ensure the mobile drawer is hidden on md+ to avoid overlay conflicts
-                'fixed md:hidden h-full w-[85vw] max-w-sm inset-y-0 left-0 bg-slate-100 dark:bg-slate-900/95 z-[100] flex flex-col shadow-xl',
+                'fixed md:hidden h-full w-[85vw] max-w-sm inset-y-0 left-0 bg-slate-100 z-[100] flex flex-col shadow-xl',
                 className
               )}
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Menu</h2>
+              <div className="flex items-center justify-between p-4 border-b border-slate-200 flex-shrink-0">
+                <h2 className="text-lg font-semibold text-slate-900">Menu</h2>
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                  className="p-2 rounded-lg hover:bg-slate-200 transition-colors"
                   aria-label="Close menu"
                 >
-                  <X className="h-5 w-5 text-slate-700 dark:text-slate-300" />
+                  <X className="h-5 w-5 text-slate-700" />
                 </button>
               </div>
 
@@ -217,8 +217,8 @@ export const SidebarLink = ({
       className={cn(
         'flex items-center justify-start gap-2 group/sidebar py-2 px-3 rounded-md transition-colors duration-200',
         isActive
-          ? 'bg-slate-200 dark:bg-slate-700/80 text-slate-900 dark:text-slate-100 font-semibold shadow-sm border border-slate-300 dark:border-slate-600'
-          : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100',
+          ? 'bg-slate-200 text-slate-900 font-semibold shadow-sm border border-slate-300'
+          : 'hover:bg-slate-200/50 text-slate-700 hover:text-slate-900',
         className
       )}
       {...props}

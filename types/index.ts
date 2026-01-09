@@ -21,13 +21,19 @@ export * from './components';
 export * from './hooks';
 
 // Common Types (excluding duplicates from api)
-export type { 
-  Maybe, 
-  DeepPartial, 
-  DeepReadonly, 
-  Status, 
-  SortOrder, 
-  DateRange, 
-  SelectOption, 
-  PageInfo 
+export type {
+  Maybe,
+  DeepPartial,
+  DeepReadonly,
+  Status,
+  SortOrder,
+  DateRange,
+  SelectOption,
+  PageInfo
 } from './common';
+
+// Gamification Types
+export * from './gamification';
+
+// Learning Notifications Types
+export * from './learning-notifications';

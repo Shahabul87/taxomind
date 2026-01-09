@@ -50,3 +50,10 @@ export { PeerLearningEngine, createPeerLearningEngine } from './peer-learning-en
 
 // Multimodal Input Engine (New)
 export { MultimodalInputEngine, createMultimodalInputEngine } from './multimodal-input-engine';
+
+// SkillBuildTrack Engine (New - January 2026)
+export {
+  SkillBuildTrackEngine,
+  createSkillBuildTrackEngine,
+  InMemorySkillBuildTrackStore,
+} from './skill-build-track-engine';

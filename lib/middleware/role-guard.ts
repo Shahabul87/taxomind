@@ -28,7 +28,7 @@ export async function requireUser(requirement: UserRequirement = {}) {
   if (requirement.requireTeacher) {
     // Check isTeacher flag from user data
     // Note: currentUser() returns session user, we may need to fetch full user
-    const redirectPath = requirement.redirectTo || '/dashboard';
+    const redirectPath = requirement.redirectTo || '/dashboard/user';
     // If user is not a teacher, redirect them
     // This check would need to be implemented based on your user data structure
     redirect(redirectPath);
@@ -39,10 +39,10 @@ export async function requireUser(requirement: UserRequirement = {}) {
 
 /**
  * Get default dashboard path for users
- * All regular users go to /dashboard, admin routes are separate
+ * All regular users go to /dashboard/user, admin routes are separate
  */
 export function getDefaultDashboard(): string {
-  return '/dashboard';
+  return '/dashboard/user';
 }
 
 /**

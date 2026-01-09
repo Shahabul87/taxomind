@@ -451,7 +451,7 @@ export const ProfileTab = ({
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Your profile is visible to other learners based on your privacy settings.
               View how others see your profile on the{' '}
-              <a href="/profile" className="text-blue-600 dark:text-blue-400 hover:underline">
+              <a href="/dashboard/user/profile" className="text-blue-600 dark:text-blue-400 hover:underline">
                 Profile page
               </a>.
             </p>

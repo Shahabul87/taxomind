@@ -124,6 +124,10 @@ model SAMExecutionPlan {
   checkpoints     SAMCheckpoint[]
   state           SAMPlanState?
 
+  // Observability (Phase J)
+  toolExecutions     SAMToolExecution[]       @relation("SAMToolExecutionPlans")
+  lifecycleEvents    SAMPlanLifecycleEvent[]  @relation("SAMPlanLifecycleEvents")
+
   @@index([goalId])
   @@index([userId, status])
   @@map("sam_execution_plans")
@@ -739,6 +743,9 @@ model AgentTool {
   permissions         AgentPermission[]
   auditLogs           AgentAuditLog[]
 
+  // Observability (Phase J)
+  samToolExecutions   SAMToolExecution[]   @relation("SAMToolExecutionTools")
+
   @@index([category])
   @@index([enabled])
   @@map("agent_tools")
@@ -847,4 +854,292 @@ model AgentConfirmation {
   @@index([userId, status])
   @@index([invocationId])
   @@map("agent_confirmations")
+}
+
+// ==========================================
+// SAM OBSERVABILITY MODELS
+// ==========================================
+
+// Generic metrics storage
+model SAMMetric {
+  id        String   @id @default(cuid())
+  name      String   // Metric name (e.g., "tool.execution.count", "memory.search.latency")
+  value     Float    // Numeric value
+  labels    Json     @default("{}") // Key-value labels for filtering
+  timestamp DateTime @default(now())
+  userId    String?
+  sessionId String?
+
+  // Relations
+  user      User?    @relation("SAMMetrics", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([name, timestamp])
+  @@index([userId, timestamp])
+  @@map("sam_metrics")
+}
+
+// Tool execution telemetry
+model SAMToolExecution {
+  id                  String                 @id @default(cuid())
+  toolId              String                 // Reference to AgentTool
+  toolName            String                 // Tool name for quick access
+  userId              String
+  sessionId           String?
+  planId              String?                // Reference to SAMExecutionPlan
+  stepId              String?                // Reference to SAMPlanStep
+
+  // Execution details
+  status              SAMToolExecutionStatus @default(PENDING)
+  startedAt           DateTime?
+  completedAt         DateTime?
+  durationMs          Int?
+
+  // Confirmation tracking
+  confirmationRequired Boolean              @default(false)
+  confirmationGiven    Boolean?
+
+  // Input/Output summaries (for debugging without full payloads)
+  inputSummary        String?               @db.Text
+  outputSummary       String?               @db.Text
+
+  // Error details
+  errorCode           String?
+  errorMessage        String?               @db.Text
+  errorRetryable      Boolean?
+
+  // Tags for filtering
+  tags                Json                  @default("{}")
+
+  createdAt           DateTime              @default(now())
+
+  // Relations
+  user                User                  @relation("SAMToolExecutions", fields: [userId], references: [id], onDelete: Cascade)
+  tool                AgentTool?            @relation("SAMToolExecutionTools", fields: [toolId], references: [id], onDelete: SetNull)
+  plan                SAMExecutionPlan?     @relation("SAMToolExecutionPlans", fields: [planId], references: [id], onDelete: SetNull)
+
+  @@index([toolId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("sam_tool_executions")
+}
+
+// Confidence calibration scores
+model SAMConfidenceScore {
+  id                  String                     @id @default(cuid())
+  userId              String
+  sessionId           String?
+  responseId          String                     // ID of the response being scored
+  responseType        SAMConfidenceResponseType
+
+  // Prediction
+  predictedConfidence Float                      // 0-1 predicted confidence
+  factors             Json                       @default("[]") // Array of contributing factors
+  predictedAt         DateTime                   @default(now())
+
+  // Outcome (filled in after verification)
+  accurate            Boolean?                   // Was the response accurate?
+  userVerified        Boolean?                   // Did user verify?
+  verificationMethod  SAMVerificationMethod?
+  qualityScore        Float?                     // Quality rating 0-1
+  outcomeRecordedAt   DateTime?
+  outcomeNotes        String?                    @db.Text
+
+  // Metadata
+  metadata            Json?
+
+  // Relations
+  user                User                       @relation("SAMConfidenceScores", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([responseType, predictedAt])
+  @@index([userId, predictedAt])
+  @@index([accurate, predictedAt])
+  @@map("sam_confidence_scores")
+}
+
+// Memory retrieval telemetry
+model SAMMemoryRetrieval {
+  id                 String              @id @default(cuid())
+  userId             String
+  sessionId          String?
+
+  // Query details
+  query              String              @db.Text
+  source             SAMMemorySourceType
+
+  // Results
+  resultCount        Int                 @default(0)
+  topRelevanceScore  Float               @default(0)
+  avgRelevanceScore  Float               @default(0)
+
+  // Performance
+  cacheHit           Boolean             @default(false)
+  latencyMs          Int
+
+  // User feedback (optional)
+  feedbackHelpful    Boolean?
+  feedbackRating     Int?                // 1-5 rating
+  feedbackComment    String?             @db.Text
+  feedbackProvidedAt DateTime?
+
+  // Metadata
+  metadata           Json?
+  timestamp          DateTime            @default(now())
+
+  // Relations
+  user               User                @relation("SAMMemoryRetrievals", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([source, timestamp])
+  @@index([userId, timestamp])
+  @@index([cacheHit, timestamp])
+  @@map("sam_memory_retrievals")
+}
+
+// Plan lifecycle events for tracking
+model SAMPlanLifecycleEvent {
+  id            String           @id @default(cuid())
+  planId        String
+  userId        String
+  eventType     SAMPlanEventType
+  stepId        String?
+  previousState String?
+  newState      String?
+  metadata      Json?
+  timestamp     DateTime         @default(now())
+
+  // Relations
+  user          User             @relation("SAMPlanLifecycleEvents", fields: [userId], references: [id], onDelete: Cascade)
+  plan          SAMExecutionPlan @relation("SAMPlanLifecycleEvents", fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, timestamp])
+  @@index([userId, timestamp])
+  @@index([eventType, timestamp])
+  @@map("sam_plan_lifecycle_events")
+}
+
+// Aggregated metrics for dashboards
+model SAMAggregatedMetrics {
+  id          String   @id @default(cuid())
+  metricType  String   // e.g., "tool_success_rate", "memory_quality", "confidence_calibration"
+  period      String   // "hourly", "daily", "weekly"
+  periodStart DateTime
+  periodEnd   DateTime
+  data        Json     // Aggregated metric data
+  createdAt   DateTime @default(now())
+
+  @@unique([metricType, period, periodStart])
+  @@index([metricType, periodStart])
+  @@map("sam_aggregated_metrics")
+}
+
+// ==========================================
+// REAL-TIME PRESENCE MODELS
+// ==========================================
+
+// User presence tracking for real-time features
+model SAMUserPresence {
+  id              String              @id @default(cuid())
+  userId          String              @unique
+  connectionId    String              @unique
+  status          SAMPresenceStatus   @default(OFFLINE)
+  
+  // Timestamps
+  lastActivityAt  DateTime            @default(now())
+  connectedAt     DateTime            @default(now())
+  disconnectedAt  DateTime?
+  
+  // Device/Browser metadata
+  deviceType      String?             // "desktop", "mobile", "tablet"
+  browser         String?
+  os              String?
+  
+  // Location context
+  courseId        String?
+  chapterId       String?
+  sectionId       String?
+  pageUrl         String?
+  
+  // Session context
+  planId          String?
+  stepId          String?
+  goalId          String?
+  
+  // Subscriptions (stored as JSON array of channel names)
+  subscriptions   String[]            @default([])
+  
+  // Additional metadata
+  metadata        Json?
+  
+  // Timestamps
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  // Relations
+  user            User                @relation("SAMUserPresence", fields: [userId], references: [id], onDelete: Cascade)
+  course          Course?             @relation("SAMPresenceCourses", fields: [courseId], references: [id], onDelete: SetNull)
+  chapter         Chapter?            @relation("SAMPresenceChapters", fields: [chapterId], references: [id], onDelete: SetNull)
+  section         Section?            @relation("SAMPresenceSections", fields: [sectionId], references: [id], onDelete: SetNull)
+  
+  @@index([status])
+  @@index([connectionId])
+  @@index([lastActivityAt])
+  @@index([courseId])
+  @@map("sam_user_presence")
+}
+
+// Presence change history for analytics
+model SAMPresenceHistory {
+  id              String                    @id @default(cuid())
+  userId          String
+  previousStatus  SAMPresenceStatus
+  newStatus       SAMPresenceStatus
+  reason          SAMPresenceChangeReason
+  changedAt       DateTime                  @default(now())
+
+  // Context at time of change
+  courseId        String?
+  pageUrl         String?
+  sessionDuration Int?                      // seconds since connected
+
+  // Relations
+  user            User                      @relation("SAMPresenceHistory", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, changedAt])
+  @@index([newStatus, changedAt])
+  @@map("sam_presence_history")
+}
+
+// ============================================================================
+// SAM FEEDBACK
+// User feedback on SAM responses for quality improvement
+// ============================================================================
+
+enum SAMFeedbackRating {
+  HELPFUL
+  NOT_HELPFUL
+}
+
+model SAMFeedback {
+  id          String            @id @default(cuid())
+  userId      String
+  messageId   String            // ID of the SAM message being rated
+  sessionId   String            // SAM session ID
+  rating      SAMFeedbackRating
+  comment     String?           @db.Text
+
+  // Context at time of feedback
+  pageUrl     String?
+  courseId    String?
+  topicId     String?
+
+  // Timestamps
+  createdAt   DateTime          @default(now())
+
+  // Relations
+  user        User              @relation("SAMFeedback", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([messageId])
+  @@index([sessionId])
+  @@index([rating, createdAt])
+  @@map("sam_feedback")
 }

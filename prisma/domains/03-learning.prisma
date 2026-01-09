@@ -128,8 +128,37 @@ model Course {
   // Course Analysis History (for SAM AI Depth Analyzer)
   analysisHistory          CourseAnalysisHistory[] @relation("CourseAnalysisSnapshots")
 
+  // SAM Real-Time Presence Tracking (Phase I)
+  samUserPresence          SAMUserPresence[]       @relation("SAMPresenceCourses")
+
+  // Learning Command Center Relations (added January 2026)
+  learningActivities       LearningActivity[]      @relation("CourseLearningActivities")
+  learningGoals            LearningGoal[]          @relation("CourseLearningGoals")
+
+  // Course Skill Mapping (Phase 3 SAM Fixes)
+  courseSkills             CourseSkill[]           @relation("CourseCourseSkills")
+
   @@index([categoryId])
   @@index([organizationId])
+}
+
+// Course-Skill Mapping (Phase 3 SAM Fixes - January 2026)
+// Links courses to skills with difficulty level and order
+model CourseSkill {
+  id          String           @id @default(cuid())
+  courseId    String
+  skillId     String
+  level       CourseSkillLevel @default(BEGINNER)
+  order       Int              @default(0)
+  isCoreSkill Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  course      Course           @relation("CourseCourseSkills", fields: [courseId], references: [id], onDelete: Cascade)
+  skill       Skill            @relation("SkillCourseSkills", fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, skillId])
+  @@index([courseId])
+  @@index([skillId])
 }
 
 model Attachment {
@@ -182,6 +211,12 @@ model Chapter {
 
   // User Progress relations
   userChapterCompletions UserChapterCompletion[]
+
+  // SAM Real-Time Presence Tracking (Phase I)
+  samUserPresence        SAMUserPresence[]       @relation("SAMPresenceChapters")
+
+  // Learning Command Center Relations (added January 2026)
+  learningActivities     LearningActivity[]      @relation("ChapterLearningActivities")
 
   @@index([courseId])
 }
@@ -242,6 +277,9 @@ model Section {
 
   // Exam & Evaluation System relations
   learningObjectiveItems LearningObjectiveItem[]
+
+  // SAM Real-Time Presence Tracking (Phase I)
+  samUserPresence        SAMUserPresence[]       @relation("SAMPresenceSections")
 
   @@index([chapterId])
   @@index([chapterId, position]) // For ordered chapter queries

@@ -1,0 +1,409 @@
+// ============================================================================
+// SKILL BUILD TRACK - Domain 22
+// Comprehensive skill development and tracking system
+// ============================================================================
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum SkillBuildCategory {
+  TECHNICAL
+  SOFT
+  DOMAIN
+  TOOL
+  METHODOLOGY
+  CERTIFICATION
+  LEADERSHIP
+}
+
+enum SkillBuildProficiencyLevel {
+  NOVICE      // 0-14: Basic awareness
+  BEGINNER    // 15-34: Limited experience
+  COMPETENT   // 35-54: Works independently
+  PROFICIENT  // 55-69: Handles complex tasks
+  ADVANCED    // 70-84: Deep expertise
+  EXPERT      // 85-94: Recognized authority
+  STRATEGIST  // 95-100: Industry leader
+}
+
+enum SkillBuildFramework {
+  SFIA
+  ONET
+  ESCO
+  NICE
+  DREYFUS
+  CUSTOM
+}
+
+enum SkillBuildEvidenceType {
+  ASSESSMENT
+  PROJECT
+  CERTIFICATION
+  COURSE_COMPLETION
+  PEER_REVIEW
+  SELF_ASSESSMENT
+  PRACTICE_SESSION
+  REAL_WORLD
+  TEACHING
+}
+
+enum SkillBuildRoadmapStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+enum SkillBuildMilestoneStatus {
+  LOCKED
+  AVAILABLE
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum SkillBuildBenchmarkSource {
+  INDUSTRY
+  ROLE
+  PEER_GROUP
+  ORGANIZATION
+  MARKET
+}
+
+enum SkillBuildTrend {
+  ACCELERATING
+  STEADY
+  SLOWING
+  STAGNANT
+  DECLINING
+}
+
+// ============================================================================
+// SKILL DEFINITION
+// ============================================================================
+
+model SkillBuildDefinition {
+  id                  String              @id @default(cuid())
+  name                String
+  description         String?
+  category            SkillBuildCategory
+  parentId            String?
+  parent              SkillBuildDefinition?   @relation("SkillHierarchy", fields: [parentId], references: [id])
+  children            SkillBuildDefinition[]  @relation("SkillHierarchy")
+  tags                String[]            @default([])
+
+  // Learning curve
+  difficultyFactor    Float               @default(1.0)
+  retentionDifficulty Float               @default(1.0)
+  applicationComplexity String            @default("MEDIUM") // LOW, MEDIUM, HIGH, VERY_HIGH
+
+  // Market demand
+  demandLevel         String?             // LOW, MEDIUM, HIGH, CRITICAL
+  demandTrend         String?             // DECLINING, STABLE, GROWING, EMERGING
+  avgSalaryImpact     Float?
+  jobPostingCount     Int?
+  topIndustries       String[]            @default([])
+  topRoles            String[]            @default([])
+  demandLastUpdated   DateTime?
+
+  // Framework mappings (stored as JSON)
+  frameworkMappings   Json?               // Array of {framework, code, name, level}
+
+  // Prerequisites
+  prerequisites       String[]            @default([])
+  relatedSkills       String[]            @default([])
+
+  // Bloom's taxonomy levels
+  bloomsLevels        String[]            @default([])
+
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  profiles            SkillBuildProfile[]
+  benchmarks          SkillBuildBenchmarkData[]
+
+  @@index([category])
+  @@index([parentId])
+  @@index([demandLevel])
+}
+
+// ============================================================================
+// SKILL BUILD PROFILE (User-Skill pair)
+// ============================================================================
+
+model SkillBuildProfile {
+  id                  String              @id @default(cuid())
+  userId              String
+  skillId             String
+  skill               SkillBuildDefinition @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user                User                @relation("SkillBuildProfiles", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Multi-dimensional scores (0-100)
+  masteryScore        Float               @default(0)
+  retentionScore      Float               @default(0)
+  applicationScore    Float               @default(0)
+  confidenceScore     Float               @default(50)
+  calibrationScore    Float               @default(50)
+
+  // Composite score
+  compositeScore      Float               @default(0)
+  proficiencyLevel    SkillBuildProficiencyLevel @default(NOVICE)
+
+  // Velocity metrics
+  learningSpeed       Float               @default(0)
+  sessionsToNextLevel Int                 @default(999)
+  daysToNextLevel     Int                 @default(999)
+  velocityTrend       SkillBuildTrend     @default(STAGNANT)
+  velocityAcceleration Float              @default(0)
+  recentScores        Float[]             @default([])
+  velocityCalculatedAt DateTime?
+
+  // Decay info
+  decayRate           Float               @default(0.05)
+  daysSinceLastPractice Int               @default(0)
+  halfLifeDays        Int                 @default(14)
+  daysUntilLevelDrop  Int?
+  recommendedReviewDate DateTime?
+  decayRiskLevel      String              @default("LOW") // LOW, MEDIUM, HIGH, CRITICAL
+
+  // Practice history summary
+  totalSessions       Int                 @default(0)
+  totalMinutes        Int                 @default(0)
+  averageSessionMinutes Float             @default(0)
+  averageScore        Float               @default(0)
+  bestScore           Float               @default(0)
+  currentStreak       Int                 @default(0)
+  longestStreak       Int                 @default(0)
+  sessionsThisWeek    Int                 @default(0)
+  sessionsThisMonth   Int                 @default(0)
+
+  // Target
+  targetLevel         SkillBuildProficiencyLevel?
+  progressToTarget    Float?
+
+  // Level history (stored as JSON)
+  levelHistory        Json?               // Array of {fromLevel, toLevel, scoreAtChange, reason, date}
+
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  lastPracticedAt     DateTime?
+
+  // Relations
+  evidence            SkillBuildEvidence[]
+  practiceLogs        SkillBuildPracticeLog[]
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+  @@index([proficiencyLevel])
+  @@index([decayRiskLevel])
+  @@index([lastPracticedAt])
+}
+
+// ============================================================================
+// SKILL EVIDENCE
+// ============================================================================
+
+model SkillBuildEvidence {
+  id                  String              @id @default(cuid())
+  profileId           String
+  profile             SkillBuildProfile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  type                SkillBuildEvidenceType
+  title               String
+  description         String?
+  sourceId            String?
+  sourceUrl           String?
+  score               Float?
+  maxScore            Float?
+  demonstratedLevel   SkillBuildProficiencyLevel
+
+  // Verification
+  verified            Boolean             @default(false)
+  verifiedBy          String?
+  verifiedAt          DateTime?
+
+  // Dates
+  date                DateTime
+  expiresAt           DateTime?
+  createdAt           DateTime            @default(now())
+
+  @@index([profileId])
+  @@index([type])
+  @@index([verified])
+}
+
+// ============================================================================
+// SKILL ROADMAP
+// ============================================================================
+
+model SkillBuildRoadmap {
+  id                  String              @id @default(cuid())
+  userId              String
+  user                User                @relation("SkillBuildRoadmaps", fields: [userId], references: [id], onDelete: Cascade)
+
+  title               String
+  description         String?
+  status              SkillBuildRoadmapStatus @default(DRAFT)
+
+  // Target outcome (stored as JSON)
+  targetOutcome       Json                // {type, targetId, targetName, targetSkills}
+
+  // Progress
+  totalEstimatedHours Float               @default(0)
+  completionPercentage Float              @default(0)
+
+  // Dates
+  startedAt           DateTime?
+  targetCompletionDate DateTime?
+  completedAt         DateTime?
+
+  // Adjustments history (stored as JSON)
+  adjustments         Json?               // Array of {date, type, reason, details}
+
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  // Relations
+  milestones          SkillBuildRoadmapMilestone[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ============================================================================
+// ROADMAP MILESTONE
+// ============================================================================
+
+model SkillBuildRoadmapMilestone {
+  id                  String              @id @default(cuid())
+  roadmapId           String
+  roadmap             SkillBuildRoadmap   @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+
+  order               Int
+  title               String
+  description         String?
+  status              SkillBuildMilestoneStatus @default(LOCKED)
+
+  // Skills (stored as JSON)
+  skills              Json                // Array of {skillId, skillName, targetLevel, currentLevel, progress, estimatedHours}
+
+  // Time estimates
+  estimatedHours      Float               @default(0)
+  actualHours         Float?
+
+  // Dates
+  targetDate          DateTime?
+  completedAt         DateTime?
+
+  // Prerequisites (milestone IDs)
+  prerequisites       String[]            @default([])
+
+  // Resources (stored as JSON)
+  resources           Json?               // Array of {id, type, title, url, estimatedMinutes, difficulty, isRequired}
+
+  // Assessment
+  assessmentRequired  Boolean             @default(false)
+
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([roadmapId])
+  @@index([status])
+}
+
+// ============================================================================
+// BENCHMARK DATA
+// ============================================================================
+
+model SkillBuildBenchmarkData {
+  id                  String              @id @default(cuid())
+  skillId             String
+  skill               SkillBuildDefinition @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  source              SkillBuildBenchmarkSource
+
+  // Distribution (stored as JSON)
+  distribution        Json                // {min, max, mean, median, standardDeviation, percentiles}
+
+  // Level distribution (stored as JSON)
+  levelDistribution   Json                // Record<level, percentage>
+
+  // Time to level (stored as JSON)
+  timeToLevel         Json?               // Partial<Record<level, hours>>
+
+  sampleSize          Int                 @default(0)
+  lastUpdated         DateTime            @default(now())
+
+  // Timestamps
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([skillId, source])
+  @@index([skillId])
+  @@index([source])
+}
+
+// ============================================================================
+// PRACTICE LOG
+// ============================================================================
+
+model SkillBuildPracticeLog {
+  id                  String              @id @default(cuid())
+  userId              String
+  user                User                @relation("SkillBuildPracticeLogs", fields: [userId], references: [id], onDelete: Cascade)
+  profileId           String
+  profile             SkillBuildProfile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skillId             String
+
+  durationMinutes     Int
+  score               Float?
+  maxScore            Float?
+  isAssessment        Boolean             @default(false)
+  completed           Boolean             @default(true)
+  sourceId            String?
+  sourceType          String?
+  notes               String?
+
+  // Changes (stored as JSON)
+  dimensionChanges    Json?               // Partial<SkillBuildDimensions>
+  compositeScoreChange Float              @default(0)
+
+  timestamp           DateTime            @default(now())
+
+  @@index([userId])
+  @@index([profileId])
+  @@index([skillId])
+  @@index([timestamp])
+}
+
+// ============================================================================
+// ACHIEVEMENTS
+// ============================================================================
+
+model SkillBuildAchievement {
+  id                  String              @id @default(cuid())
+  userId              String
+  user                User                @relation("SkillBuildAchievements", fields: [userId], references: [id], onDelete: Cascade)
+
+  type                String              // LEVEL_UP, STREAK, MILESTONE, MASTERY, CONSISTENCY, SPEED, BREADTH
+  title               String
+  description         String?
+  skillId             String?
+  skillName           String?
+  level               SkillBuildProficiencyLevel?
+  rarity              String              @default("COMMON") // COMMON, UNCOMMON, RARE, EPIC, LEGENDARY
+
+  earnedAt            DateTime            @default(now())
+
+  @@index([userId])
+  @@index([type])
+  @@index([earnedAt])
+}

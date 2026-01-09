@@ -7,29 +7,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import {
-  createPrismaBehaviorEventStore,
-  createPrismaPatternStore,
-  createPrismaInterventionStore,
-} from '@/lib/sam/stores';
+import { getProactiveStores } from '@/lib/sam/taxomind-context';
 import { createBehaviorMonitor, InterventionType, ActionType } from '@sam-ai/agentic';
 import { v4 as uuidv4 } from 'uuid';
 import { dispatchInterventionNotifications } from '@/lib/sam/agentic-notifications';
 
-// Initialize stores
-const behaviorEventStore = createPrismaBehaviorEventStore();
-const patternStore = createPrismaPatternStore();
-const interventionStore = createPrismaInterventionStore();
-
-// Lazy initialize behavior monitor
+// Lazy initialize behavior monitor using TaxomindContext stores
 let behaviorMonitorInstance: ReturnType<typeof createBehaviorMonitor> | null = null;
 
 function getBehaviorMonitor() {
   if (!behaviorMonitorInstance) {
+    const { behaviorEvent, pattern, intervention } = getProactiveStores();
     behaviorMonitorInstance = createBehaviorMonitor({
-      eventStore: behaviorEventStore,
-      patternStore: patternStore,
-      interventionStore: interventionStore,
+      eventStore: behaviorEvent,
+      patternStore: pattern,
+      interventionStore: intervention,
       logger: console,
     });
   }
@@ -114,6 +106,7 @@ export async function GET(req: NextRequest) {
     });
 
     const behaviorMonitor = getBehaviorMonitor();
+    const { intervention: interventionStore } = getProactiveStores();
 
     let interventions;
     if (query.pending !== undefined) {

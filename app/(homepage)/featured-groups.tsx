@@ -25,7 +25,7 @@ export const FeaturedGroups = () => {
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
           Featured Study Groups
         </h2>
-        <Link href="/groups">
+        <Link href="/dashboard/user/groups">
           <Button variant="ghost" className="text-purple-600 dark:text-purple-400">
             View All
             <ArrowRight className="ml-2 h-4 w-4" />
@@ -65,7 +65,7 @@ export const FeaturedGroups = () => {
               <p className="text-sm text-slate-600 dark:text-gray-300 mb-4">
                 {group.description}
               </p>
-              <Link href={`/groups/${group.id}`}>
+              <Link href={`/dashboard/user/groups/${group.id}`}>
                 <Button className="w-full bg-purple-600 hover:bg-purple-700">
                   Join Group
                 </Button>

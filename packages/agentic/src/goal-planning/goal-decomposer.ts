@@ -302,29 +302,30 @@ export class GoalDecomposer {
           role: 'system',
           content: `You are an expert learning curriculum designer. Decompose learning goals into actionable sub-goals.
 
-Always respond with valid JSON matching this structure:
+CRITICAL: Respond with ONLY valid JSON, no other text. The JSON must match this exact structure:
 {
   "subGoals": [
     {
       "title": "Sub-goal title",
-      "description": "Optional description",
-      "type": "learn|practice|assess|review|reflect|create",
+      "description": "Brief description",
+      "type": "learn",
       "estimatedMinutes": 30,
-      "difficulty": "easy|medium|hard",
-      "prerequisites": [0, 1], // indices of prerequisite sub-goals (0-indexed)
-      "successCriteria": ["Criterion 1", "Criterion 2"]
+      "difficulty": "easy",
+      "prerequisites": [],
+      "successCriteria": ["Criterion 1"]
     }
   ],
-  "overallDifficulty": "easy|medium|hard",
-  "reasoning": "Brief explanation of decomposition strategy"
+  "overallDifficulty": "medium",
+  "reasoning": "Brief explanation"
 }
 
-Important guidelines:
+Rules:
+- type must be one of: learn, practice, assess, review, reflect, create
+- difficulty must be: easy, medium, or hard
+- estimatedMinutes: 5-240
+- prerequisites: array of indices (0-indexed) of sub-goals that must come first
 - Create ${options.minSubGoals}-${options.maxSubGoals} sub-goals
-- Include a mix of learning types (learn, practice, assess, review)
-- Set realistic time estimates (5-240 minutes per sub-goal)
-- Define clear prerequisites to create a logical learning path
-- Include success criteria for each sub-goal`,
+- Keep descriptions concise to fit within token limits`,
         },
         {
           role: 'user',
@@ -332,17 +333,110 @@ Important guidelines:
         },
       ],
       temperature: 0.7,
-      maxTokens: 2000,
+      maxTokens: 4000, // Increased from 2000 to handle larger decompositions
     });
 
-    // Extract JSON from response
-    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Failed to extract JSON from AI response');
+    // Debug: Log the raw AI response
+    this.logger.info?.(`[GoalDecomposer] AI Response received - content length: ${response.content?.length ?? 0}`);
+    this.logger.info?.(`[GoalDecomposer] AI Response model: ${response.model}`);
+    if (!response.content || response.content.length === 0) {
+      this.logger.error?.(`[GoalDecomposer] AI returned empty response!`);
+      throw new Error('AI returned empty response - no content received');
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
-    return DecompositionAIResponseSchema.parse(parsed);
+    // Extract JSON from response with improved parsing
+    const content = response.content.trim();
+
+    // Try to find JSON object in the response
+    let jsonString: string | null = null;
+
+    // Method 1: Look for JSON block markers
+    const jsonBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonBlockMatch) {
+      jsonString = jsonBlockMatch[1].trim();
+    }
+
+    // Method 2: Find the outermost balanced braces
+    if (!jsonString) {
+      const startIdx = content.indexOf('{');
+      if (startIdx !== -1) {
+        let depth = 0;
+        let endIdx = -1;
+        for (let i = startIdx; i < content.length; i++) {
+          if (content[i] === '{') depth++;
+          else if (content[i] === '}') {
+            depth--;
+            if (depth === 0) {
+              endIdx = i;
+              break;
+            }
+          }
+        }
+        if (endIdx !== -1) {
+          jsonString = content.substring(startIdx, endIdx + 1);
+        }
+      }
+    }
+
+    // Method 3: Use the whole content if it looks like JSON
+    if (!jsonString && content.startsWith('{')) {
+      jsonString = content;
+    }
+
+    if (!jsonString) {
+      this.logger.error?.(`[GoalDecomposer] No JSON found in response: ${content.substring(0, 200)}...`);
+      throw new Error('Failed to extract JSON from AI response - no JSON object found');
+    }
+
+    // Try to parse the JSON
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonString);
+    } catch (parseError) {
+      // Try to fix common JSON issues
+      this.logger.warn?.(`[GoalDecomposer] JSON parse failed, attempting repair...`);
+
+      // Try fixing truncated JSON by closing arrays and objects
+      let repairedJson = jsonString;
+
+      // Count open/close brackets
+      const openBraces = (repairedJson.match(/{/g) || []).length;
+      const closeBraces = (repairedJson.match(/}/g) || []).length;
+      const openBrackets = (repairedJson.match(/\[/g) || []).length;
+      const closeBrackets = (repairedJson.match(/]/g) || []).length;
+
+      // Try to repair by adding missing closing brackets
+      if (openBrackets > closeBrackets) {
+        // Remove any trailing incomplete object
+        repairedJson = repairedJson.replace(/,\s*\{[^}]*$/, '');
+        repairedJson = repairedJson.replace(/,\s*"[^"]*$/, '');
+        // Add missing brackets
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          repairedJson += ']';
+        }
+      }
+      if (openBraces > closeBraces) {
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          repairedJson += '}';
+        }
+      }
+
+      try {
+        parsed = JSON.parse(repairedJson);
+        this.logger.info?.(`[GoalDecomposer] JSON repair successful`);
+      } catch {
+        this.logger.error?.(`[GoalDecomposer] JSON repair failed. Original: ${jsonString.substring(0, 500)}...`);
+        throw new Error(`Failed to parse AI response as JSON: ${(parseError as Error).message}`);
+      }
+    }
+
+    // Validate and return
+    try {
+      return DecompositionAIResponseSchema.parse(parsed);
+    } catch (validationError) {
+      this.logger.error?.(`[GoalDecomposer] Schema validation failed: ${(validationError as Error).message}`);
+      throw new Error(`AI response does not match expected schema: ${(validationError as Error).message}`);
+    }
   }
 
   private buildDecompositionPrompt(goal: LearningGoal, options: DecompositionOptions): string {
@@ -364,7 +458,7 @@ Important guidelines:
       parts.push(`Target mastery level: ${goal.targetMastery}`);
     }
 
-    if (goal.context.courseId) {
+    if (goal.context?.courseId) {
       parts.push(`Context: Part of a structured course`);
     }
 
@@ -475,7 +569,7 @@ Important guidelines:
       confidence += 0.05;
     }
 
-    if (goal.context.courseId) {
+    if (goal.context?.courseId) {
       confidence += 0.05; // More context = higher confidence
     }
 

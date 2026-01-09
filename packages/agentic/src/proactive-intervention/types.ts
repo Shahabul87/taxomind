@@ -850,6 +850,16 @@ export interface InterventionResult {
   feedback?: string;
 }
 
+/**
+ * Result of intervention check operation
+ */
+export interface InterventionCheckResult {
+  anomaliesDetected: BehaviorAnomaly[];
+  patternsDetected: BehaviorPattern[];
+  interventionsCreated: Intervention[];
+  existingPendingInterventions: Intervention[];
+}
+
 // ============================================================================
 // STORE INTERFACES
 // ============================================================================

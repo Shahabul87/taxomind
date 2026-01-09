@@ -31,31 +31,32 @@ export interface ProvidersProps {
  * Inner component that conditionally wraps children with RealtimeProvider
  * Must be inside InterventionProvider since RealtimeProvider uses useInterventionContextOptional
  *
- * NOTE: WebSocket is currently disabled - RealtimeProvider requires a running socket server
- * Set NEXT_PUBLIC_SAM_WEBSOCKET_ENABLED=true to enable when socket server is available
+ * WebSocket is enabled when SAM_FEATURES.WEBSOCKET_ENABLED is true.
+ * The RealtimeProvider gracefully handles missing WebSocket server by checking
+ * for NEXT_PUBLIC_WS_URL before attempting connection.
  */
 function RealtimeWrapper({ children }: { children: React.ReactNode }) {
-  // WebSocket disabled - return children directly without RealtimeProvider
-  // This prevents connection errors when no socket server is running
-  return <>{children}</>;
+  // Enable RealtimeProvider when feature flag is on
+  // The provider itself handles graceful degradation when no WS server is available
+  if (SAM_FEATURES.WEBSOCKET_ENABLED) {
+    return (
+      <RealtimeProvider
+        autoConnect={true}
+        reconnect={{
+          enabled: true,
+          maxAttempts: 5,
+          baseDelay: 1000,
+        }}
+        heartbeatInterval={30000}
+        connectionTimeout={10000}
+      >
+        {children}
+      </RealtimeProvider>
+    );
+  }
 
-  /*
-  // Uncomment when WebSocket server is available:
-  return (
-    <RealtimeProvider
-      autoConnect={true}
-      reconnect={{
-        enabled: true,
-        maxAttempts: 5,
-        baseDelay: 1000,
-      }}
-      heartbeatInterval={30000}
-      connectionTimeout={10000}
-    >
-      {children}
-    </RealtimeProvider>
-  );
-  */
+  // Feature flag disabled - skip RealtimeProvider entirely
+  return <>{children}</>;
 }
 
 export function Providers({ children, session }: ProvidersProps) {

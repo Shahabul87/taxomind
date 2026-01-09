@@ -1,0 +1,379 @@
+/**
+ * @sam-ai/agentic - Browser Push Delivery Channel
+ * Delivers notifications via Web Push API for browser notifications
+ */
+
+import type { SAMWebSocketEvent, DeliveryChannel, RealtimeLogger } from '../types';
+import type { DeliveryHandler } from '../push-dispatcher';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface BrowserPushChannelConfig {
+  /** Web Push service adapter */
+  pushService: WebPushServiceAdapter;
+  /** Get user's push subscription */
+  getUserSubscription: (userId: string) => Promise<PushSubscriptionData | null>;
+  /** VAPID public key */
+  vapidPublicKey: string;
+  /** VAPID private key */
+  vapidPrivateKey: string;
+  /** VAPID subject (mailto or URL) */
+  vapidSubject: string;
+  /** Enable push notifications (default: true) */
+  enabled?: boolean;
+  /** TTL in seconds for push messages (default: 86400 = 24h) */
+  ttl?: number;
+  /** Logger */
+  logger?: RealtimeLogger;
+}
+
+export interface PushSubscriptionData {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  expirationTime?: number | null;
+}
+
+export interface WebPushServiceAdapter {
+  sendNotification(
+    subscription: PushSubscriptionData,
+    payload: string,
+    options?: {
+      vapidDetails?: {
+        subject: string;
+        publicKey: string;
+        privateKey: string;
+      };
+      ttl?: number;
+      urgency?: 'very-low' | 'low' | 'normal' | 'high';
+      topic?: string;
+    }
+  ): Promise<{ statusCode: number; body?: string }>;
+}
+
+export interface PushNotificationPayload {
+  title: string;
+  body: string;
+  icon?: string;
+  badge?: string;
+  image?: string;
+  tag?: string;
+  data?: Record<string, unknown>;
+  actions?: Array<{
+    action: string;
+    title: string;
+    icon?: string;
+  }>;
+  requireInteraction?: boolean;
+  renotify?: boolean;
+  silent?: boolean;
+  vibrate?: number[];
+}
+
+// ============================================================================
+// NOTIFICATION PAYLOAD BUILDERS
+// ============================================================================
+
+function buildNotificationPayload(event: SAMWebSocketEvent): PushNotificationPayload {
+  const eventType = event.type;
+  const payload = event.payload as unknown as Record<string, unknown>;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || '';
+
+  switch (eventType) {
+    case 'intervention':
+      return {
+        title: '🎓 SAM AI',
+        body: (payload as { message?: string }).message || 'You have an important learning update',
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `intervention-${event.eventId}`,
+        requireInteraction: true,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+        },
+        actions: [
+          { action: 'open', title: 'Open SAM' },
+          { action: 'dismiss', title: 'Later' },
+        ],
+      };
+
+    case 'checkin':
+      return {
+        title: '👋 SAM Check-In',
+        body: (payload as { message?: string }).message || 'How is your learning going?',
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `checkin-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+        },
+        actions: [
+          { action: 'respond', title: 'Respond' },
+          { action: 'snooze', title: 'Snooze' },
+        ],
+      };
+
+    case 'nudge': {
+      const nudgePayload = payload as { type?: string; message?: string };
+      return {
+        title: getNudgeIcon(nudgePayload.type || 'reminder') + ' ' + getNudgeTitle(nudgePayload.type || 'reminder'),
+        body: nudgePayload.message || 'SAM has a suggestion for you',
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `nudge-${nudgePayload.type || 'reminder'}-${event.eventId}`,
+        renotify: nudgePayload.type === 'streak_alert',
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+          nudgeType: nudgePayload.type,
+        },
+      };
+    }
+
+    case 'goal_progress': {
+      const goalPayload = payload as { goalTitle?: string; progress?: number };
+      return {
+        title: '📈 Goal Progress',
+        body: `${goalPayload.progress || 0}% complete: ${goalPayload.goalTitle || 'Your Goal'}`,
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `goal-progress-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+        },
+      };
+    }
+
+    case 'step_completed': {
+      const stepPayload = payload as { stepTitle?: string; progress?: number; nextStepTitle?: string };
+      return {
+        title: '✅ Step Completed!',
+        body: stepPayload.nextStepTitle
+          ? `Up next: ${stepPayload.nextStepTitle}`
+          : `Great job completing: ${stepPayload.stepTitle || 'this step'}`,
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `step-completed-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+        },
+      };
+    }
+
+    case 'celebration': {
+      const celebrationPayload = payload as { title?: string; message?: string; type?: string };
+      return {
+        title: '🎉 ' + (celebrationPayload.title || 'Congratulations!'),
+        body: celebrationPayload.message || 'You achieved something great!',
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `celebration-${celebrationPayload.type || 'achievement'}-${event.eventId}`,
+        vibrate: [200, 100, 200],
+        requireInteraction: true,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+          celebrationType: celebrationPayload.type,
+        },
+        actions: [
+          { action: 'celebrate', title: '🎉 Celebrate!' },
+          { action: 'share', title: 'Share' },
+        ],
+      };
+    }
+
+    case 'recommendation': {
+      const recPayload = payload as { title?: string; description?: string; type?: string };
+      return {
+        title: '💡 Recommended for You',
+        body: recPayload.title || recPayload.description || 'Check out this learning recommendation',
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `recommendation-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+        },
+      };
+    }
+
+    default:
+      return {
+        title: '🔔 SAM AI',
+        body: 'You have a new notification',
+        icon: '/icons/sam-icon-192.png',
+        badge: '/icons/sam-badge-72.png',
+        tag: `notification-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+        },
+      };
+  }
+}
+
+function getNudgeIcon(type: string): string {
+  const icons: Record<string, string> = {
+    reminder: '⏰',
+    encouragement: '💪',
+    tip: '💡',
+    streak_alert: '🔥',
+    break_suggestion: '☕',
+    study_prompt: '📚',
+    achievement: '🏆',
+  };
+  return icons[type] || '💡';
+}
+
+function getNudgeTitle(type: string): string {
+  const titles: Record<string, string> = {
+    reminder: 'Reminder',
+    encouragement: 'Keep Going!',
+    tip: 'Learning Tip',
+    streak_alert: 'Streak Alert!',
+    break_suggestion: 'Break Time',
+    study_prompt: 'Time to Learn',
+    achievement: 'Achievement',
+  };
+  return titles[type] || 'SAM Notification';
+}
+
+function getUrgency(event: SAMWebSocketEvent): 'very-low' | 'low' | 'normal' | 'high' {
+  const eventType = event.type;
+
+  switch (eventType) {
+    case 'intervention':
+    case 'celebration':
+      return 'high';
+    case 'checkin':
+    case 'step_completed':
+      return 'normal';
+    case 'nudge':
+    case 'recommendation':
+      return 'low';
+    case 'goal_progress':
+      return 'very-low';
+    default:
+      return 'normal';
+  }
+}
+
+// ============================================================================
+// BROWSER PUSH CHANNEL IMPLEMENTATION
+// ============================================================================
+
+export class BrowserPushChannel implements DeliveryHandler {
+  readonly channel: DeliveryChannel = 'push_notification';
+
+  private readonly config: BrowserPushChannelConfig;
+  private readonly logger: RealtimeLogger;
+
+  constructor(config: BrowserPushChannelConfig) {
+    this.config = config;
+    this.logger = config.logger ?? console;
+  }
+
+  async canDeliver(userId: string): Promise<boolean> {
+    // Check if push channel is enabled
+    if (this.config.enabled === false) {
+      return false;
+    }
+
+    // Check if user has a valid subscription
+    const subscription = await this.config.getUserSubscription(userId);
+    if (!subscription) {
+      return false;
+    }
+
+    // Check if subscription is expired
+    if (subscription.expirationTime && subscription.expirationTime < Date.now()) {
+      this.logger.debug('Push subscription expired', { userId });
+      return false;
+    }
+
+    return true;
+  }
+
+  async deliver(userId: string, event: SAMWebSocketEvent): Promise<boolean> {
+    const subscription = await this.config.getUserSubscription(userId);
+    if (!subscription) {
+      return false;
+    }
+
+    const notification = buildNotificationPayload(event);
+    const payload = JSON.stringify(notification);
+    const urgency = getUrgency(event);
+
+    try {
+      const result = await this.config.pushService.sendNotification(subscription, payload, {
+        vapidDetails: {
+          subject: this.config.vapidSubject,
+          publicKey: this.config.vapidPublicKey,
+          privateKey: this.config.vapidPrivateKey,
+        },
+        ttl: this.config.ttl ?? 86400,
+        urgency,
+        topic: notification.tag,
+      });
+
+      if (result.statusCode >= 200 && result.statusCode < 300) {
+        this.logger.info('Push notification sent', {
+          userId,
+          eventType: event.type,
+          eventId: event.eventId,
+          statusCode: result.statusCode,
+        });
+        return true;
+      }
+
+      // Handle specific error codes
+      if (result.statusCode === 404 || result.statusCode === 410) {
+        // Subscription no longer valid
+        this.logger.warn('Push subscription no longer valid', {
+          userId,
+          statusCode: result.statusCode,
+        });
+        // Could trigger subscription cleanup here
+      }
+
+      this.logger.error('Push notification failed', {
+        userId,
+        eventType: event.type,
+        statusCode: result.statusCode,
+        body: result.body,
+      });
+      return false;
+    } catch (error) {
+      this.logger.error('Failed to send push notification', {
+        userId,
+        eventType: event.type,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return false;
+    }
+  }
+}
+
+// ============================================================================
+// FACTORY FUNCTION
+// ============================================================================
+
+export function createBrowserPushChannel(config: BrowserPushChannelConfig): BrowserPushChannel {
+  return new BrowserPushChannel(config);
+}

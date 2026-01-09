@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Bot,
@@ -63,6 +63,13 @@ export const CourseCreatorSelection = ({
   onSelectClassic,
   onSelectAI,
 }: CourseCreatorSelectionProps) => {
+  // Track client-side mount to avoid hydration mismatch with animated particles
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const manualFeatures = [
     { icon: Palette, text: "Complete creative control" },
     { icon: Layers, text: "Custom curriculum structure" },
@@ -251,29 +258,31 @@ export const CourseCreatorSelection = ({
                 />
               </div>
 
-              {/* Floating Particles */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {[...Array(5)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-1.5 h-1.5 rounded-full bg-purple-400/40 dark:bg-purple-400/30"
-                    initial={{
-                      x: Math.random() * 100 + "%",
-                      y: "100%",
-                      opacity: 0
-                    }}
-                    animate={{
-                      y: "-20%",
-                      opacity: [0, 1, 0],
-                    }}
-                    transition={{
-                      duration: 4 + Math.random() * 2,
-                      repeat: Infinity,
-                      delay: i * 0.8,
-                    }}
-                  />
-                ))}
-              </div>
+              {/* Floating Particles - only render client-side to avoid hydration mismatch */}
+              {isMounted && (
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                  {[15, 35, 55, 75, 90].map((xPos, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1.5 h-1.5 rounded-full bg-purple-400/40 dark:bg-purple-400/30"
+                      initial={{
+                        x: `${xPos}%`,
+                        y: "100%",
+                        opacity: 0
+                      }}
+                      animate={{
+                        y: "-20%",
+                        opacity: [0, 1, 0],
+                      }}
+                      transition={{
+                        duration: 4 + i * 0.4,
+                        repeat: Infinity,
+                        delay: i * 0.8,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Content */}
               <div className="relative p-5 sm:p-6 md:p-8">

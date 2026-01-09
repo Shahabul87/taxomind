@@ -20,6 +20,8 @@ import {
   createBehaviorMonitor,
   BehaviorEventType,
   type Intervention,
+  type InterventionCheckResult,
+  type BehaviorEvent,
 } from '@sam-ai/agentic';
 
 // Initialize stores
@@ -171,12 +173,14 @@ export async function POST(req: NextRequest) {
       eventsToRecord = [validated];
     }
 
+    const behaviorMonitor = getBehaviorMonitor();
     const recordedEvents: Array<{ id: string; type: string }> = [];
 
     for (const eventData of eventsToRecord) {
       try {
-        // Record event directly to the store
-        const event = await behaviorEventStore.add({
+        // Use BehaviorMonitor.trackEvent() to properly process events
+        // This handles emotional signals and creates interventions for high frustration
+        const event = await behaviorMonitor.trackEvent({
           userId: session.user.id,
           sessionId: `session-${session.user.id}-${Date.now()}`,
           type: eventData.type as BehaviorEventType,
@@ -204,9 +208,34 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Note: Intervention checking is not implemented yet
-    // The BehaviorMonitor interface doesn't expose checkInterventions
-    const triggeredInterventions: Array<{ type: string; reason: string }> = [];
+    // Check for interventions after recording events
+    // This evaluates anomalies, patterns, and creates interventions as needed
+    let interventionCheckResult: InterventionCheckResult | null = null;
+    const triggeredInterventions: Array<{ type: string; reason: string; id: string }> = [];
+
+    try {
+      interventionCheckResult = await behaviorMonitor.checkInterventions(session.user.id);
+
+      // Map created interventions to response format
+      for (const intervention of interventionCheckResult.interventionsCreated) {
+        triggeredInterventions.push({
+          id: intervention.id,
+          type: intervention.type,
+          reason: intervention.message,
+        });
+      }
+
+      logger.info('Intervention check completed', {
+        userId: session.user.id,
+        anomaliesDetected: interventionCheckResult.anomaliesDetected.length,
+        patternsDetected: interventionCheckResult.patternsDetected.length,
+        interventionsCreated: interventionCheckResult.interventionsCreated.length,
+        pendingInterventions: interventionCheckResult.existingPendingInterventions.length,
+      });
+    } catch (checkError) {
+      logger.warn('Failed to check interventions:', { error: checkError });
+      // Continue without failing the request
+    }
 
     logger.info(`Recorded ${recordedEvents.length} behavior events for user ${session.user.id}`, {
       eventTypes: recordedEvents.map(e => e.type),
@@ -219,6 +248,12 @@ export async function POST(req: NextRequest) {
         recorded: recordedEvents.length,
         events: recordedEvents,
         interventions: triggeredInterventions.length > 0 ? triggeredInterventions : undefined,
+        interventionCheck: interventionCheckResult ? {
+          anomaliesDetected: interventionCheckResult.anomaliesDetected.length,
+          patternsDetected: interventionCheckResult.patternsDetected.length,
+          interventionsCreated: interventionCheckResult.interventionsCreated.length,
+          pendingInterventions: interventionCheckResult.existingPendingInterventions.length,
+        } : undefined,
       },
     });
   } catch (error) {

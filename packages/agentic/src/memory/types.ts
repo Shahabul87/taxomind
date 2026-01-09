@@ -269,6 +269,7 @@ export interface ContextState {
   emotionalState?: EmotionalState;
   focusLevel?: number;
   sessionCount: number;
+  lastActiveAt?: Date | string;
 }
 
 /**

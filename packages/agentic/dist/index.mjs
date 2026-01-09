@@ -294,29 +294,30 @@ var GoalDecomposer = class {
           role: "system",
           content: `You are an expert learning curriculum designer. Decompose learning goals into actionable sub-goals.
 
-Always respond with valid JSON matching this structure:
+CRITICAL: Respond with ONLY valid JSON, no other text. The JSON must match this exact structure:
 {
   "subGoals": [
     {
       "title": "Sub-goal title",
-      "description": "Optional description",
-      "type": "learn|practice|assess|review|reflect|create",
+      "description": "Brief description",
+      "type": "learn",
       "estimatedMinutes": 30,
-      "difficulty": "easy|medium|hard",
-      "prerequisites": [0, 1], // indices of prerequisite sub-goals (0-indexed)
-      "successCriteria": ["Criterion 1", "Criterion 2"]
+      "difficulty": "easy",
+      "prerequisites": [],
+      "successCriteria": ["Criterion 1"]
     }
   ],
-  "overallDifficulty": "easy|medium|hard",
-  "reasoning": "Brief explanation of decomposition strategy"
+  "overallDifficulty": "medium",
+  "reasoning": "Brief explanation"
 }
 
-Important guidelines:
+Rules:
+- type must be one of: learn, practice, assess, review, reflect, create
+- difficulty must be: easy, medium, or hard
+- estimatedMinutes: 5-240
+- prerequisites: array of indices (0-indexed) of sub-goals that must come first
 - Create ${options.minSubGoals}-${options.maxSubGoals} sub-goals
-- Include a mix of learning types (learn, practice, assess, review)
-- Set realistic time estimates (5-240 minutes per sub-goal)
-- Define clear prerequisites to create a logical learning path
-- Include success criteria for each sub-goal`
+- Keep descriptions concise to fit within token limits`
         },
         {
           role: "user",
@@ -324,14 +325,84 @@ Important guidelines:
         }
       ],
       temperature: 0.7,
-      maxTokens: 2e3
+      maxTokens: 4e3
+      // Increased from 2000 to handle larger decompositions
     });
-    const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("Failed to extract JSON from AI response");
+    this.logger.info?.(`[GoalDecomposer] AI Response received - content length: ${response.content?.length ?? 0}`);
+    this.logger.info?.(`[GoalDecomposer] AI Response model: ${response.model}`);
+    if (!response.content || response.content.length === 0) {
+      this.logger.error?.(`[GoalDecomposer] AI returned empty response!`);
+      throw new Error("AI returned empty response - no content received");
     }
-    const parsed = JSON.parse(jsonMatch[0]);
-    return DecompositionAIResponseSchema.parse(parsed);
+    const content = response.content.trim();
+    let jsonString = null;
+    const jsonBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonBlockMatch) {
+      jsonString = jsonBlockMatch[1].trim();
+    }
+    if (!jsonString) {
+      const startIdx = content.indexOf("{");
+      if (startIdx !== -1) {
+        let depth = 0;
+        let endIdx = -1;
+        for (let i = startIdx; i < content.length; i++) {
+          if (content[i] === "{") depth++;
+          else if (content[i] === "}") {
+            depth--;
+            if (depth === 0) {
+              endIdx = i;
+              break;
+            }
+          }
+        }
+        if (endIdx !== -1) {
+          jsonString = content.substring(startIdx, endIdx + 1);
+        }
+      }
+    }
+    if (!jsonString && content.startsWith("{")) {
+      jsonString = content;
+    }
+    if (!jsonString) {
+      this.logger.error?.(`[GoalDecomposer] No JSON found in response: ${content.substring(0, 200)}...`);
+      throw new Error("Failed to extract JSON from AI response - no JSON object found");
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonString);
+    } catch (parseError) {
+      this.logger.warn?.(`[GoalDecomposer] JSON parse failed, attempting repair...`);
+      let repairedJson = jsonString;
+      const openBraces = (repairedJson.match(/{/g) || []).length;
+      const closeBraces = (repairedJson.match(/}/g) || []).length;
+      const openBrackets = (repairedJson.match(/\[/g) || []).length;
+      const closeBrackets = (repairedJson.match(/]/g) || []).length;
+      if (openBrackets > closeBrackets) {
+        repairedJson = repairedJson.replace(/,\s*\{[^}]*$/, "");
+        repairedJson = repairedJson.replace(/,\s*"[^"]*$/, "");
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          repairedJson += "]";
+        }
+      }
+      if (openBraces > closeBraces) {
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          repairedJson += "}";
+        }
+      }
+      try {
+        parsed = JSON.parse(repairedJson);
+        this.logger.info?.(`[GoalDecomposer] JSON repair successful`);
+      } catch {
+        this.logger.error?.(`[GoalDecomposer] JSON repair failed. Original: ${jsonString.substring(0, 500)}...`);
+        throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
+      }
+    }
+    try {
+      return DecompositionAIResponseSchema.parse(parsed);
+    } catch (validationError) {
+      this.logger.error?.(`[GoalDecomposer] Schema validation failed: ${validationError.message}`);
+      throw new Error(`AI response does not match expected schema: ${validationError.message}`);
+    }
   }
   buildDecompositionPrompt(goal, options) {
     const parts = [
@@ -348,7 +419,7 @@ Important guidelines:
     if (goal.targetMastery) {
       parts.push(`Target mastery level: ${goal.targetMastery}`);
     }
-    if (goal.context.courseId) {
+    if (goal.context?.courseId) {
       parts.push(`Context: Part of a structured course`);
     }
     if (options.availableTimePerDay) {
@@ -430,7 +501,7 @@ Important guidelines:
     if (goal.description && goal.description.length > 50) {
       confidence += 0.05;
     }
-    if (goal.context.courseId) {
+    if (goal.context?.courseId) {
       confidence += 0.05;
     }
     if (goal.targetMastery && goal.currentMastery) {
@@ -13870,6 +13941,191 @@ var BehaviorMonitor = class {
     await this.interventionStore.recordResult(interventionId, result);
   }
   /**
+   * Check for interventions based on recent events
+   * Call this after recording events to evaluate if any interventions should be triggered
+   */
+  async checkInterventions(userId) {
+    this.logger.info("Checking interventions", { userId });
+    const result = {
+      anomaliesDetected: [],
+      patternsDetected: [],
+      interventionsCreated: [],
+      existingPendingInterventions: []
+    };
+    try {
+      const pendingInterventions = await this.interventionStore.getByUser(userId, true);
+      result.existingPendingInterventions = pendingInterventions;
+      const anomalies = await this.detectAnomalies(userId);
+      result.anomaliesDetected = anomalies;
+      for (const anomaly of anomalies) {
+        if (anomaly.severity === "high") {
+          const hasExisting = pendingInterventions.some(
+            (i) => i.type === this.mapAnomalyToInterventionType(anomaly.type)
+          );
+          if (!hasExisting) {
+            const intervention = await this.createInterventionForAnomaly(userId, anomaly);
+            if (intervention) {
+              result.interventionsCreated.push(intervention);
+            }
+          }
+        }
+      }
+      const patterns = await this.detectPatterns(userId);
+      result.patternsDetected = patterns;
+      for (const pattern of patterns) {
+        if (pattern.confidence >= 0.6) {
+          const interventionType = this.mapPatternToInterventionType(pattern.type);
+          const hasExisting = pendingInterventions.some((i) => i.type === interventionType);
+          if (!hasExisting) {
+            const intervention = this.createInterventionForPattern(pattern);
+            if (intervention) {
+              const created = await this.interventionStore.create(intervention);
+              this.interventionStore.setUserIntervention(userId, created.id);
+              result.interventionsCreated.push(created);
+            }
+          }
+        }
+      }
+      this.logger.info("Intervention check completed", {
+        userId,
+        anomaliesCount: result.anomaliesDetected.length,
+        patternsCount: result.patternsDetected.length,
+        interventionsCreatedCount: result.interventionsCreated.length,
+        pendingCount: result.existingPendingInterventions.length
+      });
+    } catch (error) {
+      this.logger.error("Failed to check interventions", {
+        userId,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+    return result;
+  }
+  /**
+   * Map anomaly type to intervention type
+   */
+  mapAnomalyToInterventionType(anomalyType) {
+    switch (anomalyType) {
+      case AnomalyType.SUDDEN_DISENGAGEMENT:
+        return InterventionType.STREAK_REMINDER;
+      case AnomalyType.REPEATED_FAILURES:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      case AnomalyType.PERFORMANCE_DROP:
+        return InterventionType.BREAK_SUGGESTION;
+      case AnomalyType.SESSION_ABNORMALITY:
+        return InterventionType.GOAL_REVISION;
+      case AnomalyType.UNUSUAL_ACTIVITY_TIME:
+        return InterventionType.ENCOURAGEMENT;
+      case AnomalyType.CONTENT_AVOIDANCE:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      default:
+        return InterventionType.ENCOURAGEMENT;
+    }
+  }
+  /**
+   * Map pattern type to intervention type
+   */
+  mapPatternToInterventionType(patternType) {
+    switch (patternType) {
+      case PatternType.STRUGGLE_PATTERN:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      case PatternType.HELP_SEEKING:
+        return InterventionType.CONTENT_RECOMMENDATION;
+      case PatternType.FATIGUE_PATTERN:
+        return InterventionType.BREAK_SUGGESTION;
+      case PatternType.SUCCESS_PATTERN:
+        return InterventionType.ENCOURAGEMENT;
+      default:
+        return InterventionType.ENCOURAGEMENT;
+    }
+  }
+  /**
+   * Create an intervention for an anomaly
+   */
+  async createInterventionForAnomaly(userId, anomaly) {
+    let intervention = null;
+    switch (anomaly.type) {
+      case AnomalyType.SUDDEN_DISENGAGEMENT:
+        intervention = {
+          type: InterventionType.STREAK_REMINDER,
+          priority: "high",
+          message: "We noticed you have not been as active recently. Would you like to get back on track?",
+          suggestedActions: [
+            {
+              id: v4_default(),
+              title: "Quick Review",
+              description: "Do a quick 5-minute review session",
+              type: ActionType.START_ACTIVITY,
+              priority: "high"
+            },
+            {
+              id: v4_default(),
+              title: "Adjust Goals",
+              description: "Update your learning goals if needed",
+              type: ActionType.ADJUST_GOAL,
+              priority: "medium"
+            }
+          ],
+          timing: { type: "immediate" }
+        };
+        break;
+      case AnomalyType.REPEATED_FAILURES:
+        intervention = {
+          type: InterventionType.CONTENT_RECOMMENDATION,
+          priority: "high",
+          message: anomaly.description,
+          suggestedActions: [
+            {
+              id: v4_default(),
+              title: "Review Materials",
+              description: "Go back to review the fundamentals",
+              type: ActionType.REVIEW_CONTENT,
+              priority: "high"
+            },
+            {
+              id: v4_default(),
+              title: "Get Help",
+              description: "Connect with a mentor for assistance",
+              type: ActionType.CONTACT_MENTOR,
+              priority: "medium"
+            }
+          ],
+          timing: { type: "immediate" }
+        };
+        break;
+      case AnomalyType.PERFORMANCE_DROP:
+        intervention = {
+          type: InterventionType.BREAK_SUGGESTION,
+          priority: "high",
+          message: anomaly.description,
+          suggestedActions: [
+            {
+              id: v4_default(),
+              title: "Take a Break",
+              description: "A short break can help refresh your mind",
+              type: ActionType.TAKE_BREAK,
+              priority: "high"
+            },
+            {
+              id: v4_default(),
+              title: "Talk to Someone",
+              description: "Connect with support",
+              type: ActionType.CONTACT_MENTOR,
+              priority: "medium"
+            }
+          ],
+          timing: { type: "immediate" }
+        };
+        break;
+    }
+    if (intervention) {
+      const created = await this.interventionStore.create(intervention);
+      this.interventionStore.setUserIntervention(userId, created.id);
+      return created;
+    }
+    return null;
+  }
+  /**
    * Create an intervention for a user
    */
   async createIntervention(userId, intervention) {
@@ -17717,7 +17973,8 @@ var TutoringLoopController = class {
       autoAdvance: config.autoAdvance ?? true,
       maxStepRetries: config.maxStepRetries ?? 3,
       sessionTimeoutMinutes: config.sessionTimeoutMinutes ?? 60,
-      logger: config.logger ?? this.createDefaultLogger()
+      logger: config.logger ?? this.createDefaultLogger(),
+      criterionEvaluator: config.criterionEvaluator
     };
     this.logger = this.config.logger;
   }
@@ -18082,13 +18339,346 @@ var TutoringLoopController = class {
       totalSessionTime: totalMinutes
     };
   }
-  async evaluateCriterion(criterion, _context, _response, _userMessage) {
+  /**
+   * Evaluate a single criterion for step completion
+   * Uses a combination of heuristic matching and LLM evaluation
+   */
+  async evaluateCriterion(criterion, context, response, userMessage) {
+    const lowerCriterion = criterion.toLowerCase();
+    const lowerResponse = response.toLowerCase();
+    const lowerMessage = userMessage.toLowerCase();
+    const heuristicResult = this.evaluateCriterionHeuristically(
+      criterion,
+      lowerCriterion,
+      lowerResponse,
+      lowerMessage,
+      context
+    );
+    if (heuristicResult !== null) {
+      this.logger.debug("Criterion evaluated heuristically", {
+        criterion,
+        met: heuristicResult.met,
+        confidence: heuristicResult.confidence
+      });
+      return heuristicResult;
+    }
+    if (this.config.criterionEvaluator && context.currentStep) {
+      try {
+        const aiResult = await this.config.criterionEvaluator.evaluateCriterion({
+          criterion,
+          userMessage,
+          assistantResponse: response,
+          stepContext: {
+            stepTitle: context.currentStep.title,
+            stepType: context.currentStep.type,
+            objectives: context.stepObjectives
+          },
+          memoryContext: {
+            masteredConcepts: context.memoryContext.masteredConcepts,
+            strugglingConcepts: context.memoryContext.strugglingConcepts
+          }
+        });
+        this.logger.debug("Criterion evaluated by AI", {
+          criterion,
+          met: aiResult.met,
+          confidence: aiResult.confidence
+        });
+        return {
+          criterion,
+          met: aiResult.met,
+          evidence: aiResult.evidence,
+          confidence: aiResult.confidence
+        };
+      } catch (error) {
+        this.logger.warn("AI criterion evaluation failed, falling back to heuristics", { error });
+      }
+    }
+    return this.evaluateCriterionSemantically(criterion, response, userMessage, context);
+  }
+  /**
+   * Heuristic evaluation for common criterion types
+   */
+  evaluateCriterionHeuristically(criterion, lowerCriterion, lowerResponse, lowerMessage, context) {
+    if (lowerCriterion.includes("time spent") || lowerCriterion.includes("duration")) {
+      const sessionTime = context.sessionMetadata.totalSessionTime;
+      const requiredTime = this.extractTimeRequirement(lowerCriterion);
+      if (requiredTime > 0) {
+        const met = sessionTime >= requiredTime;
+        return {
+          criterion,
+          met,
+          evidence: `Session time: ${sessionTime} minutes (required: ${requiredTime} minutes)`,
+          confidence: 1
+        };
+      }
+    }
+    if (lowerCriterion.includes("message") || lowerCriterion.includes("interaction")) {
+      const messageCount = context.sessionMetadata.messageCount;
+      const requiredCount = this.extractNumberRequirement(lowerCriterion);
+      if (requiredCount > 0) {
+        const met = messageCount >= requiredCount;
+        return {
+          criterion,
+          met,
+          evidence: `Message count: ${messageCount} (required: ${requiredCount})`,
+          confidence: 1
+        };
+      }
+    }
+    if (lowerCriterion.includes("quiz") || lowerCriterion.includes("test") || lowerCriterion.includes("score")) {
+      const scoreMatch = lowerResponse.match(/(\d+)\s*(?:\/|out of)\s*(\d+)|score[:\s]+(\d+)%?/i);
+      if (scoreMatch) {
+        const score = scoreMatch[1] && scoreMatch[2] ? parseInt(scoreMatch[1]) / parseInt(scoreMatch[2]) * 100 : parseInt(scoreMatch[3] || "0");
+        const requiredScore = this.extractScoreRequirement(lowerCriterion);
+        const met = score >= requiredScore;
+        return {
+          criterion,
+          met,
+          evidence: `Score: ${score.toFixed(0)}% (required: ${requiredScore}%)`,
+          confidence: 0.9
+        };
+      }
+    }
+    if (lowerCriterion.includes("complete") || lowerCriterion.includes("finish")) {
+      const completionIndicators = [
+        "completed",
+        "finished",
+        "done",
+        "accomplished",
+        "successfully",
+        "well done",
+        "great job",
+        "excellent"
+      ];
+      const hasCompletionIndicator = completionIndicators.some((ind) => lowerResponse.includes(ind));
+      if (hasCompletionIndicator) {
+        return {
+          criterion,
+          met: true,
+          evidence: "Response indicates completion",
+          confidence: 0.75
+        };
+      }
+    }
+    if (lowerCriterion.includes("understand") || lowerCriterion.includes("demonstrate") || lowerCriterion.includes("explain")) {
+      const explanationIndicators = [
+        "because",
+        "therefore",
+        "this means",
+        "in other words",
+        "for example",
+        "specifically",
+        "essentially"
+      ];
+      const hasExplanation = explanationIndicators.some((ind) => lowerMessage.includes(ind));
+      const confirmationIndicators = [
+        "correct",
+        "exactly",
+        "that's right",
+        "well explained",
+        "good understanding",
+        "you've got it",
+        "precisely"
+      ];
+      const hasConfirmation = confirmationIndicators.some((ind) => lowerResponse.includes(ind));
+      if (hasExplanation && hasConfirmation) {
+        return {
+          criterion,
+          met: true,
+          evidence: "User demonstrated understanding with explanation confirmed by assistant",
+          confidence: 0.8
+        };
+      }
+      if (hasExplanation || hasConfirmation) {
+        return {
+          criterion,
+          met: false,
+          evidence: hasExplanation ? "User provided explanation but awaiting confirmation" : "Partial understanding indicators detected",
+          confidence: 0.5
+        };
+      }
+    }
+    if (lowerCriterion.includes("practice") || lowerCriterion.includes("exercise")) {
+      const practiceIndicators = [
+        "solved",
+        "answered",
+        "attempted",
+        "worked through",
+        "practiced",
+        "tried",
+        "completed the exercise"
+      ];
+      const hasPractice = practiceIndicators.some(
+        (ind) => lowerMessage.includes(ind) || lowerResponse.includes(ind)
+      );
+      if (hasPractice) {
+        return {
+          criterion,
+          met: true,
+          evidence: "Practice/exercise completed",
+          confidence: 0.7
+        };
+      }
+    }
+    if (lowerCriterion.includes("ask") && lowerCriterion.includes("question")) {
+      const isQuestion = lowerMessage.includes("?") || lowerMessage.startsWith("what") || lowerMessage.startsWith("how") || lowerMessage.startsWith("why") || lowerMessage.startsWith("can you");
+      if (isQuestion) {
+        return {
+          criterion,
+          met: true,
+          evidence: "User asked a question",
+          confidence: 0.9
+        };
+      }
+    }
+    return null;
+  }
+  /**
+   * Semantic similarity-based criterion evaluation
+   */
+  evaluateCriterionSemantically(criterion, response, userMessage, _context) {
+    const criterionWords = this.extractKeywords(criterion);
+    const responseWords = this.extractKeywords(response);
+    const messageWords = this.extractKeywords(userMessage);
+    const allContextWords = [...responseWords, ...messageWords];
+    const matchCount = criterionWords.filter(
+      (word) => allContextWords.some(
+        (contextWord) => contextWord.includes(word) || word.includes(contextWord)
+      )
+    ).length;
+    const similarity = criterionWords.length > 0 ? matchCount / criterionWords.length : 0;
+    const met = similarity >= 0.5;
+    const confidence = Math.min(similarity + 0.2, 0.7);
     return {
       criterion,
-      met: false,
-      evidence: null,
-      confidence: 0.5
+      met,
+      evidence: met ? `Semantic match: ${matchCount}/${criterionWords.length} keywords found in context` : `Insufficient semantic match: ${matchCount}/${criterionWords.length} keywords`,
+      confidence
     };
+  }
+  /**
+   * Extract keywords from text for semantic matching
+   */
+  extractKeywords(text) {
+    const stopWords = /* @__PURE__ */ new Set([
+      "the",
+      "a",
+      "an",
+      "is",
+      "are",
+      "was",
+      "were",
+      "be",
+      "been",
+      "being",
+      "have",
+      "has",
+      "had",
+      "do",
+      "does",
+      "did",
+      "will",
+      "would",
+      "could",
+      "should",
+      "may",
+      "might",
+      "must",
+      "shall",
+      "can",
+      "to",
+      "of",
+      "in",
+      "for",
+      "on",
+      "with",
+      "at",
+      "by",
+      "from",
+      "up",
+      "about",
+      "into",
+      "through",
+      "during",
+      "before",
+      "after",
+      "above",
+      "below",
+      "between",
+      "under",
+      "again",
+      "further",
+      "then",
+      "once",
+      "here",
+      "there",
+      "when",
+      "where",
+      "why",
+      "how",
+      "all",
+      "each",
+      "few",
+      "more",
+      "most",
+      "other",
+      "some",
+      "such",
+      "no",
+      "nor",
+      "not",
+      "only",
+      "own",
+      "same",
+      "so",
+      "than",
+      "too",
+      "very",
+      "just",
+      "and",
+      "but",
+      "if",
+      "or",
+      "as",
+      "until",
+      "while",
+      "this",
+      "that",
+      "these",
+      "those",
+      "it"
+    ]);
+    return text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((word) => word.length > 2 && !stopWords.has(word));
+  }
+  /**
+   * Extract time requirement from criterion text (in minutes)
+   */
+  extractTimeRequirement(criterion) {
+    const hourMatch = criterion.match(/(\d+)\s*hour/);
+    const minuteMatch = criterion.match(/(\d+)\s*min/);
+    let minutes = 0;
+    if (hourMatch) minutes += parseInt(hourMatch[1]) * 60;
+    if (minuteMatch) minutes += parseInt(minuteMatch[1]);
+    return minutes || 15;
+  }
+  /**
+   * Extract number requirement from criterion text
+   */
+  extractNumberRequirement(criterion) {
+    const match = criterion.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 3;
+  }
+  /**
+   * Extract score requirement from criterion text (as percentage)
+   */
+  extractScoreRequirement(criterion) {
+    const percentMatch = criterion.match(/(\d+)\s*%/);
+    if (percentMatch) return parseInt(percentMatch[1]);
+    const fractionMatch = criterion.match(/(\d+)\s*(?:\/|out of)\s*(\d+)/);
+    if (fractionMatch) {
+      return parseInt(fractionMatch[1]) / parseInt(fractionMatch[2]) * 100;
+    }
+    return 70;
   }
   generateRecommendations(_context, _evaluatedCriteria, pendingCriteria, progressPercent) {
     const recommendations = [];
@@ -18215,8 +18805,128 @@ var TutoringLoopController = class {
         return "Continuing with your learning plan.";
     }
   }
-  async analyzeToolNeeds(_context, _userMessage) {
-    return [];
+  /**
+   * Analyze user message to determine which tools might be needed
+   */
+  async analyzeToolNeeds(context, userMessage) {
+    const recommendations = [];
+    const lowerMessage = userMessage.toLowerCase();
+    for (const tool of context.allowedTools) {
+      const toolMatch = this.matchToolToMessage(tool, lowerMessage, context);
+      if (toolMatch) {
+        recommendations.push(toolMatch);
+      }
+    }
+    recommendations.sort((a, b) => b.priority - a.priority);
+    return recommendations.slice(0, 3);
+  }
+  /**
+   * Match a tool to the user message to determine if it should be recommended
+   */
+  matchToolToMessage(tool, lowerMessage, context) {
+    const toolPatterns = {
+      // Content tools
+      "search": {
+        patterns: ["find", "search", "look for", "where is", "locate"],
+        priority: 7
+      },
+      "explain": {
+        patterns: ["explain", "what is", "what does", "how does", "tell me about"],
+        priority: 8
+      },
+      "quiz": {
+        patterns: ["quiz", "test", "practice questions", "try a quiz", "test me"],
+        priority: 8
+      },
+      "example": {
+        patterns: ["example", "show me", "demonstrate", "sample"],
+        priority: 6
+      },
+      "summarize": {
+        patterns: ["summarize", "summary", "brief", "recap", "overview"],
+        priority: 5
+      },
+      // Progress tools
+      "progress": {
+        patterns: ["progress", "how am i doing", "my status", "track"],
+        priority: 6
+      },
+      "goal": {
+        patterns: ["goal", "objective", "target", "what should i learn"],
+        priority: 7
+      },
+      // Learning tools
+      "flashcard": {
+        patterns: ["flashcard", "flash card", "memorize", "remember"],
+        priority: 6
+      },
+      "hint": {
+        patterns: ["hint", "help me", "stuck", "clue", "guide"],
+        priority: 7
+      },
+      "simplify": {
+        patterns: ["simplify", "easier", "simpler", "break down", "step by step"],
+        priority: 8
+      }
+    };
+    const toolNameLower = tool.name.toLowerCase();
+    for (const [category, config] of Object.entries(toolPatterns)) {
+      if (toolNameLower.includes(category) || tool.category === category) {
+        const matchedPattern = config.patterns.find((pattern) => lowerMessage.includes(pattern));
+        if (matchedPattern) {
+          return {
+            toolId: tool.id,
+            suggestedInput: this.buildToolInput(tool, lowerMessage, context),
+            priority: config.priority,
+            reasoning: `User message contains "${matchedPattern}" which suggests ${tool.name} tool`
+          };
+        }
+      }
+    }
+    if (tool.description) {
+      const descKeywords = this.extractKeywords(tool.description);
+      const messageKeywords = this.extractKeywords(lowerMessage);
+      const overlap = descKeywords.filter((kw) => messageKeywords.includes(kw)).length;
+      if (overlap >= 2) {
+        return {
+          toolId: tool.id,
+          suggestedInput: this.buildToolInput(tool, lowerMessage, context),
+          priority: Math.min(overlap + 2, 6),
+          reasoning: `Tool description matches ${overlap} keywords in user message`
+        };
+      }
+    }
+    return null;
+  }
+  /**
+   * Build suggested input for a tool based on context
+   */
+  buildToolInput(_tool, userMessage, context) {
+    const input = {};
+    input.userId = context.userId;
+    input.sessionId = context.sessionId;
+    if (context.currentStep) {
+      input.topic = context.currentStep.title;
+      input.stepId = context.currentStep.id;
+    } else {
+      input.topic = this.extractMainTopic(userMessage);
+    }
+    input.query = userMessage;
+    if (context.activePlan?.checkpointData) {
+      const courseId = context.activePlan.checkpointData.courseId;
+      if (courseId) {
+        input.courseId = courseId;
+      }
+    }
+    return input;
+  }
+  /**
+   * Extract the main topic from user message
+   */
+  extractMainTopic(message) {
+    const cleaned = message.replace(/^(what|how|why|can you|could you|please|help me|tell me|explain)\s+(is|are|does|do|the|about|with|to|understand)?\s*/i, "").replace(/\?$/, "").trim();
+    const words = cleaned.split(/\s+/).slice(0, 8);
+    return words.join(" ").substring(0, 50);
   }
   generateToolPlanReasoning(tools, _context) {
     if (tools.length === 0) {
@@ -21127,6 +21837,15 @@ var ClientWebSocketManager = class {
       this.logger.warn("Already connected");
       return;
     }
+    const configUrl = this.config.url;
+    if (typeof WebSocket === "undefined") {
+      throw new Error("WebSocket not available in this environment");
+    }
+    const isValidWsUrl = configUrl && (configUrl.startsWith("ws://") || configUrl.startsWith("wss://"));
+    if (!isValidWsUrl) {
+      this.logger.debug("WebSocket not configured", { url: configUrl || "not set" });
+      throw new Error("WebSocket not configured - no valid URL provided");
+    }
     this.userId = userId;
     this.metadata = metadata ?? {
       deviceType: this.detectDeviceType(),
@@ -21137,17 +21856,30 @@ var ClientWebSocketManager = class {
       try {
         const url = this.buildWebSocketUrl();
         this.socket = new WebSocket(url);
+        const connectionTimeout = setTimeout(() => {
+          if (this.state === ConnectionState.CONNECTING) {
+            this.socket?.close();
+            const error = new Error("WebSocket connection timeout - server may not be running");
+            this.handleError(error);
+            reject(error);
+          }
+        }, 5e3);
         this.socket.onopen = () => {
+          clearTimeout(connectionTimeout);
           this.handleOpen();
           resolve();
         };
         this.socket.onclose = (event) => {
+          clearTimeout(connectionTimeout);
           this.handleClose(event);
         };
         this.socket.onerror = () => {
-          this.handleError(new Error("WebSocket error"));
+          clearTimeout(connectionTimeout);
+          const errorUrl = this.config.url || "unknown URL";
+          const error = new Error(`WebSocket connection failed to ${errorUrl}`);
+          this.handleError(error);
           if (this.state === ConnectionState.CONNECTING) {
-            reject(new Error("Failed to connect"));
+            reject(new Error(`Failed to connect to WebSocket server at ${errorUrl}. Server may not be running.`));
           }
         };
         this.socket.onmessage = (event) => {
@@ -21309,15 +22041,27 @@ var ClientWebSocketManager = class {
     });
   }
   handleError(error) {
-    this.logger.error("WebSocket error", {
-      error: error.message,
-      state: this.state
-    });
+    if (this.state === ConnectionState.CONNECTING) {
+      this.logger.debug("WebSocket connection not available", {
+        message: error.message,
+        hint: "This is expected if no WebSocket server is running. The app will fallback to REST polling."
+      });
+    } else if (this.state === ConnectionState.RECONNECTING) {
+      this.logger.warn("WebSocket reconnection attempt failed", {
+        message: error.message,
+        attemptNumber: this.reconnectAttempts
+      });
+    } else {
+      this.logger.warn("WebSocket error", {
+        message: error.message,
+        state: this.state
+      });
+    }
     for (const handler of this.errorHandlers) {
       try {
         handler(error);
       } catch (e) {
-        this.logger.error("Error in error handler", {
+        this.logger.warn("Error in error handler", {
           error: e instanceof Error ? e.message : "Unknown"
         });
       }
@@ -21440,7 +22184,18 @@ var ClientWebSocketManager = class {
     }
   }
   buildWebSocketUrl() {
-    const url = new URL(this.config.url, window.location.origin);
+    const configUrl = this.config.url;
+    if (configUrl.startsWith("ws://") || configUrl.startsWith("wss://")) {
+      const url2 = new URL(configUrl);
+      if (this.userId) {
+        url2.searchParams.set("userId", this.userId);
+      }
+      if (this.config.authToken) {
+        url2.searchParams.set("token", this.config.authToken);
+      }
+      return url2.toString();
+    }
+    const url = new URL(configUrl, window.location.origin);
     url.protocol = url.protocol.replace("http", "ws");
     if (this.userId) {
       url.searchParams.set("userId", this.userId);
@@ -22058,6 +22813,521 @@ var InterventionSurfaceManagerImpl = class {
 };
 function createInterventionSurfaceManager(options) {
   return new InterventionSurfaceManagerImpl(options);
+}
+
+// src/realtime/channels/email-channel.ts
+function getEmailTemplate(event) {
+  const eventType = event.type;
+  const payload = event.payload;
+  switch (eventType) {
+    case "intervention":
+      return {
+        subject: "SAM AI: Important Learning Update",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4f46e5;">\u{1F393} SAM has an important message for you</h2>
+            <p style="font-size: 16px; color: #374151;">${payload.message || "You have a new learning update"}</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard"
+               style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">
+              Open SAM
+            </a>
+          </div>
+        `,
+        text: `SAM has an important message for you: ${payload.message || "You have a new learning update"}`
+      };
+    case "checkin":
+      return {
+        subject: "SAM AI: Time for a Quick Check-In",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4f46e5;">\u{1F44B} SAM wants to check in with you</h2>
+            <p style="font-size: 16px; color: #374151;">${payload.message || "How is your learning going?"}</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard"
+               style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">
+              Respond to SAM
+            </a>
+          </div>
+        `,
+        text: `SAM wants to check in with you: ${payload.message || "How is your learning going?"}`
+      };
+    case "nudge":
+      const nudgePayload = payload;
+      return {
+        subject: `SAM AI: ${getNudgeSubject(nudgePayload.type || "reminder")}`,
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4f46e5;">\u{1F4A1} ${getNudgeTitle(nudgePayload.type || "reminder")}</h2>
+            <p style="font-size: 16px; color: #374151;">${nudgePayload.message || "SAM has a suggestion for you"}</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard"
+               style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">
+              Learn More
+            </a>
+          </div>
+        `,
+        text: `${getNudgeTitle(nudgePayload.type || "reminder")}: ${nudgePayload.message || "SAM has a suggestion for you"}`
+      };
+    case "goal_progress":
+      const goalPayload = payload;
+      return {
+        subject: `SAM AI: Progress Update - ${goalPayload.goalTitle || "Your Goal"}`,
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4f46e5;">\u{1F4C8} Goal Progress Update</h2>
+            <p style="font-size: 16px; color: #374151;">Great news! You&apos;ve made progress on: <strong>${goalPayload.goalTitle || "Your Goal"}</strong></p>
+            <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin: 16px 0;">
+              <div style="background: #e5e7eb; border-radius: 4px; height: 8px;">
+                <div style="background: #4f46e5; border-radius: 4px; height: 8px; width: ${goalPayload.progress || 0}%;"></div>
+              </div>
+              <p style="text-align: center; margin-top: 8px; font-weight: 600; color: #4f46e5;">${goalPayload.progress || 0}% Complete</p>
+            </div>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard"
+               style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">
+              View Details
+            </a>
+          </div>
+        `,
+        text: `Goal Progress Update: You&apos;ve made ${goalPayload.progress || 0}% progress on ${goalPayload.goalTitle || "Your Goal"}`
+      };
+    case "celebration":
+      const celebrationPayload = payload;
+      return {
+        subject: `\u{1F389} SAM AI: ${celebrationPayload.title || "Congratulations!"}`,
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4f46e5;">\u{1F389} ${celebrationPayload.title || "Congratulations!"}</h2>
+            <p style="font-size: 16px; color: #374151;">${celebrationPayload.message || "You achieved something great!"}</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard"
+               style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">
+              Celebrate with SAM
+            </a>
+          </div>
+        `,
+        text: `${celebrationPayload.title || "Congratulations!"}: ${celebrationPayload.message || "You achieved something great!"}`
+      };
+    default:
+      return {
+        subject: "SAM AI: New Notification",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #4f46e5;">\u{1F514} New Notification from SAM</h2>
+            <p style="font-size: 16px; color: #374151;">You have a new notification waiting for you.</p>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard"
+               style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">
+              Open SAM
+            </a>
+          </div>
+        `,
+        text: "You have a new notification from SAM AI."
+      };
+  }
+}
+function getNudgeSubject(type) {
+  const subjects = {
+    reminder: "Learning Reminder",
+    encouragement: "Keep Going!",
+    tip: "Learning Tip",
+    streak_alert: "Streak Alert!",
+    break_suggestion: "Time for a Break",
+    study_prompt: "Time to Study",
+    achievement: "Achievement Unlocked!"
+  };
+  return subjects[type] || "Learning Update";
+}
+function getNudgeTitle(type) {
+  const titles = {
+    reminder: "A quick reminder",
+    encouragement: "You&apos;re doing great!",
+    tip: "Pro tip for you",
+    streak_alert: "Don&apos;t lose your streak!",
+    break_suggestion: "Take a breather",
+    study_prompt: "Ready to learn?",
+    achievement: "Achievement unlocked!"
+  };
+  return titles[type] || "SAM has a message";
+}
+var EmailChannel = class {
+  channel = "email";
+  config;
+  logger;
+  throttleMap = /* @__PURE__ */ new Map();
+  constructor(config) {
+    this.config = config;
+    this.logger = config.logger ?? console;
+  }
+  async canDeliver(userId) {
+    if (this.config.enabled === false) {
+      return false;
+    }
+    const email = await this.config.getUserEmail(userId);
+    if (!email) {
+      return false;
+    }
+    if (this.config.getUserPreferences) {
+      const prefs = await this.config.getUserPreferences(userId);
+      if (prefs && !prefs.enabled) {
+        return false;
+      }
+      if (prefs?.quietHours) {
+        const now = /* @__PURE__ */ new Date();
+        const hour = now.getHours();
+        const { start, end } = prefs.quietHours;
+        if (start < end) {
+          if (hour >= start && hour < end) {
+            return false;
+          }
+        } else {
+          if (hour >= start || hour < end) {
+            return false;
+          }
+        }
+      }
+    }
+    if (!this.checkThrottle(userId)) {
+      this.logger.debug("Email throttled for user", { userId });
+      return false;
+    }
+    return true;
+  }
+  async deliver(userId, event) {
+    const email = await this.config.getUserEmail(userId);
+    if (!email) {
+      return false;
+    }
+    if (this.config.getUserPreferences) {
+      const prefs = await this.config.getUserPreferences(userId);
+      if (prefs && prefs.types.length > 0 && !prefs.types.includes(event.type)) {
+        this.logger.debug("Event type not in user preferences", { userId, type: event.type });
+        return false;
+      }
+    }
+    const template = getEmailTemplate(event);
+    try {
+      const sent = await this.config.emailService.send({
+        to: email,
+        from: this.config.fromEmail,
+        fromName: this.config.fromName ?? "SAM AI",
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        tags: ["sam-notification", event.type],
+        metadata: {
+          userId,
+          eventType: event.type,
+          eventId: event.eventId
+        }
+      });
+      if (sent) {
+        this.incrementThrottle(userId);
+        this.logger.info("Email notification sent", {
+          userId,
+          eventType: event.type,
+          eventId: event.eventId
+        });
+      }
+      return sent;
+    } catch (error) {
+      this.logger.error("Failed to send email notification", {
+        userId,
+        eventType: event.type,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+      return false;
+    }
+  }
+  checkThrottle(userId) {
+    const throttle = this.config.throttle;
+    if (!throttle) return true;
+    const now = /* @__PURE__ */ new Date();
+    let userData = this.throttleMap.get(userId);
+    if (userData && userData.lastReset.getDate() !== now.getDate()) {
+      userData = { hourly: 0, daily: 0, lastReset: now };
+      this.throttleMap.set(userId, userData);
+    }
+    if (userData && userData.lastReset.getHours() !== now.getHours()) {
+      userData.hourly = 0;
+    }
+    if (!userData) {
+      userData = { hourly: 0, daily: 0, lastReset: now };
+      this.throttleMap.set(userId, userData);
+    }
+    if (throttle.maxPerHour && userData.hourly >= throttle.maxPerHour) {
+      return false;
+    }
+    if (throttle.maxPerDay && userData.daily >= throttle.maxPerDay) {
+      return false;
+    }
+    return true;
+  }
+  incrementThrottle(userId) {
+    const userData = this.throttleMap.get(userId);
+    if (userData) {
+      userData.hourly++;
+      userData.daily++;
+      userData.lastReset = /* @__PURE__ */ new Date();
+    }
+  }
+};
+function createEmailChannel(config) {
+  return new EmailChannel(config);
+}
+
+// src/realtime/channels/browser-push-channel.ts
+function buildNotificationPayload(event) {
+  const eventType = event.type;
+  const payload = event.payload;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+  switch (eventType) {
+    case "intervention":
+      return {
+        title: "\u{1F393} SAM AI",
+        body: payload.message || "You have an important learning update",
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `intervention-${event.eventId}`,
+        requireInteraction: true,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType
+        },
+        actions: [
+          { action: "open", title: "Open SAM" },
+          { action: "dismiss", title: "Later" }
+        ]
+      };
+    case "checkin":
+      return {
+        title: "\u{1F44B} SAM Check-In",
+        body: payload.message || "How is your learning going?",
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `checkin-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType
+        },
+        actions: [
+          { action: "respond", title: "Respond" },
+          { action: "snooze", title: "Snooze" }
+        ]
+      };
+    case "nudge": {
+      const nudgePayload = payload;
+      return {
+        title: getNudgeIcon(nudgePayload.type || "reminder") + " " + getNudgeTitle2(nudgePayload.type || "reminder"),
+        body: nudgePayload.message || "SAM has a suggestion for you",
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `nudge-${nudgePayload.type || "reminder"}-${event.eventId}`,
+        renotify: nudgePayload.type === "streak_alert",
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+          nudgeType: nudgePayload.type
+        }
+      };
+    }
+    case "goal_progress": {
+      const goalPayload = payload;
+      return {
+        title: "\u{1F4C8} Goal Progress",
+        body: `${goalPayload.progress || 0}% complete: ${goalPayload.goalTitle || "Your Goal"}`,
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `goal-progress-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType
+        }
+      };
+    }
+    case "step_completed": {
+      const stepPayload = payload;
+      return {
+        title: "\u2705 Step Completed!",
+        body: stepPayload.nextStepTitle ? `Up next: ${stepPayload.nextStepTitle}` : `Great job completing: ${stepPayload.stepTitle || "this step"}`,
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `step-completed-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType
+        }
+      };
+    }
+    case "celebration": {
+      const celebrationPayload = payload;
+      return {
+        title: "\u{1F389} " + (celebrationPayload.title || "Congratulations!"),
+        body: celebrationPayload.message || "You achieved something great!",
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `celebration-${celebrationPayload.type || "achievement"}-${event.eventId}`,
+        vibrate: [200, 100, 200],
+        requireInteraction: true,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType,
+          celebrationType: celebrationPayload.type
+        },
+        actions: [
+          { action: "celebrate", title: "\u{1F389} Celebrate!" },
+          { action: "share", title: "Share" }
+        ]
+      };
+    }
+    case "recommendation": {
+      const recPayload = payload;
+      return {
+        title: "\u{1F4A1} Recommended for You",
+        body: recPayload.title || recPayload.description || "Check out this learning recommendation",
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `recommendation-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType
+        }
+      };
+    }
+    default:
+      return {
+        title: "\u{1F514} SAM AI",
+        body: "You have a new notification",
+        icon: "/icons/sam-icon-192.png",
+        badge: "/icons/sam-badge-72.png",
+        tag: `notification-${event.eventId}`,
+        data: {
+          url: `${appUrl}/dashboard`,
+          eventId: event.eventId,
+          type: eventType
+        }
+      };
+  }
+}
+function getNudgeIcon(type) {
+  const icons = {
+    reminder: "\u23F0",
+    encouragement: "\u{1F4AA}",
+    tip: "\u{1F4A1}",
+    streak_alert: "\u{1F525}",
+    break_suggestion: "\u2615",
+    study_prompt: "\u{1F4DA}",
+    achievement: "\u{1F3C6}"
+  };
+  return icons[type] || "\u{1F4A1}";
+}
+function getNudgeTitle2(type) {
+  const titles = {
+    reminder: "Reminder",
+    encouragement: "Keep Going!",
+    tip: "Learning Tip",
+    streak_alert: "Streak Alert!",
+    break_suggestion: "Break Time",
+    study_prompt: "Time to Learn",
+    achievement: "Achievement"
+  };
+  return titles[type] || "SAM Notification";
+}
+function getUrgency(event) {
+  const eventType = event.type;
+  switch (eventType) {
+    case "intervention":
+    case "celebration":
+      return "high";
+    case "checkin":
+    case "step_completed":
+      return "normal";
+    case "nudge":
+    case "recommendation":
+      return "low";
+    case "goal_progress":
+      return "very-low";
+    default:
+      return "normal";
+  }
+}
+var BrowserPushChannel = class {
+  channel = "push_notification";
+  config;
+  logger;
+  constructor(config) {
+    this.config = config;
+    this.logger = config.logger ?? console;
+  }
+  async canDeliver(userId) {
+    if (this.config.enabled === false) {
+      return false;
+    }
+    const subscription = await this.config.getUserSubscription(userId);
+    if (!subscription) {
+      return false;
+    }
+    if (subscription.expirationTime && subscription.expirationTime < Date.now()) {
+      this.logger.debug("Push subscription expired", { userId });
+      return false;
+    }
+    return true;
+  }
+  async deliver(userId, event) {
+    const subscription = await this.config.getUserSubscription(userId);
+    if (!subscription) {
+      return false;
+    }
+    const notification = buildNotificationPayload(event);
+    const payload = JSON.stringify(notification);
+    const urgency = getUrgency(event);
+    try {
+      const result = await this.config.pushService.sendNotification(subscription, payload, {
+        vapidDetails: {
+          subject: this.config.vapidSubject,
+          publicKey: this.config.vapidPublicKey,
+          privateKey: this.config.vapidPrivateKey
+        },
+        ttl: this.config.ttl ?? 86400,
+        urgency,
+        topic: notification.tag
+      });
+      if (result.statusCode >= 200 && result.statusCode < 300) {
+        this.logger.info("Push notification sent", {
+          userId,
+          eventType: event.type,
+          eventId: event.eventId,
+          statusCode: result.statusCode
+        });
+        return true;
+      }
+      if (result.statusCode === 404 || result.statusCode === 410) {
+        this.logger.warn("Push subscription no longer valid", {
+          userId,
+          statusCode: result.statusCode
+        });
+      }
+      this.logger.error("Push notification failed", {
+        userId,
+        eventType: event.type,
+        statusCode: result.statusCode,
+        body: result.body
+      });
+      return false;
+    } catch (error) {
+      this.logger.error("Failed to send push notification", {
+        userId,
+        eventType: event.type,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+      return false;
+    }
+  }
+};
+function createBrowserPushChannel(config) {
+  return new BrowserPushChannel(config);
 }
 
 // src/observability/types.ts
@@ -23490,6 +24760,280 @@ function createInMemoryProactiveEventStore(maxEvents) {
   return new InMemoryProactiveEventStore(maxEvents);
 }
 
+// src/observability/exporters/railway-exporter.ts
+var RailwayMetricsExporter = class _RailwayMetricsExporter {
+  config;
+  buffer = [];
+  flushTimer = null;
+  constructor(config = {}) {
+    this.config = {
+      serviceName: config.serviceName || "sam-ai",
+      environment: config.environment || process.env.RAILWAY_ENVIRONMENT || "development",
+      debug: config.debug ?? false,
+      logger: config.logger || console,
+      samplingRate: config.samplingRate ?? 1,
+      batchSize: config.batchSize ?? 100,
+      flushIntervalMs: config.flushIntervalMs ?? 5e3
+    };
+    this.startFlushTimer();
+  }
+  // ============================================================================
+  // METRIC EXPORT METHODS
+  // ============================================================================
+  /**
+   * Export a generic metric
+   */
+  exportMetric(name, value, labels, metadata) {
+    if (!this.shouldSample()) return;
+    const log = {
+      type: "metric",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      service: this.config.serviceName,
+      environment: this.config.environment,
+      name,
+      value,
+      labels,
+      metadata
+    };
+    this.bufferLog(log);
+  }
+  /**
+   * Export tool execution telemetry
+   */
+  exportToolExecution(event) {
+    if (!this.shouldSample()) return;
+    const log = {
+      type: "event",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      service: this.config.serviceName,
+      environment: this.config.environment,
+      category: "tool_execution",
+      action: event.toolName,
+      status: event.status,
+      durationMs: event.durationMs,
+      userId: event.userId,
+      sessionId: event.sessionId,
+      metadata: {
+        toolId: event.toolId,
+        executionId: event.executionId,
+        confirmationRequired: event.confirmationRequired,
+        confirmationGiven: event.confirmationGiven,
+        planId: event.planId,
+        stepId: event.stepId,
+        hasError: !!event.error,
+        errorCode: event.error?.code
+      }
+    };
+    this.bufferLog(log);
+    this.exportMetric(
+      "sam.tool.execution",
+      1,
+      {
+        tool: event.toolName,
+        status: event.status,
+        confirmation_required: String(event.confirmationRequired)
+      }
+    );
+    if (event.durationMs) {
+      this.exportMetric(
+        "sam.tool.latency_ms",
+        event.durationMs,
+        { tool: event.toolName, status: event.status }
+      );
+    }
+  }
+  /**
+   * Export memory retrieval telemetry
+   */
+  exportMemoryRetrieval(event) {
+    if (!this.shouldSample()) return;
+    const log = {
+      type: "event",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      service: this.config.serviceName,
+      environment: this.config.environment,
+      category: "memory_retrieval",
+      action: event.source,
+      durationMs: event.latencyMs,
+      userId: event.userId,
+      sessionId: event.sessionId,
+      metadata: {
+        retrievalId: event.retrievalId,
+        query: event.query.substring(0, 100),
+        // Truncate for logging
+        resultCount: event.resultCount,
+        topRelevanceScore: event.topRelevanceScore,
+        avgRelevanceScore: event.avgRelevanceScore,
+        cacheHit: event.cacheHit
+      }
+    };
+    this.bufferLog(log);
+    this.exportMetric(
+      "sam.memory.retrieval",
+      1,
+      { source: event.source, cache_hit: String(event.cacheHit) }
+    );
+    this.exportMetric(
+      "sam.memory.latency_ms",
+      event.latencyMs,
+      { source: event.source }
+    );
+    this.exportMetric(
+      "sam.memory.relevance_score",
+      event.avgRelevanceScore,
+      { source: event.source }
+    );
+  }
+  /**
+   * Export confidence prediction telemetry
+   */
+  exportConfidencePrediction(prediction) {
+    if (!this.shouldSample()) return;
+    const log = {
+      type: "event",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      service: this.config.serviceName,
+      environment: this.config.environment,
+      category: "confidence_prediction",
+      action: prediction.responseType,
+      userId: prediction.userId,
+      sessionId: prediction.sessionId,
+      metadata: {
+        predictionId: prediction.predictionId,
+        responseId: prediction.responseId,
+        predictedConfidence: prediction.predictedConfidence,
+        factorCount: prediction.factors.length,
+        hasOutcome: !!prediction.actualOutcome,
+        accurate: prediction.actualOutcome?.accurate
+      }
+    };
+    this.bufferLog(log);
+    this.exportMetric(
+      "sam.confidence.prediction",
+      prediction.predictedConfidence,
+      { response_type: prediction.responseType }
+    );
+    if (prediction.actualOutcome) {
+      this.exportMetric(
+        "sam.confidence.accuracy",
+        prediction.actualOutcome.accurate ? 1 : 0,
+        { response_type: prediction.responseType }
+      );
+    }
+  }
+  /**
+   * Export plan lifecycle event
+   */
+  exportPlanLifecycleEvent(event) {
+    if (!this.shouldSample()) return;
+    const log = {
+      type: "event",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      service: this.config.serviceName,
+      environment: this.config.environment,
+      category: "plan_lifecycle",
+      action: event.eventType,
+      userId: event.userId,
+      metadata: {
+        eventId: event.eventId,
+        planId: event.planId,
+        stepId: event.stepId,
+        previousState: event.previousState,
+        newState: event.newState
+      }
+    };
+    this.bufferLog(log);
+    this.exportMetric(
+      "sam.plan.event",
+      1,
+      { event_type: event.eventType }
+    );
+  }
+  // ============================================================================
+  // BUFFER MANAGEMENT
+  // ============================================================================
+  bufferLog(log) {
+    this.buffer.push(log);
+    if (this.buffer.length >= this.config.batchSize) {
+      this.flush();
+    }
+  }
+  startFlushTimer() {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+    }
+    this.flushTimer = setInterval(() => {
+      if (this.buffer.length > 0) {
+        this.flush();
+      }
+    }, this.config.flushIntervalMs);
+  }
+  /**
+   * Flush buffered logs to stdout
+   */
+  flush() {
+    if (this.buffer.length === 0) return;
+    const logs = this.buffer.splice(0, this.buffer.length);
+    logs.forEach((log) => {
+      this.config.logger.log(JSON.stringify(log));
+    });
+    if (this.config.debug) {
+      this.config.logger.info(`[RailwayExporter] Flushed ${logs.length} logs`);
+    }
+  }
+  /**
+   * Stop the exporter and flush remaining logs
+   */
+  shutdown() {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+    this.flush();
+  }
+  // ============================================================================
+  // UTILITY METHODS
+  // ============================================================================
+  shouldSample() {
+    return Math.random() < this.config.samplingRate;
+  }
+  /**
+   * Create a child exporter with additional labels
+   */
+  withLabels(labels) {
+    const childConfig = {
+      ...this.config,
+      serviceName: labels.service || this.config.serviceName
+    };
+    return new _RailwayMetricsExporter(childConfig);
+  }
+};
+var defaultExporter = null;
+function getRailwayExporter(config) {
+  if (!defaultExporter) {
+    defaultExporter = new RailwayMetricsExporter(config);
+  }
+  return defaultExporter;
+}
+function createRailwayExporter(config) {
+  return new RailwayMetricsExporter(config);
+}
+function logMetric(name, value, labels) {
+  getRailwayExporter().exportMetric(name, value, labels);
+}
+function logToolExecution(event) {
+  getRailwayExporter().exportToolExecution(event);
+}
+function logMemoryRetrieval(event) {
+  getRailwayExporter().exportMemoryRetrieval(event);
+}
+function logConfidencePrediction(prediction) {
+  getRailwayExporter().exportConfidencePrediction(prediction);
+}
+function logPlanLifecycleEvent(event) {
+  getRailwayExporter().exportPlanLifecycleEvent(event);
+}
+
 // src/index.ts
 var PACKAGE_NAME = "@sam-ai/agentic";
 var PACKAGE_VERSION = "0.1.0";
@@ -23555,6 +25099,7 @@ export {
   BehaviorEventSchema,
   BehaviorEventType,
   BehaviorMonitor,
+  BrowserPushChannel,
   CAPABILITIES,
   CelebrationType,
   ChangeType,
@@ -23599,6 +25144,7 @@ export {
   DecompositionOptionsSchema,
   DeliveryChannel,
   DeliveryPriority,
+  EmailChannel,
   EmbeddingSourceType,
   EmotionalSignalType,
   EmotionalState,
@@ -23716,6 +25262,7 @@ export {
   QualityMetricType,
   QualityTracker,
   QuestionType,
+  RailwayMetricsExporter,
   RateLimitSchema,
   RecommendationEngine,
   RecommendationFeedbackSchema,
@@ -23778,6 +25325,7 @@ export {
   createAuditLogger,
   createBackgroundWorker,
   createBehaviorMonitor,
+  createBrowserPushChannel,
   createCheckInScheduler,
   createClientWebSocketManager,
   createConfidenceCalibrationTracker,
@@ -23786,6 +25334,7 @@ export {
   createConfirmationManager,
   createContentTools,
   createCrossSessionContext,
+  createEmailChannel,
   createGoalDecomposer,
   createInMemoryConfidencePredictionStore,
   createInMemoryMemoryRetrievalStore,
@@ -23824,6 +25373,7 @@ export {
   createProgressAnalyzer,
   createPushDispatcher,
   createQualityTracker,
+  createRailwayExporter,
   createRecommendationEngine,
   createResponseVerifier,
   createSchedulingTools,
@@ -23841,5 +25391,11 @@ export {
   getMentorToolById,
   getMentorToolsByCategory,
   getMentorToolsByTags,
-  hasCapability
+  getRailwayExporter,
+  hasCapability,
+  logConfidencePrediction,
+  logMemoryRetrieval,
+  logMetric,
+  logPlanLifecycleEvent,
+  logToolExecution
 };

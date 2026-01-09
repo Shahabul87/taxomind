@@ -81,6 +81,7 @@ interface LearningGoal {
     priority: GoalPriority;
     status: GoalStatus;
     context: GoalContext;
+    progress: number;
     currentMastery?: MasteryLevel$1;
     targetMastery?: MasteryLevel$1;
     tags?: string[];
@@ -3276,6 +3277,7 @@ interface ContextState {
     emotionalState?: EmotionalState;
     focusLevel?: number;
     sessionCount: number;
+    lastActiveAt?: Date | string;
 }
 /**
  * Emotional state tracking
@@ -6707,6 +6709,15 @@ interface InterventionResult {
     feedback?: string;
 }
 /**
+ * Result of intervention check operation
+ */
+interface InterventionCheckResult {
+    anomaliesDetected: BehaviorAnomaly[];
+    patternsDetected: BehaviorPattern[];
+    interventionsCreated: Intervention[];
+    existingPendingInterventions: Intervention[];
+}
+/**
  * Learning plan store interface
  */
 interface LearningPlanStore {
@@ -7379,6 +7390,23 @@ declare class BehaviorMonitor {
      * Record intervention result
      */
     recordInterventionResult(interventionId: string, result: InterventionResult): Promise<void>;
+    /**
+     * Check for interventions based on recent events
+     * Call this after recording events to evaluate if any interventions should be triggered
+     */
+    checkInterventions(userId: string): Promise<InterventionCheckResult>;
+    /**
+     * Map anomaly type to intervention type
+     */
+    private mapAnomalyToInterventionType;
+    /**
+     * Map pattern type to intervention type
+     */
+    private mapPatternToInterventionType;
+    /**
+     * Create an intervention for an anomaly
+     */
+    private createInterventionForAnomaly;
     /**
      * Create an intervention for a user
      */
@@ -9730,6 +9758,30 @@ interface OrchestrationLogger {
  * Prepares context before LLM calls and evaluates progress after responses
  */
 
+/**
+ * AI Adapter interface for LLM-based criterion evaluation
+ */
+interface CriterionEvaluationAdapter {
+    evaluateCriterion(params: {
+        criterion: string;
+        userMessage: string;
+        assistantResponse: string;
+        stepContext: {
+            stepTitle: string;
+            stepType: string;
+            objectives: string[];
+        };
+        memoryContext?: {
+            masteredConcepts: string[];
+            strugglingConcepts: string[];
+        };
+    }): Promise<{
+        met: boolean;
+        confidence: number;
+        evidence: string | null;
+        reasoning: string;
+    }>;
+}
 interface TutoringLoopControllerConfig {
     /** Goal store for retrieving active goals */
     goalStore: GoalStore;
@@ -9743,6 +9795,8 @@ interface TutoringLoopControllerConfig {
     sessionStore: TutoringSessionStore;
     /** Logger instance */
     logger?: OrchestrationLogger;
+    /** AI adapter for criterion evaluation (optional - uses heuristics if not provided) */
+    criterionEvaluator?: CriterionEvaluationAdapter;
     /** Step completion confidence threshold (0-1) */
     stepCompletionThreshold?: number;
     /** Whether to auto-advance on step completion */
@@ -9785,7 +9839,35 @@ declare class TutoringLoopController {
     private getPendingInterventions;
     private getPreviousStepResults;
     private buildSessionMetadata;
+    /**
+     * Evaluate a single criterion for step completion
+     * Uses a combination of heuristic matching and LLM evaluation
+     */
     private evaluateCriterion;
+    /**
+     * Heuristic evaluation for common criterion types
+     */
+    private evaluateCriterionHeuristically;
+    /**
+     * Semantic similarity-based criterion evaluation
+     */
+    private evaluateCriterionSemantically;
+    /**
+     * Extract keywords from text for semantic matching
+     */
+    private extractKeywords;
+    /**
+     * Extract time requirement from criterion text (in minutes)
+     */
+    private extractTimeRequirement;
+    /**
+     * Extract number requirement from criterion text
+     */
+    private extractNumberRequirement;
+    /**
+     * Extract score requirement from criterion text (as percentage)
+     */
+    private extractScoreRequirement;
     private generateRecommendations;
     private getNextStepId;
     private determineTransitionType;
@@ -9793,7 +9875,22 @@ declare class TutoringLoopController {
     private isPlanComplete;
     private generateCelebration;
     private generateTransitionMessage;
+    /**
+     * Analyze user message to determine which tools might be needed
+     */
     private analyzeToolNeeds;
+    /**
+     * Match a tool to the user message to determine if it should be recommended
+     */
+    private matchToolToMessage;
+    /**
+     * Build suggested input for a tool based on context
+     */
+    private buildToolInput;
+    /**
+     * Extract the main topic from user message
+     */
+    private extractMainTopic;
     private generateToolPlanReasoning;
     private calculateToolPlanConfidence;
     private createEmptyEvaluation;
@@ -11621,6 +11718,152 @@ interface BannerContainerProps extends SurfaceComponentProps {
 }
 
 /**
+ * @sam-ai/agentic - Email Delivery Channel
+ * Delivers notifications via email for offline users
+ */
+
+interface EmailChannelConfig {
+    /** Email service adapter */
+    emailService: EmailServiceAdapter;
+    /** User email lookup function */
+    getUserEmail: (userId: string) => Promise<string | null>;
+    /** User notification preferences lookup */
+    getUserPreferences?: (userId: string) => Promise<EmailPreferences | null>;
+    /** From email address */
+    fromEmail: string;
+    /** From name */
+    fromName?: string;
+    /** Enable email notifications (default: true) */
+    enabled?: boolean;
+    /** Throttle settings */
+    throttle?: {
+        /** Max emails per user per hour */
+        maxPerHour?: number;
+        /** Max emails per user per day */
+        maxPerDay?: number;
+    };
+    /** Logger */
+    logger?: RealtimeLogger;
+}
+interface EmailPreferences {
+    /** Email notifications enabled */
+    enabled: boolean;
+    /** Types of notifications to receive */
+    types: string[];
+    /** Quiet hours (24h format) */
+    quietHours?: {
+        start: number;
+        end: number;
+        timezone: string;
+    };
+    /** Digest preferences */
+    digest?: {
+        enabled: boolean;
+        frequency: 'daily' | 'weekly';
+        time: string;
+    };
+}
+interface EmailServiceAdapter {
+    send(options: {
+        to: string;
+        from: string;
+        fromName?: string;
+        subject: string;
+        html: string;
+        text?: string;
+        replyTo?: string;
+        tags?: string[];
+        metadata?: Record<string, unknown>;
+    }): Promise<boolean>;
+}
+declare class EmailChannel implements DeliveryHandler {
+    readonly channel: DeliveryChannel;
+    private readonly config;
+    private readonly logger;
+    private readonly throttleMap;
+    constructor(config: EmailChannelConfig);
+    canDeliver(userId: string): Promise<boolean>;
+    deliver(userId: string, event: SAMWebSocketEvent): Promise<boolean>;
+    private checkThrottle;
+    private incrementThrottle;
+}
+declare function createEmailChannel(config: EmailChannelConfig): EmailChannel;
+
+/**
+ * @sam-ai/agentic - Browser Push Delivery Channel
+ * Delivers notifications via Web Push API for browser notifications
+ */
+
+interface BrowserPushChannelConfig {
+    /** Web Push service adapter */
+    pushService: WebPushServiceAdapter;
+    /** Get user's push subscription */
+    getUserSubscription: (userId: string) => Promise<PushSubscriptionData | null>;
+    /** VAPID public key */
+    vapidPublicKey: string;
+    /** VAPID private key */
+    vapidPrivateKey: string;
+    /** VAPID subject (mailto or URL) */
+    vapidSubject: string;
+    /** Enable push notifications (default: true) */
+    enabled?: boolean;
+    /** TTL in seconds for push messages (default: 86400 = 24h) */
+    ttl?: number;
+    /** Logger */
+    logger?: RealtimeLogger;
+}
+interface PushSubscriptionData {
+    endpoint: string;
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+    expirationTime?: number | null;
+}
+interface WebPushServiceAdapter {
+    sendNotification(subscription: PushSubscriptionData, payload: string, options?: {
+        vapidDetails?: {
+            subject: string;
+            publicKey: string;
+            privateKey: string;
+        };
+        ttl?: number;
+        urgency?: 'very-low' | 'low' | 'normal' | 'high';
+        topic?: string;
+    }): Promise<{
+        statusCode: number;
+        body?: string;
+    }>;
+}
+interface PushNotificationPayload {
+    title: string;
+    body: string;
+    icon?: string;
+    badge?: string;
+    image?: string;
+    tag?: string;
+    data?: Record<string, unknown>;
+    actions?: Array<{
+        action: string;
+        title: string;
+        icon?: string;
+    }>;
+    requireInteraction?: boolean;
+    renotify?: boolean;
+    silent?: boolean;
+    vibrate?: number[];
+}
+declare class BrowserPushChannel implements DeliveryHandler {
+    readonly channel: DeliveryChannel;
+    private readonly config;
+    private readonly logger;
+    constructor(config: BrowserPushChannelConfig);
+    canDeliver(userId: string): Promise<boolean>;
+    deliver(userId: string, event: SAMWebSocketEvent): Promise<boolean>;
+}
+declare function createBrowserPushChannel(config: BrowserPushChannelConfig): BrowserPushChannel;
+
+/**
  * @sam-ai/agentic - Observability Types
  * Type definitions for telemetry, metrics, and quality tracking
  */
@@ -12595,6 +12838,114 @@ declare function createInMemoryPlanLifecycleStore(maxEventsPerPlan?: number): In
 declare function createInMemoryProactiveEventStore(maxEvents?: number): InMemoryProactiveEventStore;
 
 /**
+ * @sam-ai/agentic - Railway Metrics Exporter
+ * Exports metrics as structured JSON logs for Railway logging system
+ */
+
+interface RailwayExporterConfig {
+    /** Service name for log identification */
+    serviceName?: string;
+    /** Environment (production, staging, development) */
+    environment?: string;
+    /** Enable debug logging */
+    debug?: boolean;
+    /** Custom logger (defaults to console) */
+    logger?: Pick<Console, 'log' | 'error' | 'warn' | 'info'>;
+    /** Sampling rate for metrics (0-1, default 1 = log all) */
+    samplingRate?: number;
+    /** Batch size for bulk exports */
+    batchSize?: number;
+    /** Flush interval in ms (default 5000) */
+    flushIntervalMs?: number;
+}
+interface RailwayMetricLog {
+    type: 'metric';
+    timestamp: string;
+    service: string;
+    environment: string;
+    name: string;
+    value: number;
+    labels?: Record<string, string>;
+    metadata?: Record<string, unknown>;
+}
+interface RailwayEventLog {
+    type: 'event';
+    timestamp: string;
+    service: string;
+    environment: string;
+    category: string;
+    action: string;
+    status?: string;
+    durationMs?: number;
+    userId?: string;
+    sessionId?: string;
+    metadata?: Record<string, unknown>;
+}
+declare class RailwayMetricsExporter {
+    private readonly config;
+    private readonly buffer;
+    private flushTimer;
+    constructor(config?: RailwayExporterConfig);
+    /**
+     * Export a generic metric
+     */
+    exportMetric(name: string, value: number, labels?: Record<string, string>, metadata?: Record<string, unknown>): void;
+    /**
+     * Export tool execution telemetry
+     */
+    exportToolExecution(event: ToolExecutionEvent): void;
+    /**
+     * Export memory retrieval telemetry
+     */
+    exportMemoryRetrieval(event: MemoryRetrievalEvent): void;
+    /**
+     * Export confidence prediction telemetry
+     */
+    exportConfidencePrediction(prediction: ConfidencePrediction): void;
+    /**
+     * Export plan lifecycle event
+     */
+    exportPlanLifecycleEvent(event: PlanLifecycleEvent): void;
+    private bufferLog;
+    private startFlushTimer;
+    /**
+     * Flush buffered logs to stdout
+     */
+    flush(): void;
+    /**
+     * Stop the exporter and flush remaining logs
+     */
+    shutdown(): void;
+    private shouldSample;
+    /**
+     * Create a child exporter with additional labels
+     */
+    withLabels(labels: Record<string, string>): RailwayMetricsExporter;
+}
+declare function getRailwayExporter(config?: RailwayExporterConfig): RailwayMetricsExporter;
+declare function createRailwayExporter(config?: RailwayExporterConfig): RailwayMetricsExporter;
+/**
+ * Log a metric to Railway
+ */
+declare function logMetric(name: string, value: number, labels?: Record<string, string>): void;
+/**
+ * Log a tool execution to Railway
+ */
+declare function logToolExecution(event: ToolExecutionEvent): void;
+/**
+ * Log a memory retrieval to Railway
+ */
+declare function logMemoryRetrieval(event: MemoryRetrievalEvent): void;
+/**
+ * Log a confidence prediction to Railway
+ */
+declare function logConfidencePrediction(prediction: ConfidencePrediction): void;
+/**
+ * Log a plan lifecycle event to Railway
+ */
+declare function logPlanLifecycleEvent(event: PlanLifecycleEvent): void;
+
+/**
  * @sam-ai/agentic
  * Autonomous agentic capabilities for SAM AI mentor
  *
@@ -12629,4 +12980,4 @@ type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
  */
 declare function hasCapability(capability: Capability): boolean;
 
-export { type AIProvider, type AccessibilitySettings, type Achievement, type AcknowledgeEvent, type AcknowledgePayload, ActionType, ActiveStepExecutor, type ActiveStepExecutorConfig, type ActivityEvent, type ActivityPayload, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AgenticMetrics, AgenticMetricsCollector, type Alert, type AlertRule, AlertSeverity, type AnalyticsLogger, AnomalyType, type Artifact, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, BackgroundWorker, type BackgroundWorkerInterface, type BannerContainerProps, type BaseJob, BaseJobSchema, type BaseWebSocketEvent, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, CAPABILITIES, type CalibrationAlert, type CalibrationBucket$1 as CalibrationBucket, type CalibrationConfig, type CalibrationData, type CalibrationMetrics, type CalibrationStore, type CalibrationSummary, type Capability, type CelebrationData, type CelebrationEvent, type CelebrationPayload, CelebrationType, ChangeType, type ChannelMetrics, type CheckInEvent, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ClientWebSocketManager, ComplexityLevel, type ComponentHealth, type ComprehensionAnalysis, type ConceptMap, type ConceptNode, type ConceptPerformance, ConfidenceCalibrationTracker, type ConfidenceFactor$1 as ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceOutcome, type ConfidencePrediction, type ConfidencePredictionStore, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationGate, type ConfirmationGateConfig, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationResponse, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ConnectedEvent, type ConnectedPayload, type ConnectionConfig, ConnectionConfigSchema, type ConnectionHandler, ConnectionState, type ConnectionStats, type ContentChangeEvent, ContentChangeEventSchema, type ContentChangeMetadata, type ContentChunk, type ContentData, ContentEntityType, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextMetadata, type ContextState, type CorrectionSuggestion, type CourseGraph, type CourseGraphStore, type CourseNode, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, type CreateSubGoalInput, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_CALIBRATION_CONFIG, DEFAULT_CONNECTION_CONFIG, DEFAULT_DISPLAY_CONFIGS, DEFAULT_MEMORY_QUALITY_CONFIG, DEFAULT_METRICS_COLLECTOR_CONFIG, DEFAULT_NORMALIZER_CONFIG, DEFAULT_PRESENCE_CONFIG, DEFAULT_PUSH_DISPATCHER_CONFIG, DEFAULT_QUEUE_CONFIG, DEFAULT_ROLE_PERMISSIONS, DEFAULT_SURFACE_MANAGER_CONFIG, DEFAULT_TOOL_TELEMETRY_CONFIG, DEFAULT_WORKER_CONFIG, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, DeliveryChannel, type DeliveryHandler, DeliveryPriority, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type DifficultyLevel, type DismissEvent, type DismissPayload, type DispatcherStats, type EffortBreakdown, type EffortEstimate, type EffortFactor, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, type EntityReindexConfig, EntityType, type ErrorEvent, type ErrorHandler, type ErrorPayload, type EvaluatedCriterion, type EventHistoryStore, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type ExtractedContent, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalProgressEvent, type GoalProgressPayload, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, HealthStatus, type HeartbeatEvent, type HeartbeatPayload, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidencePredictionStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryJobQueue, InMemoryLearningGapStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryMemoryRetrievalStore, InMemoryOrchestrationConfirmationStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryPlanLifecycleStore, InMemoryPresenceStore, InMemoryProactiveEventStore, InMemoryPushQueueStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemoryReindexJobStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolExecutionStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryTutoringSessionStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, type Intervention, type InterventionDisplayConfig, type InterventionEvent, type InterventionQueue, type InterventionRenderProps, type InterventionResult, type InterventionStore, InterventionSurface, type InterventionSurfaceManager, InterventionSurfaceManagerImpl, type InterventionTiming, InterventionType$1 as InterventionType, type InterventionUIState, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, JobEvent, type JobEventListener, type JobHandler, type JobHandlerRegistration, type JobProgress, type JobQueueConfig, JobQueueConfigSchema, type JobQueueInterface, JobStatus, JobType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KGRefreshJob, KGRefreshJobStatus, KGRefreshJobType, type KGRefreshResult, KGRefreshScheduler, type KGRefreshSchedulerConfig, type KGRefreshSchedulerInterface, type KGRefreshStats, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningAction, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath$1 as LearningPath, type LearningPathOptions, LearningPathRecommender, type LearningPathStep, type LearningPathStore, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningResource, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, LearningStyle$1 as LearningStyle, type LearningSummary, type LifecycleStats, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryContextSummary, type MemoryFeedback, type MemoryItem, MemoryItemType, type MemoryLifecycleConfig, MemoryLifecycleConfigSchema, MemoryLifecycleManager, type MemoryLifecycleManagerInterface, type MemoryLogger, MemoryNormalizer, type MemoryNormalizerConfig, MemoryNormalizerConfigSchema, type MemoryNormalizerInterface, type MemoryQualityAlert, type MemoryQualityConfig, type MemoryQualityMetrics, MemoryQualityTracker, type MemoryRetrievalEvent, type MemoryRetrievalStore, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySegment, MemorySegmentType, type MemorySource$1 as MemorySource, MemorySourceType, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, type MessageHandler, MetricSource, type MetricsCollectorConfig, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, type ModalContainerProps, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, NormalizationRetrievalStrategy, type NormalizedMemoryContext, NormalizedMemoryContextSchema, type NormalizedMemoryItem, type NormalizedMemorySource, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type NudgeEvent, type NudgePayload, NudgeType, type ObservabilityLogger, type OptimizedSchedule, type OrchestrationConfirmationRequest, type OrchestrationConfirmationRequestStore, type OrchestrationLogger, type OrchestrationStores, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type LearningAnalytics as PathLearningAnalytics, type LearningStyle as PathLearningStyle, type ProgressSnapshot as PathProgressSnapshot, type PathRecommenderConfig, type PathStep, type PatternContext, type PatternStore, PatternType, type PendingIntervention, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type LearningPath as PersonalizedLearningPath, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanContextInjection, PlanContextInjector, type PlanContextInjectorConfig, PlanEventType, type PlanFeedback$1 as PlanFeedback, type PlanLifecycleEvent, type PlanLifecycleStore, type PlanMetrics, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PlannedToolExecution, type PrerequisiteImportance, type PrerequisiteRelation, PresenceChangeReason, type PresenceMetadata, type PresencePayload, type PresenceStateChange, PresenceStatus, type PresenceStore, PresenceTracker, type PresenceTrackerConfig, type PresenceTrackerInterface, type PresenceUpdateEvent, type PriorityRule, type PrismaClientLike, type ProactiveEvent, type ProactiveEventStore, ProactiveEventType, type ProactiveLogger, type ProactiveMetrics, LearningPlanStatus as ProactivePlanStatus, ProactivePushDispatcher, type ProactiveResponse, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot$1 as ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type PromptComponents, type PushDeliveryRequest, PushDeliveryRequestSchema, type PushDeliveryResult, type PushDispatcherConfig, type PushDispatcherInterface, type PushQueueStats, type PushQueueStore, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type QueueStats, type QuickMetricsSummary, type RateLimit, RateLimitSchema, type RawGraphResult, type RawJourneyEvent, type RawMemoryInput, type RawSessionContext, type RawVectorResult, type RealtimeLogger, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationEvent, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, type RecommendationPayload, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, type ReindexError, type ReindexJob, type ReindexJobMetadata, ReindexJobStatus, type ReindexJobStore, ReindexJobType, ReindexPriority, type ReindexResult, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResourceType, type ResponseContext, ResponseType$1 as ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type RetrievalStrategyUsed, type ReviewItem, type ReviewQuality, type RolePermissionMapping, type Rubric, type RubricCriterion, SAMEventType, type SAMWebSocketEvent, SAMWebSocketEventSchema, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfEvaluationLogger, type ServerConnection, ServerConnectionManager, type SessionContext, type SessionContextStore, type SessionMetadata, type SessionSummary, type SessionSyncEvent, type SessionSyncPayload, type SidebarContainerProps, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SkillStore, SkillTracker, type SkillTrackerConfig, type SkillTrend, type SkillUpdateResult, type SourceMetrics, type SourceReference, SourceType, type SourceValidation, type SpacedRepetitionSchedule, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepCompletedEvent, type StepCompletionPayload, type StepDetails, type StepError, type StepEvaluation, type StepExecutionContext, type StepExecutionContextExtended, type StepExecutionError, type StepExecutionOutput, type StepExecutionResult, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepPriority, type StepRecommendation, type StepResult, StepStatus, StepStatusSchema, type StepToolContext, type StepTransition, StepType, type StreakInfo, type StructuredMemoryData, type StructuredPlanContext, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, type SubGoalQueryOptions, type SubGoalStore, SubGoalType, SubGoalTypeSchema, type SubscribeEvent, type SubscriptionPayload, type SuggestedAction$1 as SuggestedAction, type SupportRecommendation, type SurfaceComponentProps, type SurfaceManagerConfig, type SystemHealthMetrics, MemorySource as TelemetryMemorySource, ResponseType as TelemetryResponseType, ToolExecutionStatus as TelemetryToolExecutionStatus, TimePeriod, type TimeSlot, type ToastContainerProps, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionError, type ToolExecutionEvent, type ToolExecutionQuery, type ToolExecutionResult, ToolExecutionStatus$1 as ToolExecutionStatus, ToolExecutionStatusSchema, type ToolExecutionStore, type ToolExecutionSummary, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolMetrics, type ToolPlan, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, ToolTelemetry, type ToolTelemetryConfig, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TransitionType, type TraversalResult, type TrendDataPoint, TrendDirection, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type TutoringContext, TutoringLoopController, type TutoringLoopControllerConfig, type TutoringLoopMetadata, type TutoringLoopResult, type TutoringSession, type TutoringSessionStore, type TypeCalibration, type UnsubscribeEvent, type UpdateGoalInput, UpdateGoalInputSchema, type UpdateSubGoalInput, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, type UserPresence, UserRole, type UserSkill, type UserSkillProfile, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, VerificationMethod, type VerificationResult, type VerificationResultStore, VerificationStatus, type WebSocketConnectionHandler, type WebSocketManagerInterface, type WeeklyBreakdown, type WeeklyMilestone, type WorkerConfig, WorkerConfigSchema, type WorkerStats, WorkerStatus, cosineSimilarity, createActiveStepExecutor, createAgentStateMachine, createAgenticMetricsCollector, createAuditLogger, createBackgroundWorker, createBehaviorMonitor, createCheckInScheduler, createClientWebSocketManager, createConfidenceCalibrationTracker, createConfidenceScorer, createConfirmationGate, createConfirmationManager, createContentTools, createCrossSessionContext, createGoalDecomposer, createInMemoryConfidencePredictionStore, createInMemoryMemoryRetrievalStore, createInMemoryOrchestrationConfirmationStore, createInMemoryOrchestrationStores, createInMemoryPlanLifecycleStore, createInMemoryPresenceStore, createInMemoryProactiveEventStore, createInMemoryPushQueueStore, createInMemorySessionStore, createInMemoryStores, createInMemoryToolExecutionStore, createInterventionSurfaceManager, createJobQueue, createJourneyTimeline, createKGRefreshScheduler, createKnowledgeGraphManager, createMemoryLifecycleManager, createMemoryNormalizer, createMemoryQualityTracker, createMemoryRetriever, createMemorySystem, createMentorTools, createMultiSessionPlanTracker, createNotificationTools, createPathRecommender, createPermissionManager, createPlanBuilder, createPlanContextInjector, createPresenceTracker, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createPushDispatcher, createQualityTracker, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createServerConnectionManager, createSkillAssessor, createSkillTracker, createStepExecutor, createStepExecutorFunction, createToolExecutor, createToolRegistry, createToolTelemetry, createTutoringLoopController, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, hasCapability };
+export { type AIProvider, type AccessibilitySettings, type Achievement, type AcknowledgeEvent, type AcknowledgePayload, ActionType, ActiveStepExecutor, type ActiveStepExecutorConfig, type ActivityEvent, type ActivityPayload, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AgenticMetrics, AgenticMetricsCollector, type Alert, type AlertRule, AlertSeverity, type AnalyticsLogger, AnomalyType, type Artifact, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, BackgroundWorker, type BackgroundWorkerInterface, type BannerContainerProps, type BaseJob, BaseJobSchema, type BaseWebSocketEvent, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, BrowserPushChannel, type BrowserPushChannelConfig, CAPABILITIES, type CalibrationAlert, type CalibrationBucket$1 as CalibrationBucket, type CalibrationConfig, type CalibrationData, type CalibrationMetrics, type CalibrationStore, type CalibrationSummary, type Capability, type CelebrationData, type CelebrationEvent, type CelebrationPayload, CelebrationType, ChangeType, type ChannelMetrics, type CheckInEvent, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ClientWebSocketManager, ComplexityLevel, type ComponentHealth, type ComprehensionAnalysis, type ConceptMap, type ConceptNode, type ConceptPerformance, ConfidenceCalibrationTracker, type ConfidenceFactor$1 as ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceOutcome, type ConfidencePrediction, type ConfidencePredictionStore, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationGate, type ConfirmationGateConfig, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationResponse, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ConnectedEvent, type ConnectedPayload, type ConnectionConfig, ConnectionConfigSchema, type ConnectionHandler, ConnectionState, type ConnectionStats, type ContentChangeEvent, ContentChangeEventSchema, type ContentChangeMetadata, type ContentChunk, type ContentData, ContentEntityType, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextMetadata, type ContextState, type CorrectionSuggestion, type CourseGraph, type CourseGraphStore, type CourseNode, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, type CreateSubGoalInput, type CriterionEvaluationAdapter, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_CALIBRATION_CONFIG, DEFAULT_CONNECTION_CONFIG, DEFAULT_DISPLAY_CONFIGS, DEFAULT_MEMORY_QUALITY_CONFIG, DEFAULT_METRICS_COLLECTOR_CONFIG, DEFAULT_NORMALIZER_CONFIG, DEFAULT_PRESENCE_CONFIG, DEFAULT_PUSH_DISPATCHER_CONFIG, DEFAULT_QUEUE_CONFIG, DEFAULT_ROLE_PERMISSIONS, DEFAULT_SURFACE_MANAGER_CONFIG, DEFAULT_TOOL_TELEMETRY_CONFIG, DEFAULT_WORKER_CONFIG, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, DeliveryChannel, type DeliveryHandler, DeliveryPriority, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type DifficultyLevel, type DismissEvent, type DismissPayload, type DispatcherStats, type EffortBreakdown, type EffortEstimate, type EffortFactor, EmailChannel, type EmailChannelConfig, type EmailPreferences, type EmailServiceAdapter, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, type EntityReindexConfig, EntityType, type ErrorEvent, type ErrorHandler, type ErrorPayload, type EvaluatedCriterion, type EventHistoryStore, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type ExtractedContent, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalProgressEvent, type GoalProgressPayload, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, HealthStatus, type HeartbeatEvent, type HeartbeatPayload, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidencePredictionStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryJobQueue, InMemoryLearningGapStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryMemoryRetrievalStore, InMemoryOrchestrationConfirmationStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryPlanLifecycleStore, InMemoryPresenceStore, InMemoryProactiveEventStore, InMemoryPushQueueStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemoryReindexJobStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolExecutionStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryTutoringSessionStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, type Intervention, type InterventionCheckResult, type InterventionDisplayConfig, type InterventionEvent, type InterventionQueue, type InterventionRenderProps, type InterventionResult, type InterventionStore, InterventionSurface, type InterventionSurfaceManager, InterventionSurfaceManagerImpl, type InterventionTiming, InterventionType$1 as InterventionType, type InterventionUIState, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, JobEvent, type JobEventListener, type JobHandler, type JobHandlerRegistration, type JobProgress, type JobQueueConfig, JobQueueConfigSchema, type JobQueueInterface, JobStatus, JobType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KGRefreshJob, KGRefreshJobStatus, KGRefreshJobType, type KGRefreshResult, KGRefreshScheduler, type KGRefreshSchedulerConfig, type KGRefreshSchedulerInterface, type KGRefreshStats, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningAction, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath$1 as LearningPath, type LearningPathOptions, LearningPathRecommender, type LearningPathStep, type LearningPathStore, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningResource, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, LearningStyle$1 as LearningStyle, type LearningSummary, type LifecycleStats, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryContextSummary, type MemoryFeedback, type MemoryItem, MemoryItemType, type MemoryLifecycleConfig, MemoryLifecycleConfigSchema, MemoryLifecycleManager, type MemoryLifecycleManagerInterface, type MemoryLogger, MemoryNormalizer, type MemoryNormalizerConfig, MemoryNormalizerConfigSchema, type MemoryNormalizerInterface, type MemoryQualityAlert, type MemoryQualityConfig, type MemoryQualityMetrics, MemoryQualityTracker, type MemoryRetrievalEvent, type MemoryRetrievalStore, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySegment, MemorySegmentType, type MemorySource$1 as MemorySource, MemorySourceType, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, type MessageHandler, MetricSource, type MetricsCollectorConfig, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, type ModalContainerProps, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, NormalizationRetrievalStrategy, type NormalizedMemoryContext, NormalizedMemoryContextSchema, type NormalizedMemoryItem, type NormalizedMemorySource, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type NudgeEvent, type NudgePayload, NudgeType, type ObservabilityLogger, type OptimizedSchedule, type OrchestrationConfirmationRequest, type OrchestrationConfirmationRequestStore, type OrchestrationLogger, type OrchestrationStores, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type LearningAnalytics as PathLearningAnalytics, type LearningStyle as PathLearningStyle, type ProgressSnapshot as PathProgressSnapshot, type PathRecommenderConfig, type PathStep, type PatternContext, type PatternStore, PatternType, type PendingIntervention, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type LearningPath as PersonalizedLearningPath, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanContextInjection, PlanContextInjector, type PlanContextInjectorConfig, PlanEventType, type PlanFeedback$1 as PlanFeedback, type PlanLifecycleEvent, type PlanLifecycleStore, type PlanMetrics, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PlannedToolExecution, type PrerequisiteImportance, type PrerequisiteRelation, PresenceChangeReason, type PresenceMetadata, type PresencePayload, type PresenceStateChange, PresenceStatus, type PresenceStore, PresenceTracker, type PresenceTrackerConfig, type PresenceTrackerInterface, type PresenceUpdateEvent, type PriorityRule, type PrismaClientLike, type ProactiveEvent, type ProactiveEventStore, ProactiveEventType, type ProactiveLogger, type ProactiveMetrics, LearningPlanStatus as ProactivePlanStatus, ProactivePushDispatcher, type ProactiveResponse, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot$1 as ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type PromptComponents, type PushDeliveryRequest, PushDeliveryRequestSchema, type PushDeliveryResult, type PushDispatcherConfig, type PushDispatcherInterface, type PushNotificationPayload, type PushQueueStats, type PushQueueStore, type PushSubscriptionData, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type QueueStats, type QuickMetricsSummary, type RailwayEventLog, type RailwayExporterConfig, type RailwayMetricLog, RailwayMetricsExporter, type RateLimit, RateLimitSchema, type RawGraphResult, type RawJourneyEvent, type RawMemoryInput, type RawSessionContext, type RawVectorResult, type RealtimeLogger, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationEvent, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, type RecommendationPayload, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, type ReindexError, type ReindexJob, type ReindexJobMetadata, ReindexJobStatus, type ReindexJobStore, ReindexJobType, ReindexPriority, type ReindexResult, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResourceType, type ResponseContext, ResponseType$1 as ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type RetrievalStrategyUsed, type ReviewItem, type ReviewQuality, type RolePermissionMapping, type Rubric, type RubricCriterion, SAMEventType, type SAMWebSocketEvent, SAMWebSocketEventSchema, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfEvaluationLogger, type ServerConnection, ServerConnectionManager, type SessionContext, type SessionContextStore, type SessionMetadata, type SessionSummary, type SessionSyncEvent, type SessionSyncPayload, type SidebarContainerProps, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SkillStore, SkillTracker, type SkillTrackerConfig, type SkillTrend, type SkillUpdateResult, type SourceMetrics, type SourceReference, SourceType, type SourceValidation, type SpacedRepetitionSchedule, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepCompletedEvent, type StepCompletionPayload, type StepDetails, type StepError, type StepEvaluation, type StepExecutionContext, type StepExecutionContextExtended, type StepExecutionError, type StepExecutionOutput, type StepExecutionResult, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepPriority, type StepRecommendation, type StepResult, StepStatus, StepStatusSchema, type StepToolContext, type StepTransition, StepType, type StreakInfo, type StructuredMemoryData, type StructuredPlanContext, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, type SubGoalQueryOptions, type SubGoalStore, SubGoalType, SubGoalTypeSchema, type SubscribeEvent, type SubscriptionPayload, type SuggestedAction$1 as SuggestedAction, type SupportRecommendation, type SurfaceComponentProps, type SurfaceManagerConfig, type SystemHealthMetrics, MemorySource as TelemetryMemorySource, ResponseType as TelemetryResponseType, ToolExecutionStatus as TelemetryToolExecutionStatus, TimePeriod, type TimeSlot, type ToastContainerProps, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionError, type ToolExecutionEvent, type ToolExecutionQuery, type ToolExecutionResult, ToolExecutionStatus$1 as ToolExecutionStatus, ToolExecutionStatusSchema, type ToolExecutionStore, type ToolExecutionSummary, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolMetrics, type ToolPlan, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, ToolTelemetry, type ToolTelemetryConfig, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TransitionType, type TraversalResult, type TrendDataPoint, TrendDirection, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type TutoringContext, TutoringLoopController, type TutoringLoopControllerConfig, type TutoringLoopMetadata, type TutoringLoopResult, type TutoringSession, type TutoringSessionStore, type TypeCalibration, type UnsubscribeEvent, type UpdateGoalInput, UpdateGoalInputSchema, type UpdateSubGoalInput, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, type UserPresence, UserRole, type UserSkill, type UserSkillProfile, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, VerificationMethod, type VerificationResult, type VerificationResultStore, VerificationStatus, type WebPushServiceAdapter, type WebSocketConnectionHandler, type WebSocketManagerInterface, type WeeklyBreakdown, type WeeklyMilestone, type WorkerConfig, WorkerConfigSchema, type WorkerStats, WorkerStatus, cosineSimilarity, createActiveStepExecutor, createAgentStateMachine, createAgenticMetricsCollector, createAuditLogger, createBackgroundWorker, createBehaviorMonitor, createBrowserPushChannel, createCheckInScheduler, createClientWebSocketManager, createConfidenceCalibrationTracker, createConfidenceScorer, createConfirmationGate, createConfirmationManager, createContentTools, createCrossSessionContext, createEmailChannel, createGoalDecomposer, createInMemoryConfidencePredictionStore, createInMemoryMemoryRetrievalStore, createInMemoryOrchestrationConfirmationStore, createInMemoryOrchestrationStores, createInMemoryPlanLifecycleStore, createInMemoryPresenceStore, createInMemoryProactiveEventStore, createInMemoryPushQueueStore, createInMemorySessionStore, createInMemoryStores, createInMemoryToolExecutionStore, createInterventionSurfaceManager, createJobQueue, createJourneyTimeline, createKGRefreshScheduler, createKnowledgeGraphManager, createMemoryLifecycleManager, createMemoryNormalizer, createMemoryQualityTracker, createMemoryRetriever, createMemorySystem, createMentorTools, createMultiSessionPlanTracker, createNotificationTools, createPathRecommender, createPermissionManager, createPlanBuilder, createPlanContextInjector, createPresenceTracker, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createPushDispatcher, createQualityTracker, createRailwayExporter, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createServerConnectionManager, createSkillAssessor, createSkillTracker, createStepExecutor, createStepExecutorFunction, createToolExecutor, createToolRegistry, createToolTelemetry, createTutoringLoopController, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, getRailwayExporter, hasCapability, logConfidencePrediction, logMemoryRetrieval, logMetric, logPlanLifecycleEvent, logToolExecution };

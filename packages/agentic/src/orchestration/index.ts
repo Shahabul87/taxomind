@@ -61,6 +61,7 @@ export {
   TutoringLoopController,
   createTutoringLoopController,
   type TutoringLoopControllerConfig,
+  type CriterionEvaluationAdapter,
 } from './tutoring-loop-controller';
 
 // ============================================================================

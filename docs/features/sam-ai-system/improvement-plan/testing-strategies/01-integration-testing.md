@@ -317,7 +317,7 @@ describe('Phase 1: Two-Tier Caching', () => {
 ```typescript
 // __tests__/integration/phase-2/knowledge-graph-updates.test.ts
 import { QuizEngine } from '@/lib/sam/engines/quiz-engine';
-import { KnowledgeGraphService } from '@/lib/sam/memory/knowledge-graph-service';
+import { KnowledgeGraphService } from '@/memory/knowledge-graph-service';
 
 describe('Phase 2: Knowledge Graph Integration', () => {
   const quizEngine = new QuizEngine();

@@ -208,12 +208,18 @@ export type {
 export {
   AnthropicAdapter,
   createAnthropicAdapter,
+  DeepSeekAdapter,
+  createDeepSeekAdapter,
+  OpenAIAdapter,
+  createOpenAIAdapter,
   MemoryCacheAdapter,
   createMemoryCache,
 } from './adapters';
 
 export type {
   AnthropicAdapterOptions,
+  DeepSeekAdapterOptions,
+  OpenAIAdapterOptions,
   MemoryCacheOptions,
 } from './adapters';
 

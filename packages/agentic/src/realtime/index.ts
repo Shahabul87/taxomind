@@ -52,3 +52,18 @@ export {
   type SidebarContainerProps,
   type BannerContainerProps,
 } from './intervention-surface';
+
+// Notification Delivery Channels
+export {
+  EmailChannel,
+  createEmailChannel,
+  type EmailChannelConfig,
+  type EmailPreferences,
+  type EmailServiceAdapter,
+  BrowserPushChannel,
+  createBrowserPushChannel,
+  type BrowserPushChannelConfig,
+  type PushSubscriptionData,
+  type WebPushServiceAdapter,
+  type PushNotificationPayload,
+} from './channels';

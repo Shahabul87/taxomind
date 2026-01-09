@@ -480,9 +480,7 @@ export {
   createScorerFromRubric,
   // Dual-Pass Evaluator
   DualPassEvaluator,
-  MockLLMScorer,
   createDualPassEvaluator,
-  createMockDualPassEvaluator,
   createRulesOnlyEvaluator,
   // Adversarial Generator
   AdversarialGenerator,

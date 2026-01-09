@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Github from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
+import { encode, decode } from "next-auth/jwt";
 
 import { LoginSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
@@ -63,6 +64,22 @@ export default {
   },
   jwt: {
     maxAge: 30 * 24 * 60 * 60, // 30 days matching session
+    encode,
+    // Custom decode to handle secret rotation/mismatch errors gracefully
+    async decode(params) {
+      try {
+        return await decode(params);
+      } catch (error) {
+        // If decryption fails (secret changed), return null to clear the invalid session
+        // This prevents "no matching decryption secret" errors
+        if (error instanceof Error && error.message.includes("no matching decryption secret")) {
+          console.warn("[Auth] JWT decryption failed - clearing invalid session");
+          return null;
+        }
+        // Re-throw other errors
+        throw error;
+      }
+    },
   },
   // Cookie configuration (simplified for debugging)
   // cookies: DefaultCookieConfig,

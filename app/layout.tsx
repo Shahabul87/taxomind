@@ -1,8 +1,100 @@
 import type { Metadata } from 'next'
+import Script from 'next/script';
 import './globals.css'
 import clsx from "clsx";
 import { Suspense } from 'react';
 import { logger } from '@/lib/logger';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
+
+// Organization Schema for Google Knowledge Panel
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': `${baseUrl}/#organization`,
+  name: 'Taxomind',
+  url: baseUrl,
+  logo: {
+    '@type': 'ImageObject',
+    url: `${baseUrl}/logo.png`,
+    width: 512,
+    height: 512,
+  },
+  image: `${baseUrl}/og-default.png`,
+  description: 'AI-powered intelligent learning platform for adaptive education and personalized learning paths.',
+  slogan: 'Where Minds Are Forged Through Intelligence',
+  foundingDate: '2024',
+  founders: [
+    {
+      '@type': 'Person',
+      name: 'Taxomind Team',
+    },
+  ],
+  address: {
+    '@type': 'PostalAddress',
+    addressCountry: 'US',
+  },
+  contactPoint: [
+    {
+      '@type': 'ContactPoint',
+      contactType: 'customer support',
+      availableLanguage: ['English'],
+      url: `${baseUrl}/contact`,
+    },
+  ],
+  sameAs: [
+    // Add social media URLs when available
+    // 'https://twitter.com/taxomind',
+    // 'https://linkedin.com/company/taxomind',
+    // 'https://github.com/taxomind',
+  ],
+  offers: {
+    '@type': 'AggregateOffer',
+    description: 'Online courses with AI-powered adaptive learning',
+    offerCount: '100+',
+    lowPrice: '0',
+    highPrice: '500',
+    priceCurrency: 'USD',
+  },
+};
+
+// WebSite Schema for Sitelinks Search Box
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${baseUrl}/#website`,
+  name: 'Taxomind',
+  url: baseUrl,
+  description: 'Transform your learning journey with AI-powered education',
+  publisher: {
+    '@id': `${baseUrl}/#organization`,
+  },
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${baseUrl}/courses?search={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+  inLanguage: 'en-US',
+};
+
+// Educational Organization Schema
+const educationalOrgSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'EducationalOrganization',
+  '@id': `${baseUrl}/#educationalOrganization`,
+  name: 'Taxomind',
+  url: baseUrl,
+  description: 'Online learning platform offering AI-powered adaptive courses',
+  educationalCredentialAwarded: 'Certificate of Completion',
+  hasCredential: {
+    '@type': 'EducationalOccupationalCredential',
+    credentialCategory: 'Certificate',
+    name: 'Taxomind Course Completion Certificate',
+  },
+};
 
 // Editorial Typography - Google Fonts for Blog Pages
 import { Playfair_Display, Source_Serif_4, Inter } from 'next/font/google';
@@ -89,6 +181,32 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* JSON-LD Structured Data for SEO */}
+        <Script
+          id="organization-schema"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationSchema),
+          }}
+        />
+        <Script
+          id="website-schema"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(websiteSchema),
+          }}
+        />
+        <Script
+          id="educational-org-schema"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(educationalOrgSchema),
+          }}
+        />
+
         {/* Favicon - prevent 404 errors */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
@@ -101,21 +219,33 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Taxomind" />
         <meta name="mobile-web-app-capable" content="yes" />
-        {/* Color scheme meta tag for instant dark mode support */}
-        <meta name="color-scheme" content="light dark" />
+        {/* Color scheme meta tag - prefer light mode */}
+        <meta name="color-scheme" content="light" />
         {/* Prevent theme flash by applying theme class before React hydrates */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
                 try {
-                  const theme = localStorage.getItem('theme');
-                  // Only apply dark mode if explicitly set in localStorage
-                  // Default to light theme on first visit
+                  var theme = localStorage.getItem('theme');
+                  // Default to light theme - only apply dark if explicitly set
                   if (theme === 'dark') {
                     document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                  } else {
+                    // Ensure light mode for first visit or explicit light preference
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.classList.add('light');
+                    // Save light as default preference if not set
+                    if (!theme) {
+                      localStorage.setItem('theme', 'light');
+                    }
                   }
-                } catch (e) {}
+                } catch (e) {
+                  // On error, ensure light mode
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.classList.add('light');
+                }
               })();
             `,
           }}

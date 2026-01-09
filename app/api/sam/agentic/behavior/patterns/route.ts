@@ -3,30 +3,22 @@
  * Detects and retrieves behavior patterns for users
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
-import {
-  createPrismaBehaviorEventStore,
-  createPrismaPatternStore,
-  createPrismaInterventionStore,
-} from '@/lib/sam/stores';
+import { getProactiveStores } from '@/lib/sam/taxomind-context';
 import { createBehaviorMonitor } from '@sam-ai/agentic';
 
-// Initialize stores
-const behaviorEventStore = createPrismaBehaviorEventStore();
-const patternStore = createPrismaPatternStore();
-const interventionStore = createPrismaInterventionStore();
-
-// Lazy initialize behavior monitor
+// Lazy initialize behavior monitor using TaxomindContext stores
 let behaviorMonitorInstance: ReturnType<typeof createBehaviorMonitor> | null = null;
 
 function getBehaviorMonitor() {
   if (!behaviorMonitorInstance) {
+    const { behaviorEvent, pattern, intervention } = getProactiveStores();
     behaviorMonitorInstance = createBehaviorMonitor({
-      eventStore: behaviorEventStore,
-      patternStore: patternStore,
-      interventionStore: interventionStore,
+      eventStore: behaviorEvent,
+      patternStore: pattern,
+      interventionStore: intervention,
       logger: console,
     });
   }

@@ -51,7 +51,7 @@ export default function PopularCategories() {
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
           Popular Categories
         </h2>
-        <Link href="/groups">
+        <Link href="/dashboard/user/groups">
           <Button variant="ghost" className="text-purple-600 dark:text-purple-400">
             View All
             <ArrowRight className="ml-2 h-4 w-4" />

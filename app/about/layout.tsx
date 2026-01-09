@@ -1,38 +1,52 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About Us | SkillHub",
-  description: "Learn about our mission to transform education through innovative teaching methods and practical skill development. With 12 years of teaching experience, we're dedicated to making learning accessible and effective.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  title: "About Us | Taxomind",
+  description: "Learn about Taxomind&apos;s mission to transform education through AI-powered learning and adaptive teaching methods. We&apos;re dedicated to making personalized education accessible and effective for everyone.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com'),
   keywords: [
-    "education",
-    "teaching experience",
-    "skill development",
-    "online learning",
-    "practical skills",
-    "innovative teaching"
+    "Taxomind",
+    "AI-powered education",
+    "adaptive learning",
+    "intelligent tutoring",
+    "online learning platform",
+    "personalized education",
+    "educational technology"
   ],
+  alternates: {
+    canonical: '/about',
+  },
   openGraph: {
-    title: "About Me",
-    description: "Discover our journey in transforming education through innovative teaching methods and practical skill development.",
+    title: "About Us | Taxomind",
+    description: "Discover how Taxomind is transforming education through AI-powered adaptive learning and personalized educational experiences.",
     images: [
       {
-        url: "/about-og-image.jpg",
+        url: "/og-default.png",
         width: 1200,
         height: 630,
-        alt: "SkillHub About Page"
+        alt: "Taxomind - Intelligent Learning Platform"
       }
     ],
     type: "website",
     locale: "en_US",
-    siteName: "SkillHub"
+    siteName: "Taxomind"
   },
   twitter: {
     card: "summary_large_image",
-    title: "About Me | SkillHub",
-    description: "Discover our journey in transforming education through innovative teaching methods.",
-    images: ["/about-og-image.jpg"],
-  }
+    title: "About Us | Taxomind",
+    description: "Discover how Taxomind is transforming education through AI-powered adaptive learning.",
+    images: ["/og-default.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+    },
+  },
 };
 
 export default function AboutLayout({

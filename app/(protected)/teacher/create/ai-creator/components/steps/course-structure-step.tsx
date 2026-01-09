@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
@@ -23,7 +24,13 @@ import {
   ClipboardCheck,
   Sparkles
 } from 'lucide-react';
-import { SAMLearningObjectivesGeneratorModal } from '@/components/ai/sam-learning-objectives-generator-modal';
+
+// Dynamic import with SSR disabled to fix Radix UI hydration mismatch
+// See: https://github.com/radix-ui/primitives/issues/3700
+const SAMLearningObjectivesGeneratorModal = dynamic(
+  () => import('@/components/ai/sam-learning-objectives-generator-modal').then(mod => mod.SAMLearningObjectivesGeneratorModal),
+  { ssr: false }
+);
 
 export function CourseStructureStep({ formData, setFormData, validationErrors }: StepComponentProps) {
   const [newGoal, setNewGoal] = useState('');

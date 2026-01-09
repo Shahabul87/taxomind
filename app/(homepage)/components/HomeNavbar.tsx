@@ -235,18 +235,19 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
 
         {/* Mobile Auth Section */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          {/* Mobile Menu Button - Only show on smaller devices */}
-          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden rounded-full p-1.5 sm:p-2 hover:bg-blue-100 dark:hover:bg-slate-700"
-                aria-label="Open navigation menu"
-              >
-                <Menu className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700 dark:text-slate-300" />
-              </Button>
-            </SheetTrigger>
+          {/* Mobile Menu Button - Only show on smaller devices, render client-side only to avoid Radix hydration mismatch */}
+          {isMounted && (
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="md:hidden rounded-full p-1.5 sm:p-2 hover:bg-blue-100 dark:hover:bg-slate-700"
+                  aria-label="Open navigation menu"
+                >
+                  <Menu className="h-4 w-4 sm:h-5 sm:w-5 text-slate-700 dark:text-slate-300" />
+                </Button>
+              </SheetTrigger>
             <SheetContent
               side="right"
               className="w-[320px] sm:w-[380px] p-0 border-l border-slate-200 dark:border-slate-800"
@@ -385,6 +386,7 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
               </div>
             </SheetContent>
           </Sheet>
+          )}
 
           {/* Theme Toggle and User Menu - Only show on md devices and above */}
           <div className="hidden md:flex items-center gap-1.5 sm:gap-2">

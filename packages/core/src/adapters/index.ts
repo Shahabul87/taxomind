@@ -6,6 +6,12 @@
 export { AnthropicAdapter, createAnthropicAdapter } from './anthropic';
 export type { AnthropicAdapterOptions } from './anthropic';
 
+export { DeepSeekAdapter, createDeepSeekAdapter } from './deepseek';
+export type { DeepSeekAdapterOptions } from './deepseek';
+
+export { OpenAIAdapter, createOpenAIAdapter } from './openai';
+export type { OpenAIAdapterOptions } from './openai';
+
 // Cache Adapters
 export { MemoryCacheAdapter, createMemoryCache } from './memory-cache';
 export type { MemoryCacheOptions } from './memory-cache';

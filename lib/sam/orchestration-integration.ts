@@ -6,6 +6,11 @@
 import { logger } from '@/lib/logger';
 
 import {
+  recordPlanStepCompleted,
+  recordPlanCompleted,
+} from '@/lib/sam/journey-timeline-service';
+
+import {
   TutoringLoopController,
   createTutoringLoopController,
   PlanContextInjector,
@@ -29,6 +34,9 @@ import type { SessionContext } from '@sam-ai/agentic';
 
 // Import Prisma-based session store for cross-session continuity
 import { createPrismaTutoringSessionStore } from './stores';
+
+// Import AI-powered criterion evaluator
+import { createBestAvailableCriterionEvaluator } from './criterion-evaluator';
 
 // ============================================================================
 // SINGLETON INSTANCES
@@ -88,6 +96,10 @@ export function initializeOrchestration(
   const confirmationStore = createInMemoryOrchestrationConfirmationStore();
   const sessionStore = createPrismaTutoringSessionStore();
 
+  // Create AI-powered criterion evaluator (if ANTHROPIC_API_KEY is available)
+  // This enables intelligent evaluation of learning criteria using Claude
+  const criterionEvaluator = createBestAvailableCriterionEvaluator();
+
   // Initialize Tutoring Loop Controller
   tutoringController = createTutoringLoopController({
     goalStore: config.goalStore,
@@ -100,6 +112,8 @@ export function initializeOrchestration(
     autoAdvance: true,
     maxStepRetries: 3,
     sessionTimeoutMinutes: 60,
+    // AI-powered criterion evaluation for smarter step completion detection
+    criterionEvaluator,
   });
 
   // Initialize Plan Context Injector
@@ -306,13 +320,55 @@ export async function processTutoringLoop(
   }
 
   try {
-    return await tutoringController.processLoop(
+    const result = await tutoringController.processLoop(
       userId,
       sessionId,
       userMessage,
       llmResponse,
       options
     );
+
+    // Record journey timeline events for step/plan transitions
+    if (result?.transition && result.context.activePlan) {
+      const planId = result.context.activePlan.id;
+      const goalId = result.context.activePlan.goalId;
+      // ExecutionPlan does not have courseId - extract from goal context if available
+      const courseId = options?.sessionContext?.courseId;
+
+      try {
+        // 'advance' means step completed and moving to next
+        if (result.transition.transitionType === 'advance' && result.context.currentStep) {
+          // Record step completion
+          await recordPlanStepCompleted(
+            userId,
+            planId,
+            result.context.currentStep.id,
+            result.context.currentStep.title,
+            result.evaluation?.progressPercent ?? 100,
+            courseId
+          );
+          orchestrationLogger.info('Recorded step completion to journey timeline', {
+            planId,
+            stepId: result.context.currentStep.id,
+          });
+        }
+
+        // 'complete' means plan finished
+        if (result.transition.transitionType === 'complete' || result.transition.planComplete) {
+          // Record plan completion - major milestone!
+          await recordPlanCompleted(userId, planId, goalId, courseId);
+          orchestrationLogger.info('Recorded plan completion to journey timeline', {
+            planId,
+            goalId,
+          });
+        }
+      } catch (timelineError) {
+        // Do not fail the main operation if timeline recording fails
+        orchestrationLogger.warn('Failed to record journey timeline event', { error: timelineError });
+      }
+    }
+
+    return result;
   } catch (error) {
     orchestrationLogger.error('Failed to process tutoring loop', error);
     return null;
@@ -395,6 +451,87 @@ export async function rejectConfirmation(
 }
 
 // ============================================================================
+// STEP EXECUTION
+// ============================================================================
+
+import type { PlanStep, ToolPlan as ToolPlanType, StepExecutionResult } from '@sam-ai/agentic';
+
+/**
+ * Execute the current step with its associated tools
+ * This generates learning artifacts (quizzes, exercises) based on step type
+ */
+export async function executeCurrentStep(
+  context: TutoringContext,
+  toolPlan: ToolPlanType | null
+): Promise<{
+  success: boolean;
+  executedTools: Array<{ toolId: string; status: string; result?: unknown }>;
+  artifacts: Array<{ type: string; title: string; content: unknown }>;
+  requiresConfirmation: boolean;
+  pendingConfirmationIds: string[];
+} | null> {
+  if (!stepExecutor) {
+    orchestrationLogger.warn('Step executor not initialized');
+    return null;
+  }
+
+  if (!context.currentStep || !toolPlan) {
+    orchestrationLogger.debug('No current step or tool plan to execute');
+    return null;
+  }
+
+  try {
+    const result: StepExecutionResult = await stepExecutor.executeStep(
+      context.currentStep as PlanStep,
+      context,
+      toolPlan
+    );
+
+    // Check if any tool requires confirmation
+    const pendingConfirmationIds = result.toolResults
+      .filter(t => t.status === 'pending_confirmation' && t.confirmationId)
+      .map(t => t.confirmationId as string);
+
+    const requiresConfirmation = pendingConfirmationIds.length > 0;
+    const artifacts = result.output.artifacts ?? [];
+
+    orchestrationLogger.info('Step execution completed', {
+      stepId: result.stepId,
+      status: result.status,
+      executedToolsCount: result.toolResults.length,
+      artifactsCount: artifacts.length,
+      requiresConfirmation,
+    });
+
+    return {
+      success: result.status === 'completed' || result.status === 'in_progress',
+      executedTools: result.toolResults.map(t => ({
+        toolId: t.toolId,
+        status: t.status,
+        result: t.result,
+      })),
+      artifacts: artifacts.map(a => ({
+        type: a.type,
+        title: a.title,
+        content: a.content,
+      })),
+      requiresConfirmation,
+      pendingConfirmationIds,
+    };
+  } catch (error) {
+    orchestrationLogger.error('Failed to execute step', error);
+    return null;
+  }
+}
+
+/**
+ * Check if step execution is available
+ */
+export function isStepExecutorReady(): boolean {
+  return !!stepExecutor;
+}
+
+// ============================================================================
 // RESPONSE FORMATTING
 // ============================================================================
 
@@ -407,6 +544,10 @@ export function formatOrchestrationResponse(
   if (!loopResult) {
     return {
       hasActivePlan: false,
+      currentStepIndex: 0,
+      totalSteps: 0,
+      allSteps: [],
+      planProgress: 0,
       currentStep: null,
       stepProgress: null,
       toolPlan: null,
@@ -415,12 +556,51 @@ export function formatOrchestrationResponse(
     };
   }
 
+  // Calculate step sequence data
+  const activePlan = loopResult.context.activePlan;
+  const currentStep = loopResult.context.currentStep;
+
+  let currentStepIndex = 0;
+  let totalSteps = 0;
+  let allSteps: Array<{
+    id: string;
+    title: string;
+    order: number;
+    status: string;
+    type: string;
+    estimatedMinutes: number;
+  }> = [];
+
+  if (activePlan) {
+    totalSteps = activePlan.steps.length;
+    allSteps = activePlan.steps
+      .sort((a, b) => a.order - b.order)
+      .map(step => ({
+        id: step.id,
+        title: step.title,
+        order: step.order,
+        status: step.status,
+        type: step.type,
+        estimatedMinutes: step.estimatedMinutes,
+      }));
+
+    // Find current step index (1-based for display)
+    if (currentStep) {
+      const stepIdx = activePlan.steps.findIndex(s => s.id === currentStep.id);
+      currentStepIndex = stepIdx >= 0 ? stepIdx + 1 : 1;
+    }
+  }
+
   return {
-    hasActivePlan: !!loopResult.context.activePlan,
-    currentStep: loopResult.context.currentStep ? {
-      id: loopResult.context.currentStep.id,
-      title: loopResult.context.currentStep.title,
-      type: loopResult.context.currentStep.type,
+    hasActivePlan: !!activePlan,
+    currentStepIndex,
+    totalSteps,
+    allSteps,
+    planProgress: activePlan?.overallProgress ?? 0,
+    currentStep: currentStep ? {
+      id: currentStep.id,
+      title: currentStep.title,
+      type: currentStep.type,
       objectives: loopResult.context.stepObjectives,
     } : null,
     stepProgress: loopResult.evaluation ? {
@@ -470,6 +650,17 @@ export function formatOrchestrationResponse(
 
 export interface OrchestrationResponseData {
   hasActivePlan: boolean;
+  currentStepIndex: number;
+  totalSteps: number;
+  allSteps: Array<{
+    id: string;
+    title: string;
+    order: number;
+    status: string;
+    type: string;
+    estimatedMinutes: number;
+  }>;
+  planProgress: number;
   currentStep: {
     id: string;
     title: string;

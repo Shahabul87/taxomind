@@ -49,6 +49,31 @@ import type {
 // CONFIGURATION
 // ============================================================================
 
+/**
+ * AI Adapter interface for LLM-based criterion evaluation
+ */
+export interface CriterionEvaluationAdapter {
+  evaluateCriterion(params: {
+    criterion: string;
+    userMessage: string;
+    assistantResponse: string;
+    stepContext: {
+      stepTitle: string;
+      stepType: string;
+      objectives: string[];
+    };
+    memoryContext?: {
+      masteredConcepts: string[];
+      strugglingConcepts: string[];
+    };
+  }): Promise<{
+    met: boolean;
+    confidence: number;
+    evidence: string | null;
+    reasoning: string;
+  }>;
+}
+
 export interface TutoringLoopControllerConfig {
   /** Goal store for retrieving active goals */
   goalStore: GoalStore;
@@ -68,6 +93,9 @@ export interface TutoringLoopControllerConfig {
   /** Logger instance */
   logger?: OrchestrationLogger;
 
+  /** AI adapter for criterion evaluation (optional - uses heuristics if not provided) */
+  criterionEvaluator?: CriterionEvaluationAdapter;
+
   /** Step completion confidence threshold (0-1) */
   stepCompletionThreshold?: number;
 
@@ -86,7 +114,7 @@ export interface TutoringLoopControllerConfig {
 // ============================================================================
 
 export class TutoringLoopController {
-  private readonly config: Required<TutoringLoopControllerConfig>;
+  private readonly config: Required<Omit<TutoringLoopControllerConfig, 'criterionEvaluator'>> & { criterionEvaluator?: CriterionEvaluationAdapter };
   private readonly logger: OrchestrationLogger;
 
   constructor(config: TutoringLoopControllerConfig) {
@@ -97,6 +125,7 @@ export class TutoringLoopController {
       maxStepRetries: config.maxStepRetries ?? 3,
       sessionTimeoutMinutes: config.sessionTimeoutMinutes ?? 60,
       logger: config.logger ?? this.createDefaultLogger(),
+      criterionEvaluator: config.criterionEvaluator,
     };
     this.logger = this.config.logger;
   }
@@ -625,20 +654,328 @@ export class TutoringLoopController {
     };
   }
 
+  /**
+   * Evaluate a single criterion for step completion
+   * Uses a combination of heuristic matching and LLM evaluation
+   */
   private async evaluateCriterion(
     criterion: string,
-    _context: TutoringContext,
-    _response: string,
-    _userMessage: string
+    context: TutoringContext,
+    response: string,
+    userMessage: string
   ): Promise<EvaluatedCriterion> {
-    // This would typically use an LLM to evaluate
-    // For now, return a placeholder evaluation
+    const lowerCriterion = criterion.toLowerCase();
+    const lowerResponse = response.toLowerCase();
+    const lowerMessage = userMessage.toLowerCase();
+
+    // First, try heuristic evaluation for common criterion types
+    const heuristicResult = this.evaluateCriterionHeuristically(
+      criterion,
+      lowerCriterion,
+      lowerResponse,
+      lowerMessage,
+      context
+    );
+
+    if (heuristicResult !== null) {
+      this.logger.debug('Criterion evaluated heuristically', {
+        criterion,
+        met: heuristicResult.met,
+        confidence: heuristicResult.confidence,
+      });
+      return heuristicResult;
+    }
+
+    // If we have an AI adapter, use it for complex evaluation
+    if (this.config.criterionEvaluator && context.currentStep) {
+      try {
+        const aiResult = await this.config.criterionEvaluator.evaluateCriterion({
+          criterion,
+          userMessage,
+          assistantResponse: response,
+          stepContext: {
+            stepTitle: context.currentStep.title,
+            stepType: context.currentStep.type,
+            objectives: context.stepObjectives,
+          },
+          memoryContext: {
+            masteredConcepts: context.memoryContext.masteredConcepts,
+            strugglingConcepts: context.memoryContext.strugglingConcepts,
+          },
+        });
+
+        this.logger.debug('Criterion evaluated by AI', {
+          criterion,
+          met: aiResult.met,
+          confidence: aiResult.confidence,
+        });
+
+        return {
+          criterion,
+          met: aiResult.met,
+          evidence: aiResult.evidence,
+          confidence: aiResult.confidence,
+        };
+      } catch (error) {
+        this.logger.warn('AI criterion evaluation failed, falling back to heuristics', { error });
+      }
+    }
+
+    // Fallback: semantic similarity check
+    return this.evaluateCriterionSemantically(criterion, response, userMessage, context);
+  }
+
+  /**
+   * Heuristic evaluation for common criterion types
+   */
+  private evaluateCriterionHeuristically(
+    criterion: string,
+    lowerCriterion: string,
+    lowerResponse: string,
+    lowerMessage: string,
+    context: TutoringContext
+  ): EvaluatedCriterion | null {
+    // Time-based criteria
+    if (lowerCriterion.includes('time spent') || lowerCriterion.includes('duration')) {
+      const sessionTime = context.sessionMetadata.totalSessionTime;
+      const requiredTime = this.extractTimeRequirement(lowerCriterion);
+      if (requiredTime > 0) {
+        const met = sessionTime >= requiredTime;
+        return {
+          criterion,
+          met,
+          evidence: `Session time: ${sessionTime} minutes (required: ${requiredTime} minutes)`,
+          confidence: 1.0,
+        };
+      }
+    }
+
+    // Message count criteria
+    if (lowerCriterion.includes('message') || lowerCriterion.includes('interaction')) {
+      const messageCount = context.sessionMetadata.messageCount;
+      const requiredCount = this.extractNumberRequirement(lowerCriterion);
+      if (requiredCount > 0) {
+        const met = messageCount >= requiredCount;
+        return {
+          criterion,
+          met,
+          evidence: `Message count: ${messageCount} (required: ${requiredCount})`,
+          confidence: 1.0,
+        };
+      }
+    }
+
+    // Quiz/test score criteria
+    if (lowerCriterion.includes('quiz') || lowerCriterion.includes('test') || lowerCriterion.includes('score')) {
+      // Check if response mentions a score
+      const scoreMatch = lowerResponse.match(/(\d+)\s*(?:\/|out of)\s*(\d+)|score[:\s]+(\d+)%?/i);
+      if (scoreMatch) {
+        const score = scoreMatch[1] && scoreMatch[2]
+          ? (parseInt(scoreMatch[1]) / parseInt(scoreMatch[2])) * 100
+          : parseInt(scoreMatch[3] || '0');
+        const requiredScore = this.extractScoreRequirement(lowerCriterion);
+        const met = score >= requiredScore;
+        return {
+          criterion,
+          met,
+          evidence: `Score: ${score.toFixed(0)}% (required: ${requiredScore}%)`,
+          confidence: 0.9,
+        };
+      }
+    }
+
+    // Completion criteria
+    if (lowerCriterion.includes('complete') || lowerCriterion.includes('finish')) {
+      // Check for completion indicators in response
+      const completionIndicators = [
+        'completed', 'finished', 'done', 'accomplished',
+        'successfully', 'well done', 'great job', 'excellent'
+      ];
+      const hasCompletionIndicator = completionIndicators.some(ind => lowerResponse.includes(ind));
+      if (hasCompletionIndicator) {
+        return {
+          criterion,
+          met: true,
+          evidence: 'Response indicates completion',
+          confidence: 0.75,
+        };
+      }
+    }
+
+    // Understanding demonstration
+    if (lowerCriterion.includes('understand') || lowerCriterion.includes('demonstrate') || lowerCriterion.includes('explain')) {
+      // Check if user provided an explanation
+      const explanationIndicators = [
+        'because', 'therefore', 'this means', 'in other words',
+        'for example', 'specifically', 'essentially'
+      ];
+      const hasExplanation = explanationIndicators.some(ind => lowerMessage.includes(ind));
+      // Check if response confirms understanding
+      const confirmationIndicators = [
+        'correct', 'exactly', 'that\'s right', 'well explained',
+        'good understanding', 'you\'ve got it', 'precisely'
+      ];
+      const hasConfirmation = confirmationIndicators.some(ind => lowerResponse.includes(ind));
+
+      if (hasExplanation && hasConfirmation) {
+        return {
+          criterion,
+          met: true,
+          evidence: 'User demonstrated understanding with explanation confirmed by assistant',
+          confidence: 0.8,
+        };
+      }
+      if (hasExplanation || hasConfirmation) {
+        return {
+          criterion,
+          met: false,
+          evidence: hasExplanation
+            ? 'User provided explanation but awaiting confirmation'
+            : 'Partial understanding indicators detected',
+          confidence: 0.5,
+        };
+      }
+    }
+
+    // Practice/exercise criteria
+    if (lowerCriterion.includes('practice') || lowerCriterion.includes('exercise')) {
+      // Check if practice was completed
+      const practiceIndicators = [
+        'solved', 'answered', 'attempted', 'worked through',
+        'practiced', 'tried', 'completed the exercise'
+      ];
+      const hasPractice = practiceIndicators.some(ind =>
+        lowerMessage.includes(ind) || lowerResponse.includes(ind)
+      );
+      if (hasPractice) {
+        return {
+          criterion,
+          met: true,
+          evidence: 'Practice/exercise completed',
+          confidence: 0.7,
+        };
+      }
+    }
+
+    // Question asking criteria
+    if (lowerCriterion.includes('ask') && lowerCriterion.includes('question')) {
+      const isQuestion = lowerMessage.includes('?') ||
+        lowerMessage.startsWith('what') ||
+        lowerMessage.startsWith('how') ||
+        lowerMessage.startsWith('why') ||
+        lowerMessage.startsWith('can you');
+      if (isQuestion) {
+        return {
+          criterion,
+          met: true,
+          evidence: 'User asked a question',
+          confidence: 0.9,
+        };
+      }
+    }
+
+    return null; // No heuristic match, use AI or semantic evaluation
+  }
+
+  /**
+   * Semantic similarity-based criterion evaluation
+   */
+  private evaluateCriterionSemantically(
+    criterion: string,
+    response: string,
+    userMessage: string,
+    _context: TutoringContext
+  ): EvaluatedCriterion {
+    // Simple keyword overlap scoring
+    const criterionWords = this.extractKeywords(criterion);
+    const responseWords = this.extractKeywords(response);
+    const messageWords = this.extractKeywords(userMessage);
+
+    const allContextWords = [...responseWords, ...messageWords];
+    const matchCount = criterionWords.filter(word =>
+      allContextWords.some(contextWord =>
+        contextWord.includes(word) || word.includes(contextWord)
+      )
+    ).length;
+
+    const similarity = criterionWords.length > 0
+      ? matchCount / criterionWords.length
+      : 0;
+
+    // Threshold for considering criterion met
+    const met = similarity >= 0.5;
+    const confidence = Math.min(similarity + 0.2, 0.7); // Cap confidence for semantic eval
+
     return {
       criterion,
-      met: false,
-      evidence: null,
-      confidence: 0.5,
+      met,
+      evidence: met
+        ? `Semantic match: ${matchCount}/${criterionWords.length} keywords found in context`
+        : `Insufficient semantic match: ${matchCount}/${criterionWords.length} keywords`,
+      confidence,
     };
+  }
+
+  /**
+   * Extract keywords from text for semantic matching
+   */
+  private extractKeywords(text: string): string[] {
+    const stopWords = new Set([
+      'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+      'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+      'would', 'could', 'should', 'may', 'might', 'must', 'shall',
+      'can', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by',
+      'from', 'up', 'about', 'into', 'through', 'during', 'before',
+      'after', 'above', 'below', 'between', 'under', 'again',
+      'further', 'then', 'once', 'here', 'there', 'when', 'where',
+      'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other',
+      'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same',
+      'so', 'than', 'too', 'very', 'just', 'and', 'but', 'if', 'or',
+      'as', 'until', 'while', 'this', 'that', 'these', 'those', 'it'
+    ]);
+
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.has(word));
+  }
+
+  /**
+   * Extract time requirement from criterion text (in minutes)
+   */
+  private extractTimeRequirement(criterion: string): number {
+    const hourMatch = criterion.match(/(\d+)\s*hour/);
+    const minuteMatch = criterion.match(/(\d+)\s*min/);
+
+    let minutes = 0;
+    if (hourMatch) minutes += parseInt(hourMatch[1]) * 60;
+    if (minuteMatch) minutes += parseInt(minuteMatch[1]);
+
+    return minutes || 15; // Default to 15 minutes if no specific time found
+  }
+
+  /**
+   * Extract number requirement from criterion text
+   */
+  private extractNumberRequirement(criterion: string): number {
+    const match = criterion.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 3; // Default to 3 if no number found
+  }
+
+  /**
+   * Extract score requirement from criterion text (as percentage)
+   */
+  private extractScoreRequirement(criterion: string): number {
+    const percentMatch = criterion.match(/(\d+)\s*%/);
+    if (percentMatch) return parseInt(percentMatch[1]);
+
+    const fractionMatch = criterion.match(/(\d+)\s*(?:\/|out of)\s*(\d+)/);
+    if (fractionMatch) {
+      return (parseInt(fractionMatch[1]) / parseInt(fractionMatch[2])) * 100;
+    }
+
+    return 70; // Default to 70% if no specific score found
   }
 
   private generateRecommendations(
@@ -839,13 +1176,173 @@ export class TutoringLoopController {
     }
   }
 
+  /**
+   * Analyze user message to determine which tools might be needed
+   */
   private async analyzeToolNeeds(
-    _context: TutoringContext,
-    _userMessage: string
+    context: TutoringContext,
+    userMessage: string
   ): Promise<ToolRecommendation[]> {
-    // This would typically use an LLM to analyze needs
-    // For now, return empty array
-    return [];
+    const recommendations: ToolRecommendation[] = [];
+    const lowerMessage = userMessage.toLowerCase();
+
+    // Analyze message for tool-triggering patterns
+    for (const tool of context.allowedTools) {
+      const toolMatch = this.matchToolToMessage(tool, lowerMessage, context);
+      if (toolMatch) {
+        recommendations.push(toolMatch);
+      }
+    }
+
+    // Sort by priority (highest first)
+    recommendations.sort((a, b) => b.priority - a.priority);
+
+    // Limit to top 3 most relevant tools
+    return recommendations.slice(0, 3);
+  }
+
+  /**
+   * Match a tool to the user message to determine if it should be recommended
+   */
+  private matchToolToMessage(
+    tool: ToolDefinition,
+    lowerMessage: string,
+    context: TutoringContext
+  ): ToolRecommendation | null {
+    // Define tool-triggering patterns
+    const toolPatterns: Record<string, { patterns: string[]; priority: number }> = {
+      // Content tools
+      'search': {
+        patterns: ['find', 'search', 'look for', 'where is', 'locate'],
+        priority: 7,
+      },
+      'explain': {
+        patterns: ['explain', 'what is', 'what does', 'how does', 'tell me about'],
+        priority: 8,
+      },
+      'quiz': {
+        patterns: ['quiz', 'test', 'practice questions', 'try a quiz', 'test me'],
+        priority: 8,
+      },
+      'example': {
+        patterns: ['example', 'show me', 'demonstrate', 'sample'],
+        priority: 6,
+      },
+      'summarize': {
+        patterns: ['summarize', 'summary', 'brief', 'recap', 'overview'],
+        priority: 5,
+      },
+      // Progress tools
+      'progress': {
+        patterns: ['progress', 'how am i doing', 'my status', 'track'],
+        priority: 6,
+      },
+      'goal': {
+        patterns: ['goal', 'objective', 'target', 'what should i learn'],
+        priority: 7,
+      },
+      // Learning tools
+      'flashcard': {
+        patterns: ['flashcard', 'flash card', 'memorize', 'remember'],
+        priority: 6,
+      },
+      'hint': {
+        patterns: ['hint', 'help me', 'stuck', 'clue', 'guide'],
+        priority: 7,
+      },
+      'simplify': {
+        patterns: ['simplify', 'easier', 'simpler', 'break down', 'step by step'],
+        priority: 8,
+      },
+    };
+
+    // Check if tool name matches any known pattern category
+    const toolNameLower = tool.name.toLowerCase();
+
+    for (const [category, config] of Object.entries(toolPatterns)) {
+      // Check if tool matches this category
+      if (toolNameLower.includes(category) || tool.category === category) {
+        // Check if message matches any pattern
+        const matchedPattern = config.patterns.find(pattern => lowerMessage.includes(pattern));
+        if (matchedPattern) {
+          return {
+            toolId: tool.id,
+            suggestedInput: this.buildToolInput(tool, lowerMessage, context),
+            priority: config.priority,
+            reasoning: `User message contains "${matchedPattern}" which suggests ${tool.name} tool`,
+          };
+        }
+      }
+    }
+
+    // Generic matching based on tool description
+    if (tool.description) {
+      const descKeywords = this.extractKeywords(tool.description);
+      const messageKeywords = this.extractKeywords(lowerMessage);
+      const overlap = descKeywords.filter(kw => messageKeywords.includes(kw)).length;
+
+      if (overlap >= 2) {
+        return {
+          toolId: tool.id,
+          suggestedInput: this.buildToolInput(tool, lowerMessage, context),
+          priority: Math.min(overlap + 2, 6),
+          reasoning: `Tool description matches ${overlap} keywords in user message`,
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Build suggested input for a tool based on context
+   */
+  private buildToolInput(
+    _tool: ToolDefinition,
+    userMessage: string,
+    context: TutoringContext
+  ): Record<string, unknown> {
+    const input: Record<string, unknown> = {};
+
+    // Add common context-based fields that most tools might need
+    input.userId = context.userId;
+    input.sessionId = context.sessionId;
+
+    // Extract topic from current step or message
+    if (context.currentStep) {
+      input.topic = context.currentStep.title;
+      input.stepId = context.currentStep.id;
+    } else {
+      input.topic = this.extractMainTopic(userMessage);
+    }
+
+    // Add the query/question
+    input.query = userMessage;
+
+    // Try to extract courseId from plan checkpoint data
+    if (context.activePlan?.checkpointData) {
+      const courseId = context.activePlan.checkpointData.courseId;
+      if (courseId) {
+        input.courseId = courseId;
+      }
+    }
+
+    return input;
+  }
+
+  /**
+   * Extract the main topic from user message
+   */
+  private extractMainTopic(message: string): string {
+    // Remove common question words and extract the subject
+    const cleaned = message
+      .replace(/^(what|how|why|can you|could you|please|help me|tell me|explain)\s+(is|are|does|do|the|about|with|to|understand)?\s*/i, '')
+      .replace(/\?$/, '')
+      .trim();
+
+    // Take first meaningful phrase (up to 50 chars)
+    const words = cleaned.split(/\s+/).slice(0, 8);
+    return words.join(' ').substring(0, 50);
   }
 
   private generateToolPlanReasoning(

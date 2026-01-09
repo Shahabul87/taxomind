@@ -4,7 +4,7 @@ import { currentUser } from '@/lib/auth';
 
 // New architecture imports
 import { getCourseData, getEnrollmentStatus } from './_lib/data-fetchers';
-import { generateCourseMetadata, generateCourseJsonLd, generateBreadcrumbJsonLd } from './_lib/metadata-generator';
+import { generateCourseMetadata, generateCourseJsonLd, generateBreadcrumbJsonLd, generateFAQJsonLd } from './_lib/metadata-generator';
 import { getCategoryLayout } from './_config/category-layouts';
 
 // Component imports
@@ -50,6 +50,7 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
   // Generate structured data for SEO
   const jsonLd = generateCourseJsonLd(course);
   const breadcrumbLd = generateBreadcrumbJsonLd(course);
+  const faqLd = generateFAQJsonLd(course);
 
   // Get category-specific props for hero
   const getCategorySpecificProps = () => {
@@ -68,7 +69,7 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 overflow-x-hidden">
-      {/* JSON-LD for SEO */}
+      {/* JSON-LD Structured Data for SEO */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -77,6 +78,12 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        />
+      )}
 
       {/* Sticky Mini Header */}
       <StickyMiniHeader

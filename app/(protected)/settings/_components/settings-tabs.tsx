@@ -7,7 +7,9 @@ import {
   Lock,
   Bell,
   DollarSign,
-  Eye
+  Eye,
+  Calendar,
+  Bot
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsTab } from "@/types/settings";
@@ -56,6 +58,18 @@ const tabs = [
     icon: DollarSign,
     description: "Wallet and earnings",
     requiresRole: true
+  },
+  {
+    id: "calendar" as SettingsTab,
+    label: "Calendar",
+    icon: Calendar,
+    description: "Google Calendar sync"
+  },
+  {
+    id: "ai-providers" as SettingsTab,
+    label: "AI Providers",
+    icon: Bot,
+    description: "Choose AI providers for tasks"
   }
 ];
 

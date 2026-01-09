@@ -116,6 +116,11 @@ import {
   createPrismaToolStore,
 } from '@/lib/sam/stores';
 import type { VerificationResult } from '@sam-ai/agentic';
+import {
+  extractConceptsFromResponse,
+  addConceptsToKnowledgeGraph,
+  recordConceptInteraction,
+} from '@/lib/sam/services/knowledge-graph-builder';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -454,7 +459,7 @@ export async function POST(request: NextRequest) {
       });
 
     const integrationProfile = getSAMIntegrationProfile({
-      goalPlanning: false, // Keep goal planning disabled for standard chat flow
+      goalPlanning: true, // Goal planning enabled - users can create goals through SAM conversations
       toolExecution: true,
       proactiveInterventions: true,
       selfEvaluation: true,
@@ -466,7 +471,7 @@ export async function POST(request: NextRequest) {
     const agenticBridge = createSAMAgenticBridge({
       userId: user.id,
       courseId: pageContext.entityId,
-      enableGoalPlanning: false, // Not needed for streaming response flow
+      enableGoalPlanning: true, // Enable goal planning for chat flow
       enableToolExecution: true,
       enableProactiveInterventions: true,
       enableSelfEvaluation: true,
@@ -1247,6 +1252,30 @@ export async function POST(request: NextRequest) {
             logger.warn('[SAM_STREAM] Agentic memory persistence failed:', error);
           }
 
+          // Extract concepts from response and add to knowledge graph
+          let knowledgeGraphResult: { conceptsExtracted: number; entitiesCreated: number; relationshipsCreated: number } | undefined;
+          if (responseText) {
+            try {
+              const concepts = extractConceptsFromResponse(responseText, message);
+              if (concepts.length > 0) {
+                const courseIdForKg = entityContext.course?.id
+                  ?? entityContext.chapter?.courseId
+                  ?? entityContext.section?.courseId
+                  ?? (pageContext.entityType === 'course' ? pageContext.entityId : undefined);
+
+                knowledgeGraphResult = await addConceptsToKnowledgeGraph(user.id, concepts, courseIdForKg);
+                logger.debug('[SAM_STREAM] Knowledge graph updated:', {
+                  conceptsExtracted: knowledgeGraphResult.conceptsExtracted,
+                  entitiesCreated: knowledgeGraphResult.entitiesCreated,
+                  relationshipsCreated: knowledgeGraphResult.relationshipsCreated,
+                });
+              }
+            } catch (kgError) {
+              logger.warn('[SAM_STREAM] Failed to update knowledge graph:', kgError);
+              // Continue without updating - non-blocking
+            }
+          }
+
           // Send insights event with unified analysis
           const contextData = result.results.context?.data as Record<string, unknown> | undefined;
           const contentData = result.results.content?.data as Record<string, unknown> | undefined;
@@ -1321,6 +1350,7 @@ export async function POST(request: NextRequest) {
               sessionRecorded,
               interventions: interventions.length > 0 ? interventions : undefined,
               toolExecution: toolExecution ?? undefined,
+              knowledgeGraph: knowledgeGraphResult ?? undefined,
             },
             orchestration: orchestrationData ?? undefined,
           };

@@ -6,7 +6,8 @@ import {
   Trophy, Star, Zap, Target, Award,
   Crown, Medal, Flame, TrendingUp,
   BookOpen, Users, Loader2, AlertCircle,
-  RefreshCw
+  RefreshCw, Sparkles, Lock, CheckCircle2,
+  ChevronRight, Shield, Gem
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { User } from "next-auth";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface GamificationEngineProps {
   user: User;
@@ -77,10 +78,72 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Trophy,
   Target,
   Award,
+  Sparkles,
+  Shield,
+  Gem,
 };
 
 const getIconComponent = (iconName: string) => {
   return iconMap[iconName] || Star;
+};
+
+// Rarity configuration with colors and labels
+const rarityConfig = {
+  common: {
+    label: "Common",
+    bgLight: "bg-slate-100",
+    bgDark: "dark:bg-slate-800",
+    borderLight: "border-slate-200",
+    borderDark: "dark:border-slate-700",
+    textLight: "text-slate-600",
+    textDark: "dark:text-slate-400",
+    badgeBg: "bg-slate-100 dark:bg-slate-700",
+    badgeText: "text-slate-700 dark:text-slate-300",
+  },
+  uncommon: {
+    label: "Uncommon",
+    bgLight: "bg-emerald-50",
+    bgDark: "dark:bg-emerald-900/20",
+    borderLight: "border-emerald-200",
+    borderDark: "dark:border-emerald-800",
+    textLight: "text-emerald-600",
+    textDark: "dark:text-emerald-400",
+    badgeBg: "bg-emerald-100 dark:bg-emerald-900/40",
+    badgeText: "text-emerald-700 dark:text-emerald-300",
+  },
+  rare: {
+    label: "Rare",
+    bgLight: "bg-blue-50",
+    bgDark: "dark:bg-blue-900/20",
+    borderLight: "border-blue-200",
+    borderDark: "dark:border-blue-800",
+    textLight: "text-blue-600",
+    textDark: "dark:text-blue-400",
+    badgeBg: "bg-blue-100 dark:bg-blue-900/40",
+    badgeText: "text-blue-700 dark:text-blue-300",
+  },
+  epic: {
+    label: "Epic",
+    bgLight: "bg-purple-50",
+    bgDark: "dark:bg-purple-900/20",
+    borderLight: "border-purple-200",
+    borderDark: "dark:border-purple-800",
+    textLight: "text-purple-600",
+    textDark: "dark:text-purple-400",
+    badgeBg: "bg-purple-100 dark:bg-purple-900/40",
+    badgeText: "text-purple-700 dark:text-purple-300",
+  },
+  legendary: {
+    label: "Legendary",
+    bgLight: "bg-amber-50",
+    bgDark: "dark:bg-amber-900/20",
+    borderLight: "border-amber-300",
+    borderDark: "dark:border-amber-700",
+    textLight: "text-amber-600",
+    textDark: "dark:text-amber-400",
+    badgeBg: "bg-amber-100 dark:bg-amber-900/40",
+    badgeText: "text-amber-700 dark:text-amber-300",
+  },
 };
 
 export function GamificationEngine({ user }: GamificationEngineProps) {
@@ -252,39 +315,57 @@ export function GamificationEngine({ user }: GamificationEngineProps) {
     ? ((levelInfo.currentXP) / (levelInfo.nextLevelXP)) * 100
     : 0;
 
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "common": return "border-gray-300 bg-gray-50";
-      case "rare": return "border-blue-300 bg-blue-50";
-      case "epic": return "border-purple-300 bg-purple-50";
-      case "legendary": return "border-yellow-300 bg-yellow-50";
-      default: return "border-gray-300 bg-gray-50";
-    }
+  const getRarityStyles = (rarity: string) => {
+    const config = rarityConfig[rarity as keyof typeof rarityConfig] || rarityConfig.common;
+    return config;
   };
 
   const progressAchievements = achievements.filter(a => !a.unlocked && a.progress !== undefined);
+  const unlockedAchievements = achievements.filter(a => a.unlocked);
 
   // Loading skeleton
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-purple-50/50">
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
+        {/* Level Progress Skeleton */}
+        <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <Skeleton className="h-6 w-32" />
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between">
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-10 w-28" />
+              <Skeleton className="h-10 w-24" />
             </div>
-            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-full rounded-full" />
           </CardContent>
         </Card>
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-24 w-full" />
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2].map((i) => (
+            <Card key={i} className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+              <CardContent className="p-5">
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-4 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Badges Skeleton */}
+        <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+          <CardHeader className="pb-3">
+            <Skeleton className="h-6 w-32" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-28 w-full rounded-xl" />
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -295,12 +376,22 @@ export function GamificationEngine({ user }: GamificationEngineProps) {
   // Error state with retry
   if (error) {
     return (
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-red-50/50">
-        <CardContent className="p-6 text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-white mb-2">Failed to Load Gamification</h3>
-          <p className="text-slate-400 mb-4">{error}</p>
-          <Button onClick={fetchGamificationData} variant="outline">
+      <Card className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 shadow-sm">
+        <CardContent className="p-8 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+            Failed to Load Achievements
+          </h3>
+          <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-sm mx-auto">
+            {error}
+          </p>
+          <Button
+            onClick={fetchGamificationData}
+            variant="outline"
+            className="border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
+          >
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
@@ -311,150 +402,211 @@ export function GamificationEngine({ user }: GamificationEngineProps) {
 
   return (
     <div className="space-y-6">
-      {/* Level Progress */}
+      {/* Level Progress - Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-purple-50/50 backdrop-blur-sm">
-          <CardHeader>
+        <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          {/* Gradient accent line */}
+          <div className="h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500" />
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-purple-100">
-                  <Trophy className="w-5 h-5 text-purple-600" />
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/40 dark:to-indigo-900/40">
+                  <Trophy className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <span className="text-white">Level Progress</span>
+                <span className="text-slate-900 dark:text-white font-semibold">Level Progress</span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={fetchGamificationData}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <RefreshCw className="w-4 h-4" />
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pt-2">
+            <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-bold text-white">Level {levelInfo.currentLevel}</h3>
-                  <p className="text-sm text-slate-400">{levelInfo.levelName}</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-slate-900 dark:text-white">
+                      Level {levelInfo.currentLevel}
+                    </span>
+                    <span className="text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/40 px-2.5 py-0.5 rounded-full">
+                      {levelInfo.levelName}
+                    </span>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-semibold text-purple-600">
-                    {levelInfo.totalXP.toLocaleString()} XP
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {levelInfo.totalXP.toLocaleString()}
+                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400 ml-1">XP</span>
                   </div>
-                  <div className="text-sm text-slate-500">
-                    {(levelInfo.nextLevelXP - levelInfo.currentXP).toLocaleString()} XP to next level
+                  <div className="text-sm text-slate-500 dark:text-slate-400">
+                    {(levelInfo.nextLevelXP - levelInfo.currentXP).toLocaleString()} to next level
                   </div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-400">Progress to Level {levelInfo.currentLevel + 1}</span>
-                  <span className="font-medium">{Math.round(progressToNextLevel)}%</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Progress to Level {levelInfo.currentLevel + 1}
+                  </span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {Math.round(progressToNextLevel)}%
+                  </span>
                 </div>
-                <Progress value={progressToNextLevel} className="h-3" />
+                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressToNextLevel}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Streaks */}
+      {/* Streaks Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-orange-50/50 backdrop-blur-sm">
-          <CardHeader>
+        <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500" />
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-orange-100">
-                <Flame className="w-5 h-5 text-orange-600" />
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/40 dark:to-amber-900/40">
+                <Flame className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               </div>
-              <span className="text-white">Learning Streaks</span>
+              <span className="text-slate-900 dark:text-white font-semibold">Learning Streaks</span>
               {streakData.streakFreezeAvailable && (
-                <Badge variant="outline" className="ml-auto text-blue-400 border-blue-400">
+                <Badge className="ml-auto bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                  <Shield className="w-3 h-3 mr-1" />
                   Freeze Available
                 </Badge>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2">
             <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-slate-800/60 border border-slate-600/30 rounded-lg">
-                <div className="flex items-center justify-center gap-1 mb-2">
-                  <Flame className="w-6 h-6 text-orange-600" />
-                  <span className="text-3xl font-bold text-orange-600">{streakData.currentStreak}</span>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-100 dark:border-orange-800/50">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Flame className="w-7 h-7 text-orange-500" />
+                  <span className="text-4xl font-bold text-orange-600 dark:text-orange-400">
+                    {streakData.currentStreak}
+                  </span>
                 </div>
-                <p className="text-sm text-slate-400">Current Streak</p>
-                <p className="text-xs text-slate-500">Days in a row</p>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 text-center">
+                  Current Streak
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-0.5">
+                  Days in a row
+                </p>
               </div>
 
-              <div className="text-center p-4 bg-slate-800/60 border border-slate-600/30 rounded-lg">
-                <div className="flex items-center justify-center gap-1 mb-2">
-                  <Trophy className="w-6 h-6 text-yellow-600" />
-                  <span className="text-3xl font-bold text-yellow-600">{streakData.longestStreak}</span>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-100 dark:border-amber-800/50">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Crown className="w-7 h-7 text-amber-500" />
+                  <span className="text-4xl font-bold text-amber-600 dark:text-amber-400">
+                    {streakData.longestStreak}
+                  </span>
                 </div>
-                <p className="text-sm text-slate-400">Longest Streak</p>
-                <p className="text-xs text-slate-500">Personal best</p>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 text-center">
+                  Longest Streak
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-0.5">
+                  Personal best
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Recent Badges */}
+      {/* Recent Badges Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
       >
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-purple-50/50 backdrop-blur-sm">
-          <CardHeader>
+        <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500" />
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-purple-100">
-                <Award className="w-5 h-5 text-purple-600" />
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-900/40 dark:to-purple-900/40">
+                <Award className="w-5 h-5 text-violet-600 dark:text-violet-400" />
               </div>
-              <span className="text-white">Recent Badges</span>
+              <span className="text-slate-900 dark:text-white font-semibold">Recent Badges</span>
               {badges.length > 0 && (
-                <Badge variant="secondary" className="ml-auto">
+                <Badge className="ml-auto bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800">
                   {badges.length} earned
                 </Badge>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2">
             {badges.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No badges earned yet</p>
-                <p className="text-sm text-slate-500 mt-1">Complete courses and activities to earn badges!</p>
+              <div className="text-center py-10 px-4">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <Award className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+                </div>
+                <p className="text-slate-700 dark:text-slate-300 font-medium mb-1">
+                  No badges earned yet
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                  Complete courses and activities to earn your first badge!
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {badges.slice(0, 4).map((badge, index) => {
                   const BadgeIcon = getIconComponent(badge.icon);
+                  const rarityStyles = getRarityStyles(badge.rarity);
                   return (
                     <motion.div
                       key={badge.id}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className={`p-3 rounded-lg border-2 ${getRarityColor(badge.rarity)} transition-all duration-200 hover:scale-105`}
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      className={cn(
+                        "p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer",
+                        rarityStyles.bgLight,
+                        rarityStyles.bgDark,
+                        rarityStyles.borderLight,
+                        rarityStyles.borderDark
+                      )}
                     >
                       <div className="text-center">
-                        <div className={`p-2 rounded-full bg-gradient-to-r ${badge.color} text-white mx-auto mb-2 w-fit`}>
-                          <BadgeIcon className="w-4 h-4" />
+                        <div className={`p-2.5 rounded-xl bg-gradient-to-br ${badge.color} text-white mx-auto mb-3 w-fit shadow-lg shadow-purple-500/20`}>
+                          <BadgeIcon className="w-5 h-5" />
                         </div>
-                        <h4 className="font-medium text-sm text-white mb-1">{badge.name}</h4>
-                        <p className="text-xs text-slate-400 mb-1">{badge.description}</p>
-                        <Badge variant="outline" className="text-xs">
+                        <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-1 line-clamp-1">
+                          {badge.name}
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 line-clamp-2 min-h-[2rem]">
+                          {badge.description}
+                        </p>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-xs capitalize",
+                            rarityStyles.badgeBg,
+                            rarityStyles.badgeText,
+                            "border-0"
+                          )}
+                        >
                           {badge.rarity}
                         </Badge>
                       </div>
@@ -471,23 +623,30 @@ export function GamificationEngine({ user }: GamificationEngineProps) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
       >
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-green-50/50 backdrop-blur-sm">
-          <CardHeader>
+        <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-3">
-              <div className="p-2 rounded-full bg-green-100">
-                <Target className="w-5 h-5 text-green-600" />
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/40 dark:to-teal-900/40">
+                <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <span className="text-white">Achievements in Progress</span>
+              <span className="text-slate-900 dark:text-white font-semibold">Achievements in Progress</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-2">
             {progressAchievements.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <Target className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>All achievements unlocked or none started</p>
-                <p className="text-sm text-slate-500 mt-1">Keep learning to discover more achievements!</p>
+              <div className="text-center py-10 px-4">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500 dark:text-emerald-400" />
+                </div>
+                <p className="text-slate-700 dark:text-slate-300 font-medium mb-1">
+                  {unlockedAchievements.length > 0 ? "All caught up!" : "No achievements started"}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                  Keep learning to discover and complete more achievements!
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -503,22 +662,41 @@ export function GamificationEngine({ user }: GamificationEngineProps) {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="flex items-center gap-3 p-3 bg-slate-800/60 border border-slate-600/30 rounded-lg"
+                      className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 hover:border-slate-200 dark:hover:border-slate-600 transition-colors"
                     >
-                      <div className={`p-2 rounded-full bg-gradient-to-r ${achievement.color} text-white`}>
-                        <AchievementIcon className="w-4 h-4" />
+                      <div className={`p-2.5 rounded-xl bg-gradient-to-br ${achievement.color} text-white shadow-lg flex-shrink-0`}>
+                        <AchievementIcon className="w-5 h-5" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-medium text-white">{achievement.title}</h4>
-                          <span className="text-sm text-slate-400">
+                          <h4 className="font-semibold text-slate-900 dark:text-white truncate pr-2">
+                            {achievement.title}
+                          </h4>
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400 flex-shrink-0">
                             {achievement.progress}/{achievement.maxProgress}
                           </span>
                         </div>
-                        <p className="text-sm text-slate-400 mb-2">{achievement.description}</p>
-                        <div className="space-y-1">
-                          <Progress value={progressPercent} className="h-2" />
-                          <p className="text-xs text-slate-500">Reward: {achievement.reward}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3 line-clamp-1">
+                          {achievement.description}
+                        </p>
+                        <div className="space-y-2">
+                          <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${progressPercent}%` }}
+                              transition={{ duration: 0.6, ease: "easeOut" }}
+                              className={`h-full rounded-full bg-gradient-to-r ${achievement.color}`}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              Reward: {achievement.reward}
+                            </span>
+                            <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                              {Math.round(progressPercent)}% complete
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
@@ -534,29 +712,35 @@ export function GamificationEngine({ user }: GamificationEngineProps) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.8 }}
+        transition={{ duration: 0.4, delay: 0.4 }}
       >
-        <Card className="border-0 shadow-lg bg-gradient-to-r from-white to-purple-50/50 backdrop-blur-sm">
+        <Card className="border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
           <CardContent className="p-4">
             <div className="grid grid-cols-2 gap-3">
               <Button
-                variant="ghost"
-                className="h-auto p-3 bg-slate-800/60 border border-slate-600/30 hover:bg-slate-700/80 border border-white/20 rounded-lg transition-all duration-200"
+                variant="outline"
+                className="h-auto p-4 flex-col gap-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all group"
               >
-                <div className="text-center">
-                  <Trophy className="w-5 h-5 text-yellow-600 mx-auto mb-1" />
-                  <span className="text-sm font-medium">All Achievements</span>
+                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/60 transition-colors">
+                  <Trophy className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  All Achievements
+                </span>
+                <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
               </Button>
 
               <Button
-                variant="ghost"
-                className="h-auto p-3 bg-slate-800/60 border border-slate-600/30 hover:bg-slate-700/80 border border-white/20 rounded-lg transition-all duration-200"
+                variant="outline"
+                className="h-auto p-4 flex-col gap-2 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all group"
               >
-                <div className="text-center">
-                  <TrendingUp className="w-5 h-5 text-purple-600 mx-auto mb-1" />
-                  <span className="text-sm font-medium">Leaderboard</span>
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/40 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/60 transition-colors">
+                  <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Leaderboard
+                </span>
+                <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
               </Button>
             </div>
           </CardContent>

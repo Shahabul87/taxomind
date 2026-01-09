@@ -245,7 +245,43 @@ async function generateOverviewInsights(courseId: string | null, timeframe: stri
       })
     : null;
 
-  const mockData = {
+  // Check if this is an empty course (no students or activity)
+  const hasRealData = totalStudents > 0 || activeUsers.length > 0;
+
+  // Demo data for new teachers with no students yet
+  const demoData = {
+    totalStudents: 24,
+    activeStudents: 18,
+    completionRate: 72,
+    averageScore: 78,
+    engagementRate: 75,
+    timeSpent: 2.3,
+    mostActiveHours: ['10:00 AM', '2:00 PM', '7:00 PM'],
+    topPerformers: [
+      { name: 'Demo Student A', score: 95, progress: 100 },
+      { name: 'Demo Student B', score: 91, progress: 100 },
+      { name: 'Demo Student C', score: 88, progress: 100 },
+    ],
+    strugglingStudents: [
+      { name: 'Demo Student X', score: 58, progress: 58, risk: 'high' },
+      { name: 'Demo Student Y', score: 65, progress: 65, risk: 'medium' },
+    ],
+    contentPerformance: {
+      bestChapters: ['Introduction', 'Core Concepts'],
+      challengingChapters: ['Advanced Topics'],
+      mostEngaging: 'Video',
+      leastEngaging: 'Quiz',
+    },
+    trends: {
+      engagement: { direction: 'up' as const, change: 12 },
+      completion: { direction: 'up' as const, change: 5 },
+      scores: { direction: 'stable' as const, change: 0 },
+    },
+    isDemo: true,
+    demoMessage: 'This is sample data. Real analytics will appear once students enroll and start learning.',
+  };
+
+  const courseData = hasRealData ? {
     totalStudents,
     activeStudents: activeUsers.length,
     completionRate: completionAnalytics?.completionRate ?? 0,
@@ -263,15 +299,16 @@ async function generateOverviewInsights(courseId: string | null, timeframe: stri
     },
     trends: {
       engagement: calculateTrend(currentActivityCount, previousActivityCount),
-      completion: { direction: 'stable', change: 0 },
-      scores: { direction: 'stable', change: 0 },
+      completion: { direction: 'stable' as const, change: 0 },
+      scores: { direction: 'stable' as const, change: 0 },
     },
-  };
+    isDemo: false,
+  } : demoData;
 
   const systemPrompt = `You are SAM, an AI teaching assistant analyzing class performance data. Generate comprehensive insights for a teacher about their class performance.
-
+${courseData.isDemo ? '\n**NOTE: This is DEMO DATA - the teacher has no enrolled students yet. Provide general guidance and tips.**\n' : ''}
 **Class Data:**
-${JSON.stringify(mockData, null, 2)}
+${JSON.stringify(courseData, null, 2)}
 
 **Timeframe:** ${timeframe}
 
@@ -294,21 +331,30 @@ Make the insights practical and actionable for teachers.`;
   return {
     type: 'overview',
     summary: analysisText,
-    metrics: mockData,
+    metrics: courseData,
+    isDemo: courseData.isDemo,
     recommendations: extractRecommendations(analysisText),
-    alerts: mockData.strugglingStudents.length
-      ? mockData.strugglingStudents.map((student: any) => ({
-          type: 'warning',
-          message: `${student.name} may need extra support`,
-          action: 'Schedule an intervention or check-in',
-        }))
-      : [
+    alerts: courseData.isDemo
+      ? [
           {
             type: 'info',
-            message: 'No high-risk students detected in this timeframe',
-            action: 'Continue monitoring engagement',
+            message: 'Viewing demo data - no students enrolled yet',
+            action: 'Share your course link to start getting real analytics',
           },
-        ],
+        ]
+      : courseData.strugglingStudents.length
+        ? courseData.strugglingStudents.map((student) => ({
+            type: 'warning',
+            message: `${student.name} may need extra support`,
+            action: 'Schedule an intervention or check-in',
+          }))
+        : [
+            {
+              type: 'info',
+              message: 'No high-risk students detected in this timeframe',
+              action: 'Continue monitoring engagement',
+            },
+          ],
     quickActions: [
       'Schedule one-on-one meetings',
       'Create additional practice materials',

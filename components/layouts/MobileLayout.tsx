@@ -90,12 +90,12 @@ export function MobileLayout({
 
   // Default quick action handlers if not provided
   const defaultQuickActionHandlers = {
-    onCreateStudyPlan: () => router.push('/my-plan?action=create-study'),
-    onCreateCoursePlan: () => router.push('/my-plan?action=create-course'),
+    onCreateStudyPlan: () => router.push('/goals?action=create'),
+    onCreateCoursePlan: () => router.push('/goals?action=create'),
     onCreateBlogPlan: () => router.push('/blog?action=create'),
     onScheduleSession: () => router.push('/calendar?action=schedule'),
     onAddTodo: () => router.push('/dashboard?action=add-todo'),
-    onSetGoal: () => router.push('/dashboard?action=set-goal'),
+    onSetGoal: () => router.push('/goals?action=create'),
   };
 
   const handlers = {

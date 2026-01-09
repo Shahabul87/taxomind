@@ -3048,6 +3048,35 @@ function useAgentic(options = {}) {
   };
 }
 
+// src/hooks/useRealtime.ts
+var import_react15 = require("react");
+
+// src/hooks/usePresence.ts
+var import_react16 = require("react");
+
+// src/hooks/useInterventions.ts
+var import_react17 = require("react");
+
+// src/hooks/usePushNotifications.ts
+var import_react18 = require("react");
+
+// src/hooks/useSAMMemory.ts
+var import_react19 = require("react");
+
+// src/hooks/useTutoringOrchestration.tsx
+var import_react20 = require("react");
+var import_jsx_runtime2 = require("react/jsx-runtime");
+var TutoringOrchestrationContext = (0, import_react20.createContext)(null);
+
+// src/hooks/useNotifications.ts
+var import_react21 = require("react");
+
+// src/hooks/useBehaviorPatterns.ts
+var import_react22 = require("react");
+
+// src/hooks/useRecommendations.ts
+var import_react23 = require("react");
+
 // src/utils/contextDetector.ts
 var DEFAULT_ROUTE_PATTERNS = [
   // Teacher routes

@@ -462,7 +462,7 @@ export default function CourseIntelligencePage() {
                 </Card>
               </Link>
               
-              <Link href="/analytics" className="group">
+              <Link href="/dashboard/user/analytics" className="group">
                 <Card className="p-4 bg-white/80 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200 dark:border-slate-700 hover:border-cyan-300 dark:hover:border-cyan-500/50 transition-all duration-300 h-full shadow-sm dark:shadow-none">
                   <BarChart3 className="w-6 h-6 text-cyan-600 dark:text-cyan-400 mb-2" />
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Analytics</h4>

@@ -120,7 +120,9 @@ export type SettingsTab =
   | 'privacy'
   | 'profile'
   | 'notifications'
-  | 'financial';
+  | 'financial'
+  | 'calendar'
+  | 'ai-providers';
 
 /**
  * Data Export Request Status
