@@ -41,10 +41,11 @@ import {
   type PresenceMetadata,
   type ActivityPayload,
   type PresenceStore,
+  type PushQueueStore,
   DeliveryChannel as DeliveryChannelConst,
   SAMEventType as SAMEventTypeConst,
 } from '@sam-ai/agentic';
-import { getPresenceStore } from '../taxomind-context';
+import { getPresenceStore, getPushQueueStore } from '../taxomind-context';
 
 // Re-export all types from @sam-ai/agentic realtime module
 export * from '@sam-ai/agentic';
@@ -453,9 +454,25 @@ export class SAMRealtimeServer {
       logger,
     });
 
-    // Initialize push dispatcher (InMemory for now - no Prisma PushQueueStore yet)
+    // Get push queue store - use Prisma-backed store from TaxomindContext if enabled
+    let pushQueueStore: PushQueueStore;
+    if (this.config.usePrismaStores) {
+      try {
+        pushQueueStore = getPushQueueStore();
+        logger.info('SAM Realtime using Prisma-backed push queue store for persistence');
+      } catch (error) {
+        logger.warn('Failed to initialize Prisma push queue store, falling back to in-memory', {
+          error: error instanceof Error ? error.message : 'Unknown',
+        });
+        pushQueueStore = new InMemoryPushQueueStore();
+      }
+    } else {
+      pushQueueStore = new InMemoryPushQueueStore();
+    }
+
+    // Initialize push dispatcher with Prisma-backed store
     this.pushDispatcher = createPushDispatcher({
-      store: new InMemoryPushQueueStore(),
+      store: pushQueueStore,
       presenceTracker: this.presenceTracker,
       logger,
     });

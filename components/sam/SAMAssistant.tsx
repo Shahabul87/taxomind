@@ -176,12 +176,13 @@ import {
 } from '@/lib/sam/gamification';
 
 // Import SAM Realtime Client for WebSocket-based proactive features
+// NOTE: Import from /client to avoid Prisma bundling in browser
 import {
   getSAMRealtimeClient,
   isWebSocketEnabled,
   type SAMWebSocketEvent,
   SAMEventType,
-} from '@/lib/sam/realtime';
+} from '@/lib/sam/realtime/client';
 
 // ============================================================================
 // TYPES

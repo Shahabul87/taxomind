@@ -352,6 +352,10 @@ model User {
   samPresenceHistory         SAMPresenceHistory[]          @relation("SAMPresenceHistory")
   samFeedback                SAMFeedback[]                 @relation("SAMFeedback")
 
+  // SAM Push Queue (Phase 5 - Persistent Push Queue)
+  samPushQueue               SAMPushQueue[]                @relation("SAMPushQueue")
+  samPushDeliveryResults     SAMPushDeliveryResult[]       @relation("SAMPushDeliveryResults")
+
   // Learning Command Center Relations (added January 2026)
   learningActivities         LearningActivity[]            @relation("UserLearningActivities")
   dailyLearningLogs          DailyLearningLog[]            @relation("UserDailyLearningLogs")

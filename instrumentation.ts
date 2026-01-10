@@ -65,4 +65,45 @@ export async function register() {
         console.warn('[SAM] Failed to load feature flags:', error.message);
       });
   }
+
+  // Initialize SAM Realtime Server (WebSocket/SSE infrastructure)
+  // Gated by SAM_FEATURES.WEBSOCKET_ENABLED feature flag
+  // This starts the server-side realtime infrastructure for:
+  // - Presence tracking (user online/offline status)
+  // - Push delivery queue (persisted to database)
+  // - Intervention dispatcher (real-time notifications)
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    import('@/lib/sam/feature-flags')
+      .then(({ SAM_FEATURES }) => {
+        if (SAM_FEATURES.WEBSOCKET_ENABLED) {
+          import('@/lib/sam/realtime')
+            .then(({ getSAMRealtimeServer }) => {
+              try {
+                const realtimeServer = getSAMRealtimeServer();
+                realtimeServer.start();
+                console.log('[SAM] Realtime server started (push dispatcher active)');
+
+                // Log configuration status
+                const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+                if (wsUrl) {
+                  console.log(`[SAM] WebSocket URL configured: ${wsUrl}`);
+                } else {
+                  console.log('[SAM] WebSocket URL not configured, using SSE fallback');
+                }
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                console.warn('[SAM] Failed to start realtime server:', errorMessage);
+              }
+            })
+            .catch((error) => {
+              console.warn('[SAM] Failed to load realtime module:', error.message);
+            });
+        } else {
+          console.log('[SAM] Realtime server disabled (SAM_WEBSOCKET_ENABLED=false)');
+        }
+      })
+      .catch((error) => {
+        console.warn('[SAM] Failed to load feature flags:', error.message);
+      });
+  }
 }

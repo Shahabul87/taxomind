@@ -92,3 +92,126 @@ spec:
                   else
                     curl -sS "${APP_BASE_URL}/api/cron/sam-analytics-rollups?period=daily"
                   fi
+
+---
+# SAM Realtime Server Deployment
+# This deployment runs the SAM realtime infrastructure for:
+# - Presence tracking (user online/offline status)
+# - Push delivery queue processing
+# - Real-time intervention delivery
+#
+# Enable by setting SAM_WEBSOCKET_ENABLED=true
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sam-realtime-server
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: sam-realtime
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taxomind
+      component: sam-realtime
+  template:
+    metadata:
+      labels:
+        app: taxomind
+        component: sam-realtime
+    spec:
+      containers:
+        - name: sam-realtime
+          image: taxomind-app:latest  # Same image as main app
+          ports:
+            - containerPort: 3001
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3001"
+            - name: SAM_WEBSOCKET_ENABLED
+              value: "true"
+            - name: SAM_REALTIME_MODE
+              value: "server"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-secrets
+                  key: database-url
+            - name: CRON_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: taxomind-secrets
+                  key: cron-secret
+                  optional: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /api/sam/realtime/status
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/sam/realtime/status
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sam-realtime-service
+  namespace: taxomind
+  labels:
+    app: taxomind
+    component: sam-realtime
+spec:
+  selector:
+    app: taxomind
+    component: sam-realtime
+  ports:
+    - port: 3001
+      targetPort: 3001
+      name: http
+  type: ClusterIP
+
+---
+# Ingress for WebSocket/SSE connections
+# Configure your ingress controller to support WebSocket upgrade
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sam-realtime-ingress
+  namespace: taxomind
+  annotations:
+    # For nginx ingress controller
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    # Enable WebSocket support
+    nginx.ingress.kubernetes.io/websocket-services: "sam-realtime-service"
+    # Disable buffering for SSE
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  rules:
+    - host: api.taxomind.com  # Update with your domain
+      http:
+        paths:
+          - path: /api/sam/realtime
+            pathType: Prefix
+            backend:
+              service:
+                name: sam-realtime-service
+                port:
+                  number: 3001

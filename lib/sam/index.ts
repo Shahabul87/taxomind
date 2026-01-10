@@ -681,25 +681,28 @@ export {
   type SafeEvaluationWrapperConfig,
 } from './safety';
 
-// Real-Time Integration - WebSocket, Presence, Push Dispatcher (Phase 4)
+// Real-Time Integration - Client-Side Only (Browser-Safe)
+// NOTE: For server-side realtime (SAMRealtimeServer, pushProactiveIntervention),
+// import directly from '@/lib/sam/realtime' in server components/API routes
 export {
-  // Client-side manager
+  // Client-side manager (browser-safe, no Prisma)
   SAMRealtimeClient,
   createSAMRealtimeClient,
   getSAMRealtimeClient,
-  // Server-side manager
-  SAMRealtimeServer,
-  createSAMRealtimeServer,
-  getSAMRealtimeServer,
-  // Singleton management
-  resetSAMRealtimeInstances,
-  // Integration with ProactiveScheduler
-  pushProactiveIntervention,
+  resetSAMRealtimeClientInstance,
+  // Helper functions
+  isWebSocketEnabled,
   // Display configs
   DEFAULT_DISPLAY_CONFIGS,
-  // Types
+  // Types (browser-safe)
   type SAMRealtimeConfig,
-} from './realtime';
+  type SAMWebSocketEvent,
+  type UserPresence,
+  type InterventionQueue,
+  type InterventionUIState,
+  SAMEventType,
+  DeliveryChannel,
+} from './realtime/client';
 
 // Telemetry Integration - Observability and Metrics (Phase 5)
 export {

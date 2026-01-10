@@ -1,5 +1,5 @@
 import { SAMDatabaseAdapter, QueryOptions, SAMUser, SAMCourse, SAMChapter, SAMSection, SAMQuestion, SAMBloomsProgress, SAMCognitiveProgress, SAMInteractionLog, SAMCourseAnalysis, TransactionContext } from '@sam-ai/core';
-import { PresenceStore, UserPresence, PresenceStatus, ToolExecutionEvent, ToolMetrics, ConfidencePrediction, VerificationMethod, CalibrationMetrics, MemoryRetrievalEvent, MemoryQualityMetrics, PlanLifecycleEvent } from '@sam-ai/agentic';
+import { PresenceStore, UserPresence, PresenceStatus, PushQueueStore, PushDeliveryRequest, PushDeliveryResult, PushQueueStats, ToolExecutionEvent, ToolMetrics, ConfidencePrediction, VerificationMethod, CalibrationMetrics, MemoryRetrievalEvent, MemoryQualityMetrics, PlanLifecycleEvent } from '@sam-ai/agentic';
 
 /**
  * Prisma SAM Database Adapter
@@ -501,9 +501,9 @@ declare function createPrismaGoldenTestStore(config: PrismaGoldenTestStoreConfig
 
 interface PrismaPresenceStoreConfig {
     /** Prisma client instance */
-    prisma: PrismaClient$1;
+    prisma: PrismaClient$2;
 }
-type PrismaClient$1 = {
+type PrismaClient$2 = {
     sAMUserPresence: {
         findUnique: (args: Record<string, unknown>) => Promise<PrismaPresenceRecord | null>;
         findMany: (args: Record<string, unknown>) => Promise<PrismaPresenceRecord[]>;
@@ -550,6 +550,99 @@ declare class PrismaPresenceStore implements PresenceStore {
     cleanup(olderThan: Date): Promise<number>;
 }
 declare function createPrismaPresenceStore(config: PrismaPresenceStoreConfig): PrismaPresenceStore;
+
+/**
+ * @sam-ai/adapter-prisma - Push Queue Store
+ * Database-backed implementation for persistent push notification queue
+ */
+
+interface PrismaPushQueueStoreConfig {
+    /** Prisma client instance */
+    prisma: PrismaClient$1;
+}
+type PrismaClient$1 = {
+    sAMPushQueue: {
+        create: (args: Record<string, unknown>) => Promise<PrismaPushQueueRecord>;
+        findMany: (args: Record<string, unknown>) => Promise<PrismaPushQueueRecord[]>;
+        findUnique: (args: Record<string, unknown>) => Promise<PrismaPushQueueRecord | null>;
+        update: (args: Record<string, unknown>) => Promise<PrismaPushQueueRecord>;
+        updateMany: (args: Record<string, unknown>) => Promise<{
+            count: number;
+        }>;
+        delete: (args: Record<string, unknown>) => Promise<PrismaPushQueueRecord>;
+        deleteMany: (args: Record<string, unknown>) => Promise<{
+            count: number;
+        }>;
+        count: (args?: Record<string, unknown>) => Promise<number>;
+    };
+    sAMPushDeliveryResult: {
+        create: (args: Record<string, unknown>) => Promise<PrismaPushDeliveryResultRecord>;
+        findMany: (args: Record<string, unknown>) => Promise<PrismaPushDeliveryResultRecord[]>;
+        aggregate: (args: Record<string, unknown>) => Promise<{
+            _avg: {
+                processingTimeMs: number | null;
+            };
+        }>;
+    };
+};
+interface PrismaPushQueueRecord {
+    id: string;
+    userId: string;
+    eventType: string;
+    eventPayload: unknown;
+    eventId: string;
+    priority: string;
+    channels: string[];
+    fallbackChannels: string[];
+    status: string;
+    attempts: number;
+    maxAttempts: number;
+    queuedAt: Date;
+    processingAt: Date | null;
+    lastAttemptAt: Date | null;
+    expiresAt: Date | null;
+    deliveredVia: string | null;
+    deliveredAt: Date | null;
+    acknowledgedAt: Date | null;
+    error: string | null;
+    metadata: unknown;
+}
+interface PrismaPushDeliveryResultRecord {
+    id: string;
+    queueItemId: string;
+    userId: string;
+    success: boolean;
+    deliveredVia: string | null;
+    attemptedChannels: string[];
+    error: string | null;
+    deliveredAt: Date;
+    acknowledgedAt: Date | null;
+    processingTimeMs: number | null;
+}
+declare class PrismaPushQueueStore implements PushQueueStore {
+    private prisma;
+    constructor(config: PrismaPushQueueStoreConfig);
+    enqueue(request: PushDeliveryRequest): Promise<void>;
+    dequeue(count: number): Promise<PushDeliveryRequest[]>;
+    peek(count: number): Promise<PushDeliveryRequest[]>;
+    acknowledge(requestId: string, result: PushDeliveryResult): Promise<void>;
+    requeue(request: PushDeliveryRequest): Promise<void>;
+    getStats(): Promise<PushQueueStats>;
+    cleanup(olderThan: Date): Promise<number>;
+    /**
+     * Get queue items for a specific user
+     */
+    getByUser(userId: string, status?: string): Promise<PushDeliveryRequest[]>;
+    /**
+     * Get a specific queue item by ID
+     */
+    get(id: string): Promise<PushDeliveryRequest | null>;
+    /**
+     * Cancel a pending queue item
+     */
+    cancel(id: string): Promise<boolean>;
+}
+declare function createPrismaPushQueueStore(config: PrismaPushQueueStoreConfig): PrismaPushQueueStore;
 
 /**
  * @sam-ai/adapter-prisma - Observability Store
@@ -871,4 +964,4 @@ declare function generatePrismaSchema(options?: {
 
 declare const VERSION = "0.1.0";
 
-export { type PrismaClientLike, PrismaConfidenceCalibrationStore, PrismaGoldenTestStore, type PrismaGoldenTestStoreConfig, PrismaMemoryQualityStore, PrismaMemoryStore, type PrismaMemoryStoreConfig, PrismaMetricsStore, type PrismaObservabilityStoreConfig, PrismaPlanLifecycleStore, PrismaPresenceStore, type PrismaPresenceStoreConfig, PrismaReviewScheduleStore, type PrismaReviewScheduleStoreConfig, PrismaSAMAdapter, type PrismaSAMAdapterConfig, PrismaSampleStore, type PrismaSampleStoreConfig, PrismaStudentProfileStore, type PrismaStudentProfileStoreConfig, PrismaToolTelemetryStore, type SAMPrismaAdapters, type SAMPrismaAdaptersConfig, SAM_PRISMA_MODELS, VERSION, createPrismaGoldenTestStore, createPrismaMemoryStore, createPrismaObservabilityStores, createPrismaPresenceStore, createPrismaReviewScheduleStore, createPrismaSAMAdapter, createPrismaSampleStore, createPrismaStudentProfileStore, createSAMPrismaAdapters, generatePrismaSchema };
+export { type PrismaClientLike, PrismaConfidenceCalibrationStore, PrismaGoldenTestStore, type PrismaGoldenTestStoreConfig, PrismaMemoryQualityStore, PrismaMemoryStore, type PrismaMemoryStoreConfig, PrismaMetricsStore, type PrismaObservabilityStoreConfig, PrismaPlanLifecycleStore, PrismaPresenceStore, type PrismaPresenceStoreConfig, PrismaPushQueueStore, type PrismaPushQueueStoreConfig, PrismaReviewScheduleStore, type PrismaReviewScheduleStoreConfig, PrismaSAMAdapter, type PrismaSAMAdapterConfig, PrismaSampleStore, type PrismaSampleStoreConfig, PrismaStudentProfileStore, type PrismaStudentProfileStoreConfig, PrismaToolTelemetryStore, type SAMPrismaAdapters, type SAMPrismaAdaptersConfig, SAM_PRISMA_MODELS, VERSION, createPrismaGoldenTestStore, createPrismaMemoryStore, createPrismaObservabilityStores, createPrismaPresenceStore, createPrismaPushQueueStore, createPrismaReviewScheduleStore, createPrismaSAMAdapter, createPrismaSampleStore, createPrismaStudentProfileStore, createSAMPrismaAdapters, generatePrismaSchema };

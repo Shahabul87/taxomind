@@ -1143,3 +1143,79 @@ model SAMFeedback {
   @@index([rating, createdAt])
   @@map("sam_feedback")
 }
+
+// ============================================================================
+// PUSH QUEUE MODELS
+// Persistent queue for real-time push notifications and events
+// ============================================================================
+
+model SAMPushQueue {
+  id                String              @id @default(cuid())
+  userId            String
+
+  // Event payload (serialized SAMWebSocketEvent)
+  eventType         String              // Event type (e.g., 'intervention', 'checkin', 'recommendation')
+  eventPayload      Json                // Full event payload
+  eventId           String              // Original event ID
+
+  // Delivery configuration
+  priority          SAMDeliveryPriority @default(NORMAL)
+  channels          SAMDeliveryChannel[] @default([IN_APP])
+  fallbackChannels  SAMDeliveryChannel[] @default([])
+
+  // Queue status
+  status            SAMPushQueueStatus  @default(PENDING)
+  attempts          Int                 @default(0)
+  maxAttempts       Int                 @default(3)
+
+  // Timing
+  queuedAt          DateTime            @default(now())
+  processingAt      DateTime?
+  lastAttemptAt     DateTime?
+  expiresAt         DateTime?
+
+  // Delivery result
+  deliveredVia      SAMDeliveryChannel?
+  deliveredAt       DateTime?
+  acknowledgedAt    DateTime?
+  error             String?             @db.Text
+
+  // Metadata
+  metadata          Json?
+
+  // Relations
+  user              User                @relation("SAMPushQueue", fields: [userId], references: [id], onDelete: Cascade)
+  result            SAMPushDeliveryResult?
+
+  @@index([userId, status])
+  @@index([status, priority, queuedAt])
+  @@index([expiresAt])
+  @@map("sam_push_queue")
+}
+
+model SAMPushDeliveryResult {
+  id                String              @id @default(cuid())
+  queueItemId       String              @unique
+  userId            String
+
+  // Result
+  success           Boolean
+  deliveredVia      SAMDeliveryChannel?
+  attemptedChannels SAMDeliveryChannel[] @default([])
+  error             String?             @db.Text
+
+  // Timing
+  deliveredAt       DateTime            @default(now())
+  acknowledgedAt    DateTime?
+
+  // Processing metrics
+  processingTimeMs  Int?
+
+  // Relations
+  queueItem         SAMPushQueue        @relation(fields: [queueItemId], references: [id], onDelete: Cascade)
+  user              User                @relation("SAMPushDeliveryResults", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, deliveredAt])
+  @@index([success, deliveredAt])
+  @@map("sam_push_delivery_results")
+}

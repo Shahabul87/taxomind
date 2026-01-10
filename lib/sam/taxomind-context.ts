@@ -56,12 +56,13 @@ import {
   createPrismaSkillBuildTrackStore,
 } from './stores';
 
-// Import adapter-prisma stores for observability, presence, student profile, review schedule
+// Import adapter-prisma stores for observability, presence, student profile, review schedule, push queue
 import {
   createPrismaObservabilityStores,
   createPrismaPresenceStore,
   createPrismaStudentProfileStore,
   createPrismaReviewScheduleStore,
+  createPrismaPushQueueStore,
   type PrismaToolTelemetryStore,
   type PrismaConfidenceCalibrationStore,
   type PrismaMemoryQualityStore,
@@ -70,6 +71,7 @@ import {
   type PrismaPresenceStore,
   type PrismaStudentProfileStore,
   type PrismaReviewScheduleStore,
+  type PrismaPushQueueStore,
 } from '@sam-ai/adapter-prisma';
 
 // Import class types from stores (for stores that return class types)
@@ -159,6 +161,9 @@ export interface TaxomindAgenticStores {
 
   // Review Schedule (spaced repetition)
   reviewSchedule: PrismaReviewScheduleStore;
+
+  // Push Queue (persistent push notification queue)
+  pushQueue: PrismaPushQueueStore;
 }
 
 /**
@@ -245,6 +250,10 @@ function initializeStores(): TaxomindAgenticStores {
     // Review Schedule (spaced repetition)
     // Type cast required due to Prisma client extensions
     reviewSchedule: createPrismaReviewScheduleStore({ prisma: db as Parameters<typeof createPrismaReviewScheduleStore>[0]['prisma'] }),
+
+    // Push Queue (persistent push notification queue)
+    // Type cast through unknown required due to extended Prisma client type mismatch
+    pushQueue: createPrismaPushQueueStore({ prisma: db as unknown as Parameters<typeof createPrismaPushQueueStore>[0]['prisma'] }),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {
@@ -453,6 +462,13 @@ export function getReviewScheduleStore(): PrismaReviewScheduleStore {
   return getTaxomindContext().stores.reviewSchedule;
 }
 
+/**
+ * Get push queue store for persistent push notifications
+ */
+export function getPushQueueStore(): PrismaPushQueueStore {
+  return getTaxomindContext().stores.pushQueue;
+}
+
 // Re-export store types for external use
 export type {
   // From @sam-ai/agentic (interface types)
@@ -481,7 +497,7 @@ export type {
   PrismaLearningPlanStore,
   PrismaTutoringSessionStore,
   PrismaSkillBuildTrackStore,
-  // From @sam-ai/adapter-prisma (observability, presence, profile, review)
+  // From @sam-ai/adapter-prisma (observability, presence, profile, review, push queue)
   PrismaToolTelemetryStore,
   PrismaConfidenceCalibrationStore,
   PrismaMemoryQualityStore,
@@ -490,4 +506,5 @@ export type {
   PrismaPresenceStore,
   PrismaStudentProfileStore,
   PrismaReviewScheduleStore,
+  PrismaPushQueueStore,
 };

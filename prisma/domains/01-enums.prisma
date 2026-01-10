@@ -1241,6 +1241,32 @@ enum SAMPresenceChangeReason {
   SESSION_END
 }
 
+// Push queue delivery channel
+enum SAMDeliveryChannel {
+  WEBSOCKET
+  SSE
+  PUSH_NOTIFICATION
+  EMAIL
+  IN_APP
+}
+
+// Push queue delivery priority
+enum SAMDeliveryPriority {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
+}
+
+// Push queue item status
+enum SAMPushQueueStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+  EXPIRED
+}
+
 // Course skill level (for mapping skills to courses)
 enum CourseSkillLevel {
   BEGINNER

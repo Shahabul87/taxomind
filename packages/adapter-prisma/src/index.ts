@@ -100,6 +100,19 @@ export type {
 } from './presence-store';
 
 // ============================================================================
+// PUSH QUEUE STORE
+// ============================================================================
+
+export {
+  PrismaPushQueueStore,
+  createPrismaPushQueueStore,
+} from './push-queue-store';
+
+export type {
+  PrismaPushQueueStoreConfig,
+} from './push-queue-store';
+
+// ============================================================================
 // OBSERVABILITY STORES
 // ============================================================================
 
