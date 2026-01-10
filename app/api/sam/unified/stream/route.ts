@@ -67,8 +67,6 @@ import {
 import {
   createSpacedRepetitionScheduler,
   createMasteryTracker,
-  getDefaultStudentProfileStore,
-  getDefaultReviewScheduleStore,
   buildMemorySummary,
   type SpacedRepetitionScheduler,
   type MasteryTracker,
@@ -111,10 +109,11 @@ import {
   type OrchestrationResponseData,
 } from '@/lib/sam/orchestration-integration';
 import {
-  createPrismaGoalStore,
-  createPrismaPlanStore,
-  createPrismaToolStore,
-} from '@/lib/sam/stores';
+  getGoalStores,
+  getStore,
+  getStudentProfileStore,
+  getReviewScheduleStore,
+} from '@/lib/sam/taxomind-context';
 import type { VerificationResult } from '@sam-ai/agentic';
 import {
   extractConceptsFromResponse,
@@ -323,21 +322,22 @@ function initializeSubsystems(): StreamingSubsystems {
   // Initialize Pedagogy Pipeline for educational effectiveness
   const pedagogyPipeline = createPedagogicalPipeline({});
 
-  // Initialize Memory Tracking for mastery and spaced repetition
-  const profileStore = getDefaultStudentProfileStore();
-  const reviewStore = getDefaultReviewScheduleStore();
-  const masteryTracker = createMasteryTracker(profileStore);
-  const spacedRepScheduler = createSpacedRepetitionScheduler(reviewStore);
+  // Initialize Memory Tracking for mastery and spaced repetition (using centralized context)
+  // Note: Type casts required due to type drift between adapter-prisma and memory packages
+  const profileStore = getStudentProfileStore();
+  const reviewStore = getReviewScheduleStore();
+  const masteryTracker = createMasteryTracker(profileStore as unknown as Parameters<typeof createMasteryTracker>[0]);
+  const spacedRepScheduler = createSpacedRepetitionScheduler(reviewStore as unknown as Parameters<typeof createSpacedRepetitionScheduler>[0]);
 
   let tutoringOrchestration: OrchestrationSubsystems | null = null;
   try {
-    const goalStore = createPrismaGoalStore();
-    const planStore = createPrismaPlanStore();
-    const toolStore = createPrismaToolStore();
+    // Get stores from centralized context instead of creating new instances
+    const goalStores = getGoalStores();
+    const toolStore = getStore('tool');
 
     tutoringOrchestration = initializeOrchestration({
-      goalStore,
-      planStore,
+      goalStore: goalStores.goal,
+      planStore: goalStores.plan,
       toolStore,
     });
 

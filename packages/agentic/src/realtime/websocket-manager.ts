@@ -3,6 +3,10 @@
  * Portable WebSocket abstraction for real-time SAM communication
  */
 
+// Type-safe window check for universal environments (Node.js + browser)
+const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+const browserWindow = isBrowser ? window : undefined;
+
 import { v4 as uuidv4 } from 'uuid';
 import type {
   ConnectionConfig,
@@ -565,7 +569,8 @@ export class ClientWebSocketManager implements WebSocketManagerInterface {
     }
 
     // For relative URLs or http/https URLs, construct WebSocket URL
-    const url = new URL(configUrl, window.location.origin);
+    const origin = browserWindow?.location.origin ?? 'http://localhost:3000';
+    const url = new URL(configUrl, origin);
     url.protocol = url.protocol.replace('http', 'ws');
 
     if (this.userId) {
@@ -579,7 +584,7 @@ export class ClientWebSocketManager implements WebSocketManagerInterface {
   }
 
   private detectDeviceType(): 'desktop' | 'mobile' | 'tablet' {
-    if (typeof window === 'undefined') return 'desktop';
+    if (!isBrowser) return 'desktop';
 
     const ua = navigator.userAgent.toLowerCase();
     if (/tablet|ipad|playbook|silk/i.test(ua)) return 'tablet';
@@ -588,7 +593,7 @@ export class ClientWebSocketManager implements WebSocketManagerInterface {
   }
 
   private detectBrowser(): string {
-    if (typeof window === 'undefined') return 'unknown';
+    if (!isBrowser) return 'unknown';
 
     const ua = navigator.userAgent;
     if (ua.includes('Chrome')) return 'Chrome';

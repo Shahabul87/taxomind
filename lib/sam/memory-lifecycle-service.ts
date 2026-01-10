@@ -3,6 +3,8 @@
  *
  * Provides a singleton MemoryLifecycleManager for managing memory reindexing
  * and background jobs. Integrates with the VectorStore for content embeddings.
+ *
+ * Phase 3: Infrastructure - Wire to real PgVector adapter from @sam-ai/adapter-taxomind
  */
 
 import {
@@ -13,6 +15,11 @@ import {
   type ContentChangeEvent,
 } from '@sam-ai/agentic';
 import type { VectorAdapter } from '@sam-ai/integration';
+import {
+  createPgVectorAdapter,
+  createOpenAIEmbeddingAdapter,
+} from '@sam-ai/adapter-taxomind';
+import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -94,13 +101,25 @@ function createStubVectorAdapter(): VectorAdapter {
 // ============================================================================
 
 export interface MemoryLifecycleServiceConfig {
+  /** Custom vector adapter to use (overrides auto-detection) */
   vectorAdapter?: VectorAdapter;
+  /** Use PgVector adapter with Prisma (requires OPENAI_API_KEY) */
+  usePgVector?: boolean;
+  /** OpenAI API key for embeddings (defaults to OPENAI_API_KEY env var) */
+  openaiApiKey?: string;
+  /** OpenAI embedding model (defaults to text-embedding-3-small) */
+  embeddingModel?: string;
+  /** SAMMemory table name for vector storage */
+  tableName?: string;
+  /** Lifecycle configuration overrides */
   lifecycleConfig?: Partial<MemoryLifecycleConfig>;
 }
 
 /**
  * Initialize the Memory Lifecycle Service
  * Should be called during application startup
+ *
+ * By default, attempts to use PgVector adapter if OPENAI_API_KEY is available
  */
 export function initializeMemoryLifecycle(
   config?: MemoryLifecycleServiceConfig
@@ -110,8 +129,59 @@ export function initializeMemoryLifecycle(
     return lifecycleManager;
   }
 
-  // Use provided adapter or fall back to stub
-  const vectorAdapter = config?.vectorAdapter ?? createStubVectorAdapter();
+  // Determine which vector adapter to use
+  let vectorAdapter: VectorAdapter;
+
+  if (config?.vectorAdapter) {
+    // Use explicitly provided adapter
+    vectorAdapter = config.vectorAdapter;
+    logger.info('[MemoryLifecycle] Using provided vector adapter');
+  } else {
+    // Check if we should use PgVector (default: true if OPENAI_API_KEY is available)
+    const usePgVector = config?.usePgVector ?? Boolean(process.env.OPENAI_API_KEY);
+    const openaiApiKey = config?.openaiApiKey ?? process.env.OPENAI_API_KEY;
+
+    if (usePgVector && openaiApiKey) {
+      try {
+        // Create embedding adapter for vector generation
+        const embeddingAdapter = createOpenAIEmbeddingAdapter({
+          apiKey: openaiApiKey,
+          model: config?.embeddingModel ?? 'text-embedding-3-small',
+        });
+
+        // Create PgVector adapter with Prisma and embedding support
+        // Note: Type cast through unknown due to Prisma client extensions
+        vectorAdapter = createPgVectorAdapter(
+          db as unknown as Parameters<typeof createPgVectorAdapter>[0],
+          {
+            tableName: config?.tableName ?? 'SAMMemory',
+            embeddingColumn: 'embedding',
+            contentColumn: 'content',
+          }
+        );
+
+        // Set the embedding provider on the adapter if supported
+        if ('embeddingProvider' in vectorAdapter) {
+          (vectorAdapter as { embeddingProvider?: unknown }).embeddingProvider = embeddingAdapter;
+        }
+
+        logger.info('[MemoryLifecycle] Using PgVector adapter with OpenAI embeddings');
+      } catch (error) {
+        logger.warn('[MemoryLifecycle] Failed to initialize PgVector adapter, falling back to stub', {
+          error: error instanceof Error ? error.message : 'Unknown',
+        });
+        vectorAdapter = createStubVectorAdapter();
+      }
+    } else {
+      // Fall back to stub adapter
+      vectorAdapter = createStubVectorAdapter();
+      if (usePgVector && !openaiApiKey) {
+        logger.warn('[MemoryLifecycle] PgVector requested but OPENAI_API_KEY not set, using stub adapter');
+      } else {
+        logger.debug('[MemoryLifecycle] Using stub vector adapter');
+      }
+    }
+  }
 
   lifecycleManager = createMemoryLifecycleManager({
     vectorAdapter,

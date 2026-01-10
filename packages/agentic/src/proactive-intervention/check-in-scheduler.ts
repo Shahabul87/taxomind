@@ -54,6 +54,14 @@ export class InMemoryCheckInStore implements CheckInStore {
     );
   }
 
+  async getAllScheduled(from: Date, to: Date): Promise<ScheduledCheckIn[]> {
+    return Array.from(this.checkIns.values()).filter(
+      (checkIn) =>
+        checkIn.scheduledTime >= from &&
+        checkIn.scheduledTime <= to
+    );
+  }
+
   async create(
     checkIn: Omit<ScheduledCheckIn, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<ScheduledCheckIn> {
@@ -82,6 +90,16 @@ export class InMemoryCheckInStore implements CheckInStore {
     };
     this.checkIns.set(id, updatedCheckIn);
     return updatedCheckIn;
+  }
+
+  async updateStatus(id: string, status: CheckInStatus): Promise<void> {
+    const checkIn = this.checkIns.get(id);
+    if (!checkIn) {
+      throw new Error(`Check-in not found: ${id}`);
+    }
+    checkIn.status = status;
+    checkIn.updatedAt = new Date();
+    this.checkIns.set(id, checkIn);
   }
 
   async delete(id: string): Promise<boolean> {

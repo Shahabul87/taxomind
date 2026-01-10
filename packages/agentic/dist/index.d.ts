@@ -6738,8 +6738,11 @@ interface CheckInStore {
     get(id: string): Promise<ScheduledCheckIn | null>;
     getByUser(userId: string, status?: CheckInStatus): Promise<ScheduledCheckIn[]>;
     getScheduled(userId: string, from: Date, to: Date): Promise<ScheduledCheckIn[]>;
+    /** Get all scheduled check-ins across all users within a time range (for cron jobs) */
+    getAllScheduled(from: Date, to: Date): Promise<ScheduledCheckIn[]>;
     create(checkIn: Omit<ScheduledCheckIn, 'id' | 'createdAt' | 'updatedAt'>): Promise<ScheduledCheckIn>;
     update(id: string, updates: Partial<ScheduledCheckIn>): Promise<ScheduledCheckIn>;
+    updateStatus(id: string, status: CheckInStatus): Promise<ScheduledCheckIn | void>;
     delete(id: string): Promise<boolean>;
     recordResponse(id: string, response: CheckInResponse): Promise<void>;
     getResponses(checkInId: string): Promise<CheckInResponse[]>;
@@ -7139,8 +7142,10 @@ declare class InMemoryCheckInStore implements CheckInStore {
     get(id: string): Promise<ScheduledCheckIn | null>;
     getByUser(userId: string, status?: CheckInStatus): Promise<ScheduledCheckIn[]>;
     getScheduled(userId: string, from: Date, to: Date): Promise<ScheduledCheckIn[]>;
+    getAllScheduled(from: Date, to: Date): Promise<ScheduledCheckIn[]>;
     create(checkIn: Omit<ScheduledCheckIn, 'id' | 'createdAt' | 'updatedAt'>): Promise<ScheduledCheckIn>;
     update(id: string, updates: Partial<ScheduledCheckIn>): Promise<ScheduledCheckIn>;
+    updateStatus(id: string, status: CheckInStatus): Promise<void>;
     delete(id: string): Promise<boolean>;
     recordResponse(id: string, response: CheckInResponse): Promise<void>;
     getResponses(checkInId: string): Promise<CheckInResponse[]>;

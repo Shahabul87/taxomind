@@ -1,6 +1,27 @@
 /**
  * SAM Engine Core
  * Main orchestrator for the SAM AI Assistant
+ *
+ * @deprecated This package is DEPRECATED in favor of the new @sam-ai/* packages.
+ *
+ * Migration Guide:
+ * - Goal Planning & Tool Execution: Use `@sam-ai/agentic`
+ * - Orchestration & AI Adapters: Use `@sam-ai/core`
+ * - Educational Engines: Use `@sam-ai/educational`
+ * - Memory & Mastery: Use `@sam-ai/memory`
+ * - Pedagogy (Bloom's, ZPD): Use `@sam-ai/pedagogy`
+ * - React Hooks: Use `@sam-ai/react`
+ * - API Routes: Use `@sam-ai/api`
+ *
+ * Integration in Taxomind:
+ * - All stores are centralized in `lib/sam/taxomind-context.ts`
+ * - Use `getTaxomindContext()` or `getStore()` for store access
+ * - See `codebase-memory/architecture/SAM_AGENTIC_ARCHITECTURE.md` for details
+ *
+ * This package contains placeholder AI providers and will NOT be maintained.
+ * The new @sam-ai/* packages provide full production implementations.
+ *
+ * @version 1.0.0 (DEPRECATED - DO NOT USE IN NEW CODE)
  */
 
 import { BaseEngine } from './base-engine';
@@ -17,6 +38,10 @@ import type {
   FeatureFlags
 } from './types';
 
+/**
+ * @deprecated Use @sam-ai/agentic and @sam-ai/core instead.
+ * This class will be removed in a future version.
+ */
 export class SAMEngine extends BaseEngine {
   public name = 'SAMEngine';
   private conversations: Map<string, Conversation> = new Map();
@@ -28,6 +53,13 @@ export class SAMEngine extends BaseEngine {
   constructor(config: SAMEngineConfig = {}) {
     super(config);
     this.featureFlags = this.extractFeatureFlags(config);
+
+    // Deprecation warning
+    console.warn(
+      '[SAMEngine] DEPRECATED: This package is deprecated. ' +
+      'Please migrate to @sam-ai/agentic and @sam-ai/core. ' +
+      'See lib/sam/taxomind-context.ts for the new integration pattern.'
+    );
   }
 
   /**

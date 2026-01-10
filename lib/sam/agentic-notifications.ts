@@ -1,8 +1,30 @@
+/**
+ * SAM Agentic Notifications
+ * Multi-channel notification system for SAM AI interventions
+ *
+ * Phase 4: Advanced Features - Notification delivery system
+ *
+ * Channel Status:
+ * ✅ in_app  - Stored in Notification table + realtime cache (FULLY IMPLEMENTED)
+ * ✅ email   - Via Resend API (IMPLEMENTED - requires RESEND_API_KEY)
+ * ⏳ push    - FCM/APNs (NOT IMPLEMENTED - requires service worker + device tokens)
+ * ⏳ sms     - Twilio (NOT IMPLEMENTED - requires TWILIO_* credentials)
+ *
+ * Auto Channel Selection:
+ * - Online users: in_app only (realtime)
+ * - Offline users: in_app + email (ensures delivery)
+ * - Critical priority: all available channels
+ */
+
 import { Resend } from 'resend';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { realTimeCacheManager, RealTimeCacheUtils } from '@/lib/redis/realtime-cache';
 import type { Intervention } from '@sam-ai/agentic';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 /**
  * Notification channels for SAM AI interventions
@@ -31,6 +53,63 @@ interface AgenticNotificationResult {
   emailId?: string;
 }
 
+export interface NotificationCapabilities {
+  in_app: { enabled: true };
+  email: { enabled: boolean; reason?: string };
+  push: { enabled: false; reason: string };
+  sms: { enabled: false; reason: string };
+}
+
+// ============================================================================
+// CAPABILITIES CHECK
+// ============================================================================
+
+/**
+ * Get the current notification capabilities
+ * Useful for UI to show which channels are available
+ */
+export function getNotificationCapabilities(): NotificationCapabilities {
+  return {
+    in_app: { enabled: true },
+    email: {
+      enabled: Boolean(process.env.RESEND_API_KEY),
+      reason: process.env.RESEND_API_KEY
+        ? undefined
+        : 'RESEND_API_KEY not configured',
+    },
+    push: {
+      enabled: false,
+      reason: 'FCM/APNs integration pending - requires service worker setup',
+    },
+    sms: {
+      enabled: false,
+      reason: 'Twilio integration pending - requires TWILIO_* credentials',
+    },
+  };
+}
+
+/**
+ * Check if a specific notification channel is available
+ */
+export function isChannelAvailable(channel: AgenticNotificationChannel): boolean {
+  const capabilities = getNotificationCapabilities();
+  return capabilities[channel].enabled;
+}
+
+/**
+ * Get list of all available notification channels
+ */
+export function getAvailableChannels(): AgenticNotificationChannel[] {
+  const capabilities = getNotificationCapabilities();
+  return (Object.keys(capabilities) as AgenticNotificationChannel[]).filter(
+    (channel) => capabilities[channel].enabled
+  );
+}
+
+// ============================================================================
+// SINGLETON CLIENTS
+// ============================================================================
+
 let resendClient: Resend | null = null;
 
 const getResendClient = () => {
@@ -41,6 +120,17 @@ const getResendClient = () => {
   return resendClient;
 };
 
+// ============================================================================
+// CHANNEL RESOLUTION
+// ============================================================================
+
+/**
+ * Resolve which channels to use for a notification
+ * Auto mode uses presence detection to determine optimal channels:
+ * - Online users: in_app only
+ * - Offline users: in_app + email
+ * - Critical priority: all available channels
+ */
 const resolveChannels = async (
   payload: AgenticNotificationPayload
 ): Promise<AgenticNotificationChannel[]> => {
@@ -54,7 +144,10 @@ const resolveChannels = async (
   );
 
   if (!hasAuto) {
-    return fixedChannels.length > 0 ? fixedChannels : ['in_app'];
+    // Filter to only available channels
+    const available = getAvailableChannels();
+    const validChannels = fixedChannels.filter(c => available.includes(c));
+    return validChannels.length > 0 ? validChannels : ['in_app'];
   }
 
   const presence = await realTimeCacheManager.getUserPresence(payload.userId);
@@ -63,8 +156,20 @@ const resolveChannels = async (
   const channels = new Set<AgenticNotificationChannel>(fixedChannels);
   channels.add('in_app');
 
-  if (!isOnline) {
+  // Offline users get email too
+  if (!isOnline && isChannelAvailable('email')) {
     channels.add('email');
+  }
+
+  // Critical priority: use all available channels
+  if (payload.priority === 'critical') {
+    for (const channel of getAvailableChannels()) {
+      channels.add(channel);
+    }
+    logger.info('[SAM_NOTIFICATIONS] Critical priority - using all available channels', {
+      userId: payload.userId,
+      channels: Array.from(channels),
+    });
   }
 
   return Array.from(channels);
@@ -89,6 +194,10 @@ const mapRealtimePriority = (
       return 'medium';
   }
 };
+
+// ============================================================================
+// SEND NOTIFICATION
+// ============================================================================
 
 export async function sendAgenticNotification(
   payload: AgenticNotificationPayload
@@ -195,6 +304,10 @@ export async function sendAgenticNotification(
 
   return { channelsSent, inAppId, emailId };
 }
+
+// ============================================================================
+// INTERVENTION DISPATCH
+// ============================================================================
 
 const interventionTitles: Record<string, string> = {
   encouragement: 'SAM Encouragement',

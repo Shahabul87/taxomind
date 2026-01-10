@@ -18,7 +18,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { PrismaCheckInStore } from '@/lib/sam/stores';
+import { getStore } from '@/lib/sam/taxomind-context';
 import { sendAgenticNotification } from '@/lib/sam/agentic-notifications';
 import {
   createCheckInScheduler,
@@ -31,8 +31,8 @@ import {
 // Cron secret for authorization (set in environment variables)
 const CRON_SECRET = process.env.CRON_SECRET;
 
-// Initialize stores
-const checkInStore = new PrismaCheckInStore();
+// Get check-in store from centralized context (singleton, not new instance)
+const getCheckInStore = () => getStore('checkIn');
 
 // Lazy initialize check-in scheduler
 let checkInSchedulerInstance: ReturnType<typeof createCheckInScheduler> | null = null;
@@ -40,7 +40,7 @@ let checkInSchedulerInstance: ReturnType<typeof createCheckInScheduler> | null =
 function getCheckInScheduler() {
   if (!checkInSchedulerInstance) {
     checkInSchedulerInstance = createCheckInScheduler({
-      store: checkInStore,
+      store: getCheckInStore(),
       logger: console,
       defaultChannel: NotificationChannel.IN_APP,
     });
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
 
     // Get all pending check-ins that are due
     const now = new Date();
-    const pendingCheckIns = await checkInStore.getAllScheduled(
+    const pendingCheckIns = await getCheckInStore().getAllScheduled(
       new Date(0), // From beginning
       now // Up to now
     );
@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
 
         if (notificationSent) {
           // Mark as sent using the store
-          await checkInStore.updateStatus(checkIn.id, CheckInStatus.SENT);
+          await getCheckInStore().updateStatus(checkIn.id, CheckInStatus.SENT);
           results.sent++;
           logger.info(`Sent check-in ${checkIn.id} to user ${checkIn.userId}`);
         } else {
@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
     let expired = 0;
 
     try {
-      const oldPendingCheckIns = await checkInStore.getAllScheduled(
+      const oldPendingCheckIns = await getCheckInStore().getAllScheduled(
         new Date(0),
         expirationThreshold
       );
@@ -181,7 +181,7 @@ export async function GET(req: NextRequest) {
       );
 
       for (const checkIn of toExpire) {
-        await checkInStore.updateStatus(checkIn.id, CheckInStatus.EXPIRED);
+        await getCheckInStore().updateStatus(checkIn.id, CheckInStatus.EXPIRED);
         expired++;
       }
 

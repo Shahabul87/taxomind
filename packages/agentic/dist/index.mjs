@@ -12721,6 +12721,11 @@ var InMemoryCheckInStore = class {
       (checkIn) => checkIn.userId === userId && checkIn.status === CheckInStatus.SCHEDULED && checkIn.scheduledTime >= from && checkIn.scheduledTime <= to
     );
   }
+  async getAllScheduled(from, to) {
+    return Array.from(this.checkIns.values()).filter(
+      (checkIn) => checkIn.scheduledTime >= from && checkIn.scheduledTime <= to
+    );
+  }
   async create(checkIn) {
     const now = /* @__PURE__ */ new Date();
     const newCheckIn = {
@@ -12746,6 +12751,15 @@ var InMemoryCheckInStore = class {
     };
     this.checkIns.set(id, updatedCheckIn);
     return updatedCheckIn;
+  }
+  async updateStatus(id, status) {
+    const checkIn = this.checkIns.get(id);
+    if (!checkIn) {
+      throw new Error(`Check-in not found: ${id}`);
+    }
+    checkIn.status = status;
+    checkIn.updatedAt = /* @__PURE__ */ new Date();
+    this.checkIns.set(id, checkIn);
   }
   async delete(id) {
     return this.checkIns.delete(id);
@@ -21802,6 +21816,8 @@ function createInMemoryPushQueueStore() {
 }
 
 // src/realtime/websocket-manager.ts
+var isBrowser = typeof window !== "undefined" && typeof document !== "undefined";
+var browserWindow = isBrowser ? window : void 0;
 var ClientWebSocketManager = class {
   config;
   logger;
@@ -22195,7 +22211,8 @@ var ClientWebSocketManager = class {
       }
       return url2.toString();
     }
-    const url = new URL(configUrl, window.location.origin);
+    const origin = browserWindow?.location.origin ?? "http://localhost:3000";
+    const url = new URL(configUrl, origin);
     url.protocol = url.protocol.replace("http", "ws");
     if (this.userId) {
       url.searchParams.set("userId", this.userId);
@@ -22206,14 +22223,14 @@ var ClientWebSocketManager = class {
     return url.toString();
   }
   detectDeviceType() {
-    if (typeof window === "undefined") return "desktop";
+    if (!isBrowser) return "desktop";
     const ua = navigator.userAgent.toLowerCase();
     if (/tablet|ipad|playbook|silk/i.test(ua)) return "tablet";
     if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) return "mobile";
     return "desktop";
   }
   detectBrowser() {
-    if (typeof window === "undefined") return "unknown";
+    if (!isBrowser) return "unknown";
     const ua = navigator.userAgent;
     if (ua.includes("Chrome")) return "Chrome";
     if (ua.includes("Firefox")) return "Firefox";

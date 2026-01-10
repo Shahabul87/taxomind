@@ -1,7 +1,8 @@
 {
   "name": "@taxomind/sam-engine",
   "version": "1.0.0",
-  "description": "SAM (Smart Adaptive Mentor) - Modular AI Educational Assistant Engine",
+  "deprecated": "This package is deprecated. Use @sam-ai/agentic, @sam-ai/core, and other @sam-ai/* packages instead. See lib/sam/taxomind-context.ts for integration.",
+  "description": "[DEPRECATED] SAM (Smart Adaptive Mentor) - Modular AI Educational Assistant Engine. Use @sam-ai/* packages instead.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -20,6 +21,7 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
+    "deprecated",
     "ai",
     "education",
     "assistant",
@@ -27,7 +29,8 @@
     "adaptive-learning",
     "educational-technology",
     "chatbot",
-    "mentor"
+    "mentor",
+    "use-sam-ai-packages"
   ],
   "author": "Taxomind Team",
   "license": "MIT",
