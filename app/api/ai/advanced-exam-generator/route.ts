@@ -1,16 +1,17 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
-import { 
-  AdvancedQuestionGenerator, 
-  QuestionGenerationRequest, 
+import {
+  AdvancedQuestionGenerator,
   EnhancedQuestion,
   ENHANCED_BLOOMS_FRAMEWORK
 } from '@/lib/ai-question-generator';
 import { BloomsLevel, QuestionType } from '@prisma/client';
-import { validateEnvVar, ENV_VARS } from '@/lib/env-validation';
+
+// SAM Exam Generation Service
+import { generateExamWithSAM } from '@/lib/sam/exam-generation/exam-generator-service';
+import type { SAMExamGenerationRequest } from '@/lib/sam/exam-generation/types';
 
 // Type definitions
 interface RawQuestion {
@@ -31,21 +32,9 @@ interface ValidationResult {
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
 
-// Lazy initialize Anthropic client to avoid build-time environment variable errors
-// Railway and other platforms don't expose secrets during Docker builds
-let anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient(): Anthropic {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({
-      apiKey: validateEnvVar(ENV_VARS.ANTHROPIC_API_KEY),
-    });
-  }
-  return anthropicClient;
-}
-
 // Enhanced exam generation request schema
 const AdvancedExamGenerationRequestSchema = z.object({
+  sectionId: z.string().optional(),
   sectionTitle: z.string().min(1, "Section title is required"),
   chapterTitle: z.string().optional(),
   courseTitle: z.string().optional(),
@@ -65,8 +54,12 @@ const AdvancedExamGenerationRequestSchema = z.object({
   assessmentPurpose: z.enum(['formative', 'summative', 'diagnostic']).default('summative'),
   contextualScenarios: z.array(z.string()).optional(),
   userPrompt: z.string().optional(),
+  fileContent: z.string().optional(),
   enableQualityValidation: z.boolean().default(true),
-  autoOptimizeDistribution: z.boolean().default(true)
+  enableSafetyValidation: z.boolean().default(true),
+  enablePedagogicalValidation: z.boolean().default(true),
+  autoOptimizeDistribution: z.boolean().default(true),
+  useSAMIntegration: z.boolean().default(true)
 });
 
 type AdvancedExamGenerationRequest = z.infer<typeof AdvancedExamGenerationRequestSchema>;
@@ -301,9 +294,89 @@ export async function POST(request: NextRequest) {
 
     const examRequest = parseResult.data;
 
+    // =========================================================================
+    // SAM INTEGRATED GENERATION (Default Path)
+    // =========================================================================
+    if (examRequest.useSAMIntegration) {
+      try {
+        // Prepare SAM generation request
+        const samRequest: SAMExamGenerationRequest = {
+          sectionId: examRequest.sectionId || 'api-request',
+          sectionTitle: examRequest.sectionTitle,
+          chapterTitle: examRequest.chapterTitle,
+          courseTitle: examRequest.courseTitle,
+          questionCount: examRequest.questionCount,
+          targetAudience: examRequest.targetAudience,
+          assessmentPurpose: examRequest.assessmentPurpose,
+          cognitiveLoadLimit: examRequest.cognitiveLoadLimit,
+          bloomsDistribution: examRequest.bloomsDistribution,
+          autoOptimizeDistribution: examRequest.autoOptimizeDistribution,
+          learningObjectives: examRequest.learningObjectives,
+          prerequisiteKnowledge: examRequest.prerequisiteKnowledge,
+          userPrompt: examRequest.userPrompt,
+          contextualScenarios: examRequest.contextualScenarios,
+          fileContent: examRequest.fileContent,
+          enableQualityValidation: examRequest.enableQualityValidation,
+          enableSafetyValidation: examRequest.enableSafetyValidation,
+          enablePedagogicalValidation: examRequest.enablePedagogicalValidation,
+          userId: user.id,
+        };
+
+        // Generate with SAM validation pipeline
+        const samResult = await generateExamWithSAM(samRequest);
+
+        // Convert SAM questions to EnhancedQuestion format for backward compatibility
+        const enhancedQuestions: EnhancedQuestion[] = samResult.questions.map((q) => ({
+          id: q.id,
+          bloomsLevel: q.bloomsLevel,
+          questionType: q.questionType,
+          question: q.questionText,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          cognitiveLoad: q.cognitiveLoad,
+          difficulty: q.difficulty,
+          points: q.points,
+          assessmentCriteria: q.assessmentCriteria || [],
+          prerequisites: q.prerequisites || [],
+          learningObjective: q.learningObjective || '',
+          timeEstimate: q.timeEstimate,
+          tags: q.tags || [],
+          // SAM-specific enrichments
+          bloomsAlignment: q.bloomsAlignment,
+          safetyScore: q.safetyScore,
+          qualityScore: q.qualityScore,
+          hints: q.hints,
+        }));
+
+        return NextResponse.json({
+          success: samResult.success,
+          questions: enhancedQuestions,
+          validation: samResult.validation,
+          metadata: {
+            ...samResult.metadata,
+            samIntegration: true,
+            overallScore: samResult.validation.overall.score,
+            overallGrade: samResult.validation.overall.grade,
+            qualityScore: samResult.validation.quality.score,
+            safetyScore: samResult.validation.safety.score,
+            pedagogicalScore: samResult.validation.pedagogical.score,
+          },
+          warnings: samResult.warnings,
+        });
+      } catch (samError) {
+        logger.error('SAM exam generation failed, falling back to legacy:', samError);
+        // Fall through to legacy generation
+      }
+    }
+
+    // =========================================================================
+    // LEGACY GENERATION (Fallback)
+    // =========================================================================
+
     // Initialize the advanced question generator
     const generator = AdvancedQuestionGenerator.getInstance();
-    
+
     // Auto-optimize Bloom's distribution if requested
     let finalDistribution = examRequest.bloomsDistribution;
     if (examRequest.autoOptimizeDistribution || !finalDistribution) {
@@ -314,131 +387,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Prepare the full request object
-    const fullRequest: QuestionGenerationRequest = {
-      sectionTitle: examRequest.sectionTitle,
-      chapterTitle: examRequest.chapterTitle,
-      courseTitle: examRequest.courseTitle,
-      learningObjectives: examRequest.learningObjectives,
-      bloomsDistribution: finalDistribution,
-      questionCount: examRequest.questionCount,
-      targetAudience: examRequest.targetAudience,
-      cognitiveLoadLimit: examRequest.cognitiveLoadLimit,
-      prerequisiteKnowledge: examRequest.prerequisiteKnowledge,
-      assessmentPurpose: examRequest.assessmentPurpose,
-      contextualScenarios: examRequest.contextualScenarios,
-      userPrompt: examRequest.userPrompt
-    };
+    // Use mock questions for legacy fallback
+    const mockQuestions = generateAdvancedMockQuestions(examRequest);
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using advanced mock response');
-      const mockQuestions = generateAdvancedMockQuestions(examRequest);
-      
-      return NextResponse.json({ 
-        success: true, 
-        questions: mockQuestions,
-        metadata: {
-          model: 'advanced-mock-generator',
-          bloomsDistribution: finalDistribution,
-          validationEnabled: examRequest.enableQualityValidation,
-          generatedAt: new Date().toISOString()
-        }
-      });
-    }
-
-    // Generate sophisticated questions using Anthropic Claude
-    try {
-      const prompt = generator.generateAdvancedPrompt(fullRequest);
-
-      const anthropic = getAnthropicClient();
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 6000, // Increased for more detailed responses
-        temperature: 0.3, // Lower temperature for more consistent pedagogical quality
-        system: ADVANCED_EXAM_GENERATION_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-      });
-
-      // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
-        : '';
-
-      if (!responseText) {
-        throw new Error('Empty response from AI model');
+    return NextResponse.json({
+      success: true,
+      questions: mockQuestions,
+      metadata: {
+        model: 'legacy-fallback-generator',
+        bloomsDistribution: finalDistribution,
+        validationEnabled: examRequest.enableQualityValidation,
+        generatedAt: new Date().toISOString(),
+        samIntegration: false,
+        warning: 'Using legacy generation - SAM integration unavailable'
       }
-
-      // Parse JSON response
-      let aiQuestions;
-      try {
-        // Clean the response to extract just the JSON array
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-        const jsonString = jsonMatch ? jsonMatch[0] : responseText;
-        aiQuestions = JSON.parse(jsonString);
-      } catch (parseError) {
-        logger.error('Failed to parse AI response as JSON:', parseError);
-
-        throw new Error('Invalid JSON response from AI model');
-      }
-
-      // Validate the response is an array
-      if (!Array.isArray(aiQuestions)) {
-        logger.warn('AI response validation failed, using advanced mock response');
-        const mockQuestions = generateAdvancedMockQuestions(examRequest);
-        return NextResponse.json({ 
-          success: true, 
-          questions: mockQuestions,
-          warning: 'AI response validation failed, using sophisticated template response',
-          metadata: {
-            model: 'advanced-mock-fallback',
-            bloomsDistribution: finalDistribution,
-            generatedAt: new Date().toISOString()
-          }
-        });
-      }
-
-      // Validate and enhance questions
-      const { questions: enhancedQuestions, validationResults } = await validateAndEnhanceQuestions(
-        aiQuestions, 
-        examRequest
-      );
-
-      return NextResponse.json({ 
-        success: true, 
-        questions: enhancedQuestions,
-        metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
-          bloomsDistribution: finalDistribution,
-          validationEnabled: examRequest.enableQualityValidation,
-          validationResults: examRequest.enableQualityValidation ? validationResults : undefined,
-          generatedAt: new Date().toISOString(),
-          pedagogicalQuality: 'advanced'
-        }
-      });
-
-    } catch (apiError: any) {
-      logger.error('Anthropic API error:', apiError);
-      
-      // Fall back to advanced mock response for API errors
-      const mockQuestions = generateAdvancedMockQuestions(examRequest);
-      return NextResponse.json({ 
-        success: true, 
-        questions: mockQuestions,
-        warning: 'AI service temporarily unavailable, using sophisticated template response',
-        metadata: {
-          model: 'advanced-mock-fallback',
-          bloomsDistribution: finalDistribution,
-          generatedAt: new Date().toISOString()
-        }
-      });
-    }
+    });
 
   } catch (error: any) {
     logger.error('Advanced exam generator error:', error);

@@ -8,6 +8,12 @@ export interface Question {
   correctAnswer: string;
   explanation: string;
   points: number;
+  // SAM-enhanced fields (optional for backward compatibility)
+  timeEstimate?: number;
+  cognitiveLoad?: number;
+  bloomsAlignment?: number;
+  safetyScore?: number;
+  qualityScore?: number;
 }
 
 export type QuestionType = "multiple-choice" | "true-false" | "short-answer";
