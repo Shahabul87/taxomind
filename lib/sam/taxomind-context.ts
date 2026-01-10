@@ -18,6 +18,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { db } from '@/lib/db';
 
 // Import interface types from @sam-ai/agentic for stores that return interface types
 import type {
@@ -25,9 +26,10 @@ import type {
   PatternStore,
   InterventionStore,
   CheckInStore,
+  PresenceStore,
 } from '@sam-ai/agentic';
 
-// Import all store factories
+// Import all store factories from local stores
 import {
   createPrismaGoalStore,
   createPrismaSubGoalStore,
@@ -53,6 +55,22 @@ import {
   createPrismaTutoringSessionStore,
   createPrismaSkillBuildTrackStore,
 } from './stores';
+
+// Import adapter-prisma stores for observability, presence, student profile, review schedule
+import {
+  createPrismaObservabilityStores,
+  createPrismaPresenceStore,
+  createPrismaStudentProfileStore,
+  createPrismaReviewScheduleStore,
+  type PrismaToolTelemetryStore,
+  type PrismaConfidenceCalibrationStore,
+  type PrismaMemoryQualityStore,
+  type PrismaPlanLifecycleStore,
+  type PrismaMetricsStore,
+  type PrismaPresenceStore,
+  type PrismaStudentProfileStore,
+  type PrismaReviewScheduleStore,
+} from '@sam-ai/adapter-prisma';
 
 // Import class types from stores (for stores that return class types)
 import type {
@@ -125,6 +143,22 @@ export interface TaxomindAgenticStores {
 
   // SkillBuildTrack
   skillBuildTrack: PrismaSkillBuildTrackStore;
+
+  // Observability (telemetry, calibration, quality metrics)
+  toolTelemetry: PrismaToolTelemetryStore;
+  confidenceCalibration: PrismaConfidenceCalibrationStore;
+  memoryQuality: PrismaMemoryQualityStore;
+  planLifecycle: PrismaPlanLifecycleStore;
+  metrics: PrismaMetricsStore;
+
+  // Presence (realtime user tracking)
+  presence: PrismaPresenceStore;
+
+  // Student Profile (mastery tracking)
+  studentProfile: PrismaStudentProfileStore;
+
+  // Review Schedule (spaced repetition)
+  reviewSchedule: PrismaReviewScheduleStore;
 }
 
 /**
@@ -148,6 +182,10 @@ let contextInstance: TaxomindIntegrationContext | null = null;
  */
 function initializeStores(): TaxomindAgenticStores {
   logger.info('[TaxomindContext] Initializing all Prisma stores...');
+
+  // Initialize observability stores from adapter-prisma
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const observabilityStores = createPrismaObservabilityStores({ prisma: db as any });
 
   const stores: TaxomindAgenticStores = {
     // Goal Planning
@@ -188,6 +226,25 @@ function initializeStores(): TaxomindAgenticStores {
 
     // SkillBuildTrack
     skillBuildTrack: createPrismaSkillBuildTrackStore(),
+
+    // Observability (from adapter-prisma)
+    toolTelemetry: observabilityStores.toolTelemetry,
+    confidenceCalibration: observabilityStores.confidenceCalibration,
+    memoryQuality: observabilityStores.memoryQuality,
+    planLifecycle: observabilityStores.planLifecycle,
+    metrics: observabilityStores.metrics,
+
+    // Presence (realtime user tracking)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    presence: createPrismaPresenceStore({ prisma: db as any }),
+
+    // Student Profile (mastery tracking)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    studentProfile: createPrismaStudentProfileStore({ prisma: db as any }),
+
+    // Review Schedule (spaced repetition)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    reviewSchedule: createPrismaReviewScheduleStore({ prisma: db as any }),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {
@@ -317,6 +374,85 @@ export function getLearningPathStores(): {
   };
 }
 
+/**
+ * Get all observability stores (telemetry, calibration, quality metrics)
+ */
+export function getObservabilityStores(): {
+  toolTelemetry: PrismaToolTelemetryStore;
+  confidenceCalibration: PrismaConfidenceCalibrationStore;
+  memoryQuality: PrismaMemoryQualityStore;
+  planLifecycle: PrismaPlanLifecycleStore;
+  metrics: PrismaMetricsStore;
+} {
+  const { stores } = getTaxomindContext();
+  return {
+    toolTelemetry: stores.toolTelemetry,
+    confidenceCalibration: stores.confidenceCalibration,
+    memoryQuality: stores.memoryQuality,
+    planLifecycle: stores.planLifecycle,
+    metrics: stores.metrics,
+  };
+}
+
+/**
+ * Get all analytics stores
+ */
+export function getAnalyticsStores(): {
+  learningSession: PrismaLearningSessionStore;
+  topicProgress: PrismaTopicProgressStore;
+  learningGap: PrismaLearningGapStore;
+  skillAssessment: PrismaSkillAssessmentStore;
+  recommendation: PrismaRecommendationStore;
+  content: PrismaContentStore;
+} {
+  const { stores } = getTaxomindContext();
+  return {
+    learningSession: stores.learningSession,
+    topicProgress: stores.topicProgress,
+    learningGap: stores.learningGap,
+    skillAssessment: stores.skillAssessment,
+    recommendation: stores.recommendation,
+    content: stores.content,
+  };
+}
+
+/**
+ * Get all multi-session stores
+ */
+export function getMultiSessionStores(): {
+  learningPlan: PrismaLearningPlanStore;
+  tutoringSession: PrismaTutoringSessionStore;
+  skillBuildTrack: PrismaSkillBuildTrackStore;
+} {
+  const { stores } = getTaxomindContext();
+  return {
+    learningPlan: stores.learningPlan,
+    tutoringSession: stores.tutoringSession,
+    skillBuildTrack: stores.skillBuildTrack,
+  };
+}
+
+/**
+ * Get presence store for realtime user tracking
+ */
+export function getPresenceStore(): PrismaPresenceStore {
+  return getTaxomindContext().stores.presence;
+}
+
+/**
+ * Get student profile store for mastery tracking
+ */
+export function getStudentProfileStore(): PrismaStudentProfileStore {
+  return getTaxomindContext().stores.studentProfile;
+}
+
+/**
+ * Get review schedule store for spaced repetition
+ */
+export function getReviewScheduleStore(): PrismaReviewScheduleStore {
+  return getTaxomindContext().stores.reviewSchedule;
+}
+
 // Re-export store types for external use
 export type {
   // From @sam-ai/agentic (interface types)
@@ -324,6 +460,7 @@ export type {
   PatternStore,
   InterventionStore,
   CheckInStore,
+  PresenceStore,
   // From local stores (class types)
   PrismaGoalStore,
   PrismaSubGoalStore,
@@ -344,4 +481,13 @@ export type {
   PrismaLearningPlanStore,
   PrismaTutoringSessionStore,
   PrismaSkillBuildTrackStore,
+  // From @sam-ai/adapter-prisma (observability, presence, profile, review)
+  PrismaToolTelemetryStore,
+  PrismaConfidenceCalibrationStore,
+  PrismaMemoryQualityStore,
+  PrismaPlanLifecycleStore,
+  PrismaMetricsStore,
+  PrismaPresenceStore,
+  PrismaStudentProfileStore,
+  PrismaReviewScheduleStore,
 };

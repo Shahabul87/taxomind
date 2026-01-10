@@ -16,7 +16,7 @@ export async function PATCH(
     }
 
     const { courseId, chapterId, sectionId, explanationId } = await params;
-    const { title, code, explanation, language, position } = await req.json();
+    const { title, code, explanation, language, position, lineStart, lineEnd } = await req.json();
 
     // Verify course ownership
     const courseOwner = await db.course.findUnique({
@@ -30,13 +30,15 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Prepare update data
-    const updateData: any = {};
+    // Prepare update data with explicit field mapping (prevents mass assignment)
+    const updateData: Record<string, string | number | null> = {};
     if (title !== undefined) updateData.title = title;
     if (code !== undefined) updateData.code = code;
     if (explanation !== undefined) updateData.explanation = explanation;
     if (language !== undefined) updateData.language = language;
     if (position !== undefined) updateData.position = position;
+    if (lineStart !== undefined) updateData.lineStart = lineStart;
+    if (lineEnd !== undefined) updateData.lineEnd = lineEnd;
 
     // Update code explanation
     const codeExplanation = await db.codeExplanation.update({

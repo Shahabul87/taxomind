@@ -1,4 +1,5 @@
 import { SAMDatabaseAdapter, QueryOptions, SAMUser, SAMCourse, SAMChapter, SAMSection, SAMQuestion, SAMBloomsProgress, SAMCognitiveProgress, SAMInteractionLog, SAMCourseAnalysis, TransactionContext } from '@sam-ai/core';
+import { PresenceStore, UserPresence, PresenceStatus, ToolExecutionEvent, ToolMetrics, ConfidencePrediction, VerificationMethod, CalibrationMetrics, MemoryRetrievalEvent, MemoryQualityMetrics, PlanLifecycleEvent } from '@sam-ai/agentic';
 
 /**
  * Prisma SAM Database Adapter
@@ -494,6 +495,246 @@ declare class PrismaGoldenTestStore implements GoldenTestStore {
 declare function createPrismaGoldenTestStore(config: PrismaGoldenTestStoreConfig): PrismaGoldenTestStore;
 
 /**
+ * @sam-ai/adapter-prisma - Presence Store
+ * Database-backed implementation for user presence tracking
+ */
+
+interface PrismaPresenceStoreConfig {
+    /** Prisma client instance */
+    prisma: PrismaClient$1;
+}
+type PrismaClient$1 = {
+    sAMUserPresence: {
+        findUnique: (args: Record<string, unknown>) => Promise<PrismaPresenceRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<PrismaPresenceRecord[]>;
+        upsert: (args: Record<string, unknown>) => Promise<PrismaPresenceRecord>;
+        update: (args: Record<string, unknown>) => Promise<PrismaPresenceRecord>;
+        delete: (args: Record<string, unknown>) => Promise<PrismaPresenceRecord>;
+        deleteMany: (args: Record<string, unknown>) => Promise<{
+            count: number;
+        }>;
+    };
+};
+interface PrismaPresenceRecord {
+    id: string;
+    userId: string;
+    connectionId: string | null;
+    status: string;
+    lastActivityAt: Date;
+    connectedAt: Date | null;
+    deviceType: string;
+    browser: string | null;
+    os: string | null;
+    pageUrl: string | null;
+    courseId: string | null;
+    chapterId: string | null;
+    sectionId: string | null;
+    planId: string | null;
+    stepId: string | null;
+    goalId: string | null;
+    subscriptions: string[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+declare class PrismaPresenceStore implements PresenceStore {
+    private prisma;
+    constructor(config: PrismaPresenceStoreConfig);
+    get(userId: string): Promise<UserPresence | null>;
+    getByConnection(connectionId: string): Promise<UserPresence | null>;
+    set(presence: UserPresence): Promise<void>;
+    update(userId: string, updates: Partial<UserPresence>): Promise<UserPresence | null>;
+    delete(userId: string): Promise<boolean>;
+    deleteByConnection(connectionId: string): Promise<boolean>;
+    getOnline(): Promise<UserPresence[]>;
+    getByStatus(status: PresenceStatus): Promise<UserPresence[]>;
+    cleanup(olderThan: Date): Promise<number>;
+}
+declare function createPrismaPresenceStore(config: PrismaPresenceStoreConfig): PrismaPresenceStore;
+
+/**
+ * @sam-ai/adapter-prisma - Observability Store
+ * Database-backed implementation for metrics, tool telemetry, and confidence calibration
+ */
+
+interface PrismaObservabilityStoreConfig {
+    prisma: PrismaClient;
+}
+type PrismaClient = {
+    sAMMetric: {
+        create: (args: Record<string, unknown>) => Promise<unknown>;
+        findMany: (args: Record<string, unknown>) => Promise<unknown[]>;
+        groupBy: (args: Record<string, unknown>) => Promise<unknown[]>;
+        deleteMany: (args: Record<string, unknown>) => Promise<{
+            count: number;
+        }>;
+    };
+    sAMToolExecution: {
+        create: (args: Record<string, unknown>) => Promise<unknown>;
+        update: (args: Record<string, unknown>) => Promise<unknown>;
+        findUnique: (args: Record<string, unknown>) => Promise<ToolExecutionRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<ToolExecutionRecord[]>;
+        count: (args: Record<string, unknown>) => Promise<number>;
+        aggregate: (args: Record<string, unknown>) => Promise<unknown>;
+        groupBy: (args: Record<string, unknown>) => Promise<unknown[]>;
+    };
+    sAMConfidenceScore: {
+        create: (args: Record<string, unknown>) => Promise<unknown>;
+        update: (args: Record<string, unknown>) => Promise<unknown>;
+        findUnique: (args: Record<string, unknown>) => Promise<ConfidenceRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<ConfidenceRecord[]>;
+        count: (args: Record<string, unknown>) => Promise<number>;
+        aggregate: (args: Record<string, unknown>) => Promise<unknown>;
+    };
+    sAMMemoryRetrieval: {
+        create: (args: Record<string, unknown>) => Promise<unknown>;
+        update: (args: Record<string, unknown>) => Promise<unknown>;
+        findMany: (args: Record<string, unknown>) => Promise<MemoryRetrievalRecord[]>;
+        count: (args: Record<string, unknown>) => Promise<number>;
+        aggregate: (args: Record<string, unknown>) => Promise<unknown>;
+        groupBy: (args: Record<string, unknown>) => Promise<unknown[]>;
+    };
+    sAMPlanLifecycleEvent: {
+        create: (args: Record<string, unknown>) => Promise<unknown>;
+        findMany: (args: Record<string, unknown>) => Promise<PlanEventRecord[]>;
+        count: (args: Record<string, unknown>) => Promise<number>;
+        groupBy: (args: Record<string, unknown>) => Promise<unknown[]>;
+    };
+    sAMAggregatedMetrics: {
+        upsert: (args: Record<string, unknown>) => Promise<unknown>;
+        findMany: (args: Record<string, unknown>) => Promise<AggregatedMetricsRecord[]>;
+    };
+};
+interface ToolExecutionRecord {
+    id: string;
+    toolId: string;
+    toolName: string;
+    userId: string;
+    sessionId: string | null;
+    planId: string | null;
+    stepId: string | null;
+    status: string;
+    startedAt: Date | null;
+    completedAt: Date | null;
+    durationMs: number | null;
+    confirmationRequired: boolean;
+    confirmationGiven: boolean | null;
+    inputSummary: string | null;
+    outputSummary: string | null;
+    errorCode: string | null;
+    errorMessage: string | null;
+    errorRetryable: boolean | null;
+    tags: Record<string, string> | null;
+    createdAt: Date;
+}
+interface ConfidenceRecord {
+    id: string;
+    userId: string;
+    sessionId: string | null;
+    responseId: string;
+    responseType: string;
+    predictedConfidence: number;
+    factors: unknown;
+    predictedAt: Date;
+    accurate: boolean | null;
+    userVerified: boolean | null;
+    verificationMethod: string | null;
+    qualityScore: number | null;
+    outcomeRecordedAt: Date | null;
+    outcomeNotes: string | null;
+    metadata: unknown;
+}
+interface MemoryRetrievalRecord {
+    id: string;
+    userId: string;
+    sessionId: string | null;
+    query: string;
+    source: string;
+    resultCount: number;
+    topRelevanceScore: number;
+    avgRelevanceScore: number;
+    cacheHit: boolean;
+    latencyMs: number;
+    feedbackHelpful: boolean | null;
+    feedbackRating: number | null;
+    feedbackComment: string | null;
+    feedbackProvidedAt: Date | null;
+    metadata: unknown;
+    timestamp: Date;
+}
+interface PlanEventRecord {
+    id: string;
+    planId: string;
+    userId: string;
+    eventType: string;
+    stepId: string | null;
+    previousState: string | null;
+    newState: string | null;
+    metadata: unknown;
+    timestamp: Date;
+}
+interface AggregatedMetricsRecord {
+    id: string;
+    metricType: string;
+    period: string;
+    periodStart: Date;
+    periodEnd: Date;
+    data: unknown;
+    createdAt: Date;
+}
+declare class PrismaToolTelemetryStore {
+    private prisma;
+    constructor(config: PrismaObservabilityStoreConfig);
+    recordExecution(event: ToolExecutionEvent): Promise<void>;
+    updateExecution(executionId: string, updates: Partial<ToolExecutionEvent>): Promise<void>;
+    getExecution(executionId: string): Promise<ToolExecutionEvent | null>;
+    getMetrics(periodStart: Date, periodEnd: Date, toolId?: string): Promise<ToolMetrics>;
+    private mapRecordToEvent;
+}
+declare class PrismaConfidenceCalibrationStore {
+    private prisma;
+    constructor(config: PrismaObservabilityStoreConfig);
+    recordPrediction(prediction: ConfidencePrediction): Promise<void>;
+    recordOutcome(predictionId: string, accurate: boolean, method: VerificationMethod, qualityScore?: number, notes?: string): Promise<void>;
+    getCalibrationMetrics(periodStart: Date, periodEnd: Date): Promise<CalibrationMetrics>;
+    private calculateCalibrationBuckets;
+    private calculateMetricsByType;
+}
+declare class PrismaMemoryQualityStore {
+    private prisma;
+    constructor(config: PrismaObservabilityStoreConfig);
+    recordRetrieval(event: MemoryRetrievalEvent): Promise<void>;
+    recordFeedback(retrievalId: string, helpful: boolean, rating?: number, comment?: string): Promise<void>;
+    getQualityMetrics(periodStart: Date, periodEnd: Date): Promise<MemoryQualityMetrics>;
+    private calculateSourceMetrics;
+}
+declare class PrismaPlanLifecycleStore {
+    private prisma;
+    constructor(config: PrismaObservabilityStoreConfig);
+    recordEvent(event: PlanLifecycleEvent): Promise<void>;
+    getEvents(planId: string, limit?: number): Promise<PlanLifecycleEvent[]>;
+    getUserEvents(userId: string, periodStart: Date, periodEnd: Date): Promise<PlanLifecycleEvent[]>;
+    private mapRecordToEvent;
+}
+declare class PrismaMetricsStore {
+    private prisma;
+    constructor(config: PrismaObservabilityStoreConfig);
+    recordMetric(name: string, value: number, labels?: Record<string, string>, userId?: string, sessionId?: string): Promise<void>;
+    getMetrics(name: string, periodStart: Date, periodEnd: Date, userId?: string): Promise<Array<{
+        value: number;
+        timestamp: Date;
+        labels: Record<string, string>;
+    }>>;
+    cleanup(olderThan: Date): Promise<number>;
+}
+declare function createPrismaObservabilityStores(config: PrismaObservabilityStoreConfig): {
+    toolTelemetry: PrismaToolTelemetryStore;
+    confidenceCalibration: PrismaConfidenceCalibrationStore;
+    memoryQuality: PrismaMemoryQualityStore;
+    planLifecycle: PrismaPlanLifecycleStore;
+    metrics: PrismaMetricsStore;
+};
+
+/**
  * Unified SAM Prisma Adapters Factory
  *
  * Creates all SAM Prisma adapters with a single configuration.
@@ -630,4 +871,4 @@ declare function generatePrismaSchema(options?: {
 
 declare const VERSION = "0.1.0";
 
-export { type PrismaClientLike, PrismaGoldenTestStore, type PrismaGoldenTestStoreConfig, PrismaMemoryStore, type PrismaMemoryStoreConfig, PrismaReviewScheduleStore, type PrismaReviewScheduleStoreConfig, PrismaSAMAdapter, type PrismaSAMAdapterConfig, PrismaSampleStore, type PrismaSampleStoreConfig, PrismaStudentProfileStore, type PrismaStudentProfileStoreConfig, type SAMPrismaAdapters, type SAMPrismaAdaptersConfig, SAM_PRISMA_MODELS, VERSION, createPrismaGoldenTestStore, createPrismaMemoryStore, createPrismaReviewScheduleStore, createPrismaSAMAdapter, createPrismaSampleStore, createPrismaStudentProfileStore, createSAMPrismaAdapters, generatePrismaSchema };
+export { type PrismaClientLike, PrismaConfidenceCalibrationStore, PrismaGoldenTestStore, type PrismaGoldenTestStoreConfig, PrismaMemoryQualityStore, PrismaMemoryStore, type PrismaMemoryStoreConfig, PrismaMetricsStore, type PrismaObservabilityStoreConfig, PrismaPlanLifecycleStore, PrismaPresenceStore, type PrismaPresenceStoreConfig, PrismaReviewScheduleStore, type PrismaReviewScheduleStoreConfig, PrismaSAMAdapter, type PrismaSAMAdapterConfig, PrismaSampleStore, type PrismaSampleStoreConfig, PrismaStudentProfileStore, type PrismaStudentProfileStoreConfig, PrismaToolTelemetryStore, type SAMPrismaAdapters, type SAMPrismaAdaptersConfig, SAM_PRISMA_MODELS, VERSION, createPrismaGoldenTestStore, createPrismaMemoryStore, createPrismaObservabilityStores, createPrismaPresenceStore, createPrismaReviewScheduleStore, createPrismaSAMAdapter, createPrismaSampleStore, createPrismaStudentProfileStore, createSAMPrismaAdapters, generatePrismaSchema };

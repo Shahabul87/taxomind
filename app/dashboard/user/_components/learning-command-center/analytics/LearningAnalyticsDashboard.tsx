@@ -11,6 +11,12 @@ import {
   RefreshCw,
   Filter,
   ChevronDown,
+  ClipboardCheck,
+  Loader2,
+  Flame,
+  Trophy,
+  BookOpen,
+  Target,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,11 +31,13 @@ import { Badge } from '@/components/ui/badge';
 import { StudyHeatmap } from './StudyHeatmap';
 import { CourseProgressAnalytics } from './CourseProgressAnalytics';
 import { SAMInsights } from './SAMInsights';
+import { ExamAnalytics } from './ExamAnalytics';
 import { cn } from '@/lib/utils';
+import { useLearningAnalytics, formatStudyTime } from './hooks/useLearningAnalytics';
 
 export interface LearningAnalyticsDashboardProps {
   className?: string;
-  defaultTab?: 'overview' | 'progress' | 'insights' | 'heatmap';
+  defaultTab?: 'overview' | 'progress' | 'insights' | 'heatmap' | 'exams';
   onExport?: () => void;
   onRefresh?: () => void;
 }
@@ -100,23 +108,36 @@ export function LearningAnalyticsDashboard({
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Map TimeRange to useLearningAnalytics timeframe
+  const timeframeMap: Record<TimeRange, 'week' | 'month' | 'semester' | 'all'> = {
+    week: 'week',
+    month: 'month',
+    quarter: 'semester',
+    year: 'all',
+  };
+
+  const { data, isLoading, refetch } = useLearningAnalytics(timeframeMap[timeRange]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    await refetch();
     await onRefresh?.();
-    // Simulate refresh delay
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  // Demo quick stats - in production, these would come from API
+  // Calculate quick stats from real data
+  const totalStudyMinutes = data?.overview.totalStudyTime ?? 0;
+  const totalHours = Math.round(totalStudyMinutes / 60 * 10) / 10;
+
   const quickStats = {
-    totalHours: 47.5,
-    hoursChange: '+12%',
-    lessonsCompleted: 34,
-    lessonsChange: '+8',
-    currentStreak: 23,
-    streakChange: '+5',
-    averageScore: 87,
-    scoreChange: '+3%',
+    totalHours,
+    hoursChange: totalHours > 0 ? `${formatStudyTime(totalStudyMinutes)}` : '-',
+    lessonsCompleted: data?.overview.activeCourses ?? 0,
+    lessonsChange: data ? `${data.overview.completedCourses} done` : '-',
+    currentStreak: data?.overview.currentStreak ?? 0,
+    streakChange: data?.overview.currentStreak ? `${data.overview.currentStreak} days` : '-',
+    averageScore: data?.overview.averageScore ?? 0,
+    scoreChange: data?.overview.totalExamsCompleted ? `${data.overview.totalExamsCompleted} exams` : '-',
   };
 
   return (
@@ -178,46 +199,69 @@ export function LearningAnalyticsDashboard({
 
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <QuickStatCard
-          icon={Calendar}
-          label="Study Hours"
-          value={`${quickStats.totalHours}h`}
-          change={quickStats.hoursChange}
-          changeType="positive"
-          color="bg-blue-500"
-        />
-        <QuickStatCard
-          icon={BarChart3}
-          label="Lessons Completed"
-          value={quickStats.lessonsCompleted}
-          change={quickStats.lessonsChange}
-          changeType="positive"
-          color="bg-emerald-500"
-        />
-        <QuickStatCard
-          icon={TrendingUp}
-          label="Day Streak"
-          value={quickStats.currentStreak}
-          change={quickStats.streakChange}
-          changeType="positive"
-          color="bg-orange-500"
-        />
-        <QuickStatCard
-          icon={Brain}
-          label="Avg Quiz Score"
-          value={`${quickStats.averageScore}%`}
-          change={quickStats.scoreChange}
-          changeType="positive"
-          color="bg-purple-500"
-        />
+        {isLoading ? (
+          <>
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-4 rounded-xl bg-white/70 p-4 shadow-sm backdrop-blur-sm dark:bg-slate-800/70 animate-pulse"
+              >
+                <div className="h-12 w-12 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="h-6 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            <QuickStatCard
+              icon={Calendar}
+              label="Study Hours"
+              value={quickStats.totalHours > 0 ? `${quickStats.totalHours}h` : '0h'}
+              change={quickStats.hoursChange}
+              changeType={quickStats.totalHours > 0 ? 'positive' : 'neutral'}
+              color="bg-blue-500"
+            />
+            <QuickStatCard
+              icon={BookOpen}
+              label="Active Courses"
+              value={quickStats.lessonsCompleted}
+              change={quickStats.lessonsChange}
+              changeType={quickStats.lessonsCompleted > 0 ? 'positive' : 'neutral'}
+              color="bg-emerald-500"
+            />
+            <QuickStatCard
+              icon={Flame}
+              label="Day Streak"
+              value={quickStats.currentStreak}
+              change={quickStats.streakChange}
+              changeType={quickStats.currentStreak > 0 ? 'positive' : 'neutral'}
+              color="bg-orange-500"
+            />
+            <QuickStatCard
+              icon={Target}
+              label="Avg Quiz Score"
+              value={quickStats.averageScore > 0 ? `${quickStats.averageScore}%` : '-'}
+              change={quickStats.scoreChange}
+              changeType={quickStats.averageScore >= 70 ? 'positive' : quickStats.averageScore > 0 ? 'neutral' : 'neutral'}
+              color="bg-purple-500"
+            />
+          </>
+        )}
       </div>
 
       {/* Tabbed Content */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <TabsList className="mb-4 grid w-full grid-cols-4 bg-slate-100/80 dark:bg-slate-800/80">
+        <TabsList className="mb-4 grid w-full grid-cols-5 bg-slate-100/80 dark:bg-slate-800/80">
           <TabsTrigger value="overview" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="exams" className="gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Exams</span>
           </TabsTrigger>
           <TabsTrigger value="progress" className="gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -235,7 +279,7 @@ export function LearningAnalyticsDashboard({
 
         {/* Overview Tab - Shows summary of all sections */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* SAM Insights Summary */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -247,11 +291,20 @@ export function LearningAnalyticsDashboard({
 
             {/* Course Progress Summary */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
               <CourseProgressAnalytics compact />
+            </motion.div>
+
+            {/* Exam Analytics Summary */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <ExamAnalytics compact />
             </motion.div>
           </div>
 
@@ -273,37 +326,52 @@ export function LearningAnalyticsDashboard({
             <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <span className="text-xl">🏆</span>
+                  <Trophy className="h-5 w-5 text-amber-500" />
                   Recent Achievements
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  <Badge
-                    variant="secondary"
-                    className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                  >
-                    🔥 7-Day Streak
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                  >
-                    ✅ 50 Lessons
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                  >
-                    📚 3 Courses Started
-                  </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                  >
-                    🎯 Perfect Quiz Score
-                  </Badge>
-                </div>
+                {isLoading ? (
+                  <div className="flex flex-wrap gap-2">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                    ))}
+                  </div>
+                ) : data?.achievements && data.achievements.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {data.achievements.slice(0, 6).map((achievement) => {
+                      const rarityColors = {
+                        common: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300',
+                        rare: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                        epic: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                        legendary: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+                      };
+                      const iconMap = {
+                        streak: '🔥',
+                        completion: '✅',
+                        score: '🎯',
+                        time: '⏱️',
+                        cognitive: '🧠',
+                      };
+                      return (
+                        <Badge
+                          key={achievement.id}
+                          variant="secondary"
+                          className={rarityColors[achievement.rarity]}
+                        >
+                          {iconMap[achievement.iconType]} {achievement.title}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <Trophy className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Complete lessons and exams to earn achievements!
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -322,6 +390,11 @@ export function LearningAnalyticsDashboard({
         {/* Heatmap Tab - Full Study Activity View */}
         <TabsContent value="heatmap">
           <StudyHeatmap showStats />
+        </TabsContent>
+
+        {/* Exams Tab - Full Exam Analytics View */}
+        <TabsContent value="exams">
+          <ExamAnalytics />
         </TabsContent>
       </Tabs>
     </div>

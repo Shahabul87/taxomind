@@ -12,11 +12,7 @@ import {
   type ProgressReport,
   TimePeriod,
 } from '@sam-ai/agentic';
-import {
-  createPrismaLearningSessionStore,
-  createPrismaTopicProgressStore,
-  createPrismaLearningGapStore,
-} from '@/lib/sam/stores';
+import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 
 // ============================================================================
 // VALIDATION
@@ -27,18 +23,19 @@ const querySchema = z.object({
 });
 
 // ============================================================================
-// LAZY SINGLETON
+// LAZY SINGLETON (using TaxomindContext for centralized store access)
 // ============================================================================
 
 let progressAnalyzerInstance: ReturnType<typeof createProgressAnalyzer> | null = null;
 
 function getProgressAnalyzer() {
   if (!progressAnalyzerInstance) {
+    const stores = getAnalyticsStores();
     progressAnalyzerInstance = createProgressAnalyzer({
       logger,
-      sessionStore: createPrismaLearningSessionStore(),
-      progressStore: createPrismaTopicProgressStore(),
-      gapStore: createPrismaLearningGapStore(),
+      sessionStore: stores.learningSession,
+      progressStore: stores.topicProgress,
+      gapStore: stores.learningGap,
     });
   }
   return progressAnalyzerInstance;

@@ -9,10 +9,8 @@ import {
   Trophy,
   Brain,
   BarChart3,
-  Flag,
   Clock,
   AlertCircle,
-  Info,
   ArrowRight,
   ChevronDown,
   ChevronUp,
@@ -20,6 +18,7 @@ import {
   BookOpen,
   Target,
   X,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,216 +28,93 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  SAMInsightsResponse,
-  LearningInsight,
-  LearningPattern,
-  AttentionItem,
-  SuggestedAction,
-  INSIGHT_TYPE_CONFIG,
-  ATTENTION_SEVERITY_CONFIG,
-  SAMInsightsProps,
-} from '@/types/learning-analytics';
 import { cn } from '@/lib/utils';
+import { useLearningAnalytics, formatStudyTime } from './hooks/useLearningAnalytics';
 
-// Demo data generator
-function generateDemoSAMInsights(): SAMInsightsResponse {
-  const insights: LearningInsight[] = [
-    {
-      id: '1',
-      type: 'recommendation',
-      priority: 'high',
-      title: 'Perfect time to study TypeScript',
-      description:
-        "Based on your patterns, you're most productive between 9-11 AM. Your TypeScript course is falling behind - consider focusing on it this morning.",
-      icon: 'Lightbulb',
-      color: '#3B82F6',
-      courseId: '2',
-      courseName: 'TypeScript Mastery',
-      createdAt: new Date().toISOString(),
-      action: {
-        label: 'Start TypeScript',
-        href: '/courses/2',
-        type: 'navigate',
-      },
-    },
-    {
-      id: '2',
-      type: 'warning',
-      priority: 'high',
-      title: 'AWS course needs attention',
-      description:
-        "You're 20% behind on AWS Cloud Practitioner. At your current pace, you'll miss the deadline. Consider dedicating extra time this week.",
-      icon: 'AlertTriangle',
-      color: '#F59E0B',
-      courseId: '4',
-      courseName: 'AWS Cloud Practitioner',
-      createdAt: new Date().toISOString(),
-      action: {
-        label: 'View Course',
-        href: '/courses/4',
-        type: 'navigate',
-      },
-    },
-    {
-      id: '3',
-      type: 'achievement',
-      priority: 'low',
-      title: '50+ Lessons Milestone!',
-      description:
-        "Amazing progress! You've completed over 50 lessons across all courses. Keep up the momentum!",
-      icon: 'Trophy',
-      color: '#10B981',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: '4',
-      type: 'tip',
-      priority: 'medium',
-      title: 'Spaced repetition reminder',
-      description:
-        "You haven't reviewed React Hooks concepts in 5 days. A quick review can boost retention by 40%.",
-      icon: 'Brain',
-      color: '#8B5CF6',
-      createdAt: new Date().toISOString(),
-      action: {
-        label: 'Quick Review',
-        type: 'navigate',
-      },
-    },
-    {
-      id: '5',
-      type: 'pattern',
-      priority: 'medium',
-      title: 'Learning pattern detected',
-      description:
-        'You tend to perform better on video content (85% quiz scores) vs text (68%). Consider prioritizing video lessons.',
-      icon: 'BarChart3',
-      color: '#6366F1',
-      createdAt: new Date().toISOString(),
-    },
-  ];
+export interface SAMInsightsProps {
+  compact?: boolean;
+  maxInsights?: number;
+  showPatterns?: boolean;
+  showActions?: boolean;
+  onInsightAction?: (insight: LearningInsight) => void;
+}
 
-  const patterns: LearningPattern[] = [
-    {
-      id: 'best-time',
-      label: 'Best focus time',
-      value: '9:00 AM - 11:00 AM',
-      type: 'strength',
-      description: 'Based on your most productive sessions',
-    },
-    {
-      id: 'retention',
-      label: 'Peak retention',
-      value: 'Video lessons (85%)',
-      type: 'strength',
-      description: 'Your quiz scores are highest after videos',
-    },
-    {
-      id: 'improvement',
-      label: 'Needs work',
-      value: 'Reading (68% avg)',
-      type: 'improvement',
-      description: 'Consider using video alternatives',
-    },
-    {
-      id: 'strength',
-      label: 'Strong in',
-      value: 'Practical exercises',
-      type: 'strength',
-      description: '92% completion rate',
-    },
-  ];
-
-  const attentionItems: AttentionItem[] = [
-    {
-      id: '1',
-      message: 'TypeScript quiz deadline in 2 days (currently scoring 72%)',
-      type: 'quiz',
-      severity: 'warning',
-      courseId: '2',
-      courseName: 'TypeScript Mastery',
-      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-      progress: 72,
-    },
-    {
-      id: '2',
-      message: "You haven't practiced React hooks in 5 days",
-      type: 'review',
-      severity: 'info',
-      courseId: '1',
-      courseName: 'Advanced React',
-    },
-    {
-      id: '3',
-      message: 'Weekly goal at 60% with 2 days remaining',
-      type: 'goal',
-      severity: 'warning',
-      progress: 60,
-    },
-  ];
-
-  const suggestedActions: SuggestedAction[] = [
-    {
-      id: '1',
-      title: 'Complete TypeScript Chapter 4',
-      duration: '35 min',
-      type: 'lesson',
-      courseId: '2',
-      courseName: 'TypeScript Mastery',
-      href: '/courses/2/chapters/4',
-      priority: 1,
-    },
-    {
-      id: '2',
-      title: 'Review React Hooks notes',
-      duration: '15 min',
-      type: 'review',
-      courseId: '1',
-      courseName: 'Advanced React',
-      priority: 2,
-    },
-    {
-      id: '3',
-      title: 'Practice coding exercise',
-      duration: '20 min',
-      type: 'exercise',
-      priority: 3,
-    },
-  ];
-
-  return {
-    insights,
-    patterns,
-    attentionItems,
-    suggestedActions,
-    optimalStudyTime: '9:00 AM - 11:00 AM',
-    focusArea: 'TypeScript',
-    learningScore: 72,
-    engagementLevel: 'medium',
-    progressRate: 'on_track',
+interface LearningInsight {
+  id: string;
+  type: 'recommendation' | 'warning' | 'achievement' | 'tip' | 'pattern';
+  priority: 'high' | 'medium' | 'low';
+  title: string;
+  description: string;
+  courseName?: string;
+  action?: {
+    label: string;
+    href?: string;
   };
 }
 
-// Icon mapping
-const InsightIcons: Record<string, React.ElementType> = {
-  Lightbulb,
-  AlertTriangle,
-  Trophy,
-  Brain,
-  BarChart3,
-  Flag,
-  Clock,
-  AlertCircle,
-  Info,
+interface LearningPattern {
+  id: string;
+  label: string;
+  value: string;
+  type: 'strength' | 'improvement' | 'neutral';
+}
+
+interface AttentionItem {
+  id: string;
+  message: string;
+  severity: 'warning' | 'info' | 'critical';
+  courseName?: string;
+}
+
+const INSIGHT_TYPE_CONFIG = {
+  recommendation: {
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    borderColor: 'border-blue-200 dark:border-blue-800',
+    icon: 'Lightbulb',
+  },
+  warning: {
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+    borderColor: 'border-amber-200 dark:border-amber-800',
+    icon: 'AlertTriangle',
+  },
+  achievement: {
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+    borderColor: 'border-emerald-200 dark:border-emerald-800',
+    icon: 'Trophy',
+  },
+  tip: {
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+    borderColor: 'border-purple-200 dark:border-purple-800',
+    icon: 'Brain',
+  },
+  pattern: {
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
+    borderColor: 'border-indigo-200 dark:border-indigo-800',
+    icon: 'BarChart3',
+  },
 };
 
-const ActionTypeIcons: Record<string, React.ElementType> = {
-  lesson: BookOpen,
-  quiz: Target,
-  review: Brain,
-  exercise: Play,
-  break: Clock,
+const SEVERITY_CONFIG = {
+  warning: {
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+    icon: AlertTriangle,
+  },
+  info: {
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+    icon: AlertCircle,
+  },
+  critical: {
+    color: 'text-red-600',
+    bgColor: 'bg-red-50 dark:bg-red-900/20',
+    icon: AlertCircle,
+  },
 };
 
 function InsightCard({
@@ -251,7 +127,10 @@ function InsightCard({
   onDismiss?: (insight: LearningInsight) => void;
 }) {
   const config = INSIGHT_TYPE_CONFIG[insight.type];
-  const Icon = InsightIcons[insight.icon ?? config.icon] ?? Sparkles;
+  const Icon = insight.type === 'recommendation' ? Lightbulb :
+    insight.type === 'warning' ? AlertTriangle :
+    insight.type === 'achievement' ? Trophy :
+    insight.type === 'tip' ? Brain : BarChart3;
 
   return (
     <motion.div
@@ -315,17 +194,14 @@ function InsightCard({
 }
 
 function AttentionBadge({ item }: { item: AttentionItem }) {
-  const config = ATTENTION_SEVERITY_CONFIG[item.severity];
-  const Icon = InsightIcons[config.icon];
+  const config = SEVERITY_CONFIG[item.severity];
+  const Icon = config.icon;
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className={cn(
-        'flex items-start gap-2 rounded-lg p-2',
-        config.bgColor
-      )}
+      className={cn('flex items-start gap-2 rounded-lg p-2', config.bgColor)}
     >
       <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', config.color)} />
       <div className="flex-1 min-w-0">
@@ -335,32 +211,6 @@ function AttentionBadge({ item }: { item: AttentionItem }) {
         )}
       </div>
     </motion.div>
-  );
-}
-
-function SuggestedActionCard({ action }: { action: SuggestedAction }) {
-  const Icon = ActionTypeIcons[action.type] ?? BookOpen;
-
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left transition-all hover:border-blue-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:hover:border-blue-600"
-    >
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/30">
-        <Icon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-slate-900 dark:text-white truncate">
-          {action.title}
-        </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
-          {action.duration}
-          {action.courseName && ` • ${action.courseName}`}
-        </p>
-      </div>
-      <ArrowRight className="h-4 w-4 text-slate-400" />
-    </motion.button>
   );
 }
 
@@ -418,7 +268,7 @@ function LearningScoreGauge({ score, label }: { score: number; label: string }) 
           />
         </svg>
         <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-slate-900 dark:text-white">
-          {score}
+          {Math.round(score)}
         </span>
       </div>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{label}</p>
@@ -426,29 +276,209 @@ function LearningScoreGauge({ score, label }: { score: number; label: string }) 
   );
 }
 
+function LoadingState({ compact }: { compact?: boolean }) {
+  return (
+    <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+      <CardContent className={cn('flex items-center justify-center', compact ? 'p-6' : 'p-12')}>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+          <p className="text-sm text-slate-500">Loading insights...</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmptyState({ compact }: { compact?: boolean }) {
+  return (
+    <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+      <CardContent className={cn('flex flex-col items-center justify-center text-center', compact ? 'p-6' : 'p-12')}>
+        <Sparkles className="h-12 w-12 text-slate-300 dark:text-slate-600 mb-3" />
+        <h3 className="font-semibold text-slate-900 dark:text-white">No Insights Yet</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
+          Start learning to get personalized insights from SAM AI.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function SAMInsights({
+  compact = false,
   maxInsights = 3,
   showPatterns = true,
   showActions = true,
   onInsightAction,
 }: SAMInsightsProps) {
+  const { data, isLoading, error } = useLearningAnalytics('month');
   const [showAllInsights, setShowAllInsights] = useState(false);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
 
-  // In a real app, this would be fetched from the API
-  const data = generateDemoSAMInsights();
+  if (isLoading) {
+    return <LoadingState compact={compact} />;
+  }
 
-  const filteredInsights = data.insights.filter(
-    (i) => !dismissedInsights.includes(i.id)
+  if (error || !data) {
+    return <EmptyState compact={compact} />;
+  }
+
+  // Transform API data into component format
+  const learningScore = Math.round(
+    (data.overview.averageScore * 0.4) +
+    (data.overview.averageProgress * 0.3) +
+    (data.learningPatterns.retentionRate * 0.3)
   );
+
+  const progressRate = data.overview.averageProgress >= 60 ? 'ahead' :
+    data.overview.averageProgress >= 40 ? 'on_track' : 'behind';
+
+  const insights: LearningInsight[] = data.aiRecommendations.map((rec, idx) => ({
+    id: `rec-${idx}`,
+    type: rec.type === 'weak_areas' ? 'warning' as const :
+      rec.type === 'learning_strategy' ? 'tip' as const : 'recommendation' as const,
+    priority: rec.priority,
+    title: rec.title,
+    description: rec.description,
+    action: rec.actionItems.length > 0 ? {
+      label: 'Learn More',
+    } : undefined,
+  }));
+
+  // Add achievements as insights
+  data.achievements.forEach((achievement, idx) => {
+    insights.push({
+      id: `ach-${idx}`,
+      type: 'achievement',
+      priority: 'low',
+      title: achievement.title,
+      description: achievement.description,
+    });
+  });
+
+  const patterns: LearningPattern[] = [
+    {
+      id: 'study-time',
+      label: 'Best focus time',
+      value: data.learningPatterns.preferredStudyTime === 'morning' ? '9:00 AM - 12:00 PM' :
+        data.learningPatterns.preferredStudyTime === 'afternoon' ? '1:00 PM - 5:00 PM' : '6:00 PM - 9:00 PM',
+      type: 'strength',
+    },
+    {
+      id: 'frequency',
+      label: 'Study frequency',
+      value: data.learningPatterns.studyFrequency,
+      type: data.learningPatterns.studyFrequency === 'high' ? 'strength' : 'improvement',
+    },
+    {
+      id: 'active-day',
+      label: 'Most active day',
+      value: data.learningPatterns.mostActiveDay,
+      type: 'neutral',
+    },
+    {
+      id: 'retention',
+      label: 'Retention rate',
+      value: `${data.learningPatterns.retentionRate}%`,
+      type: data.learningPatterns.retentionRate >= 80 ? 'strength' : 'improvement',
+    },
+  ];
+
+  const attentionItems: AttentionItem[] = [];
+
+  // Add attention items based on data
+  if (data.overview.averageScore < 70) {
+    attentionItems.push({
+      id: 'score',
+      message: `Average score is ${Math.round(data.overview.averageScore)}%. Consider reviewing weak areas.`,
+      severity: 'warning',
+    });
+  }
+
+  if (data.courseProgress.some(c => c.progress < 30 && c.estimatedTimeToComplete > 0)) {
+    attentionItems.push({
+      id: 'progress',
+      message: 'Some courses need more attention to stay on track.',
+      severity: 'info',
+    });
+  }
+
+  const filteredInsights = insights.filter(i => !dismissedInsights.includes(i.id));
   const displayInsights = showAllInsights
     ? filteredInsights
-    : filteredInsights.slice(0, maxInsights);
+    : filteredInsights.slice(0, compact ? 1 : maxInsights);
 
   const handleDismiss = (insight: LearningInsight) => {
-    setDismissedInsights((prev) => [...prev, insight.id]);
+    setDismissedInsights(prev => [...prev, insight.id]);
   };
 
+  // Compact view for Overview grid
+  if (compact) {
+    return (
+      <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-purple-500" />
+              SAM Learning Insights
+            </CardTitle>
+            <Badge
+              variant="outline"
+              className={cn(
+                'text-xs',
+                progressRate === 'ahead' && 'bg-emerald-50 text-emerald-700',
+                progressRate === 'on_track' && 'bg-blue-50 text-blue-700',
+                progressRate === 'behind' && 'bg-amber-50 text-amber-700'
+              )}
+            >
+              {progressRate === 'ahead' ? 'Ahead' : progressRate === 'on_track' ? 'On track' : 'Needs attention'}
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Compact Score Display */}
+          <div className="flex items-center gap-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 p-4 dark:from-purple-950/30 dark:to-pink-950/30">
+            <LearningScoreGauge score={learningScore} label="Learning Score" />
+            <div className="flex-1 space-y-1.5">
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <Clock className="h-3.5 w-3.5 text-emerald-600" />
+                <span>{formatStudyTime(data.overview.totalStudyTime)} studied</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <Target className="h-3.5 w-3.5 text-purple-600" />
+                <span>{data.overview.activeCourses} active courses</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <Trophy className="h-3.5 w-3.5 text-amber-600" />
+                <span>{data.overview.currentStreak} day streak</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Top insight */}
+          {displayInsights.length > 0 && (
+            <InsightCard
+              insight={displayInsights[0]}
+              onAction={onInsightAction}
+              onDismiss={handleDismiss}
+            />
+          )}
+
+          {/* Ask SAM Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20"
+          >
+            <Brain className="mr-2 h-4 w-4 text-purple-500" />
+            Ask SAM for guidance
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Full view
   return (
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
       <CardHeader className="pb-3">
@@ -461,14 +491,12 @@ export function SAMInsights({
             variant="outline"
             className={cn(
               'text-xs',
-              data.progressRate === 'ahead' && 'bg-emerald-50 text-emerald-700',
-              data.progressRate === 'on_track' && 'bg-blue-50 text-blue-700',
-              data.progressRate === 'behind' && 'bg-amber-50 text-amber-700'
+              progressRate === 'ahead' && 'bg-emerald-50 text-emerald-700',
+              progressRate === 'on_track' && 'bg-blue-50 text-blue-700',
+              progressRate === 'behind' && 'bg-amber-50 text-amber-700'
             )}
           >
-            {data.progressRate === 'ahead' && 'Ahead of schedule'}
-            {data.progressRate === 'on_track' && 'On track'}
-            {data.progressRate === 'behind' && 'Needs attention'}
+            {progressRate === 'ahead' ? 'Ahead of schedule' : progressRate === 'on_track' ? 'On track' : 'Needs attention'}
           </Badge>
         </div>
       </CardHeader>
@@ -476,34 +504,31 @@ export function SAMInsights({
       <CardContent className="space-y-4">
         {/* Learning Score & Quick Stats */}
         <div className="flex items-center justify-between rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 p-4 dark:from-purple-950/30 dark:to-pink-950/30">
-          <LearningScoreGauge score={data.learningScore} label="Learning Score" />
+          <LearningScoreGauge score={learningScore} label="Learning Score" />
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-emerald-600" />
               <span className="text-xs text-slate-600 dark:text-slate-300">
-                Best time: <span className="font-semibold">{data.optimalStudyTime}</span>
+                Study time: <span className="font-semibold">{formatStudyTime(data.overview.totalStudyTime)}</span>
               </span>
             </div>
-            {data.focusArea && (
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-purple-600" />
-                <span className="text-xs text-slate-600 dark:text-slate-300">
-                  Focus on: <span className="font-semibold">{data.focusArea}</span>
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-purple-600" />
+              <span className="text-xs text-slate-600 dark:text-slate-300">
+                Active courses: <span className="font-semibold">{data.overview.activeCourses}</span>
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-blue-600" />
               <span className="text-xs text-slate-600 dark:text-slate-300">
-                Engagement:{' '}
-                <span className="font-semibold capitalize">{data.engagementLevel}</span>
+                Avg score: <span className="font-semibold">{Math.round(data.overview.averageScore)}%</span>
               </span>
             </div>
           </div>
         </div>
 
         {/* Attention Items */}
-        {data.attentionItems.length > 0 && (
+        {attentionItems.length > 0 && (
           <Collapsible defaultOpen>
             <CollapsibleTrigger asChild>
               <Button
@@ -512,13 +537,13 @@ export function SAMInsights({
               >
                 <span className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                   <AlertCircle className="h-4 w-4 text-amber-500" />
-                  Attention Needed ({data.attentionItems.length})
+                  Attention Needed ({attentionItems.length})
                 </span>
                 <ChevronDown className="h-4 w-4 transition-transform ui-open:rotate-180" />
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-2 space-y-2">
-              {data.attentionItems.map((item) => (
+              {attentionItems.map(item => (
                 <AttentionBadge key={item.id} item={item} />
               ))}
             </CollapsibleContent>
@@ -526,82 +551,62 @@ export function SAMInsights({
         )}
 
         {/* Insights */}
-        <div className="space-y-3">
-          <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-            <Lightbulb className="h-4 w-4 text-blue-500" />
-            Personalized Recommendations
-          </h4>
-          <AnimatePresence mode="popLayout">
-            {displayInsights.map((insight, index) => (
-              <motion.div
-                key={insight.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <InsightCard
-                  insight={insight}
-                  onAction={onInsightAction}
-                  onDismiss={handleDismiss}
-                />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-
-          {filteredInsights.length > maxInsights && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-slate-500"
-              onClick={() => setShowAllInsights(!showAllInsights)}
-            >
-              {showAllInsights ? (
-                <>
-                  <ChevronUp className="mr-1 h-4 w-4" />
-                  Show less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="mr-1 h-4 w-4" />
-                  Show {filteredInsights.length - maxInsights} more
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-
-        {/* Suggested Actions */}
-        {showActions && data.suggestedActions.length > 0 && (
-          <div className="space-y-2">
+        {displayInsights.length > 0 && (
+          <div className="space-y-3">
             <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-              <Target className="h-4 w-4 text-emerald-500" />
-              Suggested Next Actions
+              <Lightbulb className="h-4 w-4 text-blue-500" />
+              Personalized Recommendations
             </h4>
-            <div className="space-y-2">
-              {data.suggestedActions.map((action, index) => (
+            <AnimatePresence mode="popLayout">
+              {displayInsights.map((insight, index) => (
                 <motion.div
-                  key={action.id}
+                  key={insight.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ delay: index * 0.1 }}
                 >
-                  <SuggestedActionCard action={action} />
+                  <InsightCard
+                    insight={insight}
+                    onAction={onInsightAction}
+                    onDismiss={handleDismiss}
+                  />
                 </motion.div>
               ))}
-            </div>
+            </AnimatePresence>
+
+            {filteredInsights.length > maxInsights && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-slate-500"
+                onClick={() => setShowAllInsights(!showAllInsights)}
+              >
+                {showAllInsights ? (
+                  <>
+                    <ChevronUp className="mr-1 h-4 w-4" />
+                    Show less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="mr-1 h-4 w-4" />
+                    Show {filteredInsights.length - maxInsights} more
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
 
         {/* Learning Patterns */}
-        {showPatterns && data.patterns.length > 0 && (
+        {showPatterns && patterns.length > 0 && (
           <div className="space-y-2">
             <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
               <BarChart3 className="h-4 w-4 text-indigo-500" />
               Learning Patterns
             </h4>
             <div className="grid grid-cols-2 gap-2">
-              {data.patterns.map((pattern) => (
+              {patterns.map(pattern => (
                 <PatternBadge key={pattern.id} pattern={pattern} />
               ))}
             </div>

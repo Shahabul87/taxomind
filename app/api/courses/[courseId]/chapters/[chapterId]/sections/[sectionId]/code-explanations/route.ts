@@ -24,9 +24,20 @@ export async function POST(
 
     // Validate each code block
     for (const block of codeBlocks) {
-      if (!block.code || !block.explanation || !block.title) {
-        return new NextResponse("Each code block must have code, explanation, and title", { status: 400 });
+      // Title is always required
+      if (!block.title) {
+        return new NextResponse("Each code block must have a title", { status: 400 });
       }
+
+      // For main code blocks (no groupId): require code
+      // For line explanations (has groupId): require explanation
+      const isLineExplanation = block.groupId || block.lineStart !== undefined;
+
+      if (!isLineExplanation && !block.code) {
+        return new NextResponse("Main code blocks must have code", { status: 400 });
+      }
+
+      // Note: explanation text is optional - teachers can add it later
     }
 
     // Verify course ownership
@@ -43,15 +54,27 @@ export async function POST(
 
     // Create code explanations for each block
     const createdExplanations = await Promise.all(
-      codeBlocks.map(async (block: any, index: number) => {
+      codeBlocks.map(async (block: {
+        title: string;
+        code?: string;
+        explanation?: string;
+        language?: string;
+        position?: number;
+        lineStart?: number;
+        lineEnd?: number;
+        groupId?: string;
+      }, index: number) => {
         return await db.codeExplanation.create({
           data: {
             title: block.title,
-            code: block.code,
-            explanation: block.explanation,
+            code: block.code || "", // Default to empty string for line explanations
+            explanation: block.explanation || null,
             sectionId,
-            language: block.language || 'typescript',
-            position: block.position || index,
+            language: block.language || "typescript",
+            position: block.position ?? index,
+            lineStart: block.lineStart ?? null,
+            lineEnd: block.lineEnd ?? null,
+            groupId: block.groupId ?? null,
           },
         });
       })
@@ -59,7 +82,7 @@ export async function POST(
 
     return NextResponse.json(createdExplanations);
   } catch (error) {
-
+    console.error("[CODE_EXPLANATIONS_POST]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

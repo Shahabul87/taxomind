@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -56,6 +56,7 @@ export const MyCoursesDashboardEnterprise = ({
   createdCoursesError,
   user,
 }: MyCoursesDashboardProps) => {
+  const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<'enrolled' | 'created'>('enrolled');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -65,6 +66,11 @@ export const MyCoursesDashboardEnterprise = ({
     progress: 'all',
     sortBy: 'recent',
   });
+
+  // Prevent hydration mismatch with Radix UI Tabs
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Safe data processing - wrap in useMemo to prevent recreating on every render
   const safeEnrolledCourses = useMemo(
@@ -452,37 +458,56 @@ export const MyCoursesDashboardEnterprise = ({
         <div className="border-b border-slate-200/50 dark:border-slate-700/50 bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm">
           <div className="p-3 sm:p-4 lg:p-5">
             <div className="flex flex-col gap-3 sm:gap-4">
-              {/* Tabs */}
-              <Tabs
-                value={tab}
-                onValueChange={(v) => setTab(v as any)}
-                className="w-full"
-              >
-                <TabsList className="grid w-full grid-cols-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-                  <TabsTrigger
-                    value="enrolled"
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-md sm:rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm"
-                  >
-                    <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                    <span className="hidden xs:inline sm:hidden">Enrolled</span>
+              {/* Tabs - conditionally render to prevent hydration mismatch */}
+              {mounted ? (
+                <Tabs
+                  value={tab}
+                  onValueChange={(v) => setTab(v as 'enrolled' | 'created')}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                    <TabsTrigger
+                      value="enrolled"
+                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-md sm:rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm"
+                    >
+                      <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                      <span className="hidden xs:inline sm:hidden">Enrolled</span>
+                      <span className="hidden sm:inline">Enrolled Courses</span>
+                      <Badge className="ml-1.5 sm:ml-2 bg-white/20 text-current border-none text-[10px] sm:text-xs px-1 sm:px-1.5">
+                        {stats.totalEnrolledCourses}
+                      </Badge>
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="created"
+                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-md sm:rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm"
+                    >
+                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                      <span className="hidden xs:inline sm:hidden">Created</span>
+                      <span className="hidden sm:inline">My Courses</span>
+                      <Badge className="ml-1.5 sm:ml-2 bg-white/20 text-current border-none text-[10px] sm:text-xs px-1 sm:px-1.5">
+                        {stats.totalCreatedCourses}
+                      </Badge>
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              ) : (
+                <div className="grid w-full grid-cols-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg sm:rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm h-[42px] sm:h-[46px]">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md rounded-md sm:rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm">
+                    <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">Enrolled Courses</span>
-                    <Badge className="ml-1.5 sm:ml-2 bg-white/20 text-current border-none text-[10px] sm:text-xs px-1 sm:px-1.5">
+                    <Badge className="bg-white/20 text-current border-none text-[10px] sm:text-xs px-1 sm:px-1.5">
                       {stats.totalEnrolledCourses}
                     </Badge>
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="created"
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-md text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-200 rounded-md sm:rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm"
-                  >
-                    <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                    <span className="hidden xs:inline sm:hidden">Created</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-slate-600 dark:text-slate-300 rounded-md sm:rounded-lg px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 font-semibold text-xs sm:text-sm">
+                    <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span className="hidden sm:inline">My Courses</span>
-                    <Badge className="ml-1.5 sm:ml-2 bg-white/20 text-current border-none text-[10px] sm:text-xs px-1 sm:px-1.5">
+                    <Badge className="bg-white/20 text-current border-none text-[10px] sm:text-xs px-1 sm:px-1.5">
                       {stats.totalCreatedCourses}
                     </Badge>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+                  </div>
+                </div>
+              )}
 
               {/* Search, Filter, View Controls */}
               <div className="flex items-center gap-2 sm:gap-3">

@@ -21,8 +21,25 @@ export function ServiceWorkerRegistration() {
       setIsInstalled(true);
     }
 
-    // Register service worker
+    // Only register service worker in production
+    // In development, unregister any stale service workers to prevent errors
     if ('serviceWorker' in navigator) {
+      const isDev = process.env.NODE_ENV === 'development' ||
+                    window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1';
+
+      if (isDev) {
+        // Unregister all service workers in development to prevent cache/state issues
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister();
+            console.log('SW unregistered in dev mode:', registration.scope);
+          }
+        });
+        return; // Don't register in development
+      }
+
+      // Production: Register service worker
       navigator.serviceWorker
         .register('/sw.js', { scope: '/' })
         .then((registration) => {

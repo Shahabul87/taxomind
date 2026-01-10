@@ -1119,6 +1119,612 @@ function createPrismaGoldenTestStore(config) {
   return new PrismaGoldenTestStore(config);
 }
 
+// src/presence-store.ts
+function mapRecordToPresence(record) {
+  return {
+    userId: record.userId,
+    connectionId: record.connectionId || "",
+    status: record.status,
+    lastActivityAt: record.lastActivityAt,
+    connectedAt: record.connectedAt || record.createdAt,
+    metadata: {
+      deviceType: record.deviceType,
+      browser: record.browser || void 0,
+      os: record.os || void 0,
+      location: {
+        pageUrl: record.pageUrl || void 0,
+        courseId: record.courseId || void 0,
+        chapterId: record.chapterId || void 0,
+        sectionId: record.sectionId || void 0
+      },
+      sessionContext: {
+        planId: record.planId || void 0,
+        stepId: record.stepId || void 0,
+        goalId: record.goalId || void 0
+      }
+    },
+    subscriptions: record.subscriptions
+  };
+}
+function mapPresenceToData(presence) {
+  return {
+    connectionId: presence.connectionId || null,
+    status: presence.status,
+    lastActivityAt: presence.lastActivityAt,
+    connectedAt: presence.connectedAt,
+    deviceType: presence.metadata.deviceType,
+    browser: presence.metadata.browser || null,
+    os: presence.metadata.os || null,
+    pageUrl: presence.metadata.location?.pageUrl || null,
+    courseId: presence.metadata.location?.courseId || null,
+    chapterId: presence.metadata.location?.chapterId || null,
+    sectionId: presence.metadata.location?.sectionId || null,
+    planId: presence.metadata.sessionContext?.planId || null,
+    stepId: presence.metadata.sessionContext?.stepId || null,
+    goalId: presence.metadata.sessionContext?.goalId || null,
+    subscriptions: presence.subscriptions
+  };
+}
+var PrismaPresenceStore = class {
+  prisma;
+  constructor(config) {
+    this.prisma = config.prisma;
+  }
+  async get(userId) {
+    const record = await this.prisma.sAMUserPresence.findUnique({
+      where: { userId }
+    });
+    if (!record) return null;
+    return mapRecordToPresence(record);
+  }
+  async getByConnection(connectionId) {
+    const record = await this.prisma.sAMUserPresence.findUnique({
+      where: { connectionId }
+    });
+    if (!record) return null;
+    return mapRecordToPresence(record);
+  }
+  async set(presence) {
+    const data = mapPresenceToData(presence);
+    await this.prisma.sAMUserPresence.upsert({
+      where: { userId: presence.userId },
+      create: {
+        userId: presence.userId,
+        ...data
+      },
+      update: data
+    });
+  }
+  async update(userId, updates) {
+    const existing = await this.get(userId);
+    if (!existing) return null;
+    const merged = {
+      ...existing,
+      ...updates,
+      metadata: {
+        ...existing.metadata,
+        ...updates.metadata || {},
+        location: {
+          ...existing.metadata.location,
+          ...updates.metadata?.location || {}
+        },
+        sessionContext: {
+          ...existing.metadata.sessionContext,
+          ...updates.metadata?.sessionContext || {}
+        }
+      }
+    };
+    const data = mapPresenceToData(merged);
+    const record = await this.prisma.sAMUserPresence.update({
+      where: { userId },
+      data
+    });
+    return mapRecordToPresence(record);
+  }
+  async delete(userId) {
+    try {
+      await this.prisma.sAMUserPresence.delete({
+        where: { userId }
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async deleteByConnection(connectionId) {
+    try {
+      await this.prisma.sAMUserPresence.delete({
+        where: { connectionId }
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async getOnline() {
+    const records = await this.prisma.sAMUserPresence.findMany({
+      where: {
+        OR: [
+          { status: "ONLINE" },
+          { status: "STUDYING" },
+          { status: "IDLE" }
+        ]
+      }
+    });
+    return records.map(mapRecordToPresence);
+  }
+  async getByStatus(status) {
+    const records = await this.prisma.sAMUserPresence.findMany({
+      where: {
+        status: status.toUpperCase()
+      }
+    });
+    return records.map(mapRecordToPresence);
+  }
+  async cleanup(olderThan) {
+    const result = await this.prisma.sAMUserPresence.deleteMany({
+      where: {
+        status: "OFFLINE",
+        lastActivityAt: {
+          lt: olderThan
+        }
+      }
+    });
+    return result.count;
+  }
+};
+function createPrismaPresenceStore(config) {
+  return new PrismaPresenceStore(config);
+}
+
+// src/observability-store.ts
+var PrismaToolTelemetryStore = class {
+  prisma;
+  constructor(config) {
+    this.prisma = config.prisma;
+  }
+  async recordExecution(event) {
+    await this.prisma.sAMToolExecution.create({
+      data: {
+        id: event.executionId,
+        toolId: event.toolId,
+        toolName: event.toolName,
+        userId: event.userId,
+        sessionId: event.sessionId || null,
+        planId: event.planId || null,
+        stepId: event.stepId || null,
+        status: event.status,
+        startedAt: event.startedAt,
+        completedAt: event.completedAt || null,
+        durationMs: event.durationMs || null,
+        confirmationRequired: event.confirmationRequired,
+        confirmationGiven: event.confirmationGiven || null,
+        inputSummary: event.inputSummary || null,
+        outputSummary: event.outputSummary || null,
+        errorCode: event.error?.code || null,
+        errorMessage: event.error?.message || null,
+        errorRetryable: event.error?.retryable || null,
+        tags: event.tags || {}
+      }
+    });
+  }
+  async updateExecution(executionId, updates) {
+    await this.prisma.sAMToolExecution.update({
+      where: { id: executionId },
+      data: {
+        status: updates.status,
+        completedAt: updates.completedAt,
+        durationMs: updates.durationMs,
+        confirmationGiven: updates.confirmationGiven,
+        outputSummary: updates.outputSummary,
+        errorCode: updates.error?.code,
+        errorMessage: updates.error?.message,
+        errorRetryable: updates.error?.retryable
+      }
+    });
+  }
+  async getExecution(executionId) {
+    const record = await this.prisma.sAMToolExecution.findUnique({
+      where: { id: executionId }
+    });
+    if (!record) return null;
+    return this.mapRecordToEvent(record);
+  }
+  async getMetrics(periodStart, periodEnd, toolId) {
+    const where = {
+      createdAt: {
+        gte: periodStart,
+        lte: periodEnd
+      }
+    };
+    if (toolId) {
+      where.toolId = toolId;
+    }
+    const executions = await this.prisma.sAMToolExecution.findMany({
+      where
+    });
+    const total = executions.length;
+    const successes = executions.filter((e) => e.status === "success").length;
+    const latencies = executions.filter((e) => e.durationMs !== null).map((e) => e.durationMs).sort((a, b) => a - b);
+    const avgLatency = latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0;
+    const p50 = latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.5)] : 0;
+    const p95 = latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.95)] : 0;
+    const p99 = latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.99)] : 0;
+    const withConfirmation = executions.filter((e) => e.confirmationRequired);
+    const confirmedCount = withConfirmation.filter((e) => e.confirmationGiven === true).length;
+    const failuresByCode = {};
+    executions.filter((e) => e.status === "failed" && e.errorCode).forEach((e) => {
+      const code = e.errorCode;
+      failuresByCode[code] = (failuresByCode[code] || 0) + 1;
+    });
+    const executionsByTool = {};
+    executions.forEach((e) => {
+      executionsByTool[e.toolName] = (executionsByTool[e.toolName] || 0) + 1;
+    });
+    return {
+      executionCount: total,
+      successRate: total > 0 ? successes / total : 0,
+      avgLatencyMs: avgLatency,
+      p50LatencyMs: p50,
+      p95LatencyMs: p95,
+      p99LatencyMs: p99,
+      confirmationRate: total > 0 ? withConfirmation.length / total : 0,
+      confirmationAcceptRate: withConfirmation.length > 0 ? confirmedCount / withConfirmation.length : 0,
+      failuresByCode,
+      executionsByTool,
+      periodStart,
+      periodEnd
+    };
+  }
+  mapRecordToEvent(record) {
+    return {
+      executionId: record.id,
+      toolId: record.toolId,
+      toolName: record.toolName,
+      userId: record.userId,
+      sessionId: record.sessionId || void 0,
+      planId: record.planId || void 0,
+      stepId: record.stepId || void 0,
+      startedAt: record.startedAt || /* @__PURE__ */ new Date(),
+      completedAt: record.completedAt || void 0,
+      durationMs: record.durationMs || void 0,
+      status: record.status,
+      error: record.errorCode ? {
+        code: record.errorCode,
+        message: record.errorMessage || "Unknown error",
+        retryable: record.errorRetryable || false
+      } : void 0,
+      confirmationRequired: record.confirmationRequired,
+      confirmationGiven: record.confirmationGiven || void 0,
+      inputSummary: record.inputSummary || void 0,
+      outputSummary: record.outputSummary || void 0,
+      tags: record.tags || void 0
+    };
+  }
+};
+var PrismaConfidenceCalibrationStore = class {
+  prisma;
+  constructor(config) {
+    this.prisma = config.prisma;
+  }
+  async recordPrediction(prediction) {
+    await this.prisma.sAMConfidenceScore.create({
+      data: {
+        id: prediction.predictionId,
+        userId: prediction.userId,
+        sessionId: prediction.sessionId || null,
+        responseId: prediction.responseId,
+        responseType: prediction.responseType,
+        predictedConfidence: prediction.predictedConfidence,
+        factors: prediction.factors,
+        predictedAt: prediction.predictedAt,
+        accurate: prediction.actualOutcome?.accurate || null,
+        userVerified: prediction.actualOutcome?.userVerified || null,
+        verificationMethod: prediction.actualOutcome?.verificationMethod || null,
+        qualityScore: prediction.actualOutcome?.qualityScore || null,
+        outcomeRecordedAt: prediction.actualOutcome?.recordedAt || null,
+        outcomeNotes: prediction.actualOutcome?.notes || null
+      }
+    });
+  }
+  async recordOutcome(predictionId, accurate, method, qualityScore, notes) {
+    await this.prisma.sAMConfidenceScore.update({
+      where: { id: predictionId },
+      data: {
+        accurate,
+        userVerified: method === "user_feedback",
+        verificationMethod: method,
+        qualityScore: qualityScore || null,
+        outcomeRecordedAt: /* @__PURE__ */ new Date(),
+        outcomeNotes: notes || null
+      }
+    });
+  }
+  async getCalibrationMetrics(periodStart, periodEnd) {
+    const predictions = await this.prisma.sAMConfidenceScore.findMany({
+      where: {
+        predictedAt: {
+          gte: periodStart,
+          lte: periodEnd
+        }
+      }
+    });
+    const withOutcomes = predictions.filter((p) => p.accurate !== null);
+    const avgPredicted = predictions.length > 0 ? predictions.reduce((sum, p) => sum + p.predictedConfidence, 0) / predictions.length : 0;
+    const avgActual = withOutcomes.length > 0 ? withOutcomes.filter((p) => p.accurate).length / withOutcomes.length : 0;
+    const buckets = this.calculateCalibrationBuckets(predictions);
+    const byResponseType = this.calculateMetricsByType(predictions);
+    const brierScore = withOutcomes.length > 0 ? withOutcomes.reduce((sum, p) => {
+      const actual = p.accurate ? 1 : 0;
+      return sum + Math.pow(p.predictedConfidence - actual, 2);
+    }, 0) / withOutcomes.length : 0;
+    return {
+      predictionCount: predictions.length,
+      outcomesRecorded: withOutcomes.length,
+      avgPredictedConfidence: avgPredicted,
+      avgActualAccuracy: avgActual,
+      calibrationError: Math.abs(avgPredicted - avgActual),
+      brierScore,
+      calibrationBuckets: buckets,
+      verificationOverrideRate: 0,
+      byResponseType,
+      periodStart,
+      periodEnd
+    };
+  }
+  calculateCalibrationBuckets(predictions) {
+    const bucketRanges = [
+      { start: 0, end: 0.2 },
+      { start: 0.2, end: 0.4 },
+      { start: 0.4, end: 0.6 },
+      { start: 0.6, end: 0.8 },
+      { start: 0.8, end: 1 }
+    ];
+    return bucketRanges.map(({ start, end }) => {
+      const inBucket = predictions.filter(
+        (p) => p.predictedConfidence >= start && p.predictedConfidence < end
+      );
+      const withOutcomes = inBucket.filter((p) => p.accurate !== null);
+      const avgPredicted = inBucket.length > 0 ? inBucket.reduce((sum, p) => sum + p.predictedConfidence, 0) / inBucket.length : (start + end) / 2;
+      const actualAccuracy = withOutcomes.length > 0 ? withOutcomes.filter((p) => p.accurate).length / withOutcomes.length : 0;
+      return {
+        rangeStart: start,
+        rangeEnd: end,
+        count: inBucket.length,
+        avgPredicted,
+        actualAccuracy,
+        error: Math.abs(avgPredicted - actualAccuracy)
+      };
+    });
+  }
+  calculateMetricsByType(predictions) {
+    const types = ["explanation", "answer", "recommendation", "assessment", "intervention", "tool_result"];
+    const result = {};
+    types.forEach((type) => {
+      const ofType = predictions.filter((p) => p.responseType === type);
+      const withOutcomes = ofType.filter((p) => p.accurate !== null);
+      const avgPredicted = ofType.length > 0 ? ofType.reduce((sum, p) => sum + p.predictedConfidence, 0) / ofType.length : 0;
+      const avgActual = withOutcomes.length > 0 ? withOutcomes.filter((p) => p.accurate).length / withOutcomes.length : 0;
+      result[type] = {
+        predictionCount: ofType.length,
+        avgPredictedConfidence: avgPredicted,
+        avgActualAccuracy: avgActual,
+        calibrationError: Math.abs(avgPredicted - avgActual)
+      };
+    });
+    return result;
+  }
+};
+var PrismaMemoryQualityStore = class {
+  prisma;
+  constructor(config) {
+    this.prisma = config.prisma;
+  }
+  async recordRetrieval(event) {
+    await this.prisma.sAMMemoryRetrieval.create({
+      data: {
+        id: event.retrievalId,
+        userId: event.userId,
+        sessionId: event.sessionId || null,
+        query: event.query,
+        source: event.source,
+        resultCount: event.resultCount,
+        topRelevanceScore: event.topRelevanceScore,
+        avgRelevanceScore: event.avgRelevanceScore,
+        cacheHit: event.cacheHit,
+        latencyMs: event.latencyMs,
+        feedbackHelpful: event.userFeedback?.helpful || null,
+        feedbackRating: event.userFeedback?.relevanceRating || null,
+        feedbackComment: event.userFeedback?.comment || null,
+        feedbackProvidedAt: event.userFeedback?.providedAt || null,
+        metadata: event.metadata || {},
+        timestamp: event.timestamp
+      }
+    });
+  }
+  async recordFeedback(retrievalId, helpful, rating, comment) {
+    await this.prisma.sAMMemoryRetrieval.update({
+      where: { id: retrievalId },
+      data: {
+        feedbackHelpful: helpful,
+        feedbackRating: rating || null,
+        feedbackComment: comment || null,
+        feedbackProvidedAt: /* @__PURE__ */ new Date()
+      }
+    });
+  }
+  async getQualityMetrics(periodStart, periodEnd) {
+    const retrievals = await this.prisma.sAMMemoryRetrieval.findMany({
+      where: {
+        timestamp: {
+          gte: periodStart,
+          lte: periodEnd
+        }
+      }
+    });
+    const total = retrievals.length;
+    const cacheHits = retrievals.filter((r) => r.cacheHit).length;
+    const withFeedback = retrievals.filter((r) => r.feedbackHelpful !== null);
+    const positiveFeedback = withFeedback.filter((r) => r.feedbackHelpful).length;
+    const emptyResults = retrievals.filter((r) => r.resultCount === 0).length;
+    const avgRelevance = total > 0 ? retrievals.reduce((sum, r) => sum + r.avgRelevanceScore, 0) / total : 0;
+    const relevanceScores = retrievals.map((r) => r.avgRelevanceScore).sort((a, b) => a - b);
+    const medianRelevance = relevanceScores.length > 0 ? relevanceScores[Math.floor(relevanceScores.length / 2)] : 0;
+    const latencies = retrievals.map((r) => r.latencyMs).sort((a, b) => a - b);
+    const avgLatency = latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0;
+    const p95Latency = latencies.length > 0 ? latencies[Math.floor(latencies.length * 0.95)] : 0;
+    const bySource = this.calculateSourceMetrics(retrievals);
+    return {
+      searchCount: total,
+      avgRelevanceScore: avgRelevance,
+      medianRelevanceScore: medianRelevance,
+      cacheHitRate: total > 0 ? cacheHits / total : 0,
+      avgLatencyMs: avgLatency,
+      p95LatencyMs: p95Latency,
+      emptyResultRate: total > 0 ? emptyResults / total : 0,
+      positiveFeedbackRate: withFeedback.length > 0 ? positiveFeedback / withFeedback.length : 0,
+      bySource,
+      reindexQueueDepth: 0,
+      periodStart,
+      periodEnd
+    };
+  }
+  calculateSourceMetrics(retrievals) {
+    const sources = [
+      "vector_search",
+      "knowledge_graph",
+      "session_context",
+      "cross_session",
+      "curriculum",
+      "external"
+    ];
+    const result = {};
+    sources.forEach((source) => {
+      const ofSource = retrievals.filter((r) => r.source === source);
+      const cacheHits = ofSource.filter((r) => r.cacheHit).length;
+      result[source] = {
+        searchCount: ofSource.length,
+        avgRelevanceScore: ofSource.length > 0 ? ofSource.reduce((sum, r) => sum + r.avgRelevanceScore, 0) / ofSource.length : 0,
+        avgLatencyMs: ofSource.length > 0 ? ofSource.reduce((sum, r) => sum + r.latencyMs, 0) / ofSource.length : 0,
+        cacheHitRate: ofSource.length > 0 ? cacheHits / ofSource.length : 0
+      };
+    });
+    return result;
+  }
+};
+var PrismaPlanLifecycleStore = class {
+  prisma;
+  constructor(config) {
+    this.prisma = config.prisma;
+  }
+  async recordEvent(event) {
+    await this.prisma.sAMPlanLifecycleEvent.create({
+      data: {
+        id: event.eventId,
+        planId: event.planId,
+        userId: event.userId,
+        eventType: event.eventType,
+        stepId: event.stepId || null,
+        previousState: event.previousState || null,
+        newState: event.newState || null,
+        metadata: event.metadata || {},
+        timestamp: event.timestamp
+      }
+    });
+  }
+  async getEvents(planId, limit) {
+    const records = await this.prisma.sAMPlanLifecycleEvent.findMany({
+      where: { planId },
+      orderBy: { timestamp: "desc" },
+      take: limit
+    });
+    return records.map(this.mapRecordToEvent);
+  }
+  async getUserEvents(userId, periodStart, periodEnd) {
+    const records = await this.prisma.sAMPlanLifecycleEvent.findMany({
+      where: {
+        userId,
+        timestamp: {
+          gte: periodStart,
+          lte: periodEnd
+        }
+      },
+      orderBy: { timestamp: "desc" }
+    });
+    return records.map(this.mapRecordToEvent);
+  }
+  mapRecordToEvent(record) {
+    return {
+      eventId: record.id,
+      planId: record.planId,
+      userId: record.userId,
+      eventType: record.eventType,
+      stepId: record.stepId || void 0,
+      previousState: record.previousState || void 0,
+      newState: record.newState || void 0,
+      metadata: record.metadata || void 0,
+      timestamp: record.timestamp
+    };
+  }
+};
+var PrismaMetricsStore = class {
+  prisma;
+  constructor(config) {
+    this.prisma = config.prisma;
+  }
+  async recordMetric(name, value, labels, userId, sessionId) {
+    await this.prisma.sAMMetric.create({
+      data: {
+        name,
+        value,
+        labels: labels || {},
+        userId: userId || null,
+        sessionId: sessionId || null
+      }
+    });
+  }
+  async getMetrics(name, periodStart, periodEnd, userId) {
+    const where = {
+      name,
+      timestamp: {
+        gte: periodStart,
+        lte: periodEnd
+      }
+    };
+    if (userId) {
+      where.userId = userId;
+    }
+    const records = await this.prisma.sAMMetric.findMany({
+      where,
+      orderBy: { timestamp: "asc" }
+    });
+    return records.map((r) => ({
+      value: r.value,
+      timestamp: r.timestamp,
+      labels: r.labels || {}
+    }));
+  }
+  async cleanup(olderThan) {
+    const result = await this.prisma.sAMMetric.deleteMany({
+      where: {
+        timestamp: {
+          lt: olderThan
+        }
+      }
+    });
+    return result.count;
+  }
+};
+function createPrismaObservabilityStores(config) {
+  return {
+    toolTelemetry: new PrismaToolTelemetryStore(config),
+    confidenceCalibration: new PrismaConfidenceCalibrationStore(config),
+    memoryQuality: new PrismaMemoryQualityStore(config),
+    planLifecycle: new PrismaPlanLifecycleStore(config),
+    metrics: new PrismaMetricsStore(config)
+  };
+}
+
 // src/unified-factory.ts
 function createSAMPrismaAdapters(config) {
   const { prisma, debug, modelNames = {} } = config;
@@ -1420,16 +2026,24 @@ model GoldenTestCase {
 // src/index.ts
 var VERSION = "0.1.0";
 export {
+  PrismaConfidenceCalibrationStore,
   PrismaGoldenTestStore,
+  PrismaMemoryQualityStore,
   PrismaMemoryStore,
+  PrismaMetricsStore,
+  PrismaPlanLifecycleStore,
+  PrismaPresenceStore,
   PrismaReviewScheduleStore,
   PrismaSAMAdapter,
   PrismaSampleStore,
   PrismaStudentProfileStore,
+  PrismaToolTelemetryStore,
   SAM_PRISMA_MODELS,
   VERSION,
   createPrismaGoldenTestStore,
   createPrismaMemoryStore,
+  createPrismaObservabilityStores,
+  createPrismaPresenceStore,
   createPrismaReviewScheduleStore,
   createPrismaSAMAdapter,
   createPrismaSampleStore,

@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Calculator, Copy, Maximize2 } from "lucide-react";
+import { CheckCircle2, Calculator, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+import { KaTeXRenderer, cleanLatex } from "@/components/shared/katex-renderer";
 import DOMPurify from "isomorphic-dompurify";
-
-// Note: You'll need to add these scripts to your layout or install via npm:
-// <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-// <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
 interface MathExplanation {
   id: string;
@@ -41,161 +39,214 @@ export function MathLatexRenderer({
   canMarkComplete,
   onMarkComplete,
 }: MathLatexRendererProps) {
-  const mathRef = useRef<HTMLDivElement>(null);
-  const equationRef = useRef<HTMLDivElement>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Render LaTeX using MathJax
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).MathJax) {
-      // Re-typeset the math content
-      if (mathRef.current) {
-        (window as any).MathJax.typesetPromise([mathRef.current]).catch((e: any) =>
-          console.error("MathJax typesetting failed:", e)
-        );
-      }
-      if (equationRef.current && (math.latex || math.latexEquation)) {
-        (window as any).MathJax.typesetPromise([equationRef.current]).catch((e: any) =>
-          console.error("MathJax equation typesetting failed:", e)
-        );
-      }
-    }
-  }, [math.latex, math.latexEquation, math.content]);
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Equation copied to clipboard!");
-  };
-
-  const openFullscreen = () => {
-    if (mathRef.current) {
-      if (mathRef.current.requestFullscreen) {
-        mathRef.current.requestFullscreen();
-      }
-    }
-  };
-
-  // Determine which equation format to display
-  const getEquationDisplay = () => {
-    if (math.latexEquation) {
-      return `\\[${math.latexEquation}\\]`;
-    }
-    if (math.latex) {
-      return `\\[${math.latex}\\]`;
-    }
-    if (math.equation) {
-      return math.equation;
-    }
+  // Get the LaTeX equation to display
+  const getLatexEquation = (): string | null => {
+    if (math.latexEquation) return cleanLatex(math.latexEquation);
+    if (math.latex) return cleanLatex(math.latex);
+    if (math.equation) return cleanLatex(math.equation);
     return null;
   };
 
-  const equationDisplay = getEquationDisplay();
+  const latexEquation = getLatexEquation();
+  const hasExplanation = !!(math.explanation || math.content);
+
+  const copyToClipboard = async () => {
+    const textToCopy = math.latexEquation || math.latex || math.equation || "";
+    if (!textToCopy) {
+      toast.info("No equation to copy");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      toast.success("Equation copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy equation");
+    }
+  };
 
   return (
-    <Card className={cn("overflow-hidden", isCompleted && "border-green-500")}>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="flex items-center gap-2">
-              <Calculator className="h-5 w-5 text-purple-500" />
+    <Card className={cn(
+      "overflow-hidden transition-all duration-200",
+      isCompleted && "border-emerald-500/50 bg-emerald-50/30 dark:bg-emerald-950/10"
+    )}>
+      <CardHeader className="pb-3 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border-b border-purple-100 dark:border-purple-900/50">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/50 shrink-0">
+              <Calculator className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate">
               {math.title}
             </CardTitle>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {math.mode && (
-              <Badge variant="outline" className="text-xs">
-                {math.mode}
+              <Badge variant="secondary" className="text-xs">
+                {math.imageUrl && !latexEquation ? "Visual" : "LaTeX"}
               </Badge>
             )}
             {isCompleted && (
-              <Badge variant="success">
+              <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 text-xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Completed
+                Done
               </Badge>
             )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Main equation display */}
-        {equationDisplay && (
-          <div className="relative group">
-            <div
-              ref={equationRef}
-              className="p-6 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 rounded-lg border border-purple-200 dark:border-purple-800"
+
+      <CardContent className="p-0">
+        {/* Equation Display */}
+        <div className="relative group">
+          {latexEquation ? (
+            <div className="p-4 sm:p-6 bg-gradient-to-r from-purple-50/50 to-violet-50/50 dark:from-purple-950/20 dark:to-violet-950/20 border-b border-purple-100 dark:border-purple-900/30">
+              <div className="flex justify-center overflow-x-auto">
+                <KaTeXRenderer
+                  math={latexEquation}
+                  displayMode={true}
+                  className="text-lg"
+                />
+              </div>
+              {/* Copy button */}
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={copyToClipboard}
+                  className={cn(
+                    "h-8 px-2 text-xs",
+                    copied && "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400"
+                  )}
+                >
+                  {copied ? (
+                    <>
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3 mr-1" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : math.imageUrl ? (
+            <div className="p-4 sm:p-6 flex justify-center bg-gray-50 dark:bg-gray-900/30 border-b border-gray-100 dark:border-gray-800">
+              <Image
+                src={math.imageUrl}
+                alt={`Mathematical representation for ${math.title}`}
+                width={600}
+                height={400}
+                className="max-w-full h-auto rounded-lg shadow-sm"
+                style={{ objectFit: "contain" }}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = "/placeholder-math-image.svg";
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        {/* Explanation Section */}
+        {hasExplanation && (
+          <div className="border-b border-gray-100 dark:border-gray-800">
+            <button
+              onClick={() => setShowExplanation(!showExplanation)}
+              className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
             >
-              <div className="text-center text-lg font-mono">{equationDisplay}</div>
-            </div>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => copyToClipboard(equationDisplay)}
-                className="h-8 w-8 p-0"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={openFullscreen}
-                className="h-8 w-8 p-0"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+              <span>View Explanation</span>
+              {showExplanation ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
 
-        {/* Content with inline math */}
-        {math.content && (
-          <div
-            ref={mathRef}
-            className="prose prose-sm dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{
-              __html: DOMPurify.sanitize(math.content, {
-                ALLOWED_TAGS: [
-                  "p", "br", "strong", "b", "i", "em", "u", "ul", "ol", "li",
-                  "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "sub", "sup",
-                  "math", "mi", "mn", "mo", "mrow", "msup", "msub", "mfrac", "mtext"
-                ],
-                ALLOWED_ATTR: ["class", "style"],
-              })
-            }}
-          />
-        )}
+            <AnimatePresence>
+              {showExplanation && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-4 pb-4">
+                    {/* Rich text content */}
+                    {math.content && (
+                      <div
+                        className="prose prose-sm dark:prose-invert max-w-none
+                          prose-headings:font-semibold prose-headings:text-gray-900 dark:prose-headings:text-gray-100
+                          prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed
+                          prose-strong:text-gray-900 dark:prose-strong:text-gray-100 prose-strong:font-semibold
+                          prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-purple-600 dark:prose-code:text-purple-400 prose-code:font-mono prose-code:text-sm
+                          prose-pre:bg-gray-900 prose-pre:rounded-lg prose-pre:shadow-md
+                          prose-ul:space-y-1 prose-ol:space-y-1
+                          prose-li:text-gray-700 dark:prose-li:text-gray-300
+                          prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
+                          prose-blockquote:border-l-purple-500 prose-blockquote:bg-purple-50 dark:prose-blockquote:bg-purple-900/20 prose-blockquote:rounded-r-lg prose-blockquote:py-1
+                          prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:shadow-md prose-img:my-4"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(math.content, {
+                            ALLOWED_TAGS: [
+                              "p", "br", "strong", "b", "i", "em", "u", "ul", "ol", "li",
+                              "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "sub", "sup",
+                              "a", "img", "blockquote", "pre", "code",
+                              "math", "mi", "mn", "mo", "mrow", "msup", "msub", "mfrac", "mtext"
+                            ],
+                            ALLOWED_ATTR: ["class", "style", "href", "src", "alt", "width", "height", "target", "rel"],
+                          })
+                        }}
+                      />
+                    )}
 
-        {/* Plain text explanation */}
-        {math.explanation && (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border-l-4 border-blue-500">
-              <p className="text-sm">{math.explanation}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Image representation if available */}
-        {math.imageUrl && (
-          <div className="mt-4 relative w-full h-auto">
-            <Image
-              src={math.imageUrl}
-              alt={`Mathematical representation for ${math.title}`}
-              width={800}
-              height={400}
-              className="w-full rounded-lg"
-              style={{ objectFit: 'contain' }}
-            />
+                    {/* Plain text explanation */}
+                    {math.explanation && (
+                      <div
+                        className="prose prose-sm dark:prose-invert max-w-none mt-3
+                          prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed
+                          prose-strong:text-gray-900 dark:prose-strong:text-gray-100
+                          prose-img:max-w-full prose-img:h-auto prose-img:rounded-lg prose-img:shadow-md prose-img:my-4"
+                        dangerouslySetInnerHTML={{
+                          __html: DOMPurify.sanitize(math.explanation, {
+                            ALLOWED_TAGS: [
+                              "p", "br", "strong", "b", "i", "em", "u", "ul", "ol", "li",
+                              "h1", "h2", "h3", "h4", "h5", "h6", "span", "div",
+                              "a", "img", "blockquote", "pre", "code"
+                            ],
+                            ALLOWED_ATTR: ["class", "style", "href", "src", "alt", "width", "height", "target", "rel"],
+                          })
+                        }}
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
         {/* Mark as complete button */}
         {canMarkComplete && !isCompleted && (
-          <Button
-            variant="secondary"
-            className="w-full"
-            onClick={() => onMarkComplete(math.id)}
-          >
-            Mark as Understood
-          </Button>
+          <div className="p-4">
+            <Button
+              variant="outline"
+              className="w-full border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
+              onClick={() => onMarkComplete(math.id)}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Mark as Understood
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -203,33 +254,10 @@ export function MathLatexRenderer({
 }
 
 /**
- * Initialize MathJax configuration
- * Call this in your layout or app initialization
+ * Initialize MathJax configuration (kept for backwards compatibility)
+ * New implementation uses KaTeX which doesn't require initialization
  */
 export function initMathJax() {
-  if (typeof window !== "undefined" && !(window as any).MathJax) {
-    (window as any).MathJax = {
-      tex: {
-        inlineMath: [["$", "$"], ["\\(", "\\)"]],
-        displayMath: [["$$", "$$"], ["\\[", "\\]"]],
-        processEscapes: true,
-        processEnvironments: true,
-      },
-      options: {
-        skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"],
-      },
-      startup: {
-        pageReady: () => {
-          return (window as any).MathJax.startup.defaultPageReady().then(() => {
-            console.log("MathJax initial typesetting complete");
-          });
-        },
-      },
-    };
-
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
-    script.async = true;
-    document.head.appendChild(script);
-  }
+  // KaTeX is used now - no initialization needed
+  // This function is kept for backwards compatibility with existing imports
 }

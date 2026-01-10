@@ -8,7 +8,7 @@ const optimizeImports = process.env.DISABLE_OPTIMIZE_IMPORTS === 'true'
   : [
       'lucide-react',
       '@radix-ui/react-*',
-      'framer-motion',
+      // 'framer-motion', // Disabled due to Turbopack HMR issues
       'date-fns',
       'lodash',
       '@tiptap/react',
@@ -55,7 +55,7 @@ const nextConfig = {
   },
 
   // Transpile packages that use ESM syntax
-  transpilePackages: ['@tanstack/react-table'],
+  transpilePackages: ['@tanstack/react-table', 'framer-motion'],
 
   // Generate consistent build IDs to prevent CSS 404 errors
   generateBuildId: async () => {

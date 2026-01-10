@@ -7,7 +7,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import Underline from '@tiptap/extension-underline';
 // BulletList, OrderedList, and ListItem are already included in StarterKit
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Bold,
@@ -30,6 +30,7 @@ import {
   Quote,
   RemoveFormatting,
   Paintbrush,
+  Loader2,
 } from 'lucide-react';
 
 // Optional extensions that we'll try to load
@@ -199,12 +200,81 @@ export const TipTapEditor = ({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const addImage = useCallback(() => {
     if (!editor) return;
 
-    const url = window.prompt('Image URL');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
+    // Create a choice dialog
+    const choice = window.confirm(
+      'Click OK to upload an image file, or Cancel to enter an image URL'
+    );
+
+    if (choice) {
+      // Upload file - trigger file input
+      fileInputRef.current?.click();
+    } else {
+      // Enter URL
+      const url = window.prompt('Image URL');
+      if (url) {
+        editor.chain().focus().setImage({ src: url }).run();
+      }
+    }
+  }, [editor]);
+
+  const handleImageFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editor || !e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+
+    // Validate file size (10MB max - matches API limit)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Only image files are allowed');
+      return;
+    }
+
+    setIsImageUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Handle the API response format: { uploadedFiles: [{ url, publicId }] }
+      const imageUrl = data.uploadedFiles?.[0]?.url || data.secure_url;
+
+      if (imageUrl) {
+        editor.chain().focus().setImage({ src: imageUrl }).run();
+      } else {
+        throw new Error('Upload failed - no URL returned');
+      }
+    } catch (error) {
+      console.error('[IMAGE_UPLOAD_ERROR]', error);
+      alert(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
+    } finally {
+      setIsImageUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   }, [editor]);
   
@@ -240,6 +310,14 @@ export const TipTapEditor = ({
   
   return (
     <div className="relative border border-gray-200 dark:border-gray-700 rounded-md">
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageFileChange}
+        className="hidden"
+      />
       {!readOnly && bubbleMenu && (
         <div>
           <BubbleMenu
@@ -581,10 +659,18 @@ export const TipTapEditor = ({
             <button
               type="button"
               onClick={(e) => handleButtonClick(e, addImage)}
-              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-              title="Insert Image"
+              disabled={isImageUploading}
+              className={cn(
+                "p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700",
+                isImageUploading && "opacity-50 cursor-not-allowed"
+              )}
+              title={isImageUploading ? "Uploading..." : "Insert Image"}
             >
-              <ImageIcon className="h-4 w-4" />
+              {isImageUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
             </button>
             <button
               type="button"

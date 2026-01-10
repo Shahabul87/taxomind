@@ -141,7 +141,7 @@ export function SAMPracticeProblems({
   // Initial state - no problems generated yet
   if (problems.length === 0 && !isGenerating) {
     return (
-      <Card className="w-full border-2 border-dashed border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30">
+      <Card className="w-full min-h-[350px] border-2 border-dashed border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center mb-4">
             <Brain className="w-8 h-8 text-white" />
@@ -183,7 +183,7 @@ export function SAMPracticeProblems({
   // Loading state
   if (isGenerating) {
     return (
-      <Card className="w-full">
+      <Card className="w-full min-h-[350px] flex items-center justify-center">
         <CardContent className="py-12 text-center">
           <Loader2 className="w-10 h-10 animate-spin mx-auto text-purple-500 mb-4" />
           <p className="text-muted-foreground">Generating practice problems...</p>
@@ -197,7 +197,7 @@ export function SAMPracticeProblems({
     const correctRate = sessionStats ? (sessionStats.correctAnswers / sessionStats.totalAttempts) * 100 : 0;
 
     return (
-      <Card className="w-full">
+      <Card className="w-full min-h-[350px]">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mb-4">
             <Trophy className="w-10 h-10 text-white" />

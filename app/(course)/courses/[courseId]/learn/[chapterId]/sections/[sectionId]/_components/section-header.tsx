@@ -4,18 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   Home,
   BookOpen,
   ChevronRight,
-  Monitor,
   Settings,
-  Eye,
+  Pencil,
   LogOut,
-  Target,
-  Trophy,
-  Zap,
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,7 +22,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { motion } from "framer-motion";
 
 interface SectionHeaderProps {
   course: {
@@ -75,189 +70,141 @@ export function SectionHeader({
   const isCompleted = progress >= 100;
 
   return (
-    <motion.div
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5, type: "spring" }}
+    <header
       className={cn(
-        "sticky top-0 z-40 transition-all duration-300",
+        "sticky top-0 z-40 transition-all duration-200 border-b",
         isScrolled
-          ? "bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-lg"
-          : "bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm"
+          ? "bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800"
+          : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800"
       )}
     >
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5" />
+      <div className="container mx-auto px-4 sm:px-6">
+        {/* Main Header Row */}
+        <div className="flex items-center justify-between h-14 gap-4">
+          {/* Left: Breadcrumb Navigation */}
+          <nav className="flex items-center min-w-0 flex-1 text-sm">
+            <Link
+              href="/my-courses"
+              className="flex items-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex-shrink-0"
+            >
+              <Home className="h-4 w-4" />
+              <span className="ml-1.5 hidden sm:inline">Courses</span>
+            </Link>
 
-      {/* Main Header */}
-      <div className="relative border-b border-slate-200/50 dark:border-slate-700/50">
-        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-4">
-            {/* Left: Breadcrumb Navigation */}
-            <nav className="flex items-center min-w-0 flex-1">
-              <Link
-                href="/my-courses"
-                className="group flex items-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex-shrink-0"
-              >
-                <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30 transition-colors">
-                  <Home className="h-4 w-4" />
-                </div>
-                <span className="ml-2 hidden sm:inline font-medium">My Courses</span>
-              </Link>
+            <ChevronRight className="h-3.5 w-3.5 mx-2 text-slate-300 dark:text-slate-600 flex-shrink-0" />
 
-              <ChevronRight className="h-4 w-4 mx-2 sm:mx-3 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+            <Link
+              href={`/courses/${course.id}/learn`}
+              className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors truncate max-w-[120px] sm:max-w-[200px]"
+            >
+              {course.title}
+            </Link>
 
-              <Link
-                href={`/courses/${course.id}/learn`}
-                className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate max-w-[100px] sm:max-w-[180px] lg:max-w-none font-medium"
-              >
-                {course.title}
-              </Link>
+            <ChevronRight className="h-3.5 w-3.5 mx-2 text-slate-300 dark:text-slate-600 flex-shrink-0 hidden sm:block" />
 
-              <ChevronRight className="h-4 w-4 mx-2 sm:mx-3 text-slate-400 dark:text-slate-500 flex-shrink-0" />
+            <span className="hidden sm:block text-slate-900 dark:text-white font-medium truncate max-w-[200px]">
+              {section.title}
+            </span>
+          </nav>
 
-              <Link
-                href={`/courses/${course.id}/learn/${chapter.id}`}
-                className="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate max-w-[80px] sm:max-w-[150px] lg:max-w-none font-medium"
-              >
-                {chapter.title}
-              </Link>
-
-              <ChevronRight className="h-4 w-4 mx-2 sm:mx-3 text-slate-400 dark:text-slate-500 flex-shrink-0" />
-
-              <span className="font-semibold text-slate-900 dark:text-white truncate max-w-[100px] sm:max-w-[180px] lg:max-w-none">
-                {section.title}
-              </span>
-            </nav>
-
-            {/* Center: Progress indicator */}
-            <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-slate-100/80 dark:bg-slate-800/80 rounded-full">
-              <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center",
-                isCompleted
-                  ? "bg-emerald-500 text-white"
-                  : "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
-              )}>
-                {isCompleted ? (
-                  <Trophy className="h-4 w-4" />
-                ) : (
-                  <Target className="h-4 w-4" />
-                )}
-              </div>
-              <div className="text-sm">
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {Math.round(progress)}%
-                </span>
-                <span className="text-slate-500 dark:text-slate-400 ml-1">
-                  complete
-                </span>
-              </div>
-            </div>
-
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {isPreviewMode && (
-                <>
-                  <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white border-0 hidden sm:flex items-center gap-1.5 px-3 py-1 shadow-lg shadow-amber-500/20">
-                    <Monitor className="h-3.5 w-3.5" />
-                    Preview Mode
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSwitchToTeacher}
-                    className="hidden md:flex items-center gap-1.5 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                  >
-                    <Eye className="h-4 w-4" />
-                    <span className="hidden lg:inline">Edit Section</span>
-                  </Button>
-                </>
+          {/* Center: Progress Indicator */}
+          <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 dark:bg-slate-800">
+              {isCompleted ? (
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+              ) : (
+                <div className="h-4 w-4 rounded-full border-2 border-slate-300 dark:border-slate-600" />
               )}
-
-              {/* Settings Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-9 h-9 p-0 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Learning Settings</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href={`/courses/${course.id}/learn`}>
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Course Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  {isPreviewMode && (
-                    <DropdownMenuItem onClick={handleSwitchToTeacher}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Switch to Teacher View
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleExitLearning}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Exit Learning Mode
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Exit Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExitLearning}
-                className="hidden sm:flex items-center gap-2 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden md:inline">Exit</span>
-              </Button>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                {Math.round(progress)}%
+              </span>
             </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Instructor Badge - Subtle and professional */}
+            {isPreviewMode && (
+              <Badge
+                variant="outline"
+                className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+              >
+                <Pencil className="h-3 w-3" />
+                Instructor View
+              </Badge>
+            )}
+
+            {/* Settings Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="text-xs text-slate-500 dark:text-slate-400 font-normal">
+                  Navigation
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href={`/courses/${course.id}/learn`} className="cursor-pointer">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Course Overview
+                  </Link>
+                </DropdownMenuItem>
+                {isPreviewMode && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-slate-500 dark:text-slate-400 font-normal">
+                      Instructor
+                    </DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleSwitchToTeacher} className="cursor-pointer">
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit This Section
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleExitLearning}
+                  className="text-slate-600 dark:text-slate-400 cursor-pointer"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Exit Course
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Exit Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleExitLearning}
+              className="hidden sm:flex items-center gap-1.5 h-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden md:inline text-sm">Exit</span>
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Animated Progress Bar */}
-      <div className="h-1.5 bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
+      {/* Progress Bar - Minimal and elegant */}
+      <div className="h-0.5 bg-slate-100 dark:bg-slate-800">
+        <div
           className={cn(
-            "h-full relative",
+            "h-full transition-all duration-500 ease-out",
             isCompleted
-              ? "bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500"
-              : "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"
+              ? "bg-emerald-500"
+              : "bg-slate-900 dark:bg-white"
           )}
-        >
-          {/* Shimmer effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer" />
-        </motion.div>
-
-        {/* Progress milestone markers */}
-        <div className="absolute inset-0 flex items-center justify-between px-[10%]">
-          {[25, 50, 75, 100].map((milestone) => (
-            <div
-              key={milestone}
-              className={cn(
-                "w-2 h-2 rounded-full transition-all duration-300",
-                progress >= milestone
-                  ? "bg-white shadow-lg"
-                  : "bg-slate-300 dark:bg-slate-600"
-              )}
-            />
-          ))}
-        </div>
+          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+        />
       </div>
-    </motion.div>
+    </header>
   );
 }

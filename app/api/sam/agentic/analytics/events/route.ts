@@ -12,15 +12,10 @@ import {
   createSkillAssessor,
   AssessmentSource,
 } from '@sam-ai/agentic';
-import {
-  createPrismaLearningSessionStore,
-  createPrismaTopicProgressStore,
-  createPrismaLearningGapStore,
-  createPrismaSkillAssessmentStore,
-} from '@/lib/sam/stores';
+import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 
 // ============================================================================
-// LAZY SINGLETONS
+// LAZY SINGLETONS (using TaxomindContext for centralized store access)
 // ============================================================================
 
 let progressAnalyzerInstance: ReturnType<typeof createProgressAnalyzer> | null = null;
@@ -28,11 +23,12 @@ let skillAssessorInstance: ReturnType<typeof createSkillAssessor> | null = null;
 
 function getProgressAnalyzer() {
   if (!progressAnalyzerInstance) {
+    const stores = getAnalyticsStores();
     progressAnalyzerInstance = createProgressAnalyzer({
       logger,
-      sessionStore: createPrismaLearningSessionStore(),
-      progressStore: createPrismaTopicProgressStore(),
-      gapStore: createPrismaLearningGapStore(),
+      sessionStore: stores.learningSession,
+      progressStore: stores.topicProgress,
+      gapStore: stores.learningGap,
     });
   }
   return progressAnalyzerInstance;
@@ -40,9 +36,10 @@ function getProgressAnalyzer() {
 
 function getSkillAssessor() {
   if (!skillAssessorInstance) {
+    const stores = getAnalyticsStores();
     skillAssessorInstance = createSkillAssessor({
       logger,
-      store: createPrismaSkillAssessmentStore(),
+      store: stores.skillAssessment,
     });
   }
   return skillAssessorInstance;

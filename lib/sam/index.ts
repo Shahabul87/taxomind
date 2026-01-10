@@ -753,3 +753,57 @@ export {
   type TaxomindAgenticStores,
   type TaxomindIntegrationContext,
 } from './taxomind-context';
+
+// Testing Integration - Golden test framework for SAM AI quality assurance
+export {
+  // Initialization
+  initializeSAMTesting,
+  getSAMTestingSystem,
+  // Test case helpers
+  createContentGenerationTest,
+  createAssessmentTest,
+  createSafetyTest,
+  // Suite runners
+  runContentGenerationTests,
+  runAssessmentTests,
+  runSafetyTests,
+  runAllSAMTests,
+  // Re-exports from @sam-ai/testing
+  createTestingSystem,
+  createGoldenTestRunner,
+  testCase,
+  runTestSuite,
+  type TestingSystem,
+  type GoldenTestCase as SAMGoldenTestCase,
+  type TestRun as SAMTestRun,
+  type TestResult as SAMTestResult,
+  type TestCaseCategory as SAMTestCaseCategory,
+  type TestExecutor as SAMTestExecutor,
+} from './testing-integration';
+
+// External Knowledge Integration - Content enrichment from external sources
+export {
+  // Initialization
+  initializeExternalKnowledge,
+  getExternalKnowledgeAggregator,
+  // Search functions
+  searchEducationalContent,
+  searchNews,
+  searchResearch,
+  searchDocumentation,
+  // Context enrichment
+  enrichTopicContext,
+  getTrendingEducationTopics,
+  // Re-exports from @sam-ai/external-knowledge
+  createKnowledgeAggregator,
+  KnowledgeAggregator,
+  InMemoryContentCache,
+  type ExternalContent,
+  type NewsArticle,
+  type ResearchPaper,
+  type Documentation,
+  type NewsProvider,
+  type ResearchProvider,
+  type DocumentationProvider,
+  type ExternalKnowledgeConfig,
+} from './external-knowledge-integration';

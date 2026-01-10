@@ -139,13 +139,11 @@ function getTimeFilter(timeframe: string): Date {
 }
 
 async function generatePersonalAnalytics(userId: string, timeFilter: Date): Promise<LearningAnalytics> {
-  // Get user's course enrollments and progress
+  // Get ALL user's course enrollments (not filtered by timeframe)
+  // Timeframe filter only applies to activity data, not enrollment date
   const courseEnrollments = await db.purchase.findMany({
     where: {
       userId: userId,
-      createdAt: {
-        gte: timeFilter
-      }
     },
     include: {
       Course: {
@@ -273,8 +271,8 @@ async function generatePersonalAnalytics(userId: string, timeFilter: Date): Prom
   // Generate learning patterns
   const learningPatterns = calculateLearningPatterns(allExamAttempts);
 
-  // Calculate streak (mock implementation)
-  const currentStreak = 7; // Would calculate based on daily activity
+  // Calculate streak based on recent activity (if any)
+  const currentStreak = allExamAttempts.length > 0 ? calculateStreak(allExamAttempts) : 0;
 
   // Generate AI recommendations
   const aiRecommendations = generateAIRecommendations(
@@ -317,8 +315,12 @@ function calculateCognitiveProgress(examAttempts: any[]): any {
     let total = 0;
 
     examAttempts.forEach(attempt => {
-      attempt.answers.forEach((answer: any) => {
-        if (answer.question.bloomsLevel === level) {
+      // Use correct property name from Prisma query (UserAnswer)
+      const answers = attempt.UserAnswer || attempt.answers || [];
+      answers.forEach((answer: any) => {
+        // Use correct property name (ExamQuestion)
+        const question = answer.ExamQuestion || answer.question;
+        if (question?.bloomsLevel === level) {
           total++;
           if (answer.isCorrect) correct++;
         }
@@ -370,6 +372,48 @@ function calculateLearningPatterns(examAttempts: any[]): any {
     learningVelocity: 0.75, // Mock value
     retentionRate: 82 // Mock value
   };
+}
+
+function calculateStreak(examAttempts: any[]): number {
+  if (examAttempts.length === 0) return 0;
+
+  // Get unique dates of activity
+  const activityDates = new Set(
+    examAttempts.map(attempt =>
+      new Date(attempt.startedAt).toISOString().split('T')[0]
+    )
+  );
+
+  // Sort dates in descending order
+  const sortedDates = Array.from(activityDates).sort((a, b) =>
+    new Date(b).getTime() - new Date(a).getTime()
+  );
+
+  if (sortedDates.length === 0) return 0;
+
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  // Check if there's activity today or yesterday to start counting
+  if (sortedDates[0] !== today && sortedDates[0] !== yesterday) {
+    return 0;
+  }
+
+  // Count consecutive days
+  let streak = 1;
+  for (let i = 0; i < sortedDates.length - 1; i++) {
+    const current = new Date(sortedDates[i]);
+    const next = new Date(sortedDates[i + 1]);
+    const diffDays = Math.floor((current.getTime() - next.getTime()) / (24 * 60 * 60 * 1000));
+
+    if (diffDays === 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
 }
 
 function generateAIRecommendations(averageScore: number, cognitiveProgress: any, activeCourses: number): any[] {

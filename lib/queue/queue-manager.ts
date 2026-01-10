@@ -224,8 +224,9 @@ export class QueueManager {
     this.queueConfigs.set(config.name, config);
 
     // Create queue with IORedis connection for BullMQ compatibility
+    // Type assertion needed due to ioredis version mismatch between dependencies
     const queueOptions: QueueOptions = {
-      connection: this.ioRedis,
+      connection: this.ioRedis as QueueOptions['connection'],
       defaultJobOptions: {
         removeOnComplete: 100,
         removeOnFail: 50,
@@ -293,8 +294,9 @@ export class QueueManager {
     // Wrap handler with error handling and metrics
     const wrappedHandler = this.wrapHandlerWithMonitoring(handler, queueName);
 
+    // Type assertion needed due to ioredis version mismatch between dependencies
     const workerOptions: WorkerOptions = {
-      connection: this.ioRedis,
+      connection: this.ioRedis as WorkerOptions['connection'],
       concurrency: config.concurrency,
       ...(config.rateLimiter && { limiter: config.rateLimiter }),
     };

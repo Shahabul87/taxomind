@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Sparkles, Loader2, Brain, MessageSquare, Wand2, GraduationCap, Upload, FileText, X, Settings, Zap, Star, Crown, Target, BookOpen, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Sparkles, Loader2, Brain, MessageSquare, GraduationCap, Upload, FileText, X, Settings, Zap, Star, Crown, CheckCircle, Info, ShieldCheck, Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { InterfaceModeToggle } from "@/components/ui/interface-mode-toggle";
@@ -69,6 +70,15 @@ export const AIExamAssistant = ({
   const [includeDistractors, setIncludeDistractors] = useState(true);
   const [customPromptTemplate, setCustomPromptTemplate] = useState('');
   const [learningObjectives, setLearningObjectives] = useState('');
+
+  // SAM integration settings
+  const [useSAMValidation, setUseSAMValidation] = useState(true);
+  const [samValidationResult, setSamValidationResult] = useState<{
+    score?: number;
+    quality?: number;
+    safety?: number;
+    pedagogical?: number;
+  } | null>(null);
   
   const { recordFeatureUsage, isFeatureUnlocked } = useProgressiveDisclosure();
   
@@ -119,8 +129,15 @@ export const AIExamAssistant = ({
     }
 
     setIsGenerating(true);
+    setSamValidationResult(null);
+
     try {
-      const payload = {
+      // Determine which API to use based on SAM validation toggle
+      const apiEndpoint = useSAMValidation
+        ? '/api/ai/advanced-exam-generator'
+        : '/api/ai/exam-generator';
+
+      const basePayload = {
         sectionTitle,
         chapterTitle,
         courseTitle,
@@ -143,8 +160,26 @@ export const AIExamAssistant = ({
           learningObjectives
         })
       };
-      
-      const response = await fetch('/api/ai/exam-generator', {
+
+      // Add SAM-specific options if using SAM validation
+      const payload = useSAMValidation
+        ? {
+            ...basePayload,
+            useSAMIntegration: true,
+            enableQualityValidation: true,
+            enableSafetyValidation: true,
+            enablePedagogicalValidation: true,
+            autoOptimizeDistribution: true,
+            targetAudience: targetAudience === 'general' ? 'intermediate' : targetAudience,
+            assessmentPurpose: 'summative',
+            cognitiveLoadLimit: Math.ceil(complexity[0] / 2),
+            learningObjectives: learningObjectives
+              ? learningObjectives.split('\n').filter(Boolean)
+              : [],
+          }
+        : basePayload;
+
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -155,12 +190,29 @@ export const AIExamAssistant = ({
       }
 
       const data = await response.json();
-      
+
       if (data.success && data.questions) {
         onGenerate(data.questions);
-        toast.success(`Generated ${data.questions.length} exam questions!`);
+
+        // Extract and store SAM validation results if available
+        if (useSAMValidation && data.validation) {
+          setSamValidationResult({
+            score: data.validation.overall?.score,
+            quality: data.validation.quality?.score,
+            safety: data.validation.safety?.score,
+            pedagogical: data.validation.pedagogical?.score,
+          });
+        }
+
+        toast.success(
+          `Generated ${data.questions.length} exam questions!${
+            useSAMValidation && data.validation?.overall?.score
+              ? ` (SAM Score: ${data.validation.overall.score}%)`
+              : ''
+          }`
+        );
         recordFeatureUsage('ai-exam-assistant', 3);
-        
+
         // Record advanced feature usage
         if (isAdvancedMode && isBloomsTaxonomyUnlocked) {
           recordFeatureUsage('blooms-taxonomy-guide', 1);
@@ -171,14 +223,14 @@ export const AIExamAssistant = ({
         if (isAdvancedMode && isAdvancedPromptsUnlocked && customPromptTemplate) {
           recordFeatureUsage('advanced-ai-prompts', 1);
         }
-        
+
         setOpen(false);
         setUserPrompt("");
         setFocusArea("");
       } else {
         throw new Error('Invalid response format');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('AI exam generation error:', error);
       toast.error(`Failed to generate exam questions. Please try again.`);
     } finally {
@@ -346,6 +398,49 @@ export const AIExamAssistant = ({
                   />
                 </div>
                 
+                {/* SAM Validation Toggle */}
+                <div className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 p-4 rounded-lg border border-violet-200 dark:border-violet-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                      <div>
+                        <Label htmlFor="sam-validation" className="text-sm font-medium text-violet-800 dark:text-violet-200">
+                          SAM AI Validation
+                        </Label>
+                        <p className="text-xs text-violet-600 dark:text-violet-400">
+                          Quality gates, safety checks, and pedagogical analysis
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      id="sam-validation"
+                      checked={useSAMValidation}
+                      onCheckedChange={setUseSAMValidation}
+                    />
+                  </div>
+
+                  {/* SAM Score Display (if available from previous generation) */}
+                  {samValidationResult && (
+                    <div className="mt-3 pt-3 border-t border-violet-200 dark:border-violet-700">
+                      <div className="text-xs font-medium text-violet-800 dark:text-violet-200 mb-2">
+                        Last Generation Score
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <Gauge className="h-3.5 w-3.5 text-violet-600" />
+                          <span className="text-sm font-semibold text-violet-700 dark:text-violet-300">
+                            {samValidationResult.score}%
+                          </span>
+                        </div>
+                        <Progress
+                          value={samValidationResult.score}
+                          className="flex-1 h-2 bg-violet-200 dark:bg-violet-800"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Preview */}
                 <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
                   <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2 flex items-center gap-2">
@@ -357,6 +452,11 @@ export const AIExamAssistant = ({
                     <li>• Mixed question types (multiple choice, true/false, short answer)</li>
                     <li>• Automatic answer keys and detailed explanations</li>
                     <li>• Questions mapped to learning objectives</li>
+                    {useSAMValidation && (
+                      <li className="text-violet-600 dark:text-violet-400">
+                        • SAM validation: Quality gates, safety checks, Bloom&apos;s alignment
+                      </li>
+                    )}
                   </ul>
                 </div>
               </motion.div>

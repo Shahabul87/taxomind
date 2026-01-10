@@ -195,56 +195,93 @@ export const EnterpriseSectionPageClient = ({
   return (
     <TooltipProvider>
       <div className="min-h-[100dvh] w-full overflow-x-hidden bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
-        {/* Enterprise Header with Status Bar */}
-        <div className="sticky top-0 z-40 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-b border-gray-200/70 dark:border-gray-800/70 shadow-sm">
-          <div className="w-full px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6 py-2.5 sm:py-3">
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
+        {/* Professional Breadcrumb Header */}
+        <div className="sticky top-0 z-40 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800">
+          <div className="w-full px-4 md:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-12 md:h-14">
               {/* Breadcrumb Navigation */}
-              <nav className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm overflow-x-auto w-full sm:w-auto scrollbar-hide -mx-3 sm:mx-0 px-3 sm:px-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                <Link href="/teacher/courses" className="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap flex-shrink-0">
-                  Courses
-                </Link>
-                <span className="text-muted-foreground/50 flex-shrink-0">/</span>
-                <Link href={`/teacher/courses/${params.courseId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">
-                  {chapter.course.title}
-                </Link>
-                <span className="text-muted-foreground/50 flex-shrink-0">/</span>
-                <Link href={`/teacher/courses/${params.courseId}/chapters/${params.chapterId}`} className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">
-                  {chapter.title}
-                </Link>
-                <span className="text-muted-foreground/50 flex-shrink-0">/</span>
-                <span className="text-foreground font-medium truncate max-w-[120px] xs:max-w-[150px] sm:max-w-[200px] md:max-w-none flex-shrink-0">{section.title || 'New Section'}</span>
+              <nav className="flex items-center min-w-0 flex-1 overflow-hidden">
+                <ol className="flex items-center text-sm text-gray-500 dark:text-gray-400 overflow-x-auto scrollbar-hide [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  <li className="flex items-center flex-shrink-0">
+                    <Link
+                      href="/teacher/courses"
+                      className="hover:text-gray-900 dark:hover:text-white transition-colors font-medium"
+                    >
+                      Courses
+                    </Link>
+                  </li>
+                  <li className="flex items-center flex-shrink-0">
+                    <span className="mx-2 text-gray-300 dark:text-gray-600">/</span>
+                    <Link
+                      href={`/teacher/courses/${params.courseId}`}
+                      className="hover:text-gray-900 dark:hover:text-white transition-colors max-w-[200px] truncate"
+                      title={chapter.course.title}
+                    >
+                      {chapter.course.title}
+                    </Link>
+                  </li>
+                  <li className="flex items-center flex-shrink-0">
+                    <span className="mx-2 text-gray-300 dark:text-gray-600">/</span>
+                    <Link
+                      href={`/teacher/courses/${params.courseId}/chapters/${params.chapterId}`}
+                      className="hover:text-gray-900 dark:hover:text-white transition-colors max-w-[200px] truncate"
+                      title={chapter.title}
+                    >
+                      {chapter.title}
+                    </Link>
+                  </li>
+                  <li className="flex items-center flex-shrink-0">
+                    <span className="mx-2 text-gray-300 dark:text-gray-600">/</span>
+                    <span
+                      className="text-gray-900 dark:text-white font-medium max-w-[200px] truncate"
+                      title={section.title || 'New Section'}
+                    >
+                      {section.title || 'New Section'}
+                    </span>
+                  </li>
+                </ol>
               </nav>
 
-              {/* Quick Actions */}
-              <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0 w-full sm:w-auto justify-between sm:justify-start">
+              {/* Right Actions */}
+              <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href={`/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}`} className="flex-shrink-0">
-                      <Button variant="ghost" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm">
-                        <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                        <span className="hidden xs:inline sm:inline">Preview</span>
+                    <Link href={`/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 h-9 px-3 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        <Eye className="h-4 w-4" />
+                        <span className="hidden sm:inline">Preview</span>
                       </Button>
                     </Link>
                   </TooltipTrigger>
-                  <TooltipContent>Preview as Student (Ctrl+P)</TooltipContent>
+                  <TooltipContent>Preview as Student</TooltipContent>
                 </Tooltip>
 
-                <Badge variant={section.isPublished ? "default" : "secondary"} className="gap-1 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 flex-shrink-0">
-                  <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span className="whitespace-nowrap">{section.isPublished ? 'Published' : 'Draft'}</span>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "h-7 px-2.5 text-xs font-medium border rounded-md",
+                    section.isPublished
+                      ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700"
+                  )}
+                >
+                  {section.isPublished ? 'Published' : 'Draft'}
                 </Badge>
               </div>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="h-0.5 sm:h-1 bg-gray-200/70 dark:bg-gray-800/70">
+          <div className="h-[3px] bg-gray-100 dark:bg-gray-800">
             <motion.div
-              className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 with-progress-shimmer"
+              className="h-full bg-blue-500"
               initial={{ width: 0 }}
               animate={{ width: `${contentStats.completionPercentage}%` }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             />
           </div>
         </div>

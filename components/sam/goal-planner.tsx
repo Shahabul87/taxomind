@@ -306,6 +306,12 @@ export function GoalPlanner({
   const [decomposingGoalId, setDecomposingGoalId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Prevent hydration mismatch with Radix UI Dialog
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Form state
   const [formData, setFormData] = useState<CreateGoalData>({
     title: '',
@@ -463,7 +469,7 @@ export function GoalPlanner({
             <Target className="w-4 h-4" />
             Goals ({activeGoals.length})
           </span>
-          {showCreateButton && (
+          {showCreateButton && mounted && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm">
@@ -526,7 +532,7 @@ export function GoalPlanner({
           </p>
         </div>
 
-        {showCreateButton && (
+        {showCreateButton && mounted && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -595,24 +601,26 @@ export function GoalPlanner({
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingGoal} onOpenChange={(open) => !open && setEditingGoal(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Goal</DialogTitle>
-            <DialogDescription>Update your learning goal details.</DialogDescription>
-          </DialogHeader>
-          {FormContent}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingGoal(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting || !formData.title.trim()}>
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {mounted && (
+        <Dialog open={!!editingGoal} onOpenChange={(open) => !open && setEditingGoal(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Goal</DialogTitle>
+              <DialogDescription>Update your learning goal details.</DialogDescription>
+            </DialogHeader>
+            {FormContent}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingGoal(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting || !formData.title.trim()}>
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

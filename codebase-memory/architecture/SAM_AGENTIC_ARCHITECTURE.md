@@ -194,6 +194,12 @@ const toolStore = getStore('tool');
 const { goal, subGoal, plan } = getGoalStores();
 const { behaviorEvent, pattern, intervention, checkIn } = getProactiveStores();
 const { vector, knowledgeGraph, sessionContext } = getMemoryStores();
+const { toolTelemetry, confidenceCalibration, memoryQuality, planLifecycle, metrics } = getObservabilityStores();
+const { learningSession, topicProgress, learningGap, skillAssessment, recommendation, content } = getAnalyticsStores();
+const { learningPlan, tutoringSession, skillBuildTrack } = getMultiSessionStores();
+const presenceStore = getPresenceStore();
+const studentProfileStore = getStudentProfileStore();
+const reviewScheduleStore = getReviewScheduleStore();
 
 // ❌ NEVER DO THIS - Direct store creation
 import { createPrismaGoalStore } from '@/lib/sam/stores';
@@ -210,6 +216,12 @@ const goalStore = createPrismaGoalStore(); // WRONG!
 | `getProactiveStores()` | `{ behaviorEvent, pattern, intervention, checkIn }` | Proactive interventions |
 | `getMemoryStores()` | `{ vector, knowledgeGraph, sessionContext }` | Memory/knowledge operations |
 | `getLearningPathStores()` | `{ skill, learningPath, courseGraph }` | Learning path management |
+| `getObservabilityStores()` | `{ toolTelemetry, confidenceCalibration, memoryQuality, planLifecycle, metrics }` | Telemetry and quality metrics |
+| `getAnalyticsStores()` | `{ learningSession, topicProgress, learningGap, skillAssessment, recommendation, content }` | Learning analytics |
+| `getMultiSessionStores()` | `{ learningPlan, tutoringSession, skillBuildTrack }` | Cross-session continuity |
+| `getPresenceStore()` | `PrismaPresenceStore` | Realtime user presence tracking |
+| `getStudentProfileStore()` | `PrismaStudentProfileStore` | Student mastery and profiles |
+| `getReviewScheduleStore()` | `PrismaReviewScheduleStore` | Spaced repetition scheduling |
 
 ---
 
@@ -294,6 +306,55 @@ const goalStore = createPrismaGoalStore(); // WRONG!
 | `learningPlan` | `PrismaLearningPlanStore` | Multi-session learning plans |
 | `tutoringSession` | `PrismaTutoringSessionStore` | Cross-session tutoring continuity |
 | `skillBuildTrack` | `PrismaSkillBuildTrackStore` | Skill development tracking |
+
+### 8. Observability Stores (NEW)
+
+| Store | Interface | Purpose |
+|-------|-----------|---------|
+| `toolTelemetry` | `PrismaToolTelemetryStore` | Tool execution metrics and latencies |
+| `confidenceCalibration` | `PrismaConfidenceCalibrationStore` | AI confidence predictions and outcomes |
+| `memoryQuality` | `PrismaMemoryQualityStore` | Memory retrieval quality tracking |
+| `planLifecycle` | `PrismaPlanLifecycleStore` | Plan state transitions and events |
+| `metrics` | `PrismaMetricsStore` | General metrics recording |
+
+**Schema References**: `prisma/migrations/20260106_add_sam_observability/migration.sql`
+- `SAMMetric`
+- `SAMToolExecution`
+- `SAMConfidenceScore`
+- `SAMMemoryRetrieval`
+- `SAMPlanLifecycleEvent`
+- `SAMAggregatedMetrics`
+
+### 9. Presence Store (NEW)
+
+| Store | Interface | Purpose |
+|-------|-----------|---------|
+| `presence` | `PrismaPresenceStore` | Realtime user presence and location |
+
+**Schema References**: `prisma/domains/17-sam-agentic.prisma`
+- `SAMUserPresence`
+
+### 10. Student Profile Store (NEW)
+
+| Store | Interface | Purpose |
+|-------|-----------|---------|
+| `studentProfile` | `PrismaStudentProfileStore` | Student mastery profiles and cognitive preferences |
+
+**Schema References**: Uses configurable table names
+- Student profiles with mastery records
+- Learning pathways with step tracking
+- Topic mastery with Bloom&apos;s level tracking
+
+### 11. Review Schedule Store (NEW)
+
+| Store | Interface | Purpose |
+|-------|-----------|---------|
+| `reviewSchedule` | `PrismaReviewScheduleStore` | Spaced repetition review scheduling |
+
+**Features**:
+- SM-2 algorithm support (interval, ease factor, repetitions)
+- Due review tracking
+- Per-topic scheduling
 
 ---
 
@@ -626,6 +687,7 @@ When integrating with SAM:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | 2025-01-08 | Initial architecture documentation |
+| 1.1.0 | 2025-01-10 | Added observability, presence, student profile, and review schedule stores |
 
 ---
 

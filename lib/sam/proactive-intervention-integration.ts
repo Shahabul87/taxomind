@@ -31,11 +31,7 @@ import {
 } from '@sam-ai/agentic';
 
 // Import the centralized context for Prisma stores
-import { getProactiveStores } from './taxomind-context';
-import {
-  createPrismaCheckInStore,
-  createPrismaLearningPlanStore,
-} from './stores';
+import { getProactiveStores, getStore } from './taxomind-context';
 
 // ============================================================================
 // SINGLETON INSTANCES
@@ -105,16 +101,16 @@ export function initializeProactiveInterventions(
     frustrationThreshold: config.frustrationThreshold ?? 0.7,
   });
 
-  // Initialize Check-In Scheduler with Prisma store for persistent storage
+  // Initialize Check-In Scheduler with Prisma store from centralized context
   checkInScheduler = createCheckInScheduler({
-    store: createPrismaCheckInStore(),
+    store: getStore('checkIn'),
     logger: proactiveLogger,
     checkInExpirationHours: config.checkInExpirationHours ?? 24,
   });
 
-  // Initialize Multi-Session Plan Tracker with Prisma store for persistent storage
+  // Initialize Multi-Session Plan Tracker with Prisma store from centralized context
   planTracker = createMultiSessionPlanTracker({
-    store: createPrismaLearningPlanStore(),
+    store: getStore('learningPlan'),
     logger: proactiveLogger,
     defaultDailyMinutes: config.defaultDailyMinutes ?? 30,
     streakGracePeriodDays: config.streakGracePeriodDays ?? 1,

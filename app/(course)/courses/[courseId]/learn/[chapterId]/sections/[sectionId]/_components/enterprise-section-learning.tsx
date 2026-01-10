@@ -267,13 +267,17 @@ export function EnterpriseSectionLearning({
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f7f8fb] via-[#f4f6f9] to-[#f7f8fb] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 relative overflow-hidden">
-      {/* Ambient blur effects - matching login page */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/12 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/12 rounded-full blur-3xl" />
+  // Calculate content counts for conditional rendering
+  const contentCounts = {
+    videos: currentSection.videos?.length || 0,
+    articles: currentSection.blogs?.length || 0,
+    math: currentSection.mathExplanations?.length || 0,
+    code: currentSection.codeExplanations?.length || 0,
+  };
+  const totalContent = Object.values(contentCounts).reduce((a, b) => a + b, 0);
 
-      <div className="relative z-10">
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Section Header */}
       <SectionHeader
         course={course}
@@ -284,8 +288,8 @@ export function EnterpriseSectionLearning({
       />
 
       {/* Main Content Area */}
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 md:py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative">
+      <div className="container mx-auto px-4 sm:px-6 py-6 lg:py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* Main Content Column */}
           <motion.div
             className={cn(
@@ -293,30 +297,32 @@ export function EnterpriseSectionLearning({
               sidebarOpen ? "xl:col-span-8" : "xl:col-span-12"
             )}
             layout
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
           >
             {/* Section Overview Card */}
-            <Card className="overflow-hidden bg-white/80 dark:bg-slate-900/95 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/30 dark:from-slate-900/50 dark:to-slate-800/50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-2xl font-semibold tracking-tight mb-2 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 dark:from-purple-400 dark:via-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">{currentSection.title}</CardTitle>
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <CardTitle className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-white leading-tight">
+                      {currentSection.title}
+                    </CardTitle>
                     {currentSection.description && (
                       <SafeHtmlRenderer
                         html={currentSection.description}
-                        className="text-base prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 mt-2"
+                        className="mt-3 text-slate-600 dark:text-slate-400 prose prose-sm dark:prose-invert max-w-none"
                       />
                     )}
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 flex-shrink-0">
                     {currentSection.duration && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
+                      <Badge variant="secondary" className="flex items-center gap-1.5 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0">
                         <Clock className="h-3 w-3" />
                         {Math.floor(currentSection.duration / 60)} min
                       </Badge>
                     )}
                     {sectionCompleted && (
-                      <Badge variant="success" className="flex items-center gap-1">
+                      <Badge className="flex items-center gap-1.5 text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                         <CheckCircle2 className="h-3 w-3" />
                         Completed
                       </Badge>
@@ -326,58 +332,60 @@ export function EnterpriseSectionLearning({
 
                 {/* Learning Objectives */}
                 {currentSection.learningObjectives && (
-                  <div className="mt-6 p-4 bg-white/50 dark:bg-slate-900/50 rounded-lg border border-slate-200/60 dark:border-slate-700/50">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold mb-3 text-slate-900 dark:text-white">
-                      <Target className="h-4 w-4 text-[#22c55e]" />
+                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                    <h3 className="flex items-center gap-2 text-sm font-medium mb-3 text-slate-900 dark:text-white">
+                      <Target className="h-4 w-4 text-emerald-600 dark:text-emerald-500" />
                       Learning Objectives
                     </h3>
                     <SafeHtmlRenderer
                       html={currentSection.learningObjectives}
-                      className="prose prose-sm dark:prose-invert max-w-none [&>ul]:list-disc [&>ul]:ml-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-sm [&>ul>li]:marker:text-[#22c55e] dark:[&>ul>li]:marker:text-[#4ade80]"
+                      className="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-400 [&>ul]:list-disc [&>ul]:ml-5 [&>ul>li]:mb-1.5 [&>ul>li]:text-sm"
                     />
                   </div>
                 )}
               </CardHeader>
 
-              {/* Quick Stats */}
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="text-center p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/30 dark:to-blue-900/20 border border-blue-200/60 dark:border-blue-800/50">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
-                      {currentSection.videos?.length || 0}
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">Videos</p>
+              {/* Content Stats - Only show if there is content */}
+              {totalContent > 0 && (
+                <CardContent className="pt-0 pb-6">
+                  <div className="flex flex-wrap gap-3">
+                    {contentCounts.videos > 0 && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
+                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.videos}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Video{contentCounts.videos !== 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    {contentCounts.articles > 0 && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
+                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.articles}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Article{contentCounts.articles !== 1 ? 's' : ''}</span>
+                      </div>
+                    )}
+                    {contentCounts.math > 0 && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
+                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.math}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Math</span>
+                      </div>
+                    )}
+                    {contentCounts.code > 0 && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm">
+                        <span className="font-medium text-slate-900 dark:text-white">{contentCounts.code}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Code</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-center p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/30 dark:to-purple-900/20 border border-purple-200/60 dark:border-purple-800/50">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">
-                      {currentSection.blogs?.length || 0}
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">Articles</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/30 dark:to-green-900/20 border border-green-200/60 dark:border-green-800/50">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-emerald-600 dark:from-cyan-400 dark:to-emerald-400 bg-clip-text text-transparent">
-                      {currentSection.mathExplanations?.length || 0}
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">Math</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/30 dark:to-orange-900/20 border border-orange-200/60 dark:border-orange-800/50">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-400 dark:to-red-400 bg-clip-text text-transparent">
-                      {currentSection.codeExplanations?.length || 0}
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">Code</p>
-                  </div>
-                </div>
-              </CardContent>
+                </CardContent>
+              )}
             </Card>
 
             {/* Main Video Player (if videoUrl exists) */}
             {currentSection.videoUrl && (
-              <Card className="bg-white/80 dark:bg-slate-900/95 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]">
-                <CardHeader>
-                  <CardTitle className="text-slate-900 dark:text-white">Main Lecture</CardTitle>
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-medium text-slate-900 dark:text-white">Main Lecture</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="video-container">
+                <CardContent className="pt-0">
+                  <div className="video-container rounded-lg overflow-hidden">
                     <SectionYouTubePlayer
                       videoUrl={currentSection.videoUrl}
                       sectionId={sectionId}
@@ -391,55 +399,54 @@ export function EnterpriseSectionLearning({
             )}
 
             {/* Navigation Controls */}
-            <Card className="bg-white/80 dark:bg-slate-900/95 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25)]">
-              <CardContent className="pt-6">
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+              <CardContent className="py-4">
                 <div className="flex items-center justify-between">
                   <Button
                     variant="outline"
                     onClick={handlePrevious}
                     disabled={!prevSection}
-                    className="flex items-center gap-2 border-slate-200 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    className="flex items-center gap-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    Previous
+                    <span className="hidden sm:inline">Previous</span>
                   </Button>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     {canTrackProgress && !sectionCompleted && (
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         onClick={handleSectionComplete}
-                        className="bg-[#22c55e] hover:bg-[#22c55e]/90 text-white dark:bg-[#4ade80] dark:hover:bg-[#4ade80]/90 dark:text-slate-900"
+                        className="flex items-center gap-2 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Mark as Complete
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Mark Complete</span>
                       </Button>
                     )}
                   </div>
 
                   <Button
-                    variant="default"
                     onClick={handleNext}
                     disabled={!nextSection && !nextChapterSection}
-                    className="flex items-center gap-2 bg-[#22c55e] hover:bg-[#22c55e]/90 dark:bg-[#4ade80] dark:hover:bg-[#4ade80]/90 dark:text-slate-900"
+                    className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900"
                   >
-                    Next
+                    <span className="hidden sm:inline">Next</span>
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
 
                 {/* Next Section Preview */}
                 {(nextSection || nextChapterSection) && (
-                  <div className="mt-6 p-4 bg-slate-50/50 dark:bg-slate-900/50 rounded-lg border border-slate-200/60 dark:border-slate-700/50">
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-1">
-                      <Info className="h-4 w-4 text-[#22c55e] dark:text-[#4ade80]" />
+                  <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-1">
+                      <Info className="h-3.5 w-3.5" />
                       Up Next
                     </div>
-                    <p className="font-medium text-slate-900 dark:text-white">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
                       {nextSection?.title || nextChapterSection?.section.title}
                     </p>
                     {!nextSection && nextChapterSection && (
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                         Chapter: {nextChapterSection.chapter.title}
                       </p>
                     )}
@@ -504,31 +511,36 @@ export function EnterpriseSectionLearning({
             onClick={() => setShowCompletionModal(false)}
           >
             <motion.div
-              className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl p-6 max-w-md w-full border border-slate-200/50 dark:border-slate-700/50 shadow-xl"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
+              className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-800 shadow-xl"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center">
-                <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#22c55e]/10 to-[#22c55e]/20 dark:from-[#4ade80]/20 dark:to-[#4ade80]/10 rounded-full flex items-center justify-center mb-4 border border-[#22c55e]/20 dark:border-[#4ade80]/20">
-                  <Award className="h-8 w-8 text-[#16a34a] dark:text-[#4ade80]" />
+                <div className="mx-auto w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 rounded-full flex items-center justify-center mb-4">
+                  <Award className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">Congratulations! 🎉</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">
-                  You&apos;ve successfully completed this section. Keep up the great work!
+                <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">Section Complete</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  You&apos;ve completed this section. Keep up the great work!
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => setShowCompletionModal(false)}
-                    className="border-slate-200 dark:border-slate-700/50"
+                    className="border-slate-200 dark:border-slate-700"
                   >
-                    Review Section
+                    Review
                   </Button>
                   {(nextSection || nextChapterSection) && (
-                    <Button onClick={handleNext} className="bg-[#22c55e] hover:bg-[#22c55e]/90 dark:bg-[#4ade80] dark:hover:bg-[#4ade80]/90 dark:text-slate-900">
-                      Continue Learning
+                    <Button
+                      size="sm"
+                      onClick={handleNext}
+                      className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 dark:text-slate-900"
+                    >
+                      Continue
                     </Button>
                   )}
                 </div>
@@ -545,23 +557,23 @@ export function EnterpriseSectionLearning({
       <AnimatePresence>
         {showEmotionNotification && emotionState && (
           <motion.div
-            initial={{ opacity: 0, y: 50, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, x: "-50%" }}
-            exit={{ opacity: 0, y: 50, x: "-50%" }}
-            className="fixed bottom-24 left-1/2 z-50 max-w-md w-full mx-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 max-w-sm w-full mx-4"
           >
-            <Card className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-purple-200 dark:border-purple-800 shadow-xl">
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-lg">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/50">
-                    <Heart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <div className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <Heart className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
-                        SAM AI Assistant
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                        SAM Assistant
                       </span>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="secondary" className="text-xs bg-slate-100 dark:bg-slate-800">
                         {emotionState.currentEmotion}
                       </Badge>
                     </div>
@@ -572,8 +584,8 @@ export function EnterpriseSectionLearning({
                       <div className="mt-3 flex gap-2">
                         <Button
                           size="sm"
-                          variant="secondary"
-                          className="text-xs"
+                          variant="outline"
+                          className="text-xs h-7"
                           onClick={() => {
                             if (emotionState.suggestedAction?.type === "take_break") {
                               toast.info("Taking a 5-minute break. We will remind you to come back!");
@@ -588,7 +600,7 @@ export function EnterpriseSectionLearning({
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-xs"
+                          className="text-xs h-7"
                           onClick={dismissEmotionNotification}
                         >
                           Dismiss
@@ -599,7 +611,7 @@ export function EnterpriseSectionLearning({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0"
+                    className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600"
                     onClick={dismissEmotionNotification}
                   >
                     <X className="h-4 w-4" />
@@ -615,48 +627,44 @@ export function EnterpriseSectionLearning({
       <AnimatePresence>
         {showLearningStyleTip && learningStyle && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed bottom-24 right-4 z-50 max-w-sm"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-20 right-4 z-50 max-w-xs"
           >
-            <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border-blue-200 dark:border-blue-800 shadow-xl">
+            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-lg">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                    <Brain className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="p-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <Brain className="h-4 w-4 text-slate-600 dark:text-slate-400" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                        Your Learning Style Detected!
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">
+                        Learning Style Detected
                       </span>
-                      <Sparkles className="h-4 w-4 text-yellow-500" />
                     </div>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                      You appear to be a <strong className="text-blue-600 dark:text-blue-400 capitalize">{learningStyle.primaryStyle}</strong> learner.
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                      You appear to be a <span className="font-medium text-slate-900 dark:text-white capitalize">{learningStyle.primaryStyle}</span> learner.
                     </p>
-                    <div className="bg-white/60 dark:bg-slate-900/60 rounded-lg p-2 mb-3">
-                      <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-1">
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-md p-2 mb-3">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
                         <Lightbulb className="h-3 w-3" />
-                        Personalized Tips:
+                        Tips
                       </div>
                       <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
                         {getContentRecommendations("general").slice(0, 2).map((rec, idx) => (
-                          <li key={idx} className="flex items-start gap-1">
-                            <span className="text-blue-500">•</span>
-                            {rec}
-                          </li>
+                          <li key={idx}>• {rec}</li>
                         ))}
                       </ul>
                     </div>
                     <Button
                       size="sm"
-                      variant="secondary"
-                      className="w-full text-xs"
+                      variant="outline"
+                      className="w-full text-xs h-7"
                       onClick={() => setShowLearningStyleTip(false)}
                     >
-                      Got it, thanks!
+                      Got it
                     </Button>
                   </div>
                 </div>
@@ -673,21 +681,20 @@ export function EnterpriseSectionLearning({
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
             className="fixed right-4 top-1/2 -translate-y-1/2 z-40"
           >
             <Button
               onClick={() => setSidebarOpen(true)}
-              size="lg"
-              className="h-12 w-12 rounded-lg bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 border-0 p-0"
+              size="sm"
+              className="h-10 w-10 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm"
               title="Show sidebar (Ctrl+B)"
             >
-              <PanelLeftClose className="h-6 w-6" />
+              <PanelLeftClose className="h-5 w-5" />
             </Button>
           </motion.div>
         )}
       </AnimatePresence>
-      </div>
     </div>
   );
 }

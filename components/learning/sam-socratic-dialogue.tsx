@@ -191,7 +191,7 @@ export function SAMSocraticDialogue({
   // Initial state - not started
   if (!dialogue && messages.length === 0) {
     return (
-      <Card className="w-full border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
+      <Card className="w-full min-h-[350px] border-2 border-dashed border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center mb-4">
             <MessageCircle className="w-8 h-8 text-white" />
@@ -240,7 +240,7 @@ export function SAMSocraticDialogue({
   // Dialogue complete
   if (isComplete) {
     return (
-      <Card className="w-full">
+      <Card className="w-full min-h-[350px]">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mb-4">
             <Trophy className="w-10 h-10 text-white" />

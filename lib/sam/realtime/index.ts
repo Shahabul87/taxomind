@@ -7,6 +7,8 @@
  * 2. Presence tracking with Prisma persistence
  * 3. Push delivery with proactive intervention integration
  * 4. UI surface management for intervention display
+ *
+ * Phase 3: Infrastructure - Wire presence to Prisma store via TaxomindContext
  */
 
 import { logger } from '@/lib/logger';
@@ -38,9 +40,11 @@ import {
   type RealtimeLogger,
   type PresenceMetadata,
   type ActivityPayload,
+  type PresenceStore,
   DeliveryChannel as DeliveryChannelConst,
   SAMEventType as SAMEventTypeConst,
 } from '@sam-ai/agentic';
+import { getPresenceStore } from '../taxomind-context';
 
 // Re-export all types from @sam-ai/agentic realtime module
 export * from '@sam-ai/agentic';
@@ -54,6 +58,8 @@ export interface SAMRealtimeConfig {
   wsUrl?: string;
   /** Enable persistence to database */
   enablePersistence?: boolean;
+  /** Use Prisma-backed stores from TaxomindContext (recommended for production) */
+  usePrismaStores?: boolean;
   /** Enable sound effects for interventions */
   enableSound?: boolean;
   /** Enable haptic feedback on mobile */
@@ -73,6 +79,7 @@ export interface SAMRealtimeConfig {
 const DEFAULT_REALTIME_CONFIG: Required<SAMRealtimeConfig> = {
   wsUrl: process.env.NEXT_PUBLIC_WS_URL ?? '',
   enablePersistence: true,
+  usePrismaStores: true,
   enableSound: true,
   enableHaptics: true,
   maxVisibleInterventions: 3,
@@ -419,10 +426,25 @@ export class SAMRealtimeServer {
   constructor(config: SAMRealtimeConfig = {}) {
     this.config = { ...DEFAULT_REALTIME_CONFIG, ...config };
 
-    // Initialize presence tracker with in-memory store
-    // (Prisma store can be added as an enhancement)
+    // Get presence store - use Prisma-backed store from TaxomindContext if enabled
+    let presenceStore: PresenceStore;
+    if (this.config.usePrismaStores) {
+      try {
+        presenceStore = getPresenceStore();
+        logger.info('SAM Realtime using Prisma-backed presence store for persistence');
+      } catch (error) {
+        logger.warn('Failed to initialize Prisma presence store, falling back to in-memory', {
+          error: error instanceof Error ? error.message : 'Unknown',
+        });
+        presenceStore = new InMemoryPresenceStore();
+      }
+    } else {
+      presenceStore = new InMemoryPresenceStore();
+    }
+
+    // Initialize presence tracker
     this.presenceTracker = createPresenceTracker({
-      store: new InMemoryPresenceStore(),
+      store: presenceStore,
       config: {
         idleTimeoutMs: this.config.idleTimeoutMs,
         awayTimeoutMs: this.config.awayTimeoutMs,
@@ -431,7 +453,7 @@ export class SAMRealtimeServer {
       logger,
     });
 
-    // Initialize push dispatcher
+    // Initialize push dispatcher (InMemory for now - no Prisma PushQueueStore yet)
     this.pushDispatcher = createPushDispatcher({
       store: new InMemoryPushQueueStore(),
       presenceTracker: this.presenceTracker,

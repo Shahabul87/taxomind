@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Trophy,
   Info,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,9 +31,10 @@ import {
   StudyHeatmapProps,
 } from '@/types/learning-analytics';
 import { cn } from '@/lib/utils';
+import { useLearningAnalytics } from './hooks/useLearningAnalytics';
 
-// Demo data generator
-function generateDemoHeatmapData(year: number): HeatmapResponse {
+// Generate empty heatmap data for visualization
+function generateEmptyHeatmapData(year: number): HeatmapResponse {
   const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const months = [];
 
@@ -44,27 +46,11 @@ function generateDemoHeatmapData(year: number): HeatmapResponse {
       const date = new Date(year, month, day);
       const dateKey = date.toISOString().split('T')[0];
 
-      // Generate random activity (more likely on weekdays)
-      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-      const hasActivity = Math.random() > (isWeekend ? 0.7 : 0.3);
-      const minutes = hasActivity
-        ? Math.floor(Math.random() * 180) + 15
-        : 0;
-
-      const level = minutes === 0 ? 0 : minutes < 30 ? 1 : minutes < 60 ? 2 : minutes < 120 ? 3 : 4;
-
       days.push({
         date: dateKey,
-        count: minutes,
-        level: level as 0 | 1 | 2 | 3 | 4,
-        details: hasActivity
-          ? {
-              studyMinutes: minutes,
-              lessonsCompleted: Math.floor(Math.random() * 5),
-              quizzesCompleted: Math.floor(Math.random() * 2),
-              activeSessions: Math.floor(Math.random() * 3) + 1,
-            }
-          : undefined,
+        count: 0,
+        level: 0,
+        details: undefined,
       });
     }
 
@@ -98,15 +84,15 @@ function generateDemoHeatmapData(year: number): HeatmapResponse {
   }
 
   const stats: HeatmapStats = {
-    totalStudyHours: 247,
-    activeDays: 156,
-    currentStreak: 23,
-    longestStreak: 45,
-    averageDailyMinutes: 95,
-    mostActiveDay: 'Tuesday',
-    bestStudyTime: '9:00 AM - 11:00 AM',
-    totalLessonsCompleted: 324,
-    totalQuizzesCompleted: 87,
+    totalStudyHours: 0,
+    activeDays: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    averageDailyMinutes: 0,
+    mostActiveDay: '-',
+    bestStudyTime: '-',
+    totalLessonsCompleted: 0,
+    totalQuizzesCompleted: 0,
   };
 
   return { months, stats, year };
@@ -202,9 +188,29 @@ export function StudyHeatmap({
   compact = false,
 }: StudyHeatmapProps) {
   const [year, setYear] = useState(initialYear ?? new Date().getFullYear());
+  const { data: analyticsData, isLoading } = useLearningAnalytics('all');
 
-  // In a real app, this would be fetched from the API
-  const data = useMemo(() => generateDemoHeatmapData(year), [year]);
+  // Use empty heatmap data with stats from real API data
+  const data = useMemo(() => {
+    const heatmapData = generateEmptyHeatmapData(year);
+
+    // Update stats with real data if available
+    if (analyticsData) {
+      heatmapData.stats = {
+        totalStudyHours: Math.round(analyticsData.overview.totalStudyTime / 60),
+        activeDays: analyticsData.overview.activeCourses > 0 ? analyticsData.courseProgress.length : 0,
+        currentStreak: analyticsData.overview.currentStreak,
+        longestStreak: analyticsData.overview.currentStreak, // API doesn't provide longest
+        averageDailyMinutes: analyticsData.learningPatterns.averageSessionLength,
+        mostActiveDay: analyticsData.learningPatterns.mostActiveDay || '-',
+        bestStudyTime: analyticsData.learningPatterns.preferredStudyTime || '-',
+        totalLessonsCompleted: analyticsData.courseProgress.reduce((sum, c) => sum + c.completedSections, 0),
+        totalQuizzesCompleted: analyticsData.overview.totalExamsCompleted,
+      };
+    }
+
+    return heatmapData;
+  }, [year, analyticsData]);
 
   const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -274,27 +280,33 @@ export function StudyHeatmap({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <Flame className="h-4 w-4 text-orange-500" />
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {data.stats.currentStreak}
-                </span>
-                <span className="text-xs text-slate-500">day streak</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span className="font-semibold text-slate-900 dark:text-white">
-                  {data.stats.totalStudyHours}
-                </span>
-                <span className="text-xs text-slate-500">hours</span>
-              </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
             </div>
-            <Button variant="ghost" size="sm" className="text-xs">
-              View Full
-            </Button>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1">
+                  <Flame className="h-4 w-4 text-orange-500" />
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {data.stats.currentStreak}
+                  </span>
+                  <span className="text-xs text-slate-500">day streak</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4 text-blue-500" />
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {data.stats.totalStudyHours}
+                  </span>
+                  <span className="text-xs text-slate-500">hours</span>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="text-xs">
+                View Full
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );

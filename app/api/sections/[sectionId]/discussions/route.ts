@@ -12,9 +12,10 @@ const DiscussionCreateSchema = z.object({
 // Create a new discussion or reply
 export async function POST(
   request: NextRequest,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
+    const { sectionId } = await params;
     const user = await currentUser();
     if (!user?.id) {
       return NextResponse.json(
@@ -28,7 +29,7 @@ export async function POST(
 
     // Check if user has access to this section
     const section = await db.section.findUnique({
-      where: { id: params.sectionId },
+      where: { id: sectionId },
       include: {
         chapter: {
           include: {
@@ -74,7 +75,7 @@ export async function POST(
         );
       }
 
-      if (parentDiscussion.sectionId !== params.sectionId) {
+      if (parentDiscussion.sectionId !== sectionId) {
         return NextResponse.json(
           { error: 'Parent discussion is from a different section' },
           { status: 400 }
@@ -86,7 +87,7 @@ export async function POST(
     const discussion = await db.discussion.create({
       data: {
         userId: user.id,
-        sectionId: params.sectionId,
+        sectionId: sectionId,
         content: validatedData.content,
         parentId: validatedData.parentId,
       },
@@ -128,15 +129,16 @@ export async function POST(
 // Get all discussions for a section
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sectionId: string } }
+  { params }: { params: Promise<{ sectionId: string }> }
 ) {
   try {
+    const { sectionId } = await params;
     const user = await currentUser();
 
     // Get discussions (only top-level, not replies)
     const discussions = await db.discussion.findMany({
       where: {
-        sectionId: params.sectionId,
+        sectionId: sectionId,
         parentId: null, // Only top-level discussions
       },
       include: {
