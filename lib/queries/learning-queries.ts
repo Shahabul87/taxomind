@@ -100,6 +100,38 @@ export async function getLearningPageData({
                 where: { sectionId },
                 orderBy: { position: 'asc' },
               },
+              // Include published exams for the current section
+              exams: {
+                where: {
+                  sectionId,
+                  isPublished: true, // Only show published exams to students
+                },
+                orderBy: { createdAt: 'asc' },
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  timeLimit: true,
+                  passingScore: true,
+                  attempts: true,
+                  isPublished: true,
+                  createdAt: true,
+                  ExamQuestion: {
+                    orderBy: { order: 'asc' },
+                    select: {
+                      id: true,
+                      question: true,
+                      questionType: true,
+                      difficulty: true,
+                      bloomsLevel: true,
+                      points: true,
+                      order: true,
+                      options: true,
+                      // Note: correctAnswer and explanation are hidden from students initially
+                    },
+                  },
+                },
+              },
             },
           },
         },
