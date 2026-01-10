@@ -958,12 +958,41 @@ export function SectionContentTabs({
                 {section.exams.map((exam: any) => {
                   // Transform exam data to match the ExamQuizComponent format
                   // Handle both Prisma relation name (ExamQuestion) and frontend name (questions)
-                  const questions = exam.questions || exam.ExamQuestion || [];
+                  const rawQuestions = exam.questions || exam.ExamQuestion || [];
+
+                  // Transform questions to fix correctAnswer format
+                  // Database stores "A", "B", etc. but component expects full option text
+                  const transformedQuestions = rawQuestions.map((q: any) => {
+                    const options = Array.isArray(q.options) ? q.options : [];
+                    let correctAnswer = q.correctAnswer;
+
+                    // Convert letter answer (A, B, C, D) to actual option text
+                    // Handle both quoted ("A") and unquoted (A) formats
+                    const letterMatch = String(correctAnswer).replace(/"/g, '').trim().toUpperCase();
+                    const letterToIndex: Record<string, number> = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4 };
+
+                    if (letterToIndex[letterMatch] !== undefined && options[letterToIndex[letterMatch]]) {
+                      correctAnswer = options[letterToIndex[letterMatch]];
+                    }
+
+                    return {
+                      ...q,
+                      id: q.id,
+                      question: q.question,
+                      type: q.questionType === 'MULTIPLE_CHOICE' ? 'single' :
+                            q.questionType === 'TRUE_FALSE' ? 'truefalse' : 'single',
+                      options: options,
+                      correctAnswer: correctAnswer,
+                      explanation: q.explanation,
+                      points: q.points || 1,
+                    };
+                  });
+
                   const formattedExam = {
                     id: exam.id,
                     title: exam.title,
                     description: exam.description,
-                    questions: questions,
+                    questions: transformedQuestions,
                     passingScore: exam.passingScore,
                     timeLimit: exam.timeLimit,
                     attempts: exam.attempts,

@@ -127,7 +127,8 @@ export async function getLearningPageData({
                       points: true,
                       order: true,
                       options: true,
-                      // Note: correctAnswer and explanation are hidden from students initially
+                      correctAnswer: true,
+                      explanation: true,
                     },
                   },
                 },
