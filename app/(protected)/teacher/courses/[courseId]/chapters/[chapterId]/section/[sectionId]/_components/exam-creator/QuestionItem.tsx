@@ -66,17 +66,17 @@ export function QuestionItem({
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
               <Badge
                 variant={
-                  question.difficulty === "easy"
+                  (question.difficulty || 'medium') === "easy"
                     ? "default"
-                    : question.difficulty === "medium"
+                    : (question.difficulty || 'medium') === "medium"
                     ? "secondary"
                     : "destructive"
                 }
                 className="text-[10px] sm:text-xs"
               >
-                {question.difficulty}
+                {question.difficulty || 'medium'}
               </Badge>
-              <Badge variant="outline" className="text-[10px] sm:text-xs">{question.type.replace("-", " ")}</Badge>
+              <Badge variant="outline" className="text-[10px] sm:text-xs">{(question.type || 'multiple-choice').replace("-", " ")}</Badge>
               {question.bloomsLevel && (
                 <Badge variant="outline" className="text-purple-600 dark:text-purple-400 text-[10px] sm:text-xs">
                   {question.bloomsLevel}
@@ -422,9 +422,9 @@ function QuestionDisplay({ question, onEdit, onDelete }: QuestionDisplayProps) {
       {/* Quick Actions */}
       <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 xs:gap-3 pt-2 border-t border-gray-200 dark:border-gray-600">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
-          <span>Type: {question.type.replace("-", " ")}</span>
+          <span>Type: {(question.type || 'multiple-choice').replace("-", " ")}</span>
           <span className="hidden xs:inline">•</span>
-          <span>Difficulty: {question.difficulty}</span>
+          <span>Difficulty: {question.difficulty || 'medium'}</span>
           <span className="hidden xs:inline">•</span>
           <span>
             {question.points} point{question.points !== 1 ? "s" : ""}

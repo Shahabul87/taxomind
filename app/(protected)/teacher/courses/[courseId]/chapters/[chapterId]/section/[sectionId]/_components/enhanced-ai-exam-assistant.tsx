@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Sparkles, Loader2, Brain, MessageSquare, Target, Users, Lightbulb, BookOpen, Settings, Info, CheckCircle2, AlertTriangle, Upload, FileText, X } from "lucide-react";
+import { Sparkles, Loader2, Brain, MessageSquare, Target, Users, Lightbulb, BookOpen, Settings, Info, CheckCircle2, AlertTriangle, Upload, FileText, X, ShieldCheck, Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -20,6 +20,72 @@ import { logger } from '@/lib/logger';
 
 // Import our enhanced framework
 import { ENHANCED_BLOOMS_FRAMEWORK } from "@/lib/ai-question-generator";
+
+// Import SAM Quality Indicator
+import { SAMQualityIndicator } from "./exam-creator/SAMQualityIndicator";
+
+// Transform SAM question format to QuestionItem format
+interface SAMQuestion {
+  id: string;
+  questionType?: string;
+  type?: string;
+  bloomsLevel?: string;
+  difficulty?: string;
+  question?: string;
+  questionText?: string;
+  options?: string[];
+  correctAnswer?: string;
+  explanation?: string;
+  points?: number;
+  cognitiveLoad?: number;
+  timeEstimate?: number;
+  bloomsAlignment?: number;
+  safetyScore?: number;
+  qualityScore?: number;
+  hints?: string[];
+}
+
+function transformSAMQuestionToQuestionItem(samQuestion: SAMQuestion) {
+  // Map questionType from SAM format (MULTIPLE_CHOICE) to UI format (multiple-choice)
+  const typeMapping: Record<string, string> = {
+    'MULTIPLE_CHOICE': 'multiple-choice',
+    'TRUE_FALSE': 'true-false',
+    'SHORT_ANSWER': 'short-answer',
+    'ESSAY': 'short-answer',
+    'FILL_IN_BLANK': 'short-answer',
+    'MATCHING': 'multiple-choice',
+    'ORDERING': 'multiple-choice',
+  };
+
+  const rawType = samQuestion.questionType || samQuestion.type || 'MULTIPLE_CHOICE';
+  const mappedType = typeMapping[rawType.toUpperCase()] || typeMapping[rawType.toUpperCase().replace(/-/g, '_')] || 'multiple-choice';
+
+  // Map bloomsLevel to lowercase
+  const rawBloomsLevel = samQuestion.bloomsLevel || 'understand';
+  const mappedBloomsLevel = rawBloomsLevel.toLowerCase();
+
+  // Map difficulty - ensure lowercase
+  const rawDifficulty = samQuestion.difficulty || 'medium';
+  const mappedDifficulty = rawDifficulty.toLowerCase();
+
+  return {
+    id: samQuestion.id || `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    type: mappedType as 'multiple-choice' | 'true-false' | 'short-answer',
+    difficulty: mappedDifficulty as 'easy' | 'medium' | 'hard',
+    bloomsLevel: mappedBloomsLevel,
+    question: samQuestion.question || samQuestion.questionText || '',
+    options: samQuestion.options || [],
+    correctAnswer: samQuestion.correctAnswer || '',
+    explanation: samQuestion.explanation || '',
+    points: samQuestion.points || 1,
+    // SAM-specific fields
+    cognitiveLoad: samQuestion.cognitiveLoad,
+    timeEstimate: samQuestion.timeEstimate,
+    bloomsAlignment: samQuestion.bloomsAlignment,
+    safetyScore: samQuestion.safetyScore,
+    qualityScore: samQuestion.qualityScore,
+  };
+}
 
 interface EnhancedAIExamAssistantProps {
   sectionTitle: string;
@@ -82,9 +148,14 @@ export const EnhancedAIExamAssistant = ({
   const [prerequisiteKnowledge, setPrerequisiteKnowledge] = useState<string[]>([]);
   const [userPrompt, setUserPrompt] = useState("");
   const [enableQualityValidation, setEnableQualityValidation] = useState(true);
+  const [enableSafetyValidation, setEnableSafetyValidation] = useState(true);
+  const [enablePedagogicalValidation, setEnablePedagogicalValidation] = useState(true);
   const [autoOptimizeDistribution, setAutoOptimizeDistribution] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [fileContent, setFileContent] = useState<string>("");
+
+  // SAM validation results
+  const [samValidation, setSamValidation] = useState<Record<string, unknown> | null>(null);
   
   // Bloom's taxonomy distribution
   const [bloomsDistribution, setBloomsDistribution] = useState<BloomsDistribution>(
@@ -163,8 +234,11 @@ export const EnhancedAIExamAssistant = ({
         assessmentPurpose,
         userPrompt: userPrompt.trim() || undefined,
         enableQualityValidation,
+        enableSafetyValidation,
+        enablePedagogicalValidation,
         autoOptimizeDistribution: !useCustomDistribution,
-        fileContent: fileContent || undefined
+        fileContent: fileContent || undefined,
+        useSAMIntegration: true
       };
 
       const response = await fetch('/api/ai/advanced-exam-generator', {
@@ -178,18 +252,48 @@ export const EnhancedAIExamAssistant = ({
       }
 
       const data = await response.json();
-      
-      if (data.success && data.questions) {
-        onGenerate(data.questions);
-        toast.success(
-          `Generated ${data.questions.length} sophisticated exam questions!`,
-          {
-            description: data.warning ? data.warning : `Using ${data.metadata?.model || 'AI'} with Bloom's taxonomy analysis`
-          }
-        );
+
+      // Accept questions even if validation didn't fully pass
+      // Questions are generated successfully - validation is informational
+      if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+        // Transform SAM questions to QuestionItem format
+        const transformedQuestions = data.questions.map(transformSAMQuestionToQuestionItem);
+        onGenerate(transformedQuestions);
+
+        // Capture SAM validation results
+        if (data.validation) {
+          setSamValidation(data.validation);
+        }
+
+        // Show success with SAM quality info
+        const samScore = data.metadata?.overallScore;
+        const samGrade = data.metadata?.overallGrade;
+
+        // If validation didn't fully pass but we have questions, show a warning with the success
+        if (!data.success && data.validation) {
+          toast.success(
+            `Generated ${data.questions.length} exam questions with validation notes`,
+            {
+              description: samScore
+                ? `SAM Quality: ${samGrade} (${samScore}/100) - Review validation tab for improvement suggestions`
+                : `Questions generated. Check validation tab for quality recommendations.`
+            }
+          );
+        } else {
+          toast.success(
+            `Generated ${data.questions.length} sophisticated exam questions!`,
+            {
+              description: samScore
+                ? `SAM Quality: ${samGrade} (${samScore}/100) - ${data.metadata?.model || 'AI'}`
+                : data.warning
+                  ? data.warning
+                  : `Using ${data.metadata?.model || 'AI'} with Bloom&apos;s taxonomy analysis`
+            }
+          );
+        }
         setOpen(false);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error('No questions were generated. Please try again.');
       }
     } catch (error: any) {
       logger.error('Enhanced AI exam generation error:', error);
@@ -611,38 +715,88 @@ export const EnhancedAIExamAssistant = ({
                 />
               </div>
 
-              {/* Quality Settings */}
+              {/* SAM Quality Settings */}
               <div className="space-y-3">
                 <Label className="text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Quality Settings
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  SAM AI Validation Settings
                 </Label>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="enableQualityValidation"
-                      checked={enableQualityValidation}
-                      onChange={(e) => setEnableQualityValidation(e.target.checked)}
-                      className="rounded"
-                    />
-                    <Label htmlFor="enableQualityValidation" className="text-sm">
-                      Enable quality validation
-                    </Label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="enableQualityValidation"
+                        checked={enableQualityValidation}
+                        onChange={(e) => setEnableQualityValidation(e.target.checked)}
+                        className="rounded accent-blue-600"
+                      />
+                      <Label htmlFor="enableQualityValidation" className="text-sm text-blue-800 dark:text-blue-200">
+                        <Gauge className="inline h-3 w-3 mr-1" />
+                        Quality Gates
+                      </Label>
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mt-1 ml-5">
+                      Completeness, structure, depth analysis
+                    </p>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="autoOptimizeDistribution"
-                      checked={autoOptimizeDistribution}
-                      onChange={(e) => setAutoOptimizeDistribution(e.target.checked)}
-                      className="rounded"
-                    />
-                    <Label htmlFor="autoOptimizeDistribution" className="text-sm">
-                      Auto-optimize Bloom&apos;s distribution
-                    </Label>
+
+                  <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="enableSafetyValidation"
+                        checked={enableSafetyValidation}
+                        onChange={(e) => setEnableSafetyValidation(e.target.checked)}
+                        className="rounded accent-emerald-600"
+                      />
+                      <Label htmlFor="enableSafetyValidation" className="text-sm text-emerald-800 dark:text-emerald-200">
+                        <ShieldCheck className="inline h-3 w-3 mr-1" />
+                        Safety Validation
+                      </Label>
+                    </div>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-300 mt-1 ml-5">
+                      Bias, accessibility, language checks
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="enablePedagogicalValidation"
+                        checked={enablePedagogicalValidation}
+                        onChange={(e) => setEnablePedagogicalValidation(e.target.checked)}
+                        className="rounded accent-purple-600"
+                      />
+                      <Label htmlFor="enablePedagogicalValidation" className="text-sm text-purple-800 dark:text-purple-200">
+                        <Brain className="inline h-3 w-3 mr-1" />
+                        Pedagogical Analysis
+                      </Label>
+                    </div>
+                    <p className="text-xs text-purple-600 dark:text-purple-300 mt-1 ml-5">
+                      Bloom&apos;s alignment, scaffolding
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="autoOptimizeDistribution"
+                        checked={autoOptimizeDistribution}
+                        onChange={(e) => setAutoOptimizeDistribution(e.target.checked)}
+                        className="rounded accent-amber-600"
+                      />
+                      <Label htmlFor="autoOptimizeDistribution" className="text-sm text-amber-800 dark:text-amber-200">
+                        <Target className="inline h-3 w-3 mr-1" />
+                        Auto-Optimize
+                      </Label>
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-300 mt-1 ml-5">
+                      Bloom&apos;s distribution optimization
+                    </p>
                   </div>
                 </div>
               </div>
