@@ -203,7 +203,7 @@ export async function GET(
     }
 
     // Fetch exams with questions
-    const exams = await db.exam.findMany({
+    const examsRaw = await db.exam.findMany({
       where: {
         sectionId: params.sectionId
       },
@@ -223,6 +223,16 @@ export async function GET(
         createdAt: 'desc'
       }
     });
+
+    // Transform to match frontend expected format
+    const exams = examsRaw.map(exam => ({
+      ...exam,
+      questions: exam.ExamQuestion || [],
+      totalPoints: exam.ExamQuestion?.reduce((sum, q) => sum + q.points, 0) || 0,
+      _count: {
+        userAttempts: exam._count?.UserExamAttempt || 0
+      }
+    }));
 
     return NextResponse.json({
       success: true,
