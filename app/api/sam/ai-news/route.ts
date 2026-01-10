@@ -1,4 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
+import {
+  getExternalKnowledgeAggregator,
+  searchNews,
+  type NewsArticle as ExternalNewsArticle,
+} from '@/lib/sam/external-knowledge-integration';
+import { samNewsRankingEngine } from '@/lib/sam-engines/advanced/sam-news-ranking-engine';
+import type { NewsArticle as RankerNewsArticle, NewsCategory as RankerNewsCategory } from '@/lib/sam-engines/content/sam-news-engine';
+import { z } from 'zod';
+
+/**
+ * SAM AI News API Route
+ *
+ * Integrates with @sam-ai/external-knowledge package to provide real AI news
+ * from multiple sources (NewsAPI.org, Semantic Scholar, etc.)
+ */
+
+// Request validation schema - use nullable().transform() to handle null from searchParams.get()
+const QueryParamsSchema = z.object({
+  realtime: z.enum(['true', 'false']).nullable().transform(v => v ?? 'false'),
+  rank: z.enum(['true', 'false']).nullable().transform(v => v ?? 'true'),
+  topic: z.string().nullable().transform(v => v ?? undefined),
+  limit: z.coerce.number().min(1).max(100).nullable().transform(v => v ?? 50),
+  category: z.string().nullable().transform(v => v ?? undefined),
+});
 
 interface NewsArticle {
   articleId: string;
@@ -28,292 +53,256 @@ interface NewsArticle {
   qualityBadges?: string[];
 }
 
-// Demo news articles with realistic AI news content
-const generateDemoNews = (): NewsArticle[] => {
-  const currentDate = new Date();
+const SUPPORTED_CATEGORIES: RankerNewsCategory[] = [
+  'breakthrough',
+  'research',
+  'industry',
+  'policy',
+  'education',
+  'ethics',
+  'startup',
+  'investment',
+  'product-launch',
+  'partnership',
+];
 
-  return [
-    {
-      articleId: 'news-001',
-      title: 'OpenAI Announces GPT-5: Revolutionary Breakthrough in AI Reasoning',
-      summary: 'OpenAI unveils GPT-5 with unprecedented reasoning capabilities, multimodal understanding, and a 10x improvement in complex problem-solving. The new model demonstrates human-level performance across multiple cognitive tasks.',
-      content: 'Full article content about GPT-5 breakthrough...',
-      articleUrl: 'https://openai.com/gpt5',
-      source: {
-        name: 'OpenAI Blog',
-        url: 'https://openai.com'
-      },
-      author: 'Sam Altman',
-      publishDate: new Date(currentDate.getTime() - 2 * 60 * 60 * 1000), // 2 hours ago
-      category: 'breakthrough',
-      tags: ['GPT-5', 'OpenAI', 'Language Models', 'AI Breakthrough', 'Multimodal'],
-      readingTime: 8,
-      relevanceScore: 9.8,
-      impactLevel: 'critical',
-      rankingScore: 98,
-      trendingStatus: 'hot',
-      qualityBadges: ['Verified Source', 'Breaking News']
-    },
-    {
-      articleId: 'news-002',
-      title: 'Stanford Researchers Achieve 95% Accuracy in AI-Powered Disease Diagnosis',
-      summary: 'New deep learning model developed at Stanford Medicine demonstrates 95% accuracy in early disease detection, outperforming traditional diagnostic methods and potentially saving thousands of lives.',
-      content: 'Full article content about Stanford research...',
-      articleUrl: 'https://med.stanford.edu/ai-diagnosis',
-      source: {
-        name: 'Stanford Medicine',
-        url: 'https://med.stanford.edu'
-      },
-      author: 'Dr. Sarah Chen',
-      publishDate: new Date(currentDate.getTime() - 5 * 60 * 60 * 1000), // 5 hours ago
-      category: 'research',
-      tags: ['Healthcare AI', 'Stanford', 'Deep Learning', 'Medical Diagnosis'],
-      readingTime: 12,
-      relevanceScore: 9.2,
-      impactLevel: 'critical',
-      rankingScore: 94,
-      trendingStatus: 'rising',
-      qualityBadges: ['Peer Reviewed', 'Academic Research']
-    },
-    {
-      articleId: 'news-003',
-      title: 'Google DeepMind Unveils Gemini 2.0 with Advanced Multimodal Capabilities',
-      summary: 'Google\'s latest AI model Gemini 2.0 integrates vision, audio, and text understanding in a single unified architecture, setting new benchmarks across 30+ AI evaluation metrics.',
-      content: 'Full article content about Gemini 2.0...',
-      articleUrl: 'https://deepmind.google/gemini2',
-      source: {
-        name: 'Google DeepMind',
-        url: 'https://deepmind.google'
-      },
-      author: 'Demis Hassabis',
-      publishDate: new Date(currentDate.getTime() - 8 * 60 * 60 * 1000), // 8 hours ago
-      category: 'product-launch',
-      tags: ['Google', 'Gemini', 'Multimodal AI', 'DeepMind'],
-      readingTime: 10,
-      relevanceScore: 9.5,
-      impactLevel: 'high',
-      rankingScore: 92,
-      trendingStatus: 'hot',
-      qualityBadges: ['Official Release']
-    },
-    {
-      articleId: 'news-004',
-      title: 'AI in Education: Adaptive Learning Platform Increases Student Performance by 40%',
-      summary: 'Comprehensive study across 500 schools reveals that AI-powered adaptive learning platforms significantly improve student outcomes, with personalized learning paths showing remarkable effectiveness.',
-      content: 'Full article content about AI in education...',
-      articleUrl: 'https://edtech.org/ai-adaptive-learning',
-      source: {
-        name: 'EdTech Magazine',
-        url: 'https://edtech.org'
-      },
-      author: 'Dr. Michael Torres',
-      publishDate: new Date(currentDate.getTime() - 12 * 60 * 60 * 1000), // 12 hours ago
-      category: 'education',
-      tags: ['EdTech', 'Adaptive Learning', 'Student Performance', 'AI Education'],
-      readingTime: 15,
-      relevanceScore: 8.9,
-      impactLevel: 'high',
-      rankingScore: 89,
-      trendingStatus: 'rising',
-      qualityBadges: ['Research Backed']
-    },
-    {
-      articleId: 'news-005',
-      title: 'Meta Announces Open-Source LLaMA 3 with 405B Parameters',
-      summary: 'Meta releases LLaMA 3, the largest open-source language model with 405 billion parameters, democratizing access to advanced AI capabilities for researchers and developers worldwide.',
-      content: 'Full article content about LLaMA 3...',
-      articleUrl: 'https://ai.meta.com/llama3',
-      source: {
-        name: 'Meta AI',
-        url: 'https://ai.meta.com'
-      },
-      author: 'Mark Zuckerberg',
-      publishDate: new Date(currentDate.getTime() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      category: 'product-launch',
-      tags: ['Meta', 'LLaMA', 'Open Source', 'Large Language Models'],
-      readingTime: 7,
-      relevanceScore: 9.0,
-      impactLevel: 'high',
-      rankingScore: 88,
-      trendingStatus: 'steady',
-      qualityBadges: ['Open Source']
-    },
-    {
-      articleId: 'news-006',
-      title: 'EU Proposes Comprehensive AI Regulation Framework',
-      summary: 'European Union unveils detailed AI regulation framework addressing ethics, safety, and accountability, setting global standards for responsible AI development and deployment.',
-      content: 'Full article content about EU AI regulation...',
-      articleUrl: 'https://ec.europa.eu/ai-regulation',
-      source: {
-        name: 'European Commission',
-        url: 'https://ec.europa.eu'
-      },
-      publishDate: new Date(currentDate.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      category: 'policy',
-      tags: ['EU Regulation', 'AI Ethics', 'Policy', 'Governance'],
-      readingTime: 20,
-      relevanceScore: 8.5,
-      impactLevel: 'high',
-      rankingScore: 85,
-      trendingStatus: 'steady',
-      qualityBadges: ['Government Source']
-    },
-    {
-      articleId: 'news-007',
-      title: 'Anthropic Releases Claude 3.5 Sonnet with Enhanced Coding Capabilities',
-      summary: 'Anthropic\'s latest Claude 3.5 Sonnet model showcases remarkable improvements in software development tasks, achieving 92% on SWE-bench coding challenges.',
-      content: 'Full article content about Claude 3.5 Sonnet...',
-      articleUrl: 'https://anthropic.com/claude-3-5-sonnet',
-      source: {
-        name: 'Anthropic',
-        url: 'https://anthropic.com'
-      },
-      author: 'Dario Amodei',
-      publishDate: new Date(currentDate.getTime() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-      category: 'product-launch',
-      tags: ['Anthropic', 'Claude', 'Coding AI', 'LLM'],
-      readingTime: 9,
-      relevanceScore: 8.8,
-      impactLevel: 'high',
-      rankingScore: 87,
-      trendingStatus: 'new',
-      qualityBadges: ['Official Release']
-    },
-    {
-      articleId: 'news-008',
-      title: 'MIT Study: AI-Generated Content Now Comprises 30% of Online Information',
-      summary: 'Comprehensive MIT study reveals that AI-generated content has reached unprecedented levels, raising important questions about content authenticity, detection, and regulation.',
-      content: 'Full article content about AI-generated content study...',
-      articleUrl: 'https://news.mit.edu/ai-content-study',
-      source: {
-        name: 'MIT Technology Review',
-        url: 'https://technologyreview.com'
-      },
-      author: 'Dr. Jennifer Park',
-      publishDate: new Date(currentDate.getTime() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
-      category: 'research',
-      tags: ['Content Generation', 'AI Detection', 'MIT', 'Research'],
-      readingTime: 14,
-      relevanceScore: 8.3,
-      impactLevel: 'medium',
-      rankingScore: 82,
-      trendingStatus: 'steady',
-      qualityBadges: ['Academic Research', 'Peer Reviewed']
-    },
-    {
-      articleId: 'news-009',
-      title: 'Startup Raises $200M for Revolutionary AI Hardware Accelerators',
-      summary: 'Silicon Valley startup secures massive funding for next-generation AI chips promising 100x performance improvement and 90% energy reduction for machine learning workloads.',
-      content: 'Full article content about AI hardware startup...',
-      articleUrl: 'https://techcrunch.com/ai-chip-startup',
-      source: {
-        name: 'TechCrunch',
-        url: 'https://techcrunch.com'
-      },
-      author: 'Alex Martinez',
-      publishDate: new Date(currentDate.getTime() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      category: 'investment',
-      tags: ['AI Hardware', 'Startup', 'Funding', 'Chips'],
-      readingTime: 6,
-      relevanceScore: 7.9,
-      impactLevel: 'medium',
-      rankingScore: 78,
-      trendingStatus: 'new',
-      qualityBadges: ['Verified Funding']
-    },
-    {
-      articleId: 'news-010',
-      title: 'Microsoft and OpenAI Announce Strategic Partnership Extension',
-      summary: 'Microsoft extends partnership with OpenAI with additional $10B investment, deepening collaboration on Azure AI infrastructure and enterprise AI solutions.',
-      content: 'Full article content about Microsoft-OpenAI partnership...',
-      articleUrl: 'https://news.microsoft.com/openai-partnership',
-      source: {
-        name: 'Microsoft News',
-        url: 'https://news.microsoft.com'
-      },
-      author: 'Satya Nadella',
-      publishDate: new Date(currentDate.getTime() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
-      category: 'partnership',
-      tags: ['Microsoft', 'OpenAI', 'Partnership', 'Azure', 'Investment'],
-      readingTime: 11,
-      relevanceScore: 8.6,
-      impactLevel: 'high',
-      rankingScore: 84,
-      trendingStatus: 'steady',
-      qualityBadges: ['Official Announcement']
-    },
-    {
-      articleId: 'news-011',
-      title: 'AI Ethics Committee Releases Global Guidelines for Responsible AI Development',
-      summary: 'International consortium of AI researchers and ethicists publishes comprehensive guidelines addressing bias, transparency, and accountability in AI systems.',
-      content: 'Full article content about AI ethics guidelines...',
-      articleUrl: 'https://aiethics.org/global-guidelines',
-      source: {
-        name: 'AI Ethics Institute',
-        url: 'https://aiethics.org'
-      },
-      author: 'Dr. Sophia Williams',
-      publishDate: new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-      category: 'ethics',
-      tags: ['AI Ethics', 'Guidelines', 'Responsible AI', 'Governance'],
-      readingTime: 18,
-      relevanceScore: 8.1,
-      impactLevel: 'medium',
-      rankingScore: 81,
-      trendingStatus: 'steady'
-    },
-    {
-      articleId: 'news-012',
-      title: 'Breakthrough in Quantum AI: Hybrid Systems Solve Complex Optimization Problems',
-      summary: 'Researchers combine quantum computing with classical AI to achieve groundbreaking results in optimization tasks, opening new frontiers for computational problem-solving.',
-      content: 'Full article content about quantum AI...',
-      articleUrl: 'https://nature.com/quantum-ai-breakthrough',
-      source: {
-        name: 'Nature',
-        url: 'https://nature.com'
-      },
-      author: 'Dr. Robert Chen',
-      publishDate: new Date(currentDate.getTime() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
-      category: 'research',
-      tags: ['Quantum Computing', 'Optimization', 'Hybrid Systems', 'Research'],
-      readingTime: 16,
-      relevanceScore: 8.7,
-      impactLevel: 'high',
-      rankingScore: 86,
-      trendingStatus: 'new',
-      qualityBadges: ['Peer Reviewed', 'Academic Research']
-    }
-  ];
+const normalizeCategory = (category?: string): RankerNewsCategory => {
+  if (!category) return 'industry';
+  const normalized = category.toLowerCase();
+  const direct = normalized as RankerNewsCategory;
+
+  if (SUPPORTED_CATEGORIES.includes(direct)) return direct;
+  if (normalized.includes('product') || normalized.includes('launch')) return 'product-launch';
+  if (normalized.includes('startup')) return 'startup';
+  if (normalized.includes('policy') || normalized.includes('regulation')) return 'policy';
+  if (normalized.includes('research') || normalized.includes('study')) return 'research';
+  if (normalized.includes('education') || normalized.includes('learning')) return 'education';
+  if (normalized.includes('ethic')) return 'ethics';
+  if (normalized.includes('break')) return 'breakthrough';
+  if (normalized.includes('invest') || normalized.includes('fund')) return 'investment';
+  if (normalized.includes('partner')) return 'partnership';
+  if (normalized.includes('industry') || normalized.includes('business')) return 'industry';
+
+  return 'industry';
 };
+
+/**
+ * Transform external news article to our internal format
+ */
+function transformExternalNews(article: ExternalNewsArticle): NewsArticle {
+  // Calculate reading time - estimate full article length from summary
+  // NewsAPI only provides summary/description, not full content
+  // Typical news articles are 500-1500 words, summaries are ~30-80 words
+  // We estimate full article is ~15x the summary length
+  const summaryWordCount = (article.summary ?? '').split(/\s+/).length;
+  const estimatedFullArticleWords = Math.max(summaryWordCount * 15, 400); // Minimum 400 words
+  const readingTime = Math.max(2, Math.min(15, Math.ceil(estimatedFullArticleWords / 200)));
+
+  // Default relevance score if not provided
+  const score = article.relevanceScore ?? 0.5;
+
+  // Determine impact level based on relevance score
+  let impactLevel: 'critical' | 'high' | 'medium' | 'low' = 'medium';
+  if (score >= 0.9) impactLevel = 'critical';
+  else if (score >= 0.7) impactLevel = 'high';
+  else if (score >= 0.4) impactLevel = 'medium';
+  else impactLevel = 'low';
+
+  // Determine trending status
+  const publishedAt = article.publishedAt ?? new Date();
+  const ageInHours = (Date.now() - new Date(publishedAt).getTime()) / (1000 * 60 * 60);
+  let trendingStatus: 'hot' | 'rising' | 'steady' | 'new' = 'steady';
+  if (ageInHours <= 3 && score >= 0.8) trendingStatus = 'hot';
+  else if (ageInHours <= 6 && score >= 0.7) trendingStatus = 'rising';
+  else if (ageInHours <= 24) trendingStatus = 'new';
+
+  // Generate quality badges
+  const qualityBadges: string[] = [];
+  if (article.quality === 'high') qualityBadges.push('Verified Source');
+  if (ageInHours <= 3) qualityBadges.push('Breaking News');
+  if (score >= 0.9) qualityBadges.push('High Relevance');
+
+  return {
+    articleId: article.id,
+    title: article.title,
+    summary: article.summary ?? '',
+    content: article.summary ?? '', // Full content would require fetching
+    articleUrl: article.url,
+    source: {
+      name: article.source,
+      url: article.url.split('/').slice(0, 3).join('/'),
+    },
+    author: undefined, // Not provided by external API
+    publishDate: new Date(publishedAt),
+    category: article.topics?.[0] ?? 'technology',
+    tags: article.tags ?? [],
+    readingTime,
+    relevanceScore: Math.round(score * 10),
+    impactLevel,
+    rankingScore: Math.round(score * 100),
+    trendingStatus,
+    qualityBadges,
+  };
+}
+
+/**
+ * Convert API news article into ranker-compatible shape.
+ */
+function toRankerArticle(article: NewsArticle): RankerNewsArticle {
+  const relevanceScore = Math.min(100, Math.round(article.relevanceScore * 10));
+  const category = normalizeCategory(article.category);
+  const images = article.images?.map(image => ({
+    url: image.url,
+    caption: image.caption,
+    credit: article.source.name,
+  }));
+
+  return {
+    articleId: article.articleId,
+    title: article.title,
+    summary: article.summary,
+    content: article.content,
+    articleUrl: article.articleUrl,
+    category,
+    tags: article.tags,
+    source: {
+      name: article.source.name,
+      url: article.source.url,
+      credibility: 70,
+      type: 'media',
+      country: 'Global',
+    },
+    author: article.author,
+    publishDate: article.publishDate,
+    relevanceScore,
+    sentiment: 'neutral',
+    impactLevel: article.impactLevel,
+    readingTime: article.readingTime,
+    keyTakeaways: [],
+    relatedArticles: [],
+    educationalValue: relevanceScore,
+    technicalDepth: 'intermediate',
+    images,
+    citations: [],
+  };
+}
+
+async function rankNewsArticles(articles: NewsArticle[]): Promise<NewsArticle[]> {
+  if (articles.length === 0) return [];
+
+  const rankerArticles = articles.map(toRankerArticle);
+  const rankedArticles = await samNewsRankingEngine.rankNews(rankerArticles);
+  const articlesById = new Map(articles.map(article => [article.articleId, article]));
+
+  const rankedNews: NewsArticle[] = [];
+  for (const rankedArticle of rankedArticles) {
+    const original = articlesById.get(rankedArticle.articleId);
+    if (!original) continue;
+
+    rankedNews.push({
+      ...original,
+      rankingScore: rankedArticle.rankingScore,
+      trendingStatus: rankedArticle.trendingStatus,
+      qualityBadges: rankedArticle.qualityBadges,
+    });
+  }
+
+  return rankedNews;
+}
+
+/**
+ * Check if real news API is configured (NEWS_API_KEY is set)
+ */
+function isRealNewsEnabled(): boolean {
+  return Boolean(process.env.NEWS_API_KEY);
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const realtime = searchParams.get('realtime') === 'true';
 
-    // For now, always return demo data
-    // In the future, this could integrate with real news APIs when realtime=true
-    const news = generateDemoNews();
+    // Validate query parameters
+    const parseResult = QueryParamsSchema.safeParse({
+      realtime: searchParams.get('realtime'),
+      rank: searchParams.get('rank'),
+      topic: searchParams.get('topic'),
+      limit: searchParams.get('limit'),
+      category: searchParams.get('category'),
+    });
+
+    if (!parseResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'INVALID_PARAMS',
+          message: 'Invalid query parameters',
+          details: parseResult.error.flatten().fieldErrors,
+        },
+      }, { status: 400 });
+    }
+
+    const { realtime, rank, topic, limit, category } = parseResult.data;
+    const shouldRank = rank === 'true';
+
+    if (!isRealNewsEnabled()) {
+      return NextResponse.json({
+        success: false,
+        error: {
+          code: 'NEWS_API_NOT_CONFIGURED',
+          message: 'NEWS_API_KEY is required to fetch external AI news.',
+        },
+      }, { status: 503 });
+    }
+
+    logger.info('[AI_NEWS] Fetching real news', { topic, limit, category });
+
+    // Initialize aggregator (singleton, creates once)
+    getExternalKnowledgeAggregator();
+
+    // Search for news with topic or default to AI/education
+    const searchTopic = topic ?? category ?? 'artificial intelligence education';
+    const externalNews = await searchNews(searchTopic, limit);
+
+    let news = externalNews.map(article => transformExternalNews(article));
+
+    if (category) {
+      news = news.filter(article =>
+        article.category.toLowerCase().includes(category.toLowerCase())
+      );
+    }
+
+    if (shouldRank) {
+      news = await rankNewsArticles(news);
+    }
+
+    // Sort by publishDate (newest first) - ensures most recent news appears at top
+    news.sort((a, b) => new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime());
 
     return NextResponse.json({
       success: true,
       news,
-      source: realtime ? 'demo' : 'demo', // Would be 'real' when actual API is integrated
+      source: 'real',
       metadata: {
         timestamp: new Date().toISOString(),
         count: news.length,
-        version: '1.0.0'
-      }
+        version: '2.0.0',
+        realApiEnabled: isRealNewsEnabled(),
+        usingRealApi: true,
+        ranked: shouldRank,
+        realtimeRequested: realtime === 'true',
+      },
     });
   } catch (error) {
-    console.error('Error fetching AI news:', error);
+    logger.error('[AI_NEWS] Error fetching AI news', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
     return NextResponse.json({
       success: false,
       error: {
         code: 'INTERNAL_ERROR',
-        message: 'Failed to fetch AI news'
-      }
+        message: 'Failed to fetch AI news',
+      },
     }, { status: 500 });
   }
 }

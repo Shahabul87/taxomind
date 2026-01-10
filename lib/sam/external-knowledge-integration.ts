@@ -54,11 +54,24 @@ const createNewsAPIProvider = (): NewsProvider => {
       }
 
       try {
+        // Build comprehensive AI search query covering all categories
+        // Use the provided query or default to broad AI topics
+        const baseQuery = options.query || 'artificial intelligence';
+
+        // Expand query to cover multiple AI categories if it's a general AI search
+        const isGeneralAISearch = baseQuery.toLowerCase().includes('artificial intelligence') ||
+                                   baseQuery.toLowerCase().includes('ai education') ||
+                                   baseQuery.toLowerCase().includes('ai news');
+
+        const searchQuery = isGeneralAISearch
+          ? '(artificial intelligence OR machine learning OR deep learning OR ChatGPT OR GPT OR AI education OR AI research OR neural network OR LLM OR generative AI)'
+          : baseQuery;
+
         const params = new URLSearchParams({
-          q: `${options.query} education learning`,
+          q: searchQuery,
           language: 'en',
-          sortBy: 'relevancy',
-          pageSize: String(options.limit ?? 5),
+          sortBy: 'publishedAt', // Sort by most recent first
+          pageSize: String(Math.min(options.limit ?? 20, 100)), // Fetch more articles
           apiKey: apiKey!,
         });
 
@@ -70,20 +83,52 @@ const createNewsAPIProvider = (): NewsProvider => {
         const data = await response.json();
         const articles = data.articles ?? [];
 
-        return articles.map((article: Record<string, unknown>, index: number) => ({
-          id: `newsapi-${Date.now()}-${index}`,
-          sourceType: 'news' as const,
-          title: article.title as string ?? 'Untitled',
-          source: (article.source as Record<string, string>)?.name ?? 'Unknown',
-          url: article.url as string ?? '',
-          publishedAt: new Date(article.publishedAt as string ?? Date.now()),
-          summary: article.description as string ?? '',
-          relevanceScore: 0.8 - (index * 0.05),
-          topics: [],
-          tags: options.topics ?? [],
-          language: 'en',
-          quality: 'medium' as const,
-        }));
+        // Filter out articles with [Removed] title (NewsAPI placeholder for deleted articles)
+        const validArticles = articles.filter((article: Record<string, unknown>) =>
+          article.title &&
+          !(article.title as string).includes('[Removed]') &&
+          article.url
+        );
+
+        return validArticles.map((article: Record<string, unknown>, index: number) => {
+          // Detect category based on title/description content
+          const text = `${article.title} ${article.description}`.toLowerCase();
+          let detectedTopics: string[] = [];
+
+          if (text.includes('research') || text.includes('study') || text.includes('paper')) {
+            detectedTopics.push('research');
+          }
+          if (text.includes('startup') || text.includes('funding') || text.includes('venture')) {
+            detectedTopics.push('startup');
+          }
+          if (text.includes('policy') || text.includes('regulation') || text.includes('government')) {
+            detectedTopics.push('policy');
+          }
+          if (text.includes('education') || text.includes('learning') || text.includes('school') || text.includes('university')) {
+            detectedTopics.push('education');
+          }
+          if (text.includes('breakthrough') || text.includes('announces') || text.includes('launches')) {
+            detectedTopics.push('breakthrough');
+          }
+          if (detectedTopics.length === 0) {
+            detectedTopics.push('technology');
+          }
+
+          return {
+            id: `newsapi-${Date.now()}-${index}`,
+            sourceType: 'news' as const,
+            title: article.title as string ?? 'Untitled',
+            source: (article.source as Record<string, string>)?.name ?? 'Unknown',
+            url: article.url as string ?? '',
+            publishedAt: new Date(article.publishedAt as string ?? Date.now()),
+            summary: article.description as string ?? '',
+            relevanceScore: 0.9 - (index * 0.02), // Higher base score for recent articles
+            topics: detectedTopics,
+            tags: options.topics ?? [],
+            language: 'en',
+            quality: 'medium' as const,
+          };
+        });
       } catch (error) {
         logger.error('[SAM_KNOWLEDGE] NewsAPI search failed', { error });
         return [];
