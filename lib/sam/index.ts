@@ -807,3 +807,18 @@ export {
   type DocumentationProvider,
   type ExternalKnowledgeConfig,
 } from './external-knowledge-integration';
+
+// Memory Lifecycle - Reindexing and vector store maintenance
+export {
+  // Initialization
+  initializeMemoryLifecycle,
+  startMemoryLifecycle,
+  stopMemoryLifecycle,
+  // Manager access
+  getMemoryLifecycleManager,
+  getLifecycleStats,
+  // Reindex queue functions
+  queueCourseReindex,
+  queueChapterReindex,
+  queueSectionReindex,
+} from './memory-lifecycle-service';

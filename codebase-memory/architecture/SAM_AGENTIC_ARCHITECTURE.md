@@ -407,6 +407,35 @@ export async function POST(req: NextRequest) {
 }
 ```
 
+### Cron Routes Map
+
+SAM uses scheduled cron jobs for maintenance, analytics, and proactive interventions:
+
+```
+app/api/cron/
+├── sam-memory-lifecycle/route.ts  # Memory reindexing and cleanup
+├── sam-checkins/route.ts          # Scheduled check-in processing
+├── sam-analytics-rollups/route.ts # Analytics aggregation
+└── sam-proactive/route.ts         # Proactive intervention scheduling
+```
+
+| Cron Route | Schedule | Purpose |
+|------------|----------|---------|
+| `sam-memory-lifecycle` | Every 6 hours | Processes reindex jobs, cleans stale embeddings |
+| `sam-checkins` | Every hour | Processes pending check-ins |
+| `sam-analytics-rollups` | Daily | Aggregates analytics data |
+| `sam-proactive` | Every 15 min | Schedules proactive interventions |
+
+**Security**: All cron routes require `CRON_SECRET` authorization header.
+
+```bash
+# Example: Trigger memory lifecycle manually
+curl -X POST http://localhost:3000/api/cron/sam-memory-lifecycle \
+  -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "process"}'
+```
+
 ---
 
 ## Code Integration Guidelines
@@ -629,6 +658,7 @@ export function useExample() {
 | `lib/sam/proactive-intervention-integration.ts` | Proactive interventions | `initializeProactiveInterventions()` |
 | `lib/sam/agentic-proactive-scheduler.ts` | Check-in scheduling | `ProactiveScheduler` class |
 | `lib/sam/journey-timeline-service.ts` | Learning journey tracking | `recordGoalCreated()`, `recordPlanStarted()` |
+| `lib/sam/memory-lifecycle-service.ts` | Memory reindexing and cleanup | `getMemoryLifecycleManager()`, `queueCourseReindex()` |
 
 ### Store Files
 
@@ -682,14 +712,166 @@ When integrating with SAM:
 
 ---
 
+## Realtime Infrastructure
+
+### Overview
+
+SAM provides real-time communication infrastructure for:
+- **Presence Tracking**: User online/offline/idle status
+- **Push Delivery**: Real-time intervention and notification delivery
+- **SSE Fallback**: Server-Sent Events for environments without WebSocket support
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        CLIENT (Browser)                              │
+│                                                                      │
+│  ┌─────────────────────┐    ┌─────────────────────────────────────┐ │
+│  │  SAMRealtimeClient  │    │  EventSource (SSE)                  │ │
+│  │  - WebSocket        │    │  - /api/sam/realtime/events         │ │
+│  │  - Presence         │    │  - Automatic reconnection           │ │
+│  │  - Interventions    │    │  - Presence updates                 │ │
+│  └─────────────────────┘    └─────────────────────────────────────┘ │
+└──────────────────────────────────┬──────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        SERVER (Next.js)                              │
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────┐│
+│  │                    SAMRealtimeServer                             ││
+│  │                                                                  ││
+│  │  ┌─────────────┐  ┌─────────────────┐  ┌─────────────────────┐ ││
+│  │  │  Presence   │  │  Push           │  │  Connection         │ ││
+│  │  │  Tracker    │  │  Dispatcher     │  │  Manager            │ ││
+│  │  └─────────────┘  └─────────────────┘  └─────────────────────┘ ││
+│  └─────────────────────────────────────────────────────────────────┘│
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────────┐│
+│  │                    API Routes                                    ││
+│  │  • /api/sam/realtime/events (SSE)                               ││
+│  │  • /api/sam/realtime/status (Health check)                      ││
+│  │  • /api/sam/realtime/push (Internal push)                       ││
+│  └─────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Configuration
+
+Enable realtime features via environment variables:
+
+```bash
+# .env.local
+SAM_WEBSOCKET_ENABLED=true
+NEXT_PUBLIC_WS_URL=wss://your-domain.com/ws  # Optional for WebSocket
+```
+
+### API Routes
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/sam/realtime/events` | GET | SSE endpoint for real-time event streaming |
+| `/api/sam/realtime/status` | GET | Server status and health check |
+| `/api/sam/realtime/push` | POST | Push event to specific user |
+| `/api/sam/realtime/push` | PUT | Broadcast event to all users (admin only) |
+
+### Integration Files
+
+| File | Purpose |
+|------|---------|
+| `lib/sam/realtime/index.ts` | Main realtime module with client/server classes |
+| `instrumentation.ts` | Server bootstrap on application start |
+| `infrastructure/kubernetes/sam-agentic-cronjob.yaml` | Kubernetes deployment for realtime server |
+
+---
+
+## External Knowledge Integration
+
+### Overview
+
+SAM integrates external knowledge sources for enriching educational content:
+- **News**: Real-time AI/education news from NewsAPI.org
+- **Research**: Academic papers from Semantic Scholar
+- **Documentation**: Technical docs from DevDocs and MDN
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    External Knowledge Aggregator                     │
+│                                                                      │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐ │
+│  │  News Provider  │  │  Research       │  │  Documentation      │ │
+│  │  (NewsAPI.org)  │  │  (Semantic      │  │  (DevDocs/MDN)      │ │
+│  │                 │  │  Scholar)       │  │                     │ │
+│  └─────────────────┘  └─────────────────┘  └─────────────────────┘ │
+└──────────────────────────────────┬──────────────────────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    lib/sam/external-knowledge-integration.ts        │
+│                                                                      │
+│  • getExternalKnowledgeAggregator() - Singleton access              │
+│  • searchNews(topic, limit) - Search news articles                  │
+│  • searchResearch(topic, limit) - Search academic papers            │
+│  • searchDocumentation(topic, limit) - Search technical docs        │
+│  • enrichTopicContext(topic) - Enrich learning topics               │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Configuration
+
+```bash
+# .env.local
+NEWS_API_KEY=your-newsapi-key  # Optional, enables real news
+# Semantic Scholar - No key required (free API)
+# DevDocs - No key required (free API)
+```
+
+### API Route
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/sam/ai-news` | GET | Fetch AI/education news |
+
+Query parameters:
+- `realtime=true` - Use real external APIs (requires NEWS_API_KEY)
+- `topic=string` - Search topic
+- `limit=number` - Max results (1-50)
+- `category=string` - Filter by category
+
+### Integration Example
+
+```typescript
+import {
+  getExternalKnowledgeAggregator,
+  searchNews,
+  enrichTopicContext,
+} from '@/lib/sam/external-knowledge-integration';
+
+// Search for news
+const news = await searchNews('machine learning', 10);
+
+// Enrich a learning topic
+const context = await enrichTopicContext('React hooks', {
+  includeLatestNews: true,
+  includeResearch: true,
+  maxItems: 5,
+});
+```
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | 2025-01-08 | Initial architecture documentation |
 | 1.1.0 | 2025-01-10 | Added observability, presence, student profile, and review schedule stores |
+| 1.2.0 | 2026-01-10 | Added realtime infrastructure and external knowledge integration documentation |
 
 ---
 
-**Last Updated**: January 2025
+**Last Updated**: January 2026
 **Maintainer**: Taxomind Development Team
