@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createPrismaPlanStore } from '@/lib/sam/stores';
+import { getStore } from '@/lib/sam/taxomind-context';
 import { type PlanStatus, type PlanSchedule } from '@sam-ai/agentic';
 
-// Initialize the Plan Store
-const planStore = createPrismaPlanStore();
+// Get plan store from TaxomindContext
+function getPlanStore() {
+  return getStore('plan');
+}
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const { planId } = await context.params;
 
     // Use the PlanStore from @sam-ai/agentic package
-    const plan = await planStore.get(planId);
+    const plan = await getPlanStore().get(planId);
 
     if (!plan || plan.userId !== session.user.id) {
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
@@ -83,7 +85,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const validated = UpdatePlanSchema.parse(body);
 
     // Verify ownership using PlanStore
-    const existing = await planStore.get(planId);
+    const existing = await getPlanStore().get(planId);
 
     if (!existing || existing.userId !== session.user.id) {
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
@@ -115,7 +117,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     // Use PlanStore to update
-    const plan = await planStore.update(planId, updateData);
+    const plan = await getPlanStore().update(planId, updateData);
 
     logger.info(`Updated execution plan: ${planId}`);
 
@@ -159,14 +161,14 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     const { planId } = await context.params;
 
     // Verify ownership using PlanStore
-    const existing = await planStore.get(planId);
+    const existing = await getPlanStore().get(planId);
 
     if (!existing || existing.userId !== session.user.id) {
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
     }
 
     // Use PlanStore to delete
-    await planStore.delete(planId);
+    await getPlanStore().delete(planId);
 
     logger.info(`Deleted execution plan: ${planId}`);
 

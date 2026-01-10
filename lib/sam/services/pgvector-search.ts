@@ -2,8 +2,11 @@
  * Vector Similarity Search Service
  *
  * Provides vector similarity search for SAM memory system.
- * Uses JSONB storage (compatible with standard PostgreSQL) with
- * in-memory cosine similarity calculation.
+ *
+ * Phase 5: Full Power Integration
+ * - Uses true pgvector extension when available (cosine distance operator `<=>`)
+ * - Falls back to in-memory cosine similarity if pgvector is not installed
+ * - Automatically detects pgvector availability on initialization
  */
 
 import { db } from '@/lib/db';
@@ -191,9 +194,46 @@ function hashContent(text: string): string {
 
 export class PgVectorSearchService {
   private readonly embeddingProvider: EmbeddingProvider;
+  private pgvectorAvailable: boolean | null = null;
 
   constructor() {
     this.embeddingProvider = new EmbeddingProvider();
+  }
+
+  /**
+   * Check if pgvector extension is available in the database
+   */
+  private async checkPgVectorAvailable(): Promise<boolean> {
+    if (this.pgvectorAvailable !== null) {
+      return this.pgvectorAvailable;
+    }
+
+    try {
+      const result = await db.$queryRaw<Array<{ extname: string }>>`
+        SELECT extname FROM pg_extension WHERE extname = 'vector'
+      `;
+      this.pgvectorAvailable = result.length > 0;
+      if (this.pgvectorAvailable) {
+        logger.info('[VectorSearch] pgvector extension detected - using native vector search');
+      } else {
+        logger.info('[VectorSearch] pgvector extension not found - using in-memory cosine similarity');
+      }
+    } catch (error) {
+      logger.warn('[VectorSearch] Could not check pgvector availability, using in-memory fallback', {
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
+      this.pgvectorAvailable = false;
+    }
+
+    return this.pgvectorAvailable;
+  }
+
+  /**
+   * Get the search mode being used
+   */
+  async getSearchMode(): Promise<'pgvector' | 'in-memory'> {
+    const hasPgVector = await this.checkPgVectorAvailable();
+    return hasPgVector ? 'pgvector' : 'in-memory';
   }
 
   // ==========================================
@@ -295,6 +335,7 @@ export class PgVectorSearchService {
 
   /**
    * Search for similar content using cosine similarity
+   * Uses native pgvector search when available, falls back to in-memory
    */
   async searchSimilar(
     query: string,
@@ -303,19 +344,132 @@ export class PgVectorSearchService {
     const validatedOptions = VectorSearchOptionsSchema.parse(options);
     const queryEmbedding = await this.embeddingProvider.embed(query);
 
+    // Check if pgvector is available
+    const usePgVector = await this.checkPgVectorAvailable();
+
+    if (usePgVector) {
+      return this.searchSimilarPgVector(queryEmbedding, validatedOptions);
+    }
+
+    return this.searchSimilarInMemory(queryEmbedding, validatedOptions);
+  }
+
+  /**
+   * Native pgvector search using cosine distance operator
+   */
+  private async searchSimilarPgVector(
+    queryEmbedding: number[],
+    options: VectorSearchOptions
+  ): Promise<VectorSearchResult[]> {
+    const vectorString = `[${queryEmbedding.join(',')}]`;
+
+    // Build WHERE conditions
+    const conditions: string[] = [];
+    const params: unknown[] = [vectorString, options.topK];
+    let paramIndex = 3;
+
+    if (options.userId) {
+      conditions.push(`"userId" = $${paramIndex}`);
+      params.push(options.userId);
+      paramIndex++;
+    }
+    if (options.courseId) {
+      conditions.push(`"courseId" = $${paramIndex}`);
+      params.push(options.courseId);
+      paramIndex++;
+    }
+    if (options.sourceTypes?.length) {
+      conditions.push(`"sourceType" = ANY($${paramIndex})`);
+      params.push(options.sourceTypes);
+      paramIndex++;
+    }
+    if (options.tags?.length) {
+      conditions.push(`tags && $${paramIndex}`);
+      params.push(options.tags);
+      paramIndex++;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    try {
+      // Use pgvector cosine distance operator (<=>)
+      const results = await db.$queryRawUnsafe<
+        Array<{
+          id: string;
+          sourceId: string;
+          sourceType: string;
+          contentText: string | null;
+          customMetadata: unknown;
+          userId: string | null;
+          courseId: string | null;
+          tags: string[];
+          distance: number;
+        }>
+      >(
+        `
+        SELECT
+          id,
+          "sourceId",
+          "sourceType",
+          ${options.includeContent ? '"contentText",' : ''}
+          "customMetadata",
+          "userId",
+          "courseId",
+          tags,
+          embedding <=> $1::vector as distance
+        FROM "SAMVectorEmbedding"
+        ${whereClause}
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+        `,
+        ...params
+      );
+
+      return results
+        .filter((r) => {
+          const score = 1 - r.distance;
+          return !options.minScore || score >= options.minScore;
+        })
+        .map((r) => ({
+          id: r.id,
+          sourceId: r.sourceId,
+          sourceType: r.sourceType,
+          score: 1 - r.distance,
+          contentText: r.contentText ?? undefined,
+          metadata: r.customMetadata as Record<string, unknown> | undefined,
+          userId: r.userId ?? undefined,
+          courseId: r.courseId ?? undefined,
+          tags: r.tags,
+        }));
+    } catch (error) {
+      logger.warn('[VectorSearch] pgvector search failed, falling back to in-memory', {
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
+      this.pgvectorAvailable = false; // Disable for future calls
+      return this.searchSimilarInMemory(queryEmbedding, options);
+    }
+  }
+
+  /**
+   * In-memory search using cosine similarity (fallback)
+   */
+  private async searchSimilarInMemory(
+    queryEmbedding: number[],
+    options: VectorSearchOptions
+  ): Promise<VectorSearchResult[]> {
     // Build filter
     const where: Record<string, unknown> = {};
-    if (validatedOptions.userId) {
-      where.userId = validatedOptions.userId;
+    if (options.userId) {
+      where.userId = options.userId;
     }
-    if (validatedOptions.courseId) {
-      where.courseId = validatedOptions.courseId;
+    if (options.courseId) {
+      where.courseId = options.courseId;
     }
-    if (validatedOptions.sourceTypes?.length) {
-      where.sourceType = { in: validatedOptions.sourceTypes };
+    if (options.sourceTypes?.length) {
+      where.sourceType = { in: options.sourceTypes };
     }
-    if (validatedOptions.tags?.length) {
-      where.tags = { hasSome: validatedOptions.tags };
+    if (options.tags?.length) {
+      where.tags = { hasSome: options.tags };
     }
 
     // Fetch candidates (limit to reasonable number for in-memory search)
@@ -326,7 +480,7 @@ export class PgVectorSearchService {
         id: true,
         sourceId: true,
         sourceType: true,
-        contentText: validatedOptions.includeContent,
+        contentText: options.includeContent,
         customMetadata: true,
         userId: true,
         courseId: true,
@@ -344,7 +498,7 @@ export class PgVectorSearchService {
 
       const score = cosineSimilarity(queryEmbedding, candidateEmbedding);
 
-      if (validatedOptions.minScore && score < validatedOptions.minScore) {
+      if (options.minScore && score < options.minScore) {
         continue;
       }
 
@@ -363,7 +517,7 @@ export class PgVectorSearchService {
 
     // Sort by score and limit
     results.sort((a, b) => b.score - a.score);
-    return results.slice(0, validatedOptions.topK);
+    return results.slice(0, options.topK);
   }
 
   // ==========================================
@@ -407,6 +561,7 @@ export class PgVectorSearchService {
 
   /**
    * Search long-term memories by semantic similarity
+   * Uses native pgvector search when available
    */
   async searchLongTermMemories(
     userId: string,
@@ -416,7 +571,118 @@ export class PgVectorSearchService {
     const embedding = await this.embeddingProvider.embed(query);
     const topK = options.topK ?? 10;
 
-    // Build filter
+    const usePgVector = await this.checkPgVectorAvailable();
+
+    let topResults: LongTermMemorySearchResult[];
+
+    if (usePgVector) {
+      topResults = await this.searchLongTermMemoriesPgVector(userId, embedding, options, topK);
+    } else {
+      topResults = await this.searchLongTermMemoriesInMemory(userId, embedding, options, topK);
+    }
+
+    // Update access counts for retrieved memories
+    if (topResults.length > 0) {
+      const ids = topResults.map((r) => r.id);
+      await db.sAMLongTermMemory.updateMany({
+        where: { id: { in: ids } },
+        data: {
+          accessCount: { increment: 1 },
+          lastAccessedAt: new Date(),
+        },
+      });
+    }
+
+    return topResults;
+  }
+
+  /**
+   * Native pgvector search for long-term memories
+   */
+  private async searchLongTermMemoriesPgVector(
+    userId: string,
+    embedding: number[],
+    options: { minScore?: number; types?: string[]; courseId?: string },
+    topK: number
+  ): Promise<LongTermMemorySearchResult[]> {
+    const vectorString = `[${embedding.join(',')}]`;
+
+    const conditions: string[] = ['"userId" = $3'];
+    const params: unknown[] = [vectorString, topK, userId];
+    let paramIndex = 4;
+
+    if (options.courseId) {
+      conditions.push(`"courseId" = $${paramIndex}`);
+      params.push(options.courseId);
+      paramIndex++;
+    }
+    if (options.types?.length) {
+      conditions.push(`type = ANY($${paramIndex})`);
+      params.push(options.types);
+      paramIndex++;
+    }
+
+    try {
+      const results = await db.$queryRawUnsafe<
+        Array<{
+          id: string;
+          title: string;
+          content: string;
+          summary: string | null;
+          type: string;
+          importance: string;
+          courseId: string | null;
+          tags: string[];
+          createdAt: Date;
+          distance: number;
+        }>
+      >(
+        `
+        SELECT
+          id, title, content, summary, type, importance, "courseId", tags, "createdAt",
+          embedding <=> $1::vector as distance
+        FROM "SAMLongTermMemory"
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY embedding <=> $1::vector
+        LIMIT $2
+        `,
+        ...params
+      );
+
+      return results
+        .filter((r) => {
+          const score = 1 - r.distance;
+          return !options.minScore || score >= options.minScore;
+        })
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          content: r.content,
+          summary: r.summary ?? undefined,
+          type: r.type,
+          importance: r.importance,
+          score: 1 - r.distance,
+          courseId: r.courseId ?? undefined,
+          tags: r.tags,
+          createdAt: r.createdAt,
+        }));
+    } catch (error) {
+      logger.warn('[VectorSearch] pgvector long-term memory search failed, using in-memory', {
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
+      return this.searchLongTermMemoriesInMemory(userId, embedding, options, topK);
+    }
+  }
+
+  /**
+   * In-memory search for long-term memories (fallback)
+   */
+  private async searchLongTermMemoriesInMemory(
+    userId: string,
+    embedding: number[],
+    options: { minScore?: number; types?: string[]; courseId?: string },
+    topK: number
+  ): Promise<LongTermMemorySearchResult[]> {
     const where: Record<string, unknown> = { userId };
     if (options.courseId) {
       where.courseId = options.courseId;
@@ -425,7 +691,6 @@ export class PgVectorSearchService {
       where.type = { in: options.types };
     }
 
-    // Fetch candidates
     const candidates = await db.sAMLongTermMemory.findMany({
       where,
       take: 500,
@@ -443,7 +708,6 @@ export class PgVectorSearchService {
       },
     });
 
-    // Calculate similarity scores
     const results: LongTermMemorySearchResult[] = [];
 
     for (const candidate of candidates) {
@@ -470,23 +734,8 @@ export class PgVectorSearchService {
       });
     }
 
-    // Sort by score and limit
     results.sort((a, b) => b.score - a.score);
-    const topResults = results.slice(0, topK);
-
-    // Update access counts for retrieved memories
-    if (topResults.length > 0) {
-      const ids = topResults.map((r) => r.id);
-      await db.sAMLongTermMemory.updateMany({
-        where: { id: { in: ids } },
-        data: {
-          accessCount: { increment: 1 },
-          lastAccessedAt: new Date(),
-        },
-      });
-    }
-
-    return topResults;
+    return results.slice(0, topK);
   }
 
   // ==========================================

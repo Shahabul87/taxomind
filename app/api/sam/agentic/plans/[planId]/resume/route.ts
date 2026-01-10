@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
-import { createPrismaPlanStore } from '@/lib/sam/stores';
+import { getStore } from '@/lib/sam/taxomind-context';
 import {
   createAgentStateMachine,
   type AgentStateMachine,
 } from '@sam-ai/agentic';
 
-// Initialize stores
-const planStore = createPrismaPlanStore();
+// Get plan store from TaxomindContext
+function getPlanStore() {
+  return getStore('plan');
+}
 
-// Create a lazy-initialized state machine
+// Create a lazy-initialized state machine using TaxomindContext stores
 let stateMachineInstance: AgentStateMachine | null = null;
 
 function getStateMachine() {
   if (!stateMachineInstance) {
     stateMachineInstance = createAgentStateMachine({
-      planStore,
+      planStore: getPlanStore(),
       logger: console,
     });
   }
@@ -42,7 +44,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const { planId } = await context.params;
 
     // Use the PlanStore to fetch the plan
-    const plan = await planStore.get(planId);
+    const plan = await getPlanStore().get(planId);
 
     if (!plan || plan.userId !== session.user.id) {
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
@@ -74,7 +76,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const planState = stateMachine.getPlanState();
 
     // Fetch updated plan with related data
-    const updatedPlan = await planStore.get(planId);
+    const updatedPlan = await getPlanStore().get(planId);
 
     // Note: SAMLearningGoal model doesn't exist in the schema yet
     // Goal data would come from the goal store instead

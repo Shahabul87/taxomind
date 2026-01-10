@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 import {
   createProgressAnalyzer,
   createSkillAssessor,
@@ -14,14 +15,6 @@ import {
   ContentType,
   type RecommendationBatch as AgenticRecommendationBatch,
 } from '@sam-ai/agentic';
-import {
-  createPrismaLearningSessionStore,
-  createPrismaTopicProgressStore,
-  createPrismaLearningGapStore,
-  createPrismaSkillAssessmentStore,
-  createPrismaRecommendationStore,
-  createPrismaContentStore,
-} from '@/lib/sam/stores';
 
 // ============================================================================
 // VALIDATION
@@ -34,7 +27,7 @@ const querySchema = z.object({
 });
 
 // ============================================================================
-// LAZY SINGLETONS
+// LAZY SINGLETONS (using TaxomindContext stores)
 // ============================================================================
 
 let progressAnalyzerInstance: ReturnType<typeof createProgressAnalyzer> | null = null;
@@ -43,11 +36,12 @@ let recommendationEngineInstance: ReturnType<typeof createRecommendationEngine> 
 
 function getProgressAnalyzer() {
   if (!progressAnalyzerInstance) {
+    const stores = getAnalyticsStores();
     progressAnalyzerInstance = createProgressAnalyzer({
       logger,
-      sessionStore: createPrismaLearningSessionStore(),
-      progressStore: createPrismaTopicProgressStore(),
-      gapStore: createPrismaLearningGapStore(),
+      sessionStore: stores.learningSession,
+      progressStore: stores.topicProgress,
+      gapStore: stores.learningGap,
     });
   }
   return progressAnalyzerInstance;
@@ -55,9 +49,10 @@ function getProgressAnalyzer() {
 
 function getSkillAssessor() {
   if (!skillAssessorInstance) {
+    const stores = getAnalyticsStores();
     skillAssessorInstance = createSkillAssessor({
       logger,
-      store: createPrismaSkillAssessmentStore(),
+      store: stores.skillAssessment,
     });
   }
   return skillAssessorInstance;
@@ -65,10 +60,11 @@ function getSkillAssessor() {
 
 function getRecommendationEngine() {
   if (!recommendationEngineInstance) {
+    const stores = getAnalyticsStores();
     recommendationEngineInstance = createRecommendationEngine({
       logger,
-      recommendationStore: createPrismaRecommendationStore(),
-      contentStore: createPrismaContentStore(),
+      recommendationStore: stores.recommendation,
+      contentStore: stores.content,
     });
   }
   return recommendationEngineInstance;

@@ -11,11 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import {
-  PrismaBehaviorEventStore,
-  createPrismaPatternStore,
-  createPrismaInterventionStore,
-} from '@/lib/sam/stores';
+import { getProactiveStores } from '@/lib/sam/taxomind-context';
 import {
   createBehaviorMonitor,
   BehaviorEventType,
@@ -24,24 +20,25 @@ import {
   type BehaviorEvent,
 } from '@sam-ai/agentic';
 
-// Initialize stores
-const behaviorEventStore = new PrismaBehaviorEventStore();
-const patternStore = createPrismaPatternStore();
-const interventionStore = createPrismaInterventionStore();
-
-// Lazy initialize behavior monitor
+// Lazy initialize behavior monitor using TaxomindContext stores
 let behaviorMonitorInstance: ReturnType<typeof createBehaviorMonitor> | null = null;
 
 function getBehaviorMonitor() {
   if (!behaviorMonitorInstance) {
+    const stores = getProactiveStores();
     behaviorMonitorInstance = createBehaviorMonitor({
-      eventStore: behaviorEventStore,
-      patternStore: patternStore,
-      interventionStore: interventionStore,
+      eventStore: stores.behaviorEvent,
+      patternStore: stores.pattern,
+      interventionStore: stores.intervention,
       logger: console,
     });
   }
   return behaviorMonitorInstance;
+}
+
+// Get behavior event store from context for direct queries
+function getBehaviorEventStore() {
+  return getProactiveStores().behaviorEvent;
 }
 
 // ============================================================================
@@ -108,19 +105,22 @@ export async function GET(req: NextRequest) {
       limit: searchParams.get('limit') ?? undefined,
     });
 
-    // Get events from store
-    const from = query.from ? new Date(query.from) : new Date(Date.now() - 24 * 60 * 60 * 1000); // Last 24 hours
-    const to = query.to ? new Date(query.to) : new Date();
+    // Get events from store using interface-compliant getByUser with options
+    const since = query.from ? new Date(query.from) : new Date(Date.now() - 24 * 60 * 60 * 1000); // Last 24 hours
+    const until = query.to ? new Date(query.to) : new Date();
 
-    const events = await behaviorEventStore.getByTimeRange(
+    const events = await getBehaviorEventStore().getByUser(
       session.user.id,
-      from,
-      to,
-      { type: query.type as BehaviorEventType | undefined }
+      {
+        types: query.type ? [query.type as BehaviorEventType] : undefined,
+        since,
+        until,
+        limit: query.limit,
+      }
     );
 
-    // Limit results
-    const limitedEvents = events.slice(0, query.limit);
+    // Results already limited by store query
+    const limitedEvents = events;
 
     return NextResponse.json({
       success: true,

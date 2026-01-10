@@ -184,8 +184,8 @@ function initializeStores(): TaxomindAgenticStores {
   logger.info('[TaxomindContext] Initializing all Prisma stores...');
 
   // Initialize observability stores from adapter-prisma
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const observabilityStores = createPrismaObservabilityStores({ prisma: db as any });
+  // Type cast required due to Prisma client extensions
+  const observabilityStores = createPrismaObservabilityStores({ prisma: db as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'] });
 
   const stores: TaxomindAgenticStores = {
     // Goal Planning
@@ -235,16 +235,16 @@ function initializeStores(): TaxomindAgenticStores {
     metrics: observabilityStores.metrics,
 
     // Presence (realtime user tracking)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    presence: createPrismaPresenceStore({ prisma: db as any }),
+    // Type cast required due to Prisma client extensions
+    presence: createPrismaPresenceStore({ prisma: db as Parameters<typeof createPrismaPresenceStore>[0]['prisma'] }),
 
     // Student Profile (mastery tracking)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    studentProfile: createPrismaStudentProfileStore({ prisma: db as any }),
+    // Type cast required due to Prisma client extensions
+    studentProfile: createPrismaStudentProfileStore({ prisma: db as Parameters<typeof createPrismaStudentProfileStore>[0]['prisma'] }),
 
     // Review Schedule (spaced repetition)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    reviewSchedule: createPrismaReviewScheduleStore({ prisma: db as any }),
+    // Type cast required due to Prisma client extensions
+    reviewSchedule: createPrismaReviewScheduleStore({ prisma: db as Parameters<typeof createPrismaReviewScheduleStore>[0]['prisma'] }),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {

@@ -7,24 +7,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createPrismaCheckInStore } from '@/lib/sam/stores';
+import { getStore } from '@/lib/sam/taxomind-context';
 import { createCheckInScheduler, NotificationChannel } from '@sam-ai/agentic';
 
-// Initialize stores
-const checkInStore = createPrismaCheckInStore();
-
-// Lazy initialize check-in scheduler
+// Lazy initialize check-in scheduler using TaxomindContext
 let checkInSchedulerInstance: ReturnType<typeof createCheckInScheduler> | null = null;
 
 function getCheckInScheduler() {
   if (!checkInSchedulerInstance) {
     checkInSchedulerInstance = createCheckInScheduler({
-      store: checkInStore,
+      store: getStore('checkIn'),
       logger: console,
       defaultChannel: NotificationChannel.IN_APP,
     });
   }
   return checkInSchedulerInstance;
+}
+
+// Get check-in store from context for direct queries
+function getCheckInStore() {
+  return getStore('checkIn');
 }
 
 // ============================================================================
@@ -73,7 +75,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     // Get responses if any
-    const responses = await checkInStore.getResponses(checkInId);
+    const responses = await getCheckInStore().getResponses(checkInId);
 
     return NextResponse.json({
       success: true,

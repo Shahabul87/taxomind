@@ -7,11 +7,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 import {
   createSkillAssessor,
   MasteryLevel,
 } from '@sam-ai/agentic';
-import { createPrismaSkillAssessmentStore } from '@/lib/sam/stores';
 
 // ============================================================================
 // VALIDATION
@@ -24,16 +24,17 @@ const querySchema = z.object({
 });
 
 // ============================================================================
-// LAZY SINGLETON
+// LAZY SINGLETON (using TaxomindContext stores)
 // ============================================================================
 
 let skillAssessorInstance: ReturnType<typeof createSkillAssessor> | null = null;
 
 function getSkillAssessor() {
   if (!skillAssessorInstance) {
+    const stores = getAnalyticsStores();
     skillAssessorInstance = createSkillAssessor({
       logger,
-      store: createPrismaSkillAssessmentStore(),
+      store: stores.skillAssessment,
     });
   }
   return skillAssessorInstance;

@@ -8,20 +8,17 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createPrismaCheckInStore } from '@/lib/sam/stores';
+import { getStore } from '@/lib/sam/taxomind-context';
 import { createCheckInScheduler, NotificationChannel } from '@sam-ai/agentic';
 import type { UserContext } from '@sam-ai/agentic';
 
-// Initialize stores
-const checkInStore = createPrismaCheckInStore();
-
-// Lazy initialize check-in scheduler
+// Lazy initialize check-in scheduler using TaxomindContext
 let checkInSchedulerInstance: ReturnType<typeof createCheckInScheduler> | null = null;
 
 function getCheckInScheduler() {
   if (!checkInSchedulerInstance) {
     checkInSchedulerInstance = createCheckInScheduler({
-      store: checkInStore,
+      store: getStore('checkIn'),
       logger: console,
       defaultChannel: NotificationChannel.IN_APP,
     });
