@@ -10,7 +10,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { UserMenu } from "@/app/(homepage)/_components/user-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { getFallbackImageUrl } from "@/lib/cloudinary-utils";
-import { Menu, X, Home, BookOpen, FileText, Info, LogOut, User, Settings, ChevronRight, Palette } from "lucide-react";
+import { Menu, X, Home, BookOpen, FileText, Info, LogOut, User, Settings, ChevronRight, Palette, Newspaper, FlaskConical } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -58,6 +58,18 @@ export function HomeNavbar({ className }: HomeNavbarProps) {
       link: "/courses",
       icon: BookOpen,
       description: "Browse all courses"
+    },
+    {
+      name: "AI News",
+      link: "/ai-news",
+      icon: Newspaper,
+      description: "Latest AI news"
+    },
+    {
+      name: "AI Research",
+      link: "/ai-research",
+      icon: FlaskConical,
+      description: "AI research papers"
     },
     {
       name: "Blog",

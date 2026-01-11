@@ -12,7 +12,9 @@ import {
   Award,
   Zap,
   Activity,
-  LogIn
+  LogIn,
+  Newspaper,
+  FlaskConical
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -98,6 +100,44 @@ export default function HomeHeroSectionRedesigned() {
                 Taxomind
               </span>
             </Link>
+
+            {/* Center Navigation Links - Desktop */}
+            <div className="hidden sm:flex items-center gap-1 sm:gap-2">
+              <Link
+                href="/ai-news"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md hover:bg-white dark:hover:bg-slate-800 transition-all group"
+                aria-label="AI News"
+              >
+                <Newspaper className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">AI News</span>
+              </Link>
+              <Link
+                href="/ai-research"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md hover:bg-white dark:hover:bg-slate-800 transition-all group"
+                aria-label="AI Research"
+              >
+                <FlaskConical className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">AI Research</span>
+              </Link>
+            </div>
+
+            {/* Mobile Nav Links */}
+            <div className="flex sm:hidden items-center gap-1">
+              <Link
+                href="/ai-news"
+                className="inline-flex items-center justify-center p-1.5 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
+                aria-label="AI News"
+              >
+                <Newspaper className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </Link>
+              <Link
+                href="/ai-research"
+                className="inline-flex items-center justify-center p-1.5 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
+                aria-label="AI Research"
+              >
+                <FlaskConical className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </Link>
+            </div>
 
             <div className="sm:hidden">
               {user ? (
