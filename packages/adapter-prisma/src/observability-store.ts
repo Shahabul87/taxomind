@@ -9,9 +9,11 @@ import type {
   MemoryRetrievalEvent,
   MemoryQualityMetrics,
   ConfidencePrediction,
+  ConfidenceOutcome,
   VerificationMethod,
   CalibrationMetrics,
   PlanLifecycleEvent,
+  ConfidencePredictionStore,
 } from '@sam-ai/agentic';
 
 import {
@@ -330,14 +332,14 @@ export class PrismaToolTelemetryStore {
 // CONFIDENCE CALIBRATION STORE
 // ============================================================================
 
-export class PrismaConfidenceCalibrationStore {
+export class PrismaConfidenceCalibrationStore implements ConfidencePredictionStore {
   private prisma: PrismaClient;
 
   constructor(config: PrismaObservabilityStoreConfig) {
     this.prisma = config.prisma;
   }
 
-  async recordPrediction(prediction: ConfidencePrediction): Promise<void> {
+  async record(prediction: ConfidencePrediction): Promise<void> {
     await this.prisma.sAMConfidenceScore.create({
       data: {
         id: prediction.predictionId,
@@ -358,22 +360,46 @@ export class PrismaConfidenceCalibrationStore {
     });
   }
 
+  async getById(predictionId: string): Promise<ConfidencePrediction | null> {
+    const record = await this.prisma.sAMConfidenceScore.findUnique({
+      where: { id: predictionId },
+    });
+
+    if (!record) return null;
+
+    return {
+      predictionId: record.id,
+      userId: record.userId,
+      sessionId: record.sessionId || undefined,
+      responseId: record.responseId,
+      responseType: record.responseType as ConfidencePrediction['responseType'],
+      predictedConfidence: record.predictedConfidence,
+      factors: record.factors as ConfidencePrediction['factors'],
+      predictedAt: record.predictedAt,
+      actualOutcome: record.accurate !== null ? {
+        accurate: record.accurate,
+        userVerified: record.userVerified ?? false,
+        verificationMethod: (record.verificationMethod as VerificationMethod) ?? 'implicit',
+        qualityScore: record.qualityScore ?? undefined,
+        recordedAt: record.outcomeRecordedAt ?? new Date(),
+        notes: record.outcomeNotes ?? undefined,
+      } : undefined,
+    };
+  }
+
   async recordOutcome(
     predictionId: string,
-    accurate: boolean,
-    method: VerificationMethod,
-    qualityScore?: number,
-    notes?: string
+    outcome: ConfidenceOutcome
   ): Promise<void> {
     await this.prisma.sAMConfidenceScore.update({
       where: { id: predictionId },
       data: {
-        accurate,
-        userVerified: method === 'user_feedback',
-        verificationMethod: method,
-        qualityScore: qualityScore || null,
-        outcomeRecordedAt: new Date(),
-        outcomeNotes: notes || null,
+        accurate: outcome.accurate,
+        userVerified: outcome.userVerified,
+        verificationMethod: outcome.verificationMethod,
+        qualityScore: outcome.qualityScore ?? null,
+        outcomeRecordedAt: outcome.recordedAt,
+        outcomeNotes: outcome.notes ?? null,
       },
     });
   }

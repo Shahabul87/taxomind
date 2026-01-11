@@ -200,6 +200,28 @@ export {
   InMemoryQualityRecordStore,
   InMemoryCalibrationStore,
   type QualityTrackerConfig,
+  // Self-Critique
+  SelfCritiqueEngine,
+  createSelfCritiqueEngine,
+  createStrictSelfCritiqueEngine,
+  createLenientSelfCritiqueEngine,
+  InMemorySelfCritiqueStore,
+  CritiqueDimension,
+  CritiqueSeverity,
+  DEFAULT_DIMENSION_WEIGHTS,
+  SelfCritiqueInputSchema,
+  SelfCritiqueLoopInputSchema,
+  type SelfCritiqueConfig,
+  type SelfCritiqueLoopConfig,
+  type SelfCritiqueInput,
+  type SelfCritiqueLoopInput,
+  type SelfCritiqueResult,
+  type SelfCritiqueLoopResult,
+  type CritiqueIterationResult,
+  type CritiqueFinding,
+  type DimensionScore,
+  type ImprovementSuggestion,
+  type SelfCritiqueStore,
 } from './self-evaluation';
 
 // ============================================================================
@@ -341,6 +363,12 @@ export * from './realtime';
 export * from './observability';
 
 // ============================================================================
+// META-LEARNING (Pattern Recognition, System Optimization)
+// ============================================================================
+
+export * from './meta-learning';
+
+// ============================================================================
 // PACKAGE INFO
 // ============================================================================
 
@@ -361,6 +389,7 @@ export const CAPABILITIES = {
   LEARNING_PATH: 'learning-path',
   ORCHESTRATION: 'orchestration',
   OBSERVABILITY: 'observability',
+  META_LEARNING: 'meta-learning',
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
@@ -390,6 +419,8 @@ export function hasCapability(capability: Capability): boolean {
       return true; // Phase 2 - Plan-Driven Tutoring
     case CAPABILITIES.OBSERVABILITY:
       return true; // Phase 5 - Observability & Operations
+    case CAPABILITIES.META_LEARNING:
+      return true; // Phase 3 - Meta-learning analytics
     default:
       return false;
   }

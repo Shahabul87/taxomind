@@ -19,8 +19,8 @@ import {
 // Learning Command Center
 import { LearningCommandCenter } from "./learning-command-center";
 
-// SkillBuildTracker Dashboard
-import SkillBuildTracker from "@/components/dashboard/smart/skill-build-tracker";
+// SkillBuildTracker Dashboard - Connected to real API
+import SkillBuildTrackerConnected from "@/components/dashboard/smart/skill-build-tracker-connected";
 
 interface NewDashboardProps {
   user: NextAuthUser;
@@ -127,13 +127,13 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
     );
   }
 
-  // Skills view with SkillBuildTracker
+  // Skills view with SkillBuildTracker (connected to real API)
   if (dashboardView === "skills") {
     return (
       <div className="relative min-h-full">
         <ViewToggle />
         <div className="pt-16">
-          <SkillBuildTracker />
+          <SkillBuildTrackerConnected />
         </div>
       </div>
     );

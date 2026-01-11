@@ -1,5 +1,5 @@
 import { SAMDatabaseAdapter, QueryOptions, SAMUser, SAMCourse, SAMChapter, SAMSection, SAMQuestion, SAMBloomsProgress, SAMCognitiveProgress, SAMInteractionLog, SAMCourseAnalysis, TransactionContext } from '@sam-ai/core';
-import { PresenceStore, UserPresence, PresenceStatus, PushQueueStore, PushDeliveryRequest, PushDeliveryResult, PushQueueStats, ToolExecutionEvent, ToolMetrics, ConfidencePrediction, VerificationMethod, CalibrationMetrics, MemoryRetrievalEvent, MemoryQualityMetrics, PlanLifecycleEvent } from '@sam-ai/agentic';
+import { PresenceStore, UserPresence, PresenceStatus, PushQueueStore, PushDeliveryRequest, PushDeliveryResult, PushQueueStats, ToolExecutionEvent, ToolMetrics, ConfidencePredictionStore, ConfidencePrediction, ConfidenceOutcome, CalibrationMetrics, MemoryRetrievalEvent, MemoryQualityMetrics, PlanLifecycleEvent } from '@sam-ai/agentic';
 
 /**
  * Prisma SAM Database Adapter
@@ -783,11 +783,12 @@ declare class PrismaToolTelemetryStore {
     getMetrics(periodStart: Date, periodEnd: Date, toolId?: string): Promise<ToolMetrics>;
     private mapRecordToEvent;
 }
-declare class PrismaConfidenceCalibrationStore {
+declare class PrismaConfidenceCalibrationStore implements ConfidencePredictionStore {
     private prisma;
     constructor(config: PrismaObservabilityStoreConfig);
-    recordPrediction(prediction: ConfidencePrediction): Promise<void>;
-    recordOutcome(predictionId: string, accurate: boolean, method: VerificationMethod, qualityScore?: number, notes?: string): Promise<void>;
+    record(prediction: ConfidencePrediction): Promise<void>;
+    getById(predictionId: string): Promise<ConfidencePrediction | null>;
+    recordOutcome(predictionId: string, outcome: ConfidenceOutcome): Promise<void>;
     getCalibrationMetrics(periodStart: Date, periodEnd: Date): Promise<CalibrationMetrics>;
     private calculateCalibrationBuckets;
     private calculateMetricsByType;

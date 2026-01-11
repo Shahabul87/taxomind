@@ -1647,7 +1647,7 @@ var PrismaConfidenceCalibrationStore = class {
   constructor(config) {
     this.prisma = config.prisma;
   }
-  async recordPrediction(prediction) {
+  async record(prediction) {
     await this.prisma.sAMConfidenceScore.create({
       data: {
         id: prediction.predictionId,
@@ -1667,16 +1667,40 @@ var PrismaConfidenceCalibrationStore = class {
       }
     });
   }
-  async recordOutcome(predictionId, accurate, method, qualityScore, notes) {
+  async getById(predictionId) {
+    const record = await this.prisma.sAMConfidenceScore.findUnique({
+      where: { id: predictionId }
+    });
+    if (!record) return null;
+    return {
+      predictionId: record.id,
+      userId: record.userId,
+      sessionId: record.sessionId || void 0,
+      responseId: record.responseId,
+      responseType: record.responseType,
+      predictedConfidence: record.predictedConfidence,
+      factors: record.factors,
+      predictedAt: record.predictedAt,
+      actualOutcome: record.accurate !== null ? {
+        accurate: record.accurate,
+        userVerified: record.userVerified ?? false,
+        verificationMethod: record.verificationMethod ?? "implicit",
+        qualityScore: record.qualityScore ?? void 0,
+        recordedAt: record.outcomeRecordedAt ?? /* @__PURE__ */ new Date(),
+        notes: record.outcomeNotes ?? void 0
+      } : void 0
+    };
+  }
+  async recordOutcome(predictionId, outcome) {
     await this.prisma.sAMConfidenceScore.update({
       where: { id: predictionId },
       data: {
-        accurate,
-        userVerified: method === "user_feedback",
-        verificationMethod: method,
-        qualityScore: qualityScore || null,
-        outcomeRecordedAt: /* @__PURE__ */ new Date(),
-        outcomeNotes: notes || null
+        accurate: outcome.accurate,
+        userVerified: outcome.userVerified,
+        verificationMethod: outcome.verificationMethod,
+        qualityScore: outcome.qualityScore ?? null,
+        outcomeRecordedAt: outcome.recordedAt,
+        outcomeNotes: outcome.notes ?? null
       }
     });
   }

@@ -16272,8 +16272,795 @@ function createQualityTracker(config) {
   return new QualityTracker(config);
 }
 
-// src/learning-analytics/types.ts
+// src/self-evaluation/self-critique.ts
 import { z as z14 } from "zod";
+var CritiqueDimension = {
+  ACCURACY: "accuracy",
+  CLARITY: "clarity",
+  COMPLETENESS: "completeness",
+  PEDAGOGY: "pedagogy",
+  ENGAGEMENT: "engagement",
+  SAFETY: "safety",
+  RELEVANCE: "relevance",
+  STRUCTURE: "structure"
+};
+var CritiqueSeverity = {
+  CRITICAL: "critical",
+  MAJOR: "major",
+  MINOR: "minor",
+  SUGGESTION: "suggestion"
+};
+var DEFAULT_DIMENSION_WEIGHTS = {
+  [CritiqueDimension.ACCURACY]: 0.2,
+  [CritiqueDimension.CLARITY]: 0.15,
+  [CritiqueDimension.COMPLETENESS]: 0.15,
+  [CritiqueDimension.PEDAGOGY]: 0.15,
+  [CritiqueDimension.ENGAGEMENT]: 0.1,
+  [CritiqueDimension.SAFETY]: 0.1,
+  [CritiqueDimension.RELEVANCE]: 0.1,
+  [CritiqueDimension.STRUCTURE]: 0.05
+};
+var InMemorySelfCritiqueStore = class {
+  results = /* @__PURE__ */ new Map();
+  loopResults = /* @__PURE__ */ new Map();
+  idCounter = 0;
+  async get(id) {
+    return this.results.get(id) ?? null;
+  }
+  async getByResponse(responseId) {
+    return Array.from(this.results.values()).filter(
+      (r) => r.responseId === responseId
+    );
+  }
+  async getByUser(userId, limit = 50) {
+    return Array.from(this.results.values()).filter((r) => r.userId === userId).sort((a, b) => b.critiquedAt.getTime() - a.critiquedAt.getTime()).slice(0, limit);
+  }
+  async create(result) {
+    const id = `critique_${++this.idCounter}_${Date.now()}`;
+    const fullResult = { id, ...result };
+    this.results.set(id, fullResult);
+    return fullResult;
+  }
+  async getLoopResult(responseId) {
+    return this.loopResults.get(responseId) ?? null;
+  }
+  async saveLoopResult(result) {
+    this.loopResults.set(result.responseId, result);
+  }
+};
+var SelfCritiqueEngine = class {
+  config;
+  logger;
+  store;
+  constructor(config = {}) {
+    this.config = {
+      passThreshold: config.passThreshold ?? 75,
+      enabledDimensions: config.enabledDimensions ?? Object.values(CritiqueDimension),
+      dimensionWeights: { ...DEFAULT_DIMENSION_WEIGHTS, ...config.dimensionWeights },
+      maxFindings: config.maxFindings ?? 20,
+      maxImprovements: config.maxImprovements ?? 10
+    };
+    this.logger = config.logger;
+    this.store = config.store ?? new InMemorySelfCritiqueStore();
+  }
+  /**
+   * Perform self-critique on a response
+   */
+  async critique(input) {
+    const startTime = Date.now();
+    this.logger?.info("Starting self-critique", {
+      responseId: input.responseId,
+      responseType: input.responseType,
+      iteration: input.iteration ?? 1
+    });
+    const enabledDimensions = input.enabledDimensions ?? this.config.enabledDimensions;
+    const passThreshold = input.passThreshold ?? this.config.passThreshold;
+    const dimensionScores = [];
+    const allFindings = [];
+    for (const dimension of enabledDimensions) {
+      const dimensionResult = await this.analyzeDimension(
+        input.responseText,
+        dimension,
+        input
+      );
+      dimensionScores.push(dimensionResult);
+      allFindings.push(...dimensionResult.findings);
+    }
+    const overallScore = this.calculateOverallScore(dimensionScores);
+    const criticalFindings = allFindings.filter(
+      (f) => f.severity === CritiqueSeverity.CRITICAL
+    ).length;
+    const majorFindings = allFindings.filter(
+      (f) => f.severity === CritiqueSeverity.MAJOR
+    ).length;
+    const minorFindings = allFindings.filter(
+      (f) => f.severity === CritiqueSeverity.MINOR
+    ).length;
+    const improvements = this.generateImprovements(allFindings, input);
+    const topImprovements = improvements.slice(0, 3);
+    const passed = overallScore >= passThreshold && criticalFindings === 0;
+    const requiresRevision = criticalFindings > 0 || majorFindings > 2;
+    const scoreImprovement = input.previousScore ? overallScore - input.previousScore : void 0;
+    const result = {
+      responseId: input.responseId,
+      userId: input.userId,
+      overallScore,
+      dimensionScores,
+      findings: allFindings.slice(0, this.config.maxFindings),
+      criticalFindings,
+      majorFindings,
+      minorFindings,
+      improvements: improvements.slice(0, this.config.maxImprovements),
+      topImprovements,
+      iteration: input.iteration ?? 1,
+      previousScore: input.previousScore,
+      scoreImprovement,
+      passed,
+      passThreshold,
+      requiresRevision,
+      critiquedAt: /* @__PURE__ */ new Date(),
+      processingTimeMs: Date.now() - startTime
+    };
+    const savedResult = await this.store.create(result);
+    this.logger?.info("Self-critique complete", {
+      responseId: input.responseId,
+      overallScore,
+      passed,
+      criticalFindings,
+      processingTimeMs: result.processingTimeMs
+    });
+    return savedResult;
+  }
+  /**
+   * Run iterative self-critique loop
+   */
+  async runCritiqueLoop(input) {
+    const startedAt = /* @__PURE__ */ new Date();
+    const maxIterations = input.maxIterations ?? 3;
+    const minImprovement = input.minImprovement ?? 5;
+    this.logger?.info("Starting self-critique loop", {
+      responseId: input.responseId,
+      maxIterations,
+      minImprovement
+    });
+    const iterations = [];
+    let currentResponse = input.responseText;
+    let currentScore = 0;
+    let converged = false;
+    let convergedReason;
+    for (let i = 1; i <= maxIterations; i++) {
+      const critique = await this.critique({
+        ...input,
+        responseText: currentResponse,
+        iteration: i,
+        previousScore: i > 1 ? currentScore : void 0
+      });
+      const previousScore = currentScore;
+      currentScore = critique.overallScore;
+      if (critique.passed && critique.criticalFindings === 0) {
+        converged = true;
+        convergedReason = "Passed quality threshold";
+      } else if (i > 1 && currentScore - previousScore < minImprovement) {
+        converged = true;
+        convergedReason = "Improvement below threshold";
+      }
+      let improvedResponse = currentResponse;
+      const improvementsMade = [];
+      if (!converged && input.improvementCallback && critique.topImprovements.length > 0) {
+        improvedResponse = await input.improvementCallback(currentResponse, critique);
+        improvementsMade.push(...critique.topImprovements.map((imp) => imp.description));
+      } else if (!converged && critique.topImprovements.length > 0) {
+        improvedResponse = this.applySimpleImprovements(currentResponse, critique.topImprovements);
+        improvementsMade.push(...critique.topImprovements.map((imp) => imp.description));
+      }
+      iterations.push({
+        iteration: i,
+        originalResponse: currentResponse,
+        improvedResponse,
+        critique,
+        improvements: improvementsMade,
+        converged,
+        reason: convergedReason
+      });
+      currentResponse = improvedResponse;
+      if (converged) {
+        break;
+      }
+    }
+    const completedAt = /* @__PURE__ */ new Date();
+    const initialScore = iterations[0]?.critique.overallScore ?? 0;
+    const finalScore = iterations[iterations.length - 1]?.critique.overallScore ?? 0;
+    const allFindings = iterations.flatMap((it) => it.critique.findings);
+    const resolvedFindings = allFindings.filter(
+      (f) => !iterations[iterations.length - 1]?.critique.findings.some((ff) => ff.id === f.id)
+    );
+    const unresolvedFindings = iterations[iterations.length - 1]?.critique.findings ?? [];
+    const result = {
+      responseId: input.responseId,
+      userId: input.userId,
+      finalResponse: currentResponse,
+      finalScore,
+      passed: iterations[iterations.length - 1]?.critique.passed ?? false,
+      iterations,
+      totalIterations: iterations.length,
+      maxIterationsReached: iterations.length >= maxIterations && !converged,
+      initialScore,
+      scoreImprovement: finalScore - initialScore,
+      improvementPercentage: initialScore > 0 ? (finalScore - initialScore) / initialScore * 100 : 0,
+      allFindings,
+      resolvedFindings,
+      unresolvedFindings,
+      totalProcessingTimeMs: completedAt.getTime() - startedAt.getTime(),
+      averageIterationTimeMs: (completedAt.getTime() - startedAt.getTime()) / iterations.length,
+      startedAt,
+      completedAt
+    };
+    await this.store.saveLoopResult(result);
+    this.logger?.info("Self-critique loop complete", {
+      responseId: input.responseId,
+      totalIterations: result.totalIterations,
+      initialScore,
+      finalScore,
+      scoreImprovement: result.scoreImprovement,
+      passed: result.passed
+    });
+    return result;
+  }
+  /**
+   * Analyze a specific dimension
+   */
+  async analyzeDimension(responseText, dimension, input) {
+    const findings = [];
+    const strengths = [];
+    const improvements = [];
+    switch (dimension) {
+      case CritiqueDimension.ACCURACY:
+        this.analyzeAccuracy(responseText, findings, strengths, improvements, input);
+        break;
+      case CritiqueDimension.CLARITY:
+        this.analyzeClarity(responseText, findings, strengths, improvements);
+        break;
+      case CritiqueDimension.COMPLETENESS:
+        this.analyzeCompleteness(responseText, findings, strengths, improvements, input);
+        break;
+      case CritiqueDimension.PEDAGOGY:
+        this.analyzePedagogy(responseText, findings, strengths, improvements, input);
+        break;
+      case CritiqueDimension.ENGAGEMENT:
+        this.analyzeEngagement(responseText, findings, strengths, improvements);
+        break;
+      case CritiqueDimension.SAFETY:
+        this.analyzeSafety(responseText, findings, strengths, improvements);
+        break;
+      case CritiqueDimension.RELEVANCE:
+        this.analyzeRelevance(responseText, findings, strengths, improvements, input);
+        break;
+      case CritiqueDimension.STRUCTURE:
+        this.analyzeStructure(responseText, findings, strengths, improvements);
+        break;
+    }
+    const score = this.calculateDimensionScore(findings, strengths);
+    const weight = this.config.dimensionWeights[dimension] ?? 0.1;
+    return {
+      dimension,
+      score,
+      weight,
+      findings,
+      strengths,
+      improvements
+    };
+  }
+  /**
+   * Analyze accuracy dimension
+   */
+  analyzeAccuracy(text, findings, strengths, improvements, _input) {
+    const hedgingPatterns = [
+      /\b(might|may|could|possibly|perhaps|probably|likely|approximately|around|about)\b/gi
+    ];
+    let hedgeCount = 0;
+    for (const pattern of hedgingPatterns) {
+      const matches = text.match(pattern);
+      hedgeCount += matches?.length ?? 0;
+    }
+    if (hedgeCount > 5) {
+      findings.push({
+        id: `accuracy_${Date.now()}_1`,
+        dimension: CritiqueDimension.ACCURACY,
+        severity: CritiqueSeverity.MINOR,
+        description: "Excessive hedging language may undermine confidence in accuracy",
+        reasoning: `Found ${hedgeCount} hedging words/phrases`,
+        confidence: 0.7
+      });
+      improvements.push("Reduce hedging language where facts are certain");
+    }
+    const specificPatterns = [
+      /\d+%/g,
+      // Percentages
+      /\d+\s*(years?|days?|hours?|minutes?)/gi,
+      // Time measurements
+      /specifically|precisely|exactly|clearly defined/gi
+    ];
+    let specificCount = 0;
+    for (const pattern of specificPatterns) {
+      const matches = text.match(pattern);
+      specificCount += matches?.length ?? 0;
+    }
+    if (specificCount > 2) {
+      strengths.push("Contains specific, measurable information");
+    }
+  }
+  /**
+   * Analyze clarity dimension
+   */
+  analyzeClarity(text, findings, strengths, improvements) {
+    const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+    const avgSentenceLength = sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0) / sentences.length;
+    if (avgSentenceLength > 25) {
+      findings.push({
+        id: `clarity_${Date.now()}_1`,
+        dimension: CritiqueDimension.CLARITY,
+        severity: CritiqueSeverity.MINOR,
+        description: "Sentences are too long on average",
+        reasoning: `Average sentence length is ${avgSentenceLength.toFixed(1)} words`,
+        suggestedFix: "Break long sentences into shorter, more digestible ones",
+        confidence: 0.8
+      });
+      improvements.push("Shorten sentences for better readability");
+    } else if (avgSentenceLength >= 12 && avgSentenceLength <= 20) {
+      strengths.push("Good sentence length for readability");
+    }
+    const jargonPatterns = [
+      /\b(paradigm|synergy|leverage|utilize|optimize|implement|methodology)\b/gi
+    ];
+    for (const pattern of jargonPatterns) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 2) {
+        findings.push({
+          id: `clarity_${Date.now()}_2`,
+          dimension: CritiqueDimension.CLARITY,
+          severity: CritiqueSeverity.MINOR,
+          description: "Contains jargon that may need explanation",
+          reasoning: `Found ${matches.length} instances of technical jargon`,
+          confidence: 0.6
+        });
+        improvements.push("Consider explaining technical terms for beginners");
+        break;
+      }
+    }
+    const structureMarkers = text.match(/\b(first|second|third|finally|in summary|to conclude|for example|such as)\b/gi);
+    if (structureMarkers && structureMarkers.length >= 2) {
+      strengths.push("Uses clear structural markers");
+    }
+  }
+  /**
+   * Analyze completeness dimension
+   */
+  analyzeCompleteness(text, findings, strengths, improvements, input) {
+    const wordCount = text.split(/\s+/).length;
+    if (wordCount < 50) {
+      findings.push({
+        id: `completeness_${Date.now()}_1`,
+        dimension: CritiqueDimension.COMPLETENESS,
+        severity: CritiqueSeverity.MAJOR,
+        description: "Response may be too brief",
+        reasoning: `Only ${wordCount} words`,
+        suggestedFix: "Expand with more detail and examples",
+        confidence: 0.8
+      });
+      improvements.push("Add more detailed explanation");
+    } else if (wordCount >= 100 && wordCount <= 300) {
+      strengths.push("Good length for comprehensive yet focused response");
+    }
+    if (input.learningObjectives && input.learningObjectives.length > 0) {
+      const coveredObjectives = input.learningObjectives.filter(
+        (obj) => text.toLowerCase().includes(obj.toLowerCase().split(" ")[0])
+      );
+      if (coveredObjectives.length < input.learningObjectives.length * 0.5) {
+        findings.push({
+          id: `completeness_${Date.now()}_2`,
+          dimension: CritiqueDimension.COMPLETENESS,
+          severity: CritiqueSeverity.MAJOR,
+          description: "Not all learning objectives are addressed",
+          reasoning: `Only ${coveredObjectives.length} of ${input.learningObjectives.length} objectives appear to be covered`,
+          confidence: 0.6
+        });
+        improvements.push("Ensure all learning objectives are addressed");
+      } else {
+        strengths.push("Covers learning objectives well");
+      }
+    }
+    const exampleMarkers = text.match(/\b(for example|such as|for instance|e\.g\.|like|consider)\b/gi);
+    if (!exampleMarkers || exampleMarkers.length === 0) {
+      findings.push({
+        id: `completeness_${Date.now()}_3`,
+        dimension: CritiqueDimension.COMPLETENESS,
+        severity: CritiqueSeverity.MINOR,
+        description: "No examples provided",
+        reasoning: "Examples help reinforce understanding",
+        suggestedFix: "Add concrete examples to illustrate concepts",
+        confidence: 0.7
+      });
+      improvements.push("Add examples to reinforce concepts");
+    } else if (exampleMarkers.length >= 2) {
+      strengths.push("Includes helpful examples");
+    }
+  }
+  /**
+   * Analyze pedagogy dimension
+   */
+  analyzePedagogy(text, findings, strengths, improvements, input) {
+    const scaffoldingMarkers = [
+      /\b(let&apos;s start|first, let&apos;s|begin by|before we|building on)\b/gi,
+      /\b(now that we|next, we|moving on|with this in mind)\b/gi
+    ];
+    let scaffoldingCount = 0;
+    for (const pattern of scaffoldingMarkers) {
+      const matches = text.match(pattern);
+      scaffoldingCount += matches?.length ?? 0;
+    }
+    if (scaffoldingCount === 0 && text.length > 200) {
+      findings.push({
+        id: `pedagogy_${Date.now()}_1`,
+        dimension: CritiqueDimension.PEDAGOGY,
+        severity: CritiqueSeverity.MINOR,
+        description: "Missing scaffolding elements",
+        reasoning: "Scaffolding helps guide learners through complex topics",
+        suggestedFix: "Add transitional phrases that build upon previous concepts",
+        confidence: 0.6
+      });
+      improvements.push("Add scaffolding to guide learning progression");
+    } else if (scaffoldingCount >= 2) {
+      strengths.push("Good use of pedagogical scaffolding");
+    }
+    if (input.targetAudience === "beginner") {
+      const complexTerms = text.match(/\b\w{12,}\b/g);
+      if (complexTerms && complexTerms.length > 5) {
+        findings.push({
+          id: `pedagogy_${Date.now()}_2`,
+          dimension: CritiqueDimension.PEDAGOGY,
+          severity: CritiqueSeverity.MINOR,
+          description: "May be too complex for beginner audience",
+          reasoning: `Found ${complexTerms.length} long/complex terms`,
+          confidence: 0.5
+        });
+        improvements.push("Simplify language for beginner audience");
+      }
+    }
+    const questionMarkers = text.match(/\?/g);
+    if (questionMarkers && questionMarkers.length >= 1) {
+      strengths.push("Includes questions to prompt reflection");
+    }
+  }
+  /**
+   * Analyze engagement dimension
+   */
+  analyzeEngagement(text, findings, strengths, improvements) {
+    const passivePatterns = [
+      /\b(is|are|was|were|been|being)\s+(being\s+)?\w+ed\b/gi
+    ];
+    let passiveCount = 0;
+    for (const pattern of passivePatterns) {
+      const matches = text.match(pattern);
+      passiveCount += matches?.length ?? 0;
+    }
+    const sentenceCount = text.split(/[.!?]+/).filter((s) => s.trim()).length;
+    const passiveRatio = passiveCount / sentenceCount;
+    if (passiveRatio > 0.4) {
+      findings.push({
+        id: `engagement_${Date.now()}_1`,
+        dimension: CritiqueDimension.ENGAGEMENT,
+        severity: CritiqueSeverity.MINOR,
+        description: "Too much passive voice reduces engagement",
+        reasoning: `${(passiveRatio * 100).toFixed(0)}% passive voice usage`,
+        suggestedFix: "Rewrite passive sentences in active voice",
+        confidence: 0.7
+      });
+      improvements.push("Use more active voice for better engagement");
+    } else if (passiveRatio < 0.2) {
+      strengths.push("Good use of active voice");
+    }
+    const engagementPronouns = text.match(/\b(you|your|we|our|let&apos;s)\b/gi);
+    if (engagementPronouns && engagementPronouns.length >= 2) {
+      strengths.push("Direct, engaging tone with personal pronouns");
+    }
+  }
+  /**
+   * Analyze safety dimension
+   */
+  analyzeSafety(text, findings, strengths, improvements) {
+    const discouragingPatterns = [
+      /\b(wrong|incorrect|failed|mistake|error|bad|poor|terrible|awful)\b/gi,
+      /\b(you should have|you failed to|you didn&apos;t)\b/gi
+    ];
+    let discouragingCount = 0;
+    for (const pattern of discouragingPatterns) {
+      const matches = text.match(pattern);
+      discouragingCount += matches?.length ?? 0;
+    }
+    if (discouragingCount > 2) {
+      findings.push({
+        id: `safety_${Date.now()}_1`,
+        dimension: CritiqueDimension.SAFETY,
+        severity: CritiqueSeverity.MAJOR,
+        description: "Contains potentially discouraging language",
+        reasoning: `Found ${discouragingCount} instances of negative/discouraging terms`,
+        suggestedFix: "Reframe feedback using growth-oriented language",
+        confidence: 0.8
+      });
+      improvements.push("Replace discouraging language with constructive feedback");
+    }
+    const constructivePatterns = [
+      /\b(try|consider|explore|practice|improve|develop|grow|learn)\b/gi,
+      /\b(great|good|excellent|well done|keep|progress)\b/gi
+    ];
+    let constructiveCount = 0;
+    for (const pattern of constructivePatterns) {
+      const matches = text.match(pattern);
+      constructiveCount += matches?.length ?? 0;
+    }
+    if (constructiveCount >= 3) {
+      strengths.push("Uses constructive and encouraging language");
+    }
+  }
+  /**
+   * Analyze relevance dimension
+   */
+  analyzeRelevance(text, findings, strengths, improvements, input) {
+    if (input.topic) {
+      const topicWords = input.topic.toLowerCase().split(/\s+/);
+      const textLower = text.toLowerCase();
+      const topicMentions = topicWords.filter(
+        (word) => textLower.includes(word)
+      ).length;
+      const topicCoverage = topicMentions / topicWords.length;
+      if (topicCoverage < 0.3) {
+        findings.push({
+          id: `relevance_${Date.now()}_1`,
+          dimension: CritiqueDimension.RELEVANCE,
+          severity: CritiqueSeverity.MAJOR,
+          description: "Response may not be focused on the topic",
+          reasoning: `Only ${(topicCoverage * 100).toFixed(0)}% of topic keywords appear`,
+          confidence: 0.6
+        });
+        improvements.push("Focus more directly on the requested topic");
+      } else if (topicCoverage > 0.7) {
+        strengths.push("Highly relevant to the topic");
+      }
+    }
+    const tangentialMarkers = [
+      /\b(by the way|incidentally|unrelated|off topic|speaking of)\b/gi
+    ];
+    for (const pattern of tangentialMarkers) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        findings.push({
+          id: `relevance_${Date.now()}_2`,
+          dimension: CritiqueDimension.RELEVANCE,
+          severity: CritiqueSeverity.MINOR,
+          description: "Contains potentially off-topic content",
+          reasoning: "Found tangential content markers",
+          confidence: 0.5
+        });
+        improvements.push("Remove or minimize tangential content");
+        break;
+      }
+    }
+  }
+  /**
+   * Analyze structure dimension
+   */
+  analyzeStructure(text, findings, strengths, improvements) {
+    const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
+    if (paragraphs.length === 1 && text.length > 500) {
+      findings.push({
+        id: `structure_${Date.now()}_1`,
+        dimension: CritiqueDimension.STRUCTURE,
+        severity: CritiqueSeverity.MINOR,
+        description: "Long response without paragraph breaks",
+        reasoning: "Large blocks of text are hard to read",
+        suggestedFix: "Break content into logical paragraphs",
+        confidence: 0.9
+      });
+      improvements.push("Add paragraph breaks for better readability");
+    } else if (paragraphs.length >= 2) {
+      strengths.push("Well-organized into paragraphs");
+    }
+    const headings = text.match(/^#{1,6}\s.+$/gm) ?? [];
+    const bullets = text.match(/^[-*]\s.+$/gm) ?? [];
+    const numberedLists = text.match(/^\d+\.\s.+$/gm) ?? [];
+    if (headings.length > 0 || bullets.length >= 3 || numberedLists.length >= 3) {
+      strengths.push("Uses formatting elements for organization");
+    } else if (text.length > 300) {
+      findings.push({
+        id: `structure_${Date.now()}_2`,
+        dimension: CritiqueDimension.STRUCTURE,
+        severity: CritiqueSeverity.SUGGESTION,
+        description: "Could benefit from headings or lists",
+        reasoning: "Formatting helps readers navigate content",
+        suggestedFix: "Consider adding headings or bullet points",
+        confidence: 0.5
+      });
+      improvements.push("Consider adding headings or lists");
+    }
+  }
+  /**
+   * Calculate dimension score based on findings and strengths
+   */
+  calculateDimensionScore(findings, strengths) {
+    let score = 70;
+    for (const finding of findings) {
+      switch (finding.severity) {
+        case CritiqueSeverity.CRITICAL:
+          score -= 25;
+          break;
+        case CritiqueSeverity.MAJOR:
+          score -= 15;
+          break;
+        case CritiqueSeverity.MINOR:
+          score -= 8;
+          break;
+        case CritiqueSeverity.SUGGESTION:
+          score -= 3;
+          break;
+      }
+    }
+    score += strengths.length * 8;
+    return Math.max(0, Math.min(100, score));
+  }
+  /**
+   * Calculate overall score from dimension scores
+   */
+  calculateOverallScore(dimensionScores) {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const ds of dimensionScores) {
+      weightedSum += ds.score * ds.weight;
+      totalWeight += ds.weight;
+    }
+    return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+  }
+  /**
+   * Generate improvement suggestions from findings
+   */
+  generateImprovements(findings, _input) {
+    const improvements = [];
+    const sortedFindings = [...findings].sort((a, b) => {
+      const severityOrder = {
+        [CritiqueSeverity.CRITICAL]: 0,
+        [CritiqueSeverity.MAJOR]: 1,
+        [CritiqueSeverity.MINOR]: 2,
+        [CritiqueSeverity.SUGGESTION]: 3
+      };
+      return severityOrder[a.severity] - severityOrder[b.severity];
+    });
+    for (let i = 0; i < sortedFindings.length; i++) {
+      const finding = sortedFindings[i];
+      improvements.push({
+        id: `imp_${Date.now()}_${i}`,
+        priority: i + 1,
+        dimension: finding.dimension,
+        description: finding.suggestedFix ?? finding.description,
+        originalText: finding.originalText,
+        improvedText: finding.suggestedFix,
+        estimatedImpact: this.estimateImpact(finding),
+        effort: this.estimateEffort(finding)
+      });
+    }
+    return improvements;
+  }
+  /**
+   * Estimate impact of addressing a finding
+   */
+  estimateImpact(finding) {
+    switch (finding.severity) {
+      case CritiqueSeverity.CRITICAL:
+        return 25;
+      case CritiqueSeverity.MAJOR:
+        return 15;
+      case CritiqueSeverity.MINOR:
+        return 8;
+      case CritiqueSeverity.SUGGESTION:
+        return 3;
+      default:
+        return 5;
+    }
+  }
+  /**
+   * Estimate effort to address a finding
+   */
+  estimateEffort(finding) {
+    if (finding.dimension === CritiqueDimension.STRUCTURE) {
+      return "medium";
+    }
+    if (finding.dimension === CritiqueDimension.ACCURACY) {
+      return "high";
+    }
+    switch (finding.severity) {
+      case CritiqueSeverity.CRITICAL:
+        return "high";
+      case CritiqueSeverity.MAJOR:
+        return "medium";
+      default:
+        return "low";
+    }
+  }
+  /**
+   * Apply simple text improvements (when no callback provided)
+   */
+  applySimpleImprovements(text, improvements) {
+    let improvedText = text;
+    for (const imp of improvements) {
+      if (imp.originalText && imp.improvedText) {
+        improvedText = improvedText.replace(imp.originalText, imp.improvedText);
+      }
+    }
+    return improvedText;
+  }
+};
+function createSelfCritiqueEngine(config) {
+  return new SelfCritiqueEngine(config);
+}
+function createStrictSelfCritiqueEngine(config) {
+  return new SelfCritiqueEngine({
+    ...config,
+    passThreshold: 85
+  });
+}
+function createLenientSelfCritiqueEngine(config) {
+  return new SelfCritiqueEngine({
+    ...config,
+    passThreshold: 60
+  });
+}
+var SelfCritiqueInputSchema = z14.object({
+  responseId: z14.string().min(1),
+  userId: z14.string().min(1),
+  sessionId: z14.string().min(1),
+  responseText: z14.string().min(10),
+  responseType: z14.enum([
+    "explanation",
+    "answer",
+    "hint",
+    "feedback",
+    "assessment",
+    "recommendation",
+    "clarification"
+  ]),
+  topic: z14.string().optional(),
+  context: z14.object({
+    courseId: z14.string().optional(),
+    chapterId: z14.string().optional(),
+    sectionId: z14.string().optional(),
+    questionText: z14.string().optional(),
+    studentLevel: z14.string().optional(),
+    previousAttempts: z14.number().optional(),
+    relatedConcepts: z14.array(z14.string()).optional()
+  }).optional(),
+  targetAudience: z14.enum(["beginner", "intermediate", "advanced", "expert"]).optional(),
+  learningObjectives: z14.array(z14.string()).optional(),
+  enabledDimensions: z14.array(
+    z14.enum([
+      "accuracy",
+      "clarity",
+      "completeness",
+      "pedagogy",
+      "engagement",
+      "safety",
+      "relevance",
+      "structure"
+    ])
+  ).optional(),
+  passThreshold: z14.number().min(0).max(100).optional(),
+  iteration: z14.number().int().positive().optional(),
+  previousScore: z14.number().min(0).max(100).optional()
+});
+var SelfCritiqueLoopInputSchema = SelfCritiqueInputSchema.extend({
+  maxIterations: z14.number().int().min(1).max(10).optional(),
+  minImprovement: z14.number().min(0).max(100).optional()
+});
+
+// src/learning-analytics/types.ts
+import { z as z15 } from "zod";
 var TrendDirection = /* @__PURE__ */ ((TrendDirection2) => {
   TrendDirection2["IMPROVING"] = "improving";
   TrendDirection2["STABLE"] = "stable";
@@ -16340,45 +17127,45 @@ var AssessmentSource = /* @__PURE__ */ ((AssessmentSource2) => {
   AssessmentSource2["AI_EVALUATION"] = "ai_evaluation";
   return AssessmentSource2;
 })(AssessmentSource || {});
-var LearningSessionInputSchema = z14.object({
-  userId: z14.string().min(1),
-  topicId: z14.string().min(1),
-  startTime: z14.date().optional(),
-  duration: z14.number().min(0).optional(),
-  activitiesCompleted: z14.number().min(0).optional(),
-  questionsAnswered: z14.number().min(0).optional(),
-  correctAnswers: z14.number().min(0).optional(),
-  conceptsCovered: z14.array(z14.string()).optional(),
-  focusScore: z14.number().min(0).max(1).optional()
+var LearningSessionInputSchema = z15.object({
+  userId: z15.string().min(1),
+  topicId: z15.string().min(1),
+  startTime: z15.date().optional(),
+  duration: z15.number().min(0).optional(),
+  activitiesCompleted: z15.number().min(0).optional(),
+  questionsAnswered: z15.number().min(0).optional(),
+  correctAnswers: z15.number().min(0).optional(),
+  conceptsCovered: z15.array(z15.string()).optional(),
+  focusScore: z15.number().min(0).max(1).optional()
 });
-var SkillAssessmentInputSchema = z14.object({
-  userId: z14.string().min(1),
-  skillId: z14.string().min(1),
-  skillName: z14.string().min(1).optional(),
-  score: z14.number().min(0).max(100),
-  maxScore: z14.number().min(1).optional().default(100),
-  source: z14.nativeEnum(AssessmentSource),
-  duration: z14.number().min(0).optional(),
-  questionsAnswered: z14.number().min(0).optional(),
-  correctAnswers: z14.number().min(0).optional(),
-  evidence: z14.array(
-    z14.object({
-      type: z14.string(),
-      description: z14.string(),
-      score: z14.number().optional(),
-      timestamp: z14.date(),
-      weight: z14.number().min(0).max(1)
+var SkillAssessmentInputSchema = z15.object({
+  userId: z15.string().min(1),
+  skillId: z15.string().min(1),
+  skillName: z15.string().min(1).optional(),
+  score: z15.number().min(0).max(100),
+  maxScore: z15.number().min(1).optional().default(100),
+  source: z15.nativeEnum(AssessmentSource),
+  duration: z15.number().min(0).optional(),
+  questionsAnswered: z15.number().min(0).optional(),
+  correctAnswers: z15.number().min(0).optional(),
+  evidence: z15.array(
+    z15.object({
+      type: z15.string(),
+      description: z15.string(),
+      score: z15.number().optional(),
+      timestamp: z15.date(),
+      weight: z15.number().min(0).max(1)
     })
   ).optional()
 });
-var RecommendationFeedbackSchema = z14.object({
-  recommendationId: z14.string().min(1),
-  userId: z14.string().min(1),
-  isHelpful: z14.boolean(),
-  rating: z14.number().min(1).max(5).optional(),
-  comment: z14.string().optional(),
-  timeSpent: z14.number().min(0).optional(),
-  completed: z14.boolean().optional()
+var RecommendationFeedbackSchema = z15.object({
+  recommendationId: z15.string().min(1),
+  userId: z15.string().min(1),
+  isHelpful: z15.boolean(),
+  rating: z15.number().min(1).max(5).optional(),
+  comment: z15.string().optional(),
+  timeSpent: z15.number().min(0).optional(),
+  completed: z15.boolean().optional()
 });
 
 // src/learning-analytics/progress-analyzer.ts
@@ -20912,7 +21699,7 @@ function createPathRecommender(config) {
 }
 
 // src/realtime/types.ts
-import { z as z15 } from "zod";
+import { z as z16 } from "zod";
 var SAMEventType = {
   // Proactive events (server -> client)
   INTERVENTION: "intervention",
@@ -21023,33 +21810,33 @@ var InterventionSurface = {
   ASSISTANT_PANEL: "assistant_panel",
   DASHBOARD_WIDGET: "dashboard_widget"
 };
-var SAMWebSocketEventSchema = z15.object({
-  type: z15.string(),
-  payload: z15.unknown(),
-  timestamp: z15.date(),
-  eventId: z15.string().min(1),
-  userId: z15.string().optional(),
-  sessionId: z15.string().optional()
+var SAMWebSocketEventSchema = z16.object({
+  type: z16.string(),
+  payload: z16.unknown(),
+  timestamp: z16.date(),
+  eventId: z16.string().min(1),
+  userId: z16.string().optional(),
+  sessionId: z16.string().optional()
 });
-var ConnectionConfigSchema = z15.object({
-  url: z15.string().url(),
-  maxReconnectAttempts: z15.number().min(0).max(20),
-  reconnectDelay: z15.number().min(100).max(6e4),
-  heartbeatInterval: z15.number().min(5e3).max(3e5),
-  idleTimeout: z15.number().min(1e4).max(6e5),
-  awayTimeout: z15.number().min(6e4).max(36e5),
-  autoReconnect: z15.boolean(),
-  authToken: z15.string().optional()
+var ConnectionConfigSchema = z16.object({
+  url: z16.string().url(),
+  maxReconnectAttempts: z16.number().min(0).max(20),
+  reconnectDelay: z16.number().min(100).max(6e4),
+  heartbeatInterval: z16.number().min(5e3).max(3e5),
+  idleTimeout: z16.number().min(1e4).max(6e5),
+  awayTimeout: z16.number().min(6e4).max(36e5),
+  autoReconnect: z16.boolean(),
+  authToken: z16.string().optional()
 });
-var PushDeliveryRequestSchema = z15.object({
-  id: z15.string().min(1),
-  userId: z15.string().min(1),
+var PushDeliveryRequestSchema = z16.object({
+  id: z16.string().min(1),
+  userId: z16.string().min(1),
   event: SAMWebSocketEventSchema,
-  priority: z15.enum(["critical", "high", "normal", "low"]),
-  channels: z15.array(z15.enum(["websocket", "sse", "push_notification", "email", "in_app"])),
-  fallbackChannels: z15.array(z15.enum(["websocket", "sse", "push_notification", "email", "in_app"])).optional(),
-  expiresAt: z15.date().optional(),
-  metadata: z15.record(z15.unknown()).optional()
+  priority: z16.enum(["critical", "high", "normal", "low"]),
+  channels: z16.array(z16.enum(["websocket", "sse", "push_notification", "email", "in_app"])),
+  fallbackChannels: z16.array(z16.enum(["websocket", "sse", "push_notification", "email", "in_app"])).optional(),
+  expiresAt: z16.date().optional(),
+  metadata: z16.record(z16.unknown()).optional()
 });
 
 // src/realtime/presence-tracker.ts
@@ -25051,6 +25838,855 @@ function logPlanLifecycleEvent(event) {
   getRailwayExporter().exportPlanLifecycleEvent(event);
 }
 
+// src/meta-learning/types.ts
+import { z as z17 } from "zod";
+var PatternCategory = {
+  TEACHING_STRATEGY: "teaching_strategy",
+  STUDENT_BEHAVIOR: "student_behavior",
+  CONTENT_EFFECTIVENESS: "content_effectiveness",
+  ENGAGEMENT_PATTERN: "engagement_pattern",
+  ERROR_PATTERN: "error_pattern",
+  SUCCESS_PATTERN: "success_pattern",
+  INTERACTION_STYLE: "interaction_style"
+};
+var PatternConfidence = {
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
+  EMERGING: "emerging"
+};
+var InsightType = {
+  OPTIMIZATION: "optimization",
+  WARNING: "warning",
+  RECOMMENDATION: "recommendation",
+  TREND: "trend",
+  ANOMALY: "anomaly",
+  CORRELATION: "correlation",
+  PREDICTION: "prediction"
+};
+var InsightPriority = {
+  CRITICAL: "critical",
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
+  INFO: "info"
+};
+var AnalyticsPeriod = {
+  HOUR: "hour",
+  DAY: "day",
+  WEEK: "week",
+  MONTH: "month",
+  QUARTER: "quarter",
+  ALL_TIME: "all_time"
+};
+var LearningEventType = {
+  QUESTION_ASKED: "question_asked",
+  EXPLANATION_PROVIDED: "explanation_provided",
+  HINT_GIVEN: "hint_given",
+  FEEDBACK_DELIVERED: "feedback_delivered",
+  ASSESSMENT_COMPLETED: "assessment_completed",
+  CONCEPT_INTRODUCED: "concept_introduced",
+  PRACTICE_SESSION: "practice_session",
+  REVIEW_SESSION: "review_session",
+  ERROR_CORRECTION: "error_correction",
+  STRATEGY_APPLIED: "strategy_applied"
+};
+var LearningEventSchema = z17.object({
+  userId: z17.string().min(1),
+  sessionId: z17.string().min(1),
+  eventType: z17.enum([
+    "question_asked",
+    "explanation_provided",
+    "hint_given",
+    "feedback_delivered",
+    "assessment_completed",
+    "concept_introduced",
+    "practice_session",
+    "review_session",
+    "error_correction",
+    "strategy_applied"
+  ]),
+  courseId: z17.string().optional(),
+  sectionId: z17.string().optional(),
+  topic: z17.string().optional(),
+  duration: z17.number().optional(),
+  outcome: z17.enum(["success", "partial", "failure"]).optional(),
+  confidence: z17.number().min(0).max(1).optional(),
+  strategyId: z17.string().optional(),
+  strategyApplied: z17.string().optional(),
+  responseQuality: z17.number().min(0).max(100).optional(),
+  studentSatisfaction: z17.number().min(1).max(5).optional(),
+  metadata: z17.record(z17.unknown()).optional().default({})
+});
+var GetInsightsSchema = z17.object({
+  userId: z17.string().optional(),
+  type: z17.enum([
+    "optimization",
+    "warning",
+    "recommendation",
+    "trend",
+    "anomaly",
+    "correlation",
+    "prediction"
+  ]).optional(),
+  priority: z17.enum(["critical", "high", "medium", "low", "info"]).optional(),
+  limit: z17.number().int().min(1).max(100).optional().default(20),
+  activeOnly: z17.boolean().optional().default(true)
+});
+var GetAnalyticsSchema = z17.object({
+  userId: z17.string().optional(),
+  period: z17.enum(["hour", "day", "week", "month", "quarter", "all_time"]).optional().default("week"),
+  includePatterns: z17.boolean().optional().default(true),
+  includeStrategies: z17.boolean().optional().default(true),
+  includeTrends: z17.boolean().optional().default(true)
+});
+
+// src/meta-learning/meta-learning-analyzer.ts
+var InMemoryLearningPatternStore = class {
+  patterns = /* @__PURE__ */ new Map();
+  idCounter = 0;
+  async get(id) {
+    return this.patterns.get(id) ?? null;
+  }
+  async getByCategory(category) {
+    return Array.from(this.patterns.values()).filter((p) => p.category === category);
+  }
+  async getHighConfidence(minConfidence = 0.7) {
+    return Array.from(this.patterns.values()).filter((p) => p.confidenceScore >= minConfidence);
+  }
+  async create(pattern) {
+    const id = `pattern_${++this.idCounter}_${Date.now()}`;
+    const fullPattern = { id, ...pattern };
+    this.patterns.set(id, fullPattern);
+    return fullPattern;
+  }
+  async update(id, updates) {
+    const existing = this.patterns.get(id);
+    if (!existing) throw new Error(`Pattern not found: ${id}`);
+    const updated = { ...existing, ...updates };
+    this.patterns.set(id, updated);
+    return updated;
+  }
+  async getRecent(limit = 10) {
+    return Array.from(this.patterns.values()).sort((a, b) => b.lastObserved.getTime() - a.lastObserved.getTime()).slice(0, limit);
+  }
+};
+var InMemoryMetaLearningInsightStore = class {
+  insights = /* @__PURE__ */ new Map();
+  processed = /* @__PURE__ */ new Set();
+  idCounter = 0;
+  async get(id) {
+    return this.insights.get(id) ?? null;
+  }
+  async getByType(type) {
+    return Array.from(this.insights.values()).filter((i) => i.type === type);
+  }
+  async getByPriority(priority) {
+    return Array.from(this.insights.values()).filter((i) => i.priority === priority);
+  }
+  async getActive() {
+    const now = /* @__PURE__ */ new Date();
+    return Array.from(this.insights.values()).filter(
+      (i) => !this.processed.has(i.id) && (!i.validUntil || i.validUntil > now)
+    );
+  }
+  async create(insight) {
+    const id = `insight_${++this.idCounter}_${Date.now()}`;
+    const fullInsight = { id, ...insight };
+    this.insights.set(id, fullInsight);
+    return fullInsight;
+  }
+  async markProcessed(id) {
+    this.processed.add(id);
+  }
+};
+var InMemoryLearningStrategyStore = class {
+  strategies = /* @__PURE__ */ new Map();
+  usageHistory = /* @__PURE__ */ new Map();
+  idCounter = 0;
+  async get(id) {
+    return this.strategies.get(id) ?? null;
+  }
+  async getAll() {
+    return Array.from(this.strategies.values());
+  }
+  async getTopPerforming(limit = 5) {
+    return Array.from(this.strategies.values()).sort((a, b) => b.effectivenessScore - a.effectivenessScore).slice(0, limit);
+  }
+  async create(strategy) {
+    const id = `strategy_${++this.idCounter}_${Date.now()}`;
+    const fullStrategy = { id, ...strategy };
+    this.strategies.set(id, fullStrategy);
+    this.usageHistory.set(id, []);
+    return fullStrategy;
+  }
+  async update(id, updates) {
+    const existing = this.strategies.get(id);
+    if (!existing) throw new Error(`Strategy not found: ${id}`);
+    const updated = { ...existing, ...updates };
+    this.strategies.set(id, updated);
+    return updated;
+  }
+  async recordUsage(id, outcome) {
+    const history = this.usageHistory.get(id) ?? [];
+    history.push(outcome);
+    this.usageHistory.set(id, history);
+    const strategy = this.strategies.get(id);
+    if (strategy) {
+      const avgOutcome = history.reduce((a, b) => a + b, 0) / history.length;
+      this.strategies.set(id, {
+        ...strategy,
+        usageCount: history.length,
+        avgOutcome,
+        lastUsed: /* @__PURE__ */ new Date()
+      });
+    }
+  }
+};
+var InMemoryLearningEventStore = class {
+  events = /* @__PURE__ */ new Map();
+  idCounter = 0;
+  async get(id) {
+    return this.events.get(id) ?? null;
+  }
+  async getByUser(userId, since) {
+    return Array.from(this.events.values()).filter((e) => e.userId === userId && (!since || e.timestamp >= since)).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+  async getBySession(sessionId) {
+    return Array.from(this.events.values()).filter((e) => e.sessionId === sessionId).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+  async create(event) {
+    const id = `event_${++this.idCounter}_${Date.now()}`;
+    const fullEvent = { id, ...event };
+    this.events.set(id, fullEvent);
+    return fullEvent;
+  }
+  async getStats(userId, period) {
+    let events = Array.from(this.events.values());
+    if (userId) {
+      events = events.filter((e) => e.userId === userId);
+    }
+    if (period) {
+      const since = this.getPeriodStart(period);
+      events = events.filter((e) => e.timestamp >= since);
+    }
+    const eventsByType = {};
+    let totalDuration = 0;
+    let durationCount = 0;
+    let successCount = 0;
+    let outcomeCount = 0;
+    let totalQuality = 0;
+    let qualityCount = 0;
+    for (const event of events) {
+      eventsByType[event.eventType] = (eventsByType[event.eventType] ?? 0) + 1;
+      if (event.duration) {
+        totalDuration += event.duration;
+        durationCount++;
+      }
+      if (event.outcome) {
+        outcomeCount++;
+        if (event.outcome === "success") successCount++;
+      }
+      if (event.responseQuality) {
+        totalQuality += event.responseQuality;
+        qualityCount++;
+      }
+    }
+    return {
+      totalEvents: events.length,
+      eventsByType,
+      avgDuration: durationCount > 0 ? totalDuration / durationCount : 0,
+      successRate: outcomeCount > 0 ? successCount / outcomeCount : 0,
+      avgQuality: qualityCount > 0 ? totalQuality / qualityCount : 0
+    };
+  }
+  getPeriodStart(period) {
+    const now = /* @__PURE__ */ new Date();
+    switch (period) {
+      case "hour":
+        return new Date(now.getTime() - 60 * 60 * 1e3);
+      case "day":
+        return new Date(now.getTime() - 24 * 60 * 60 * 1e3);
+      case "week":
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+      case "month":
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
+      case "quarter":
+        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1e3);
+      case "all_time":
+        return /* @__PURE__ */ new Date(0);
+      default:
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+    }
+  }
+};
+var MetaLearningAnalyzer = class {
+  config;
+  logger;
+  patternStore;
+  insightStore;
+  strategyStore;
+  eventStore;
+  constructor(config = {}) {
+    this.config = {
+      minEventsForPattern: config.minEventsForPattern ?? 10,
+      patternConfidenceThreshold: config.patternConfidenceThreshold ?? 0.6,
+      minSampleSize: config.minSampleSize ?? 5
+    };
+    this.logger = config.logger;
+    this.patternStore = config.patternStore ?? new InMemoryLearningPatternStore();
+    this.insightStore = config.insightStore ?? new InMemoryMetaLearningInsightStore();
+    this.strategyStore = config.strategyStore ?? new InMemoryLearningStrategyStore();
+    this.eventStore = config.eventStore ?? new InMemoryLearningEventStore();
+  }
+  /**
+   * Record a learning event
+   */
+  async recordEvent(event) {
+    const savedEvent = await this.eventStore.create(event);
+    this.logger?.debug("Learning event recorded", {
+      eventId: savedEvent.id,
+      eventType: savedEvent.eventType,
+      userId: savedEvent.userId
+    });
+    return savedEvent;
+  }
+  /**
+   * Analyze events and detect patterns
+   */
+  async detectPatterns(userId, since) {
+    const events = userId ? await this.eventStore.getByUser(userId, since) : await this.getAllEvents(since);
+    if (events.length < this.config.minEventsForPattern) {
+      this.logger?.info("Not enough events for pattern detection", {
+        eventCount: events.length,
+        minRequired: this.config.minEventsForPattern
+      });
+      return [];
+    }
+    const patterns = [];
+    const strategyPatterns = await this.analyzeStrategyPatterns(events);
+    patterns.push(...strategyPatterns);
+    const outcomePatterns = await this.analyzeOutcomePatterns(events);
+    patterns.push(...outcomePatterns);
+    const engagementPatterns = await this.analyzeEngagementPatterns(events);
+    patterns.push(...engagementPatterns);
+    this.logger?.info("Pattern detection complete", {
+      totalEvents: events.length,
+      patternsDetected: patterns.length
+    });
+    return patterns;
+  }
+  /**
+   * Generate insights from patterns and analytics
+   */
+  async generateInsights(userId) {
+    const insights = [];
+    const patterns = await this.patternStore.getHighConfidence(
+      this.config.patternConfidenceThreshold
+    );
+    const strategies = await this.strategyStore.getAll();
+    const stats = await this.eventStore.getStats(userId, "week");
+    const optimizationInsights = this.generateOptimizationInsights(patterns, strategies);
+    insights.push(...optimizationInsights);
+    const warningInsights = this.generateWarningInsights(stats, patterns);
+    insights.push(...warningInsights);
+    const trendInsights = await this.generateTrendInsights(userId);
+    insights.push(...trendInsights);
+    for (const insight of insights) {
+      await this.insightStore.create(insight);
+    }
+    this.logger?.info("Insight generation complete", {
+      insightsGenerated: insights.length
+    });
+    return insights;
+  }
+  /**
+   * Get comprehensive analytics
+   */
+  async getAnalytics(userId, period = "week") {
+    const now = /* @__PURE__ */ new Date();
+    const periodStart = this.getPeriodStart(period);
+    const allPatterns = await this.patternStore.getRecent(100);
+    const patterns = allPatterns.filter(
+      (p) => p.lastObserved >= periodStart
+    );
+    const strategies = await this.strategyStore.getAll();
+    void this.strategyStore.getTopPerforming(5);
+    const stats = await this.eventStore.getStats(userId, period);
+    const activeInsights = await this.insightStore.getActive();
+    const criticalInsights = activeInsights.filter((i) => i.priority === "critical");
+    const patternsByCategory = {
+      teaching_strategy: 0,
+      student_behavior: 0,
+      content_effectiveness: 0,
+      engagement_pattern: 0,
+      error_pattern: 0,
+      success_pattern: 0,
+      interaction_style: 0
+    };
+    for (const pattern of patterns) {
+      patternsByCategory[pattern.category]++;
+    }
+    const overallEffectiveness = this.calculateOverallEffectiveness(stats, strategies);
+    const strategyRankings = this.generateStrategyRankings(strategies);
+    const underperforming = strategyRankings.filter((s) => s.score < 50).slice(0, 3);
+    const effectivenessTrend = await this.calculateTrend(userId, "effectiveness", period);
+    const engagementTrend = await this.calculateTrend(userId, "engagement", period);
+    const errorRateTrend = await this.calculateTrend(userId, "error_rate", period);
+    return {
+      id: `analytics_${Date.now()}`,
+      userId,
+      period,
+      periodStart,
+      periodEnd: now,
+      patternsIdentified: patterns.length,
+      highConfidencePatterns: patterns.filter(
+        (p) => p.confidenceScore >= 0.8
+      ).length,
+      newPatterns: patterns.filter(
+        (p) => p.firstObserved >= periodStart
+      ).length,
+      patternsByCategory,
+      strategiesEvaluated: strategies.length,
+      topStrategies: strategyRankings.slice(0, 5),
+      underperformingStrategies: underperforming,
+      overallEffectiveness,
+      improvementFromBaseline: this.calculateImprovementFromBaseline(stats),
+      calibrationAccuracy: stats.avgQuality / 100,
+      insightsGenerated: activeInsights.length,
+      criticalInsights: criticalInsights.length,
+      actionableRecommendations: activeInsights.reduce(
+        (sum, i) => sum + i.recommendations.length,
+        0
+      ),
+      effectivenessTrend,
+      engagementTrend,
+      errorRateTrend,
+      generatedAt: now
+    };
+  }
+  /**
+   * Get active insights
+   */
+  async getActiveInsights(type, priority, limit = 20) {
+    let insights = await this.insightStore.getActive();
+    if (type) {
+      insights = insights.filter((i) => i.type === type);
+    }
+    if (priority) {
+      insights = insights.filter((i) => i.priority === priority);
+    }
+    const priorityOrder = {
+      critical: 0,
+      high: 1,
+      medium: 2,
+      low: 3,
+      info: 4
+    };
+    return insights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]).slice(0, limit);
+  }
+  /**
+   * Register a new strategy
+   */
+  async registerStrategy(strategy) {
+    return await this.strategyStore.create(strategy);
+  }
+  /**
+   * Record strategy usage and outcome
+   */
+  async recordStrategyUsage(strategyId, outcome) {
+    await this.strategyStore.recordUsage(strategyId, outcome);
+  }
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+  async getAllEvents(_since) {
+    return [];
+  }
+  async analyzeStrategyPatterns(events) {
+    const patterns = [];
+    const strategyEvents = events.filter((e) => e.strategyId);
+    const byStrategy = /* @__PURE__ */ new Map();
+    for (const event of strategyEvents) {
+      const existing = byStrategy.get(event.strategyId) ?? [];
+      existing.push(event);
+      byStrategy.set(event.strategyId, existing);
+    }
+    for (const [strategyId, stratEvents] of Array.from(byStrategy.entries())) {
+      if (stratEvents.length < this.config.minSampleSize) continue;
+      const successEvents = stratEvents.filter((e) => e.outcome === "success");
+      const successRate = successEvents.length / stratEvents.length;
+      const avgQuality = stratEvents.reduce((sum, e) => sum + (e.responseQuality ?? 0), 0) / stratEvents.length;
+      const confidenceScore = this.calculateConfidence(stratEvents.length, successRate);
+      if (confidenceScore >= this.config.patternConfidenceThreshold) {
+        const pattern = await this.patternStore.create({
+          category: "teaching_strategy",
+          name: `Strategy ${strategyId} effectiveness`,
+          description: `Strategy ${strategyId} shows ${(successRate * 100).toFixed(0)}% success rate`,
+          confidence: this.getConfidenceLevel(confidenceScore),
+          confidenceScore,
+          occurrenceCount: stratEvents.length,
+          sampleSize: stratEvents.length,
+          significanceLevel: this.calculateSignificance(stratEvents.length),
+          contexts: this.extractContexts(stratEvents),
+          triggers: [],
+          outcomes: [
+            {
+              metric: "success_rate",
+              avgChange: successRate,
+              stdDev: 0,
+              sampleCount: stratEvents.length
+            }
+          ],
+          successRate,
+          avgImpact: avgQuality / 100 - 0.5,
+          consistency: this.calculateConsistency(stratEvents),
+          firstObserved: stratEvents[stratEvents.length - 1].timestamp,
+          lastObserved: stratEvents[0].timestamp,
+          trend: "stable"
+        });
+        patterns.push(pattern);
+      }
+    }
+    return patterns;
+  }
+  async analyzeOutcomePatterns(events) {
+    const patterns = [];
+    const outcomeEvents = events.filter((e) => e.outcome);
+    const byTopic = /* @__PURE__ */ new Map();
+    for (const event of outcomeEvents) {
+      if (!event.topic) continue;
+      const existing = byTopic.get(event.topic) ?? [];
+      existing.push(event);
+      byTopic.set(event.topic, existing);
+    }
+    for (const [topic, topicEvents] of Array.from(byTopic.entries())) {
+      if (topicEvents.length < this.config.minSampleSize) continue;
+      const successEvents = topicEvents.filter((e) => e.outcome === "success");
+      const failureEvents = topicEvents.filter((e) => e.outcome === "failure");
+      const successRate = successEvents.length / topicEvents.length;
+      const failureRate = failureEvents.length / topicEvents.length;
+      if (failureRate > 0.3) {
+        const confidenceScore = this.calculateConfidence(topicEvents.length, failureRate);
+        const pattern = await this.patternStore.create({
+          category: "error_pattern",
+          name: `High failure rate for ${topic}`,
+          description: `${topic} shows ${(failureRate * 100).toFixed(0)}% failure rate`,
+          confidence: this.getConfidenceLevel(confidenceScore),
+          confidenceScore,
+          occurrenceCount: failureEvents.length,
+          sampleSize: topicEvents.length,
+          significanceLevel: this.calculateSignificance(topicEvents.length),
+          contexts: this.extractContexts(failureEvents),
+          triggers: [],
+          outcomes: [
+            {
+              metric: "failure_rate",
+              avgChange: failureRate,
+              stdDev: 0,
+              sampleCount: topicEvents.length
+            }
+          ],
+          successRate,
+          avgImpact: -failureRate,
+          consistency: this.calculateConsistency(topicEvents),
+          firstObserved: topicEvents[topicEvents.length - 1].timestamp,
+          lastObserved: topicEvents[0].timestamp,
+          trend: "stable"
+        });
+        patterns.push(pattern);
+      }
+    }
+    return patterns;
+  }
+  async analyzeEngagementPatterns(events) {
+    const patterns = [];
+    const engagementEvents = events.filter((e) => e.duration && e.studentSatisfaction);
+    if (engagementEvents.length < this.config.minSampleSize) {
+      return patterns;
+    }
+    const shortEvents = engagementEvents.filter((e) => e.duration < 6e4);
+    const mediumEvents = engagementEvents.filter(
+      (e) => e.duration >= 6e4 && e.duration < 3e5
+    );
+    const longEvents = engagementEvents.filter((e) => e.duration >= 3e5);
+    const avgSatisfaction = (events2) => {
+      if (events2.length === 0) return 0;
+      return events2.reduce((sum, e) => sum + e.studentSatisfaction, 0) / events2.length;
+    };
+    const shortSat = avgSatisfaction(shortEvents);
+    const mediumSat = avgSatisfaction(mediumEvents);
+    const longSat = avgSatisfaction(longEvents);
+    if (mediumSat > shortSat && mediumSat > longSat && mediumEvents.length >= this.config.minSampleSize) {
+      const confidenceScore = this.calculateConfidence(mediumEvents.length, 0.8);
+      const pattern = await this.patternStore.create({
+        category: "engagement_pattern",
+        name: "Optimal session duration",
+        description: "Medium-length sessions (1-5 min) show highest satisfaction",
+        confidence: this.getConfidenceLevel(confidenceScore),
+        confidenceScore,
+        occurrenceCount: mediumEvents.length,
+        sampleSize: engagementEvents.length,
+        significanceLevel: this.calculateSignificance(mediumEvents.length),
+        contexts: [
+          { dimension: "duration", value: "medium", frequency: mediumEvents.length, correlation: 0.7 }
+        ],
+        triggers: [],
+        outcomes: [
+          {
+            metric: "satisfaction",
+            avgChange: mediumSat / 5,
+            stdDev: 0,
+            sampleCount: mediumEvents.length
+          }
+        ],
+        successRate: 0.7,
+        avgImpact: 0.3,
+        consistency: this.calculateConsistency(mediumEvents),
+        firstObserved: mediumEvents[mediumEvents.length - 1].timestamp,
+        lastObserved: mediumEvents[0].timestamp,
+        trend: "stable"
+      });
+      patterns.push(pattern);
+    }
+    return patterns;
+  }
+  generateOptimizationInsights(patterns, strategies) {
+    const insights = [];
+    const lowPerformers = strategies.filter((s) => s.effectivenessScore < 50);
+    if (lowPerformers.length > 0) {
+      insights.push({
+        id: "",
+        type: "optimization",
+        priority: lowPerformers.length > 2 ? "high" : "medium",
+        title: "Underperforming teaching strategies detected",
+        description: `${lowPerformers.length} strategies have effectiveness below 50%`,
+        evidence: lowPerformers.map((s) => `${s.name}: ${s.effectivenessScore}% effectiveness`),
+        recommendations: lowPerformers.map((s, i) => ({
+          id: `rec_${i}`,
+          action: `Review and improve ${s.name}`,
+          rationale: `Current effectiveness is ${s.effectivenessScore}%`,
+          priority: i + 1,
+          effort: "medium",
+          expectedOutcome: "Improved learning outcomes"
+        })),
+        confidence: 0.85,
+        expectedImpact: 15,
+        affectedAreas: lowPerformers.map((s) => s.name),
+        timeframe: "short_term",
+        generatedAt: /* @__PURE__ */ new Date()
+      });
+    }
+    const highSuccessPatterns = patterns.filter((p) => p.successRate > 0.8);
+    if (highSuccessPatterns.length > 0) {
+      insights.push({
+        id: "",
+        type: "recommendation",
+        priority: "medium",
+        title: "High-success patterns identified",
+        description: `${highSuccessPatterns.length} patterns show 80%+ success rates`,
+        evidence: highSuccessPatterns.map(
+          (p) => `${p.name}: ${(p.successRate * 100).toFixed(0)}% success`
+        ),
+        recommendations: [
+          {
+            id: "rec_leverage",
+            action: "Increase usage of high-success patterns",
+            rationale: "These patterns consistently produce good outcomes",
+            priority: 1,
+            effort: "low",
+            expectedOutcome: "Improved overall effectiveness"
+          }
+        ],
+        confidence: 0.9,
+        expectedImpact: 10,
+        affectedAreas: highSuccessPatterns.map((p) => p.category),
+        timeframe: "immediate",
+        generatedAt: /* @__PURE__ */ new Date()
+      });
+    }
+    return insights;
+  }
+  generateWarningInsights(stats, patterns) {
+    const insights = [];
+    if (stats.successRate < 0.5 && stats.totalEvents >= this.config.minSampleSize) {
+      insights.push({
+        id: "",
+        type: "warning",
+        priority: "high",
+        title: "Low overall success rate",
+        description: `Success rate is ${(stats.successRate * 100).toFixed(0)}%, below 50% threshold`,
+        evidence: [`Based on ${stats.totalEvents} events`],
+        recommendations: [
+          {
+            id: "rec_review",
+            action: "Review teaching strategies and content",
+            rationale: "Low success rate indicates systemic issues",
+            priority: 1,
+            effort: "high",
+            expectedOutcome: "Identify and fix root causes"
+          }
+        ],
+        confidence: 0.95,
+        expectedImpact: 25,
+        affectedAreas: ["overall_effectiveness"],
+        timeframe: "immediate",
+        generatedAt: /* @__PURE__ */ new Date()
+      });
+    }
+    const errorPatterns = patterns.filter((p) => p.category === "error_pattern");
+    if (errorPatterns.length > 2) {
+      insights.push({
+        id: "",
+        type: "warning",
+        priority: "medium",
+        title: "Multiple error patterns detected",
+        description: `${errorPatterns.length} recurring error patterns identified`,
+        evidence: errorPatterns.map((p) => p.description),
+        recommendations: errorPatterns.slice(0, 3).map((p, i) => ({
+          id: `rec_error_${i}`,
+          action: `Address error pattern: ${p.name}`,
+          rationale: p.description,
+          priority: i + 1,
+          effort: "medium",
+          expectedOutcome: "Reduced error rate"
+        })),
+        confidence: 0.8,
+        expectedImpact: 15,
+        affectedAreas: errorPatterns.map((p) => p.name),
+        timeframe: "short_term",
+        generatedAt: /* @__PURE__ */ new Date()
+      });
+    }
+    return insights;
+  }
+  async generateTrendInsights(userId) {
+    const insights = [];
+    const weekStats = await this.eventStore.getStats(userId, "week");
+    const monthStats = await this.eventStore.getStats(userId, "month");
+    if (weekStats.avgQuality < monthStats.avgQuality * 0.8 && weekStats.totalEvents >= this.config.minSampleSize) {
+      insights.push({
+        id: "",
+        type: "trend",
+        priority: "high",
+        title: "Declining quality trend detected",
+        description: `Weekly quality (${weekStats.avgQuality.toFixed(1)}) is 20% below monthly average`,
+        evidence: [
+          `Weekly average: ${weekStats.avgQuality.toFixed(1)}`,
+          `Monthly average: ${monthStats.avgQuality.toFixed(1)}`
+        ],
+        recommendations: [
+          {
+            id: "rec_quality",
+            action: "Investigate recent changes that may have affected quality",
+            rationale: "Sharp decline suggests a recent issue",
+            priority: 1,
+            effort: "medium",
+            expectedOutcome: "Restore quality to baseline"
+          }
+        ],
+        confidence: 0.85,
+        expectedImpact: 20,
+        affectedAreas: ["quality"],
+        timeframe: "immediate",
+        generatedAt: /* @__PURE__ */ new Date()
+      });
+    }
+    return insights;
+  }
+  calculateOverallEffectiveness(stats, strategies) {
+    const avgStrategyScore = strategies.length > 0 ? strategies.reduce((sum, s) => sum + s.effectivenessScore, 0) / strategies.length : 50;
+    return Math.round(
+      stats.successRate * 40 + stats.avgQuality * 0.4 + avgStrategyScore * 0.2
+    );
+  }
+  calculateImprovementFromBaseline(stats) {
+    const baseline = 60;
+    return stats.avgQuality - baseline;
+  }
+  generateStrategyRankings(strategies) {
+    return strategies.map((s) => ({
+      strategyId: s.id,
+      strategyName: s.name,
+      score: s.effectivenessScore,
+      usageCount: s.usageCount,
+      trend: s.trend === "increasing" ? "up" : s.trend === "decreasing" ? "down" : "stable"
+    })).sort((a, b) => b.score - a.score);
+  }
+  async calculateTrend(_userId, _metric, _period) {
+    return {
+      direction: "stable",
+      changeRate: 0,
+      dataPoints: [],
+      confidence: 0.5
+    };
+  }
+  getPeriodStart(period) {
+    const now = /* @__PURE__ */ new Date();
+    switch (period) {
+      case "hour":
+        return new Date(now.getTime() - 60 * 60 * 1e3);
+      case "day":
+        return new Date(now.getTime() - 24 * 60 * 60 * 1e3);
+      case "week":
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+      case "month":
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1e3);
+      case "quarter":
+        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1e3);
+      case "all_time":
+        return /* @__PURE__ */ new Date(0);
+      default:
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1e3);
+    }
+  }
+  calculateConfidence(sampleSize, rate) {
+    const sampleFactor = Math.min(1, sampleSize / 100);
+    const rateFactor = Math.abs(rate - 0.5) * 2;
+    return sampleFactor * 0.6 + rateFactor * 0.4;
+  }
+  getConfidenceLevel(score) {
+    if (score >= 0.8) return "high";
+    if (score >= 0.6) return "medium";
+    if (score >= 0.4) return "low";
+    return "emerging";
+  }
+  calculateSignificance(sampleSize) {
+    return Math.min(1, sampleSize / 30);
+  }
+  extractContexts(events) {
+    const contexts = [];
+    const topicCounts = /* @__PURE__ */ new Map();
+    for (const event of events) {
+      if (event.topic) {
+        topicCounts.set(event.topic, (topicCounts.get(event.topic) ?? 0) + 1);
+      }
+    }
+    for (const [topic, count] of Array.from(topicCounts.entries())) {
+      if (count >= 2) {
+        contexts.push({
+          dimension: "topic",
+          value: topic,
+          frequency: count,
+          correlation: count / events.length
+        });
+      }
+    }
+    return contexts;
+  }
+  calculateConsistency(events) {
+    if (events.length < 2) return 1;
+    const outcomes = events.filter((e) => e.outcome).map((e) => e.outcome === "success" ? 1 : 0);
+    if (outcomes.length < 2) return 1;
+    const mean = outcomes.reduce((a, b) => a + b, 0) / outcomes.length;
+    const variance = outcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / outcomes.length;
+    return Math.max(0, 1 - Math.sqrt(variance));
+  }
+};
+function createMetaLearningAnalyzer(config) {
+  return new MetaLearningAnalyzer(config);
+}
+
 // src/index.ts
 var PACKAGE_NAME = "@sam-ai/agentic";
 var PACKAGE_VERSION = "0.1.0";
@@ -25064,7 +26700,8 @@ var CAPABILITIES = {
   LEARNING_ANALYTICS: "learning-analytics",
   LEARNING_PATH: "learning-path",
   ORCHESTRATION: "orchestration",
-  OBSERVABILITY: "observability"
+  OBSERVABILITY: "observability",
+  META_LEARNING: "meta-learning"
 };
 function hasCapability(capability) {
   switch (capability) {
@@ -25094,6 +26731,9 @@ function hasCapability(capability) {
     case CAPABILITIES.OBSERVABILITY:
       return true;
     // Phase 5 - Observability & Operations
+    case CAPABILITIES.META_LEARNING:
+      return true;
+    // Phase 3 - Meta-learning analytics
     default:
       return false;
   }
@@ -25107,6 +26747,7 @@ export {
   AgentStateMachine,
   AgenticMetricsCollector,
   AlertSeverity,
+  AnalyticsPeriod,
   AnomalyType,
   AssessmentSource,
   AuditLogLevel,
@@ -25144,9 +26785,12 @@ export {
   ContentType,
   ContextAction,
   CreateGoalInputSchema,
+  CritiqueDimension,
+  CritiqueSeverity,
   CrossSessionContext,
   DEFAULT_CALIBRATION_CONFIG,
   DEFAULT_CONNECTION_CONFIG,
+  DEFAULT_DIMENSION_WEIGHTS,
   DEFAULT_DISPLAY_CONFIGS,
   DEFAULT_MEMORY_QUALITY_CONFIG,
   DEFAULT_METRICS_COLLECTOR_CONFIG,
@@ -25167,6 +26811,8 @@ export {
   EmotionalState,
   EntityType,
   FactCheckStatus,
+  GetAnalyticsSchema,
+  GetInsightsSchema,
   GoalContextSchema,
   GoalDecomposer,
   GoalPriority,
@@ -25188,10 +26834,14 @@ export {
   InMemoryInterventionStore,
   InMemoryInvocationStore,
   InMemoryJobQueue,
+  InMemoryLearningEventStore,
   InMemoryLearningGapStore,
+  InMemoryLearningPatternStore,
   InMemoryLearningPlanStore,
   InMemoryLearningSessionStore,
+  InMemoryLearningStrategyStore,
   InMemoryMemoryRetrievalStore,
+  InMemoryMetaLearningInsightStore,
   InMemoryOrchestrationConfirmationStore,
   InMemoryPatternStore,
   InMemoryPermissionStore,
@@ -25202,6 +26852,7 @@ export {
   InMemoryQualityRecordStore,
   InMemoryRecommendationStore,
   InMemoryReindexJobStore,
+  InMemorySelfCritiqueStore,
   InMemorySkillAssessmentStore,
   InMemoryTimelineStore,
   InMemoryToolExecutionStore,
@@ -25210,6 +26861,8 @@ export {
   InMemoryTutoringSessionStore,
   InMemoryVectorAdapter,
   InMemoryVerificationResultStore,
+  InsightPriority,
+  InsightType,
   InterventionSurface,
   InterventionSurfaceManagerImpl,
   InterventionType,
@@ -25226,6 +26879,8 @@ export {
   KGRefreshJobType,
   KGRefreshScheduler,
   KnowledgeGraphManager,
+  LearningEventSchema,
+  LearningEventType,
   LearningPathRecommender,
   LearningPhase,
   LearningPlanInputSchema,
@@ -25245,6 +26900,7 @@ export {
   MemorySegmentType,
   MemorySourceType,
   MemoryType,
+  MetaLearningAnalyzer,
   MetricSource,
   MilestoneStatus,
   MilestoneType,
@@ -25257,6 +26913,8 @@ export {
   NudgeType,
   PACKAGE_NAME,
   PACKAGE_VERSION,
+  PatternCategory,
+  PatternConfidence,
   PatternType,
   PermissionLevel,
   PermissionLevelSchema,
@@ -25297,6 +26955,9 @@ export {
   RetrievalStrategy,
   SAMEventType,
   SAMWebSocketEventSchema,
+  SelfCritiqueEngine,
+  SelfCritiqueInputSchema,
+  SelfCritiqueLoopInputSchema,
   ServerConnectionManager,
   SkillAssessmentInputSchema,
   SkillAssessor,
@@ -25369,12 +27030,14 @@ export {
   createJourneyTimeline,
   createKGRefreshScheduler,
   createKnowledgeGraphManager,
+  createLenientSelfCritiqueEngine,
   createMemoryLifecycleManager,
   createMemoryNormalizer,
   createMemoryQualityTracker,
   createMemoryRetriever,
   createMemorySystem,
   createMentorTools,
+  createMetaLearningAnalyzer,
   createMultiSessionPlanTracker,
   createNotificationTools,
   createPathRecommender,
@@ -25394,11 +27057,13 @@ export {
   createRecommendationEngine,
   createResponseVerifier,
   createSchedulingTools,
+  createSelfCritiqueEngine,
   createServerConnectionManager,
   createSkillAssessor,
   createSkillTracker,
   createStepExecutor,
   createStepExecutorFunction,
+  createStrictSelfCritiqueEngine,
   createToolExecutor,
   createToolRegistry,
   createToolTelemetry,

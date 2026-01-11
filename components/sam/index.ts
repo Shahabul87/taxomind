@@ -56,3 +56,28 @@ export { default as NotificationBellDefault } from './notification-bell';
 
 export { ProgressDashboard } from './progress-dashboard';
 export { default as ProgressDashboardDefault } from './progress-dashboard';
+
+// ============================================================================
+// PHASE 3: ENHANCEMENT COMPONENTS
+// ============================================================================
+
+// Knowledge Graph
+export { KnowledgeGraphBrowser } from './KnowledgeGraphBrowser';
+export { default as KnowledgeGraphBrowserDefault } from './KnowledgeGraphBrowser';
+
+// Quality & Calibration
+export { QualityScoreDashboard } from './QualityScoreDashboard';
+export { ConfidenceCalibrationWidget } from './ConfidenceCalibrationWidget';
+
+// Spaced Repetition
+export { SpacedRepetitionCalendar, SpacedRepetitionWidget } from './SpacedRepetitionCalendar';
+
+// Conversation & Timeline
+export { ConversationTimeline } from './ConversationTimeline';
+
+// Pedagogy & Learning Path
+export { ScaffoldingStrategyPanel } from './ScaffoldingStrategyPanel';
+export { LearningPathOptimizer } from './LearningPathOptimizer';
+
+// Safety & Fairness
+export { BiasDetectionReport } from './BiasDetectionReport';

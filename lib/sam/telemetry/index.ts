@@ -178,22 +178,15 @@ class ConfidencePredictionStoreAdapter implements ConfidencePredictionStore {
   constructor(private prismaStore: PrismaConfidenceCalibrationStore) {}
 
   async record(prediction: ConfidencePrediction): Promise<void> {
-    await this.prismaStore.recordPrediction(prediction);
+    await this.prismaStore.record(prediction);
   }
 
-  async getById(_predictionId: string): Promise<ConfidencePrediction | null> {
-    // Prisma store doesn't have getById - return null
-    return null;
+  async getById(predictionId: string): Promise<ConfidencePrediction | null> {
+    return this.prismaStore.getById(predictionId);
   }
 
   async recordOutcome(predictionId: string, outcome: ConfidenceOutcome): Promise<void> {
-    await this.prismaStore.recordOutcome(
-      predictionId,
-      outcome.accurate,
-      outcome.verificationMethod,
-      outcome.qualityScore,
-      outcome.notes
-    );
+    await this.prismaStore.recordOutcome(predictionId, outcome);
   }
 
   async getCalibrationMetrics(periodStart: Date, periodEnd: Date): Promise<CalibrationMetrics> {

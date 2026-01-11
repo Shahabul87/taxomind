@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { editor } from "monaco-editor";
 import type {
@@ -36,8 +36,8 @@ export function MonacoCodePane({
   onExplanationHover,
   readOnly = false,
 }: MonacoCodePaneProps) {
-  // Ensure explanations is always an array
-  const safeExplanations = explanations || [];
+  // Ensure explanations is always a stable array reference
+  const safeExplanations = useMemo(() => explanations || [], [explanations]);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof import("monaco-editor") | null>(null);
   const decorationsRef = useRef<string[]>([]);

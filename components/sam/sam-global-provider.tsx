@@ -66,6 +66,15 @@ export function useSAMGlobal() {
   return context;
 }
 
+/**
+ * Optional version of useSAMGlobal that returns null if not in provider context.
+ * Useful for components that may be rendered outside of SAMGlobalProvider.
+ */
+export function useSAMGlobalOptional(): SAMGlobalContextType | null {
+  const context = useContext(SAMGlobalContext);
+  return context ?? null;
+}
+
 interface SAMGlobalProviderProps {
   children: React.ReactNode;
 }

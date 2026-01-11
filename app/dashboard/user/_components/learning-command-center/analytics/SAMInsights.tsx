@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useLearningAnalytics, formatStudyTime } from './hooks/useLearningAnalytics';
+import { useSAMGlobalOptional } from '@/components/sam/sam-global-provider';
 
 export interface SAMInsightsProps {
   compact?: boolean;
@@ -310,9 +311,54 @@ export function SAMInsights({
   showActions = true,
   onInsightAction,
 }: SAMInsightsProps) {
-  const { data, isLoading, error } = useLearningAnalytics('month');
+  const { data, isLoading, error, samData } = useLearningAnalytics('month');
   const [showAllInsights, setShowAllInsights] = useState(false);
   const [dismissedInsights, setDismissedInsights] = useState<string[]>([]);
+  const samContext = useSAMGlobalOptional();
+
+  // Handler to open SAM with analytics context
+  const handleAskSAM = () => {
+    // Only open SAM if the context is available
+    if (!samContext) {
+      console.warn('SAM context not available - SAMGlobalProvider not found');
+      return;
+    }
+
+    // Update SAM context with current analytics data
+    samContext.updateContext({
+      pageType: 'analytics',
+      entityType: 'learning-analytics',
+      contextData: {
+        source: 'analytics-insights',
+        analyticsData: data ? {
+          learningScore: Math.round(
+            (data.overview.averageScore * 0.4) +
+            (data.overview.averageProgress * 0.3) +
+            (data.learningPatterns.retentionRate * 0.3)
+          ),
+          totalStudyTime: data.overview.totalStudyTime,
+          currentStreak: data.overview.currentStreak,
+          activeCourses: data.overview.activeCourses,
+          averageProgress: data.overview.averageProgress,
+          averageScore: data.overview.averageScore,
+          studyFrequency: data.learningPatterns.studyFrequency,
+          retentionRate: data.learningPatterns.retentionRate,
+        } : null,
+        samData: samData ? {
+          predictions: samData.predictions,
+          interventions: samData.interventions.filter(i => i.status === 'pending').slice(0, 3),
+          recommendations: samData.recommendations?.items?.slice(0, 3),
+        } : null,
+        suggestedQuestions: [
+          'How can I improve my learning progress?',
+          'What areas should I focus on next?',
+          'How do I maintain my learning streak?',
+        ],
+      },
+    });
+    // Open SAM assistant
+    samContext.setIsOpen(true);
+  };
 
   if (isLoading) {
     return <LoadingState compact={compact} />;
@@ -469,6 +515,7 @@ export function SAMInsights({
             variant="outline"
             size="sm"
             className="w-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20"
+            onClick={handleAskSAM}
           >
             <Brain className="mr-2 h-4 w-4 text-purple-500" />
             Ask SAM for guidance
@@ -622,6 +669,7 @@ export function SAMInsights({
           <Button
             variant="outline"
             className="w-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20"
+            onClick={handleAskSAM}
           >
             <Brain className="mr-2 h-4 w-4 text-purple-500" />
             Ask SAM for personalized guidance

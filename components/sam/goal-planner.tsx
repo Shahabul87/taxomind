@@ -358,15 +358,21 @@ export function GoalPlanner({
 
     setIsSubmitting(true);
 
+    // Filter out empty targetDate to prevent API validation error
+    const submitData: CreateGoalData = {
+      ...formData,
+      targetDate: formData.targetDate?.trim() || undefined,
+    };
+
     try {
       if (editingGoal) {
-        const updated = await updateGoal(editingGoal.id, formData);
+        const updated = await updateGoal(editingGoal.id, submitData);
         if (updated) {
           onGoalUpdated?.(updated);
           setEditingGoal(null);
         }
       } else {
-        const created = await createGoal(formData);
+        const created = await createGoal(submitData);
         if (created) {
           onGoalCreated?.(created);
           setIsCreateDialogOpen(false);

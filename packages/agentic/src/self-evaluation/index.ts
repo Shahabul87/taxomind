@@ -83,3 +83,28 @@ export {
   InMemoryCalibrationStore,
   type QualityTrackerConfig,
 } from './quality-tracker';
+
+// Self-Critique Engine
+export {
+  SelfCritiqueEngine,
+  createSelfCritiqueEngine,
+  createStrictSelfCritiqueEngine,
+  createLenientSelfCritiqueEngine,
+  InMemorySelfCritiqueStore,
+  CritiqueDimension,
+  CritiqueSeverity,
+  DEFAULT_DIMENSION_WEIGHTS,
+  SelfCritiqueInputSchema,
+  SelfCritiqueLoopInputSchema,
+  type SelfCritiqueConfig,
+  type SelfCritiqueLoopConfig,
+  type SelfCritiqueInput,
+  type SelfCritiqueLoopInput,
+  type SelfCritiqueResult,
+  type SelfCritiqueLoopResult,
+  type CritiqueIterationResult,
+  type CritiqueFinding,
+  type DimensionScore,
+  type ImprovementSuggestion,
+  type SelfCritiqueStore,
+} from './self-critique';

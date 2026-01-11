@@ -6553,7 +6553,7 @@ interface BehaviorPattern {
     frequency: number;
     duration: number;
     confidence: number;
-    contexts: PatternContext[];
+    contexts: PatternContext$1[];
     firstObservedAt: Date;
     lastObservedAt: Date;
     occurrences: number;
@@ -6575,7 +6575,7 @@ type PatternType = (typeof PatternType)[keyof typeof PatternType];
 /**
  * Context where pattern occurs
  */
-interface PatternContext {
+interface PatternContext$1 {
     courseId?: string;
     contentType?: string;
     timeOfDay?: string;
@@ -8443,6 +8443,490 @@ declare class QualityTracker {
  * Create a new QualityTracker instance
  */
 declare function createQualityTracker(config?: QualityTrackerConfig): QualityTracker;
+
+/**
+ * @sam-ai/agentic - Self-Critique Module
+ *
+ * Enables AI responses to critique and improve themselves iteratively.
+ * Implements a self-critique loop for response refinement.
+ *
+ * Features:
+ * - Multi-dimensional critique analysis
+ * - Iterative improvement loops
+ * - Quality gate integration
+ * - Pedagogical effectiveness evaluation
+ * - Improvement tracking
+ */
+
+/**
+ * Critique dimension types
+ */
+declare const CritiqueDimension: {
+    readonly ACCURACY: "accuracy";
+    readonly CLARITY: "clarity";
+    readonly COMPLETENESS: "completeness";
+    readonly PEDAGOGY: "pedagogy";
+    readonly ENGAGEMENT: "engagement";
+    readonly SAFETY: "safety";
+    readonly RELEVANCE: "relevance";
+    readonly STRUCTURE: "structure";
+};
+type CritiqueDimension = (typeof CritiqueDimension)[keyof typeof CritiqueDimension];
+/**
+ * Critique severity levels
+ */
+declare const CritiqueSeverity: {
+    readonly CRITICAL: "critical";
+    readonly MAJOR: "major";
+    readonly MINOR: "minor";
+    readonly SUGGESTION: "suggestion";
+};
+type CritiqueSeverity = (typeof CritiqueSeverity)[keyof typeof CritiqueSeverity];
+/**
+ * Single critique finding
+ */
+interface CritiqueFinding {
+    id: string;
+    dimension: CritiqueDimension;
+    severity: CritiqueSeverity;
+    description: string;
+    location?: string;
+    originalText?: string;
+    suggestedFix?: string;
+    reasoning: string;
+    confidence: number;
+}
+/**
+ * Dimension score in critique
+ */
+interface DimensionScore {
+    dimension: CritiqueDimension;
+    score: number;
+    weight: number;
+    findings: CritiqueFinding[];
+    strengths: string[];
+    improvements: string[];
+}
+/**
+ * Improvement suggestion
+ */
+interface ImprovementSuggestion {
+    id: string;
+    priority: number;
+    dimension: CritiqueDimension;
+    description: string;
+    originalText?: string;
+    improvedText?: string;
+    estimatedImpact: number;
+    effort: 'low' | 'medium' | 'high';
+}
+/**
+ * Self-critique result
+ */
+interface SelfCritiqueResult {
+    id: string;
+    responseId: string;
+    userId: string;
+    overallScore: number;
+    dimensionScores: DimensionScore[];
+    findings: CritiqueFinding[];
+    criticalFindings: number;
+    majorFindings: number;
+    minorFindings: number;
+    improvements: ImprovementSuggestion[];
+    topImprovements: ImprovementSuggestion[];
+    iteration: number;
+    previousScore?: number;
+    scoreImprovement?: number;
+    passed: boolean;
+    passThreshold: number;
+    requiresRevision: boolean;
+    critiquedAt: Date;
+    processingTimeMs: number;
+}
+/**
+ * Iteration result for improvement loop
+ */
+interface CritiqueIterationResult {
+    iteration: number;
+    originalResponse: string;
+    improvedResponse: string;
+    critique: SelfCritiqueResult;
+    improvements: string[];
+    converged: boolean;
+    reason?: string;
+}
+/**
+ * Self-critique loop result
+ */
+interface SelfCritiqueLoopResult {
+    responseId: string;
+    userId: string;
+    finalResponse: string;
+    finalScore: number;
+    passed: boolean;
+    iterations: CritiqueIterationResult[];
+    totalIterations: number;
+    maxIterationsReached: boolean;
+    initialScore: number;
+    scoreImprovement: number;
+    improvementPercentage: number;
+    allFindings: CritiqueFinding[];
+    resolvedFindings: CritiqueFinding[];
+    unresolvedFindings: CritiqueFinding[];
+    totalProcessingTimeMs: number;
+    averageIterationTimeMs: number;
+    startedAt: Date;
+    completedAt: Date;
+}
+/**
+ * Input for self-critique
+ */
+interface SelfCritiqueInput {
+    responseId: string;
+    userId: string;
+    sessionId: string;
+    responseText: string;
+    responseType: ResponseType$1;
+    topic?: string;
+    context?: ResponseContext;
+    targetAudience?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    learningObjectives?: string[];
+    enabledDimensions?: CritiqueDimension[];
+    passThreshold?: number;
+    iteration?: number;
+    previousScore?: number;
+}
+/**
+ * Input for self-critique loop
+ */
+interface SelfCritiqueLoopInput extends SelfCritiqueInput {
+    maxIterations?: number;
+    minImprovement?: number;
+    improvementCallback?: (response: string, critique: SelfCritiqueResult) => Promise<string>;
+}
+/**
+ * Default dimension weights
+ */
+declare const DEFAULT_DIMENSION_WEIGHTS: Record<CritiqueDimension, number>;
+/**
+ * Self-critique configuration
+ */
+interface SelfCritiqueConfig {
+    /** Pass threshold (0-100) */
+    passThreshold?: number;
+    /** Enabled critique dimensions */
+    enabledDimensions?: CritiqueDimension[];
+    /** Dimension weights */
+    dimensionWeights?: Partial<Record<CritiqueDimension, number>>;
+    /** Maximum findings to return */
+    maxFindings?: number;
+    /** Maximum improvements to suggest */
+    maxImprovements?: number;
+    /** Logger */
+    logger?: SelfEvaluationLogger;
+    /** Store for persisting results */
+    store?: SelfCritiqueStore;
+}
+/**
+ * Self-critique loop configuration
+ */
+interface SelfCritiqueLoopConfig extends SelfCritiqueConfig {
+    /** Maximum iterations */
+    maxIterations?: number;
+    /** Minimum improvement to continue (0-100) */
+    minImprovementThreshold?: number;
+    /** Convergence threshold - stop if score change is below this */
+    convergenceThreshold?: number;
+}
+/**
+ * Store for self-critique results
+ */
+interface SelfCritiqueStore {
+    get(id: string): Promise<SelfCritiqueResult | null>;
+    getByResponse(responseId: string): Promise<SelfCritiqueResult[]>;
+    getByUser(userId: string, limit?: number): Promise<SelfCritiqueResult[]>;
+    create(result: Omit<SelfCritiqueResult, 'id'>): Promise<SelfCritiqueResult>;
+    getLoopResult(responseId: string): Promise<SelfCritiqueLoopResult | null>;
+    saveLoopResult(result: SelfCritiqueLoopResult): Promise<void>;
+}
+/**
+ * In-memory implementation of SelfCritiqueStore
+ */
+declare class InMemorySelfCritiqueStore implements SelfCritiqueStore {
+    private results;
+    private loopResults;
+    private idCounter;
+    get(id: string): Promise<SelfCritiqueResult | null>;
+    getByResponse(responseId: string): Promise<SelfCritiqueResult[]>;
+    getByUser(userId: string, limit?: number): Promise<SelfCritiqueResult[]>;
+    create(result: Omit<SelfCritiqueResult, 'id'>): Promise<SelfCritiqueResult>;
+    getLoopResult(responseId: string): Promise<SelfCritiqueLoopResult | null>;
+    saveLoopResult(result: SelfCritiqueLoopResult): Promise<void>;
+}
+/**
+ * Self-Critique Engine
+ * Analyzes responses and suggests improvements
+ */
+declare class SelfCritiqueEngine {
+    private readonly config;
+    private readonly logger?;
+    private readonly store;
+    constructor(config?: SelfCritiqueConfig);
+    /**
+     * Perform self-critique on a response
+     */
+    critique(input: SelfCritiqueInput): Promise<SelfCritiqueResult>;
+    /**
+     * Run iterative self-critique loop
+     */
+    runCritiqueLoop(input: SelfCritiqueLoopInput): Promise<SelfCritiqueLoopResult>;
+    /**
+     * Analyze a specific dimension
+     */
+    private analyzeDimension;
+    /**
+     * Analyze accuracy dimension
+     */
+    private analyzeAccuracy;
+    /**
+     * Analyze clarity dimension
+     */
+    private analyzeClarity;
+    /**
+     * Analyze completeness dimension
+     */
+    private analyzeCompleteness;
+    /**
+     * Analyze pedagogy dimension
+     */
+    private analyzePedagogy;
+    /**
+     * Analyze engagement dimension
+     */
+    private analyzeEngagement;
+    /**
+     * Analyze safety dimension
+     */
+    private analyzeSafety;
+    /**
+     * Analyze relevance dimension
+     */
+    private analyzeRelevance;
+    /**
+     * Analyze structure dimension
+     */
+    private analyzeStructure;
+    /**
+     * Calculate dimension score based on findings and strengths
+     */
+    private calculateDimensionScore;
+    /**
+     * Calculate overall score from dimension scores
+     */
+    private calculateOverallScore;
+    /**
+     * Generate improvement suggestions from findings
+     */
+    private generateImprovements;
+    /**
+     * Estimate impact of addressing a finding
+     */
+    private estimateImpact;
+    /**
+     * Estimate effort to address a finding
+     */
+    private estimateEffort;
+    /**
+     * Apply simple text improvements (when no callback provided)
+     */
+    private applySimpleImprovements;
+}
+/**
+ * Create a self-critique engine
+ */
+declare function createSelfCritiqueEngine(config?: SelfCritiqueConfig): SelfCritiqueEngine;
+/**
+ * Create a strict self-critique engine (higher standards)
+ */
+declare function createStrictSelfCritiqueEngine(config?: Omit<SelfCritiqueConfig, 'passThreshold'>): SelfCritiqueEngine;
+/**
+ * Create a lenient self-critique engine (lower standards)
+ */
+declare function createLenientSelfCritiqueEngine(config?: Omit<SelfCritiqueConfig, 'passThreshold'>): SelfCritiqueEngine;
+declare const SelfCritiqueInputSchema: z.ZodObject<{
+    responseId: z.ZodString;
+    userId: z.ZodString;
+    sessionId: z.ZodString;
+    responseText: z.ZodString;
+    responseType: z.ZodEnum<["explanation", "answer", "hint", "feedback", "assessment", "recommendation", "clarification"]>;
+    topic: z.ZodOptional<z.ZodString>;
+    context: z.ZodOptional<z.ZodObject<{
+        courseId: z.ZodOptional<z.ZodString>;
+        chapterId: z.ZodOptional<z.ZodString>;
+        sectionId: z.ZodOptional<z.ZodString>;
+        questionText: z.ZodOptional<z.ZodString>;
+        studentLevel: z.ZodOptional<z.ZodString>;
+        previousAttempts: z.ZodOptional<z.ZodNumber>;
+        relatedConcepts: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    }, {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    }>>;
+    targetAudience: z.ZodOptional<z.ZodEnum<["beginner", "intermediate", "advanced", "expert"]>>;
+    learningObjectives: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    enabledDimensions: z.ZodOptional<z.ZodArray<z.ZodEnum<["accuracy", "clarity", "completeness", "pedagogy", "engagement", "safety", "relevance", "structure"]>, "many">>;
+    passThreshold: z.ZodOptional<z.ZodNumber>;
+    iteration: z.ZodOptional<z.ZodNumber>;
+    previousScore: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    userId: string;
+    sessionId: string;
+    responseId: string;
+    responseType: "feedback" | "assessment" | "explanation" | "hint" | "recommendation" | "answer" | "clarification";
+    responseText: string;
+    context?: {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    } | undefined;
+    topic?: string | undefined;
+    targetAudience?: "beginner" | "intermediate" | "advanced" | "expert" | undefined;
+    iteration?: number | undefined;
+    previousScore?: number | undefined;
+    passThreshold?: number | undefined;
+    enabledDimensions?: ("relevance" | "engagement" | "accuracy" | "clarity" | "completeness" | "pedagogy" | "safety" | "structure")[] | undefined;
+    learningObjectives?: string[] | undefined;
+}, {
+    userId: string;
+    sessionId: string;
+    responseId: string;
+    responseType: "feedback" | "assessment" | "explanation" | "hint" | "recommendation" | "answer" | "clarification";
+    responseText: string;
+    context?: {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    } | undefined;
+    topic?: string | undefined;
+    targetAudience?: "beginner" | "intermediate" | "advanced" | "expert" | undefined;
+    iteration?: number | undefined;
+    previousScore?: number | undefined;
+    passThreshold?: number | undefined;
+    enabledDimensions?: ("relevance" | "engagement" | "accuracy" | "clarity" | "completeness" | "pedagogy" | "safety" | "structure")[] | undefined;
+    learningObjectives?: string[] | undefined;
+}>;
+declare const SelfCritiqueLoopInputSchema: z.ZodObject<{
+    responseId: z.ZodString;
+    userId: z.ZodString;
+    sessionId: z.ZodString;
+    responseText: z.ZodString;
+    responseType: z.ZodEnum<["explanation", "answer", "hint", "feedback", "assessment", "recommendation", "clarification"]>;
+    topic: z.ZodOptional<z.ZodString>;
+    context: z.ZodOptional<z.ZodObject<{
+        courseId: z.ZodOptional<z.ZodString>;
+        chapterId: z.ZodOptional<z.ZodString>;
+        sectionId: z.ZodOptional<z.ZodString>;
+        questionText: z.ZodOptional<z.ZodString>;
+        studentLevel: z.ZodOptional<z.ZodString>;
+        previousAttempts: z.ZodOptional<z.ZodNumber>;
+        relatedConcepts: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    }, {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    }>>;
+    targetAudience: z.ZodOptional<z.ZodEnum<["beginner", "intermediate", "advanced", "expert"]>>;
+    learningObjectives: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    enabledDimensions: z.ZodOptional<z.ZodArray<z.ZodEnum<["accuracy", "clarity", "completeness", "pedagogy", "engagement", "safety", "relevance", "structure"]>, "many">>;
+    passThreshold: z.ZodOptional<z.ZodNumber>;
+    iteration: z.ZodOptional<z.ZodNumber>;
+    previousScore: z.ZodOptional<z.ZodNumber>;
+} & {
+    maxIterations: z.ZodOptional<z.ZodNumber>;
+    minImprovement: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    userId: string;
+    sessionId: string;
+    responseId: string;
+    responseType: "feedback" | "assessment" | "explanation" | "hint" | "recommendation" | "answer" | "clarification";
+    responseText: string;
+    context?: {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    } | undefined;
+    topic?: string | undefined;
+    targetAudience?: "beginner" | "intermediate" | "advanced" | "expert" | undefined;
+    maxIterations?: number | undefined;
+    iteration?: number | undefined;
+    previousScore?: number | undefined;
+    passThreshold?: number | undefined;
+    enabledDimensions?: ("relevance" | "engagement" | "accuracy" | "clarity" | "completeness" | "pedagogy" | "safety" | "structure")[] | undefined;
+    minImprovement?: number | undefined;
+    learningObjectives?: string[] | undefined;
+}, {
+    userId: string;
+    sessionId: string;
+    responseId: string;
+    responseType: "feedback" | "assessment" | "explanation" | "hint" | "recommendation" | "answer" | "clarification";
+    responseText: string;
+    context?: {
+        courseId?: string | undefined;
+        chapterId?: string | undefined;
+        sectionId?: string | undefined;
+        questionText?: string | undefined;
+        studentLevel?: string | undefined;
+        previousAttempts?: number | undefined;
+        relatedConcepts?: string[] | undefined;
+    } | undefined;
+    topic?: string | undefined;
+    targetAudience?: "beginner" | "intermediate" | "advanced" | "expert" | undefined;
+    maxIterations?: number | undefined;
+    iteration?: number | undefined;
+    previousScore?: number | undefined;
+    passThreshold?: number | undefined;
+    enabledDimensions?: ("relevance" | "engagement" | "accuracy" | "clarity" | "completeness" | "pedagogy" | "safety" | "structure")[] | undefined;
+    minImprovement?: number | undefined;
+    learningObjectives?: string[] | undefined;
+}>;
 
 /**
  * @sam-ai/agentic - Learning Analytics Types
@@ -12951,6 +13435,538 @@ declare function logConfidencePrediction(prediction: ConfidencePrediction): void
 declare function logPlanLifecycleEvent(event: PlanLifecycleEvent): void;
 
 /**
+ * @sam-ai/agentic - Meta-Learning Types
+ * Types for meta-learning analytics, pattern recognition, and system optimization
+ */
+
+/**
+ * Learning pattern categories
+ */
+declare const PatternCategory: {
+    readonly TEACHING_STRATEGY: "teaching_strategy";
+    readonly STUDENT_BEHAVIOR: "student_behavior";
+    readonly CONTENT_EFFECTIVENESS: "content_effectiveness";
+    readonly ENGAGEMENT_PATTERN: "engagement_pattern";
+    readonly ERROR_PATTERN: "error_pattern";
+    readonly SUCCESS_PATTERN: "success_pattern";
+    readonly INTERACTION_STYLE: "interaction_style";
+};
+type PatternCategory = (typeof PatternCategory)[keyof typeof PatternCategory];
+/**
+ * Pattern confidence levels
+ */
+declare const PatternConfidence: {
+    readonly HIGH: "high";
+    readonly MEDIUM: "medium";
+    readonly LOW: "low";
+    readonly EMERGING: "emerging";
+};
+type PatternConfidence = (typeof PatternConfidence)[keyof typeof PatternConfidence];
+/**
+ * Identified learning pattern
+ */
+interface LearningPattern {
+    id: string;
+    category: PatternCategory;
+    name: string;
+    description: string;
+    confidence: PatternConfidence;
+    confidenceScore: number;
+    occurrenceCount: number;
+    sampleSize: number;
+    significanceLevel: number;
+    contexts: PatternContext[];
+    triggers: string[];
+    outcomes: PatternOutcome[];
+    successRate: number;
+    avgImpact: number;
+    consistency: number;
+    firstObserved: Date;
+    lastObserved: Date;
+    trend: 'increasing' | 'stable' | 'decreasing';
+}
+/**
+ * Pattern context - when/where pattern occurs
+ */
+interface PatternContext {
+    dimension: string;
+    value: string;
+    frequency: number;
+    correlation: number;
+}
+/**
+ * Pattern outcome - what happens when pattern is applied
+ */
+interface PatternOutcome {
+    metric: string;
+    avgChange: number;
+    stdDev: number;
+    sampleCount: number;
+}
+/**
+ * Insight types
+ */
+declare const InsightType: {
+    readonly OPTIMIZATION: "optimization";
+    readonly WARNING: "warning";
+    readonly RECOMMENDATION: "recommendation";
+    readonly TREND: "trend";
+    readonly ANOMALY: "anomaly";
+    readonly CORRELATION: "correlation";
+    readonly PREDICTION: "prediction";
+};
+type InsightType = (typeof InsightType)[keyof typeof InsightType];
+/**
+ * Insight priority
+ */
+declare const InsightPriority: {
+    readonly CRITICAL: "critical";
+    readonly HIGH: "high";
+    readonly MEDIUM: "medium";
+    readonly LOW: "low";
+    readonly INFO: "info";
+};
+type InsightPriority = (typeof InsightPriority)[keyof typeof InsightPriority];
+/**
+ * Meta-learning insight
+ */
+interface MetaLearningInsight {
+    id: string;
+    type: InsightType;
+    priority: InsightPriority;
+    title: string;
+    description: string;
+    evidence: string[];
+    recommendations: InsightRecommendation[];
+    confidence: number;
+    expectedImpact: number;
+    affectedAreas: string[];
+    timeframe: 'immediate' | 'short_term' | 'long_term';
+    generatedAt: Date;
+    validUntil?: Date;
+}
+/**
+ * Recommendation from insight
+ */
+interface InsightRecommendation {
+    id: string;
+    action: string;
+    rationale: string;
+    priority: number;
+    effort: 'low' | 'medium' | 'high';
+    expectedOutcome: string;
+    metrics?: string[];
+}
+/**
+ * Teaching/learning strategy
+ */
+interface LearningStrategy {
+    id: string;
+    name: string;
+    description: string;
+    effectivenessScore: number;
+    successRate: number;
+    engagementImpact: number;
+    bestFor: StrategyCondition[];
+    notRecommendedFor: StrategyCondition[];
+    usageCount: number;
+    lastUsed: Date;
+    trend: 'increasing' | 'stable' | 'decreasing';
+    avgOutcome: number;
+    stdDevOutcome: number;
+}
+/**
+ * Condition for strategy applicability
+ */
+interface StrategyCondition {
+    dimension: string;
+    operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'in';
+    value: string | number | string[];
+    weight: number;
+}
+/**
+ * Time period for analytics
+ */
+declare const AnalyticsPeriod: {
+    readonly HOUR: "hour";
+    readonly DAY: "day";
+    readonly WEEK: "week";
+    readonly MONTH: "month";
+    readonly QUARTER: "quarter";
+    readonly ALL_TIME: "all_time";
+};
+type AnalyticsPeriod = (typeof AnalyticsPeriod)[keyof typeof AnalyticsPeriod];
+/**
+ * Meta-learning analytics summary
+ */
+interface MetaLearningAnalytics {
+    id: string;
+    userId?: string;
+    period: AnalyticsPeriod;
+    periodStart: Date;
+    periodEnd: Date;
+    patternsIdentified: number;
+    highConfidencePatterns: number;
+    newPatterns: number;
+    patternsByCategory: Record<PatternCategory, number>;
+    strategiesEvaluated: number;
+    topStrategies: StrategyRanking[];
+    underperformingStrategies: StrategyRanking[];
+    overallEffectiveness: number;
+    improvementFromBaseline: number;
+    calibrationAccuracy: number;
+    insightsGenerated: number;
+    criticalInsights: number;
+    actionableRecommendations: number;
+    effectivenessTrend: TrendData;
+    engagementTrend: TrendData;
+    errorRateTrend: TrendData;
+    generatedAt: Date;
+}
+/**
+ * Strategy ranking
+ */
+interface StrategyRanking {
+    strategyId: string;
+    strategyName: string;
+    score: number;
+    usageCount: number;
+    trend: 'up' | 'stable' | 'down';
+}
+/**
+ * Trend data
+ */
+interface TrendData {
+    direction: 'improving' | 'stable' | 'declining';
+    changeRate: number;
+    dataPoints: TrendPoint[];
+    forecast?: number;
+    confidence: number;
+}
+/**
+ * Single trend data point
+ */
+interface TrendPoint {
+    timestamp: Date;
+    value: number;
+}
+/**
+ * Learning event for tracking
+ */
+interface LearningEvent {
+    id: string;
+    userId: string;
+    sessionId: string;
+    eventType: LearningEventType;
+    timestamp: Date;
+    courseId?: string;
+    sectionId?: string;
+    topic?: string;
+    duration?: number;
+    outcome?: 'success' | 'partial' | 'failure';
+    confidence?: number;
+    strategyId?: string;
+    strategyApplied?: string;
+    responseQuality?: number;
+    studentSatisfaction?: number;
+    metadata: Record<string, unknown>;
+}
+/**
+ * Learning event types
+ */
+declare const LearningEventType: {
+    readonly QUESTION_ASKED: "question_asked";
+    readonly EXPLANATION_PROVIDED: "explanation_provided";
+    readonly HINT_GIVEN: "hint_given";
+    readonly FEEDBACK_DELIVERED: "feedback_delivered";
+    readonly ASSESSMENT_COMPLETED: "assessment_completed";
+    readonly CONCEPT_INTRODUCED: "concept_introduced";
+    readonly PRACTICE_SESSION: "practice_session";
+    readonly REVIEW_SESSION: "review_session";
+    readonly ERROR_CORRECTION: "error_correction";
+    readonly STRATEGY_APPLIED: "strategy_applied";
+};
+type LearningEventType = (typeof LearningEventType)[keyof typeof LearningEventType];
+/**
+ * Learning pattern store
+ */
+interface LearningPatternStore {
+    get(id: string): Promise<LearningPattern | null>;
+    getByCategory(category: PatternCategory): Promise<LearningPattern[]>;
+    getHighConfidence(minConfidence?: number): Promise<LearningPattern[]>;
+    create(pattern: Omit<LearningPattern, 'id'>): Promise<LearningPattern>;
+    update(id: string, updates: Partial<LearningPattern>): Promise<LearningPattern>;
+    getRecent(limit?: number): Promise<LearningPattern[]>;
+}
+/**
+ * Meta-learning insight store
+ */
+interface MetaLearningInsightStore {
+    get(id: string): Promise<MetaLearningInsight | null>;
+    getByType(type: InsightType): Promise<MetaLearningInsight[]>;
+    getByPriority(priority: InsightPriority): Promise<MetaLearningInsight[]>;
+    getActive(): Promise<MetaLearningInsight[]>;
+    create(insight: Omit<MetaLearningInsight, 'id'>): Promise<MetaLearningInsight>;
+    markProcessed(id: string): Promise<void>;
+}
+/**
+ * Learning strategy store
+ */
+interface LearningStrategyStore {
+    get(id: string): Promise<LearningStrategy | null>;
+    getAll(): Promise<LearningStrategy[]>;
+    getTopPerforming(limit?: number): Promise<LearningStrategy[]>;
+    create(strategy: Omit<LearningStrategy, 'id'>): Promise<LearningStrategy>;
+    update(id: string, updates: Partial<LearningStrategy>): Promise<LearningStrategy>;
+    recordUsage(id: string, outcome: number): Promise<void>;
+}
+/**
+ * Learning event store
+ */
+interface LearningEventStore {
+    get(id: string): Promise<LearningEvent | null>;
+    getByUser(userId: string, since?: Date): Promise<LearningEvent[]>;
+    getBySession(sessionId: string): Promise<LearningEvent[]>;
+    create(event: Omit<LearningEvent, 'id'>): Promise<LearningEvent>;
+    getStats(userId?: string, period?: AnalyticsPeriod): Promise<EventStats>;
+}
+/**
+ * Event statistics
+ */
+interface EventStats {
+    totalEvents: number;
+    eventsByType: Record<LearningEventType, number>;
+    avgDuration: number;
+    successRate: number;
+    avgQuality: number;
+}
+interface MetaLearningLogger {
+    debug(message: string, meta?: Record<string, unknown>): void;
+    info(message: string, meta?: Record<string, unknown>): void;
+    warn(message: string, meta?: Record<string, unknown>): void;
+    error(message: string, meta?: Record<string, unknown>): void;
+}
+declare const LearningEventSchema: z.ZodObject<{
+    userId: z.ZodString;
+    sessionId: z.ZodString;
+    eventType: z.ZodEnum<["question_asked", "explanation_provided", "hint_given", "feedback_delivered", "assessment_completed", "concept_introduced", "practice_session", "review_session", "error_correction", "strategy_applied"]>;
+    courseId: z.ZodOptional<z.ZodString>;
+    sectionId: z.ZodOptional<z.ZodString>;
+    topic: z.ZodOptional<z.ZodString>;
+    duration: z.ZodOptional<z.ZodNumber>;
+    outcome: z.ZodOptional<z.ZodEnum<["success", "partial", "failure"]>>;
+    confidence: z.ZodOptional<z.ZodNumber>;
+    strategyId: z.ZodOptional<z.ZodString>;
+    strategyApplied: z.ZodOptional<z.ZodString>;
+    responseQuality: z.ZodOptional<z.ZodNumber>;
+    studentSatisfaction: z.ZodOptional<z.ZodNumber>;
+    metadata: z.ZodDefault<z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>>;
+}, "strip", z.ZodTypeAny, {
+    userId: string;
+    metadata: Record<string, unknown>;
+    sessionId: string;
+    eventType: "question_asked" | "explanation_provided" | "hint_given" | "feedback_delivered" | "assessment_completed" | "concept_introduced" | "practice_session" | "review_session" | "error_correction" | "strategy_applied";
+    courseId?: string | undefined;
+    sectionId?: string | undefined;
+    confidence?: number | undefined;
+    duration?: number | undefined;
+    topic?: string | undefined;
+    outcome?: "success" | "partial" | "failure" | undefined;
+    strategyId?: string | undefined;
+    strategyApplied?: string | undefined;
+    responseQuality?: number | undefined;
+    studentSatisfaction?: number | undefined;
+}, {
+    userId: string;
+    sessionId: string;
+    eventType: "question_asked" | "explanation_provided" | "hint_given" | "feedback_delivered" | "assessment_completed" | "concept_introduced" | "practice_session" | "review_session" | "error_correction" | "strategy_applied";
+    courseId?: string | undefined;
+    sectionId?: string | undefined;
+    confidence?: number | undefined;
+    metadata?: Record<string, unknown> | undefined;
+    duration?: number | undefined;
+    topic?: string | undefined;
+    outcome?: "success" | "partial" | "failure" | undefined;
+    strategyId?: string | undefined;
+    strategyApplied?: string | undefined;
+    responseQuality?: number | undefined;
+    studentSatisfaction?: number | undefined;
+}>;
+declare const GetInsightsSchema: z.ZodObject<{
+    userId: z.ZodOptional<z.ZodString>;
+    type: z.ZodOptional<z.ZodEnum<["optimization", "warning", "recommendation", "trend", "anomaly", "correlation", "prediction"]>>;
+    priority: z.ZodOptional<z.ZodEnum<["critical", "high", "medium", "low", "info"]>>;
+    limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+    activeOnly: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+}, "strip", z.ZodTypeAny, {
+    limit: number;
+    activeOnly: boolean;
+    type?: "warning" | "recommendation" | "optimization" | "trend" | "anomaly" | "correlation" | "prediction" | undefined;
+    userId?: string | undefined;
+    priority?: "low" | "medium" | "high" | "critical" | "info" | undefined;
+}, {
+    type?: "warning" | "recommendation" | "optimization" | "trend" | "anomaly" | "correlation" | "prediction" | undefined;
+    userId?: string | undefined;
+    priority?: "low" | "medium" | "high" | "critical" | "info" | undefined;
+    limit?: number | undefined;
+    activeOnly?: boolean | undefined;
+}>;
+declare const GetAnalyticsSchema: z.ZodObject<{
+    userId: z.ZodOptional<z.ZodString>;
+    period: z.ZodDefault<z.ZodOptional<z.ZodEnum<["hour", "day", "week", "month", "quarter", "all_time"]>>>;
+    includePatterns: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    includeStrategies: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+    includeTrends: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
+}, "strip", z.ZodTypeAny, {
+    period: "day" | "hour" | "all_time" | "week" | "month" | "quarter";
+    includePatterns: boolean;
+    includeStrategies: boolean;
+    includeTrends: boolean;
+    userId?: string | undefined;
+}, {
+    userId?: string | undefined;
+    period?: "day" | "hour" | "all_time" | "week" | "month" | "quarter" | undefined;
+    includePatterns?: boolean | undefined;
+    includeStrategies?: boolean | undefined;
+    includeTrends?: boolean | undefined;
+}>;
+
+/**
+ * @sam-ai/agentic - Meta-Learning Analyzer
+ *
+ * Analyzes learning patterns, generates insights, and optimizes teaching strategies.
+ * Provides meta-level analysis of the AI tutoring system&apos;s effectiveness.
+ *
+ * Features:
+ * - Pattern recognition across learning events
+ * - Strategy effectiveness analysis
+ * - Insight generation for system optimization
+ * - Trend analysis and forecasting
+ */
+
+interface MetaLearningAnalyzerConfig {
+    /** Minimum events needed for pattern detection */
+    minEventsForPattern?: number;
+    /** Confidence threshold for pattern recognition */
+    patternConfidenceThreshold?: number;
+    /** Minimum sample size for statistical significance */
+    minSampleSize?: number;
+    /** Logger */
+    logger?: MetaLearningLogger;
+    /** Stores */
+    patternStore?: LearningPatternStore;
+    insightStore?: MetaLearningInsightStore;
+    strategyStore?: LearningStrategyStore;
+    eventStore?: LearningEventStore;
+}
+declare class InMemoryLearningPatternStore implements LearningPatternStore {
+    private patterns;
+    private idCounter;
+    get(id: string): Promise<LearningPattern | null>;
+    getByCategory(category: PatternCategory): Promise<LearningPattern[]>;
+    getHighConfidence(minConfidence?: number): Promise<LearningPattern[]>;
+    create(pattern: Omit<LearningPattern, 'id'>): Promise<LearningPattern>;
+    update(id: string, updates: Partial<LearningPattern>): Promise<LearningPattern>;
+    getRecent(limit?: number): Promise<LearningPattern[]>;
+}
+declare class InMemoryMetaLearningInsightStore implements MetaLearningInsightStore {
+    private insights;
+    private processed;
+    private idCounter;
+    get(id: string): Promise<MetaLearningInsight | null>;
+    getByType(type: InsightType): Promise<MetaLearningInsight[]>;
+    getByPriority(priority: InsightPriority): Promise<MetaLearningInsight[]>;
+    getActive(): Promise<MetaLearningInsight[]>;
+    create(insight: Omit<MetaLearningInsight, 'id'>): Promise<MetaLearningInsight>;
+    markProcessed(id: string): Promise<void>;
+}
+declare class InMemoryLearningStrategyStore implements LearningStrategyStore {
+    private strategies;
+    private usageHistory;
+    private idCounter;
+    get(id: string): Promise<LearningStrategy | null>;
+    getAll(): Promise<LearningStrategy[]>;
+    getTopPerforming(limit?: number): Promise<LearningStrategy[]>;
+    create(strategy: Omit<LearningStrategy, 'id'>): Promise<LearningStrategy>;
+    update(id: string, updates: Partial<LearningStrategy>): Promise<LearningStrategy>;
+    recordUsage(id: string, outcome: number): Promise<void>;
+}
+declare class InMemoryLearningEventStore implements LearningEventStore {
+    private events;
+    private idCounter;
+    get(id: string): Promise<LearningEvent | null>;
+    getByUser(userId: string, since?: Date): Promise<LearningEvent[]>;
+    getBySession(sessionId: string): Promise<LearningEvent[]>;
+    create(event: Omit<LearningEvent, 'id'>): Promise<LearningEvent>;
+    getStats(userId?: string, period?: AnalyticsPeriod): Promise<{
+        totalEvents: number;
+        eventsByType: Record<string, number>;
+        avgDuration: number;
+        successRate: number;
+        avgQuality: number;
+    }>;
+    private getPeriodStart;
+}
+declare class MetaLearningAnalyzer {
+    private readonly config;
+    private readonly logger?;
+    private readonly patternStore;
+    private readonly insightStore;
+    private readonly strategyStore;
+    private readonly eventStore;
+    constructor(config?: MetaLearningAnalyzerConfig);
+    /**
+     * Record a learning event
+     */
+    recordEvent(event: Omit<LearningEvent, 'id'>): Promise<LearningEvent>;
+    /**
+     * Analyze events and detect patterns
+     */
+    detectPatterns(userId?: string, since?: Date): Promise<LearningPattern[]>;
+    /**
+     * Generate insights from patterns and analytics
+     */
+    generateInsights(userId?: string): Promise<MetaLearningInsight[]>;
+    /**
+     * Get comprehensive analytics
+     */
+    getAnalytics(userId?: string, period?: AnalyticsPeriod): Promise<MetaLearningAnalytics>;
+    /**
+     * Get active insights
+     */
+    getActiveInsights(type?: InsightType, priority?: InsightPriority, limit?: number): Promise<MetaLearningInsight[]>;
+    /**
+     * Register a new strategy
+     */
+    registerStrategy(strategy: Omit<LearningStrategy, 'id'>): Promise<LearningStrategy>;
+    /**
+     * Record strategy usage and outcome
+     */
+    recordStrategyUsage(strategyId: string, outcome: number): Promise<void>;
+    private getAllEvents;
+    private analyzeStrategyPatterns;
+    private analyzeOutcomePatterns;
+    private analyzeEngagementPatterns;
+    private generateOptimizationInsights;
+    private generateWarningInsights;
+    private generateTrendInsights;
+    private calculateOverallEffectiveness;
+    private calculateImprovementFromBaseline;
+    private generateStrategyRankings;
+    private calculateTrend;
+    private getPeriodStart;
+    private calculateConfidence;
+    private getConfidenceLevel;
+    private calculateSignificance;
+    private extractContexts;
+    private calculateConsistency;
+}
+/**
+ * Create a meta-learning analyzer
+ */
+declare function createMetaLearningAnalyzer(config?: MetaLearningAnalyzerConfig): MetaLearningAnalyzer;
+
+/**
  * @sam-ai/agentic
  * Autonomous agentic capabilities for SAM AI mentor
  *
@@ -12978,6 +13994,7 @@ declare const CAPABILITIES: {
     readonly LEARNING_PATH: "learning-path";
     readonly ORCHESTRATION: "orchestration";
     readonly OBSERVABILITY: "observability";
+    readonly META_LEARNING: "meta-learning";
 };
 type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
 /**
@@ -12985,4 +14002,4 @@ type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
  */
 declare function hasCapability(capability: Capability): boolean;
 
-export { type AIProvider, type AccessibilitySettings, type Achievement, type AcknowledgeEvent, type AcknowledgePayload, ActionType, ActiveStepExecutor, type ActiveStepExecutorConfig, type ActivityEvent, type ActivityPayload, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AgenticMetrics, AgenticMetricsCollector, type Alert, type AlertRule, AlertSeverity, type AnalyticsLogger, AnomalyType, type Artifact, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, BackgroundWorker, type BackgroundWorkerInterface, type BannerContainerProps, type BaseJob, BaseJobSchema, type BaseWebSocketEvent, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, BrowserPushChannel, type BrowserPushChannelConfig, CAPABILITIES, type CalibrationAlert, type CalibrationBucket$1 as CalibrationBucket, type CalibrationConfig, type CalibrationData, type CalibrationMetrics, type CalibrationStore, type CalibrationSummary, type Capability, type CelebrationData, type CelebrationEvent, type CelebrationPayload, CelebrationType, ChangeType, type ChannelMetrics, type CheckInEvent, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ClientWebSocketManager, ComplexityLevel, type ComponentHealth, type ComprehensionAnalysis, type ConceptMap, type ConceptNode, type ConceptPerformance, ConfidenceCalibrationTracker, type ConfidenceFactor$1 as ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceOutcome, type ConfidencePrediction, type ConfidencePredictionStore, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationGate, type ConfirmationGateConfig, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationResponse, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ConnectedEvent, type ConnectedPayload, type ConnectionConfig, ConnectionConfigSchema, type ConnectionHandler, ConnectionState, type ConnectionStats, type ContentChangeEvent, ContentChangeEventSchema, type ContentChangeMetadata, type ContentChunk, type ContentData, ContentEntityType, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextMetadata, type ContextState, type CorrectionSuggestion, type CourseGraph, type CourseGraphStore, type CourseNode, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, type CreateSubGoalInput, type CriterionEvaluationAdapter, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_CALIBRATION_CONFIG, DEFAULT_CONNECTION_CONFIG, DEFAULT_DISPLAY_CONFIGS, DEFAULT_MEMORY_QUALITY_CONFIG, DEFAULT_METRICS_COLLECTOR_CONFIG, DEFAULT_NORMALIZER_CONFIG, DEFAULT_PRESENCE_CONFIG, DEFAULT_PUSH_DISPATCHER_CONFIG, DEFAULT_QUEUE_CONFIG, DEFAULT_ROLE_PERMISSIONS, DEFAULT_SURFACE_MANAGER_CONFIG, DEFAULT_TOOL_TELEMETRY_CONFIG, DEFAULT_WORKER_CONFIG, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, DeliveryChannel, type DeliveryHandler, DeliveryPriority, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type DifficultyLevel, type DismissEvent, type DismissPayload, type DispatcherStats, type EffortBreakdown, type EffortEstimate, type EffortFactor, EmailChannel, type EmailChannelConfig, type EmailPreferences, type EmailServiceAdapter, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, type EntityReindexConfig, EntityType, type ErrorEvent, type ErrorHandler, type ErrorPayload, type EvaluatedCriterion, type EventHistoryStore, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type ExtractedContent, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalProgressEvent, type GoalProgressPayload, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, HealthStatus, type HeartbeatEvent, type HeartbeatPayload, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidencePredictionStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryJobQueue, InMemoryLearningGapStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryMemoryRetrievalStore, InMemoryOrchestrationConfirmationStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryPlanLifecycleStore, InMemoryPresenceStore, InMemoryProactiveEventStore, InMemoryPushQueueStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemoryReindexJobStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolExecutionStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryTutoringSessionStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, type Intervention, type InterventionCheckResult, type InterventionDisplayConfig, type InterventionEvent, type InterventionQueue, type InterventionRenderProps, type InterventionResult, type InterventionStore, InterventionSurface, type InterventionSurfaceManager, InterventionSurfaceManagerImpl, type InterventionTiming, InterventionType$1 as InterventionType, type InterventionUIState, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, JobEvent, type JobEventListener, type JobHandler, type JobHandlerRegistration, type JobProgress, type JobQueueConfig, JobQueueConfigSchema, type JobQueueInterface, JobStatus, JobType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KGRefreshJob, KGRefreshJobStatus, KGRefreshJobType, type KGRefreshResult, KGRefreshScheduler, type KGRefreshSchedulerConfig, type KGRefreshSchedulerInterface, type KGRefreshStats, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningAction, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath$1 as LearningPath, type LearningPathOptions, LearningPathRecommender, type LearningPathStep, type LearningPathStore, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningResource, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, LearningStyle$1 as LearningStyle, type LearningSummary, type LifecycleStats, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryContextSummary, type MemoryFeedback, type MemoryItem, MemoryItemType, type MemoryLifecycleConfig, MemoryLifecycleConfigSchema, MemoryLifecycleManager, type MemoryLifecycleManagerInterface, type MemoryLogger, MemoryNormalizer, type MemoryNormalizerConfig, MemoryNormalizerConfigSchema, type MemoryNormalizerInterface, type MemoryQualityAlert, type MemoryQualityConfig, type MemoryQualityMetrics, MemoryQualityTracker, type MemoryRetrievalEvent, type MemoryRetrievalStore, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySegment, MemorySegmentType, type MemorySource$1 as MemorySource, MemorySourceType, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, type MessageHandler, MetricSource, type MetricsCollectorConfig, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, type ModalContainerProps, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, NormalizationRetrievalStrategy, type NormalizedMemoryContext, NormalizedMemoryContextSchema, type NormalizedMemoryItem, type NormalizedMemorySource, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type NudgeEvent, type NudgePayload, NudgeType, type ObservabilityLogger, type OptimizedSchedule, type OrchestrationConfirmationRequest, type OrchestrationConfirmationRequestStore, type OrchestrationLogger, type OrchestrationStores, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type LearningAnalytics as PathLearningAnalytics, type LearningStyle as PathLearningStyle, type ProgressSnapshot as PathProgressSnapshot, type PathRecommenderConfig, type PathStep, type PatternContext, type PatternStore, PatternType, type PendingIntervention, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type LearningPath as PersonalizedLearningPath, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanContextInjection, PlanContextInjector, type PlanContextInjectorConfig, PlanEventType, type PlanFeedback$1 as PlanFeedback, type PlanLifecycleEvent, type PlanLifecycleStore, type PlanMetrics, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PlannedToolExecution, type PrerequisiteImportance, type PrerequisiteRelation, PresenceChangeReason, type PresenceMetadata, type PresencePayload, type PresenceStateChange, PresenceStatus, type PresenceStore, PresenceTracker, type PresenceTrackerConfig, type PresenceTrackerInterface, type PresenceUpdateEvent, type PriorityRule, type PrismaClientLike, type ProactiveEvent, type ProactiveEventStore, ProactiveEventType, type ProactiveLogger, type ProactiveMetrics, LearningPlanStatus as ProactivePlanStatus, ProactivePushDispatcher, type ProactiveResponse, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot$1 as ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type PromptComponents, type PushDeliveryRequest, PushDeliveryRequestSchema, type PushDeliveryResult, type PushDispatcherConfig, type PushDispatcherInterface, type PushNotificationPayload, type PushQueueStats, type PushQueueStore, type PushSubscriptionData, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type QueueStats, type QuickMetricsSummary, type RailwayEventLog, type RailwayExporterConfig, type RailwayMetricLog, RailwayMetricsExporter, type RateLimit, RateLimitSchema, type RawGraphResult, type RawJourneyEvent, type RawMemoryInput, type RawSessionContext, type RawVectorResult, type RealtimeLogger, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationEvent, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, type RecommendationPayload, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, type ReindexError, type ReindexJob, type ReindexJobMetadata, ReindexJobStatus, type ReindexJobStore, ReindexJobType, ReindexPriority, type ReindexResult, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResourceType, type ResponseContext, ResponseType$1 as ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type RetrievalStrategyUsed, type ReviewItem, type ReviewQuality, type RolePermissionMapping, type Rubric, type RubricCriterion, SAMEventType, type SAMWebSocketEvent, SAMWebSocketEventSchema, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfEvaluationLogger, type ServerConnection, ServerConnectionManager, type SessionContext, type SessionContextStore, type SessionMetadata, type SessionSummary, type SessionSyncEvent, type SessionSyncPayload, type SidebarContainerProps, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SkillStore, SkillTracker, type SkillTrackerConfig, type SkillTrend, type SkillUpdateResult, type SourceMetrics, type SourceReference, SourceType, type SourceValidation, type SpacedRepetitionSchedule, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepCompletedEvent, type StepCompletionPayload, type StepDetails, type StepError, type StepEvaluation, type StepExecutionContext, type StepExecutionContextExtended, type StepExecutionError, type StepExecutionOutput, type StepExecutionResult, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepPriority, type StepRecommendation, type StepResult, StepStatus, StepStatusSchema, type StepToolContext, type StepTransition, StepType, type StreakInfo, type StructuredMemoryData, type StructuredPlanContext, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, type SubGoalQueryOptions, type SubGoalStore, SubGoalType, SubGoalTypeSchema, type SubscribeEvent, type SubscriptionPayload, type SuggestedAction$1 as SuggestedAction, type SupportRecommendation, type SurfaceComponentProps, type SurfaceManagerConfig, type SystemHealthMetrics, MemorySource as TelemetryMemorySource, ResponseType as TelemetryResponseType, ToolExecutionStatus as TelemetryToolExecutionStatus, TimePeriod, type TimeSlot, type ToastContainerProps, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionError, type ToolExecutionEvent, type ToolExecutionQuery, type ToolExecutionResult, ToolExecutionStatus$1 as ToolExecutionStatus, ToolExecutionStatusSchema, type ToolExecutionStore, type ToolExecutionSummary, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolMetrics, type ToolPlan, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, ToolTelemetry, type ToolTelemetryConfig, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TransitionType, type TraversalResult, type TrendDataPoint, TrendDirection, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type TutoringContext, TutoringLoopController, type TutoringLoopControllerConfig, type TutoringLoopMetadata, type TutoringLoopResult, type TutoringSession, type TutoringSessionStore, type TypeCalibration, type UnsubscribeEvent, type UpdateGoalInput, UpdateGoalInputSchema, type UpdateSubGoalInput, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, type UserPresence, UserRole, type UserSkill, type UserSkillProfile, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, VerificationMethod, type VerificationResult, type VerificationResultStore, VerificationStatus, type WebPushServiceAdapter, type WebSocketConnectionHandler, type WebSocketManagerInterface, type WeeklyBreakdown, type WeeklyMilestone, type WorkerConfig, WorkerConfigSchema, type WorkerStats, WorkerStatus, cosineSimilarity, createActiveStepExecutor, createAgentStateMachine, createAgenticMetricsCollector, createAuditLogger, createBackgroundWorker, createBehaviorMonitor, createBrowserPushChannel, createCheckInScheduler, createClientWebSocketManager, createConfidenceCalibrationTracker, createConfidenceScorer, createConfirmationGate, createConfirmationManager, createContentTools, createCrossSessionContext, createEmailChannel, createGoalDecomposer, createInMemoryConfidencePredictionStore, createInMemoryMemoryRetrievalStore, createInMemoryOrchestrationConfirmationStore, createInMemoryOrchestrationStores, createInMemoryPlanLifecycleStore, createInMemoryPresenceStore, createInMemoryProactiveEventStore, createInMemoryPushQueueStore, createInMemorySessionStore, createInMemoryStores, createInMemoryToolExecutionStore, createInterventionSurfaceManager, createJobQueue, createJourneyTimeline, createKGRefreshScheduler, createKnowledgeGraphManager, createMemoryLifecycleManager, createMemoryNormalizer, createMemoryQualityTracker, createMemoryRetriever, createMemorySystem, createMentorTools, createMultiSessionPlanTracker, createNotificationTools, createPathRecommender, createPermissionManager, createPlanBuilder, createPlanContextInjector, createPresenceTracker, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createPushDispatcher, createQualityTracker, createRailwayExporter, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createServerConnectionManager, createSkillAssessor, createSkillTracker, createStepExecutor, createStepExecutorFunction, createToolExecutor, createToolRegistry, createToolTelemetry, createTutoringLoopController, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, getRailwayExporter, hasCapability, logConfidencePrediction, logMemoryRetrieval, logMetric, logPlanLifecycleEvent, logToolExecution };
+export { type AIProvider, type AccessibilitySettings, type Achievement, type AcknowledgeEvent, type AcknowledgePayload, ActionType, ActiveStepExecutor, type ActiveStepExecutorConfig, type ActivityEvent, type ActivityPayload, type ActivityResource, ActivityStatus, ActivityType, type AdaptationChange, AdjustmentTrigger, AgentStateMachine, type AgentStateMachineConfig, type AgenticMetrics, AgenticMetricsCollector, type Alert, type AlertRule, AlertSeverity, type AnalyticsLogger, AnalyticsPeriod, AnomalyType, type Artifact, type AssessmentData, type AssessmentEvidence, type AssessmentProvider, type AssessmentResult, AssessmentSource, type AuditAction, type AuditContext, type AuditLogEntry, AuditLogLevel, AuditLogger, type AuditLoggerConfig, type AuditQueryOptions, type AuditReportSummary, type AuditStore, BackgroundWorker, type BackgroundWorkerInterface, type BannerContainerProps, type BaseJob, BaseJobSchema, type BaseWebSocketEvent, type BatchPermissionGrant, type BehaviorAnomaly, type BehaviorEvent, BehaviorEventSchema, type BehaviorEventStore, BehaviorEventType, BehaviorMonitor, type BehaviorMonitorConfig, type BehaviorPattern, BrowserPushChannel, type BrowserPushChannelConfig, CAPABILITIES, type CalibrationAlert, type CalibrationBucket$1 as CalibrationBucket, type CalibrationConfig, type CalibrationData, type CalibrationMetrics, type CalibrationStore, type CalibrationSummary, type Capability, type CelebrationData, type CelebrationEvent, type CelebrationPayload, CelebrationType, ChangeType, type ChannelMetrics, type CheckInEvent, type CheckInQuestion, type CheckInResponse, CheckInResponseSchema, type CheckInResult, CheckInScheduler, type CheckInSchedulerConfig, CheckInStatus, type CheckInStore, CheckInType, type Checkpoint, type ChurnFactor, type ChurnPrediction, ClientWebSocketManager, ComplexityLevel, type ComponentHealth, type ComprehensionAnalysis, type ConceptMap, type ConceptNode, type ConceptPerformance, ConfidenceCalibrationTracker, type ConfidenceFactor$1 as ConfidenceFactor, ConfidenceFactorType, type ConfidenceInput, ConfidenceInputSchema, ConfidenceLevel, type ConfidenceOutcome, type ConfidencePrediction, type ConfidencePredictionStore, type ConfidenceScore, type ConfidenceScoreStore, ConfidenceScorer, type ConfidenceScorerConfig, type ConfirmationDetail, ConfirmationGate, type ConfirmationGateConfig, ConfirmationManager, type ConfirmationManagerConfig, type ConfirmationRequest, type ConfirmationResponse, type ConfirmationStore, type ConfirmationTemplate, ConfirmationType, ConfirmationTypeSchema, type ConfirmationWaitResult, type ConnectedEvent, type ConnectedPayload, type ConnectionConfig, ConnectionConfigSchema, type ConnectionHandler, ConnectionState, type ConnectionStats, type ContentChangeEvent, ContentChangeEventSchema, type ContentChangeMetadata, type ContentChunk, type ContentData, ContentEntityType, type ContentFilters, type ContentGenerationRequest, ContentGenerationRequestSchema, type ContentGenerationResult, type ContentItem, type ContentProvider, type ContentRecommendation, type ContentRecommendationRequest, ContentRecommendationRequestSchema, type ContentStore, type ContentToolsDependencies, ContentType, ContextAction, type ContextForPrompt, type ContextHistoryEntry, type ContextMetadata, type ContextState, type CorrectionSuggestion, type CourseGraph, type CourseGraphStore, type CourseNode, type CreateConfirmationOptions, type CreateGoalInput, CreateGoalInputSchema, type CreateSubGoalInput, type CriterionEvaluationAdapter, CritiqueDimension, type CritiqueFinding, type CritiqueIterationResult, CritiqueSeverity, CrossSessionContext, type CrossSessionContextConfig, DEFAULT_CALIBRATION_CONFIG, DEFAULT_CONNECTION_CONFIG, DEFAULT_DIMENSION_WEIGHTS, DEFAULT_DISPLAY_CONFIGS, DEFAULT_MEMORY_QUALITY_CONFIG, DEFAULT_METRICS_COLLECTOR_CONFIG, DEFAULT_NORMALIZER_CONFIG, DEFAULT_PRESENCE_CONFIG, DEFAULT_PUSH_DISPATCHER_CONFIG, DEFAULT_QUEUE_CONFIG, DEFAULT_ROLE_PERMISSIONS, DEFAULT_SURFACE_MANAGER_CONFIG, DEFAULT_TOOL_TELEMETRY_CONFIG, DEFAULT_WORKER_CONFIG, type DailyActivity, type DailyPractice, type DailyTarget, type DecompositionFeedback, type DecompositionOptions, DecompositionOptionsSchema, DeliveryChannel, type DeliveryHandler, DeliveryPriority, type DependencyEdge, type DependencyGraph, type DifficultyAdjustment, type DifficultyLevel, type DimensionScore, type DismissEvent, type DismissPayload, type DispatcherStats, type EffortBreakdown, type EffortEstimate, type EffortFactor, EmailChannel, type EmailChannelConfig, type EmailPreferences, type EmailServiceAdapter, type EmbeddingMetadata, type EmbeddingProvider, type EmbeddingProviderConfig, EmbeddingSourceType, type EmotionalSignal, EmotionalSignalType, EmotionalState, type EntityReindexConfig, EntityType, type ErrorEvent, type ErrorHandler, type ErrorPayload, type EvaluatedCriterion, type EventHistoryStore, type EventImpact, type EventQueryOptions, type ExecuteOptions, type ExecutionContext, type ExecutionOutcome, type ExecutionPlan, type ExpertReview, type ExtractedContent, type FactCheck, FactCheckStatus, type FallbackAction, type FallbackStrategy, type FallbackTrigger, type GapEvidence, GetAnalyticsSchema, GetInsightsSchema, type GoalContext, GoalContextSchema, GoalDecomposer, type GoalDecomposerConfig, type GoalDecomposition, GoalPriority, GoalPrioritySchema, type GoalProgressEvent, type GoalProgressPayload, type GoalQueryOptions, GoalStatus, GoalStatusSchema, type GoalStore, type GraphEntity, type GraphPath, type GraphQueryOptions, GraphQueryOptionsSchema, type GraphRelationship, HealthStatus, type HeartbeatEvent, type HeartbeatPayload, type ImprovementSuggestion, InMemoryAuditStore, InMemoryBehaviorEventStore, InMemoryCalibrationStore, InMemoryCheckInStore, InMemoryConfidencePredictionStore, InMemoryConfidenceScoreStore, InMemoryConfirmationStore, InMemoryContentStore, InMemoryContextStore, InMemoryGraphStore, InMemoryInterventionStore, InMemoryInvocationStore, InMemoryJobQueue, InMemoryLearningEventStore, InMemoryLearningGapStore, InMemoryLearningPatternStore, InMemoryLearningPlanStore, InMemoryLearningSessionStore, InMemoryLearningStrategyStore, InMemoryMemoryRetrievalStore, InMemoryMetaLearningInsightStore, InMemoryOrchestrationConfirmationStore, InMemoryPatternStore, InMemoryPermissionStore, InMemoryPlanLifecycleStore, InMemoryPresenceStore, InMemoryProactiveEventStore, InMemoryPushQueueStore, InMemoryQualityRecordStore, InMemoryRecommendationStore, InMemoryReindexJobStore, InMemorySelfCritiqueStore, InMemorySkillAssessmentStore, type InMemoryStores, InMemoryTimelineStore, InMemoryToolExecutionStore, InMemoryToolStore, InMemoryTopicProgressStore, InMemoryTutoringSessionStore, InMemoryVectorAdapter, InMemoryVerificationResultStore, InsightPriority, type InsightRecommendation, InsightType, type Intervention, type InterventionCheckResult, type InterventionDisplayConfig, type InterventionEvent, type InterventionQueue, type InterventionRenderProps, type InterventionResult, type InterventionStore, InterventionSurface, type InterventionSurfaceManager, InterventionSurfaceManagerImpl, type InterventionTiming, InterventionType$1 as InterventionType, type InterventionUIState, type InvocationStore, InvokeToolInputSchema, IssueSeverity, IssueType, JobEvent, type JobEventListener, type JobHandler, type JobHandlerRegistration, type JobProgress, type JobQueueConfig, JobQueueConfigSchema, type JobQueueInterface, JobStatus, JobType, type JourneyEvent, JourneyEventType, type JourneyMilestone, type JourneyStatistics, type JourneyTimeline, type JourneyTimelineConfig, JourneyTimelineManager, type JourneyTimelineStore, type KGRefreshJob, KGRefreshJobStatus, KGRefreshJobType, type KGRefreshResult, KGRefreshScheduler, type KGRefreshSchedulerConfig, type KGRefreshSchedulerInterface, type KGRefreshStats, type KnowledgeBaseEntry, type KnowledgeGraphConfig, KnowledgeGraphManager, type KnowledgeGraphStats, type KnowledgeGraphStore, type LearningAction, type LearningEvent, LearningEventSchema, type LearningEventStore, LearningEventType, type LearningGap, type LearningGapStore, type LearningGoal, type LearningInsights, type LearningOutcome, type LearningPath$1 as LearningPath, type LearningPathOptions, LearningPathRecommender, type LearningPathStep, type LearningPathStore, type LearningPattern, type LearningPatternStore, LearningPhase, type LearningPlan, type PlanFeedback as LearningPlanFeedback, type LearningPlanInput, LearningPlanInputSchema, LearningPlanStatus, type LearningPlanStore, type ProgressReport$1 as LearningProgressReport, type LearningResource, type LearningSession, type LearningSessionInput, LearningSessionInputSchema, type LearningSessionStore, type LearningStrategy, type LearningStrategyStore, LearningStyle$1 as LearningStyle, type LearningSummary, type LifecycleStats, MEMORY_CAPABILITIES, MasteryLevel, MasteryLevelSchema, type MemoryCapability, type MemoryContext, type MemoryContextSummary, type MemoryFeedback, type MemoryItem, MemoryItemType, type MemoryLifecycleConfig, MemoryLifecycleConfigSchema, MemoryLifecycleManager, type MemoryLifecycleManagerInterface, type MemoryLogger, MemoryNormalizer, type MemoryNormalizerConfig, MemoryNormalizerConfigSchema, type MemoryNormalizerInterface, type MemoryQualityAlert, type MemoryQualityConfig, type MemoryQualityMetrics, MemoryQualityTracker, type MemoryRetrievalEvent, type MemoryRetrievalStore, MemoryRetriever, type MemoryRetrieverConfig, type MemoryRetrieverStats, type MemorySegment, MemorySegmentType, type MemorySource$1 as MemorySource, MemorySourceType, type MemorySystem, type MemorySystemConfig, MemoryType, type MentorToolsDependencies, type MessageHandler, type MetaLearningAnalytics, MetaLearningAnalyzer, type MetaLearningAnalyzerConfig, type MetaLearningInsight, type MetaLearningInsightStore, type MetaLearningLogger, MetricSource, type MetricsCollectorConfig, type MilestoneRequirement, type MilestoneReward, MilestoneStatus, MilestoneType, MockEmbeddingProvider, type ModalContainerProps, MultiSessionPlanTracker, type MultiSessionPlanTrackerConfig, NormalizationRetrievalStrategy, type NormalizedMemoryContext, NormalizedMemoryContextSchema, type NormalizedMemoryItem, type NormalizedMemorySource, type Notification, NotificationChannel, type NotificationPreferences, type NotificationRequest, NotificationRequestSchema, type NotificationToolsDependencies, type NudgeEvent, type NudgePayload, NudgeType, type ObservabilityLogger, type OptimizedSchedule, type OrchestrationConfirmationRequest, type OrchestrationConfirmationRequestStore, type OrchestrationLogger, type OrchestrationStores, PACKAGE_NAME, PACKAGE_VERSION, type PaceAdjustment, type PageContext, type LearningAnalytics as PathLearningAnalytics, type LearningStyle as PathLearningStyle, type ProgressSnapshot as PathProgressSnapshot, type PathRecommenderConfig, type PathStep, PatternCategory, PatternConfidence, type PatternContext$1 as PatternContext, type PatternOutcome, type PatternStore, PatternType, type PendingIntervention, type PermissionCheckResult, type PermissionCondition, type PermissionGrantOptions, PermissionLevel, PermissionLevelSchema, PermissionManager, type PermissionManagerConfig, type PermissionStore, type LearningPath as PersonalizedLearningPath, type PlanAdaptation, PlanBuilder, type PlanBuilderConfig, type PlanBuilderOptions, type PlanConstraint, type PlanContextInjection, PlanContextInjector, type PlanContextInjectorConfig, PlanEventType, type PlanFeedback$1 as PlanFeedback, type PlanLifecycleEvent, type PlanLifecycleStore, type PlanMetrics, type PlanQueryOptions, type PlanRecommendation, type PlanSchedule, type PlanState, PlanStatus$1 as PlanStatus, PlanStatusSchema, type PlanStep, type PlanStore, type PlannedActivity, type PlannedToolExecution, type PrerequisiteImportance, type PrerequisiteRelation, PresenceChangeReason, type PresenceMetadata, type PresencePayload, type PresenceStateChange, PresenceStatus, type PresenceStore, PresenceTracker, type PresenceTrackerConfig, type PresenceTrackerInterface, type PresenceUpdateEvent, type PriorityRule, type PrismaClientLike, type ProactiveEvent, type ProactiveEventStore, ProactiveEventType, type ProactiveLogger, type ProactiveMetrics, LearningPlanStatus as ProactivePlanStatus, ProactivePushDispatcher, type ProactiveResponse, ProgressAnalyzer, type ProgressAnalyzerConfig, type ProgressReport, type ProgressReportRequest, ProgressReportRequestSchema, type ProgressSnapshot$1 as ProgressSnapshot, type ProgressSummary, type ProgressTrend, type ProgressUpdate, ProgressUpdateSchema, type PromptComponents, type PushDeliveryRequest, PushDeliveryRequestSchema, type PushDeliveryResult, type PushDispatcherConfig, type PushDispatcherInterface, type PushNotificationPayload, type PushQueueStats, type PushQueueStore, type PushSubscriptionData, type QualityAggregate, type QualityMetric, QualityMetricType, type QualityRecord, type QualityRecordStore, type QualitySummary, QualityTracker, type QualityTrackerConfig, type Question, type QuestionAnswer, type QuestionResult, QuestionType, type QueueStats, type QuickMetricsSummary, type RailwayEventLog, type RailwayExporterConfig, type RailwayMetricLog, RailwayMetricsExporter, type RateLimit, RateLimitSchema, type RawGraphResult, type RawJourneyEvent, type RawMemoryInput, type RawSessionContext, type RawVectorResult, type RealtimeLogger, type Recommendation, type RecommendationBatch, type RecommendationContext, RecommendationEngine, type RecommendationEngineConfig, type RecommendationEvent, type RecommendationFeedback, RecommendationFeedbackSchema, type RecommendationInput, type RecommendationPayload, RecommendationPriority, RecommendationReason, type RecommendationStore, type ReflectionEvaluation, RegisterToolInputSchema, type ReindexError, type ReindexJob, type ReindexJobMetadata, ReindexJobStatus, type ReindexJobStore, ReindexJobType, ReindexPriority, type ReindexResult, RelationshipType, type Reminder, type ReminderRequest, ReminderRequestSchema, type ResourceType, type ResponseContext, ResponseType$1 as ResponseType, ResponseVerifier, type ResponseVerifierConfig, type RetrievalQuery, RetrievalQuerySchema, type RetrievalResult, RetrievalStrategy, type RetrievalStrategyUsed, type ReviewItem, type ReviewQuality, type RolePermissionMapping, type Rubric, type RubricCriterion, SAMEventType, type SAMWebSocketEvent, SAMWebSocketEventSchema, type ScheduleOptimizationRequest, type ScheduledCheckIn, type ScheduledSession, type SchedulingToolsDependencies, type SelfCritiqueConfig, SelfCritiqueEngine, type SelfCritiqueInput, SelfCritiqueInputSchema, type SelfCritiqueLoopConfig, type SelfCritiqueLoopInput, SelfCritiqueLoopInputSchema, type SelfCritiqueLoopResult, type SelfCritiqueResult, type SelfCritiqueStore, type SelfEvaluationLogger, type ServerConnection, ServerConnectionManager, type SessionContext, type SessionContextStore, type SessionMetadata, type SessionSummary, type SessionSyncEvent, type SessionSyncPayload, type SidebarContainerProps, type SimilarityResult, type Skill, type SkillAssessment, type SkillAssessmentInput, SkillAssessmentInputSchema, type SkillAssessmentStore, SkillAssessor, type SkillAssessorConfig, type SkillComparison, type SkillDecay, type SkillMap, type SkillNode, type SkillStore, SkillTracker, type SkillTrackerConfig, type SkillTrend, type SkillUpdateResult, type SourceMetrics, type SourceReference, SourceType, type SourceValidation, type SpacedRepetitionSchedule, type StateMachineEvent, type StateMachineListener, type StateMachineState, type StepCompletedEvent, type StepCompletionPayload, type StepDetails, type StepError, type StepEvaluation, type StepExecutionContext, type StepExecutionContextExtended, type StepExecutionError, type StepExecutionOutput, type StepExecutionResult, StepExecutor, type StepExecutorConfig, type StepExecutorFunction, type StepHandler, type StepHandlerResult, type StepInput, type StepMetrics, type StepOutput, type StepPriority, type StepRecommendation, type StepResult, StepStatus, StepStatusSchema, type StepToolContext, type StepTransition, StepType, type StrategyCondition, type StrategyRanking, type StreakInfo, type StructuredMemoryData, type StructuredPlanContext, type StruggleArea, type StrugglePrediction, type StudentFeedback, StudentFeedbackSchema, type StudyBlock, type StudySession, type StudySessionRequest, StudySessionRequestSchema, type SubGoal, type SubGoalAdjustment, type SubGoalQueryOptions, type SubGoalStore, SubGoalType, SubGoalTypeSchema, type SubscribeEvent, type SubscriptionPayload, type SuggestedAction$1 as SuggestedAction, type SupportRecommendation, type SurfaceComponentProps, type SurfaceManagerConfig, type SystemHealthMetrics, MemorySource as TelemetryMemorySource, ResponseType as TelemetryResponseType, ToolExecutionStatus as TelemetryToolExecutionStatus, TimePeriod, type TimeSlot, type ToastContainerProps, type ToolCallSummary, ToolCategory, ToolCategorySchema, type ToolDefinition, type ToolError, type ToolExample, ToolExampleSchema, type ToolExecutionContext, type ToolExecutionError, type ToolExecutionEvent, type ToolExecutionQuery, type ToolExecutionResult, ToolExecutionStatus$1 as ToolExecutionStatus, ToolExecutionStatusSchema, type ToolExecutionStore, type ToolExecutionSummary, ToolExecutor, type ToolExecutorConfig, type ToolHandler, type ToolInvocation, type ToolMetrics, type ToolPlan, type ToolQueryOptions, ToolRegistry, type ToolRegistryConfig, type ToolStore, ToolTelemetry, type ToolTelemetryConfig, type ToolUsageReport, type TopicProgress, type TopicProgressStore, type TransitionType, type TraversalResult, type TrendData, type TrendDataPoint, TrendDirection, type TrendPoint, type TriggerCondition, TriggerEvaluator, TriggerType, type TriggeredCheckIn, type TutoringContext, TutoringLoopController, type TutoringLoopControllerConfig, type TutoringLoopMetadata, type TutoringLoopResult, type TutoringSession, type TutoringSessionStore, type TypeCalibration, type UnsubscribeEvent, type UpdateGoalInput, UpdateGoalInputSchema, type UpdateSubGoalInput, type UserActivityReport, type UserContext, type UserPermission, type UserPreferences, type UserPresence, UserRole, type UserSkill, type UserSkillProfile, type ValidationIssue, type ValidationResult, type VectorEmbedding, type VectorFilter, type VectorPersistenceAdapter, type VectorSearchOptions, VectorSearchOptionsSchema, VectorStore, type VectorStoreConfig, type VectorStoreInterface, type VectorStoreStats, type VerificationInput, VerificationInputSchema, type VerificationIssue, VerificationMethod, type VerificationResult, type VerificationResultStore, VerificationStatus, type WebPushServiceAdapter, type WebSocketConnectionHandler, type WebSocketManagerInterface, type WeeklyBreakdown, type WeeklyMilestone, type WorkerConfig, WorkerConfigSchema, type WorkerStats, WorkerStatus, cosineSimilarity, createActiveStepExecutor, createAgentStateMachine, createAgenticMetricsCollector, createAuditLogger, createBackgroundWorker, createBehaviorMonitor, createBrowserPushChannel, createCheckInScheduler, createClientWebSocketManager, createConfidenceCalibrationTracker, createConfidenceScorer, createConfirmationGate, createConfirmationManager, createContentTools, createCrossSessionContext, createEmailChannel, createGoalDecomposer, createInMemoryConfidencePredictionStore, createInMemoryMemoryRetrievalStore, createInMemoryOrchestrationConfirmationStore, createInMemoryOrchestrationStores, createInMemoryPlanLifecycleStore, createInMemoryPresenceStore, createInMemoryProactiveEventStore, createInMemoryPushQueueStore, createInMemorySessionStore, createInMemoryStores, createInMemoryToolExecutionStore, createInterventionSurfaceManager, createJobQueue, createJourneyTimeline, createKGRefreshScheduler, createKnowledgeGraphManager, createLenientSelfCritiqueEngine, createMemoryLifecycleManager, createMemoryNormalizer, createMemoryQualityTracker, createMemoryRetriever, createMemorySystem, createMentorTools, createMetaLearningAnalyzer, createMultiSessionPlanTracker, createNotificationTools, createPathRecommender, createPermissionManager, createPlanBuilder, createPlanContextInjector, createPresenceTracker, createPrismaAuditStore, createPrismaConfirmationStore, createPrismaInvocationStore, createPrismaPermissionStore, createPrismaToolStore, createProgressAnalyzer, createPushDispatcher, createQualityTracker, createRailwayExporter, createRecommendationEngine, createResponseVerifier, createSchedulingTools, createSelfCritiqueEngine, createServerConnectionManager, createSkillAssessor, createSkillTracker, createStepExecutor, createStepExecutorFunction, createStrictSelfCritiqueEngine, createToolExecutor, createToolRegistry, createToolTelemetry, createTutoringLoopController, createVectorStore, euclideanDistance, getMentorToolById, getMentorToolsByCategory, getMentorToolsByTags, getRailwayExporter, hasCapability, logConfidencePrediction, logMemoryRetrieval, logMetric, logPlanLifecycleEvent, logToolExecution };

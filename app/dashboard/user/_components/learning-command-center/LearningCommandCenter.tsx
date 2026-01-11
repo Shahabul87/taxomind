@@ -14,9 +14,11 @@ import { QuickInsights } from './QuickInsights';
 import { LearningGantt } from './LearningGantt';
 import { JourneyProgress } from '../JourneyProgress';
 import { CalendarStatusWidget } from '@/components/calendar/CalendarStatusWidget';
+import { LearningJourneyMap } from '../smart-dashboard/LearningJourneyMap';
 
 // SAM Agentic Components - Unified Goals
 import { GoalPlanner } from '@/components/sam/goal-planner';
+import { SpacedRepetitionCalendar, SpacedRepetitionWidget } from '@/components/sam/SpacedRepetitionCalendar';
 
 // Hooks
 import { useDailyAgenda } from '@/hooks/use-daily-agenda';
@@ -319,6 +321,9 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
               onItemClick={handleGanttItemClick}
               onViewDetails={handleGanttViewDetails}
             />
+
+            {/* Learning Journey Map - Connected to SAM API */}
+            <LearningJourneyMap user={user} />
           </motion.div>
 
           {/* Right Column - Tasks, Goals, Insights (1/3 width) */}
@@ -342,6 +347,9 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
               maxGoals={5}
               showCreateButton={true}
             />
+
+            {/* SAM Spaced Repetition - Memory Optimization */}
+            <SpacedRepetitionWidget />
 
             <JourneyProgress />
 
