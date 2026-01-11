@@ -151,6 +151,12 @@ interface SkillBuildTrackerProps {
     notes?: string;
   }) => Promise<void>;
   onStartReview?: (skillId: string) => void;
+  onCompleteReview?: (data: {
+    skillId: string;
+    confidence: number;
+    quality: 'EASY' | 'GOOD' | 'HARD' | 'AGAIN';
+    notes?: string;
+  }) => Promise<void>;
 }
 
 // ============================================================================
@@ -1127,6 +1133,207 @@ function PracticeModal({
   );
 }
 
+/**
+ * Review Session Modal - for spaced repetition review
+ * Enterprise light/dark mode design with confidence rating
+ */
+function ReviewSessionModal({
+  isOpen,
+  onClose,
+  skillId,
+  skillName,
+  skillLevel,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  skillId: string;
+  skillName: string;
+  skillLevel: ProficiencyLevel;
+  onSubmit: (data: {
+    skillId: string;
+    confidence: number;
+    quality: 'EASY' | 'GOOD' | 'HARD' | 'AGAIN';
+    notes?: string;
+  }) => Promise<void>;
+}) {
+  const [confidence, setConfidence] = useState(3);
+  const [quality, setQuality] = useState<'EASY' | 'GOOD' | 'HARD' | 'AGAIN'>('GOOD');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset form when modal opens
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setConfidence(3);
+      setQuality('GOOD');
+      setNotes('');
+      onClose();
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit({ skillId, confidence, quality, notes: notes || undefined });
+      handleOpenChange(false);
+    } catch (error) {
+      console.error('Failed to record review:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const qualityOptions = [
+    { value: 'AGAIN', label: 'Again', description: 'Need more practice', color: 'bg-rose-500', interval: '< 1 day' },
+    { value: 'HARD', label: 'Hard', description: 'Struggled to recall', color: 'bg-amber-500', interval: '1-2 days' },
+    { value: 'GOOD', label: 'Good', description: 'Recalled with effort', color: 'bg-emerald-500', interval: '3-7 days' },
+    { value: 'EASY', label: 'Easy', description: 'Instant recall', color: 'bg-cyan-500', interval: '1-2 weeks' },
+  ] as const;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 sm:max-w-md">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 dark:from-violet-500/5 via-transparent to-amber-50/50 dark:to-amber-500/5 rounded-lg" />
+
+        <DialogHeader className="relative">
+          <DialogTitle className="flex items-center gap-3 text-slate-900 dark:text-slate-100">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-violet-100 to-amber-100 dark:from-violet-500/20 dark:to-amber-500/20 shadow-sm">
+              <Brain className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+            </div>
+            Review Session
+          </DialogTitle>
+          <DialogDescription className="text-slate-500 dark:text-slate-400">
+            Rate your recall to optimize your learning schedule.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="relative space-y-5 py-4">
+          {/* Skill Being Reviewed */}
+          <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Reviewing</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{skillName}</h3>
+              </div>
+              <Badge className={cn(
+                'px-3 py-1 text-xs font-semibold',
+                LEVEL_CONFIG[skillLevel].bgColor,
+                LEVEL_CONFIG[skillLevel].color
+              )}>
+                {LEVEL_CONFIG[skillLevel].label}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Confidence Rating */}
+          <div className="space-y-3">
+            <Label className="text-slate-700 dark:text-slate-300 font-medium">
+              Confidence Level
+            </Label>
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((level) => (
+                <button
+                  key={level}
+                  onClick={() => setConfidence(level)}
+                  className={cn(
+                    'flex-1 py-3 rounded-lg border-2 transition-all duration-200 font-medium text-sm',
+                    confidence === level
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400'
+                  )}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+              {confidence === 1 && 'Very unsure - need to study more'}
+              {confidence === 2 && 'Somewhat unsure - gaps in knowledge'}
+              {confidence === 3 && 'Neutral - know the basics'}
+              {confidence === 4 && 'Confident - solid understanding'}
+              {confidence === 5 && 'Very confident - mastered this'}
+            </p>
+          </div>
+
+          {/* Quality Rating */}
+          <div className="space-y-3">
+            <Label className="text-slate-700 dark:text-slate-300 font-medium">
+              How was your recall?
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              {qualityOptions.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setQuality(option.value)}
+                  className={cn(
+                    'p-3 rounded-xl border-2 transition-all duration-200 text-left',
+                    quality === option.value
+                      ? 'border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-800 shadow-sm'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={cn('w-2 h-2 rounded-full', option.color)} />
+                    <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">{option.label}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{option.description}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Next: {option.interval}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="review-notes" className="text-slate-700 dark:text-slate-300 font-medium">Notes (optional)</Label>
+            <Textarea
+              id="review-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 resize-none"
+              placeholder="Any insights from this review?"
+              rows={2}
+            />
+          </div>
+        </div>
+
+        <DialogFooter className="relative">
+          <Button
+            variant="ghost"
+            onClick={() => handleOpenChange(false)}
+            className="text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="bg-gradient-to-r from-violet-500 to-amber-500 text-white hover:from-violet-600 hover:to-amber-600 shadow-sm"
+          >
+            {isSubmitting ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                </motion.div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Complete Review
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -1164,9 +1371,12 @@ export default function SkillBuildTracker({
   atRiskCount = 2,
   onRecordPractice,
   onStartReview,
+  onCompleteReview,
 }: SkillBuildTrackerProps) {
   const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false);
   const [selectedSkillId, setSelectedSkillId] = useState<string | undefined>();
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedReviewSkill, setSelectedReviewSkill] = useState<SkillProfile | undefined>();
 
   // Calculate level distribution
   const levelDistribution = useMemo(() => {
@@ -1217,7 +1427,25 @@ export default function SkillBuildTracker({
     if (onStartReview) {
       onStartReview(skillId);
     } else {
-      handlePracticeClick(skillId);
+      // Open the review modal by default
+      const skill = profiles.find((p) => p.skillId === skillId);
+      if (skill) {
+        setSelectedReviewSkill(skill);
+        setIsReviewModalOpen(true);
+      }
+    }
+  };
+
+  const handleCompleteReview = async (data: {
+    skillId: string;
+    confidence: number;
+    quality: 'EASY' | 'GOOD' | 'HARD' | 'AGAIN';
+    notes?: string;
+  }) => {
+    if (onCompleteReview) {
+      await onCompleteReview(data);
+    } else {
+      console.log('Review completed:', data);
     }
   };
 
@@ -1306,6 +1534,21 @@ export default function SkillBuildTracker({
         profiles={profiles}
         onSubmit={handleRecordPractice}
       />
+
+      {/* Review Session Modal */}
+      {selectedReviewSkill && (
+        <ReviewSessionModal
+          isOpen={isReviewModalOpen}
+          onClose={() => {
+            setIsReviewModalOpen(false);
+            setSelectedReviewSkill(undefined);
+          }}
+          skillId={selectedReviewSkill.skillId}
+          skillName={selectedReviewSkill.skillName}
+          skillLevel={selectedReviewSkill.proficiencyLevel}
+          onSubmit={handleCompleteReview}
+        />
+      )}
     </div>
   );
 }
