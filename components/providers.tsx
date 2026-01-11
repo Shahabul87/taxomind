@@ -5,6 +5,7 @@ import { ReactNode } from "react";
 import { ThemeProvider } from "./providers/theme-provider";
 import { InterventionProvider } from "@/components/sam/interventions";
 import { RealtimeProvider } from "./providers/realtime-provider";
+import { SAMGlobalProvider } from "@/components/sam/sam-global-provider";
 import { SAM_FEATURES } from "@/lib/sam/feature-flags";
 
 // Stable auth provider with no auto-reload functionality
@@ -63,15 +64,17 @@ export function Providers({ children, session }: ProvidersProps) {
   return (
     <CustomAuthProvider session={session}>
       <ThemeProvider>
-        <InterventionProvider
-          maxVisible={3}
-          defaultAutoDismiss={true}
-          defaultAutoDismissDelay={8000}
-        >
-          <RealtimeWrapper>
-            {children}
-          </RealtimeWrapper>
-        </InterventionProvider>
+        <SAMGlobalProvider>
+          <InterventionProvider
+            maxVisible={3}
+            defaultAutoDismiss={true}
+            defaultAutoDismissDelay={8000}
+          >
+            <RealtimeWrapper>
+              {children}
+            </RealtimeWrapper>
+          </InterventionProvider>
+        </SAMGlobalProvider>
       </ThemeProvider>
     </CustomAuthProvider>
   );

@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 import {
   Tooltip,
   TooltipContent,
@@ -314,10 +315,12 @@ function EmptyState() {
       <p className="mt-2 max-w-sm text-center text-sm text-slate-500 dark:text-slate-400">
         Complete some exams to see your analytics here. Your performance data, trends, and recommendations will appear once you start taking exams.
       </p>
-      <Button variant="outline" className="mt-6 gap-2">
-        <ChevronRight className="h-4 w-4" />
-        Browse Courses
-      </Button>
+      <Link href="/courses">
+        <Button variant="outline" className="mt-6 gap-2">
+          <ChevronRight className="h-4 w-4" />
+          Browse Courses
+        </Button>
+      </Link>
     </motion.div>
   );
 }

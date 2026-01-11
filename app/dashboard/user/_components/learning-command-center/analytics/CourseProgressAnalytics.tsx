@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useLearningAnalytics, formatStudyTime } from './hooks/useLearningAnalytics';
+import Link from 'next/link';
 
 export interface CourseProgressAnalyticsProps {
   compact?: boolean;
@@ -220,9 +221,11 @@ function EmptyState({ compact }: { compact?: boolean }) {
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
           Enroll in courses to track your learning progress.
         </p>
-        <Button variant="outline" size="sm" className="mt-4">
-          Browse Courses
-        </Button>
+        <Link href="/courses">
+          <Button variant="outline" size="sm" className="mt-4">
+            Browse Courses
+          </Button>
+        </Link>
       </CardContent>
     </Card>
   );
