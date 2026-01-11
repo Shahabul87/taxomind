@@ -17,6 +17,10 @@ import {
   Trophy,
   BookOpen,
   Target,
+  Network,
+  MessageSquare,
+  Shield,
+  Gauge,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,12 +36,19 @@ import { StudyHeatmap } from './StudyHeatmap';
 import { CourseProgressAnalytics } from './CourseProgressAnalytics';
 import { SAMInsights } from './SAMInsights';
 import { ExamAnalytics } from './ExamAnalytics';
+import { BehaviorPredictions } from './BehaviorPredictions';
+import { GoalsProgress } from './GoalsProgress';
+import { ProactiveInterventions } from './ProactiveInterventions';
+import { KnowledgeGraphBrowser } from '@/components/sam/KnowledgeGraphBrowser';
+import { ConfidenceCalibrationWidget } from '@/components/sam/ConfidenceCalibrationWidget';
+import { QualityScoreDashboard } from '@/components/sam/QualityScoreDashboard';
+import { ConversationTimeline } from '@/components/sam/ConversationTimeline';
 import { cn } from '@/lib/utils';
 import { useLearningAnalytics, formatStudyTime } from './hooks/useLearningAnalytics';
 
 export interface LearningAnalyticsDashboardProps {
   className?: string;
-  defaultTab?: 'overview' | 'progress' | 'insights' | 'heatmap' | 'exams';
+  defaultTab?: 'overview' | 'progress' | 'insights' | 'heatmap' | 'exams' | 'knowledge' | 'quality' | 'conversations';
   onExport?: () => void;
   onRefresh?: () => void;
 }
@@ -254,32 +265,47 @@ export function LearningAnalyticsDashboard({
 
       {/* Tabbed Content */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <TabsList className="mb-4 grid w-full grid-cols-5 bg-slate-100/80 dark:bg-slate-800/80">
-          <TabsTrigger value="overview" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="exams" className="gap-2">
-            <ClipboardCheck className="h-4 w-4" />
-            <span className="hidden sm:inline">Exams</span>
-          </TabsTrigger>
-          <TabsTrigger value="progress" className="gap-2">
-            <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Progress</span>
-          </TabsTrigger>
-          <TabsTrigger value="insights" className="gap-2">
-            <Brain className="h-4 w-4" />
-            <span className="hidden sm:inline">Insights</span>
-          </TabsTrigger>
-          <TabsTrigger value="heatmap" className="gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Activity</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="mb-4 overflow-x-auto">
+          <TabsList className="inline-flex min-w-full bg-slate-100/80 dark:bg-slate-800/80">
+            <TabsTrigger value="overview" className="gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="exams" className="gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              <span className="hidden sm:inline">Exams</span>
+            </TabsTrigger>
+            <TabsTrigger value="progress" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Progress</span>
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="gap-2">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">Insights</span>
+            </TabsTrigger>
+            <TabsTrigger value="quality" className="gap-2">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">Quality</span>
+            </TabsTrigger>
+            <TabsTrigger value="conversations" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">History</span>
+            </TabsTrigger>
+            <TabsTrigger value="knowledge" className="gap-2">
+              <Network className="h-4 w-4" />
+              <span className="hidden sm:inline">Knowledge</span>
+            </TabsTrigger>
+            <TabsTrigger value="heatmap" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Activity</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab - Shows summary of all sections */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
+          {/* Top Row: 2 columns */}
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* SAM Insights Summary */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -289,6 +315,18 @@ export function LearningAnalyticsDashboard({
               <SAMInsights compact />
             </motion.div>
 
+            {/* Behavior Predictions - Learning Health Monitor */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <BehaviorPredictions compact />
+            </motion.div>
+          </div>
+
+          {/* Second Row: 2 columns */}
+          <div className="grid gap-6 lg:grid-cols-2">
             {/* Course Progress Summary */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -300,11 +338,30 @@ export function LearningAnalyticsDashboard({
 
             {/* Exam Analytics Summary */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <ExamAnalytics compact />
+            </motion.div>
+          </div>
+
+          {/* Third Row: Goals Progress and Proactive Interventions */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <ExamAnalytics compact />
+              <GoalsProgress compact />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.35 }}
+            >
+              <ProactiveInterventions compact />
             </motion.div>
           </div>
 
@@ -312,7 +369,7 @@ export function LearningAnalyticsDashboard({
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.35 }}
           >
             <StudyHeatmap compact />
           </motion.div>
@@ -375,6 +432,15 @@ export function LearningAnalyticsDashboard({
               </CardContent>
             </Card>
           </motion.div>
+
+          {/* Confidence Calibration - Compact */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+          >
+            <ConfidenceCalibrationWidget compact showRecommendations={false} />
+          </motion.div>
         </TabsContent>
 
         {/* Progress Tab - Full Course Progress View */}
@@ -383,8 +449,9 @@ export function LearningAnalyticsDashboard({
         </TabsContent>
 
         {/* Insights Tab - Full SAM Insights View */}
-        <TabsContent value="insights">
+        <TabsContent value="insights" className="space-y-6">
           <SAMInsights />
+          <ConfidenceCalibrationWidget showRecommendations />
         </TabsContent>
 
         {/* Heatmap Tab - Full Study Activity View */}
@@ -395,6 +462,51 @@ export function LearningAnalyticsDashboard({
         {/* Exams Tab - Full Exam Analytics View */}
         <TabsContent value="exams">
           <ExamAnalytics />
+        </TabsContent>
+
+        {/* Knowledge Tab - Knowledge Graph Browser */}
+        <TabsContent value="knowledge">
+          <KnowledgeGraphBrowser
+            showSearch
+            showStats
+            height="700px"
+          />
+        </TabsContent>
+
+        {/* Quality Tab - Content Quality Validation */}
+        <TabsContent value="quality">
+          <div className="space-y-6">
+            <div className="rounded-lg border border-slate-200/50 bg-white/70 p-4 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+              <div className="mb-4 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-indigo-500" />
+                <h3 className="font-semibold text-slate-900 dark:text-white">Content Quality Validator</h3>
+              </div>
+              <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+                Validate educational content through SAM&apos;s quality gates to ensure accuracy, completeness, and pedagogical effectiveness.
+              </p>
+              <QualityScoreDashboard />
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Conversations Tab - SAM Conversation History */}
+        <TabsContent value="conversations">
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200/50 bg-white/70 p-4 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+              <div className="mb-4 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5 text-blue-500" />
+                <h3 className="font-semibold text-slate-900 dark:text-white">SAM Conversation History</h3>
+              </div>
+              <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+                Review your learning conversations with SAM, organized by course and topic. Track key insights and learning moments.
+              </p>
+            </div>
+            <ConversationTimeline
+              showSearch
+              showFilters
+              maxSessions={20}
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
