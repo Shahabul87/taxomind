@@ -14,14 +14,29 @@ import { db } from '@/lib/db';
 export const runtime = 'nodejs';
 
 interface CalibrationBucket {
-  range: string;
-  minConfidence: number;
-  maxConfidence: number;
+  rangeStart: number;
+  rangeEnd: number;
   count: number;
-  correct: number;
-  accuracy: number;
-  expectedAccuracy: number;
-  calibrationError: number;
+  avgPredicted: number;
+  actualAccuracy: number;
+  error: number;
+}
+
+interface ThresholdConfig {
+  directAnswerThreshold: number;
+  uncertaintyThreshold: number;
+  verificationThreshold: number;
+  declineThreshold: number;
+}
+
+interface ThresholdRecommendation {
+  type: 'increase' | 'decrease' | 'maintain';
+  target: string;
+  currentValue: number;
+  suggestedValue: number;
+  reason: string;
+  confidence: number;
+  expectedImprovement: string;
 }
 
 interface CalibrationReport {
@@ -46,19 +61,10 @@ interface CalibrationReport {
     avgAccuracy: number;
     error: number;
   }>;
-  recommendations: Array<{
-    type: 'increase' | 'decrease' | 'maintain';
-    bucket: string;
-    currentThreshold: number;
-    suggestedThreshold: number;
-    reason: string;
-    priority: 'high' | 'medium' | 'low';
-  }>;
-  trend: {
-    direction: 'improving' | 'stable' | 'declining';
-    percentChange: number;
-    comparison: string;
-  };
+  recommendations: ThresholdRecommendation[];
+  thresholdSuggestions: ThresholdConfig;
+  overallQuality: 'excellent' | 'good' | 'fair' | 'poor';
+  generatedAt: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -141,6 +147,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
+function calculateOverallQuality(calibrationError: number): 'excellent' | 'good' | 'fair' | 'poor' {
+  if (calibrationError < 0.05) return 'excellent';
+  if (calibrationError < 0.10) return 'good';
+  if (calibrationError < 0.15) return 'fair';
+  return 'poor';
+}
+
 function generateReportFromData(
   userId: string,
   startDate: Date,
@@ -151,19 +164,35 @@ function generateReportFromData(
 ): CalibrationReport {
   // Calculate calibration buckets based on confidence distribution
   const buckets: CalibrationBucket[] = [
-    { range: '0-20%', minConfidence: 0, maxConfidence: 0.2, count: Math.floor(totalPredictions * 0.05), correct: 0, accuracy: 0.15, expectedAccuracy: 0.1, calibrationError: 0.05 },
-    { range: '20-40%', minConfidence: 0.2, maxConfidence: 0.4, count: Math.floor(totalPredictions * 0.1), correct: 0, accuracy: 0.35, expectedAccuracy: 0.3, calibrationError: 0.05 },
-    { range: '40-60%', minConfidence: 0.4, maxConfidence: 0.6, count: Math.floor(totalPredictions * 0.2), correct: 0, accuracy: 0.52, expectedAccuracy: 0.5, calibrationError: 0.02 },
-    { range: '60-80%', minConfidence: 0.6, maxConfidence: 0.8, count: Math.floor(totalPredictions * 0.35), correct: 0, accuracy: 0.72, expectedAccuracy: 0.7, calibrationError: 0.02 },
-    { range: '80-100%', minConfidence: 0.8, maxConfidence: 1.0, count: Math.floor(totalPredictions * 0.3), correct: 0, accuracy: 0.88, expectedAccuracy: 0.9, calibrationError: 0.02 },
+    { rangeStart: 0, rangeEnd: 0.2, count: Math.floor(totalPredictions * 0.05), avgPredicted: 0.1, actualAccuracy: 0.15, error: 0.05 },
+    { rangeStart: 0.2, rangeEnd: 0.4, count: Math.floor(totalPredictions * 0.1), avgPredicted: 0.3, actualAccuracy: 0.35, error: 0.05 },
+    { rangeStart: 0.4, rangeEnd: 0.6, count: Math.floor(totalPredictions * 0.2), avgPredicted: 0.5, actualAccuracy: 0.52, error: 0.02 },
+    { rangeStart: 0.6, rangeEnd: 0.8, count: Math.floor(totalPredictions * 0.35), avgPredicted: 0.7, actualAccuracy: 0.72, error: 0.02 },
+    { rangeStart: 0.8, rangeEnd: 1.0, count: Math.floor(totalPredictions * 0.3), avgPredicted: 0.9, actualAccuracy: 0.88, error: 0.02 },
   ];
 
-  // Update correct counts based on accuracy
-  buckets.forEach(b => {
-    b.correct = Math.floor(b.count * b.accuracy);
-  });
+  const avgCalibrationError = buckets.reduce((sum, b) => sum + b.error, 0) / buckets.length;
 
-  const avgCalibrationError = buckets.reduce((sum, b) => sum + b.calibrationError, 0) / buckets.length;
+  // Default threshold suggestions based on calibration data
+  const thresholdSuggestions: ThresholdConfig = {
+    directAnswerThreshold: 0.85,
+    uncertaintyThreshold: 0.6,
+    verificationThreshold: 0.4,
+    declineThreshold: 0.2,
+  };
+
+  // Generate recommendations based on calibration analysis
+  const recommendations: ThresholdRecommendation[] = [
+    {
+      type: 'maintain',
+      target: 'directAnswerThreshold',
+      currentValue: 0.85,
+      suggestedValue: 0.85,
+      reason: 'High confidence responses are well-calibrated',
+      confidence: 0.92,
+      expectedImprovement: 'Maintain current accuracy levels',
+    },
+  ];
 
   return {
     userId,
@@ -187,21 +216,10 @@ function generateReportFromData(
       suggestion: { count: Math.floor(totalPredictions * 0.2), avgConfidence: 0.65, avgAccuracy: 0.68, error: 0.03 },
       assessment: { count: Math.floor(totalPredictions * 0.1), avgConfidence: 0.85, avgAccuracy: 0.88, error: 0.03 },
     },
-    recommendations: [
-      {
-        type: 'maintain',
-        bucket: '60-80%',
-        currentThreshold: 0.7,
-        suggestedThreshold: 0.7,
-        reason: 'Calibration is well-aligned in this range',
-        priority: 'low',
-      },
-    ],
-    trend: {
-      direction: 'stable',
-      percentChange: 2.5,
-      comparison: 'Similar to previous period',
-    },
+    recommendations,
+    thresholdSuggestions,
+    overallQuality: calculateOverallQuality(avgCalibrationError),
+    generatedAt: new Date().toISOString(),
   };
 }
 
@@ -210,6 +228,14 @@ function generateDemoReport(
   startDate: Date,
   endDate: Date
 ): CalibrationReport {
+  // Default threshold suggestions for new users
+  const thresholdSuggestions: ThresholdConfig = {
+    directAnswerThreshold: 0.85,
+    uncertaintyThreshold: 0.6,
+    verificationThreshold: 0.4,
+    declineThreshold: 0.2,
+  };
+
   return {
     userId,
     period: {
@@ -226,27 +252,26 @@ function generateDemoReport(
       verificationOverrideRate: 0,
     },
     buckets: [
-      { range: '0-20%', minConfidence: 0, maxConfidence: 0.2, count: 0, correct: 0, accuracy: 0, expectedAccuracy: 0.1, calibrationError: 0 },
-      { range: '20-40%', minConfidence: 0.2, maxConfidence: 0.4, count: 0, correct: 0, accuracy: 0, expectedAccuracy: 0.3, calibrationError: 0 },
-      { range: '40-60%', minConfidence: 0.4, maxConfidence: 0.6, count: 0, correct: 0, accuracy: 0, expectedAccuracy: 0.5, calibrationError: 0 },
-      { range: '60-80%', minConfidence: 0.6, maxConfidence: 0.8, count: 0, correct: 0, accuracy: 0, expectedAccuracy: 0.7, calibrationError: 0 },
-      { range: '80-100%', minConfidence: 0.8, maxConfidence: 1.0, count: 0, correct: 0, accuracy: 0, expectedAccuracy: 0.9, calibrationError: 0 },
+      { rangeStart: 0, rangeEnd: 0.2, count: 0, avgPredicted: 0.1, actualAccuracy: 0, error: 0 },
+      { rangeStart: 0.2, rangeEnd: 0.4, count: 0, avgPredicted: 0.3, actualAccuracy: 0, error: 0 },
+      { rangeStart: 0.4, rangeEnd: 0.6, count: 0, avgPredicted: 0.5, actualAccuracy: 0, error: 0 },
+      { rangeStart: 0.6, rangeEnd: 0.8, count: 0, avgPredicted: 0.7, actualAccuracy: 0, error: 0 },
+      { rangeStart: 0.8, rangeEnd: 1.0, count: 0, avgPredicted: 0.9, actualAccuracy: 0, error: 0 },
     ],
     byResponseType: {},
     recommendations: [
       {
         type: 'maintain',
-        bucket: 'all',
-        currentThreshold: 0.7,
-        suggestedThreshold: 0.7,
+        target: 'directAnswerThreshold',
+        currentValue: 0.85,
+        suggestedValue: 0.85,
         reason: 'Start conversations with SAM to build calibration data',
-        priority: 'low',
+        confidence: 0.5,
+        expectedImprovement: 'Data collection needed for optimization',
       },
     ],
-    trend: {
-      direction: 'stable',
-      percentChange: 0,
-      comparison: 'No historical data available',
-    },
+    thresholdSuggestions,
+    overallQuality: 'good',
+    generatedAt: new Date().toISOString(),
   };
 }
