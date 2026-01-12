@@ -26,6 +26,19 @@ model UserNotificationPreferences {
   pushNewMessages       Boolean  @default(true)
   pushAchievements      Boolean  @default(true)
 
+  // SAM AI Notifications
+  samEnabled            Boolean  @default(true)
+  samStudyReminders     Boolean  @default(true)
+  samGoalProgress       Boolean  @default(true)
+  samCheckIns           Boolean  @default(true)
+  samAchievements       Boolean  @default(true)
+  samStruggles          Boolean  @default(true)
+  samRecommendations    Boolean  @default(true)
+  samSound              Boolean  @default(true)
+  samQuietHoursEnabled  Boolean  @default(false)
+  samQuietHoursStart    Int      @default(22) // 0-23 hour
+  samQuietHoursEnd      Int      @default(7)  // 0-23 hour
+
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
