@@ -120,9 +120,9 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const parsed = querySchema.safeParse({
-      time: searchParams.get('time'),
-      limit: searchParams.get('limit'),
-      types: searchParams.get('types'),
+      time: searchParams.get('time') ?? undefined,
+      limit: searchParams.get('limit') ?? undefined,
+      types: searchParams.get('types') ?? undefined,
     });
 
     if (!parsed.success) {
