@@ -11364,6 +11364,7 @@ declare const PresenceStatus: {
     readonly AWAY: "away";
     readonly IDLE: "idle";
     readonly STUDYING: "studying";
+    readonly ON_BREAK: "on_break";
     readonly OFFLINE: "offline";
     readonly DO_NOT_DISTURB: "do_not_disturb";
 };

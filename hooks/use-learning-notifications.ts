@@ -328,12 +328,21 @@ export function useLearningNotifications(
 /**
  * Lightweight hook for just getting unread notification count
  * Useful for notification badges
+ *
+ * Features:
+ * - Auto-refresh with configurable interval
+ * - Configurable poll intervals
  */
-export function useUnreadNotificationCount(): {
+export function useUnreadNotificationCount(options?: {
+  /** Poll interval in ms. Default: 30000 (30 sec) */
+  pollInterval?: number;
+}): {
   count: number;
   isLoading: boolean;
   refresh: () => void;
 } {
+  const { pollInterval = 30000 } = options ?? {};
+
   const [count, setCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -359,10 +368,9 @@ export function useUnreadNotificationCount(): {
 
   useEffect(() => {
     fetchCount();
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchCount, 30000);
+    const interval = setInterval(fetchCount, pollInterval);
     return () => clearInterval(interval);
-  }, [fetchCount]);
+  }, [fetchCount, pollInterval]);
 
   return { count, isLoading, refresh: fetchCount };
 }

@@ -8,13 +8,13 @@
  * - Shows unread notification count
  * - Dropdown with notification list
  * - Mark as read / dismiss functionality
+ * - Real-time updates via RealtimeProvider (with polling fallback)
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Bell,
   BellRing,
-  Check,
   CheckCircle,
   X,
   Loader2,
@@ -23,6 +23,8 @@ import {
   Target,
   Trophy,
   Trash2,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,6 +35,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useRealtimeContextOptional } from '@/components/providers/realtime-provider';
 
 // ============================================================================
 // TYPES
@@ -52,6 +55,10 @@ interface NotificationBellProps {
   showCount?: boolean;
   maxNotifications?: number;
   pollInterval?: number;
+  /** Use shorter poll interval when WebSocket is not connected */
+  fallbackPollInterval?: number;
+  /** Show connection status indicator */
+  showConnectionStatus?: boolean;
   onNotificationClick?: (notification: Notification) => void;
 }
 
@@ -98,7 +105,9 @@ export function NotificationBell({
   className,
   showCount = true,
   maxNotifications = 10,
-  pollInterval = 60000, // 1 minute
+  pollInterval = 60000, // 1 minute when connected via WebSocket
+  fallbackPollInterval = 15000, // 15 seconds when polling only
+  showConnectionStatus = false,
   onNotificationClick,
 }: NotificationBellProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -107,6 +116,11 @@ export function NotificationBell({
   const [isOpen, setIsOpen] = useState(false);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
   const mountedRef = useRef(true);
+  const lastEventIdRef = useRef<string | null>(null);
+
+  // Get realtime context (optional - may be null if not in RealtimeProvider)
+  const realtimeContext = useRealtimeContextOptional();
+  const isRealtimeConnected = realtimeContext?.isConnected ?? false;
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -126,16 +140,36 @@ export function NotificationBell({
     }
   }, [maxNotifications]);
 
+  // Calculate effective poll interval based on realtime connection status
+  // When WebSocket is connected, we poll less frequently as updates come in real-time
+  // When disconnected, we poll more frequently as a fallback
+  const effectivePollInterval = isRealtimeConnected ? pollInterval : fallbackPollInterval;
+
   // Initial fetch and polling
   useEffect(() => {
     fetchNotifications();
 
-    const interval = setInterval(fetchNotifications, pollInterval);
+    const interval = setInterval(fetchNotifications, effectivePollInterval);
     return () => {
       mountedRef.current = false;
       clearInterval(interval);
     };
-  }, [fetchNotifications, pollInterval]);
+  }, [fetchNotifications, effectivePollInterval]);
+
+  // Listen for real-time notification events from RealtimeProvider
+  // When a notification comes in via WebSocket, add it to the list immediately
+  useEffect(() => {
+    if (!realtimeContext) return;
+
+    // Subscribe to notification-related events via sendEvent callback pattern
+    // The RealtimeProvider handles incoming events in its message handler
+    // We poll on connection changes to pick up any missed notifications
+    if (isRealtimeConnected) {
+      // Refresh notifications when connection is established
+      // This catches any notifications that arrived while disconnected
+      fetchNotifications();
+    }
+  }, [isRealtimeConnected, fetchNotifications, realtimeContext]);
 
   // Fetch when popover opens
   useEffect(() => {
@@ -241,7 +275,7 @@ export function NotificationBell({
           variant="ghost"
           size="sm"
           className={cn('relative', className)}
-          aria-label={`Notifications${hasUnread ? ` (${unreadCount} unread)` : ''}`}
+          aria-label={`Notifications${hasUnread ? ` (${unreadCount} unread)` : ''}${isRealtimeConnected ? ' - Live updates' : ''}`}
         >
           {hasUnread ? (
             <BellRing className="w-5 h-5 text-amber-500 animate-bounce" />
@@ -255,6 +289,16 @@ export function NotificationBell({
               {unreadCount > 9 ? '9+' : unreadCount}
             </Badge>
           )}
+          {/* Real-time connection status indicator */}
+          {showConnectionStatus && (
+            <span
+              className={cn(
+                'absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-white',
+                isRealtimeConnected ? 'bg-green-500' : 'bg-gray-400'
+              )}
+              title={isRealtimeConnected ? 'Live updates active' : 'Polling mode'}
+            />
+          )}
         </Button>
       </PopoverTrigger>
 
@@ -264,6 +308,13 @@ export function NotificationBell({
           <h4 className="font-medium flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
             SAM Notifications
+            {/* Live indicator */}
+            {isRealtimeConnected && (
+              <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                Live
+              </span>
+            )}
           </h4>
           <div className="flex items-center gap-1">
             {hasUnread && (

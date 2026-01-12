@@ -35,6 +35,13 @@ export {
   useSAMSocraticDialogue,
   // Phase 5 Hooks - Agentic AI
   useAgentic,
+  // Behavior & Recommendations Hooks
+  useBehaviorPatterns,
+  useRecommendations,
+  // Memory Hook
+  useSAMMemory,
+  // Push Notifications Hook
+  usePushNotifications,
 } from './hooks';
 
 // ============================================================================
@@ -115,6 +122,41 @@ export type {
   CheckIn,
   CreateGoalData,
   CheckInResponse,
+} from './hooks';
+
+// Behavior Pattern types
+export type {
+  UseBehaviorPatternsOptions,
+  UseBehaviorPatternsReturn,
+  BehaviorPattern,
+  PatternType,
+} from './hooks';
+
+// Recommendations types
+export type {
+  UseRecommendationsOptions,
+  UseRecommendationsReturn,
+  LearningRecommendation,
+  RecommendationType,
+  RecommendationPriority,
+  RecommendationContext,
+} from './hooks';
+
+// Memory types
+export type {
+  MemorySearchResult,
+  LongTermMemory,
+  ConversationTurn,
+  MemorySearchOptions,
+  StoreMemoryData,
+  StoreConversationData,
+} from './hooks';
+
+// Push notification types
+export type {
+  PushPermissionState,
+  PushSubscription,
+  PushNotificationOptions,
 } from './hooks';
 
 // ============================================================================

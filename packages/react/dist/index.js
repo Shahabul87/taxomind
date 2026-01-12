@@ -30,6 +30,8 @@ __export(index_exports, {
   getCapabilities: () => getCapabilities,
   hasCapability: () => hasCapability,
   useAgentic: () => useAgentic,
+  useBehaviorPatterns: () => useBehaviorPatterns,
+  useRecommendations: () => useRecommendations,
   useSAM: () => useSAM,
   useSAMActions: () => useSAMActions,
   useSAMAdaptiveContent: () => useSAMAdaptiveContent,
@@ -43,6 +45,7 @@ __export(index_exports, {
   useSAMFormDataEvents: () => useSAMFormDataEvents,
   useSAMFormDataSync: () => useSAMFormDataSync,
   useSAMFormSync: () => useSAMFormSync,
+  useSAMMemory: () => useSAMMemory,
   useSAMPageContext: () => useSAMPageContext,
   useSAMPageLinks: () => useSAMPageLinks,
   useSAMPracticeProblems: () => useSAMPracticeProblems,
@@ -3062,6 +3065,177 @@ var import_react18 = require("react");
 
 // src/hooks/useSAMMemory.ts
 var import_react19 = require("react");
+function useSAMMemory(options = {}) {
+  const { debug = false } = options;
+  const [searchResults, setSearchResults] = (0, import_react19.useState)([]);
+  const [conversationHistory, setConversationHistory] = (0, import_react19.useState)([]);
+  const [error, setError] = (0, import_react19.useState)(null);
+  const [isSearching, setIsSearching] = (0, import_react19.useState)(false);
+  const [isStoringMemory, setIsStoringMemory] = (0, import_react19.useState)(false);
+  const [isLoadingConversation, setIsLoadingConversation] = (0, import_react19.useState)(false);
+  const mountedRef = (0, import_react19.useRef)(true);
+  const apiCall = (0, import_react19.useCallback)(
+    async (url, options2) => {
+      try {
+        const response = await fetch(url, {
+          headers: {
+            "Content-Type": "application/json",
+            ...options2?.headers
+          },
+          ...options2
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          return { success: false, error: result.error || "Request failed" };
+        }
+        return { success: true, data: result.data ?? result };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Network error";
+        return { success: false, error: message };
+      }
+    },
+    []
+  );
+  const log = (0, import_react19.useCallback)(
+    (message, data) => {
+      if (debug) {
+        console.log(`[useSAMMemory] ${message}`, data ?? "");
+      }
+    },
+    [debug]
+  );
+  const searchMemories = (0, import_react19.useCallback)(
+    async (query, type, searchOptions) => {
+      setIsSearching(true);
+      setError(null);
+      log("Searching memories", { query, type, searchOptions });
+      const result = await apiCall(
+        "/api/sam/agentic/memory/search",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            query,
+            type,
+            ...searchOptions
+          })
+        }
+      );
+      if (mountedRef.current) {
+        if (result.success && result.data) {
+          const results = result.data.results || [];
+          setSearchResults(results);
+          log("Search complete", { count: results.length });
+          setIsSearching(false);
+          return results;
+        } else {
+          setError(result.error || "Search failed");
+          setIsSearching(false);
+          return [];
+        }
+      }
+      return [];
+    },
+    [apiCall, log]
+  );
+  const storeMemory = (0, import_react19.useCallback)(
+    async (data) => {
+      setIsStoringMemory(true);
+      setError(null);
+      log("Storing memory", data);
+      const result = await apiCall(
+        "/api/sam/agentic/memory/store",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            type: "memory",
+            ...data
+          })
+        }
+      );
+      if (mountedRef.current) {
+        setIsStoringMemory(false);
+        if (result.success && result.data) {
+          log("Memory stored", { id: result.data.id });
+          return result.data.id;
+        } else {
+          setError(result.error || "Failed to store memory");
+          return null;
+        }
+      }
+      return null;
+    },
+    [apiCall, log]
+  );
+  const storeConversation = (0, import_react19.useCallback)(
+    async (data) => {
+      setError(null);
+      log("Storing conversation turn", data);
+      const result = await apiCall(
+        "/api/sam/agentic/memory/conversation",
+        {
+          method: "POST",
+          body: JSON.stringify(data)
+        }
+      );
+      if (result.success && result.data) {
+        log("Conversation turn stored", { id: result.data.id });
+        return result.data.id;
+      } else {
+        setError(result.error || "Failed to store conversation");
+        return null;
+      }
+    },
+    [apiCall, log]
+  );
+  const getConversationContext = (0, import_react19.useCallback)(
+    async (sessionId, maxTurns = 20) => {
+      setIsLoadingConversation(true);
+      setError(null);
+      log("Getting conversation context", { sessionId, maxTurns });
+      const result = await apiCall(
+        `/api/sam/agentic/memory/conversation?sessionId=${sessionId}&maxTurns=${maxTurns}`
+      );
+      if (mountedRef.current) {
+        setIsLoadingConversation(false);
+        if (result.success && result.data) {
+          const turns = result.data.turns || [];
+          setConversationHistory(turns);
+          log("Conversation context loaded", { count: turns.length });
+          return turns;
+        } else {
+          setError(result.error || "Failed to load conversation context");
+          return [];
+        }
+      }
+      return [];
+    },
+    [apiCall, log]
+  );
+  const clearError = (0, import_react19.useCallback)(() => {
+    setError(null);
+  }, []);
+  const clearSearchResults = (0, import_react19.useCallback)(() => {
+    setSearchResults([]);
+  }, []);
+  return {
+    // Search
+    searchMemories,
+    searchResults,
+    isSearching,
+    // Long-term memory
+    storeMemory,
+    isStoringMemory,
+    // Conversation
+    storeConversation,
+    getConversationContext,
+    conversationHistory,
+    isLoadingConversation,
+    // Utility
+    error,
+    clearError,
+    clearSearchResults
+  };
+}
 
 // src/hooks/useTutoringOrchestration.tsx
 var import_react20 = require("react");
@@ -3073,9 +3247,160 @@ var import_react21 = require("react");
 
 // src/hooks/useBehaviorPatterns.ts
 var import_react22 = require("react");
+function useBehaviorPatterns(options = {}) {
+  const { autoFetch = true, refreshInterval } = options;
+  const [patterns, setPatterns] = (0, import_react22.useState)([]);
+  const [isLoading, setIsLoading] = (0, import_react22.useState)(false);
+  const [isDetecting, setIsDetecting] = (0, import_react22.useState)(false);
+  const [error, setError] = (0, import_react22.useState)(null);
+  const fetchPatterns = (0, import_react22.useCallback)(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/sam/agentic/behavior/patterns");
+      if (!response.ok) {
+        throw new Error("Failed to fetch behavior patterns");
+      }
+      const result = await response.json();
+      if (result.success) {
+        setPatterns(result.data.patterns);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Unknown error"));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+  const detectPatterns = (0, import_react22.useCallback)(async () => {
+    setIsDetecting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/sam/agentic/behavior/patterns", {
+        method: "POST"
+      });
+      if (!response.ok) {
+        throw new Error("Failed to detect behavior patterns");
+      }
+      const result = await response.json();
+      if (result.success) {
+        const detectedPatterns = result.data.patterns;
+        setPatterns(detectedPatterns);
+        return detectedPatterns;
+      }
+      return [];
+    } catch (err) {
+      const error2 = err instanceof Error ? err : new Error("Unknown error");
+      setError(error2);
+      throw error2;
+    } finally {
+      setIsDetecting(false);
+    }
+  }, []);
+  const refresh = (0, import_react22.useCallback)(async () => {
+    await fetchPatterns();
+  }, [fetchPatterns]);
+  (0, import_react22.useEffect)(() => {
+    if (autoFetch) {
+      fetchPatterns();
+    }
+  }, [autoFetch, fetchPatterns]);
+  (0, import_react22.useEffect)(() => {
+    if (!refreshInterval) return;
+    const intervalId = setInterval(() => {
+      fetchPatterns();
+    }, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, fetchPatterns]);
+  return {
+    patterns,
+    isLoading,
+    isDetecting,
+    error,
+    refresh,
+    detectPatterns
+  };
+}
 
 // src/hooks/useRecommendations.ts
 var import_react23 = require("react");
+function useRecommendations(options = {}) {
+  const {
+    availableTime = 60,
+    limit = 5,
+    types,
+    autoFetch = true,
+    refreshInterval
+  } = options;
+  const [recommendations, setRecommendations] = (0, import_react23.useState)([]);
+  const [totalEstimatedTime, setTotalEstimatedTime] = (0, import_react23.useState)(0);
+  const [generatedAt, setGeneratedAt] = (0, import_react23.useState)(null);
+  const [context, setContext] = (0, import_react23.useState)(null);
+  const [isLoading, setIsLoading] = (0, import_react23.useState)(false);
+  const [error, setError] = (0, import_react23.useState)(null);
+  const typesRef = (0, import_react23.useRef)(types);
+  typesRef.current = types;
+  const fetchRecommendations = (0, import_react23.useCallback)(
+    async (fetchOptions) => {
+      setIsLoading(true);
+      setError(null);
+      const time = fetchOptions?.time ?? availableTime;
+      const fetchLimit = fetchOptions?.limit ?? limit;
+      const fetchTypes = fetchOptions?.types ?? typesRef.current;
+      try {
+        const params = new URLSearchParams();
+        params.set("time", String(time));
+        params.set("limit", String(fetchLimit));
+        if (fetchTypes?.length) {
+          params.set("types", fetchTypes.join(","));
+        }
+        const response = await fetch(
+          `/api/sam/agentic/recommendations?${params.toString()}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch recommendations");
+        }
+        const result = await response.json();
+        if (result.success) {
+          const { data } = result;
+          setRecommendations(data.recommendations);
+          setTotalEstimatedTime(data.totalEstimatedTime);
+          setGeneratedAt(data.generatedAt);
+          setContext(data.context);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("Unknown error"));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [availableTime, limit]
+  );
+  const refresh = (0, import_react23.useCallback)(async () => {
+    await fetchRecommendations();
+  }, [fetchRecommendations]);
+  (0, import_react23.useEffect)(() => {
+    if (autoFetch) {
+      fetchRecommendations();
+    }
+  }, [autoFetch, fetchRecommendations]);
+  (0, import_react23.useEffect)(() => {
+    if (!refreshInterval) return;
+    const intervalId = setInterval(() => {
+      fetchRecommendations();
+    }, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, fetchRecommendations]);
+  return {
+    recommendations,
+    totalEstimatedTime,
+    generatedAt,
+    context,
+    isLoading,
+    error,
+    refresh,
+    fetchRecommendations
+  };
+}
 
 // src/utils/contextDetector.ts
 var DEFAULT_ROUTE_PATTERNS = [
@@ -3273,6 +3598,8 @@ var VERSION = "0.1.0";
   getCapabilities,
   hasCapability,
   useAgentic,
+  useBehaviorPatterns,
+  useRecommendations,
   useSAM,
   useSAMActions,
   useSAMAdaptiveContent,
@@ -3286,6 +3613,7 @@ var VERSION = "0.1.0";
   useSAMFormDataEvents,
   useSAMFormDataSync,
   useSAMFormSync,
+  useSAMMemory,
   useSAMPageContext,
   useSAMPageLinks,
   useSAMPracticeProblems,

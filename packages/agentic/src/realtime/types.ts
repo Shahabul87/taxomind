@@ -372,6 +372,7 @@ export const PresenceStatus = {
   AWAY: 'away',
   IDLE: 'idle',
   STUDYING: 'studying',
+  ON_BREAK: 'on_break',
   OFFLINE: 'offline',
   DO_NOT_DISTURB: 'do_not_disturb',
 } as const;

@@ -20,6 +20,12 @@ import { LearningJourneyMap } from '../smart-dashboard/LearningJourneyMap';
 import { GoalPlanner } from '@/components/sam/goal-planner';
 import { SpacedRepetitionCalendar, SpacedRepetitionWidget } from '@/components/sam/SpacedRepetitionCalendar';
 
+// SAM AI Components - Memory, Behavior, Recommendations, Plans
+import { MemoryInsightsWidget } from '@/components/sam/memory';
+import { BehaviorPatternsWidget, StruggleDetectionAlert } from '@/components/sam/behavior';
+import { DailyPlanWidget } from '@/components/sam/plans';
+import { RecommendationCard } from '@/components/sam/recommendations';
+
 // Hooks
 import { useDailyAgenda } from '@/hooks/use-daily-agenda';
 import { useLearningActivities } from '@/hooks/use-learning-activities';
@@ -331,6 +337,12 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
             variants={itemVariants}
             className="space-y-6"
           >
+            {/* Struggle Detection Alert - Shows when AI detects learning difficulties */}
+            <StruggleDetectionAlert />
+
+            {/* SAM Daily Plan Widget - Today's AI-Optimized Focus */}
+            <DailyPlanWidget compact={true} />
+
             {/* Google Calendar Integration */}
             <CalendarStatusWidget />
 
@@ -354,6 +366,12 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
             <JourneyProgress />
 
             <QuickInsights />
+
+            {/* SAM Memory Insights - Contextual memory from past sessions */}
+            <MemoryInsightsWidget compact={true} />
+
+            {/* SAM Behavior Patterns - Learning style and pattern insights */}
+            <BehaviorPatternsWidget compact={true} />
           </motion.div>
         </div>
       </motion.div>

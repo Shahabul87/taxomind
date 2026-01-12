@@ -81,3 +81,73 @@ export { LearningPathOptimizer } from './LearningPathOptimizer';
 
 // Safety & Fairness
 export { BiasDetectionReport } from './BiasDetectionReport';
+
+// ============================================================================
+// MEMORY COMPONENTS
+// ============================================================================
+
+export {
+  MemorySearchPanel,
+  ConversationHistory,
+  MemoryInsightsWidget,
+} from './memory';
+
+// ============================================================================
+// BEHAVIOR COMPONENTS
+// ============================================================================
+
+export {
+  BehaviorPatternsWidget,
+  StruggleDetectionAlert,
+  LearningStyleIndicator,
+} from './behavior';
+
+// ============================================================================
+// PRESENCE COMPONENTS
+// ============================================================================
+
+export {
+  PresenceIndicator,
+  ActiveLearnersWidget,
+  StudyStatusBadge,
+} from './presence';
+
+// ============================================================================
+// RECOMMENDATIONS COMPONENTS
+// ============================================================================
+
+export {
+  RecommendationCard,
+  RecommendationTimeline,
+  RecommendationReasonDisplay,
+} from './recommendations';
+
+// ============================================================================
+// PLAN COMPONENTS
+// ============================================================================
+
+export {
+  PlanControlPanel,
+  PlanProgressTracker,
+  DailyPlanWidget,
+} from './plans';
+
+// ============================================================================
+// CONFIDENCE COMPONENTS
+// ============================================================================
+
+export {
+  ConfidenceIndicator,
+  SelfCritiquePanel,
+  CalibrationChart,
+} from './confidence';
+
+// ============================================================================
+// OBSERVABILITY COMPONENTS (Admin)
+// ============================================================================
+
+export {
+  SAMHealthDashboard,
+  ToolExecutionLog,
+  QualityMetricsPanel,
+} from './observability';

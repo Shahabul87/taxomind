@@ -94,6 +94,9 @@ import {
 // Import Feedback Buttons for quality tracking
 import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
 
+// Import Confidence Indicator for AI response confidence display
+import { ConfidenceIndicator } from '@/components/sam/confidence';
+
 // ============================================================================
 // WINDOW CONTEXT TYPES
 // ============================================================================
@@ -3106,6 +3109,17 @@ function SAMAssistantInner({
                       sessionId={samContext.metadata.sessionId}
                       className="mt-1.5 ml-1"
                       size="sm"
+                    />
+                  )}
+
+                  {/* Confidence Indicator for AI responses */}
+                  {message.role === 'assistant' && !isMessageStreaming && insights?.agentic?.confidence && (
+                    <ConfidenceIndicator
+                      confidence={insights.agentic.confidence.score}
+                      mode="badge"
+                      showPercentage={true}
+                      size="sm"
+                      className="mt-1 ml-1"
                     />
                   )}
                 </div>

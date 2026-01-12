@@ -1049,6 +1049,203 @@ interface CheckInResponse {
 declare function useAgentic(options?: UseAgenticOptions): UseAgenticReturn;
 
 /**
+ * useSAMMemory Hook
+ * Provides React integration for SAM memory APIs
+ *
+ * Enables UI components to:
+ * - Search memories, embeddings, and conversations
+ * - Store user memories and preferences
+ * - Retrieve conversation context
+ */
+interface MemorySearchResult {
+    id: string;
+    content: string;
+    score: number;
+    metadata?: Record<string, unknown>;
+}
+interface LongTermMemory {
+    id: string;
+    memoryType: string;
+    title: string;
+    content: string;
+    summary?: string;
+    importance?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    courseId?: string;
+    createdAt: string;
+}
+interface ConversationTurn {
+    id: string;
+    sessionId: string;
+    role: 'USER' | 'ASSISTANT' | 'SYSTEM' | 'TOOL';
+    content: string;
+    turnNumber: number;
+    createdAt: string;
+}
+interface MemorySearchOptions {
+    /** Number of results to return (1-50, default 10) */
+    topK?: number;
+    /** Minimum similarity score (0-1) */
+    minScore?: number;
+    /** Filter by course */
+    courseId?: string;
+    /** Filter by source types */
+    sourceTypes?: string[];
+    /** Filter by tags */
+    tags?: string[];
+    /** Filter by session (for conversations) */
+    sessionId?: string;
+    /** Filter by memory types (for long-term memories) */
+    memoryTypes?: string[];
+}
+interface StoreMemoryData {
+    memoryType: 'INTERACTION' | 'LEARNING_EVENT' | 'STRUGGLE_POINT' | 'PREFERENCE' | 'FEEDBACK' | 'CONTEXT' | 'CONCEPT' | 'SKILL';
+    title: string;
+    content: string;
+    summary?: string;
+    courseId?: string;
+    topicIds?: string[];
+    importance?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    emotionalValence?: number;
+    tags?: string[];
+    metadata?: Record<string, unknown>;
+}
+interface StoreConversationData {
+    sessionId: string;
+    role: 'USER' | 'ASSISTANT' | 'SYSTEM' | 'TOOL';
+    content: string;
+    turnNumber: number;
+    tokenCount?: number;
+    entities?: Array<{
+        type: string;
+        value: string;
+        confidence: number;
+    }>;
+    intent?: string;
+    sentiment?: number;
+    metadata?: Record<string, unknown>;
+}
+interface UseSAMMemoryOptions {
+    /** Enable debug logging */
+    debug?: boolean;
+}
+interface UseSAMMemoryReturn {
+    searchMemories: (query: string, type: 'embeddings' | 'memories' | 'conversations', options?: MemorySearchOptions) => Promise<MemorySearchResult[]>;
+    searchResults: MemorySearchResult[];
+    isSearching: boolean;
+    storeMemory: (data: StoreMemoryData) => Promise<string | null>;
+    isStoringMemory: boolean;
+    storeConversation: (data: StoreConversationData) => Promise<string | null>;
+    getConversationContext: (sessionId: string, maxTurns?: number) => Promise<ConversationTurn[]>;
+    conversationHistory: ConversationTurn[];
+    isLoadingConversation: boolean;
+    error: string | null;
+    clearError: () => void;
+    clearSearchResults: () => void;
+}
+declare function useSAMMemory(options?: UseSAMMemoryOptions): UseSAMMemoryReturn;
+
+/**
+ * @sam-ai/react - useBehaviorPatterns Hook
+ * Hook for detecting and retrieving user behavior patterns
+ */
+type PatternType = 'STRUGGLE' | 'ENGAGEMENT_DROP' | 'LEARNING_STYLE' | 'TIME_PREFERENCE' | 'TOPIC_AFFINITY' | 'PACE' | 'RETENTION';
+interface BehaviorPattern {
+    id: string;
+    userId: string;
+    type: PatternType;
+    name: string;
+    description: string;
+    confidence: number;
+    frequency: number;
+    firstDetected: string;
+    lastDetected: string;
+    metadata?: Record<string, unknown>;
+}
+interface UseBehaviorPatternsOptions {
+    /** Enable auto-fetch on mount */
+    autoFetch?: boolean;
+    /** Auto-refresh interval (ms) */
+    refreshInterval?: number;
+}
+interface UseBehaviorPatternsReturn {
+    /** Detected behavior patterns */
+    patterns: BehaviorPattern[];
+    /** Loading state */
+    isLoading: boolean;
+    /** Detection in progress */
+    isDetecting: boolean;
+    /** Error state */
+    error: Error | null;
+    /** Refresh patterns from server */
+    refresh: () => Promise<void>;
+    /** Trigger pattern detection */
+    detectPatterns: () => Promise<BehaviorPattern[]>;
+}
+declare function useBehaviorPatterns(options?: UseBehaviorPatternsOptions): UseBehaviorPatternsReturn;
+
+/**
+ * @sam-ai/react - useRecommendations Hook
+ * Hook for fetching personalized learning recommendations
+ */
+type RecommendationType = 'content' | 'practice' | 'review' | 'assessment' | 'break' | 'goal';
+type RecommendationPriority = 'low' | 'medium' | 'high';
+interface LearningRecommendation {
+    id: string;
+    type: RecommendationType;
+    title: string;
+    description: string;
+    reason: string;
+    priority: RecommendationPriority;
+    estimatedMinutes: number;
+    targetUrl?: string;
+    metadata?: {
+        resourceId?: string;
+        difficulty?: string;
+        confidence?: number;
+    };
+}
+interface RecommendationContext {
+    availableTime: number;
+    currentGoals: string[];
+    recentTopics: string[];
+}
+interface UseRecommendationsOptions {
+    /** Available time in minutes (5-480) */
+    availableTime?: number;
+    /** Max recommendations to fetch (1-20) */
+    limit?: number;
+    /** Filter by recommendation types */
+    types?: RecommendationType[];
+    /** Enable auto-fetch on mount */
+    autoFetch?: boolean;
+    /** Auto-refresh interval (ms) */
+    refreshInterval?: number;
+}
+interface UseRecommendationsReturn {
+    /** List of recommendations */
+    recommendations: LearningRecommendation[];
+    /** Total estimated time for all recommendations */
+    totalEstimatedTime: number;
+    /** When recommendations were generated */
+    generatedAt: string | null;
+    /** Context used for generating recommendations */
+    context: RecommendationContext | null;
+    /** Loading state */
+    isLoading: boolean;
+    /** Error state */
+    error: Error | null;
+    /** Refresh recommendations */
+    refresh: () => Promise<void>;
+    /** Fetch with custom options */
+    fetchRecommendations: (options?: {
+        time?: number;
+        limit?: number;
+        types?: RecommendationType[];
+    }) => Promise<void>;
+}
+declare function useRecommendations(options?: UseRecommendationsOptions): UseRecommendationsReturn;
+
+/**
  * @sam-ai/react - Context Detector Utilities
  * Auto-detection of page context from URL and DOM
  */
@@ -1092,4 +1289,4 @@ declare function emitSAMFormData(detail: SAMFormDataEventDetail, target?: EventT
 
 declare const VERSION = "0.1.0";
 
-export { type CheckIn, type CheckInResponse, type ContextDetectorOptions, type CreateGoalData, type FormAutoFillOptions, type FormSyncOptions, type Goal, type PageContextDetection, type Plan, type PlanStep, type ProgressReport, type Recommendation, type RecommendationBatch, type SAMApiTransportOptions, type SAMApiTransportResponse, SAMContext, type SAMFormDataEventDetail, type SAMPageLink, SAMProvider, type SAMProviderConfig, type SAMProviderState, SAM_FORM_DATA_EVENT, type SkillAssessment, type SubGoal, type UseAgenticOptions, type UseAgenticReturn, type UseSAMActionsReturn, type UseSAMAdaptiveContentOptions, type UseSAMAdaptiveContentReturn, type UseSAMAnalysisReturn, type UseSAMChatReturn, type UseSAMContextReturn, type UseSAMFormAutoDetectOptions, type UseSAMFormAutoDetectReturn, type UseSAMFormAutoFillOptions, type UseSAMFormAutoFillReturn, type UseSAMFormDataEventsOptions, type UseSAMFormDataEventsReturn, type UseSAMFormDataSyncOptions, type UseSAMFormDataSyncReturn, type UseSAMFormReturn, type UseSAMPageLinksOptions, type UseSAMPageLinksReturn, type UseSAMPracticeProblemsOptions, type UseSAMPracticeProblemsReturn, type UseSAMReturn, type UseSAMSocraticDialogueOptions, type UseSAMSocraticDialogueReturn, VERSION, contextDetector, createContextDetector, emitSAMFormData, getCapabilities, hasCapability, useAgentic, useSAM, useSAMActions, useSAMAdaptiveContent, useSAMAnalysis, useSAMAutoContext, useSAMChat, useSAMContext, useSAMForm, useSAMFormAutoDetect, useSAMFormAutoFill, useSAMFormDataEvents, useSAMFormDataSync, useSAMFormSync, useSAMPageContext, useSAMPageLinks, useSAMPracticeProblems, useSAMSocraticDialogue };
+export { type BehaviorPattern, type CheckIn, type CheckInResponse, type ContextDetectorOptions, type ConversationTurn, type CreateGoalData, type FormAutoFillOptions, type FormSyncOptions, type Goal, type LearningRecommendation, type LongTermMemory, type MemorySearchOptions, type MemorySearchResult, type PageContextDetection, type PatternType, type Plan, type PlanStep, type ProgressReport, type Recommendation, type RecommendationBatch, type RecommendationContext, type RecommendationPriority, type RecommendationType, type SAMApiTransportOptions, type SAMApiTransportResponse, SAMContext, type SAMFormDataEventDetail, type SAMPageLink, SAMProvider, type SAMProviderConfig, type SAMProviderState, SAM_FORM_DATA_EVENT, type SkillAssessment, type StoreConversationData, type StoreMemoryData, type SubGoal, type UseAgenticOptions, type UseAgenticReturn, type UseBehaviorPatternsOptions, type UseBehaviorPatternsReturn, type UseRecommendationsOptions, type UseRecommendationsReturn, type UseSAMActionsReturn, type UseSAMAdaptiveContentOptions, type UseSAMAdaptiveContentReturn, type UseSAMAnalysisReturn, type UseSAMChatReturn, type UseSAMContextReturn, type UseSAMFormAutoDetectOptions, type UseSAMFormAutoDetectReturn, type UseSAMFormAutoFillOptions, type UseSAMFormAutoFillReturn, type UseSAMFormDataEventsOptions, type UseSAMFormDataEventsReturn, type UseSAMFormDataSyncOptions, type UseSAMFormDataSyncReturn, type UseSAMFormReturn, type UseSAMPageLinksOptions, type UseSAMPageLinksReturn, type UseSAMPracticeProblemsOptions, type UseSAMPracticeProblemsReturn, type UseSAMReturn, type UseSAMSocraticDialogueOptions, type UseSAMSocraticDialogueReturn, VERSION, contextDetector, createContextDetector, emitSAMFormData, getCapabilities, hasCapability, useAgentic, useBehaviorPatterns, useRecommendations, useSAM, useSAMActions, useSAMAdaptiveContent, useSAMAnalysis, useSAMAutoContext, useSAMChat, useSAMContext, useSAMForm, useSAMFormAutoDetect, useSAMFormAutoFill, useSAMFormDataEvents, useSAMFormDataSync, useSAMFormSync, useSAMMemory, useSAMPageContext, useSAMPageLinks, useSAMPracticeProblems, useSAMSocraticDialogue };

@@ -29,6 +29,7 @@ import {
   Award,
 } from 'lucide-react';
 import { LearningNotificationBell } from '@/app/dashboard/user/_components/learning-command-center/notifications';
+import { PresenceIndicator, StudyStatusBadge } from '@/components/sam/presence';
 import { signOut } from 'next-auth/react';
 import type { User as NextAuthUser } from 'next-auth';
 import { cn } from '@/lib/utils';
@@ -444,8 +445,14 @@ export function SmartHeader({
                   <Search className="h-5 w-5" />
                 </motion.button>
 
+                {/* SAM Study Status Badge */}
+                <StudyStatusBadge compact />
+
                 {/* Learning Notifications */}
                 <LearningNotificationBell />
+
+                {/* SAM Presence Indicator */}
+                <PresenceIndicator asBadge />
 
                 {/* User Menu - Icon Only */}
                 <div className="relative">

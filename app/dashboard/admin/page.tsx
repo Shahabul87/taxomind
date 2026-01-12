@@ -4,6 +4,14 @@ import { RecentActivity } from "./_components/RecentActivity";
 import { QuickActions } from "./_components/QuickActions";
 import { SystemStatus } from "./_components/SystemStatus";
 import { CreateAdminSection } from "./_components/CreateAdminSection";
+
+// SAM AI Observability Components
+import {
+  SAMHealthDashboard,
+  ToolExecutionLog,
+  QualityMetricsPanel,
+} from "@/components/sam/observability";
+
 import { db } from "@/lib/db";
 import { adminAuth } from "@/auth.admin";
 import type { DashboardStats as StatsType } from "@/app/api/admin/dashboard/stats/route";
@@ -304,6 +312,33 @@ export default async function AdminPage() {
           activeSessions={stats.activeSessions}
           pendingReports={stats.pendingReports}
         />
+
+        {/* SAM AI Observability Section */}
+        <div className="space-y-3 sm:space-y-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+              <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </span>
+            SAM AI System Monitoring
+          </h2>
+
+          {/* SAM Health Dashboard - Full Width */}
+          <SAMHealthDashboard />
+
+          {/* Tool Execution Log & Quality Metrics */}
+          <div className="grid gap-3 sm:gap-6 lg:grid-cols-2">
+            <ToolExecutionLog
+              limit={20}
+              refreshInterval={30000}
+              showFilters={true}
+            />
+            <QualityMetricsPanel
+              refreshInterval={60000}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
