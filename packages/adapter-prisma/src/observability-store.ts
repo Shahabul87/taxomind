@@ -301,6 +301,94 @@ export class PrismaToolTelemetryStore {
     };
   }
 
+  /**
+   * Query tool executions with filters
+   */
+  async queryExecutions(options: {
+    startTime?: Date;
+    endTime?: Date;
+    toolId?: string;
+    toolName?: string;
+    userId?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ToolExecutionEvent[]> {
+    const where: Record<string, unknown> = {};
+
+    if (options.startTime || options.endTime) {
+      where.createdAt = {};
+      if (options.startTime) {
+        (where.createdAt as Record<string, unknown>).gte = options.startTime;
+      }
+      if (options.endTime) {
+        (where.createdAt as Record<string, unknown>).lte = options.endTime;
+      }
+    }
+
+    if (options.toolId) {
+      where.toolId = options.toolId;
+    }
+
+    if (options.toolName) {
+      where.toolName = { contains: options.toolName, mode: 'insensitive' };
+    }
+
+    if (options.userId) {
+      where.userId = options.userId;
+    }
+
+    if (options.status) {
+      where.status = options.status;
+    }
+
+    const records = await this.prisma.sAMToolExecution.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: options.limit ?? 50,
+      skip: options.offset ?? 0,
+    });
+
+    return records.map(record => this.mapRecordToEvent(record));
+  }
+
+  /**
+   * Count tool executions matching filters
+   */
+  async countExecutions(options: {
+    startTime?: Date;
+    endTime?: Date;
+    toolId?: string;
+    userId?: string;
+    status?: string;
+  }): Promise<number> {
+    const where: Record<string, unknown> = {};
+
+    if (options.startTime || options.endTime) {
+      where.createdAt = {};
+      if (options.startTime) {
+        (where.createdAt as Record<string, unknown>).gte = options.startTime;
+      }
+      if (options.endTime) {
+        (where.createdAt as Record<string, unknown>).lte = options.endTime;
+      }
+    }
+
+    if (options.toolId) {
+      where.toolId = options.toolId;
+    }
+
+    if (options.userId) {
+      where.userId = options.userId;
+    }
+
+    if (options.status) {
+      where.status = options.status;
+    }
+
+    return this.prisma.sAMToolExecution.count({ where });
+  }
+
   private mapRecordToEvent(record: ToolExecutionRecord): ToolExecutionEvent {
     return {
       executionId: record.id,

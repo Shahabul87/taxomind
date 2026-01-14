@@ -1068,6 +1068,14 @@ jest.mock('framer-motion', () => {
 });
 
 // ===========================
+// SAM AGENTIC MOCKS
+// ===========================
+
+// @sam-ai/agentic is mocked via moduleNameMapper in jest.config.working.js
+// pointing to __mocks__/@sam-ai/agentic/index.js
+// This allows tests to control mock behavior via globalThis.__mockBehaviorMonitor
+
+// ===========================
 // CLEANUP
 // ===========================
 

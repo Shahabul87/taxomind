@@ -181,24 +181,260 @@ export async function awardAchievement(userId: string, achievementId: string): P
 }
 
 /**
- * Get active challenges (stub - challenges need a dedicated model)
+ * Get active challenges using User.samActiveChallenges JSON field
  */
 export async function getActiveChallenges(userId: string): Promise<Challenge[]> {
-  // Note: Challenges require a dedicated Prisma model
-  // For now, return demo data when requested
-  logger.debug('SAM Achievements: Get active challenges', { userId });
-  return [];
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        samActiveChallenges: true,
+        samChallengeStartDate: true,
+      },
+    });
+
+    if (!user?.samActiveChallenges) {
+      // No active challenges - generate daily/weekly challenges
+      const newChallenges = await generateChallengesForUser(userId);
+      return newChallenges;
+    }
+
+    // Parse stored challenges
+    const storedChallenges = user.samActiveChallenges as unknown as StoredChallenge[];
+
+    // Filter out expired challenges
+    const now = new Date();
+    const activeChallenges = storedChallenges.filter((c) => {
+      const endDate = new Date(c.endDate);
+      return endDate > now;
+    });
+
+    // If all challenges expired, generate new ones
+    if (activeChallenges.length === 0) {
+      return await generateChallengesForUser(userId);
+    }
+
+    return activeChallenges.map(mapStoredToChallenge);
+  } catch (error) {
+    logger.error('SAM Achievements: Failed to get active challenges', { userId, error });
+    return [];
+  }
+}
+
+interface StoredChallenge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+  category: 'daily' | 'weekly' | 'monthly' | 'special';
+  points: number;
+  bonusMultiplier?: number;
+  requirementType: string;
+  requirementTarget: number;
+  currentProgress: number;
+  startDate: string;
+  endDate: string;
+}
+
+function mapStoredToChallenge(stored: StoredChallenge): Challenge {
+  return {
+    id: stored.id,
+    name: stored.name,
+    description: stored.description,
+    icon: stored.icon,
+    difficulty: stored.difficulty,
+    duration: Math.ceil((new Date(stored.endDate).getTime() - Date.now()) / (1000 * 60 * 60)),
+    category: stored.category,
+    points: stored.points,
+    bonusMultiplier: stored.bonusMultiplier,
+    requirements: {
+      type: stored.requirementType as Challenge['requirements']['type'],
+      target: stored.requirementTarget,
+    },
+    rewards: {
+      points: stored.points,
+    },
+  };
 }
 
 /**
- * Update challenge progress (stub - challenges need a dedicated model)
+ * Generate new challenges for a user
+ */
+async function generateChallengesForUser(userId: string): Promise<Challenge[]> {
+  const now = new Date();
+  const dailyEnd = new Date(now);
+  dailyEnd.setHours(23, 59, 59, 999);
+
+  const weeklyEnd = new Date(now);
+  weeklyEnd.setDate(weeklyEnd.getDate() + (7 - weeklyEnd.getDay()));
+  weeklyEnd.setHours(23, 59, 59, 999);
+
+  const dailyChallenges: StoredChallenge[] = [
+    {
+      id: `daily-learn-${now.toISOString().split('T')[0]}`,
+      name: 'Daily Learner',
+      description: 'Complete 3 learning sessions today',
+      icon: '📚',
+      difficulty: 'easy',
+      category: 'daily',
+      points: 50,
+      bonusMultiplier: 1.5,
+      requirementType: 'form_completion',
+      requirementTarget: 3,
+      currentProgress: 0,
+      startDate: now.toISOString(),
+      endDate: dailyEnd.toISOString(),
+    },
+    {
+      id: `daily-ai-${now.toISOString().split('T')[0]}`,
+      name: 'AI Explorer',
+      description: 'Ask SAM 5 questions today',
+      icon: '🤖',
+      difficulty: 'easy',
+      category: 'daily',
+      points: 30,
+      requirementType: 'use_ai',
+      requirementTarget: 5,
+      currentProgress: 0,
+      startDate: now.toISOString(),
+      endDate: dailyEnd.toISOString(),
+    },
+  ];
+
+  const weeklyChallenges: StoredChallenge[] = [
+    {
+      id: `weekly-streak-${now.toISOString().split('T')[0]}`,
+      name: 'Consistency Champion',
+      description: 'Maintain a 7-day learning streak',
+      icon: '🔥',
+      difficulty: 'medium',
+      category: 'weekly',
+      points: 200,
+      bonusMultiplier: 2,
+      requirementType: 'streak_maintenance',
+      requirementTarget: 7,
+      currentProgress: 0,
+      startDate: now.toISOString(),
+      endDate: weeklyEnd.toISOString(),
+    },
+    {
+      id: `weekly-improve-${now.toISOString().split('T')[0]}`,
+      name: 'Skill Builder',
+      description: 'Improve mastery by 10% in any topic',
+      icon: '📈',
+      difficulty: 'hard',
+      category: 'weekly',
+      points: 300,
+      requirementType: 'improvement',
+      requirementTarget: 10,
+      currentProgress: 0,
+      startDate: now.toISOString(),
+      endDate: weeklyEnd.toISOString(),
+    },
+  ];
+
+  const allChallenges = [...dailyChallenges, ...weeklyChallenges];
+
+  // Store the new challenges
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        samActiveChallenges: allChallenges as unknown as Record<string, unknown>[],
+        samChallengeStartDate: now,
+      },
+    });
+  } catch (error) {
+    logger.error('SAM Achievements: Failed to store challenges', { userId, error });
+  }
+
+  return allChallenges.map(mapStoredToChallenge);
+}
+
+/**
+ * Update challenge progress for a user
  */
 export async function updateChallengeProgress(
   userId: string,
   challengeId: string,
-  progress: number
-): Promise<void> {
-  logger.debug('SAM Achievements: Update challenge progress', { userId, challengeId, progress });
+  progressIncrement: number
+): Promise<{ completed: boolean; challenge?: Challenge }> {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        samActiveChallenges: true,
+        samCompletedChallenges: true,
+      },
+    });
+
+    if (!user?.samActiveChallenges) {
+      return { completed: false };
+    }
+
+    const activeChallenges = user.samActiveChallenges as unknown as StoredChallenge[];
+    const challengeIndex = activeChallenges.findIndex((c) => c.id === challengeId);
+
+    if (challengeIndex === -1) {
+      return { completed: false };
+    }
+
+    const challenge = activeChallenges[challengeIndex];
+    challenge.currentProgress += progressIncrement;
+
+    const isCompleted = challenge.currentProgress >= challenge.requirementTarget;
+
+    if (isCompleted) {
+      // Move to completed challenges
+      const completedChallenges = (user.samCompletedChallenges as unknown as StoredChallenge[]) || [];
+      completedChallenges.push(challenge);
+
+      // Remove from active
+      activeChallenges.splice(challengeIndex, 1);
+
+      await db.user.update({
+        where: { id: userId },
+        data: {
+          samActiveChallenges: activeChallenges as unknown as Record<string, unknown>[],
+          samCompletedChallenges: completedChallenges as unknown as Record<string, unknown>[],
+          samTotalPoints: { increment: challenge.points * (challenge.bonusMultiplier || 1) },
+        },
+      });
+
+      logger.info('SAM Achievements: Challenge completed', {
+        userId,
+        challengeId,
+        points: challenge.points,
+      });
+
+      return { completed: true, challenge: mapStoredToChallenge(challenge) };
+    }
+
+    // Update progress
+    await db.user.update({
+      where: { id: userId },
+      data: {
+        samActiveChallenges: activeChallenges as unknown as Record<string, unknown>[],
+      },
+    });
+
+    logger.debug('SAM Achievements: Challenge progress updated', {
+      userId,
+      challengeId,
+      progress: challenge.currentProgress,
+      target: challenge.requirementTarget,
+    });
+
+    return { completed: false };
+  } catch (error) {
+    logger.error('SAM Achievements: Failed to update challenge progress', {
+      userId,
+      challengeId,
+      error,
+    });
+    return { completed: false };
+  }
 }
 
 /**

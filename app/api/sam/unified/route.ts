@@ -645,7 +645,7 @@ export async function POST(request: NextRequest) {
 
         // Get memory session context for enriched tutoring context
         try {
-          const memorySystem = getAgenticMemorySystem();
+          const memorySystem = await getAgenticMemorySystem();
           const courseIdForContext = pageContext.entityId ?? undefined;
           memorySessionContext = await memorySystem.sessionContext.getOrCreateContext(
             user.id,
@@ -894,7 +894,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const memorySystem = getAgenticMemorySystem();
+        const memorySystem = await getAgenticMemorySystem();
         const courseIdForMemory = entityContext.course?.id
           ?? entityContext.chapter?.courseId
           ?? entityContext.section?.courseId
@@ -1154,7 +1154,7 @@ export async function POST(request: NextRequest) {
         // Store learning interactions in memory for future context
         if (memorySessionContext && loopResult) {
           try {
-            const memorySystem = getAgenticMemorySystem();
+            const memorySystem = await getAgenticMemorySystem();
             const courseIdForMemory = pageContext.entityId ?? undefined;
 
             // Record concept as learned when step completes

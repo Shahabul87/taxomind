@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-11T22:30:52.618Z
+// Generated: 2026-01-14T07:58:54.427Z
 // Source: 23 domain files
 // ==========================================
 
@@ -1678,6 +1678,9 @@ model User {
   samPushQueue               SAMPushQueue[]                @relation("SAMPushQueue")
   samPushDeliveryResults     SAMPushDeliveryResult[]       @relation("SAMPushDeliveryResults")
 
+  // Push Notification Device Tokens (Phase 4 - Multi-channel Notifications)
+  deviceTokens               UserDeviceToken[]             @relation("UserDeviceTokens")
+
   // Learning Command Center Relations (added January 2026)
   learningActivities         LearningActivity[]            @relation("UserLearningActivities")
   dailyLearningLogs          DailyLearningLog[]            @relation("UserDailyLearningLogs")
@@ -1695,6 +1698,23 @@ model User {
   skillBuildRoadmaps         SkillBuildRoadmap[]           @relation("SkillBuildRoadmaps")
   skillBuildPracticeLogs     SkillBuildPracticeLog[]       @relation("SkillBuildPracticeLogs")
   skillBuildAchievements     SkillBuildAchievement[]       @relation("SkillBuildAchievements")
+
+  // SAM Self-Evaluation & Quality Relations (added January 2026)
+  samSelfEvaluationScores    SAMSelfEvaluationScore[]      @relation("SAMSelfEvaluationScores")
+  samVerificationResults     SAMVerificationResult[]       @relation("SAMVerificationResults")
+  samQualityRecords          SAMQualityRecord[]            @relation("SAMQualityRecords")
+  samCalibrationData         SAMCalibrationData[]          @relation("SAMCalibrationData")
+  samSelfCritiques           SAMSelfCritique[]             @relation("SAMSelfCritiques")
+  samLearningEvents          SAMLearningEvent[]            @relation("SAMLearningEvents")
+  samJourneyTimelines        SAMJourneyTimeline[]          @relation("SAMJourneyTimelines")
+
+  // Phase 6: Educational Engine Relations (added January 2026)
+  samMicrolessons            SAMMicrolesson[]              @relation("SAMMicrolessons")
+  samMetacognitionSessions   SAMMetacognitionSession[]     @relation("SAMMetacognitionSessions")
+  samCompetencyAssessments   SAMCompetencyAssessment[]     @relation("SAMCompetencyAssessments")
+  samPeerLearningActivities  SAMPeerLearningActivity[]     @relation("SAMPeerLearningActivities")
+  samIntegrityChecks         SAMIntegrityCheck[]           @relation("SAMIntegrityChecks")
+  samMultimodalInputs        SAMMultimodalInput[]          @relation("SAMMultimodalInputs")
 }
 
 model Account {
@@ -2268,6 +2288,10 @@ model Course {
   // Course Skill Mapping (Phase 3 SAM Fixes)
   courseSkills             CourseSkill[]           @relation("CourseCourseSkills")
 
+  // SAM Meta-Learning & Journey Relations (added January 2026)
+  samLearningEvents        SAMLearningEvent[]      @relation("SAMLearningEventCourses")
+  samJourneyTimelines      SAMJourneyTimeline[]    @relation("SAMJourneyTimelineCourses")
+
   @@index([categoryId])
   @@index([organizationId])
 }
@@ -2410,6 +2434,9 @@ model Section {
 
   // SAM Real-Time Presence Tracking (Phase I)
   samUserPresence        SAMUserPresence[]       @relation("SAMPresenceSections")
+
+  // SAM Meta-Learning Relations (added January 2026)
+  samLearningEvents      SAMLearningEvent[]      @relation("SAMLearningEventSections")
 
   @@index([chapterId])
   @@index([chapterId, position]) // For ordered chapter queries
@@ -6974,6 +7001,11 @@ model UserNotificationPreferences {
   pushNewMessages       Boolean  @default(true)
   pushAchievements      Boolean  @default(true)
 
+  // SMS Notifications
+  smsNotifications      Boolean  @default(false)
+  smsUrgentAlerts       Boolean  @default(false)
+  smsStreakReminders    Boolean  @default(false)
+
   // SAM AI Notifications
   samEnabled            Boolean  @default(true)
   samStudyReminders     Boolean  @default(true)
@@ -8747,6 +8779,733 @@ model SAMPushDeliveryResult {
   @@index([userId, deliveredAt])
   @@index([success, deliveredAt])
   @@map("sam_push_delivery_results")
+}
+
+// ==========================================
+// BACKGROUND JOB MODELS
+// ==========================================
+
+enum SAMJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum SAMJobType {
+  REINDEX
+  KG_REFRESH
+  MEMORY_CLEANUP
+  EMBEDDING_GENERATION
+}
+
+model SAMBackgroundJob {
+  id             String        @id @default(cuid())
+  type           SAMJobType
+  status         SAMJobStatus  @default(PENDING)
+  queue          String        @default("memory")
+  priority       Int           @default(5)
+
+  // Job data
+  data           Json
+
+  // Scheduling
+  scheduledFor   DateTime      @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  // Result
+  result         Json?
+  error          String?       @db.Text
+
+  // Retry
+  attempts       Int           @default(0)
+  maxAttempts    Int           @default(3)
+  lastAttemptAt  DateTime?
+
+  // Timestamps
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status, queue, priority])
+  @@index([status, scheduledFor])
+  @@index([type, status])
+  @@map("sam_background_jobs")
+}
+
+// Reindex job specific tracking
+model SAMReindexJob {
+  id             String        @id @default(cuid())
+  entityType     String        // 'course', 'chapter', 'section'
+  entityId       String
+  courseId       String?
+  changeType     String        @default("update") // 'create', 'update', 'delete'
+
+  // Status
+  status         SAMJobStatus  @default(PENDING)
+  priority       Int           @default(5)
+
+  // Processing
+  processedAt    DateTime?
+  documentsIndexed Int         @default(0)
+  error          String?       @db.Text
+
+  // Timestamps
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status, priority])
+  @@index([entityType, entityId])
+  @@index([courseId])
+  @@map("sam_reindex_jobs")
+}
+
+// ==========================================
+// SELF-EVALUATION MODELS
+// ==========================================
+
+model SAMSelfEvaluationScore {
+  id                     String   @id @default(cuid())
+  userId                 String
+  sessionId              String
+  responseId             String
+  responseType           String
+  overallScore           Float
+  level                  String
+  factors                Json
+  topic                  String?
+  complexity             String
+  shouldVerify           Boolean  @default(false)
+  suggestedDisclaimer    String?  @db.Text
+  alternativeApproaches  String[] @default([])
+  scoredAt               DateTime @default(now())
+  metadata               Json?
+
+  user                   User     @relation("SAMSelfEvaluationScores", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, scoredAt])
+  @@index([responseId])
+  @@map("sam_self_evaluation_scores")
+}
+
+model SAMVerificationResult {
+  id                String   @id @default(cuid())
+  userId            String
+  responseId        String
+  status            String
+  overallAccuracy   Float
+  factChecks        Json
+  totalClaims       Int
+  verifiedClaims    Int
+  contradictedClaims Int
+  sourceValidations Json
+  issues            Json
+  corrections       Json?
+  verifiedAt        DateTime @default(now())
+  expiresAt         DateTime?
+
+  user              User     @relation("SAMVerificationResults", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, verifiedAt])
+  @@index([responseId])
+  @@index([status])
+  @@map("sam_verification_results")
+}
+
+model SAMQualityRecord {
+  id                 String   @id @default(cuid())
+  userId             String
+  sessionId          String
+  responseId         String
+  metrics            Json
+  overallQuality     Float
+  confidenceScore    Float?
+  confidenceAccuracy Float?
+  studentFeedback    Json?
+  expertReview       Json?
+  learningOutcome    Json?
+  recordedAt         DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation("SAMQualityRecords", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt])
+  @@index([responseId])
+  @@map("sam_quality_records")
+}
+
+model SAMCalibrationData {
+  id                 String   @id @default(cuid())
+  userId             String?
+  topic              String?
+  totalResponses     Int
+  expectedAccuracy   Float
+  actualAccuracy     Float
+  calibrationError   Float
+  byConfidenceLevel  Json
+  adjustmentFactor   Float
+  adjustmentDirection String
+  periodStart        DateTime
+  periodEnd          DateTime
+  calculatedAt       DateTime @default(now())
+
+  user               User?    @relation("SAMCalibrationData", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, calculatedAt])
+  @@index([topic])
+  @@map("sam_calibration_data")
+}
+
+model SAMSelfCritique {
+  id               String   @id @default(cuid())
+  userId           String
+  responseId       String
+  overallScore     Float
+  dimensionScores  Json
+  findings         Json
+  criticalFindings Int
+  majorFindings    Int
+  minorFindings    Int
+  improvements     Json
+  topImprovements  Json
+  iteration        Int
+  previousScore    Float?
+  scoreImprovement Float?
+  passed           Boolean
+  passThreshold    Float
+  requiresRevision Boolean
+  critiquedAt      DateTime @default(now())
+  processingTimeMs Int
+
+  user             User     @relation("SAMSelfCritiques", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, critiquedAt])
+  @@index([responseId])
+  @@map("sam_self_critiques")
+}
+
+// ==========================================
+// META-LEARNING MODELS
+// ==========================================
+
+model SAMLearningEvent {
+  id                 String   @id @default(cuid())
+  userId             String
+  sessionId          String
+  eventType          String
+  timestamp          DateTime @default(now())
+  courseId           String?
+  sectionId          String?
+  topic              String?
+  duration           Int?
+  outcome            String?
+  confidence         Float?
+  strategyId         String?
+  strategyApplied    String?
+  responseQuality    Float?
+  studentSatisfaction Float?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+
+  user               User     @relation("SAMLearningEvents", fields: [userId], references: [id], onDelete: Cascade)
+  course             Course?  @relation("SAMLearningEventCourses", fields: [courseId], references: [id], onDelete: Cascade)
+  section            Section? @relation("SAMLearningEventSections", fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([eventType, timestamp])
+  @@map("sam_learning_events")
+}
+
+model SAMLearningPattern {
+  id               String   @id @default(cuid())
+  category         String
+  name             String
+  description      String   @db.Text
+  confidence       String
+  confidenceScore  Float
+  occurrenceCount  Int
+  sampleSize       Int
+  significanceLevel Float
+  contexts         Json
+  triggers         String[] @default([])
+  outcomes         Json
+  successRate      Float
+  avgImpact        Float
+  consistency      Float
+  firstObserved    DateTime
+  lastObserved     DateTime
+  trend            String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([category])
+  @@index([confidenceScore])
+  @@map("sam_learning_patterns")
+}
+
+model SAMLearningStrategy {
+  id               String   @id @default(cuid())
+  name             String
+  description      String   @db.Text
+  effectivenessScore Float
+  successRate      Float
+  engagementImpact Float
+  bestFor          Json
+  notRecommendedFor Json
+  usageCount       Int      @default(0)
+  lastUsed         DateTime @default(now())
+  trend            String
+  avgOutcome       Float
+  stdDevOutcome    Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([effectivenessScore])
+  @@map("sam_learning_strategies")
+}
+
+model SAMMetaLearningInsight {
+  id             String   @id @default(cuid())
+  type           String
+  priority       String
+  title          String
+  description    String   @db.Text
+  evidence       String[] @default([])
+  recommendations Json
+  confidence     Float
+  expectedImpact Float
+  affectedAreas  String[] @default([])
+  timeframe      String
+  generatedAt    DateTime @default(now())
+  validUntil     DateTime?
+  processedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([type, priority])
+  @@index([processedAt])
+  @@map("sam_meta_learning_insights")
+}
+
+// ==========================================
+// JOURNEY TIMELINE MODELS
+// ==========================================
+
+model SAMJourneyTimeline {
+  id           String   @id @default(cuid())
+  userId       String
+  courseId     String?
+  currentPhase String
+  statistics   Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation("SAMJourneyTimelines", fields: [userId], references: [id], onDelete: Cascade)
+  course       Course?  @relation("SAMJourneyTimelineCourses", fields: [courseId], references: [id], onDelete: Cascade)
+  events       SAMJourneyEvent[]
+  milestones   SAMJourneyMilestone[]
+
+  @@index([userId, courseId])
+  @@map("sam_journey_timelines")
+}
+
+model SAMJourneyEvent {
+  id              String   @id @default(cuid())
+  timelineId      String
+  type            String
+  timestamp       DateTime @default(now())
+  data            Json
+  impact          Json
+  relatedEntities String[] @default([])
+
+  timeline        SAMJourneyTimeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+
+  @@index([timelineId, timestamp])
+  @@index([type, timestamp])
+  @@map("sam_journey_events")
+}
+
+model SAMJourneyMilestone {
+  id            String   @id @default(cuid())
+  timelineId    String
+  type          String
+  title         String
+  description   String   @db.Text
+  achievedAt    DateTime?
+  progress      Float    @default(0)
+  requirements  Json
+  rewards       Json
+
+  timeline      SAMJourneyTimeline @relation(fields: [timelineId], references: [id], onDelete: Cascade)
+
+  @@index([timelineId])
+  @@map("sam_journey_milestones")
+}
+
+// ==========================================
+// PHASE 6: EDUCATIONAL ENGINE MODELS
+// ==========================================
+
+// Microlearning - Bite-sized learning modules
+model SAMMicrolesson {
+  id                 String    @id @default(cuid())
+  userId             String
+  topicId            String
+  title              String
+  description        String?   @db.Text
+  duration           Int       // Duration in minutes
+  content            Json      // Array of content blocks (video, text, quiz, interactive)
+  learningObjectives String[]  @default([])
+
+  // Progress tracking
+  status             SAMMicrolessonStatus @default(NOT_STARTED)
+  progress           Float     @default(0)
+  startedAt          DateTime?
+  completedAt        DateTime?
+
+  // Gamification
+  xpReward           Int       @default(10)
+  streakBonus        Int       @default(0)
+
+  // Context
+  courseId           String?
+  chapterId          String?
+  difficulty         SAMDifficulty @default(MEDIUM)
+
+  // Metadata
+  tags               String[]  @default([])
+  metadata           Json?
+
+  // Timestamps
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  user               User      @relation("SAMMicrolessons", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([topicId])
+  @@index([courseId])
+  @@map("sam_microlessons")
+}
+
+enum SAMMicrolessonStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+// Metacognition - Self-reflection and learning awareness
+model SAMMetacognitionSession {
+  id                 String    @id @default(cuid())
+  userId             String
+  sessionId          String    // Learning session reference
+  reflectionType     SAMReflectionType @default(POST_LEARNING)
+
+  // Responses to reflection prompts
+  responses          Json      // Array of {question, answer} pairs
+
+  // AI Analysis results
+  analysis           Json?     // {insights, recommendations, patterns}
+
+  // Cognitive metrics
+  cognitiveLoad      Float?    // 0-100 scale
+  selfAwareness      Float?    // 0-100 scale
+  strategyEffectiveness Float? // 0-100 scale
+
+  // Study habits analysis
+  studyHabits        Json?     // {strengths, weaknesses, suggestions}
+
+  // Timestamps
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  user               User      @relation("SAMMetacognitionSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reflectionType])
+  @@index([sessionId])
+  @@map("sam_metacognition_sessions")
+}
+
+enum SAMReflectionType {
+  PRE_LEARNING
+  DURING_LEARNING
+  POST_LEARNING
+  WEEKLY_REVIEW
+  MONTHLY_REVIEW
+}
+
+// Competency Assessment - Skills framework and career path tracking
+model SAMCompetencyAssessment {
+  id                  String    @id @default(cuid())
+  userId              String
+  competencyFramework String    // Name of the framework (e.g., "Software Engineering", "Data Science")
+
+  // Assessment data
+  assessmentData      Json      // Array of {competencyId, competencyName, score, evidence}
+
+  // Results
+  overallScore        Float?    // 0-100 scale
+  level               SAMCompetencyLevel @default(BEGINNER)
+
+  // Analysis
+  strengths           String[]  @default([])
+  gaps                String[]  @default([])
+  recommendations     String[]  @default([])
+
+  // Career path
+  careerPaths         Json?     // Array of suggested career paths with requirements
+
+  // Portfolio items as evidence
+  portfolioItems      Json?     // Array of {title, url, description, skills}
+
+  // Timestamps
+  assessedAt          DateTime  @default(now())
+  validUntil          DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  user                User      @relation("SAMCompetencyAssessments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, competencyFramework])
+  @@index([assessedAt])
+  @@map("sam_competency_assessments")
+}
+
+enum SAMCompetencyLevel {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+// Peer Learning Activity - Collaborative learning tracking
+model SAMPeerLearningActivity {
+  id                 String    @id @default(cuid())
+  userId             String
+  courseId           String?
+
+  // Activity details
+  activityType       SAMPeerActivityType @default(STUDY_GROUP)
+  title              String
+  description        String?   @db.Text
+
+  // Participants
+  peerIds            String[]  @default([])
+  maxParticipants    Int       @default(5)
+
+  // Status
+  status             SAMPeerActivityStatus @default(ACTIVE)
+
+  // Scheduling
+  scheduledAt        DateTime?
+  startedAt          DateTime?
+  endedAt            DateTime?
+
+  // Outcomes
+  outcomes           Json?     // {summary, learnings, feedback}
+  rating             Float?    // Average rating 1-5
+
+  // Metadata
+  tags               String[]  @default([])
+  metadata           Json?
+
+  // Timestamps
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  user               User      @relation("SAMPeerLearningActivities", fields: [userId], references: [id], onDelete: Cascade)
+  // Note: courseId is stored as a string reference without a direct relation to avoid cross-domain schema issues
+
+  @@index([userId, status])
+  @@index([courseId])
+  @@index([activityType])
+  @@map("sam_peer_learning_activities")
+}
+
+enum SAMPeerActivityType {
+  PEER_REVIEW
+  STUDY_GROUP
+  DISCUSSION
+  COLLABORATION
+  TUTORING
+  MENTORING
+}
+
+enum SAMPeerActivityStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+// Integrity Check - Academic integrity verification
+model SAMIntegrityCheck {
+  id                 String    @id @default(cuid())
+  userId             String
+  assignmentId       String?
+
+  // Content
+  contentHash        String    // Hash of the checked content
+  contentLength      Int       @default(0)
+
+  // Check types performed
+  checkTypes         String[]  @default([]) // ['plagiarism', 'ai-detection', 'consistency']
+
+  // Plagiarism detection
+  plagiarismScore    Float?    // 0-100 (0 = original, 100 = fully plagiarized)
+  plagiarismMatches  Json?     // Array of {source, matchPercentage, matchedText}
+
+  // AI content detection
+  aiDetectionScore   Float?    // 0-100 (0 = human, 100 = AI-generated)
+  aiIndicators       Json?     // {perplexity, burstiness, repetition, etc.}
+
+  // Writing consistency
+  consistencyScore   Float?    // 0-100 (comparison with previous work)
+  consistencyAnalysis Json?    // {styleMetrics, anomalies}
+
+  // Overall verdict
+  overallVerdict     SAMIntegrityVerdict @default(PENDING)
+  riskLevel          SAMIntegrityRisk    @default(LOW)
+
+  // Details
+  details            Json?     // Full analysis details
+  recommendations    String[]  @default([])
+
+  // Timestamps
+  checkedAt          DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+
+  // Relations
+  user               User      @relation("SAMIntegrityChecks", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, checkedAt])
+  @@index([assignmentId])
+  @@index([contentHash])
+  @@index([overallVerdict])
+  @@map("sam_integrity_checks")
+}
+
+enum SAMIntegrityVerdict {
+  PENDING
+  PASSED
+  REVIEW_NEEDED
+  FLAGGED
+  FAILED
+}
+
+enum SAMIntegrityRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Multimodal Input - Processing various input types
+model SAMMultimodalInput {
+  id                 String    @id @default(cuid())
+  userId             String
+
+  // Input details
+  inputType          SAMInputType @default(TEXT)
+  content            String    @db.Text  // Base64 for binary, text for text
+  contentSize        Int       @default(0)
+  mimeType           String?
+
+  // Context
+  courseId           String?
+  topicId            String?
+  questionId         String?
+
+  // Processing status
+  status             SAMProcessingStatus @default(PENDING)
+  processedAt        DateTime?
+
+  // Processing results
+  extractedText      String?   @db.Text
+  analysis           Json?     // Type-specific analysis results
+  confidence         Float?    // Processing confidence 0-1
+
+  // Accessibility
+  transcription      String?   @db.Text  // For audio/video
+  altText            String?   @db.Text  // For images
+
+  // Error handling
+  error              String?   @db.Text
+
+  // Metadata
+  metadata           Json?
+
+  // Timestamps
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  // Relations
+  user               User      @relation("SAMMultimodalInputs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, inputType])
+  @@index([status])
+  @@index([courseId])
+  @@map("sam_multimodal_inputs")
+}
+
+enum SAMInputType {
+  TEXT
+  VOICE
+  IMAGE
+  VIDEO
+  DRAWING
+  DOCUMENT
+  CODE
+}
+
+enum SAMProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ==========================================
+// USER DEVICE TOKEN FOR PUSH NOTIFICATIONS
+// ==========================================
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+model UserDeviceToken {
+  id          String         @id @default(cuid())
+  userId      String
+  token       String         @unique
+  platform    DevicePlatform @default(WEB)
+  deviceName  String?
+  isActive    Boolean        @default(true)
+
+  // Metadata
+  userAgent   String?
+  lastUsedAt  DateTime       @default(now())
+
+  // Timestamps
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  user        User           @relation("UserDeviceTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([token])
+  @@map("user_device_tokens")
 }
 
 // ==========================================

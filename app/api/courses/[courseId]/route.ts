@@ -4,6 +4,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { logCourseUpdate, logCourseDeletion } from '@/lib/audit/course-audit';
+import { queueCourseReindex } from '@/lib/sam/memory-lifecycle-service';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -96,6 +97,11 @@ export async function DELETE(
       deletedAt: new Date().toISOString(),
     }).catch(err => {
       logger.warn("[COURSE_DELETE] Audit logging failed", { error: err });
+    });
+
+    // Queue memory lifecycle reindex for deleted course content
+    await queueCourseReindex(courseId, 'delete').catch(err => {
+      logger.warn("[COURSE_DELETE] Memory reindex queue failed", { error: err });
     });
 
     return NextResponse.json({
@@ -261,6 +267,11 @@ export async function PATCH(
         },
       }).catch(err => {
         logger.warn("[COURSE_PATCH] Audit logging failed", { error: err });
+      });
+
+      // Queue memory lifecycle reindex for updated course content
+      await queueCourseReindex(courseId, 'update').catch(err => {
+        logger.warn("[COURSE_PATCH] Memory reindex queue failed", { error: err });
       });
 
       return NextResponse.json(course);

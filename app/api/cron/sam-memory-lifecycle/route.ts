@@ -8,6 +8,8 @@
  * - Processes pending reindex jobs for course/chapter/section content
  * - Cleans up stale embeddings and expired memory entries
  * - Refreshes knowledge graph relationships
+ * - Background worker job processing
+ * - Memory normalization for LLM context
  *
  * Security: Requires CRON_SECRET authorization header
  */
@@ -15,21 +17,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 import {
   getMemoryLifecycleManager,
   startMemoryLifecycle,
   getLifecycleStats,
+  getFullLifecycleStats,
+  getBackgroundWorker,
+  getKGRefreshScheduler,
+  executeKGRefreshJobs,
+  queueMemoryCleanup,
+  getWorkerStats,
+  getKGRefreshStats,
+  type KGRefreshJobType,
 } from '@/lib/sam/memory-lifecycle-service';
-import { getMemoryStores } from '@/lib/sam/taxomind-context';
 
 // Cron secret for authorization (set in environment variables)
 const CRON_SECRET = process.env.CRON_SECRET;
 
 // Request body schema for manual triggers
 const ManualTriggerSchema = z.object({
-  action: z.enum(['process', 'cleanup', 'stats', 'start', 'stop']).optional().default('process'),
+  action: z.enum([
+    'process',
+    'cleanup',
+    'stats',
+    'full_stats',
+    'start',
+    'stop',
+    'worker_status',
+    'kg_refresh',
+    'kg_stats',
+  ]).optional().default('process'),
   maxJobs: z.number().min(1).max(100).optional().default(50),
   cleanupDays: z.number().min(1).max(365).optional().default(30),
+  kgRefreshType: z.enum([
+    'full_rebuild',
+    'incremental',
+    'relationship_check',
+    'stale_pruning',
+    'consistency_check',
+  ]).optional().default('incremental'),
 });
 
 /**
@@ -67,10 +94,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if memory lifecycle feature is enabled
+    if (!SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED) {
+      logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Memory lifecycle feature is disabled');
+      return NextResponse.json({
+        success: true,
+        data: {
+          skipped: true,
+          reason: 'MEMORY_LIFECYCLE_ENABLED feature flag is false',
+          hint: 'Set SAM_MEMORY_LIFECYCLE=true in environment to enable',
+        },
+      });
+    }
+
     logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Starting scheduled run');
 
     // Initialize lifecycle manager if not already initialized
-    const manager = getMemoryLifecycleManager();
+    const manager = await getMemoryLifecycleManager();
 
     // Process pending jobs
     const results = await manager.processJobs();
@@ -126,7 +166,16 @@ export async function GET(request: NextRequest) {
  * POST /api/cron/sam-memory-lifecycle
  *
  * Manual trigger endpoint for specific actions.
- * Supports: process, cleanup, stats, start, stop
+ * Supports:
+ * - process: Process pending reindex jobs
+ * - cleanup: Queue memory cleanup job (requires cleanupDays param)
+ * - stats: Get basic lifecycle stats
+ * - full_stats: Get comprehensive stats for all components
+ * - start: Start all lifecycle components
+ * - stop: Stop all lifecycle components
+ * - worker_status: Get background worker status and queue stats
+ * - kg_refresh: Execute KG refresh (requires kgRefreshType param)
+ * - kg_stats: Get KG refresh scheduler stats
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -156,11 +205,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { action, cleanupDays } = parseResult.data;
+    const { action, cleanupDays, kgRefreshType } = parseResult.data;
 
-    logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Manual trigger', { action, cleanupDays });
+    logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Manual trigger', { action, cleanupDays, kgRefreshType });
 
-    const manager = getMemoryLifecycleManager();
+    const manager = await getMemoryLifecycleManager();
 
     switch (action) {
       case 'process': {
@@ -185,37 +234,43 @@ export async function POST(request: NextRequest) {
       }
 
       case 'cleanup': {
-        // Cleanup old memory entries
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - cleanupDays);
+        // Queue cleanup job via background worker
+        logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Queuing cleanup job', { cleanupDays });
 
-        // Note: Actual cleanup depends on store implementation
-        let cleanedCount = 0;
-        try {
-          logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Cleanup initiated', {
-            cutoffDate: cutoffDate.toISOString(),
-            cleanupDays,
-          });
-
-          // Placeholder - actual cleanup would be implemented in the vector adapter
-          cleanedCount = 0;
-        } catch (cleanupError) {
-          logger.warn('[SAM_MEMORY_LIFECYCLE_CRON] Cleanup error', {
-            error: cleanupError instanceof Error ? cleanupError.message : 'Unknown',
-          });
-        }
-
+        const cleanupJob = await queueMemoryCleanup(cleanupDays);
         const duration = Date.now() - startTime;
 
-        return NextResponse.json({
-          success: true,
-          data: {
-            action: 'cleanup',
-            cleanupDays,
-            entriesCleaned: cleanedCount,
-            durationMs: duration,
-          },
-        });
+        if (cleanupJob) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              action: 'cleanup',
+              cleanupDays,
+              jobQueued: true,
+              jobId: cleanupJob.id,
+              durationMs: duration,
+            },
+          });
+        } else {
+          // Fallback: Direct cleanup if worker not available
+          const cutoffDate = new Date();
+          cutoffDate.setDate(cutoffDate.getDate() - cleanupDays);
+
+          logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Worker not available, running direct cleanup', {
+            cutoffDate: cutoffDate.toISOString(),
+          });
+
+          return NextResponse.json({
+            success: true,
+            data: {
+              action: 'cleanup',
+              cleanupDays,
+              jobQueued: false,
+              message: 'Worker not available, cleanup will run on next job processing',
+              durationMs: duration,
+            },
+          });
+        }
       }
 
       case 'stats': {
@@ -265,6 +320,134 @@ export async function POST(request: NextRequest) {
           data: {
             action: 'stop',
             isRunning: statsResult.isRunning,
+            durationMs: duration,
+          },
+        });
+      }
+
+      case 'full_stats': {
+        // Return comprehensive stats for all components
+        const fullStats = await getFullLifecycleStats();
+        const pendingJobs = await manager.getPendingJobs(100);
+        const duration = Date.now() - startTime;
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            action: 'full_stats',
+            ...fullStats,
+            pendingJobsCount: pendingJobs.length,
+            durationMs: duration,
+          },
+        });
+      }
+
+      case 'worker_status': {
+        // Return worker-specific stats
+        const worker = await getBackgroundWorker();
+        const workerStats = getWorkerStats();
+        const duration = Date.now() - startTime;
+
+        if (!worker || !workerStats) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              action: 'worker_status',
+              available: false,
+              message: 'Background worker not initialized',
+              durationMs: duration,
+            },
+          });
+        }
+
+        // Get queue stats
+        const memoryQueue = worker.getQueue('memory');
+        const kgQueue = worker.getQueue('kg');
+        const memoryQueueStats = memoryQueue ? await memoryQueue.getStats() : null;
+        const kgQueueStats = kgQueue ? await kgQueue.getStats() : null;
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            action: 'worker_status',
+            available: true,
+            worker: workerStats,
+            queues: {
+              memory: memoryQueueStats,
+              kg: kgQueueStats,
+            },
+            durationMs: duration,
+          },
+        });
+      }
+
+      case 'kg_refresh': {
+        // Trigger KG refresh
+        logger.info('[SAM_MEMORY_LIFECYCLE_CRON] Executing KG refresh', { type: kgRefreshType });
+
+        const scheduler = await getKGRefreshScheduler();
+        if (!scheduler) {
+          const duration = Date.now() - startTime;
+          return NextResponse.json({
+            success: false,
+            data: {
+              action: 'kg_refresh',
+              available: false,
+              message: 'KG refresh scheduler not initialized',
+              durationMs: duration,
+            },
+          });
+        }
+
+        // Schedule and execute the refresh
+        await scheduler.scheduleRefresh(kgRefreshType as KGRefreshJobType);
+        const results = await executeKGRefreshJobs();
+        const kgStats = await getKGRefreshStats();
+        const duration = Date.now() - startTime;
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            action: 'kg_refresh',
+            refreshType: kgRefreshType,
+            jobsExecuted: results.length,
+            results: results.map(r => ({
+              entitiesProcessed: r.entitiesProcessed,
+              relationshipsProcessed: r.relationshipsProcessed,
+              staleRelationshipsPruned: r.staleRelationshipsPruned,
+              inconsistenciesFound: r.inconsistenciesFound,
+              inconsistenciesFixed: r.inconsistenciesFixed,
+              duration: r.duration,
+            })),
+            stats: kgStats,
+            durationMs: duration,
+          },
+        });
+      }
+
+      case 'kg_stats': {
+        // Return KG refresh scheduler stats
+        const kgStats = await getKGRefreshStats();
+        const duration = Date.now() - startTime;
+
+        if (!kgStats) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              action: 'kg_stats',
+              available: false,
+              message: 'KG refresh scheduler not initialized',
+              durationMs: duration,
+            },
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            action: 'kg_stats',
+            available: true,
+            stats: kgStats,
             durationMs: duration,
           },
         });

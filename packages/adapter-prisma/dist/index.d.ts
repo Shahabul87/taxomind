@@ -1,5 +1,5 @@
 import { SAMDatabaseAdapter, QueryOptions, SAMUser, SAMCourse, SAMChapter, SAMSection, SAMQuestion, SAMBloomsProgress, SAMCognitiveProgress, SAMInteractionLog, SAMCourseAnalysis, TransactionContext } from '@sam-ai/core';
-import { PresenceStore, UserPresence, PresenceStatus, PushQueueStore, PushDeliveryRequest, PushDeliveryResult, PushQueueStats, ToolExecutionEvent, ToolMetrics, ConfidencePredictionStore, ConfidencePrediction, ConfidenceOutcome, CalibrationMetrics, MemoryRetrievalEvent, MemoryQualityMetrics, PlanLifecycleEvent } from '@sam-ai/agentic';
+import { ConfidenceScoreStore, ConfidenceScore, ConfidenceLevel, VerificationResultStore, VerificationResult, IssueType, QualityRecordStore, QualityRecord, StudentFeedback, LearningOutcome, QualitySummary, CalibrationStore, CalibrationData, SelfCritiqueStore, SelfCritiqueResult, SelfCritiqueLoopResult, LearningPatternStore, LearningPattern, MetaLearningInsightStore, MetaLearningInsight, InsightType, InsightPriority, LearningStrategyStore, LearningStrategy, LearningEventStore, LearningEvent, AnalyticsPeriod, EventStats, JourneyTimelineStore, JourneyTimeline, JourneyEvent, JourneyEventType, JourneyMilestone, PresenceStore, UserPresence, PresenceStatus, PushQueueStore, PushDeliveryRequest, PushDeliveryResult, PushQueueStats, ToolExecutionEvent, ToolMetrics, ConfidencePredictionStore, ConfidencePrediction, ConfidenceOutcome, CalibrationMetrics, MemoryRetrievalEvent, MemoryQualityMetrics, PlanLifecycleEvent } from '@sam-ai/agentic';
 
 /**
  * Prisma SAM Database Adapter
@@ -400,6 +400,418 @@ declare class PrismaMemoryStore implements MemoryStore {
 declare function createPrismaMemoryStore(config: PrismaMemoryStoreConfig): PrismaMemoryStore;
 
 /**
+ * @sam-ai/adapter-prisma - Self-Evaluation Stores
+ * Prisma-backed implementations for confidence scoring, verification, quality tracking, and self-critique.
+ */
+
+interface PrismaSelfEvaluationStoreConfig {
+    prisma: PrismaClient$5;
+}
+type PrismaClient$5 = {
+    sAMSelfEvaluationScore: {
+        create: (args: Record<string, unknown>) => Promise<SelfEvaluationScoreRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<SelfEvaluationScoreRecord | null>;
+        findFirst: (args: Record<string, unknown>) => Promise<SelfEvaluationScoreRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<SelfEvaluationScoreRecord[]>;
+        update: (args: Record<string, unknown>) => Promise<SelfEvaluationScoreRecord>;
+    };
+    sAMVerificationResult: {
+        create: (args: Record<string, unknown>) => Promise<VerificationResultRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<VerificationResultRecord | null>;
+        findFirst: (args: Record<string, unknown>) => Promise<VerificationResultRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<VerificationResultRecord[]>;
+        update: (args: Record<string, unknown>) => Promise<VerificationResultRecord>;
+    };
+    sAMQualityRecord: {
+        create: (args: Record<string, unknown>) => Promise<QualityRecordRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<QualityRecordRecord | null>;
+        findFirst: (args: Record<string, unknown>) => Promise<QualityRecordRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<QualityRecordRecord[]>;
+        update: (args: Record<string, unknown>) => Promise<QualityRecordRecord>;
+    };
+    sAMCalibrationData: {
+        create: (args: Record<string, unknown>) => Promise<CalibrationRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<CalibrationRecord | null>;
+        findFirst: (args: Record<string, unknown>) => Promise<CalibrationRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<CalibrationRecord[]>;
+    };
+    sAMSelfCritique: {
+        create: (args: Record<string, unknown>) => Promise<SelfCritiqueRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<SelfCritiqueRecord | null>;
+        findFirst: (args: Record<string, unknown>) => Promise<SelfCritiqueRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<SelfCritiqueRecord[]>;
+        update: (args: Record<string, unknown>) => Promise<SelfCritiqueRecord>;
+    };
+};
+interface SelfEvaluationScoreRecord {
+    id: string;
+    userId: string;
+    sessionId: string;
+    responseId: string;
+    responseType: string;
+    overallScore: number;
+    level: string;
+    factors: unknown;
+    topic: string | null;
+    complexity: string;
+    shouldVerify: boolean;
+    suggestedDisclaimer: string | null;
+    alternativeApproaches: string[];
+    scoredAt: Date;
+    metadata: unknown;
+}
+interface VerificationResultRecord {
+    id: string;
+    userId: string;
+    responseId: string;
+    status: string;
+    overallAccuracy: number;
+    factChecks: unknown;
+    totalClaims: number;
+    verifiedClaims: number;
+    contradictedClaims: number;
+    sourceValidations: unknown;
+    issues: unknown;
+    corrections: unknown;
+    verifiedAt: Date;
+    expiresAt: Date | null;
+}
+interface QualityRecordRecord {
+    id: string;
+    userId: string;
+    sessionId: string;
+    responseId: string;
+    metrics: unknown;
+    overallQuality: number;
+    confidenceScore: number | null;
+    confidenceAccuracy: number | null;
+    studentFeedback: unknown;
+    expertReview: unknown;
+    learningOutcome: unknown;
+    recordedAt: Date;
+    updatedAt: Date;
+}
+interface CalibrationRecord {
+    id: string;
+    userId: string | null;
+    topic: string | null;
+    totalResponses: number;
+    expectedAccuracy: number;
+    actualAccuracy: number;
+    calibrationError: number;
+    byConfidenceLevel: unknown;
+    adjustmentFactor: number;
+    adjustmentDirection: string;
+    periodStart: Date;
+    periodEnd: Date;
+    calculatedAt: Date;
+}
+interface SelfCritiqueRecord {
+    id: string;
+    userId: string;
+    responseId: string;
+    overallScore: number;
+    dimensionScores: unknown;
+    findings: unknown;
+    criticalFindings: number;
+    majorFindings: number;
+    minorFindings: number;
+    improvements: unknown;
+    topImprovements: unknown;
+    iteration: number;
+    previousScore: number | null;
+    scoreImprovement: number | null;
+    passed: boolean;
+    passThreshold: number;
+    requiresRevision: boolean;
+    critiquedAt: Date;
+    processingTimeMs: number;
+}
+declare class PrismaConfidenceScoreStore implements ConfidenceScoreStore {
+    private config;
+    constructor(config: PrismaSelfEvaluationStoreConfig);
+    get(id: string): Promise<ConfidenceScore | null>;
+    getByResponse(responseId: string): Promise<ConfidenceScore | null>;
+    getByUser(userId: string, limit?: number): Promise<ConfidenceScore[]>;
+    create(score: Omit<ConfidenceScore, 'id'>): Promise<ConfidenceScore>;
+    getAverageByTopic(topic: string, since?: Date): Promise<number>;
+    getDistribution(userId?: string): Promise<Record<ConfidenceLevel, number>>;
+}
+declare class PrismaVerificationResultStore implements VerificationResultStore {
+    private config;
+    constructor(config: PrismaSelfEvaluationStoreConfig);
+    get(id: string): Promise<VerificationResult | null>;
+    getByResponse(responseId: string): Promise<VerificationResult | null>;
+    getByUser(userId: string, limit?: number): Promise<VerificationResult[]>;
+    create(result: Omit<VerificationResult, 'id'>): Promise<VerificationResult>;
+    update(id: string, updates: Partial<VerificationResult>): Promise<VerificationResult>;
+    getIssuesByType(type: IssueType, since?: Date): Promise<VerificationResult['issues']>;
+}
+declare class PrismaQualityRecordStore implements QualityRecordStore {
+    private config;
+    constructor(config: PrismaSelfEvaluationStoreConfig);
+    get(id: string): Promise<QualityRecord | null>;
+    getByResponse(responseId: string): Promise<QualityRecord | null>;
+    getByUser(userId: string, limit?: number): Promise<QualityRecord[]>;
+    create(record: Omit<QualityRecord, 'id'>): Promise<QualityRecord>;
+    update(id: string, updates: Partial<QualityRecord>): Promise<QualityRecord>;
+    recordFeedback(responseId: string, feedback: StudentFeedback): Promise<void>;
+    recordOutcome(responseId: string, outcome: LearningOutcome): Promise<void>;
+    getSummary(userId?: string, periodStart?: Date, periodEnd?: Date): Promise<QualitySummary>;
+}
+declare class PrismaCalibrationStore implements CalibrationStore {
+    private config;
+    constructor(config: PrismaSelfEvaluationStoreConfig);
+    get(id: string): Promise<CalibrationData | null>;
+    getLatest(userId?: string, topic?: string): Promise<CalibrationData | null>;
+    create(data: Omit<CalibrationData, 'id'>): Promise<CalibrationData>;
+    getHistory(userId?: string, limit?: number): Promise<CalibrationData[]>;
+}
+declare class PrismaSelfCritiqueStore implements SelfCritiqueStore {
+    private config;
+    constructor(config: PrismaSelfEvaluationStoreConfig);
+    get(id: string): Promise<SelfCritiqueResult | null>;
+    getByResponse(responseId: string): Promise<SelfCritiqueResult[]>;
+    getByUser(userId: string, limit?: number): Promise<SelfCritiqueResult[]>;
+    create(result: Omit<SelfCritiqueResult, 'id'>): Promise<SelfCritiqueResult>;
+    update(id: string, updates: Partial<SelfCritiqueResult>): Promise<SelfCritiqueResult>;
+    getLoopResult(responseId: string): Promise<SelfCritiqueLoopResult | null>;
+    saveLoopResult(result: SelfCritiqueLoopResult): Promise<void>;
+}
+declare function createPrismaSelfEvaluationStores(config: PrismaSelfEvaluationStoreConfig): {
+    confidenceScore: PrismaConfidenceScoreStore;
+    verificationResult: PrismaVerificationResultStore;
+    qualityRecord: PrismaQualityRecordStore;
+    calibration: PrismaCalibrationStore;
+    selfCritique: PrismaSelfCritiqueStore;
+};
+
+/**
+ * @sam-ai/adapter-prisma - Meta-Learning Stores
+ * Prisma-backed implementations for meta-learning analytics.
+ */
+
+interface PrismaMetaLearningStoreConfig {
+    prisma: PrismaClient$4;
+}
+type PrismaClient$4 = {
+    sAMLearningPattern: {
+        create: (args: Record<string, unknown>) => Promise<LearningPatternRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<LearningPatternRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<LearningPatternRecord[]>;
+        update: (args: Record<string, unknown>) => Promise<LearningPatternRecord>;
+    };
+    sAMMetaLearningInsight: {
+        create: (args: Record<string, unknown>) => Promise<MetaLearningInsightRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<MetaLearningInsightRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<MetaLearningInsightRecord[]>;
+        update: (args: Record<string, unknown>) => Promise<MetaLearningInsightRecord>;
+    };
+    sAMLearningStrategy: {
+        create: (args: Record<string, unknown>) => Promise<LearningStrategyRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<LearningStrategyRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<LearningStrategyRecord[]>;
+        update: (args: Record<string, unknown>) => Promise<LearningStrategyRecord>;
+    };
+    sAMLearningEvent: {
+        create: (args: Record<string, unknown>) => Promise<LearningEventRecord>;
+        findUnique: (args: Record<string, unknown>) => Promise<LearningEventRecord | null>;
+        findMany: (args: Record<string, unknown>) => Promise<LearningEventRecord[]>;
+    };
+};
+interface LearningPatternRecord {
+    id: string;
+    category: string;
+    name: string;
+    description: string;
+    confidence: string;
+    confidenceScore: number;
+    occurrenceCount: number;
+    sampleSize: number;
+    significanceLevel: number;
+    contexts: unknown;
+    triggers: string[];
+    outcomes: unknown;
+    successRate: number;
+    avgImpact: number;
+    consistency: number;
+    firstObserved: Date;
+    lastObserved: Date;
+    trend: string;
+}
+interface MetaLearningInsightRecord {
+    id: string;
+    type: string;
+    priority: string;
+    title: string;
+    description: string;
+    evidence: string[];
+    recommendations: unknown;
+    confidence: number;
+    expectedImpact: number;
+    affectedAreas: string[];
+    timeframe: string;
+    generatedAt: Date;
+    validUntil: Date | null;
+    processedAt: Date | null;
+}
+interface LearningStrategyRecord {
+    id: string;
+    name: string;
+    description: string;
+    effectivenessScore: number;
+    successRate: number;
+    engagementImpact: number;
+    bestFor: unknown;
+    notRecommendedFor: unknown;
+    usageCount: number;
+    lastUsed: Date;
+    trend: string;
+    avgOutcome: number;
+    stdDevOutcome: number;
+}
+interface LearningEventRecord {
+    id: string;
+    userId: string;
+    sessionId: string;
+    eventType: string;
+    timestamp: Date;
+    courseId: string | null;
+    sectionId: string | null;
+    topic: string | null;
+    duration: number | null;
+    outcome: string | null;
+    confidence: number | null;
+    strategyId: string | null;
+    strategyApplied: string | null;
+    responseQuality: number | null;
+    studentSatisfaction: number | null;
+    metadata: unknown;
+}
+declare class PrismaLearningPatternStore implements LearningPatternStore {
+    private config;
+    constructor(config: PrismaMetaLearningStoreConfig);
+    get(id: string): Promise<LearningPattern | null>;
+    getByCategory(category: LearningPattern['category']): Promise<LearningPattern[]>;
+    getHighConfidence(minConfidence?: number): Promise<LearningPattern[]>;
+    create(pattern: Omit<LearningPattern, 'id'>): Promise<LearningPattern>;
+    update(id: string, updates: Partial<LearningPattern>): Promise<LearningPattern>;
+    getRecent(limit?: number): Promise<LearningPattern[]>;
+}
+declare class PrismaMetaLearningInsightStore implements MetaLearningInsightStore {
+    private config;
+    constructor(config: PrismaMetaLearningStoreConfig);
+    get(id: string): Promise<MetaLearningInsight | null>;
+    getByType(type: InsightType): Promise<MetaLearningInsight[]>;
+    getByPriority(priority: InsightPriority): Promise<MetaLearningInsight[]>;
+    getActive(): Promise<MetaLearningInsight[]>;
+    create(insight: Omit<MetaLearningInsight, 'id'>): Promise<MetaLearningInsight>;
+    markProcessed(id: string): Promise<void>;
+}
+declare class PrismaLearningStrategyStore implements LearningStrategyStore {
+    private config;
+    constructor(config: PrismaMetaLearningStoreConfig);
+    get(id: string): Promise<LearningStrategy | null>;
+    getAll(): Promise<LearningStrategy[]>;
+    getTopPerforming(limit?: number): Promise<LearningStrategy[]>;
+    create(strategy: Omit<LearningStrategy, 'id'>): Promise<LearningStrategy>;
+    update(id: string, updates: Partial<LearningStrategy>): Promise<LearningStrategy>;
+    recordUsage(id: string, outcome: number): Promise<void>;
+}
+declare class PrismaLearningEventStore implements LearningEventStore {
+    private config;
+    constructor(config: PrismaMetaLearningStoreConfig);
+    get(id: string): Promise<LearningEvent | null>;
+    getByUser(userId: string, since?: Date): Promise<LearningEvent[]>;
+    create(event: Omit<LearningEvent, 'id'>): Promise<LearningEvent>;
+    getBySession(sessionId: string): Promise<LearningEvent[]>;
+    getStats(userId?: string, period?: typeof AnalyticsPeriod[keyof typeof AnalyticsPeriod]): Promise<EventStats>;
+}
+declare function createPrismaMetaLearningStores(config: PrismaMetaLearningStoreConfig): {
+    learningPattern: PrismaLearningPatternStore;
+    metaLearningInsight: PrismaMetaLearningInsightStore;
+    learningStrategy: PrismaLearningStrategyStore;
+    learningEvent: PrismaLearningEventStore;
+};
+
+/**
+ * @sam-ai/adapter-prisma - Journey Timeline Store
+ * Prisma-backed implementation for learning journey timelines.
+ */
+
+interface PrismaJourneyTimelineStoreConfig {
+    prisma: PrismaClient$3;
+}
+type PrismaClient$3 = {
+    sAMJourneyTimeline: {
+        findFirst: (args: Record<string, unknown>) => Promise<JourneyTimelineRecordWithRelations | null>;
+        findUnique: (args: Record<string, unknown>) => Promise<JourneyTimelineRecordWithRelations | null>;
+        create: (args: Record<string, unknown>) => Promise<JourneyTimelineRecord>;
+        update: (args: Record<string, unknown>) => Promise<JourneyTimelineRecord>;
+        delete: (args: Record<string, unknown>) => Promise<JourneyTimelineRecord>;
+    };
+    sAMJourneyEvent: {
+        create: (args: Record<string, unknown>) => Promise<JourneyEventRecord>;
+        findMany: (args: Record<string, unknown>) => Promise<JourneyEventRecord[]>;
+    };
+    sAMJourneyMilestone: {
+        create: (args: Record<string, unknown>) => Promise<JourneyMilestoneRecord>;
+        update: (args: Record<string, unknown>) => Promise<JourneyMilestoneRecord>;
+        findMany: (args: Record<string, unknown>) => Promise<JourneyMilestoneRecord[]>;
+    };
+};
+interface JourneyTimelineRecord {
+    id: string;
+    userId: string;
+    courseId: string | null;
+    currentPhase: string;
+    statistics: unknown;
+    createdAt: Date;
+    updatedAt: Date;
+}
+interface JourneyEventRecord {
+    id: string;
+    timelineId: string;
+    type: string;
+    timestamp: Date;
+    data: unknown;
+    impact: unknown;
+    relatedEntities: string[];
+}
+interface JourneyMilestoneRecord {
+    id: string;
+    timelineId: string;
+    type: string;
+    title: string;
+    description: string;
+    achievedAt: Date | null;
+    progress: number;
+    requirements: unknown;
+    rewards: unknown;
+}
+interface JourneyTimelineRecordWithRelations extends JourneyTimelineRecord {
+    events?: JourneyEventRecord[];
+    milestones?: JourneyMilestoneRecord[];
+}
+declare class PrismaJourneyTimelineStore implements JourneyTimelineStore {
+    private config;
+    constructor(config: PrismaJourneyTimelineStoreConfig);
+    getById(id: string): Promise<JourneyTimeline | null>;
+    get(userId: string, courseId?: string): Promise<JourneyTimeline | null>;
+    create(timeline: Omit<JourneyTimeline, 'id' | 'createdAt' | 'updatedAt'>): Promise<JourneyTimeline>;
+    update(id: string, updates: Partial<JourneyTimeline>): Promise<JourneyTimeline>;
+    delete(id: string): Promise<boolean>;
+    addEvent(id: string, event: Omit<JourneyEvent, 'id'>): Promise<JourneyEvent>;
+    getEvents(id: string, options?: {
+        types?: JourneyEventType[];
+        limit?: number;
+        offset?: number;
+    }): Promise<JourneyEvent[]>;
+    updateMilestone(_timelineId: string, milestoneId: string, updates: Partial<JourneyMilestone>): Promise<JourneyMilestone>;
+}
+declare function createPrismaJourneyTimelineStore(config: PrismaJourneyTimelineStoreConfig): PrismaJourneyTimelineStore;
+
+/**
  * Prisma Review Schedule Store
  *
  * Database-backed implementation for spaced repetition review schedules.
@@ -781,6 +1193,29 @@ declare class PrismaToolTelemetryStore {
     updateExecution(executionId: string, updates: Partial<ToolExecutionEvent>): Promise<void>;
     getExecution(executionId: string): Promise<ToolExecutionEvent | null>;
     getMetrics(periodStart: Date, periodEnd: Date, toolId?: string): Promise<ToolMetrics>;
+    /**
+     * Query tool executions with filters
+     */
+    queryExecutions(options: {
+        startTime?: Date;
+        endTime?: Date;
+        toolId?: string;
+        toolName?: string;
+        userId?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
+    }): Promise<ToolExecutionEvent[]>;
+    /**
+     * Count tool executions matching filters
+     */
+    countExecutions(options: {
+        startTime?: Date;
+        endTime?: Date;
+        toolId?: string;
+        userId?: string;
+        status?: string;
+    }): Promise<number>;
     private mapRecordToEvent;
 }
 declare class PrismaConfidenceCalibrationStore implements ConfidencePredictionStore {
@@ -965,4 +1400,4 @@ declare function generatePrismaSchema(options?: {
 
 declare const VERSION = "0.1.0";
 
-export { type PrismaClientLike, PrismaConfidenceCalibrationStore, PrismaGoldenTestStore, type PrismaGoldenTestStoreConfig, PrismaMemoryQualityStore, PrismaMemoryStore, type PrismaMemoryStoreConfig, PrismaMetricsStore, type PrismaObservabilityStoreConfig, PrismaPlanLifecycleStore, PrismaPresenceStore, type PrismaPresenceStoreConfig, PrismaPushQueueStore, type PrismaPushQueueStoreConfig, PrismaReviewScheduleStore, type PrismaReviewScheduleStoreConfig, PrismaSAMAdapter, type PrismaSAMAdapterConfig, PrismaSampleStore, type PrismaSampleStoreConfig, PrismaStudentProfileStore, type PrismaStudentProfileStoreConfig, PrismaToolTelemetryStore, type SAMPrismaAdapters, type SAMPrismaAdaptersConfig, SAM_PRISMA_MODELS, VERSION, createPrismaGoldenTestStore, createPrismaMemoryStore, createPrismaObservabilityStores, createPrismaPresenceStore, createPrismaPushQueueStore, createPrismaReviewScheduleStore, createPrismaSAMAdapter, createPrismaSampleStore, createPrismaStudentProfileStore, createSAMPrismaAdapters, generatePrismaSchema };
+export { PrismaCalibrationStore, type PrismaClientLike, PrismaConfidenceCalibrationStore, PrismaConfidenceScoreStore, PrismaGoldenTestStore, type PrismaGoldenTestStoreConfig, PrismaJourneyTimelineStore, type PrismaJourneyTimelineStoreConfig, PrismaLearningEventStore, PrismaLearningPatternStore, PrismaLearningStrategyStore, PrismaMemoryQualityStore, PrismaMemoryStore, type PrismaMemoryStoreConfig, PrismaMetaLearningInsightStore, type PrismaMetaLearningStoreConfig, PrismaMetricsStore, type PrismaObservabilityStoreConfig, PrismaPlanLifecycleStore, PrismaPresenceStore, type PrismaPresenceStoreConfig, PrismaPushQueueStore, type PrismaPushQueueStoreConfig, PrismaQualityRecordStore, PrismaReviewScheduleStore, type PrismaReviewScheduleStoreConfig, PrismaSAMAdapter, type PrismaSAMAdapterConfig, PrismaSampleStore, type PrismaSampleStoreConfig, PrismaSelfCritiqueStore, type PrismaSelfEvaluationStoreConfig, PrismaStudentProfileStore, type PrismaStudentProfileStoreConfig, PrismaToolTelemetryStore, PrismaVerificationResultStore, type SAMPrismaAdapters, type SAMPrismaAdaptersConfig, SAM_PRISMA_MODELS, VERSION, createPrismaGoldenTestStore, createPrismaJourneyTimelineStore, createPrismaMemoryStore, createPrismaMetaLearningStores, createPrismaObservabilityStores, createPrismaPresenceStore, createPrismaPushQueueStore, createPrismaReviewScheduleStore, createPrismaSAMAdapter, createPrismaSampleStore, createPrismaSelfEvaluationStores, createPrismaStudentProfileStore, createSAMPrismaAdapters, generatePrismaSchema };

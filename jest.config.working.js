@@ -45,14 +45,24 @@ const customJestConfig = {
   maxWorkers: 1,
   testTimeout: 30000,
   
-  // Cleanup
+  // Cleanup - disabled resetMocks/resetModules for proper test isolation
   clearMocks: true,
   restoreMocks: true,
-  resetMocks: true,
-  resetModules: true,
+  // resetMocks: true,  // Disabled - breaks mock implementations
+  // resetModules: true, // Disabled - causes module caching issues
   
   // Module mapping - comprehensive
+  // ORDER MATTERS: More specific patterns must come BEFORE general ones
   moduleNameMapper: {
+    // SAM AI packages - MUST come first to intercept before path alias resolution
+    // These map to manual mocks to allow test-specific behavior
+    // We need to mock both the import path AND the resolved symlink path
+    '^@sam-ai/agentic$': '<rootDir>/__mocks__/@sam-ai/agentic/index.js',
+    '^@sam-ai/agentic/(.*)$': '<rootDir>/__mocks__/@sam-ai/agentic/$1.js',
+    // Also mock the direct package paths (for pnpm workspace symlinks)
+    '<rootDir>/packages/agentic/src/index.ts': '<rootDir>/__mocks__/@sam-ai/agentic/index.js',
+    '<rootDir>/packages/agentic/dist/index.js': '<rootDir>/__mocks__/@sam-ai/agentic/index.js',
+
     // Styles
     '^.+\\.(css|sass|scss)$': '<rootDir>/__mocks__/styleMock.js',
 
@@ -71,7 +81,7 @@ const customJestConfig = {
     '^next/image$': '<rootDir>/__mocks__/next-image.js',
     '^next/link$': '<rootDir>/__mocks__/next-link.js',
 
-    // Path aliases
+    // Path aliases - MUST come after specific package mocks
     '^@/(.*)$': '<rootDir>/$1',
   },
   

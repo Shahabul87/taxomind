@@ -176,9 +176,14 @@ export class PredictionCalibrationService {
       logger,
     });
 
+    const qualityStore = getStore('qualityRecord');
+    const calibrationStore = getStore('calibration');
+
     // Create quality tracker
     this.qualityTracker = createQualityTracker({
       logger,
+      qualityStore,
+      calibrationStore,
     });
 
     // Subscribe to calibration alerts

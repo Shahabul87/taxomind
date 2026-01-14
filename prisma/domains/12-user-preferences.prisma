@@ -26,6 +26,11 @@ model UserNotificationPreferences {
   pushNewMessages       Boolean  @default(true)
   pushAchievements      Boolean  @default(true)
 
+  // SMS Notifications
+  smsNotifications      Boolean  @default(false)
+  smsUrgentAlerts       Boolean  @default(false)
+  smsStreakReminders    Boolean  @default(false)
+
   // SAM AI Notifications
   samEnabled            Boolean  @default(true)
   samStudyReminders     Boolean  @default(true)

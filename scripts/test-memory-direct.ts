@@ -53,7 +53,7 @@ async function testMemoryOrchestrationDirect() {
     // Dynamic import to avoid build issues
     const { getAgenticMemorySystem } = await import('../lib/sam/agentic-memory');
 
-    const memorySystem = getAgenticMemorySystem();
+    const memorySystem = await getAgenticMemorySystem();
     console.log('   ✅ Memory system initialized');
 
     // Get or create session context
@@ -132,7 +132,7 @@ async function testMemoryOrchestrationDirect() {
 
     // Prepare tutoring context
     const { getAgenticMemorySystem: getMemory } = await import('../lib/sam/agentic-memory');
-    const memory = getMemory();
+    const memory = await getMemory();
     const sessionCtx = await memory.sessionContext.getOrCreateContext(user.id, undefined);
 
     const tutoringContext = await prepareTutoringContext(

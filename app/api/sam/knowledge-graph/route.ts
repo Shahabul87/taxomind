@@ -322,9 +322,9 @@ export async function GET(req: NextRequest) {
     const userId = query.includeUserProgress ? session.user.id : undefined;
 
     // Lazy-load knowledge graph manager only when needed (requires OPENAI_API_KEY)
-    const getKG = () => {
+    const getKG = async () => {
       try {
-        return getKnowledgeGraphManager();
+        return await getKnowledgeGraphManager();
       } catch (error) {
         logger.warn('[KnowledgeGraphAPI] Knowledge graph manager not available', { error });
         return null;
@@ -404,7 +404,7 @@ export async function GET(req: NextRequest) {
           );
         }
 
-        const kg = getKG();
+        const kg = await getKG();
         if (!kg) {
           return NextResponse.json(
             { error: 'Knowledge graph not available - OPENAI_API_KEY required' },
@@ -480,7 +480,7 @@ export async function GET(req: NextRequest) {
           );
         }
 
-        const kgTraverse = getKG();
+        const kgTraverse = await getKG();
         if (!kgTraverse) {
           return NextResponse.json(
             { error: 'Knowledge graph not available - OPENAI_API_KEY required' },

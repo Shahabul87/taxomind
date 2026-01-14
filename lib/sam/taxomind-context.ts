@@ -19,6 +19,11 @@
 
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import {
+  bootstrapTaxomindIntegration,
+  getTaxomindIntegration,
+  type TaxomindIntegrationContext as AdapterIntegrationContext,
+} from '@sam-ai/adapter-taxomind';
 
 // Import interface types from @sam-ai/agentic for stores that return interface types
 import type {
@@ -54,6 +59,13 @@ import {
   createPrismaLearningPlanStore,
   createPrismaTutoringSessionStore,
   createPrismaSkillBuildTrackStore,
+  // Phase 6: Educational Engine Store Factories
+  createPrismaMicrolearningStore,
+  createPrismaMetacognitionStore,
+  createPrismaCompetencyStore,
+  createPrismaPeerLearningStore,
+  createPrismaIntegrityStore,
+  createPrismaMultimodalStore,
 } from './stores';
 
 // Import adapter-prisma stores for observability, presence, student profile, review schedule, push queue
@@ -63,6 +75,9 @@ import {
   createPrismaStudentProfileStore,
   createPrismaReviewScheduleStore,
   createPrismaPushQueueStore,
+  createPrismaSelfEvaluationStores,
+  createPrismaMetaLearningStores,
+  createPrismaJourneyTimelineStore,
   type PrismaToolTelemetryStore,
   type PrismaConfidenceCalibrationStore,
   type PrismaMemoryQualityStore,
@@ -72,6 +87,16 @@ import {
   type PrismaStudentProfileStore,
   type PrismaReviewScheduleStore,
   type PrismaPushQueueStore,
+  type PrismaConfidenceScoreStore,
+  type PrismaVerificationResultStore,
+  type PrismaQualityRecordStore,
+  type PrismaCalibrationStore,
+  type PrismaSelfCritiqueStore,
+  type PrismaLearningPatternStore,
+  type PrismaMetaLearningInsightStore,
+  type PrismaLearningStrategyStore,
+  type PrismaLearningEventStore,
+  type PrismaJourneyTimelineStore,
 } from '@sam-ai/adapter-prisma';
 
 // Import class types from stores (for stores that return class types)
@@ -95,6 +120,13 @@ import type {
   PrismaLearningPlanStore,
   PrismaTutoringSessionStore,
   PrismaSkillBuildTrackStore,
+  // Phase 6: Educational Engine Store Types
+  PrismaMicrolearningStore,
+  PrismaMetacognitionStore,
+  PrismaCompetencyStore,
+  PrismaPeerLearningStore,
+  PrismaIntegrityStore,
+  PrismaMultimodalStore,
 } from './stores';
 
 // ============================================================================
@@ -153,6 +185,22 @@ export interface TaxomindAgenticStores {
   planLifecycle: PrismaPlanLifecycleStore;
   metrics: PrismaMetricsStore;
 
+  // Self-Evaluation (confidence, verification, quality, critique)
+  confidenceScore: PrismaConfidenceScoreStore;
+  verificationResult: PrismaVerificationResultStore;
+  qualityRecord: PrismaQualityRecordStore;
+  calibration: PrismaCalibrationStore;
+  selfCritique: PrismaSelfCritiqueStore;
+
+  // Meta-Learning (patterns, insights, strategies, events)
+  learningPattern: PrismaLearningPatternStore;
+  metaLearningInsight: PrismaMetaLearningInsightStore;
+  learningStrategy: PrismaLearningStrategyStore;
+  learningEvent: PrismaLearningEventStore;
+
+  // Journey Timeline
+  journeyTimeline: PrismaJourneyTimelineStore;
+
   // Presence (realtime user tracking)
   presence: PrismaPresenceStore;
 
@@ -164,6 +212,14 @@ export interface TaxomindAgenticStores {
 
   // Push Queue (persistent push notification queue)
   pushQueue: PrismaPushQueueStore;
+
+  // Phase 6: Educational Engine Stores
+  microlearning: PrismaMicrolearningStore;
+  metacognition: PrismaMetacognitionStore;
+  competency: PrismaCompetencyStore;
+  peerLearning: PrismaPeerLearningStore;
+  integrity: PrismaIntegrityStore;
+  multimodal: PrismaMultimodalStore;
 }
 
 /**
@@ -172,6 +228,7 @@ export interface TaxomindAgenticStores {
  */
 export interface TaxomindIntegrationContext {
   stores: TaxomindAgenticStores;
+  integration: AdapterIntegrationContext;
   isInitialized: boolean;
   initializationTime: Date;
 }
@@ -191,6 +248,9 @@ function initializeStores(): TaxomindAgenticStores {
   // Initialize observability stores from adapter-prisma
   // Type cast required due to Prisma client extensions
   const observabilityStores = createPrismaObservabilityStores({ prisma: db as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'] });
+  const selfEvaluationStores = createPrismaSelfEvaluationStores({ prisma: db as Parameters<typeof createPrismaSelfEvaluationStores>[0]['prisma'] });
+  const metaLearningStores = createPrismaMetaLearningStores({ prisma: db as Parameters<typeof createPrismaMetaLearningStores>[0]['prisma'] });
+  const journeyTimelineStore = createPrismaJourneyTimelineStore({ prisma: db as Parameters<typeof createPrismaJourneyTimelineStore>[0]['prisma'] });
 
   const stores: TaxomindAgenticStores = {
     // Goal Planning
@@ -239,6 +299,22 @@ function initializeStores(): TaxomindAgenticStores {
     planLifecycle: observabilityStores.planLifecycle,
     metrics: observabilityStores.metrics,
 
+    // Self-Evaluation (from adapter-prisma)
+    confidenceScore: selfEvaluationStores.confidenceScore,
+    verificationResult: selfEvaluationStores.verificationResult,
+    qualityRecord: selfEvaluationStores.qualityRecord,
+    calibration: selfEvaluationStores.calibration,
+    selfCritique: selfEvaluationStores.selfCritique,
+
+    // Meta-Learning (from adapter-prisma)
+    learningPattern: metaLearningStores.learningPattern,
+    metaLearningInsight: metaLearningStores.metaLearningInsight,
+    learningStrategy: metaLearningStores.learningStrategy,
+    learningEvent: metaLearningStores.learningEvent,
+
+    // Journey Timeline (from adapter-prisma)
+    journeyTimeline: journeyTimelineStore,
+
     // Presence (realtime user tracking)
     // Type cast required due to Prisma client extensions
     presence: createPrismaPresenceStore({ prisma: db as Parameters<typeof createPrismaPresenceStore>[0]['prisma'] }),
@@ -254,6 +330,14 @@ function initializeStores(): TaxomindAgenticStores {
     // Push Queue (persistent push notification queue)
     // Type cast through unknown required due to extended Prisma client type mismatch
     pushQueue: createPrismaPushQueueStore({ prisma: db as unknown as Parameters<typeof createPrismaPushQueueStore>[0]['prisma'] }),
+
+    // Phase 6: Educational Engine Stores
+    microlearning: createPrismaMicrolearningStore(),
+    metacognition: createPrismaMetacognitionStore(),
+    competency: createPrismaCompetencyStore(),
+    peerLearning: createPrismaPeerLearningStore(),
+    integrity: createPrismaIntegrityStore(),
+    multimodal: createPrismaMultimodalStore(),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {
@@ -261,6 +345,38 @@ function initializeStores(): TaxomindAgenticStores {
   });
 
   return stores;
+}
+
+function initializeIntegrationContext(): AdapterIntegrationContext {
+  try {
+    return getTaxomindIntegration();
+  } catch (error) {
+    logger.info('[TaxomindContext] Bootstrapping adapter integration context');
+  }
+
+  // During build phase, API keys may not be available. Pass undefined to avoid
+  // eager client initialization that throws errors.
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.SKIP_ENV_VALIDATION === 'true';
+
+  const openaiApiKey = isBuildPhase ? undefined : process.env.OPENAI_API_KEY;
+  const anthropicApiKey = isBuildPhase ? undefined : process.env.ANTHROPIC_API_KEY;
+
+  const integration = bootstrapTaxomindIntegration({
+    prisma: db as unknown as Parameters<typeof bootstrapTaxomindIntegration>[0]['prisma'],
+    isDevelopment: process.env.NODE_ENV !== 'production',
+    region: process.env.SAM_REGION,
+    anthropicApiKey,
+    openaiApiKey,
+  });
+
+  logger.info('[TaxomindContext] Adapter integration initialized', {
+    profileId: integration.profile.id,
+    profileVersion: integration.profile.version,
+    isBuildPhase,
+  });
+
+  return integration;
 }
 
 /**
@@ -277,6 +393,7 @@ export function getTaxomindContext(): TaxomindIntegrationContext {
 
     contextInstance = {
       stores: initializeStores(),
+      integration: initializeIntegrationContext(),
       isInitialized: true,
       initializationTime: new Date(),
     };
@@ -307,6 +424,22 @@ export function isTaxomindContextInitialized(): boolean {
 // ============================================================================
 // CONVENIENCE EXPORTS
 // ============================================================================
+
+export function getIntegrationContext(): AdapterIntegrationContext {
+  return getTaxomindContext().integration;
+}
+
+export function getAdapterFactory(): AdapterIntegrationContext['factory'] {
+  return getTaxomindContext().integration.factory;
+}
+
+export function getIntegrationProfile(): AdapterIntegrationContext['profile'] {
+  return getTaxomindContext().integration.profile;
+}
+
+export function getCapabilityRegistry(): AdapterIntegrationContext['registry'] {
+  return getTaxomindContext().integration.registry;
+}
 
 /**
  * Get a specific store from the context
@@ -469,6 +602,28 @@ export function getPushQueueStore(): PrismaPushQueueStore {
   return getTaxomindContext().stores.pushQueue;
 }
 
+/**
+ * Get all educational engine stores (Phase 6)
+ */
+export function getEducationalEngineStores(): {
+  microlearning: PrismaMicrolearningStore;
+  metacognition: PrismaMetacognitionStore;
+  competency: PrismaCompetencyStore;
+  peerLearning: PrismaPeerLearningStore;
+  integrity: PrismaIntegrityStore;
+  multimodal: PrismaMultimodalStore;
+} {
+  const { stores } = getTaxomindContext();
+  return {
+    microlearning: stores.microlearning,
+    metacognition: stores.metacognition,
+    competency: stores.competency,
+    peerLearning: stores.peerLearning,
+    integrity: stores.integrity,
+    multimodal: stores.multimodal,
+  };
+}
+
 // Re-export store types for external use
 export type {
   // From @sam-ai/agentic (interface types)
@@ -507,4 +662,11 @@ export type {
   PrismaStudentProfileStore,
   PrismaReviewScheduleStore,
   PrismaPushQueueStore,
+  // Phase 6: Educational Engine Store Types
+  PrismaMicrolearningStore,
+  PrismaMetacognitionStore,
+  PrismaCompetencyStore,
+  PrismaPeerLearningStore,
+  PrismaIntegrityStore,
+  PrismaMultimodalStore,
 };

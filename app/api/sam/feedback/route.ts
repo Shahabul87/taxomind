@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 
 // ============================================================================
 // VALIDATION SCHEMA
@@ -135,6 +136,20 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<F
       hasComment: Boolean(feedbackData.comment),
       timestamp,
     });
+
+    // Record telemetry for confidence calibration
+    try {
+      const telemetry = getSAMTelemetryService();
+      // Use messageId as predictionId since it references the AI response
+      await telemetry.recordConfidenceOutcome(
+        feedbackData.messageId,
+        feedbackData.rating === 'helpful', // accurate = was helpful
+        'USER_FEEDBACK' // verification method
+      );
+      logger.debug('[Telemetry] Recorded confidence outcome from user feedback');
+    } catch (telemetryError) {
+      logger.warn('[Telemetry] Failed to record confidence outcome:', telemetryError);
+    }
 
     const responseData: FeedbackResponse = {
       id: feedback.id,

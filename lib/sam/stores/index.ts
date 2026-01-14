@@ -98,3 +98,71 @@ export {
   PrismaSkillBuildTrackStore,
   createPrismaSkillBuildTrackStore,
 } from './prisma-skill-build-track-store';
+
+// =============================================================================
+// PHASE 6: EDUCATIONAL ENGINE STORES
+// =============================================================================
+
+// Microlearning Store
+export {
+  PrismaMicrolearningStore,
+  createPrismaMicrolearningStore,
+  type Microlesson,
+  type MicrolessonContent,
+  type CreateMicrolessonInput,
+  type MicrolearningStore,
+} from './prisma-microlearning-store';
+
+// Metacognition Store
+export {
+  PrismaMetacognitionStore,
+  createPrismaMetacognitionStore,
+  type MetacognitionSession,
+  type MetacognitionResponse,
+  type MetacognitionAnalysis,
+  type CreateMetacognitionInput,
+  type MetacognitionStore,
+} from './prisma-metacognition-store';
+
+// Competency Store
+export {
+  PrismaCompetencyStore,
+  createPrismaCompetencyStore,
+  type CompetencyAssessment,
+  type CompetencyData,
+  type CareerPath,
+  type CreateCompetencyInput,
+  type CompetencyStore,
+} from './prisma-competency-store';
+
+// Peer Learning Store
+export {
+  PrismaPeerLearningStore,
+  createPrismaPeerLearningStore,
+  type PeerLearningActivity,
+  type ActivityOutcomes,
+  type CreatePeerActivityInput,
+  type PeerLearningStore,
+} from './prisma-peer-learning-store';
+
+// Integrity Store
+export {
+  PrismaIntegrityStore,
+  createPrismaIntegrityStore,
+  type IntegrityCheck,
+  type PlagiarismMatch,
+  type AIIndicator,
+  type ConsistencyAnalysis,
+  type CreateIntegrityCheckInput,
+  type IntegrityStore,
+} from './prisma-integrity-store';
+
+// Multimodal Store
+export {
+  PrismaMultimodalStore,
+  createPrismaMultimodalStore,
+  type MultimodalInput,
+  type InputAnalysis,
+  type CreateMultimodalInput as CreateMultimodalInputType,
+  type MultimodalStore,
+} from './prisma-multimodal-store';

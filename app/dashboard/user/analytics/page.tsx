@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { AlertCircle, ArrowRight, BarChart3, Brain } from 'lucide-react';
+import { AlertCircle, ArrowRight, BarChart3, Brain, History, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,6 +11,13 @@ import { AnalyticsErrorBoundary } from '@/components/analytics/ErrorBoundary';
 import { AnalyticsDashboardSkeleton } from '@/components/analytics/enterprise/Skeleton';
 import { MobileLayout } from '@/components/layouts/MobileLayout';
 import { LearningAnalyticsDashboard } from '../_components/learning-command-center/analytics';
+import { RecommendationTimeline } from '@/components/sam/recommendations';
+import {
+  MetaLearningInsightsWidget,
+  LearningPathWidget,
+  BiasDetectionReport,
+  ScaffoldingStrategyPanel,
+} from '@/components/sam';
 import { ExtendedUser } from '@/next-auth';
 
 /**
@@ -42,7 +49,7 @@ export default function UserAnalyticsPage() {
   const { data: session, status } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [activeTab, setActiveTab] = useState<'learning' | 'detailed'>('learning');
+  const [activeTab, setActiveTab] = useState<'learning' | 'detailed' | 'recommendations' | 'ai-insights'>('learning');
 
   // Memoize the user to prevent unnecessary re-renders
   const user = useMemo((): ExtendedUser | null => {
@@ -163,7 +170,7 @@ export default function UserAnalyticsPage() {
           onValueChange={(v) => setActiveTab(v as typeof activeTab)}
           className="space-y-6"
         >
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-100/80 dark:bg-slate-800/80">
+          <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-slate-100/80 dark:bg-slate-800/80">
             <TabsTrigger value="learning" className="gap-2">
               <Brain className="h-4 w-4" />
               Learning Insights
@@ -171,6 +178,14 @@ export default function UserAnalyticsPage() {
             <TabsTrigger value="detailed" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               Detailed Analytics
+            </TabsTrigger>
+            <TabsTrigger value="recommendations" className="gap-2">
+              <History className="h-4 w-4" />
+              Recommendations
+            </TabsTrigger>
+            <TabsTrigger value="ai-insights" className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              AI Insights
             </TabsTrigger>
           </TabsList>
 
@@ -195,6 +210,71 @@ export default function UserAnalyticsPage() {
                 variant="fullpage"
                 className="min-h-screen"
               />
+            </AnalyticsErrorBoundary>
+          </TabsContent>
+
+          {/* Recommendations History Tab */}
+          <TabsContent value="recommendations">
+            <AnalyticsErrorBoundary>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Recommendation History
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    Track your learning recommendations and actions over time
+                  </p>
+                </div>
+                <RecommendationTimeline
+                  userId={user.id}
+                  limit={50}
+                  groupByDate={true}
+                  showFilters={true}
+                  className="max-w-4xl"
+                />
+              </div>
+            </AnalyticsErrorBoundary>
+          </TabsContent>
+
+          {/* AI Insights Tab - Meta-Learning & Learning Path */}
+          <TabsContent value="ai-insights">
+            <AnalyticsErrorBoundary>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    AI-Powered Learning Insights
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    Discover your learning patterns and get personalized path recommendations
+                  </p>
+                </div>
+
+                {/* Two-column grid for widgets */}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Meta-Learning Insights */}
+                  <MetaLearningInsightsWidget
+                    className="h-full"
+                  />
+
+                  {/* Learning Path */}
+                  <LearningPathWidget
+                    className="h-full"
+                  />
+                </div>
+
+                {/* Scaffolding Strategies - Personalized learning approach */}
+                <ScaffoldingStrategyPanel
+                  userId={user.id}
+                  compact={false}
+                  className="w-full"
+                />
+
+                {/* AI Fairness & Bias Analysis */}
+                <BiasDetectionReport
+                  className="w-full"
+                  autoRefresh={false}
+                />
+              </div>
             </AnalyticsErrorBoundary>
           </TabsContent>
         </Tabs>

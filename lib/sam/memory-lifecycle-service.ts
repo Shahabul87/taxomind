@@ -2,32 +2,60 @@
  * Memory Lifecycle Service
  *
  * Provides a singleton MemoryLifecycleManager for managing memory reindexing
- * and background jobs. Integrates with the VectorStore for content embeddings.
+ * and background jobs. Integrates with:
+ * - VectorStore for content embeddings
+ * - BackgroundWorker for job processing
+ * - MemoryNormalizer for LLM context preparation
+ * - KGRefreshScheduler for knowledge graph maintenance
  *
- * Phase 3: Infrastructure - Wire to real PgVector adapter from @sam-ai/adapter-taxomind
+ * Phase 3: Infrastructure - Wire to integration vector adapter when available
  */
 
 import {
   MemoryLifecycleManager,
   createMemoryLifecycleManager,
-  InMemoryReindexJobStore,
   type MemoryLifecycleConfig,
   type ContentChangeEvent,
+  // Background Worker
+  BackgroundWorker,
+  createBackgroundWorker,
+  createJobQueue,
+  JobType,
+  type WorkerConfig,
+  type WorkerStats,
+  type QueueStats,
+  type BaseJob,
+  // Memory Normalizer
+  MemoryNormalizer,
+  createMemoryNormalizer,
+  type MemoryNormalizerConfig,
+  type NormalizedMemoryContext,
+  type RawMemoryInput,
+  // KG Refresh Scheduler
+  KGRefreshScheduler,
+  createKGRefreshScheduler,
+  type KGRefreshSchedulerConfig,
+  type KGRefreshJobType,
+  type KGRefreshResult,
+  type KGRefreshStats,
 } from '@sam-ai/agentic';
 import type { VectorAdapter } from '@sam-ai/integration';
-import {
-  createPgVectorAdapter,
-  createOpenAIEmbeddingAdapter,
-} from '@sam-ai/adapter-taxomind';
-import { db } from '@/lib/db';
+import { getAdapterFactory } from '@/lib/sam/taxomind-context';
 import { logger } from '@/lib/logger';
+import { getMemoryStores } from '@/lib/sam/taxomind-context';
+import { createPrismaReindexJobStore } from '@/lib/sam/stores/prisma-reindex-job-store';
+import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 
 // ============================================================================
-// SINGLETON INSTANCE
+// SINGLETON INSTANCES
 // ============================================================================
 
 let lifecycleManager: MemoryLifecycleManager | null = null;
+let backgroundWorker: BackgroundWorker | null = null;
+let memoryNormalizer: MemoryNormalizer | null = null;
+let kgRefreshScheduler: KGRefreshScheduler | null = null;
 let isInitialized = false;
+let currentVectorAdapter: VectorAdapter | null = null;
 
 // ============================================================================
 // STUB VECTOR ADAPTER (for development/testing)
@@ -103,16 +131,26 @@ function createStubVectorAdapter(): VectorAdapter {
 export interface MemoryLifecycleServiceConfig {
   /** Custom vector adapter to use (overrides auto-detection) */
   vectorAdapter?: VectorAdapter;
-  /** Use PgVector adapter with Prisma (requires OPENAI_API_KEY) */
+  /** Deprecated: integration adapters are required (kept for compatibility) */
   usePgVector?: boolean;
-  /** OpenAI API key for embeddings (defaults to OPENAI_API_KEY env var) */
+  /** Deprecated: integration adapters are required (kept for compatibility) */
   openaiApiKey?: string;
-  /** OpenAI embedding model (defaults to text-embedding-3-small) */
+  /** Deprecated: integration adapters are required (kept for compatibility) */
   embeddingModel?: string;
-  /** SAMMemory table name for vector storage */
+  /** Deprecated: integration adapters are required (kept for compatibility) */
   tableName?: string;
   /** Lifecycle configuration overrides */
   lifecycleConfig?: Partial<MemoryLifecycleConfig>;
+  /** Background worker configuration */
+  workerConfig?: Partial<WorkerConfig>;
+  /** Memory normalizer configuration */
+  normalizerConfig?: Partial<MemoryNormalizerConfig>;
+  /** KG refresh scheduler configuration */
+  kgRefreshConfig?: Partial<KGRefreshSchedulerConfig>;
+  /** Enable background worker (default: true) */
+  enableWorker?: boolean;
+  /** Enable KG refresh scheduler (default: true) */
+  enableKGRefresh?: boolean;
 }
 
 /**
@@ -121,71 +159,54 @@ export interface MemoryLifecycleServiceConfig {
  *
  * By default, attempts to use PgVector adapter if OPENAI_API_KEY is available
  */
-export function initializeMemoryLifecycle(
+export async function initializeMemoryLifecycle(
   config?: MemoryLifecycleServiceConfig
-): MemoryLifecycleManager {
+): Promise<MemoryLifecycleManager> {
   if (lifecycleManager && isInitialized) {
     logger.debug('[MemoryLifecycle] Already initialized');
     return lifecycleManager;
   }
 
   // Determine which vector adapter to use
-  let vectorAdapter: VectorAdapter;
+  let vectorAdapter: VectorAdapter | null = null;
 
   if (config?.vectorAdapter) {
     // Use explicitly provided adapter
     vectorAdapter = config.vectorAdapter;
     logger.info('[MemoryLifecycle] Using provided vector adapter');
   } else {
-    // Check if we should use PgVector (default: true if OPENAI_API_KEY is available)
-    const usePgVector = config?.usePgVector ?? Boolean(process.env.OPENAI_API_KEY);
-    const openaiApiKey = config?.openaiApiKey ?? process.env.OPENAI_API_KEY;
-
-    if (usePgVector && openaiApiKey) {
-      try {
-        // Create embedding adapter for vector generation
-        const embeddingAdapter = createOpenAIEmbeddingAdapter({
-          apiKey: openaiApiKey,
-          model: config?.embeddingModel ?? 'text-embedding-3-small',
-        });
-
-        // Create PgVector adapter with Prisma and embedding support
-        // Note: Type cast through unknown due to Prisma client extensions
-        vectorAdapter = createPgVectorAdapter(
-          db as unknown as Parameters<typeof createPgVectorAdapter>[0],
-          {
-            tableName: config?.tableName ?? 'SAMMemory',
-            embeddingColumn: 'embedding',
-            contentColumn: 'content',
-          }
-        );
-
-        // Set the embedding provider on the adapter if supported
-        if ('embeddingProvider' in vectorAdapter) {
-          (vectorAdapter as { embeddingProvider?: unknown }).embeddingProvider = embeddingAdapter;
-        }
-
-        logger.info('[MemoryLifecycle] Using PgVector adapter with OpenAI embeddings');
-      } catch (error) {
-        logger.warn('[MemoryLifecycle] Failed to initialize PgVector adapter, falling back to stub', {
-          error: error instanceof Error ? error.message : 'Unknown',
-        });
-        vectorAdapter = createStubVectorAdapter();
+    try {
+      const factory = getAdapterFactory();
+      if (factory.hasVectorAdapter()) {
+        vectorAdapter = await factory.getVectorAdapter();
+        logger.info('[MemoryLifecycle] Using integration vector adapter');
       }
-    } else {
-      // Fall back to stub adapter
-      vectorAdapter = createStubVectorAdapter();
-      if (usePgVector && !openaiApiKey) {
-        logger.warn('[MemoryLifecycle] PgVector requested but OPENAI_API_KEY not set, using stub adapter');
-      } else {
-        logger.debug('[MemoryLifecycle] Using stub vector adapter');
-      }
+    } catch (error) {
+      logger.warn('[MemoryLifecycle] Failed to load integration vector adapter', {
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
     }
   }
 
+  if (!vectorAdapter) {
+    vectorAdapter = createStubVectorAdapter();
+    logger.warn('[MemoryLifecycle] Vector adapter unavailable, using stub adapter');
+  }
+
+  // Store the vector adapter for later access
+  currentVectorAdapter = vectorAdapter;
+
+  // Create lifecycle manager logger
+  const lifecycleLogger = {
+    debug: (msg: string, data?: Record<string, unknown>) => logger.debug(`[MemoryLifecycle] ${msg}`, data),
+    info: (msg: string, data?: Record<string, unknown>) => logger.info(`[MemoryLifecycle] ${msg}`, data),
+    warn: (msg: string, data?: Record<string, unknown>) => logger.warn(`[MemoryLifecycle] ${msg}`, data),
+    error: (msg: string, data?: Record<string, unknown>) => logger.error(`[MemoryLifecycle] ${msg}`, data),
+  };
+
   lifecycleManager = createMemoryLifecycleManager({
     vectorAdapter,
-    store: new InMemoryReindexJobStore(),
+    store: createPrismaReindexJobStore(),
     config: {
       autoReindexEnabled: true,
       debounceMs: 5000,
@@ -198,29 +219,279 @@ export function initializeMemoryLifecycle(
       },
       ...config?.lifecycleConfig,
     },
-    logger: {
-      debug: (msg, data) => logger.debug(`[MemoryLifecycle] ${msg}`, data),
-      info: (msg, data) => logger.info(`[MemoryLifecycle] ${msg}`, data),
-      warn: (msg, data) => logger.warn(`[MemoryLifecycle] ${msg}`, data),
-      error: (msg, data) => logger.error(`[MemoryLifecycle] ${msg}`, data),
-    },
+    logger: lifecycleLogger,
   });
 
+  // Initialize Memory Normalizer (always enabled)
+  memoryNormalizer = createMemoryNormalizer({
+    config: {
+      maxItems: 50,
+      maxItemsPerSegment: 10,
+      maxContentLength: 2000,
+      minRelevanceScore: 0.3,
+      includeSummaries: true,
+      maxSummaryLength: 200,
+      tokenBudget: 4000,
+      charsPerToken: 4,
+      ...config?.normalizerConfig,
+    },
+    logger: lifecycleLogger,
+  });
+  logger.info('[MemoryLifecycle] Memory normalizer initialized');
+
+  // Initialize Background Worker (if enabled)
+  const enableWorker = config?.enableWorker ?? true;
+  if (enableWorker) {
+    const memoryQueue = createJobQueue({
+      config: { name: 'memory' },
+      logger: lifecycleLogger,
+    });
+    const kgQueue = createJobQueue({
+      config: { name: 'kg' },
+      logger: lifecycleLogger,
+    });
+
+    const queues = new Map();
+    queues.set('memory', memoryQueue);
+    queues.set('kg', kgQueue);
+
+    backgroundWorker = createBackgroundWorker({
+      config: {
+        id: 'memory-lifecycle-worker',
+        queues: ['memory', 'kg'],
+        concurrency: 3,
+        pollIntervalMs: 1000,
+        maxJobsPerCycle: 50,
+        gracefulShutdown: true,
+        shutdownTimeoutMs: 30000,
+        ...config?.workerConfig,
+      },
+      queues,
+      logger: lifecycleLogger,
+    });
+
+    // Register job handlers
+    registerDefaultJobHandlers();
+    logger.info('[MemoryLifecycle] Background worker initialized');
+  }
+
+  // Initialize KG Refresh Scheduler (if enabled)
+  const enableKGRefresh = config?.enableKGRefresh ?? true;
+  if (enableKGRefresh) {
+    try {
+      const { knowledgeGraph } = getMemoryStores();
+      kgRefreshScheduler = createKGRefreshScheduler({
+        config: {
+          enabled: true,
+          scheduleIntervalMs: 6 * 60 * 60 * 1000, // 6 hours
+          staleRelationshipAgeMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+          incrementalMode: true,
+          batchSize: 100,
+          minRelationshipConfidence: 0.5,
+          ...config?.kgRefreshConfig,
+        },
+        kgStore: knowledgeGraph,
+        logger: lifecycleLogger,
+      });
+      logger.info('[MemoryLifecycle] KG refresh scheduler initialized');
+    } catch (error) {
+      logger.warn('[MemoryLifecycle] Failed to initialize KG refresh scheduler', {
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
+    }
+  }
+
   isInitialized = true;
-  logger.info('[MemoryLifecycle] Manager initialized');
+  logger.info('[MemoryLifecycle] All components initialized', {
+    hasWorker: !!backgroundWorker,
+    hasNormalizer: !!memoryNormalizer,
+    hasKGRefresh: !!kgRefreshScheduler,
+  });
 
   return lifecycleManager;
+}
+
+// ============================================================================
+// JOB HANDLERS
+// ============================================================================
+
+/**
+ * Register default job handlers for the background worker
+ */
+function registerDefaultJobHandlers(): void {
+  if (!backgroundWorker) return;
+
+  // Reindex handler
+  backgroundWorker.registerHandler(JobType.REINDEX, async (job) => {
+    const { entityType, entityId, courseId } = job.data as {
+      entityType: string;
+      entityId: string;
+      courseId?: string;
+    };
+
+    logger.info('[MemoryLifecycle] Processing reindex job', {
+      jobId: job.id,
+      entityType,
+      entityId,
+    });
+
+    // Use the lifecycle manager to handle reindexing
+    if (lifecycleManager) {
+      await lifecycleManager.handleContentChange({
+        id: job.id,
+        entityType: entityType as 'course' | 'chapter' | 'section',
+        entityId,
+        changeType: 'update',
+        timestamp: new Date(),
+        metadata: { courseId },
+      });
+    }
+
+    return { success: true, entityId };
+  });
+
+  // KG Refresh handler
+  backgroundWorker.registerHandler(JobType.KG_REFRESH, async (job) => {
+    const { refreshType } = job.data as { refreshType?: KGRefreshJobType };
+
+    logger.info('[MemoryLifecycle] Processing KG refresh job', {
+      jobId: job.id,
+      refreshType,
+    });
+
+    if (kgRefreshScheduler) {
+      const results = await kgRefreshScheduler.executePendingJobs();
+      return { success: true, results };
+    }
+
+    return { success: false, error: 'KG refresh scheduler not available' };
+  });
+
+  // Memory cleanup handler
+  backgroundWorker.registerHandler(JobType.MEMORY_CLEANUP, async (job) => {
+    const { olderThanDays } = job.data as { olderThanDays?: number };
+    const days = olderThanDays ?? 30;
+
+    logger.info('[MemoryLifecycle] Processing memory cleanup job', {
+      jobId: job.id,
+      olderThanDays: days,
+    });
+
+    // Queue-level cleanup for completed/failed jobs
+    const queue = backgroundWorker?.getQueue('memory');
+    if (queue) {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      const cleaned = await queue.cleanup(cutoffDate);
+      return { success: true, cleanedCount: cleaned };
+    }
+
+    return { success: false, error: 'Queue not available' };
+  });
+
+  // Embedding generation handler
+  backgroundWorker.registerHandler(JobType.EMBEDDING_GENERATION, async (job) => {
+    const { content, sourceId, sourceType, courseId } = job.data as {
+      content: string;
+      sourceId: string;
+      sourceType: string;
+      courseId?: string;
+    };
+
+    logger.info('[MemoryLifecycle] Processing embedding generation job', {
+      jobId: job.id,
+      sourceId,
+      sourceType,
+    });
+
+    // Get the lifecycle manager's vector adapter
+    if (!lifecycleManager || !currentVectorAdapter) {
+      return { success: false, error: 'Lifecycle manager or vector adapter not initialized' };
+    }
+
+    try {
+      // Store the content as a vector embedding using upsert
+      const result = await currentVectorAdapter.upsert({
+        id: sourceId,
+        content,
+        metadata: {
+          sourceId,
+          sourceType: sourceType as 'course_content' | 'user_note' | 'conversation' | 'learning_path' | 'skill_assessment',
+          courseId: courseId ?? '',
+          tags: [],
+        },
+      });
+
+      logger.info('[MemoryLifecycle] Embedding generated successfully', {
+        sourceId,
+        resultId: result?.id,
+      });
+
+      return { success: true, sourceId, embeddingId: result?.id };
+    } catch (error) {
+      logger.error('[MemoryLifecycle] Failed to generate embedding', {
+        sourceId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return {
+        success: false,
+        sourceId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+  logger.debug('[MemoryLifecycle] Default job handlers registered');
 }
 
 /**
  * Get the singleton MemoryLifecycleManager
  * Initializes with defaults if not already initialized
  */
-export function getMemoryLifecycleManager(): MemoryLifecycleManager {
+export async function getMemoryLifecycleManager(): Promise<MemoryLifecycleManager> {
   if (!lifecycleManager) {
     return initializeMemoryLifecycle();
   }
   return lifecycleManager;
+}
+
+// ============================================================================
+// COMPONENT GETTERS
+// ============================================================================
+
+/**
+ * Get the singleton BackgroundWorker
+ * Returns null if worker is not enabled
+ */
+export async function getBackgroundWorker(): Promise<BackgroundWorker | null> {
+  if (!isInitialized) {
+    await initializeMemoryLifecycle();
+  }
+  return backgroundWorker;
+}
+
+/**
+ * Get the singleton MemoryNormalizer
+ */
+export async function getMemoryNormalizer(): Promise<MemoryNormalizer> {
+  if (!isInitialized) {
+    await initializeMemoryLifecycle();
+  }
+  if (!memoryNormalizer) {
+    throw new Error('MemoryNormalizer not initialized');
+  }
+  return memoryNormalizer;
+}
+
+/**
+ * Get the singleton KGRefreshScheduler
+ * Returns null if KG refresh is not enabled
+ */
+export async function getKGRefreshScheduler(): Promise<KGRefreshScheduler | null> {
+  if (!isInitialized) {
+    await initializeMemoryLifecycle();
+  }
+  return kgRefreshScheduler;
 }
 
 // ============================================================================
@@ -232,9 +503,23 @@ export function getMemoryLifecycleManager(): MemoryLifecycleManager {
  * Begins processing reindex jobs in the background
  */
 export async function startMemoryLifecycle(): Promise<void> {
-  const manager = getMemoryLifecycleManager();
+  const manager = await getMemoryLifecycleManager();
   await manager.start();
-  logger.info('[MemoryLifecycle] Scheduler started');
+  logger.info('[MemoryLifecycle] Lifecycle manager started');
+
+  // Start background worker if available
+  if (backgroundWorker) {
+    await backgroundWorker.start();
+    logger.info('[MemoryLifecycle] Background worker started');
+  }
+
+  // Start KG refresh scheduler if available
+  if (kgRefreshScheduler) {
+    await kgRefreshScheduler.start();
+    logger.info('[MemoryLifecycle] KG refresh scheduler started');
+  }
+
+  logger.info('[MemoryLifecycle] All components started');
 }
 
 /**
@@ -242,12 +527,27 @@ export async function startMemoryLifecycle(): Promise<void> {
  * Gracefully stops processing and flushes pending jobs
  */
 export async function stopMemoryLifecycle(): Promise<void> {
-  if (!lifecycleManager) {
-    logger.debug('[MemoryLifecycle] No manager to stop');
-    return;
+  // Stop KG refresh scheduler first
+  if (kgRefreshScheduler) {
+    await kgRefreshScheduler.stop();
+    logger.info('[MemoryLifecycle] KG refresh scheduler stopped');
   }
-  await lifecycleManager.stop();
-  logger.info('[MemoryLifecycle] Scheduler stopped');
+
+  // Stop background worker
+  if (backgroundWorker) {
+    await backgroundWorker.stop();
+    logger.info('[MemoryLifecycle] Background worker stopped');
+  }
+
+  // Stop lifecycle manager
+  if (lifecycleManager) {
+    await lifecycleManager.stop();
+    logger.info('[MemoryLifecycle] Lifecycle manager stopped');
+  } else {
+    logger.debug('[MemoryLifecycle] No manager to stop');
+  }
+
+  logger.info('[MemoryLifecycle] All components stopped');
 }
 
 // ============================================================================
@@ -261,17 +561,22 @@ export async function stopMemoryLifecycle(): Promise<void> {
 export async function notifyContentChange(
   event: ContentChangeEvent
 ): Promise<void> {
-  const manager = getMemoryLifecycleManager();
+  const manager = await getMemoryLifecycleManager();
   await manager.handleContentChange(event);
 }
 
 /**
  * Queue a reindex job for course content
+ * Only queues if MEMORY_LIFECYCLE_ENABLED feature flag is true
  */
 export async function queueCourseReindex(
   courseId: string,
   changeType: 'create' | 'update' | 'delete' = 'update'
 ): Promise<void> {
+  if (!SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED) {
+    logger.debug(`[MemoryLifecycle] Skipping course reindex (feature disabled): ${courseId}`);
+    return;
+  }
   await notifyContentChange({
     id: `course-change-${Date.now()}`,
     entityType: 'course',
@@ -287,12 +592,17 @@ export async function queueCourseReindex(
 
 /**
  * Queue a reindex job for chapter content
+ * Only queues if MEMORY_LIFECYCLE_ENABLED feature flag is true
  */
 export async function queueChapterReindex(
   chapterId: string,
   courseId: string,
   changeType: 'create' | 'update' | 'delete' = 'update'
 ): Promise<void> {
+  if (!SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED) {
+    logger.debug(`[MemoryLifecycle] Skipping chapter reindex (feature disabled): ${chapterId}`);
+    return;
+  }
   await notifyContentChange({
     id: `chapter-change-${Date.now()}`,
     entityType: 'chapter',
@@ -309,12 +619,17 @@ export async function queueChapterReindex(
 
 /**
  * Queue a reindex job for section content
+ * Only queues if MEMORY_LIFECYCLE_ENABLED feature flag is true
  */
 export async function queueSectionReindex(
   sectionId: string,
   courseId: string,
   changeType: 'create' | 'update' | 'delete' = 'update'
 ): Promise<void> {
+  if (!SAM_FEATURES.MEMORY_LIFECYCLE_ENABLED) {
+    logger.debug(`[MemoryLifecycle] Skipping section reindex (feature disabled): ${sectionId}`);
+    return;
+  }
   await notifyContentChange({
     id: `section-change-${Date.now()}`,
     entityType: 'section',
@@ -329,8 +644,156 @@ export async function queueSectionReindex(
 }
 
 // ============================================================================
+// JOB QUEUING
+// ============================================================================
+
+/**
+ * Queue a background job for processing
+ */
+export async function queueBackgroundJob<TData>(
+  type: typeof JobType[keyof typeof JobType],
+  data: TData,
+  options?: { queue?: string; priority?: number; scheduledFor?: Date }
+): Promise<BaseJob | null> {
+  const worker = await getBackgroundWorker();
+  if (!worker) {
+    logger.warn('[MemoryLifecycle] Background worker not available');
+    return null;
+  }
+
+  return worker.addJob(type, data, {
+    queue: options?.queue ?? 'memory',
+    priority: options?.priority ?? 5,
+    scheduledFor: options?.scheduledFor ?? new Date(),
+  });
+}
+
+/**
+ * Queue a KG refresh job
+ */
+export async function queueKGRefresh(
+  refreshType: KGRefreshJobType = 'incremental'
+): Promise<BaseJob | null> {
+  return queueBackgroundJob(JobType.KG_REFRESH, { refreshType }, { queue: 'kg', priority: 3 });
+}
+
+/**
+ * Queue a memory cleanup job
+ */
+export async function queueMemoryCleanup(
+  olderThanDays: number = 30
+): Promise<BaseJob | null> {
+  return queueBackgroundJob(JobType.MEMORY_CLEANUP, { olderThanDays }, { priority: 2 });
+}
+
+/**
+ * Queue an embedding generation job
+ */
+export async function queueEmbeddingGeneration(
+  content: string,
+  sourceId: string,
+  sourceType: string,
+  courseId?: string
+): Promise<BaseJob | null> {
+  return queueBackgroundJob(
+    JobType.EMBEDDING_GENERATION,
+    { content, sourceId, sourceType, courseId },
+    { priority: 7 }
+  );
+}
+
+// ============================================================================
+// MEMORY NORMALIZATION
+// ============================================================================
+
+/**
+ * Normalize raw memory results into a standardized context for LLM injection
+ */
+export async function normalizeMemory(
+  input: RawMemoryInput
+): Promise<NormalizedMemoryContext> {
+  const normalizer = await getMemoryNormalizer();
+  return normalizer.normalize(input);
+}
+
+/**
+ * Format normalized memory context for prompt injection
+ */
+export async function formatMemoryForPrompt(context: NormalizedMemoryContext): Promise<string> {
+  const normalizer = await getMemoryNormalizer();
+  return normalizer.formatForPrompt(context);
+}
+
+/**
+ * Format normalized memory context as structured data for APIs
+ */
+export async function formatMemoryAsStructuredData(
+  context: NormalizedMemoryContext
+): Promise<ReturnType<MemoryNormalizer['formatAsStructuredData']>> {
+  const normalizer = await getMemoryNormalizer();
+  return normalizer.formatAsStructuredData(context);
+}
+
+// ============================================================================
+// KG REFRESH OPERATIONS
+// ============================================================================
+
+/**
+ * Schedule a KG refresh job directly
+ */
+export async function scheduleKGRefresh(
+  type: KGRefreshJobType,
+  options?: { scheduledFor?: Date }
+): Promise<{ id: string; type: KGRefreshJobType; scheduledFor: Date } | null> {
+  const scheduler = await getKGRefreshScheduler();
+  if (!scheduler) {
+    logger.warn('[MemoryLifecycle] KG refresh scheduler not available');
+    return null;
+  }
+
+  const job = await scheduler.scheduleRefresh(type, { scheduledFor: options?.scheduledFor });
+  return { id: job.id, type: job.type, scheduledFor: job.scheduledFor };
+}
+
+/**
+ * Execute pending KG refresh jobs immediately
+ */
+export async function executeKGRefreshJobs(): Promise<KGRefreshResult[]> {
+  const scheduler = await getKGRefreshScheduler();
+  if (!scheduler) {
+    logger.warn('[MemoryLifecycle] KG refresh scheduler not available');
+    return [];
+  }
+
+  return scheduler.executePendingJobs();
+}
+
+/**
+ * Get KG refresh scheduler statistics
+ */
+export async function getKGRefreshStats(): Promise<KGRefreshStats | null> {
+  const scheduler = await getKGRefreshScheduler();
+  if (!scheduler) {
+    return null;
+  }
+  return scheduler.getStats();
+}
+
+// ============================================================================
 // STATS AND MONITORING
 // ============================================================================
+
+/**
+ * Combined stats interface for all components
+ */
+export interface MemoryLifecycleFullStats {
+  isRunning: boolean;
+  lifecycle: ReturnType<MemoryLifecycleManager['getStats']> | null;
+  worker: WorkerStats | null;
+  queues: { memory: QueueStats | null; kg: QueueStats | null };
+  kgRefresh: KGRefreshStats | null;
+  normalizer: { config: ReturnType<MemoryNormalizer['getConfig']> } | null;
+}
 
 /**
  * Get current lifecycle stats
@@ -354,8 +817,91 @@ export async function getLifecycleStats(): Promise<{
   }
 }
 
+/**
+ * Get comprehensive stats for all components
+ */
+export async function getFullLifecycleStats(): Promise<MemoryLifecycleFullStats> {
+  const lifecycleStats = await getLifecycleStats();
+
+  // Worker stats
+  let workerStats: WorkerStats | null = null;
+  let memoryQueueStats: QueueStats | null = null;
+  let kgQueueStats: QueueStats | null = null;
+
+  if (backgroundWorker) {
+    workerStats = backgroundWorker.getStats();
+    const memoryQueue = backgroundWorker.getQueue('memory');
+    const kgQueue = backgroundWorker.getQueue('kg');
+    if (memoryQueue) {
+      memoryQueueStats = await memoryQueue.getStats();
+    }
+    if (kgQueue) {
+      kgQueueStats = await kgQueue.getStats();
+    }
+  }
+
+  // KG refresh stats
+  const kgRefreshStats = await getKGRefreshStats();
+
+  // Normalizer config
+  let normalizerConfig: ReturnType<MemoryNormalizer['getConfig']> | null = null;
+  if (memoryNormalizer) {
+    normalizerConfig = memoryNormalizer.getConfig();
+  }
+
+  return {
+    isRunning: lifecycleStats.isRunning,
+    lifecycle: lifecycleStats.stats,
+    worker: workerStats,
+    queues: {
+      memory: memoryQueueStats,
+      kg: kgQueueStats,
+    },
+    kgRefresh: kgRefreshStats,
+    normalizer: normalizerConfig ? { config: normalizerConfig } : null,
+  };
+}
+
+/**
+ * Get worker stats only
+ */
+export function getWorkerStats(): WorkerStats | null {
+  if (!backgroundWorker) {
+    return null;
+  }
+  return backgroundWorker.getStats();
+}
+
+/**
+ * Get the current vector adapter
+ * Returns null if not initialized
+ */
+export function getVectorAdapter(): VectorAdapter | null {
+  return currentVectorAdapter;
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
 
-export type { ContentChangeEvent, MemoryLifecycleConfig };
+export type {
+  ContentChangeEvent,
+  MemoryLifecycleConfig,
+  // Worker types
+  WorkerConfig,
+  WorkerStats,
+  QueueStats,
+  BaseJob,
+  // Normalizer types
+  MemoryNormalizerConfig,
+  NormalizedMemoryContext,
+  RawMemoryInput,
+  // KG Refresh types
+  KGRefreshSchedulerConfig,
+  KGRefreshJobType,
+  KGRefreshResult,
+  KGRefreshStats,
+};
+
+// Re-export JobType for consumers
+export { JobType };

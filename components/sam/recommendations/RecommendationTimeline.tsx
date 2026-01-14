@@ -214,15 +214,44 @@ function TimelineItemRow({
   item,
   isFirst,
   isLast,
+  onComplete,
+  onDismiss,
 }: {
   item: TimelineItem;
   isFirst: boolean;
   isLast: boolean;
+  onComplete?: (id: string) => Promise<void>;
+  onDismiss?: (id: string) => Promise<void>;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const Icon = TYPE_ICONS[item.type] || BookOpen;
   const statusConfig = STATUS_CONFIG[item.status];
   const StatusIcon = statusConfig.icon;
+
+  const handleComplete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onComplete || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await onComplete(item.id);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDismiss = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onDismiss || isUpdating) return;
+    setIsUpdating(true);
+    try {
+      await onDismiss(item.id);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const isPending = item.status === 'pending';
 
   return (
     <div className="relative pl-8">
@@ -271,7 +300,7 @@ function TimelineItemRow({
           </div>
 
           {isExpanded && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 space-y-3">
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {item.description}
               </p>
@@ -288,6 +317,43 @@ function TimelineItemRow({
               {item.snoozedUntil && (
                 <div className="text-xs text-amber-600">
                   Snoozed until {formatDate(item.snoozedUntil)} {formatTime(item.snoozedUntil)}
+                </div>
+              )}
+              {/* Action buttons for pending items */}
+              {isPending && (onComplete || onDismiss) && (
+                <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                  {onComplete && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                      onClick={handleComplete}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <Check className="h-3 w-3 mr-1" />
+                      )}
+                      Complete
+                    </Button>
+                  )}
+                  {onDismiss && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-gray-600 hover:text-gray-900"
+                      onClick={handleDismiss}
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <X className="h-3 w-3 mr-1" />
+                      )}
+                      Dismiss
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -450,6 +516,58 @@ export function RecommendationTimeline({
     return { total: items.length, completed, dismissed, snoozed };
   }, [items]);
 
+  // Handle complete action
+  const handleComplete = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/sam/agentic/recommendations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'complete' }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Update item in state
+          setItems((prev) =>
+            prev.map((item) =>
+              item.id === id
+                ? { ...item, status: 'completed' as const, completedAt: result.data.completedAt }
+                : item
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[RecommendationTimeline] Failed to complete:', error);
+    }
+  }, []);
+
+  // Handle dismiss action
+  const handleDismiss = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/sam/agentic/recommendations/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss' }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          // Update item in state
+          setItems((prev) =>
+            prev.map((item) =>
+              item.id === id ? { ...item, status: 'dismissed' as const } : item
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error('[RecommendationTimeline] Failed to dismiss:', error);
+    }
+  }, []);
+
   return (
     <Card className={cn('overflow-hidden', className)}>
       <CardHeader className="pb-2">
@@ -562,6 +680,8 @@ export function RecommendationTimeline({
                         item={item}
                         isFirst={index === 0}
                         isLast={index === group.items.length - 1}
+                        onComplete={handleComplete}
+                        onDismiss={handleDismiss}
                       />
                     ))}
                   </div>

@@ -93,6 +93,9 @@ export async function POST(request: NextRequest) {
       performanceData
     );
 
+    // Calculate performance trend (async)
+    const performanceTrend = await calculatePerformanceTrend(attempt.id);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
         adaptiveMetrics: {
           currentDifficulty: performanceData.difficulty,
           nextDifficulty: nextQuestion?.difficulty || performanceData.difficulty,
-          performanceTrend: calculatePerformanceTrend(attempt.id),
+          performanceTrend,
           questionsRemaining: nextQuestion ? 'continuing' : 'complete',
         },
       },
@@ -394,10 +397,47 @@ async function updateStudentProgress(
   });
 }
 
-function calculatePerformanceTrend(attemptId: string): string {
-  // This would analyze the attempt history to determine trend
-  // For now, return a simple placeholder
-  return 'stable';
+async function calculatePerformanceTrend(attemptId: string): Promise<'improving' | 'stable' | 'declining'> {
+  try {
+    // Get all answers for this attempt, ordered by creation time
+    const answers = await db.userAnswer.findMany({
+      where: { attemptId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        isCorrect: true,
+        createdAt: true,
+      },
+    });
+
+    if (answers.length < 4) {
+      // Not enough data to determine trend
+      return 'stable';
+    }
+
+    // Split answers into first half and second half
+    const midpoint = Math.floor(answers.length / 2);
+    const firstHalf = answers.slice(0, midpoint);
+    const secondHalf = answers.slice(midpoint);
+
+    // Calculate accuracy for each half
+    const firstHalfAccuracy = firstHalf.filter(a => a.isCorrect).length / firstHalf.length;
+    const secondHalfAccuracy = secondHalf.filter(a => a.isCorrect).length / secondHalf.length;
+
+    // Determine trend based on accuracy difference
+    const accuracyDelta = secondHalfAccuracy - firstHalfAccuracy;
+    const threshold = 0.15; // 15% difference threshold
+
+    if (accuracyDelta > threshold) {
+      return 'improving';
+    } else if (accuracyDelta < -threshold) {
+      return 'declining';
+    }
+
+    return 'stable';
+  } catch (error) {
+    logger.warn('[ADAPTIVE] Failed to calculate performance trend', { attemptId, error });
+    return 'stable';
+  }
 }
 
 async function getAdaptiveMetrics(attemptId: string): Promise<any> {

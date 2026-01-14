@@ -11,6 +11,7 @@ import { getProactiveStores } from '@/lib/sam/taxomind-context';
 import { createBehaviorMonitor, InterventionType, ActionType } from '@sam-ai/agentic';
 import { v4 as uuidv4 } from 'uuid';
 import { dispatchInterventionNotifications } from '@/lib/sam/agentic-notifications';
+import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 
 // Lazy initialize behavior monitor using TaxomindContext stores
 let behaviorMonitorInstance: ReturnType<typeof createBehaviorMonitor> | null = null;
@@ -194,6 +195,20 @@ export async function POST(req: NextRequest) {
       `Created intervention ${intervention.id} for user ${session.user.id}`
     );
 
+    // Record telemetry event for intervention delivery
+    try {
+      const telemetry = getSAMTelemetryService();
+      await telemetry.recordProactiveEvent({
+        userId: session.user.id,
+        eventType: 'INTERVENTION_DELIVERED',
+        itemId: intervention.id,
+        delivered: true,
+        channel: 'api',
+      });
+    } catch (telemetryError) {
+      logger.warn('[Telemetry] Failed to record intervention delivery:', telemetryError);
+    }
+
     return NextResponse.json({
       success: true,
       data: { intervention },
@@ -245,6 +260,20 @@ export async function PATCH(req: NextRequest) {
 
       logger.info(`Executed intervention ${interventionId}`);
 
+      // Record telemetry for intervention execution (triggered)
+      try {
+        const telemetry = getSAMTelemetryService();
+        await telemetry.recordProactiveEvent({
+          userId: session.user.id,
+          eventType: 'INTERVENTION_TRIGGERED',
+          itemId: interventionId,
+          delivered: true,
+          channel: 'api',
+        });
+      } catch (telemetryError) {
+        logger.warn('[Telemetry] Failed to record intervention execution:', telemetryError);
+      }
+
       return NextResponse.json({
         success: true,
         data: { intervention },
@@ -260,6 +289,28 @@ export async function PATCH(req: NextRequest) {
       });
 
       logger.info(`Recorded result for intervention ${interventionId}`);
+
+      // Record telemetry for intervention result
+      try {
+        const telemetry = getSAMTelemetryService();
+        // Map userResponse to proactive event type
+        const eventType = result.userResponse === 'accepted'
+          ? 'INTERVENTION_ACCEPTED'
+          : 'INTERVENTION_DISMISSED';
+        await telemetry.recordProactiveEvent({
+          userId: session.user.id,
+          eventType,
+          itemId: interventionId,
+          delivered: true,
+          response: {
+            action: result.userResponse ?? 'dismissed',
+            responseTimeMs: 0,
+            feedback: result.feedback,
+          },
+        });
+      } catch (telemetryError) {
+        logger.warn('[Telemetry] Failed to record intervention result:', telemetryError);
+      }
 
       return NextResponse.json({
         success: true,

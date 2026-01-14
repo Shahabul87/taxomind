@@ -138,6 +138,10 @@ model Course {
   // Course Skill Mapping (Phase 3 SAM Fixes)
   courseSkills             CourseSkill[]           @relation("CourseCourseSkills")
 
+  // SAM Meta-Learning & Journey Relations (added January 2026)
+  samLearningEvents        SAMLearningEvent[]      @relation("SAMLearningEventCourses")
+  samJourneyTimelines      SAMJourneyTimeline[]    @relation("SAMJourneyTimelineCourses")
+
   @@index([categoryId])
   @@index([organizationId])
 }
@@ -280,6 +284,9 @@ model Section {
 
   // SAM Real-Time Presence Tracking (Phase I)
   samUserPresence        SAMUserPresence[]       @relation("SAMPresenceSections")
+
+  // SAM Meta-Learning Relations (added January 2026)
+  samLearningEvents      SAMLearningEvent[]      @relation("SAMLearningEventSections")
 
   @@index([chapterId])
   @@index([chapterId, position]) // For ordered chapter queries

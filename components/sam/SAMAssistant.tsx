@@ -94,8 +94,8 @@ import {
 // Import Feedback Buttons for quality tracking
 import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
 
-// Import Confidence Indicator for AI response confidence display
-import { ConfidenceIndicator } from '@/components/sam/confidence';
+// Import Confidence Indicator and SelfCritiquePanel for AI response transparency
+import { ConfidenceIndicator, SelfCritiquePanel } from '@/components/sam/confidence';
 
 // ============================================================================
 // WINDOW CONTEXT TYPES
@@ -640,6 +640,19 @@ function SAMAssistantInner({
   const { celebration, showCelebration, dismissCelebration } = useCelebration();
   const [lastCelebrationId, setLastCelebrationId] = useState<string | null>(null);
 
+  // Self-Critique panel state
+  const [showSelfCritique, setShowSelfCritique] = useState(false);
+  const [selfCritiqueData, setSelfCritiqueData] = useState<{
+    overallConfidence: number;
+    dimensions: Array<{ name: string; score: number; description: string; category: 'knowledge' | 'reasoning' | 'relevance' | 'clarity' | 'accuracy' }>;
+    strengths: string[];
+    weaknesses: string[];
+    uncertainties: string[];
+    suggestions: string[];
+    generatedAt: string;
+  } | null>(null);
+  const [isLoadingSelfCritique, setIsLoadingSelfCritique] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize gamification engine
@@ -857,6 +870,52 @@ function SAMAssistantInner({
       setToolConfirmationsError((fetchError as Error).message);
     }
   }, [session?.user?.id]);
+
+  // Fetch self-critique data for AI response transparency
+  const fetchSelfCritique = useCallback(async (messageContent: string) => {
+    if (!session?.user?.id) return;
+
+    setIsLoadingSelfCritique(true);
+    try {
+      const lastMessage = messages[messages.length - 1];
+      const response = await fetch('/api/sam/agentic/self-critique', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          responseId: lastMessage?.id || 'current',
+          responseText: messageContent,
+          responseType: 'explanation',
+          critiqueMode: 'standard',
+          runLoop: false,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data?.critique) {
+          setSelfCritiqueData({
+            overallConfidence: data.data.critique.overallScore / 100,
+            dimensions: data.data.critique.dimensionScores?.map((d: { dimension: string; score: number; feedback: string }) => ({
+              name: d.dimension,
+              score: d.score / 100,
+              description: d.feedback,
+              category: d.dimension.toLowerCase() as 'knowledge' | 'reasoning' | 'relevance' | 'clarity' | 'accuracy',
+            })) || [],
+            strengths: data.data.critique.strengths || [],
+            weaknesses: data.data.critique.improvements || [],
+            uncertainties: data.data.critique.uncertainties || [],
+            suggestions: data.data.critique.suggestions || [],
+            generatedAt: new Date().toISOString(),
+          });
+          setShowSelfCritique(true);
+        }
+      }
+    } catch (err) {
+      console.error('[SAMAssistant] Failed to fetch self-critique:', err);
+    } finally {
+      setIsLoadingSelfCritique(false);
+    }
+  }, [session?.user?.id, messages]);
 
   useEffect(() => {
     if (!isOpen || !session?.user?.id) return;
@@ -3121,6 +3180,51 @@ function SAMAssistantInner({
                       size="sm"
                       className="mt-1 ml-1"
                     />
+                  )}
+
+                  {/* Self-Critique Panel - AI transparency for assistant messages */}
+                  {message.role === 'assistant' && !isMessageStreaming && messageIndex === messages.length - 1 && (
+                    <div className="mt-2 ml-1">
+                      {!showSelfCritique && !selfCritiqueData && (
+                        <button
+                          onClick={() => fetchSelfCritique(message.content)}
+                          disabled={isLoadingSelfCritique}
+                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 rounded transition-colors"
+                        >
+                          {isLoadingSelfCritique ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <span>Analyzing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Brain className="h-3 w-3" />
+                              <span>View AI Self-Assessment</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                      {showSelfCritique && selfCritiqueData && (
+                        <div className="mt-2">
+                          <SelfCritiquePanel
+                            critique={selfCritiqueData}
+                            mode="compact"
+                            defaultExpanded={false}
+                            showActions={false}
+                            className="max-w-full"
+                          />
+                          <button
+                            onClick={() => {
+                              setShowSelfCritique(false);
+                              setSelfCritiqueData(null);
+                            }}
+                            className="mt-2 text-xs text-gray-400 hover:text-gray-600"
+                          >
+                            Hide assessment
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );

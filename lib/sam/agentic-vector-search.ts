@@ -1,6 +1,6 @@
 /**
  * SAM Agentic Vector Search Integration
- * Wires PrismaVectorAdapter with OpenAIEmbeddingProvider for agentic tools
+ * Wires PrismaVectorAdapter with the integration embedding provider for agentic tools
  */
 
 import {
@@ -12,9 +12,10 @@ import {
   type EmbeddingMetadata,
   type EmbeddingSourceType,
 } from '@sam-ai/agentic';
-import { createPrismaVectorAdapter } from '@/lib/sam/stores/prisma-memory-stores';
-import { getOpenAIEmbeddingProvider } from '@/lib/sam/providers';
+import { getMemoryStores } from '@/lib/sam/taxomind-context';
+import { getEmbeddingProvider } from '@/lib/sam/integration-adapters';
 import { logger } from '@/lib/logger';
+import { createHash } from 'crypto';
 
 // ============================================================================
 // TYPES
@@ -44,19 +45,31 @@ export interface ContentSearchOptions {
 // VECTOR STORE SINGLETON
 // ============================================================================
 
-let vectorStoreInstance: VectorStore | null = null;
+let vectorStoreInstance: Promise<VectorStore> | null = null;
 
-export function getAgenticVectorStore(): VectorStore {
-  if (!vectorStoreInstance) {
-    vectorStoreInstance = createVectorStore({
-      embeddingProvider: getOpenAIEmbeddingProvider(),
-      persistenceAdapter: createPrismaVectorAdapter(),
+export async function getAgenticVectorStore(): Promise<VectorStore> {
+  if (vectorStoreInstance) {
+    return vectorStoreInstance;
+  }
+
+  vectorStoreInstance = (async () => {
+    const embeddingProvider = await getEmbeddingProvider();
+    if (!embeddingProvider) {
+      throw new Error('Embedding adapter not available for vector search');
+    }
+
+    const { vector: vectorAdapter } = getMemoryStores();
+
+    return createVectorStore({
+      embeddingProvider,
+      persistenceAdapter: vectorAdapter,
       logger,
       cacheEnabled: true,
       cacheMaxSize: 1000,
       cacheTTLSeconds: 300,
     });
-  }
+  })();
+
   return vectorStoreInstance;
 }
 
@@ -71,7 +84,7 @@ export async function searchContent(
   query: string,
   options: ContentSearchOptions = {}
 ): Promise<VectorSearchResult[]> {
-  const vectorStore = getAgenticVectorStore();
+  const vectorStore = await getAgenticVectorStore();
 
   const searchOptions: VectorSearchOptions = {
     topK: options.topK ?? 10,
@@ -100,7 +113,7 @@ export async function findRelatedContent(
   sourceId: string,
   options: ContentSearchOptions = {}
 ): Promise<VectorSearchResult[]> {
-  const vectorStore = getAgenticVectorStore();
+  const vectorStore = await getAgenticVectorStore();
 
   // First, get the source embedding
   const sourceEmbedding = await vectorStore.get(sourceId);
@@ -150,7 +163,7 @@ export async function indexContent(
     tags?: string[];
   }
 ): Promise<string> {
-  const vectorStore = getAgenticVectorStore();
+  const vectorStore = await getAgenticVectorStore();
 
   const embeddingMetadata: EmbeddingMetadata = {
     sourceId: metadata.sourceId,
@@ -161,6 +174,7 @@ export async function indexContent(
     sectionId: metadata.sectionId,
     contentHash: hashContent(content),
     tags: metadata.tags ?? [],
+    customMetadata: { content },
   };
 
   try {
@@ -194,7 +208,7 @@ export async function indexContentBatch(
     };
   }>
 ): Promise<string[]> {
-  const vectorStore = getAgenticVectorStore();
+  const vectorStore = await getAgenticVectorStore();
 
   const batchItems = items.map((item) => ({
     content: item.content,
@@ -207,6 +221,7 @@ export async function indexContentBatch(
       sectionId: item.metadata.sectionId,
       contentHash: hashContent(item.content),
       tags: item.metadata.tags ?? [],
+      customMetadata: { content: item.content },
     } as EmbeddingMetadata,
   }));
 
@@ -224,7 +239,7 @@ export async function indexContentBatch(
  * Remove indexed content
  */
 export async function removeIndexedContent(embeddingId: string): Promise<boolean> {
-  const vectorStore = getAgenticVectorStore();
+  const vectorStore = await getAgenticVectorStore();
 
   try {
     const result = await vectorStore.delete(embeddingId);
@@ -243,7 +258,7 @@ export async function removeIndexedContentBySource(
   sourceType: EmbeddingSourceType,
   sourceId: string
 ): Promise<number> {
-  const vectorStore = getAgenticVectorStore();
+  const vectorStore = await getAgenticVectorStore();
 
   try {
     const count = await vectorStore.deleteByFilter({
@@ -269,7 +284,8 @@ export async function removeIndexedContentBySource(
 function mapSearchResults(results: SimilarityResult[]): VectorSearchResult[] {
   return results.map((r) => ({
     id: r.embedding.id,
-    content: r.embedding.metadata.customMetadata?.content as string ?? '',
+    content: (r.embedding.metadata.customMetadata?.content as string | undefined)
+      ?? r.embedding.metadata.sourceId,
     score: r.score,
     sourceType: r.embedding.metadata.sourceType,
     sourceId: r.embedding.metadata.sourceId,
@@ -281,13 +297,7 @@ function mapSearchResults(results: SimilarityResult[]): VectorSearchResult[] {
 }
 
 function hashContent(content: string): string {
-  let hash = 0;
-  for (let i = 0; i < content.length; i++) {
-    const char = content.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
-  }
-  return hash.toString(16);
+  return createHash('sha256').update(content).digest('hex');
 }
 
 // ============================================================================

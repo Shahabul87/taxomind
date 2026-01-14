@@ -2,16 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { getStore } from '@/lib/sam/taxomind-context';
+import { getGoalStores } from '@/lib/sam/taxomind-context';
 import {
   createAgentStateMachine,
   type AgentStateMachine,
 } from '@sam-ai/agentic';
+import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 
-// Get plan store from TaxomindContext
-function getPlanStore() {
-  return getStore('plan');
-}
+// Get goal and plan stores from TaxomindContext
+const { goal: goalStore, plan: planStore } = getGoalStores();
 
 // Create a lazy-initialized state machine using TaxomindContext stores
 let stateMachineInstance: AgentStateMachine | null = null;
@@ -19,7 +18,7 @@ let stateMachineInstance: AgentStateMachine | null = null;
 function getStateMachine() {
   if (!stateMachineInstance) {
     stateMachineInstance = createAgentStateMachine({
-      planStore: getPlanStore(),
+      planStore,
       logger: console,
     });
   }
@@ -51,7 +50,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const { reason } = PauseSchema.parse(body);
 
     // Use the PlanStore to fetch the plan
-    const plan = await getPlanStore().get(planId);
+    const plan = await planStore.get(planId);
 
     if (!plan || plan.userId !== session.user.id) {
       return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
@@ -82,15 +81,33 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const planState = await stateMachine.pause(reason);
 
     // Fetch updated plan with related data
-    const updatedPlan = await getPlanStore().get(planId);
+    const updatedPlan = await planStore.get(planId);
 
-    // Note: SAMLearningGoal model doesn't exist in the schema yet
-    // Goal data would come from the goal store instead
-    const goal = null;
+    // Fetch the associated goal from the goal store
+    const goal = plan.goalId ? await goalStore.get(plan.goalId) : null;
 
     logger.info(
       `Paused execution plan ${planId} using AgentStateMachine, reason: ${reason ?? 'none'}`
     );
+
+    // Record telemetry event for plan lifecycle
+    try {
+      const telemetry = getSAMTelemetryService();
+      await telemetry.recordPlanEvent({
+        planId,
+        userId: session.user.id,
+        eventType: 'PAUSED',
+        previousState: 'active',
+        newState: 'paused',
+        metadata: {
+          goalId: plan.goalId,
+          reason: reason ?? null,
+          machineState: stateMachine.getState(),
+        },
+      });
+    } catch (telemetryError) {
+      logger.warn('[Telemetry] Failed to record plan pause event:', telemetryError);
+    }
 
     return NextResponse.json({
       success: true,

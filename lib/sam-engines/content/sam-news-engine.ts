@@ -1,7 +1,10 @@
 import { db } from '@/lib/db';
-import { samNewsRankingEngine, RankedNewsArticle } from '@/lib/sam-engines/advanced/sam-news-ranking-engine';
+import {
+  getNewsRankingEngine,
+  type RankedNewsArticle,
+} from '@sam-ai/external-knowledge';
 import { samRealNewsFetcher } from '@/lib/sam/utils/sam-real-news-fetcher';
-import { shouldUseRealNews, newsConfig } from '@/lib/config/news-config';
+import { shouldUseRealNews } from '@/lib/config/news-config';
 import { newsCache } from '@/lib/news-cache';
 import { logger } from '@/lib/logger';
 
@@ -788,7 +791,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
 
             // Apply ranking if requested
             if (includeRanking) {
-              return await samNewsRankingEngine.rankNews(transformedArticles);
+              return await getNewsRankingEngine().rankNews(transformedArticles);
             }
 
             return transformedArticles;
@@ -1225,7 +1228,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
 
       // Apply ranking if requested
       if (includeRanking) {
-        return await samNewsRankingEngine.rankNews(fetchedArticles);
+        return await getNewsRankingEngine().rankNews(fetchedArticles);
       }
 
       return fetchedArticles;
@@ -1253,7 +1256,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
     
     // Get existing news and rank them too
     const existingNews = await this.getLatestNews({ limit: 50 });
-    const rankedExisting = await samNewsRankingEngine.rankNews(existingNews);
+    const rankedExisting = await getNewsRankingEngine().rankNews(existingNews);
     
     // Combine and deduplicate
     const allRankedNews = [...rankedNews, ...rankedExisting];
@@ -1275,7 +1278,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
   // Get trending news (hot + rising)
   async getTrendingNews(limit: number = 10): Promise<RankedNewsArticle[]> {
     const allNews = await this.getTopRankedNews(50);
-    return samNewsRankingEngine.getTrendingNews(allNews, limit);
+    return getNewsRankingEngine().getTrendingNews(allNews, limit);
   }
 
   // Get news by specific ranking criteria
@@ -1284,7 +1287,7 @@ The act has been praised by educators and tech leaders as a model for global AI 
     limit: number = 10
   ): Promise<RankedNewsArticle[]> {
     const allNews = await this.getLatestNews({ limit: 100 });
-    return samNewsRankingEngine.getTopNewsByCriteria(allNews, criteria, limit);
+    return getNewsRankingEngine().getTopNewsByCriteria(allNews, criteria, limit);
   }
 }
 

@@ -93,7 +93,7 @@ import {
 } from '@sam-ai/agentic';
 
 // Import AI Adapter from @sam-ai/core for GoalDecomposer
-import { AnthropicAdapter, type AIAdapter } from '@sam-ai/core';
+import { type AIAdapter, type SAMLogger } from '@sam-ai/core';
 
 // Import centralized context for all Prisma stores
 // ARCHITECTURE: All store access should go through getTaxomindContext()
@@ -103,6 +103,7 @@ import {
   getGoalStores,
 } from './taxomind-context';
 import { ensureToolingInitialized } from './agentic-tooling';
+import { getCoreAIAdapter } from './integration-adapters';
 
 // Import Integration Profile types (optional for backward compatibility)
 import {
@@ -311,30 +312,7 @@ export class SAMAgenticBridge {
       this.goalStore = goalStores.goal;
     }
 
-    // Initialize AIAdapter for GoalDecomposer
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (apiKey) {
-      try {
-        this.aiAdapter = new AnthropicAdapter({
-          apiKey,
-          model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514',
-        });
-
-        // Initialize GoalDecomposer with AIAdapter
-        this.goalDecomposer = createGoalDecomposer({
-          aiAdapter: this.aiAdapter,
-          logger: samLogger,
-        });
-
-        this.logger.debug('GoalDecomposer initialized with AIAdapter');
-      } catch (error) {
-        this.logger.warn('Failed to initialize AIAdapter for GoalDecomposer', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    } else {
-      this.logger.warn('ANTHROPIC_API_KEY not set - GoalDecomposer will not be available');
-    }
+    void this.initializeGoalDecomposer(samLogger);
 
     // Initialize PlanBuilder and StateMachine with stores from context
     if (this.usePrismaStores) {
@@ -351,6 +329,32 @@ export class SAMAgenticBridge {
       hasGoalDecomposer: !!this.goalDecomposer,
       hasGoalStore: !!this.goalStore,
     });
+  }
+
+  private async initializeGoalDecomposer(samLogger: SAMLogger): Promise<void> {
+    if (this.goalDecomposer) {
+      return;
+    }
+
+    try {
+      const adapter = await getCoreAIAdapter();
+      if (!adapter) {
+        this.logger.warn('AI adapter unavailable - GoalDecomposer disabled');
+        return;
+      }
+
+      this.aiAdapter = adapter;
+      this.goalDecomposer = createGoalDecomposer({
+        aiAdapter: adapter,
+        logger: samLogger,
+      });
+
+      this.logger.debug('GoalDecomposer initialized with integration AI adapter');
+    } catch (error) {
+      this.logger.warn('Failed to initialize AI adapter for GoalDecomposer', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   private initToolExecution(): void {
@@ -411,9 +415,20 @@ export class SAMAgenticBridge {
 
   private initSelfEvaluation(): void {
     const logger = this.logger;
-    this.confidenceScorer = createConfidenceScorer({ logger });
-    this.responseVerifier = createResponseVerifier({ logger });
-    this.qualityTracker = createQualityTracker({ logger });
+    const stores = this.usePrismaStores ? getTaxomindContext().stores : undefined;
+    this.confidenceScorer = createConfidenceScorer({
+      logger,
+      store: stores?.confidenceScore,
+    });
+    this.responseVerifier = createResponseVerifier({
+      logger,
+      store: stores?.verificationResult,
+    });
+    this.qualityTracker = createQualityTracker({
+      logger,
+      qualityStore: stores?.qualityRecord,
+      calibrationStore: stores?.calibration,
+    });
     this.logger.debug('Self-Evaluation initialized');
   }
 
@@ -525,6 +540,9 @@ export class SAMAgenticBridge {
    * Decompose a goal into sub-goals
    */
   async decomposeGoal(goal: LearningGoal): Promise<GoalDecomposition> {
+    if (!this.goalDecomposer) {
+      await this.initializeGoalDecomposer(this.createSamLogger());
+    }
     if (!this.goalDecomposer) {
       throw new Error('Goal Planning not enabled');
     }

@@ -23,6 +23,7 @@ interface JourneyAchievement {
   milestoneId: string;
 }
 import { logger } from '@/lib/logger';
+import { getTaxomindContext } from '@/lib/sam/taxomind-context';
 
 // ============================================================================
 // SINGLETON INSTANCE
@@ -35,7 +36,17 @@ let journeyTimelineManager: JourneyTimelineManager | null = null;
  */
 export function getJourneyTimelineManager(): JourneyTimelineManager {
   if (!journeyTimelineManager) {
+    let timelineStore: JourneyTimelineConfig['timelineStore'];
+    try {
+      timelineStore = getTaxomindContext().stores.journeyTimeline;
+    } catch (error) {
+      logger.warn('[JourneyTimeline] Prisma store unavailable, using in-memory store', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     journeyTimelineManager = createJourneyTimeline({
+      timelineStore,
       logger: {
         debug: (msg, data) => logger.debug(`[JourneyTimeline] ${msg}`, data),
         info: (msg, data) => logger.info(`[JourneyTimeline] ${msg}`, data),

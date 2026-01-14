@@ -184,7 +184,7 @@ async function extractKnowledge(content: string): Promise<KnowledgeExtraction | 
 }
 
 async function storeEmbedding(content: string, input: MemoryIngestionInput, sourceId: string, tags?: string[]) {
-  const memorySystem = getAgenticMemorySystem();
+  const memorySystem = await getAgenticMemorySystem();
   const contentHash = hashContent(content);
 
   const existingCount = await memorySystem.vectorStore.count({
@@ -220,7 +220,7 @@ async function upsertEntity(
   entityType: (typeof EntityType)[keyof typeof EntityType],
   description?: string
 ) {
-  const memorySystem = getAgenticMemorySystem();
+  const memorySystem = await getAgenticMemorySystem();
   const existing = await memorySystem.knowledgeGraph.findEntities(entityType, name, 5);
   const match = existing.find(
     (entity) => entity.name.toLowerCase() === name.toLowerCase()
@@ -280,7 +280,8 @@ async function processIngestion(input: MemoryIngestionInput) {
         if (!sourceId || !targetId) continue;
 
         try {
-          await getAgenticMemorySystem().knowledgeGraph.createRelationship(
+          const memorySystem = await getAgenticMemorySystem();
+          await memorySystem.knowledgeGraph.createRelationship(
             sourceId,
             targetId,
             edge.type

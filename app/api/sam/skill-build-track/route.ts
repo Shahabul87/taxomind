@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { createSAMConfig, AnthropicAdapter } from '@sam-ai/core';
+import { createSAMConfig } from '@sam-ai/core';
+import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 import {
   createSkillBuildTrackEngine,
   type SkillBuildTrackEngineConfig,
@@ -24,31 +25,26 @@ import { getStore } from '@/lib/sam/taxomind-context';
 
 let skillBuildTrackEngine: ReturnType<typeof createSkillBuildTrackEngine> | null = null;
 
-function getSkillBuildTrackEngine() {
+async function getSkillBuildTrackEngine() {
   if (!skillBuildTrackEngine) {
     // Use TaxomindContext for store access
     const store = getStore('skillBuildTrack');
 
-    // Create AI adapter with real Anthropic integration
-    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    const aiAdapter = anthropicApiKey
-      ? new AnthropicAdapter({
-          apiKey: anthropicApiKey,
-          model: 'claude-sonnet-4-20250514',
-        })
-      : {
-          // Fallback stub if no API key
-          name: 'skill-build-track-fallback',
-          version: '1.0.0',
-          chat: async () => ({
-            content: '',
-            model: 'fallback',
-            usage: { inputTokens: 0, outputTokens: 0 },
-            finishReason: 'stop' as const,
-          }),
-          isConfigured: () => false,
-          getModel: () => 'fallback',
-        };
+    // Use integration adapter factory instead of hardcoding Anthropic
+    const coreAiAdapter = await getCoreAIAdapter();
+    const aiAdapter = coreAiAdapter ?? {
+      // Fallback stub if no API key configured
+      name: 'skill-build-track-fallback',
+      version: '1.0.0',
+      chat: async () => ({
+        content: '',
+        model: 'fallback',
+        usage: { inputTokens: 0, outputTokens: 0 },
+        finishReason: 'stop' as const,
+      }),
+      isConfigured: () => false,
+      getModel: () => 'fallback',
+    };
 
     const samConfig = createSAMConfig({
       ai: aiAdapter,
@@ -194,7 +190,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const engine = getSkillBuildTrackEngine();
+    const engine = await getSkillBuildTrackEngine();
 
     // If skillId is provided, get specific profile
     const skillId = searchParams.get('skillId');
@@ -268,7 +264,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing action parameter' }, { status: 400 });
     }
 
-    const engine = getSkillBuildTrackEngine();
+    const engine = await getSkillBuildTrackEngine();
     let result: unknown;
 
     switch (action) {

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { SAMRecommendationType } from '@prisma/client';
 import {
   type LearningSessionStore,
   type LearningSession,
@@ -753,6 +754,118 @@ export class PrismaRecommendationStore implements RecommendationStore {
       where: { id },
       data: { expiresAt: new Date() },
     });
+  }
+
+  /**
+   * Find recommendations with complex filtering for history timeline
+   */
+  async findHistory(options: {
+    userId: string;
+    types?: string[];
+    status?: 'completed' | 'pending' | 'dismissed' | 'all';
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    id: string;
+    type: string;
+    title: string;
+    description: string | null;
+    reason: string;
+    isCompleted: boolean;
+    isViewed: boolean;
+    createdAt: Date;
+    expiresAt: Date | null;
+  }[]> {
+    const { userId, types, status = 'all', limit = 50, offset = 0 } = options;
+
+    const where: {
+      userId: string;
+      type?: { in: SAMRecommendationType[] };
+      isCompleted?: boolean;
+      OR?: Array<{ expiresAt: null } | { expiresAt: { gt: Date } } | { expiresAt: { lt: Date } }>;
+    } = { userId };
+
+    if (types && types.length > 0) {
+      where.type = { in: types as SAMRecommendationType[] };
+    }
+
+    if (status !== 'all') {
+      if (status === 'completed') {
+        where.isCompleted = true;
+      } else if (status === 'pending') {
+        where.isCompleted = false;
+        where.OR = [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ];
+      } else if (status === 'dismissed') {
+        where.isCompleted = false;
+        where.OR = [
+          { expiresAt: { lt: new Date() } },
+        ];
+      }
+    }
+
+    const records = await db.sAMRecommendation.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        description: true,
+        reason: true,
+        isCompleted: true,
+        isViewed: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    });
+
+    return records;
+  }
+
+  /**
+   * Count recommendations with complex filtering for history timeline
+   */
+  async countHistory(options: {
+    userId: string;
+    types?: string[];
+    status?: 'completed' | 'pending' | 'dismissed' | 'all';
+  }): Promise<number> {
+    const { userId, types, status = 'all' } = options;
+
+    const where: {
+      userId: string;
+      type?: { in: SAMRecommendationType[] };
+      isCompleted?: boolean;
+      OR?: Array<{ expiresAt: null } | { expiresAt: { gt: Date } } | { expiresAt: { lt: Date } }>;
+    } = { userId };
+
+    if (types && types.length > 0) {
+      where.type = { in: types as SAMRecommendationType[] };
+    }
+
+    if (status !== 'all') {
+      if (status === 'completed') {
+        where.isCompleted = true;
+      } else if (status === 'pending') {
+        where.isCompleted = false;
+        where.OR = [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ];
+      } else if (status === 'dismissed') {
+        where.isCompleted = false;
+        where.OR = [
+          { expiresAt: { lt: new Date() } },
+        ];
+      }
+    }
+
+    return db.sAMRecommendation.count({ where });
   }
 }
 

@@ -1,34 +1,27 @@
 /**
  * SAM AI Agentic Feature Flags
  *
- * Controls which SAM features are enabled for gradual rollout.
- * Each phase of the SAM utilization plan can be independently enabled/disabled.
+ * Controls which SAM features are enabled. Features are categorized by readiness:
  *
  * ============================================================================
- * ENVIRONMENT VARIABLES
+ * PRODUCTION-READY FEATURES (Enabled by Default)
  * ============================================================================
  *
- * Add these to your .env or .env.local file:
+ * These features are 100% implemented and enabled by default. To disable, set =false:
  *
- *   # Core SAM Features (recommended to enable in development)
- *   SAM_ORCHESTRATION_ACTIVE=true      # Plan-driven tutoring with step execution
- *   SAM_INTERVENTIONS_ENABLED=true     # Proactive check-ins and behavior monitoring
- *   SAM_OBSERVABILITY=true             # Telemetry and quality tracking
- *
- *   # Advanced Features (optional)
- *   SAM_WEBSOCKET_ENABLED=true         # Real-time communication (requires socket server)
- *   SAM_TOOL_PERMISSIONS=true          # RBAC for tool execution
- *   SAM_MEMORY_LIFECYCLE=true          # Auto-refresh embeddings on content changes
+ *   SAM_ORCHESTRATION_ACTIVE=false     # Plan-driven tutoring with step execution
+ *   SAM_INTERVENTIONS_ENABLED=false    # Proactive check-ins and behavior monitoring
+ *   SAM_OBSERVABILITY=false            # Telemetry and quality tracking
+ *   SAM_TOOL_PERMISSIONS=false         # RBAC for tool execution
  *
  * ============================================================================
- * QUICK START FOR DEVELOPMENT
+ * INCOMPLETE FEATURES (Disabled by Default)
  * ============================================================================
  *
- * For local development, add to .env.development:
+ * These features require additional implementation. To enable (experimental):
  *
- *   SAM_ORCHESTRATION_ACTIVE=true
- *   SAM_INTERVENTIONS_ENABLED=true
- *   SAM_OBSERVABILITY=true
+ *   SAM_WEBSOCKET_ENABLED=true         # 100% complete - requires NEXT_PUBLIC_WS_URL
+ *   SAM_MEMORY_LIFECYCLE=true          # 100% complete - auto-reindex on content changes
  *
  * ============================================================================
  * Usage:
@@ -73,11 +66,12 @@ const SAMFeatureFlagsSchema = z.object({
   INTERVENTIONS_ENABLED: z.boolean().default(false),
 
   /**
-   * Phase 3: Real-Time WebSocket - Full real-time communication
-   * - WebSocket server for live connections
+   * Phase 3: Real-Time WebSocket - Full real-time communication (100% complete)
+   * - WebSocket server for live connections (server/socket-server.ts)
    * - Presence tracking across sessions
    * - Real-time intervention delivery
-   * - Multi-user awareness
+   * - SSE fallback when WebSocket unavailable
+   * - Requires: SAM_WEBSOCKET_ENABLED=true AND NEXT_PUBLIC_WS_URL=ws://host:port/ws/sam
    */
   WEBSOCKET_ENABLED: z.boolean().default(false),
 
@@ -91,20 +85,24 @@ const SAMFeatureFlagsSchema = z.object({
   TOOL_PERMISSIONS_ENABLED: z.boolean().default(false),
 
   /**
-   * Phase 5: Memory Lifecycle - Automatic memory refresh
-   * - Auto-reindex on course content changes
-   * - Scheduled knowledge graph refresh
+   * Phase 5: Memory Lifecycle - Automatic memory refresh (100% complete)
+   * - Auto-reindex on course/chapter/section content changes
+   * - Scheduled knowledge graph refresh via cron
    * - Memory decay for stale data
-   * - Embedding invalidation and refresh
+   * - Background worker for job processing
+   * - Requires: SAM_MEMORY_LIFECYCLE=true
    */
   MEMORY_LIFECYCLE_ENABLED: z.boolean().default(false),
 
   /**
-   * Phase 6: Observability - Full metrics and quality tracking
+   * Phase 6: Observability - Full metrics and quality tracking (100% complete)
    * - Metrics collection with Prometheus export
-   * - Confidence calibration tracking
-   * - Tool execution telemetry
-   * - Quality feedback loop
+   * - Plan lifecycle event tracking (start/pause/resume)
+   * - Proactive intervention telemetry (delivered/executed/dismissed)
+   * - Confidence calibration from user feedback
+   * - Self-critique quality tracking
+   * - Analytics rollups via cron job
+   * - Requires: SAM_OBSERVABILITY=true
    */
   OBSERVABILITY_ENABLED: z.boolean().default(false),
 });
@@ -135,32 +133,29 @@ function parseEnvFlag(envVar: string | undefined, enableByDefaultInDev: boolean 
 /**
  * Parse environment variables into feature flags with validation
  *
- * In development mode, core features are ENABLED by default to improve DX.
- * In production, all features are DISABLED by default for safety.
+ * Production-ready features are ENABLED by default (can be disabled with =false):
+ * - ORCHESTRATION_ACTIVE: Plan-driven tutoring (100% implemented)
+ * - INTERVENTIONS_ENABLED: Proactive check-ins (100% implemented)
+ * - OBSERVABILITY_ENABLED: Telemetry and metrics (100% implemented)
+ * - TOOL_PERMISSIONS_ENABLED: RBAC for tools (100% implemented)
  *
- * Core features (enabled by default in dev):
- * - ORCHESTRATION_ACTIVE: Plan-driven tutoring
- * - INTERVENTIONS_ENABLED: Proactive check-ins
- * - OBSERVABILITY_ENABLED: Telemetry and metrics
- *
- * Advanced features (disabled by default, require explicit opt-in):
- * - WEBSOCKET_ENABLED: Requires separate socket server
- * - TOOL_PERMISSIONS_ENABLED: RBAC for tools
- * - MEMORY_LIFECYCLE_ENABLED: Auto-refresh embeddings
+ * Incomplete features are DISABLED by default (require explicit opt-in):
+ * - WEBSOCKET_ENABLED: Requires NEXT_PUBLIC_WS_URL to be set (100% complete)
+ * - MEMORY_LIFECYCLE_ENABLED: Auto-reindex on content changes (100% complete)
  */
 function parseFeatureFlags(): SAMFeatureFlags {
   const envFlags = {
-    // Core features - enabled by default in development
-    ORCHESTRATION_ACTIVE: parseEnvFlag(process.env.SAM_ORCHESTRATION_ACTIVE, true),
-    INTERVENTIONS_ENABLED: parseEnvFlag(process.env.SAM_INTERVENTIONS_ENABLED, true),
-    OBSERVABILITY_ENABLED: parseEnvFlag(process.env.SAM_OBSERVABILITY, true),
-    // Advanced features - require explicit opt-in
+    // Production-ready features - enabled by default (disable with =false)
+    ORCHESTRATION_ACTIVE: process.env.SAM_ORCHESTRATION_ACTIVE !== 'false',
+    INTERVENTIONS_ENABLED: process.env.SAM_INTERVENTIONS_ENABLED !== 'false',
+    OBSERVABILITY_ENABLED: process.env.SAM_OBSERVABILITY !== 'false',
+    TOOL_PERMISSIONS_ENABLED: process.env.SAM_TOOL_PERMISSIONS !== 'false',
+    // Incomplete features - require explicit opt-in (disabled by default)
     // Check both server and client env vars for WebSocket
     WEBSOCKET_ENABLED: parseEnvFlag(
       process.env.SAM_WEBSOCKET_ENABLED ?? process.env.NEXT_PUBLIC_SAM_WEBSOCKET_ENABLED,
       false
     ),
-    TOOL_PERMISSIONS_ENABLED: parseEnvFlag(process.env.SAM_TOOL_PERMISSIONS, false),
     MEMORY_LIFECYCLE_ENABLED: parseEnvFlag(process.env.SAM_MEMORY_LIFECYCLE, false),
   };
 

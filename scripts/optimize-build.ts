@@ -94,7 +94,7 @@ async function main() {
       'Add missing dependencies with: npm install <package-name>',
       'Fix TypeScript errors in test files first (they account for many errors)',
       'Update import statements for deleted files (theme-provider)',
-      'Consider temporarily skipping tests with: npm run build -- --no-lint',
+      'Consider temporarily skipping lint with: SKIP_LINT=true npm run build',
       'Use incremental TypeScript compilation for faster builds',
     ],
     scripts: {

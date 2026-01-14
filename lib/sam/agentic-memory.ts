@@ -4,88 +4,52 @@ import {
   type MemorySystem,
   EmbeddingSourceType,
 } from '@sam-ai/agentic';
-import { OpenAI } from 'openai';
+import { getEmbeddingProvider } from '@/lib/sam/integration-adapters';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
 
-class OpenAIEmbeddingProvider {
-  private readonly client: OpenAI;
-  private readonly model: string;
+let memorySystemPromise: Promise<MemorySystem> | null = null;
 
-  constructor(apiKey: string, model: string) {
-    this.client = new OpenAI({ apiKey });
-    this.model = model;
+export async function getAgenticMemorySystem(): Promise<MemorySystem> {
+  if (memorySystemPromise) {
+    return memorySystemPromise;
   }
 
-  async embed(text: string): Promise<number[]> {
-    const response = await this.client.embeddings.create({
-      model: this.model,
-      input: text,
-    });
-    return response.data[0]?.embedding ?? [];
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    const response = await this.client.embeddings.create({
-      model: this.model,
-      input: texts,
-    });
-    return response.data.map((item) => item.embedding);
-  }
-
-  getModelName(): string {
-    return this.model;
-  }
-
-  getDimensions(): number {
-    // text-embedding-3-small: 1536, text-embedding-3-large: 3072, text-embedding-ada-002: 1536
-    if (this.model.includes('3-large')) {
-      return 3072;
+  memorySystemPromise = (async () => {
+    const embeddingProvider = await getEmbeddingProvider();
+    if (!embeddingProvider) {
+      throw new Error('Embedding adapter not available for agentic memory system');
     }
-    return 1536;
-  }
-}
 
-let memorySystem: MemorySystem | null = null;
+    // Get memory stores from TaxomindContext singleton (consistent store access)
+    const {
+      vector: vectorAdapter,
+      knowledgeGraph: graphStore,
+      sessionContext: contextStore,
+    } = getMemoryStores();
 
-export function getAgenticMemorySystem(): MemorySystem {
-  if (memorySystem) {
-    return memorySystem;
-  }
-
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is not set');
-  }
-
-  const model = process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-3-small';
-
-  const embeddingProvider = new OpenAIEmbeddingProvider(apiKey, model);
-
-  // Get memory stores from TaxomindContext singleton (consistent store access)
-  const { vector: vectorAdapter, knowledgeGraph: graphStore, sessionContext: contextStore } = getMemoryStores();
-
-  memorySystem = createMemorySystem({
-    embeddingProvider,
-    vectorStore: {
+    return createMemorySystem({
       embeddingProvider,
-      persistenceAdapter: vectorAdapter,
-      cacheEnabled: true,
-      cacheMaxSize: 2000,
-      cacheTTLSeconds: 600,
+      vectorStore: {
+        embeddingProvider,
+        persistenceAdapter: vectorAdapter,
+        cacheEnabled: true,
+        cacheMaxSize: 2000,
+        cacheTTLSeconds: 600,
+        logger,
+      },
+      knowledgeGraph: {
+        graphStore,
+        logger,
+      },
+      sessionContext: {
+        contextStore,
+        logger,
+      },
       logger,
-    },
-    knowledgeGraph: {
-      graphStore,
-      logger,
-    },
-    sessionContext: {
-      contextStore,
-      logger,
-    },
-    logger,
-  });
+    });
+  })();
 
-  return memorySystem;
+  return memorySystemPromise;
 }
 
 export function buildMemoryMetadata(input: {

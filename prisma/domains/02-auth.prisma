@@ -356,6 +356,9 @@ model User {
   samPushQueue               SAMPushQueue[]                @relation("SAMPushQueue")
   samPushDeliveryResults     SAMPushDeliveryResult[]       @relation("SAMPushDeliveryResults")
 
+  // Push Notification Device Tokens (Phase 4 - Multi-channel Notifications)
+  deviceTokens               UserDeviceToken[]             @relation("UserDeviceTokens")
+
   // Learning Command Center Relations (added January 2026)
   learningActivities         LearningActivity[]            @relation("UserLearningActivities")
   dailyLearningLogs          DailyLearningLog[]            @relation("UserDailyLearningLogs")
@@ -373,6 +376,23 @@ model User {
   skillBuildRoadmaps         SkillBuildRoadmap[]           @relation("SkillBuildRoadmaps")
   skillBuildPracticeLogs     SkillBuildPracticeLog[]       @relation("SkillBuildPracticeLogs")
   skillBuildAchievements     SkillBuildAchievement[]       @relation("SkillBuildAchievements")
+
+  // SAM Self-Evaluation & Quality Relations (added January 2026)
+  samSelfEvaluationScores    SAMSelfEvaluationScore[]      @relation("SAMSelfEvaluationScores")
+  samVerificationResults     SAMVerificationResult[]       @relation("SAMVerificationResults")
+  samQualityRecords          SAMQualityRecord[]            @relation("SAMQualityRecords")
+  samCalibrationData         SAMCalibrationData[]          @relation("SAMCalibrationData")
+  samSelfCritiques           SAMSelfCritique[]             @relation("SAMSelfCritiques")
+  samLearningEvents          SAMLearningEvent[]            @relation("SAMLearningEvents")
+  samJourneyTimelines        SAMJourneyTimeline[]          @relation("SAMJourneyTimelines")
+
+  // Phase 6: Educational Engine Relations (added January 2026)
+  samMicrolessons            SAMMicrolesson[]              @relation("SAMMicrolessons")
+  samMetacognitionSessions   SAMMetacognitionSession[]     @relation("SAMMetacognitionSessions")
+  samCompetencyAssessments   SAMCompetencyAssessment[]     @relation("SAMCompetencyAssessments")
+  samPeerLearningActivities  SAMPeerLearningActivity[]     @relation("SAMPeerLearningActivities")
+  samIntegrityChecks         SAMIntegrityCheck[]           @relation("SAMIntegrityChecks")
+  samMultimodalInputs        SAMMultimodalInput[]          @relation("SAMMultimodalInputs")
 }
 
 model Account {

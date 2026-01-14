@@ -1,8 +1,8 @@
-import { NewsArticle } from '@/lib/sam-engines/content/sam-news-engine';
 import { newsConfig } from './config/news-config';
 
+// Generic cache that can store any article type
 interface CachedNews {
-  articles: NewsArticle[];
+  articles: unknown[];
   timestamp: number;
 }
 
@@ -14,7 +14,7 @@ class NewsCache {
   /**
    * Get cached news if still valid
    */
-  get(key: string): NewsArticle[] | null {
+  get<T>(key: string): T[] | null {
     if (!newsConfig.cache.enabled) return null;
     
     const cached = this.cache.get(key);
@@ -30,13 +30,13 @@ class NewsCache {
     }
     
     console.log(`Using cached news (age: ${Math.round(age / 1000)}s)`);
-    return cached.articles;
+    return cached.articles as T[];
   }
 
   /**
    * Set news in cache
    */
-  set(key: string, articles: NewsArticle[]): void {
+  set<T>(key: string, articles: T[]): void {
     if (!newsConfig.cache.enabled) return;
     
     // Limit number of articles to cache

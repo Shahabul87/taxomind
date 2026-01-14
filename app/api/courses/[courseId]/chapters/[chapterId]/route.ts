@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { queueChapterReindex } from '@/lib/sam/memory-lifecycle-service';
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt and database connections
 export const runtime = 'nodejs';
@@ -74,9 +75,14 @@ export async function DELETE(
           data: { position: item.position - 1 }
         })
       );
-      
+
       await db.$transaction(updatePromises);
     }
+
+    // Queue memory lifecycle reindex for deleted chapter content
+    await queueChapterReindex(chapterId, courseId, 'delete').catch(err => {
+      logger.warn("[CHAPTER_DELETE] Memory reindex queue failed", { error: err });
+    });
 
     return NextResponse.json(deletedChapter);
   } catch (error) {
@@ -166,6 +172,11 @@ export async function PATCH(
         courseId,
       },
       data: updateData,
+    });
+
+    // Queue memory lifecycle reindex for updated chapter content
+    await queueChapterReindex(chapterId, courseId, 'update').catch(err => {
+      logger.warn("[CHAPTER_PATCH] Memory reindex queue failed", { error: err });
     });
 
     return NextResponse.json({

@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { getTaxomindContext } from '@/lib/sam/taxomind-context';
 import {
   createSelfCritiqueEngine,
   createStrictSelfCritiqueEngine,
@@ -96,18 +97,28 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const validated = CritiqueRequestSchema.parse(body);
 
+    let selfCritiqueStore;
+    try {
+      selfCritiqueStore = getTaxomindContext().stores.selfCritique;
+    } catch (error) {
+      logger.warn('[SELF_CRITIQUE] Prisma store unavailable, using in-memory store', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Create engine based on mode
     let engine;
     switch (validated.critiqueMode) {
       case 'strict':
-        engine = createStrictSelfCritiqueEngine();
+        engine = createStrictSelfCritiqueEngine({ store: selfCritiqueStore });
         break;
       case 'lenient':
-        engine = createLenientSelfCritiqueEngine();
+        engine = createLenientSelfCritiqueEngine({ store: selfCritiqueStore });
         break;
       default:
         engine = createSelfCritiqueEngine({
           passThreshold: validated.passThreshold,
+          store: selfCritiqueStore,
         });
     }
 

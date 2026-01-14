@@ -1,9 +1,6 @@
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import {
-  createAnthropicAdapter,
-  type AIAdapter,
-} from '@sam-ai/core';
+import { type AIAdapter } from '@sam-ai/core';
 import {
   createToolRegistry,
   createToolExecutor,
@@ -15,11 +12,14 @@ import {
   type PermissionManager,
   type ConfirmationManager,
   type AuditLogger,
+  ConfirmationType,
+  PermissionLevel,
   UserRole,
   DEFAULT_ROLE_PERMISSIONS,
   createMentorTools,
   type ToolDefinition,
 } from '@sam-ai/agentic';
+import { ToolPermissionLevel, type ToolConfiguration } from '@sam-ai/integration';
 import {
   createPrismaInvocationStore,
   createPrismaAuditStore,
@@ -27,9 +27,10 @@ import {
   createPrismaConfirmationStore,
 } from '@sam-ai/agentic';
 import { getToolRegistryCache } from '@/lib/sam/stores/prisma-tool-store';
-import { getStore } from '@/lib/sam/taxomind-context';
+import { getIntegrationProfile, getStore } from '@/lib/sam/taxomind-context';
 import { createToolRepositories } from '@/lib/sam/tool-repositories';
 import { createExternalAPITools } from '@/lib/sam/agentic-external-api-tools';
+import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -45,28 +46,88 @@ let toolingSystem: ToolingSystem | null = null;
 let toolRegistrationDone = false;
 let externalToolsRegistered = false;
 let toolAiAdapter: AIAdapter | null = null;
+let toolAiAdapterPromise: Promise<AIAdapter | null> | null = null;
 
-function getToolAiAdapter(): AIAdapter | null {
-  if (!toolAiAdapter) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      logger.warn('[Tooling] ANTHROPIC_API_KEY not set - AI-powered tools will be unavailable');
+async function getToolAiAdapter(): Promise<AIAdapter | null> {
+  if (toolAiAdapter) {
+    return toolAiAdapter;
+  }
+
+  if (toolAiAdapterPromise) {
+    return toolAiAdapterPromise;
+  }
+
+  toolAiAdapterPromise = (async () => {
+    const adapter = await getCoreAIAdapter();
+    if (!adapter) {
+      logger.warn('[Tooling] AI adapter unavailable - AI-powered tools disabled');
       return null;
     }
-    toolAiAdapter = createAnthropicAdapter({
-      apiKey,
-      model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514',
-      timeout: 60000,
-      maxRetries: 1,
-    });
+    toolAiAdapter = adapter;
+    return adapter;
+  })();
+
+  return toolAiAdapterPromise;
+}
+
+function mapPermissionLevel(
+  level: ToolPermissionLevel
+): PermissionLevel[] {
+  switch (level) {
+    case ToolPermissionLevel.READ_ONLY:
+      return [PermissionLevel.READ];
+    case ToolPermissionLevel.READ_WRITE:
+      return [PermissionLevel.READ, PermissionLevel.WRITE];
+    case ToolPermissionLevel.ADMIN:
+      return [PermissionLevel.ADMIN];
+    case ToolPermissionLevel.DISABLED:
+    default:
+      return [];
   }
-  return toolAiAdapter;
+}
+
+function buildToolConfigMap(): Map<string, ToolConfiguration> {
+  try {
+    const profile = getIntegrationProfile();
+    const configs = Object.values(profile.tools).flat();
+    return new Map(configs.map((config) => [config.id, config]));
+  } catch (error) {
+    logger.warn('[Tooling] Failed to load integration tool configs', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return new Map();
+  }
+}
+
+function applyToolConfig(tool: ToolDefinition, config?: ToolConfiguration): void {
+  if (!config) return;
+
+  tool.enabled = config.enabled;
+  tool.requiredPermissions = mapPermissionLevel(config.permissionLevel);
+  tool.confirmationType = config.requiresConfirmation
+    ? ConfirmationType.EXPLICIT
+    : ConfirmationType.NONE;
+
+  if (config.rateLimit) {
+    tool.rateLimit = {
+      maxCalls: config.rateLimit.maxCalls,
+      windowMs: config.rateLimit.windowMs,
+      scope: tool.rateLimit?.scope ?? 'user',
+    };
+  }
+
+  if (config.allowedRoles) {
+    tool.metadata = {
+      ...tool.metadata,
+      allowedRoles: config.allowedRoles,
+    };
+  }
 }
 
 async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   if (toolRegistrationDone) return;
 
-  const aiAdapter = getToolAiAdapter();
+  const aiAdapter = await getToolAiAdapter();
   if (!aiAdapter) {
     logger.warn('[Tooling] Skipping mentor tools registration - AI adapter not available');
     toolRegistrationDone = true;
@@ -76,6 +137,7 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   // Create database-backed repositories for mentor tools
   const repositories = createToolRepositories();
 
+  const toolConfigMap = buildToolConfigMap();
   const tools = createMentorTools({
     aiAdapter,
     logger,
@@ -98,6 +160,7 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   const toolCache = getToolRegistryCache();
 
   for (const tool of tools) {
+    applyToolConfig(tool, toolConfigMap.get(tool.id));
     const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
     if (!existing) {
       // Tool not in DB - register it (this also adds to cache)
@@ -133,6 +196,7 @@ async function registerExternalAPITools(toolRegistry: ToolRegistry): Promise<voi
 
   logger.info('[Tooling] Registering external API tools');
 
+  const toolConfigMap = buildToolConfigMap();
   const externalTools = createExternalAPITools({
     logger,
     rateLimitPerMinute: 30, // Conservative rate limiting
@@ -141,6 +205,7 @@ async function registerExternalAPITools(toolRegistry: ToolRegistry): Promise<voi
   const toolCache = getToolRegistryCache();
 
   for (const tool of externalTools) {
+    applyToolConfig(tool, toolConfigMap.get(tool.id));
     const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
     if (!existing) {
       // Tool not in DB - register it (this also adds to cache)

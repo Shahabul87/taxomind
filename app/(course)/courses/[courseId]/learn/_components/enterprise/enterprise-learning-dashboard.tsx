@@ -22,6 +22,7 @@ import { AchievementsPanel } from "./achievements-panel";
 import { CourseContentNavigation } from "../course-content-navigation";
 import { LearningPath } from "../learning-path";
 import { SmartSidebar } from "../smart-sidebar";
+import { LearningPathOptimizer } from "@/components/sam";
 import { StreakTracker } from "../streak-tracker";
 import { SmartPredictions } from "../smart-predictions";
 import { SectionErrorBoundary } from "./learn-error-boundary";
@@ -428,14 +429,28 @@ export function EnterpriseLearningDashboard({
                 )}
 
                 {activeTab === "progress" && (
-                  <SectionErrorBoundary
-                    componentName="LearningPath"
-                    fallbackMessage="Failed to load learning path"
-                  >
-                    <Suspense fallback={<LearningPathSkeleton />}>
-                      <LearningPath course={course as any} detailed />
-                    </Suspense>
-                  </SectionErrorBoundary>
+                  <div className="space-y-8">
+                    <SectionErrorBoundary
+                      componentName="LearningPath"
+                      fallbackMessage="Failed to load learning path"
+                    >
+                      <Suspense fallback={<LearningPathSkeleton />}>
+                        <LearningPath course={course as any} detailed />
+                      </Suspense>
+                    </SectionErrorBoundary>
+
+                    {/* AI-Powered Learning Path Optimizer */}
+                    <SectionErrorBoundary
+                      componentName="LearningPathOptimizer"
+                      fallbackMessage="Failed to load AI path optimizer"
+                    >
+                      <LearningPathOptimizer
+                        userId={user.id}
+                        courseId={course.id}
+                        className="w-full"
+                      />
+                    </SectionErrorBoundary>
+                  </div>
                 )}
 
                 {activeTab === "achievements" && (

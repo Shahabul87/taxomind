@@ -8,6 +8,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getProactiveStores } from '@/lib/sam/taxomind-context';
+import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -71,6 +72,24 @@ export async function POST(
     });
 
     logger.info(`Dismissed intervention ${interventionId} for user ${session.user.id}`);
+
+    // Record telemetry for intervention dismissal
+    try {
+      const telemetry = getSAMTelemetryService();
+      await telemetry.recordProactiveEvent({
+        userId: session.user.id,
+        eventType: 'INTERVENTION_DISMISSED',
+        itemId: interventionId,
+        delivered: true,
+        response: {
+          action: 'dismissed',
+          responseTimeMs: 0, // Not tracking response time for dismiss
+          feedback: feedback,
+        },
+      });
+    } catch (telemetryError) {
+      logger.warn('[Telemetry] Failed to record intervention dismissal:', telemetryError);
+    }
 
     return NextResponse.json({
       success: true,

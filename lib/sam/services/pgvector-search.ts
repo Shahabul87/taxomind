@@ -11,9 +11,10 @@
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { OpenAI } from 'openai';
 import { z } from 'zod';
 import * as crypto from 'crypto';
+import type { EmbeddingProvider } from '@sam-ai/agentic';
+import { getEmbeddingProvider } from '@/lib/sam/integration-adapters';
 
 // ==========================================
 // TYPES & VALIDATION SCHEMAS
@@ -133,54 +134,6 @@ function cosineSimilarity(a: number[], b: number[]): number {
 }
 
 // ==========================================
-// EMBEDDING PROVIDER
-// ==========================================
-
-class EmbeddingProvider {
-  private readonly client: OpenAI;
-  private readonly model: string;
-  private readonly dimensions: number;
-
-  constructor() {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
-    }
-
-    this.client = new OpenAI({ apiKey });
-    this.model = process.env.OPENAI_EMBEDDING_MODEL ?? 'text-embedding-ada-002';
-    this.dimensions = this.model.includes('ada-002') ? 1536 : 1536;
-  }
-
-  async embed(text: string): Promise<number[]> {
-    const response = await this.client.embeddings.create({
-      model: this.model,
-      input: text.trim().slice(0, 8000),
-    });
-    return response.data[0]?.embedding ?? [];
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    if (texts.length === 0) return [];
-
-    const truncatedTexts = texts.map((t) => t.trim().slice(0, 8000));
-    const response = await this.client.embeddings.create({
-      model: this.model,
-      input: truncatedTexts,
-    });
-    return response.data.map((item) => item.embedding);
-  }
-
-  getModelName(): string {
-    return this.model;
-  }
-
-  getDimensions(): number {
-    return this.dimensions;
-  }
-}
-
-// ==========================================
 // CONTENT HASH UTILITY
 // ==========================================
 
@@ -193,39 +146,103 @@ function hashContent(text: string): string {
 // ==========================================
 
 export class PgVectorSearchService {
-  private readonly embeddingProvider: EmbeddingProvider;
-  private pgvectorAvailable: boolean | null = null;
+  private embeddingProvider: EmbeddingProvider | null = null;
+  private embeddingProviderPromise: Promise<EmbeddingProvider> | null = null;
+  private pgvectorAvailability: Map<string, boolean> = new Map();
 
-  constructor() {
-    this.embeddingProvider = new EmbeddingProvider();
+  constructor() {}
+
+  private async getEmbeddingProvider(): Promise<EmbeddingProvider> {
+    if (this.embeddingProvider) {
+      return this.embeddingProvider;
+    }
+
+    if (!this.embeddingProviderPromise) {
+      this.embeddingProviderPromise = (async () => {
+        const provider = await getEmbeddingProvider();
+        if (!provider) {
+          throw new Error('Embedding adapter not available for memory search');
+        }
+        this.embeddingProvider = provider;
+        return provider;
+      })();
+    }
+
+    return this.embeddingProviderPromise;
+  }
+
+  private async isPgVectorAvailable(tableName: string): Promise<boolean> {
+    if (this.pgvectorAvailability.has(tableName)) {
+      return this.pgvectorAvailability.get(tableName) ?? false;
+    }
+
+    try {
+      const extension = await db.$queryRaw<Array<{ extname: string }>>`
+        SELECT extname FROM pg_extension WHERE extname = 'vector'
+      `;
+      if (extension.length === 0) {
+        this.pgvectorAvailability.set(tableName, false);
+        logger.info('[VectorSearch] pgvector extension not found - using in-memory cosine similarity');
+        return false;
+      }
+
+      const columnExists = await db.$queryRaw<Array<{ exists: boolean }>>`
+        SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = ${tableName}
+            AND column_name = 'embedding_vector'
+        ) AS exists
+      `;
+      const available = Boolean(columnExists[0]?.exists);
+      this.pgvectorAvailability.set(tableName, available);
+
+      if (available) {
+        logger.info('[VectorSearch] pgvector extension detected - using native vector search');
+      } else {
+        logger.info('[VectorSearch] pgvector column missing - using in-memory cosine similarity');
+      }
+
+      return available;
+    } catch (error) {
+      logger.warn('[VectorSearch] Could not check pgvector availability, using in-memory fallback', {
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
+      this.pgvectorAvailability.set(tableName, false);
+      return false;
+    }
+  }
+
+  private async updateEmbeddingVector(
+    table: 'sam_vector_embeddings' | 'sam_long_term_memories' | 'sam_conversation_memories',
+    id: string,
+    embedding: number[]
+  ): Promise<void> {
+    const usePgVector = await this.isPgVectorAvailable(table);
+    if (!usePgVector) return;
+
+    const vectorString = `[${embedding.join(',')}]`;
+    try {
+      await db.$executeRawUnsafe(
+        `UPDATE "${table}" SET "embedding_vector" = $1::vector WHERE id = $2`,
+        vectorString,
+        id
+      );
+    } catch (error) {
+      logger.warn('[VectorSearch] Failed to update pgvector column', {
+        table,
+        id,
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
+      this.pgvectorAvailability.set(table, false);
+    }
   }
 
   /**
    * Check if pgvector extension is available in the database
    */
   private async checkPgVectorAvailable(): Promise<boolean> {
-    if (this.pgvectorAvailable !== null) {
-      return this.pgvectorAvailable;
-    }
-
-    try {
-      const result = await db.$queryRaw<Array<{ extname: string }>>`
-        SELECT extname FROM pg_extension WHERE extname = 'vector'
-      `;
-      this.pgvectorAvailable = result.length > 0;
-      if (this.pgvectorAvailable) {
-        logger.info('[VectorSearch] pgvector extension detected - using native vector search');
-      } else {
-        logger.info('[VectorSearch] pgvector extension not found - using in-memory cosine similarity');
-      }
-    } catch (error) {
-      logger.warn('[VectorSearch] Could not check pgvector availability, using in-memory fallback', {
-        error: error instanceof Error ? error.message : 'Unknown',
-      });
-      this.pgvectorAvailable = false;
-    }
-
-    return this.pgvectorAvailable;
+    return this.isPgVectorAvailable('sam_vector_embeddings');
   }
 
   /**
@@ -255,7 +272,8 @@ export class PgVectorSearchService {
       return existing.id;
     }
 
-    const embedding = await this.embeddingProvider.embed(input.text);
+    const embeddingProvider = await this.getEmbeddingProvider();
+    const embedding = await embeddingProvider.embed(input.text);
 
     const record = await db.sAMVectorEmbedding.create({
       data: {
@@ -271,9 +289,11 @@ export class PgVectorSearchService {
         language: input.language,
         customMetadata: input.customMetadata,
         embedding: embedding,
-        dimensions: this.embeddingProvider.getDimensions(),
+        dimensions: embeddingProvider.getDimensions(),
       },
     });
+
+    await this.updateEmbeddingVector('sam_vector_embeddings', record.id, embedding);
 
     logger.info('[VectorSearch] Stored embedding', {
       id: record.id,
@@ -291,7 +311,8 @@ export class PgVectorSearchService {
     if (inputs.length === 0) return 0;
 
     const texts = inputs.map((i) => i.text);
-    const embeddings = await this.embeddingProvider.embedBatch(texts);
+    const embeddingProvider = await this.getEmbeddingProvider();
+    const embeddings = await embeddingProvider.embedBatch(texts);
 
     let storedCount = 0;
 
@@ -304,9 +325,15 @@ export class PgVectorSearchService {
       const contentHash = hashContent(input.text);
 
       try {
-        await db.sAMVectorEmbedding.upsert({
-          where: { id: contentHash },
-          create: {
+        const existing = await db.sAMVectorEmbedding.findFirst({
+          where: { contentHash },
+          select: { id: true },
+        });
+        if (existing) {
+          continue;
+        }
+        const record = await db.sAMVectorEmbedding.create({
+          data: {
             sourceId: input.sourceId,
             sourceType: input.sourceType,
             userId: input.userId,
@@ -319,10 +346,10 @@ export class PgVectorSearchService {
             language: input.language,
             customMetadata: input.customMetadata,
             embedding: embedding,
-            dimensions: this.embeddingProvider.getDimensions(),
+            dimensions: embeddingProvider.getDimensions(),
           },
-          update: {},
         });
+        await this.updateEmbeddingVector('sam_vector_embeddings', record.id, embedding);
         storedCount++;
       } catch (error) {
         logger.warn('[VectorSearch] Failed to store embedding', { error, sourceId: input.sourceId });
@@ -342,7 +369,8 @@ export class PgVectorSearchService {
     options: VectorSearchOptionsInput = {}
   ): Promise<VectorSearchResult[]> {
     const validatedOptions = VectorSearchOptionsSchema.parse(options);
-    const queryEmbedding = await this.embeddingProvider.embed(query);
+    const embeddingProvider = await this.getEmbeddingProvider();
+    const queryEmbedding = await embeddingProvider.embed(query);
 
     // Check if pgvector is available
     const usePgVector = await this.checkPgVectorAvailable();
@@ -364,7 +392,7 @@ export class PgVectorSearchService {
     const vectorString = `[${queryEmbedding.join(',')}]`;
 
     // Build WHERE conditions
-    const conditions: string[] = [];
+    const conditions: string[] = ['"embedding_vector" IS NOT NULL'];
     const params: unknown[] = [vectorString, options.topK];
     let paramIndex = 3;
 
@@ -416,10 +444,10 @@ export class PgVectorSearchService {
           "userId",
           "courseId",
           tags,
-          embedding <=> $1::vector as distance
-        FROM "SAMVectorEmbedding"
+          embedding_vector <=> $1::vector as distance
+        FROM "sam_vector_embeddings"
         ${whereClause}
-        ORDER BY embedding <=> $1::vector
+        ORDER BY embedding_vector <=> $1::vector
         LIMIT $2
         `,
         ...params
@@ -445,7 +473,7 @@ export class PgVectorSearchService {
       logger.warn('[VectorSearch] pgvector search failed, falling back to in-memory', {
         error: error instanceof Error ? error.message : 'Unknown',
       });
-      this.pgvectorAvailable = false; // Disable for future calls
+      this.pgvectorAvailability.set('sam_vector_embeddings', false);
       return this.searchSimilarInMemory(queryEmbedding, options);
     }
   }
@@ -528,7 +556,8 @@ export class PgVectorSearchService {
    * Store a long-term memory with semantic embedding
    */
   async storeLongTermMemory(input: LongTermMemoryInput): Promise<string> {
-    const embedding = await this.embeddingProvider.embed(
+    const embeddingProvider = await this.getEmbeddingProvider();
+    const embedding = await embeddingProvider.embed(
       `${input.title}\n\n${input.content}`
     );
 
@@ -544,11 +573,13 @@ export class PgVectorSearchService {
         importance: input.importance ?? 'MEDIUM',
         emotionalValence: input.emotionalValence,
         embedding: embedding,
-        embeddingModel: this.embeddingProvider.getModelName(),
+        embeddingModel: embeddingProvider.getModelName(),
         tags: input.tags ?? [],
         metadata: input.metadata,
       },
     });
+
+    await this.updateEmbeddingVector('sam_long_term_memories', record.id, embedding);
 
     logger.info('[VectorSearch] Stored long-term memory', {
       id: record.id,
@@ -568,10 +599,11 @@ export class PgVectorSearchService {
     query: string,
     options: { topK?: number; minScore?: number; types?: string[]; courseId?: string } = {}
   ): Promise<LongTermMemorySearchResult[]> {
-    const embedding = await this.embeddingProvider.embed(query);
+    const embeddingProvider = await this.getEmbeddingProvider();
+    const embedding = await embeddingProvider.embed(query);
     const topK = options.topK ?? 10;
 
-    const usePgVector = await this.checkPgVectorAvailable();
+    const usePgVector = await this.isPgVectorAvailable('sam_long_term_memories');
 
     let topResults: LongTermMemorySearchResult[];
 
@@ -607,7 +639,7 @@ export class PgVectorSearchService {
   ): Promise<LongTermMemorySearchResult[]> {
     const vectorString = `[${embedding.join(',')}]`;
 
-    const conditions: string[] = ['"userId" = $3'];
+    const conditions: string[] = ['"embedding_vector" IS NOT NULL', '"userId" = $3'];
     const params: unknown[] = [vectorString, topK, userId];
     let paramIndex = 4;
 
@@ -640,10 +672,10 @@ export class PgVectorSearchService {
         `
         SELECT
           id, title, content, summary, type, importance, "courseId", tags, "createdAt",
-          embedding <=> $1::vector as distance
-        FROM "SAMLongTermMemory"
+          embedding_vector <=> $1::vector as distance
+        FROM "sam_long_term_memories"
         WHERE ${conditions.join(' AND ')}
-        ORDER BY embedding <=> $1::vector
+        ORDER BY embedding_vector <=> $1::vector
         LIMIT $2
         `,
         ...params
@@ -670,6 +702,7 @@ export class PgVectorSearchService {
       logger.warn('[VectorSearch] pgvector long-term memory search failed, using in-memory', {
         error: error instanceof Error ? error.message : 'Unknown',
       });
+      this.pgvectorAvailability.set('sam_long_term_memories', false);
       return this.searchLongTermMemoriesInMemory(userId, embedding, options, topK);
     }
   }
@@ -746,7 +779,8 @@ export class PgVectorSearchService {
    * Store a conversation turn with embedding
    */
   async storeConversationMemory(input: ConversationMemoryInput): Promise<string> {
-    const embedding = await this.embeddingProvider.embed(input.content);
+    const embeddingProvider = await this.getEmbeddingProvider();
+    const embedding = await embeddingProvider.embed(input.content);
 
     const record = await db.sAMConversationMemory.create({
       data: {
@@ -763,6 +797,8 @@ export class PgVectorSearchService {
         metadata: input.metadata,
       },
     });
+
+    await this.updateEmbeddingVector('sam_conversation_memories', record.id, embedding);
 
     logger.debug('[VectorSearch] Stored conversation memory', {
       id: record.id,
@@ -781,7 +817,8 @@ export class PgVectorSearchService {
     query: string,
     options: { topK?: number; sessionId?: string; minScore?: number } = {}
   ): Promise<ConversationMemorySearchResult[]> {
-    const embedding = await this.embeddingProvider.embed(query);
+    const embeddingProvider = await this.getEmbeddingProvider();
+    const embedding = await embeddingProvider.embed(query);
     const topK = options.topK ?? 10;
 
     // Build filter

@@ -61,6 +61,52 @@ export type {
 } from './memory-store';
 
 // ============================================================================
+// SELF-EVALUATION STORES
+// ============================================================================
+
+export {
+  PrismaConfidenceScoreStore,
+  PrismaVerificationResultStore,
+  PrismaQualityRecordStore,
+  PrismaCalibrationStore,
+  PrismaSelfCritiqueStore,
+  createPrismaSelfEvaluationStores,
+} from './self-evaluation-store';
+
+export type {
+  PrismaSelfEvaluationStoreConfig,
+} from './self-evaluation-store';
+
+// ============================================================================
+// META-LEARNING STORES
+// ============================================================================
+
+export {
+  PrismaLearningPatternStore,
+  PrismaMetaLearningInsightStore,
+  PrismaLearningStrategyStore,
+  PrismaLearningEventStore,
+  createPrismaMetaLearningStores,
+} from './meta-learning-store';
+
+export type {
+  PrismaMetaLearningStoreConfig,
+} from './meta-learning-store';
+
+// ============================================================================
+// JOURNEY TIMELINE STORE
+// ============================================================================
+
+export {
+  PrismaJourneyTimelineStore,
+  createPrismaJourneyTimelineStore,
+} from './journey-timeline-store';
+
+export type {
+  PrismaJourneyTimelineStoreConfig,
+} from './journey-timeline-store';
+
+// ============================================================================
 // REVIEW SCHEDULE STORE
 // ============================================================================
 

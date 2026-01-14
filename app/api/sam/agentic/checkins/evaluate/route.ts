@@ -158,13 +158,86 @@ async function buildUserContext(userId: string): Promise<UserContext> {
     where: { userId },
   });
 
-  // Note: SAMLearningGoal model doesn't exist in the schema
-  // Goal progress tracking would need to be implemented via SAMAnalytics or a dedicated table
-  const activeGoal = null;
+  // Get active goal with active execution plan
+  const activeGoal = await db.sAMLearningGoal.findFirst({
+    where: {
+      userId,
+      status: 'ACTIVE',
+    },
+    include: {
+      plans: {
+        where: { status: 'ACTIVE' },
+        orderBy: { updatedAt: 'desc' },
+        take: 1,
+      },
+    },
+    orderBy: { updatedAt: 'desc' },
+  });
 
-  // Note: ASSESSMENT_RESULT is not a valid SAMInteractionType
-  // Assessment results would need to be tracked differently
-  const lastAssessmentPassed = undefined;
+  // Get goal progress from active execution plan
+  const activePlan = activeGoal?.plans?.[0];
+  const goalProgress = activePlan?.overallProgress
+    ? Math.round(activePlan.overallProgress * 100)
+    : undefined;
+  const goalDeadline = activeGoal?.targetDate ?? activePlan?.targetDate;
+
+  // Calculate mastery trend from recent skill assessments
+  const recentAssessments = await db.sAMSkillAssessment.findMany({
+    where: { userId },
+    orderBy: { assessedAt: 'desc' },
+    take: 5,
+  });
+
+  let masteryTrend: 'improving' | 'stable' | 'declining' | undefined;
+  if (recentAssessments.length >= 2) {
+    const recentScores = recentAssessments.map((a) => a.score);
+    const avgRecent = recentScores.slice(0, 2).reduce((a, b) => a + b, 0) / 2;
+    const avgOlder =
+      recentScores.slice(2).reduce((a, b) => a + b, 0) /
+      Math.max(recentScores.slice(2).length, 1);
+
+    if (avgRecent > avgOlder + 0.1) {
+      masteryTrend = 'improving';
+    } else if (avgRecent < avgOlder - 0.1) {
+      masteryTrend = 'declining';
+    } else {
+      masteryTrend = 'stable';
+    }
+  }
+
+  // Calculate frustration level from recent behavior events
+  const recentBehaviorEvents = await db.sAMBehaviorEvent.findMany({
+    where: {
+      userId,
+      timestamp: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // Last 24 hours
+    },
+    orderBy: { timestamp: 'desc' },
+    take: 20,
+  });
+
+  let frustrationLevel: number | undefined;
+  if (recentBehaviorEvents.length > 0) {
+    // Calculate frustration from emotional signals
+    const frustrationSignals = recentBehaviorEvents.filter((event) => {
+      const signals = event.emotionalSignals as Record<string, unknown> | null;
+      return (
+        signals?.frustration !== undefined ||
+        event.type === 'FRUSTRATION_SIGNAL' ||
+        event.type === 'HINT_REQUEST' ||
+        event.type === 'HELP_REQUESTED'
+      );
+    });
+
+    frustrationLevel = Math.min(
+      1,
+      frustrationSignals.length / Math.max(recentBehaviorEvents.length, 1)
+    );
+  }
+
+  // Check last assessment result from skill assessments
+  const lastAssessment = recentAssessments[0];
+  const lastAssessmentPassed =
+    lastAssessment?.score !== undefined ? lastAssessment.score >= 0.7 : undefined;
 
   // Calculate streak at risk
   const streakAtRisk =
@@ -176,12 +249,14 @@ async function buildUserContext(userId: string): Promise<UserContext> {
     currentStreak: streak?.currentStreak ?? 0,
     streakAtRisk: streakAtRisk ?? false,
     masteryScore: profile?.preferences
-      ? (profile.preferences as Record<string, unknown>).masteryScore as number | undefined
+      ? ((profile.preferences as Record<string, unknown>).masteryScore as
+          | number
+          | undefined)
       : undefined,
-    masteryTrend: undefined, // Would need historical data to calculate
-    frustrationLevel: undefined, // Would need behavior analysis
-    goalProgress: undefined, // Goal tracking not yet implemented
-    goalDeadline: undefined, // Goal tracking not yet implemented
+    masteryTrend,
+    frustrationLevel,
+    goalProgress,
+    goalDeadline: goalDeadline ?? undefined,
     lastAssessmentPassed,
     daysSinceLastSession,
   };

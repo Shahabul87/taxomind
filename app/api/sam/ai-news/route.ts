@@ -5,8 +5,11 @@ import {
   searchNews,
   type NewsArticle as ExternalNewsArticle,
 } from '@/lib/sam/external-knowledge-integration';
-import { samNewsRankingEngine } from '@/lib/sam-engines/advanced/sam-news-ranking-engine';
-import type { NewsArticle as RankerNewsArticle, NewsCategory as RankerNewsCategory } from '@/lib/sam-engines/content/sam-news-engine';
+import {
+  getNewsRankingEngine,
+  type RankerNewsArticle,
+  type NewsCategory as RankerNewsCategory,
+} from '@sam-ai/external-knowledge';
 import { z } from 'zod';
 
 /**
@@ -191,7 +194,8 @@ async function rankNewsArticles(articles: NewsArticle[]): Promise<NewsArticle[]>
   if (articles.length === 0) return [];
 
   const rankerArticles = articles.map(toRankerArticle);
-  const rankedArticles = await samNewsRankingEngine.rankNews(rankerArticles);
+  const newsRankingEngine = getNewsRankingEngine();
+  const rankedArticles = await newsRankingEngine.rankNews(rankerArticles);
   const articlesById = new Map(articles.map(article => [article.articleId, article]));
 
   const rankedNews: NewsArticle[] = [];

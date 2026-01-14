@@ -1,3 +1,14 @@
+/**
+ * @deprecated This file is deprecated. Use @sam-ai/external-knowledge package instead.
+ *
+ * Import the news ranking engine from the package:
+ * ```typescript
+ * import { getNewsRankingEngine, NewsRankingEngine } from '@sam-ai/external-knowledge';
+ * ```
+ *
+ * This file is kept for backward compatibility and will be removed in a future version.
+ */
+
 import { NewsArticle } from '../content/sam-news-engine';
 
 export interface RankingCriteria {

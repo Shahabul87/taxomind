@@ -116,7 +116,7 @@ export async function buildCourseGraph(courseId: string): Promise<CourseGraphDat
       return null;
     }
 
-    const memorySystem = getAgenticMemorySystem();
+    const memorySystem = await getAgenticMemorySystem();
     const concepts: ConceptNode[] = [];
     const prerequisites: PrerequisiteRelation[] = [];
 
@@ -375,7 +375,7 @@ export async function updateUserSkill(
   }
 ): Promise<void> {
   try {
-    const memorySystem = getAgenticMemorySystem();
+    const memorySystem = await getAgenticMemorySystem();
 
     // Get the concept entity
     const concepts = await memorySystem.knowledgeGraph.findEntities(
@@ -648,7 +648,7 @@ export async function getRelatedConcepts(
   } = {}
 ): Promise<ConceptConnection[]> {
   try {
-    const memorySystem = getAgenticMemorySystem();
+    const memorySystem = await getAgenticMemorySystem();
     const maxDepth = options.maxDepth ?? 2;
     const limit = options.limit ?? 10;
 
@@ -695,7 +695,7 @@ export async function findConceptPath(
   targetConceptId: string
 ): Promise<GraphPath | null> {
   try {
-    const memorySystem = getAgenticMemorySystem();
+    const memorySystem = await getAgenticMemorySystem();
 
     return await memorySystem.knowledgeGraph.findPath(
       sourceConceptId,
@@ -798,7 +798,7 @@ async function checkPrerequisitesMet(
   masteredConcepts: string[]
 ): Promise<boolean> {
   try {
-    const memorySystem = getAgenticMemorySystem();
+    const memorySystem = await getAgenticMemorySystem();
 
     // Get prerequisites for this concept
     const relationships = await memorySystem.knowledgeGraph.getRelationships(conceptId, {

@@ -69,8 +69,8 @@ export interface ConceptGraphResult {
 /**
  * Gets the knowledge graph manager from the memory system
  */
-export function getKnowledgeGraphManager() {
-  const memorySystem = getAgenticMemorySystem();
+export async function getKnowledgeGraphManager() {
+  const memorySystem = await getAgenticMemorySystem();
   return memorySystem.knowledgeGraph;
 }
 
@@ -347,7 +347,7 @@ export async function getKGCourseGraph(courseId: string): Promise<CourseGraphDat
  */
 async function findEntityById(entityId: string): Promise<GraphEntity | null> {
   try {
-    const kg = getKnowledgeGraphManager();
+    const kg = await getKnowledgeGraphManager();
 
     // Try each entity type
     for (const entityType of [EntityType.SECTION, EntityType.CHAPTER, EntityType.COURSE]) {
@@ -374,7 +374,7 @@ export async function searchKGEntities(
   } = {}
 ): Promise<GraphEntity[]> {
   try {
-    const kg = getKnowledgeGraphManager();
+    const kg = await getKnowledgeGraphManager();
     const limit = options.limit ?? 10;
     const entityType = options.entityType ?? EntityType.SECTION;
 

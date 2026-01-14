@@ -7,8 +7,8 @@
  * Channel Status:
  * ✅ in_app  - Stored in Notification table + realtime cache (FULLY IMPLEMENTED)
  * ✅ email   - Via Resend API (IMPLEMENTED - requires RESEND_API_KEY)
- * ⏳ push    - FCM/APNs (NOT IMPLEMENTED - requires service worker + device tokens)
- * ⏳ sms     - Twilio (NOT IMPLEMENTED - requires TWILIO_* credentials)
+ * ✅ push    - Via Firebase Cloud Messaging (IMPLEMENTED - requires FIREBASE_* credentials)
+ * ✅ sms     - Via Twilio (IMPLEMENTED - requires TWILIO_* credentials)
  *
  * Auto Channel Selection:
  * - Online users: in_app only (realtime)
@@ -21,6 +21,12 @@ import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { realTimeCacheManager, RealTimeCacheUtils } from '@/lib/redis/realtime-cache';
 import type { Intervention } from '@sam-ai/agentic';
+import {
+  isPushAvailable,
+  sendPushToUser,
+  isSMSAvailable,
+  sendRateLimitedSMS,
+} from './notifications';
 
 // ============================================================================
 // TYPES
@@ -56,8 +62,8 @@ interface AgenticNotificationResult {
 export interface NotificationCapabilities {
   in_app: { enabled: true };
   email: { enabled: boolean; reason?: string };
-  push: { enabled: false; reason: string };
-  sms: { enabled: false; reason: string };
+  push: { enabled: boolean; reason?: string };
+  sms: { enabled: boolean; reason?: string };
 }
 
 // ============================================================================
@@ -69,6 +75,9 @@ export interface NotificationCapabilities {
  * Useful for UI to show which channels are available
  */
 export function getNotificationCapabilities(): NotificationCapabilities {
+  const pushAvailable = isPushAvailable();
+  const smsAvailable = isSMSAvailable();
+
   return {
     in_app: { enabled: true },
     email: {
@@ -78,13 +87,17 @@ export function getNotificationCapabilities(): NotificationCapabilities {
         : 'RESEND_API_KEY not configured',
     },
     push: {
-      enabled: false,
-      reason: 'FCM/APNs integration pending - requires service worker setup',
-    },
+      enabled: pushAvailable,
+      reason: pushAvailable
+        ? undefined
+        : 'Firebase credentials not configured (FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL)',
+    } as NotificationCapabilities['push'],
     sms: {
-      enabled: false,
-      reason: 'Twilio integration pending - requires TWILIO_* credentials',
-    },
+      enabled: smsAvailable,
+      reason: smsAvailable
+        ? undefined
+        : 'Twilio credentials not configured (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER)',
+    } as NotificationCapabilities['sms'],
   };
 }
 
@@ -278,28 +291,89 @@ export async function sendAgenticNotification(
     }
   }
 
-  // Push notifications - NOT IMPLEMENTED
-  // FCM/APNs integration required for real push notifications
+  // Push notifications via Firebase Cloud Messaging
   if (channels.includes('push')) {
-    logger.warn('[SAM_NOTIFICATIONS] Push channel requested but NOT IMPLEMENTED', {
-      userId: payload.userId,
-      type: payload.type,
-      note: 'FCM/APNs integration required. Falling back to in_app.',
-    });
-    // Do NOT mark as sent since it's not actually delivered
-    // channelsSent.push('push');
+    if (isPushAvailable()) {
+      try {
+        const pushResult = await sendPushToUser(payload.userId, {
+          title: payload.title,
+          body: message,
+          clickAction: payload.actionUrl,
+          data: {
+            type: payload.type,
+            priority: payload.priority,
+            ...(payload.metadata as Record<string, string> | undefined),
+          },
+        });
+
+        if (pushResult.success) {
+          channelsSent.push('push');
+          logger.info('[SAM_NOTIFICATIONS] Push notification sent', {
+            userId: payload.userId,
+            type: payload.type,
+          });
+        } else {
+          logger.warn('[SAM_NOTIFICATIONS] Push notification failed', {
+            userId: payload.userId,
+            error: pushResult.error,
+          });
+        }
+      } catch (error) {
+        logger.error('[SAM_NOTIFICATIONS] Push notification error', {
+          userId: payload.userId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    } else {
+      logger.debug('[SAM_NOTIFICATIONS] Push channel requested but not configured', {
+        userId: payload.userId,
+        type: payload.type,
+      });
+    }
   }
 
-  // SMS notifications - NOT IMPLEMENTED
-  // Twilio integration required for real SMS notifications
+  // SMS notifications via Twilio
   if (channels.includes('sms')) {
-    logger.warn('[SAM_NOTIFICATIONS] SMS channel requested but NOT IMPLEMENTED', {
-      userId: payload.userId,
-      type: payload.type,
-      note: 'Twilio integration required. Falling back to in_app.',
-    });
-    // Do NOT mark as sent since it's not actually delivered
-    // channelsSent.push('sms');
+    if (isSMSAvailable()) {
+      try {
+        // Only send SMS for critical or high priority notifications
+        if (payload.priority === 'critical' || payload.priority === 'high') {
+          const smsResult = await sendRateLimitedSMS(payload.userId, {
+            message: `[SAM] ${payload.title}: ${payload.message}`,
+          });
+
+          if (smsResult.success) {
+            channelsSent.push('sms');
+            logger.info('[SAM_NOTIFICATIONS] SMS notification sent', {
+              userId: payload.userId,
+              type: payload.type,
+              messageId: smsResult.messageId,
+            });
+          } else {
+            logger.warn('[SAM_NOTIFICATIONS] SMS notification failed', {
+              userId: payload.userId,
+              error: smsResult.error,
+              errorCode: smsResult.errorCode,
+            });
+          }
+        } else {
+          logger.debug('[SAM_NOTIFICATIONS] SMS skipped - not high priority', {
+            userId: payload.userId,
+            priority: payload.priority,
+          });
+        }
+      } catch (error) {
+        logger.error('[SAM_NOTIFICATIONS] SMS notification error', {
+          userId: payload.userId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    } else {
+      logger.debug('[SAM_NOTIFICATIONS] SMS channel requested but not configured', {
+        userId: payload.userId,
+        type: payload.type,
+      });
+    }
   }
 
   return { channelsSent, inAppId, emailId };

@@ -356,6 +356,193 @@ interface ExternalKnowledgeConfig {
 }
 
 /**
+ * @sam-ai/external-knowledge - News Module Types
+ * Types for news ranking and analysis
+ */
+
+interface RankingCriteria {
+    freshness: number;
+    relevance: number;
+    impact: number;
+    credibility: number;
+    virality: number;
+    innovation: number;
+    educational: number;
+    practicality: number;
+}
+type RankingCriteriaKey = keyof RankingCriteria;
+interface RankingWeights {
+    freshness: number;
+    relevance: number;
+    impact: number;
+    credibility: number;
+    virality: number;
+    innovation: number;
+    educational: number;
+    practicality: number;
+}
+declare const DEFAULT_RANKING_WEIGHTS: RankingWeights;
+type TrendingStatus = 'hot' | 'rising' | 'steady' | 'new';
+declare const NewsSourceTypeSchema: z.ZodEnum<["official", "research", "media", "blog", "social"]>;
+type NewsSourceType = z.infer<typeof NewsSourceTypeSchema>;
+interface NewsSourceInfo {
+    name: string;
+    url: string;
+    credibility?: number;
+    type?: NewsSourceType;
+    country?: string;
+}
+declare const ImpactLevelSchema: z.ZodEnum<["low", "medium", "high", "critical"]>;
+type ImpactLevel = z.infer<typeof ImpactLevelSchema>;
+declare const TechnicalDepthSchema: z.ZodEnum<["beginner", "intermediate", "advanced", "expert"]>;
+type TechnicalDepth = z.infer<typeof TechnicalDepthSchema>;
+declare const NewsCategorySchema: z.ZodEnum<["breakthrough", "research", "industry", "policy", "education", "ethics", "startup", "investment", "product-launch", "partnership"]>;
+type NewsCategory = z.infer<typeof NewsCategorySchema>;
+interface NewsImage {
+    url: string;
+    caption: string;
+    credit?: string;
+}
+interface Citation {
+    text: string;
+    source: string;
+    url?: string;
+}
+interface RankerNewsArticle {
+    articleId: string;
+    title: string;
+    summary: string;
+    content?: string;
+    articleUrl: string;
+    category: NewsCategory;
+    tags: string[];
+    source: NewsSourceInfo;
+    author?: string;
+    publishDate: Date;
+    relevanceScore?: number;
+    sentiment?: 'positive' | 'neutral' | 'negative';
+    impactLevel: ImpactLevel;
+    readingTime?: number;
+    keyTakeaways?: string[];
+    relatedArticles?: string[];
+    educationalValue?: number;
+    technicalDepth?: TechnicalDepth;
+    images?: NewsImage[];
+    citations?: Citation[];
+}
+interface RankedNewsArticle extends RankerNewsArticle {
+    rankingScore: number;
+    rankingDetails: RankingCriteria;
+    trendingStatus?: TrendingStatus;
+    qualityBadges?: string[];
+}
+declare const DEFAULT_SOURCE_CREDIBILITY: Record<string, number>;
+declare const AI_KEYWORDS: {
+    readonly breakthrough: readonly ["breakthrough", "revolutionary", "groundbreaking", "novel", "first"];
+    readonly technology: readonly ["gpt", "llm", "transformer", "neural", "deep learning", "machine learning", "ai model"];
+    readonly research: readonly ["paper", "study", "research", "findings", "discovery", "analysis"];
+    readonly industry: readonly ["google", "openai", "microsoft", "meta", "anthropic", "deepmind", "nvidia"];
+    readonly application: readonly ["production", "deployment", "implementation", "integration", "real-world"];
+    readonly impact: readonly ["billion", "million users", "industry-wide", "global", "significant"];
+};
+type AIKeywordCategory = keyof typeof AI_KEYWORDS;
+
+/**
+ * @sam-ai/external-knowledge - News Ranking Engine
+ * Intelligent news ranking based on multiple criteria
+ */
+
+interface NewsRankingEngineConfig {
+    weights?: Partial<RankingWeights>;
+    sourceCredibility?: Record<string, number>;
+}
+declare class NewsRankingEngine {
+    private readonly weights;
+    private readonly sourceCredibility;
+    constructor(config?: NewsRankingEngineConfig);
+    /**
+     * Rank news articles based on multiple criteria
+     */
+    rankNews(articles: RankerNewsArticle[]): Promise<RankedNewsArticle[]>;
+    /**
+     * Calculate all ranking criteria for an article
+     */
+    private calculateRankingCriteria;
+    /**
+     * Calculate freshness score based on publish date
+     */
+    private calculateFreshness;
+    /**
+     * Calculate AI/ML relevance based on content analysis
+     */
+    private calculateAIRelevance;
+    /**
+     * Calculate impact score based on various factors
+     */
+    private calculateImpact;
+    /**
+     * Calculate source credibility
+     */
+    private calculateCredibility;
+    /**
+     * Calculate virality/engagement score
+     */
+    private calculateVirality;
+    /**
+     * Calculate innovation score
+     */
+    private calculateInnovation;
+    /**
+     * Calculate educational value
+     */
+    private calculateEducationalValue;
+    /**
+     * Calculate practicality score
+     */
+    private calculatePracticality;
+    /**
+     * Calculate overall ranking score
+     */
+    private calculateOverallScore;
+    /**
+     * Determine trending status
+     */
+    private determineTrendingStatus;
+    /**
+     * Assign quality badges based on article characteristics
+     */
+    private assignQualityBadges;
+    /**
+     * Get top news by specific criteria
+     */
+    getTopNewsByCriteria(articles: RankerNewsArticle[], criteria: RankingCriteriaKey, limit?: number): Promise<RankedNewsArticle[]>;
+    /**
+     * Get trending news (hot + rising)
+     */
+    getTrendingNews(articles: RankerNewsArticle[], limit?: number): Promise<RankedNewsArticle[]>;
+    /**
+     * Update ranking weights
+     */
+    updateWeights(weights: Partial<RankingWeights>): void;
+    /**
+     * Add or update source credibility
+     */
+    setSourceCredibility(source: string, credibility: number): void;
+    /**
+     * Get current weights
+     */
+    getWeights(): Readonly<RankingWeights>;
+}
+/**
+ * Create a news ranking engine instance
+ */
+declare function createNewsRankingEngine(config?: NewsRankingEngineConfig): NewsRankingEngine;
+/**
+ * Get or create the default news ranking engine instance
+ */
+declare function getNewsRankingEngine(): NewsRankingEngine;
+
+/**
  * @sam-ai/external-knowledge - Content Cache
  * In-memory cache implementation for external content
  */
@@ -467,6 +654,7 @@ declare function createKnowledgeAggregator(config?: ExternalKnowledgeConfig): Kn
  *
  * This package provides:
  * - News Integration: Search and aggregate news from multiple sources
+ * - News Ranking: Intelligent news ranking based on multiple criteria
  * - Research Integration: Search academic papers and research
  * - Documentation Integration: Search technical documentation
  * - Web Content Extraction: Fetch and extract content from URLs
@@ -480,6 +668,7 @@ declare const PACKAGE_VERSION = "0.1.0";
  */
 declare const EXTERNAL_KNOWLEDGE_CAPABILITIES: {
     readonly NEWS: "external:news";
+    readonly NEWS_RANKING: "external:news_ranking";
     readonly RESEARCH: "external:research";
     readonly DOCUMENTATION: "external:documentation";
     readonly WEB_CONTENT: "external:web_content";
@@ -492,4 +681,4 @@ type ExternalKnowledgeCapability = (typeof EXTERNAL_KNOWLEDGE_CAPABILITIES)[keyo
  */
 declare function hasCapability(capability: ExternalKnowledgeCapability): boolean;
 
-export { type AggregatedSearchResult, type ContentCache, type ContentQuality, ContentQualitySchema, type ContentRecommendation, type Documentation, type DocumentationProvider, DocumentationSchema, type DocumentationSearchOptions, EXTERNAL_KNOWLEDGE_CAPABILITIES, type ExternalContent, ExternalContentSchema, type ExternalKnowledgeCapability, type ExternalKnowledgeConfig, type ExternalKnowledgeLogger, type ExternalSourceType, ExternalSourceTypeSchema, InMemoryContentCache, KnowledgeAggregator, type NewsArticle, NewsArticleSchema, type NewsProvider, type NewsSearchOptions, PACKAGE_NAME, PACKAGE_VERSION, type ResearchPaper, ResearchPaperSchema, type ResearchProvider, type ResearchSearchOptions, type WebContentProvider, createInMemoryCache, createKnowledgeAggregator, hasCapability };
+export { type AIKeywordCategory, AI_KEYWORDS, type AggregatedSearchResult, type Citation, type ContentCache, type ContentQuality, ContentQualitySchema, type ContentRecommendation, DEFAULT_RANKING_WEIGHTS, DEFAULT_SOURCE_CREDIBILITY, type Documentation, type DocumentationProvider, DocumentationSchema, type DocumentationSearchOptions, EXTERNAL_KNOWLEDGE_CAPABILITIES, type ExternalContent, ExternalContentSchema, type ExternalKnowledgeCapability, type ExternalKnowledgeConfig, type ExternalKnowledgeLogger, type ExternalSourceType, ExternalSourceTypeSchema, type ImpactLevel, ImpactLevelSchema, InMemoryContentCache, KnowledgeAggregator, type NewsArticle, NewsArticleSchema, type NewsCategory, NewsCategorySchema, type NewsImage, type NewsProvider, NewsRankingEngine, type NewsRankingEngineConfig, type NewsSearchOptions, type NewsSourceInfo, type NewsSourceType, NewsSourceTypeSchema, PACKAGE_NAME, PACKAGE_VERSION, type RankedNewsArticle, type RankerNewsArticle, type RankingCriteria, type RankingCriteriaKey, type RankingWeights, type ResearchPaper, ResearchPaperSchema, type ResearchProvider, type ResearchSearchOptions, type TechnicalDepth, TechnicalDepthSchema, type TrendingStatus, type WebContentProvider, createInMemoryCache, createKnowledgeAggregator, createNewsRankingEngine, getNewsRankingEngine, hasCapability };

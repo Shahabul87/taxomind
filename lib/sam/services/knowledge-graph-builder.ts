@@ -267,7 +267,7 @@ export async function addConceptsToKnowledgeGraph(
   // Try memory system first
   let memorySystem;
   try {
-    memorySystem = getAgenticMemorySystem();
+    memorySystem = await getAgenticMemorySystem();
   } catch {
     // Memory system not available, use Prisma fallback
     logger.info('[KnowledgeGraph] Using Prisma fallback (OpenAI not configured)');
@@ -445,7 +445,7 @@ export async function recordConceptInteraction(
 ): Promise<void> {
   let memorySystem;
   try {
-    memorySystem = getAgenticMemorySystem();
+    memorySystem = await getAgenticMemorySystem();
   } catch {
     // Use Prisma fallback
     return recordConceptInteractionWithPrisma(userId, conceptName, interactionType, courseId);
@@ -518,7 +518,7 @@ export async function getRelatedConcepts(
 ): Promise<string[]> {
   let memorySystem;
   try {
-    memorySystem = getAgenticMemorySystem();
+    memorySystem = await getAgenticMemorySystem();
   } catch {
     return [];
   }
@@ -550,7 +550,7 @@ export async function getUserLearningGraphSummary(
 }> {
   let memorySystem;
   try {
-    memorySystem = getAgenticMemorySystem();
+    memorySystem = await getAgenticMemorySystem();
   } catch {
     return { masteredConcepts: [], strugglingConcepts: [], totalConceptsEncountered: 0 };
   }

@@ -3,6 +3,9 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getPgVectorSearchService } from '@/lib/sam/services';
+import { getAgenticVectorStore } from '@/lib/sam/agentic-vector-search';
+import { createHash } from 'crypto';
+import type { EmbeddingMetadata } from '@sam-ai/agentic';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -79,28 +82,34 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const request = StoreRequestSchema.parse(body);
-    const searchService = getPgVectorSearchService();
     const userId = session.user.id;
 
     let id: string;
     let storedType: string;
 
     if (request.type === 'embedding') {
-      id = await searchService.storeEmbedding({
+      const vectorStore = await getAgenticVectorStore();
+      const metadata: EmbeddingMetadata = {
         sourceId: request.sourceId,
-        sourceType: request.sourceType,
-        text: request.text,
+        sourceType: request.sourceType as EmbeddingMetadata['sourceType'],
         userId,
         courseId: request.courseId,
         chapterId: request.chapterId,
         sectionId: request.sectionId,
-        tags: request.tags,
+        contentHash: createHash('sha256').update(request.text).digest('hex'),
+        tags: request.tags ?? [],
         language: request.language,
-        customMetadata: request.customMetadata,
-      });
+        customMetadata: {
+          ...(request.customMetadata ?? {}),
+          content: request.text,
+        },
+      };
+
+      const embedding = await vectorStore.insert(request.text, metadata);
+      id = embedding.id;
       storedType = 'vector_embedding';
     } else {
-      id = await searchService.storeLongTermMemory({
+      id = await getPgVectorSearchService().storeLongTermMemory({
         userId,
         type: request.memoryType,
         title: request.title,
@@ -153,15 +162,30 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json();
     const request = BatchStoreEmbeddingsRequestSchema.parse(body);
-    const searchService = getPgVectorSearchService();
     const userId = session.user.id;
 
+    const vectorStore = await getAgenticVectorStore();
     const inputs = request.embeddings.map((e) => ({
-      ...e,
-      userId,
+      content: e.text,
+      metadata: {
+        sourceId: e.sourceId,
+        sourceType: e.sourceType as EmbeddingMetadata['sourceType'],
+        userId,
+        courseId: e.courseId,
+        chapterId: e.chapterId,
+        sectionId: e.sectionId,
+        contentHash: createHash('sha256').update(e.text).digest('hex'),
+        tags: e.tags ?? [],
+        language: e.language,
+        customMetadata: {
+          ...(e.customMetadata ?? {}),
+          content: e.text,
+        },
+      } satisfies EmbeddingMetadata,
     }));
 
-    const storedCount = await searchService.storeEmbeddingsBatch(inputs);
+    const stored = await vectorStore.insertBatch(inputs);
+    const storedCount = stored.length;
 
     logger.info('[Memory Store] Batch stored embeddings', {
       userId,

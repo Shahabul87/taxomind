@@ -14,7 +14,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { getTaxomindContext, getStore, getObservabilityStores } from './taxomind-context';
+import { getStore } from './taxomind-context';
 import {
   createConfidenceScorer,
   createQualityTracker,
@@ -258,8 +258,16 @@ export class MultiAgentCoordinator {
     this.config = { ...DEFAULT_COORDINATOR_CONFIG, ...config };
 
     // Initialize support services
-    this.confidenceScorer = createConfidenceScorer({ logger });
-    this.qualityTracker = createQualityTracker({ logger });
+    const confidenceStore = getStore('confidenceScore');
+    const qualityStore = getStore('qualityRecord');
+    const calibrationStore = getStore('calibration');
+
+    this.confidenceScorer = createConfidenceScorer({ logger, store: confidenceStore });
+    this.qualityTracker = createQualityTracker({
+      logger,
+      qualityStore,
+      calibrationStore,
+    });
 
     logger.info('[MultiAgentCoordinator] Initialized', {
       config: this.config,

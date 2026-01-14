@@ -38,6 +38,7 @@
 │  │  │              (SINGLE ENTRY POINT FOR ALL STORES)                  │ │  │
 │  │  │                                                                   │ │  │
 │  │  │  getTaxomindContext() → TaxomindIntegrationContext                │ │  │
+│  │  │  integration: AdapterFactory + Profile + Registry                │ │  │
 │  │  │  getStore('goal')     → PrismaGoalStore                           │ │  │
 │  │  │  getGoalStores()      → { goal, subGoal, plan }                   │ │  │
 │  │  │  getProactiveStores() → { behaviorEvent, pattern, intervention }  │ │  │
@@ -117,7 +118,15 @@
 | `adapters/` | AI provider adapters | `AnthropicAdapter`, `OpenAIAdapter`, `createAnthropicAdapter` |
 | `engines/` | Core processing engines | Various engine factories |
 
-### 3. `@sam-ai/educational` - Educational Engines
+### 3. `@sam-ai/integration` + Adapters - Portability Layer
+**Location**: `packages/integration/src/`, `packages/adapter-taxomind/src/`, `packages/adapter-prisma/src/`
+
+Provides a host-agnostic capability profile, adapter registry/factory, and bridge helpers:
+- `IntegrationProfile`, `AdapterFactory`, `CapabilityRegistry`
+- AI, embedding, database, auth, vector adapters
+- Bridges for Core AI + Embedding provider integration
+
+### 4. `@sam-ai/educational` - Educational Engines
 **Location**: `packages/educational/src/`
 
 Contains 40+ specialized educational engines for:
@@ -126,7 +135,7 @@ Contains 40+ specialized educational engines for:
 - Adaptive learning
 - Skill development
 
-### 4. `@sam-ai/react` - React Integration
+### 5. `@sam-ai/react` - React Integration
 **Location**: `packages/react/src/`
 
 | Module | Purpose | Key Exports |
@@ -143,6 +152,7 @@ Contains 40+ specialized educational engines for:
 ```
 lib/sam/
 ├── taxomind-context.ts      # SINGLE ENTRY POINT - All stores
+├── integration-adapters.ts  # Adapter bridge (Core AI + Embeddings)
 ├── index.ts                 # Main export file
 ├── agentic-bridge.ts        # Main integration bridge
 ├── agentic-tooling.ts       # Tool registry integration
@@ -171,6 +181,13 @@ lib/sam/
     └── prisma-skill-build-track-store.ts
 ```
 
+**Integration Adapters**
+
+Use `lib/sam/integration-adapters.ts` to access the integration AI + embedding adapters. This is the
+portable bridge that keeps LMS code from hard-coding provider SDKs. It relies on:
+- `packages/integration/src/bridges/*` (Core AI + Embedding provider bridges)
+- `packages/adapter-taxomind` (Taxomind profile + adapter registrations)
+
 ---
 
 ## TaxomindContext - The Single Entry Point
@@ -181,11 +198,28 @@ lib/sam/
 
 ```typescript
 // ✅ CORRECT - Always use TaxomindContext
-import { getTaxomindContext, getStore, getGoalStores, getProactiveStores, getMemoryStores } from '@/lib/sam/taxomind-context';
+import {
+  getTaxomindContext,
+  getIntegrationProfile,
+  getAdapterFactory,
+  getStore,
+  getGoalStores,
+  getProactiveStores,
+  getMemoryStores,
+  getObservabilityStores,
+  getAnalyticsStores,
+  getLearningPathStores,
+  getMultiSessionStores,
+  getPresenceStore,
+  getStudentProfileStore,
+  getReviewScheduleStore,
+} from '@/lib/sam/taxomind-context';
 
 // Get full context
 const context = getTaxomindContext();
 const goalStore = context.stores.goal;
+const profile = getIntegrationProfile();
+const adapterFactory = getAdapterFactory();
 
 // Get specific store
 const toolStore = getStore('tool');
@@ -194,6 +228,7 @@ const toolStore = getStore('tool');
 const { goal, subGoal, plan } = getGoalStores();
 const { behaviorEvent, pattern, intervention, checkIn } = getProactiveStores();
 const { vector, knowledgeGraph, sessionContext } = getMemoryStores();
+const { skill, learningPath, courseGraph } = getLearningPathStores();
 const { toolTelemetry, confidenceCalibration, memoryQuality, planLifecycle, metrics } = getObservabilityStores();
 const { learningSession, topicProgress, learningGap, skillAssessment, recommendation, content } = getAnalyticsStores();
 const { learningPlan, tutoringSession, skillBuildTrack } = getMultiSessionStores();
@@ -218,6 +253,16 @@ const goalStore = createPrismaGoalStore(); // WRONG!
 | `getLearningPathStores()` | `{ skill, learningPath, courseGraph }` | Learning path management |
 | `getObservabilityStores()` | `{ toolTelemetry, confidenceCalibration, memoryQuality, planLifecycle, metrics }` | Telemetry and quality metrics |
 | `getAnalyticsStores()` | `{ learningSession, topicProgress, learningGap, skillAssessment, recommendation, content }` | Learning analytics |
+| `getStore('qualityRecord')` | `PrismaQualityRecordStore` | Response quality tracking |
+| `getStore('confidenceScore')` | `PrismaConfidenceScoreStore` | Confidence scoring history |
+| `getStore('verificationResult')` | `PrismaVerificationResultStore` | Verification outcomes |
+| `getStore('calibration')` | `PrismaCalibrationStore` | Calibration data |
+| `getStore('selfCritique')` | `PrismaSelfCritiqueStore` | Self-critique records |
+| `getStore('learningPattern')` | `PrismaLearningPatternStore` | Meta-learning patterns |
+| `getStore('metaLearningInsight')` | `PrismaMetaLearningInsightStore` | Meta-learning insights |
+| `getStore('learningStrategy')` | `PrismaLearningStrategyStore` | Adaptive learning strategies |
+| `getStore('learningEvent')` | `PrismaLearningEventStore` | Learning event history |
+| `getStore('journeyTimeline')` | `PrismaJourneyTimelineStore` | Learning journey timeline |
 | `getMultiSessionStores()` | `{ learningPlan, tutoringSession, skillBuildTrack }` | Cross-session continuity |
 | `getPresenceStore()` | `PrismaPresenceStore` | Realtime user presence tracking |
 | `getStudentProfileStore()` | `PrismaStudentProfileStore` | Student mastery and profiles |
@@ -265,6 +310,9 @@ const goalStore = createPrismaGoalStore(); // WRONG!
 | `sessionContext` | `PrismaSessionContextStore` | Session-specific context |
 
 **Schema References**: `prisma/domains/17-sam-agentic.prisma`
+- `SAMVectorEmbedding`
+- `SAMLongTermMemory`
+- `SAMConversationMemory`
 - `SAMKnowledgeEntity`
 - `SAMKnowledgeRelationship`
 - `SAMSessionContext`
@@ -325,7 +373,50 @@ const goalStore = createPrismaGoalStore(); // WRONG!
 - `SAMPlanLifecycleEvent`
 - `SAMAggregatedMetrics`
 
-### 9. Presence Store (NEW)
+### 9. Self-Evaluation Stores (NEW)
+
+| Store | Interface | Purpose |
+|-------|-----------|---------|
+| `confidenceScore` | `PrismaConfidenceScoreStore` | Confidence scoring records |
+| `verificationResult` | `PrismaVerificationResultStore` | Verification outcomes |
+| `qualityRecord` | `PrismaQualityRecordStore` | Quality metrics and scoring |
+| `calibration` | `PrismaCalibrationStore` | Calibration data |
+| `selfCritique` | `PrismaSelfCritiqueStore` | Self-critique iterations |
+
+**Schema References**: `prisma/domains/17-sam-agentic.prisma`
+- `SAMSelfEvaluationScore`
+- `SAMVerificationResult`
+- `SAMQualityRecord`
+- `SAMCalibrationData`
+- `SAMSelfCritique`
+
+### 10. Meta-Learning Stores (NEW)
+
+| Store | Interface | Purpose |
+|-------|-----------|---------|
+| `learningPattern` | `PrismaLearningPatternStore` | Detected learning patterns |
+| `metaLearningInsight` | `PrismaMetaLearningInsightStore` | Meta-learning insights |
+| `learningStrategy` | `PrismaLearningStrategyStore` | Learning strategy recommendations |
+| `learningEvent` | `PrismaLearningEventStore` | Learning event history |
+
+**Schema References**: `prisma/domains/17-sam-agentic.prisma`
+- `SAMLearningPattern`
+- `SAMMetaLearningInsight`
+- `SAMLearningStrategy`
+- `SAMLearningEvent`
+
+### 11. Journey Timeline Store (NEW)
+
+| Store | Interface | Purpose |
+|-------|-----------|---------|
+| `journeyTimeline` | `PrismaJourneyTimelineStore` | Learning journey timeline and milestones |
+
+**Schema References**: `prisma/domains/17-sam-agentic.prisma`
+- `SAMJourneyTimeline`
+- `SAMJourneyEvent`
+- `SAMJourneyMilestone`
+
+### 12. Presence Store (NEW)
 
 | Store | Interface | Purpose |
 |-------|-----------|---------|
@@ -334,7 +425,7 @@ const goalStore = createPrismaGoalStore(); // WRONG!
 **Schema References**: `prisma/domains/17-sam-agentic.prisma`
 - `SAMUserPresence`
 
-### 10. Student Profile Store (NEW)
+### 13. Student Profile Store (NEW)
 
 | Store | Interface | Purpose |
 |-------|-----------|---------|
@@ -345,7 +436,7 @@ const goalStore = createPrismaGoalStore(); // WRONG!
 - Learning pathways with step tracking
 - Topic mastery with Bloom&apos;s level tracking
 
-### 11. Review Schedule Store (NEW)
+### 14. Review Schedule Store (NEW)
 
 | Store | Interface | Purpose |
 |-------|-----------|---------|
@@ -526,7 +617,16 @@ export function resetMyComponent(): void {
 }
 ```
 
-### Rule 5: Export from lib/sam/index.ts
+### Rule 5: Use Integration Adapters for AI + Embeddings
+
+```typescript
+import { getCoreAIAdapter, getEmbeddingProvider } from '@/lib/sam/integration-adapters';
+
+const aiAdapter = await getCoreAIAdapter();
+const embeddingProvider = await getEmbeddingProvider();
+```
+
+### Rule 6: Export from lib/sam/index.ts
 
 When adding new integration functionality, always export from the main index:
 
@@ -654,6 +754,7 @@ export function useExample() {
 | `lib/sam/agentic-bridge.ts` | Main integration bridge | `getSAMAgenticBridge()`, `initGoalPlanning()` |
 | `lib/sam/agentic-tooling.ts` | Tool registry integration | `getToolingSystem()`, `ensureToolingInitialized()` |
 | `lib/sam/agentic-memory.ts` | Memory system integration | `getAgenticMemorySystem()` |
+| `lib/sam/integration-adapters.ts` | AI + embedding adapter bridge | `getCoreAIAdapter()`, `getEmbeddingProvider()` |
 | `lib/sam/orchestration-integration.ts` | Tutoring orchestration | `initializeOrchestration()`, `getTutoringController()` |
 | `lib/sam/proactive-intervention-integration.ts` | Proactive interventions | `initializeProactiveInterventions()` |
 | `lib/sam/agentic-proactive-scheduler.ts` | Check-in scheduling | `ProactiveScheduler` class |
@@ -687,6 +788,9 @@ export function useExample() {
 |---------|-------------|------------------|
 | `packages/agentic/src/index.ts` | `@sam-ai/agentic` | Goal planning, tools, proactive, memory |
 | `packages/core/src/index.ts` | `@sam-ai/core` | Orchestrator, state machine, AI adapters |
+| `packages/integration/src/index.ts` | `@sam-ai/integration` | Capability profiles, adapter factory, bridges |
+| `packages/adapter-taxomind/src/index.ts` | `@sam-ai/adapter-taxomind` | Taxomind adapters + profile bootstrap |
+| `packages/adapter-prisma/src/index.ts` | `@sam-ai/adapter-prisma` | Prisma-backed stores |
 | `packages/educational/src/index.ts` | `@sam-ai/educational` | 40+ educational engines |
 | `packages/react/src/index.ts` | `@sam-ai/react` | React hooks and providers |
 | `packages/pedagogy/src/index.ts` | `@sam-ai/pedagogy` | Bloom's, scaffolding, ZPD |

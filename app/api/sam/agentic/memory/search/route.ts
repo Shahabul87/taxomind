@@ -3,6 +3,8 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getPgVectorSearchService } from '@/lib/sam/services';
+import { getAgenticVectorStore } from '@/lib/sam/agentic-vector-search';
+import type { VectorSearchOptions, EmbeddingSourceType } from '@sam-ai/agentic';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -35,7 +37,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const request = SearchRequestSchema.parse(body);
 
-    const searchService = getPgVectorSearchService();
     const userId = session.user.id;
 
     let results: unknown[];
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 
     switch (request.type) {
       case 'memories':
-        results = await searchService.searchLongTermMemories(userId, request.query, {
+        results = await getPgVectorSearchService().searchLongTermMemories(userId, request.query, {
           topK: request.topK,
           minScore: request.minScore,
           types: request.memoryTypes,
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'conversations':
-        results = await searchService.searchConversationMemories(userId, request.query, {
+        results = await getPgVectorSearchService().searchConversationMemories(userId, request.query, {
           topK: request.topK,
           minScore: request.minScore,
           sessionId: request.sessionId,
@@ -63,15 +64,31 @@ export async function POST(req: NextRequest) {
 
       case 'embeddings':
       default:
-        results = await searchService.searchSimilar(request.query, {
+        const vectorStore = await getAgenticVectorStore();
+        const searchOptions: VectorSearchOptions = {
           topK: request.topK,
           minScore: request.minScore,
-          includeContent: true,
-          userId,
-          courseId: request.courseId,
-          sourceTypes: request.sourceTypes,
-          tags: request.tags,
-        });
+          includeMetadata: true,
+          filter: {
+            userIds: [userId],
+            courseIds: request.courseId ? [request.courseId] : undefined,
+            sourceTypes: request.sourceTypes as EmbeddingSourceType[] | undefined,
+            tags: request.tags,
+          },
+        };
+        const vectorResults = await vectorStore.search(request.query, searchOptions);
+        results = vectorResults.map((result) => ({
+          id: result.embedding.id,
+          sourceId: result.embedding.metadata.sourceId,
+          sourceType: result.embedding.metadata.sourceType,
+          score: result.score,
+          contentText: (result.embedding.metadata.customMetadata?.content as string | undefined)
+            ?? result.embedding.metadata.sourceId,
+          metadata: result.embedding.metadata.customMetadata,
+          userId: result.embedding.metadata.userId,
+          courseId: result.embedding.metadata.courseId,
+          tags: result.embedding.metadata.tags ?? [],
+        }));
         resultType = 'vector_embeddings';
         break;
     }

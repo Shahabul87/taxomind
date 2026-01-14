@@ -577,7 +577,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const memorySystem = getAgenticMemorySystem();
+        const memorySystem = await getAgenticMemorySystem();
         const courseIdForMemory = pageContext.entityType === 'course'
           ? pageContext.entityId
           : pageContext.parentEntityId;

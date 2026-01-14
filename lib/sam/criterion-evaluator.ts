@@ -1,12 +1,12 @@
 /**
  * AI-Powered Criterion Evaluator for SAM Orchestration
  *
- * Uses Claude to intelligently evaluate whether learning criteria have been met
+ * Uses the integration AI adapter to evaluate whether learning criteria have been met
  * based on the conversation context and step objectives.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
 import type { CriterionEvaluationAdapter } from '@sam-ai/agentic';
+import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 
 interface CriterionEvaluationParams {
   criterion: string;
@@ -31,18 +31,11 @@ interface CriterionEvaluationResult {
 }
 
 /**
- * Creates an AI-powered criterion evaluator using Claude
- *
- * @param apiKey - Optional Anthropic API key (defaults to env variable)
+ * Creates an AI-powered criterion evaluator using the integration AI adapter
  * @returns CriterionEvaluationAdapter instance
  */
-export function createAnthropicCriterionEvaluator(
-  apiKey?: string
-): CriterionEvaluationAdapter {
-  const anthropic = new Anthropic({
-    apiKey: apiKey ?? process.env.ANTHROPIC_API_KEY,
-  });
-
+export function createAnthropicCriterionEvaluator(): CriterionEvaluationAdapter {
+  const heuristicEvaluator = createHeuristicCriterionEvaluator();
   return {
     async evaluateCriterion(
       params: CriterionEvaluationParams
@@ -54,6 +47,11 @@ export function createAnthropicCriterionEvaluator(
         stepContext,
         memoryContext,
       } = params;
+
+      const aiAdapter = await getCoreAIAdapter();
+      if (!aiAdapter || !aiAdapter.isConfigured()) {
+        return heuristicEvaluator.evaluateCriterion(params);
+      }
 
       // Build the evaluation prompt
       const systemPrompt = `You are an expert educational assessment AI. Your task is to evaluate whether a specific learning criterion has been met based on a conversation between a student (user) and an AI tutor (assistant).
@@ -103,26 +101,15 @@ Evaluate whether the criterion "${criterion}" has been met based on this convers
 Respond with JSON only:`;
 
       try {
-        const response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 500,
-          messages: [
-            {
-              role: 'user',
-              content: userPrompt,
-            },
-          ],
-          system: systemPrompt,
+        const response = await aiAdapter.chat({
+          messages: [{ role: 'user', content: userPrompt }],
+          systemPrompt,
+          temperature: 0.2,
+          maxTokens: 500,
         });
 
-        // Extract the text content
-        const textContent = response.content.find((c) => c.type === 'text');
-        if (!textContent || textContent.type !== 'text') {
-          throw new Error('No text content in response');
-        }
-
         // Parse the JSON response
-        const jsonMatch = textContent.text.match(/\{[\s\S]*\}/);
+        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
           throw new Error('No JSON found in response');
         }
@@ -149,13 +136,7 @@ Respond with JSON only:`;
       } catch (error) {
         console.error('[CriterionEvaluator] Error evaluating criterion:', error);
 
-        // Return a conservative result on error
-        return {
-          met: false,
-          confidence: 0,
-          evidence: null,
-          reasoning: `Evaluation failed: ${error instanceof Error ? error.message : 'Unknown error'}. Defaulting to not met.`,
-        };
+        return heuristicEvaluator.evaluateCriterion(params);
       }
     },
   };
@@ -213,15 +194,9 @@ export function createHeuristicCriterionEvaluator(): CriterionEvaluationAdapter 
 /**
  * Creates the best available criterion evaluator based on configuration
  *
- * @returns CriterionEvaluationAdapter - AI-powered if API key available, otherwise heuristic
+ * @returns CriterionEvaluationAdapter - Uses integration adapter when available, falls back to heuristic
  */
 export function createBestAvailableCriterionEvaluator(): CriterionEvaluationAdapter | undefined {
-  if (process.env.ANTHROPIC_API_KEY) {
-    console.log('[CriterionEvaluator] Using AI-powered criterion evaluation');
-    return createAnthropicCriterionEvaluator();
-  }
-
-  // Return undefined to use the built-in heuristic evaluation in TutoringLoopController
-  console.log('[CriterionEvaluator] No ANTHROPIC_API_KEY found, using built-in heuristic evaluation');
-  return undefined;
+  console.log('[CriterionEvaluator] Using integration AI adapter when available');
+  return createAnthropicCriterionEvaluator();
 }

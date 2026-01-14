@@ -7,9 +7,10 @@ import {
   type AgentStateMachine,
 } from '@sam-ai/agentic';
 import { recordPlanStarted } from '@/lib/sam/journey-timeline-service';
+import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 
-// Get the Plan Store from TaxomindContext singleton
-const { plan: planStore } = getGoalStores();
+// Get the Goal and Plan Stores from TaxomindContext singleton
+const { goal: goalStore, plan: planStore } = getGoalStores();
 
 // Create a lazy-initialized state machine
 let stateMachineInstance: AgentStateMachine | null = null;
@@ -68,23 +69,38 @@ export async function POST(req: NextRequest, context: RouteContext) {
     // Fetch updated plan with related data
     const updatedPlan = await planStore.get(planId);
 
-    // Note: SAMLearningGoal model doesn't exist in the schema yet
-    // Goal status update would be done through the goal store
-    const goal = null;
+    // Fetch the associated goal from the goal store
+    const goal = plan.goalId ? await goalStore.get(plan.goalId) : null;
 
     // Record journey timeline event for plan start
     try {
-      // Note: courseId would come from the associated goal's context,
-      // but goal lookup is not yet implemented
       await recordPlanStarted(
         session.user.id,
         planId,
         plan.goalId,
-        undefined // courseId - to be fetched from goal context when available
+        goal?.context?.courseId ?? undefined
       );
       logger.info(`[JourneyTimeline] Recorded plan start: ${planId}`);
     } catch (timelineError) {
       logger.warn('[JourneyTimeline] Failed to record plan start:', timelineError);
+    }
+
+    // Record telemetry event for plan lifecycle
+    try {
+      const telemetry = getSAMTelemetryService();
+      await telemetry.recordPlanEvent({
+        planId,
+        userId: session.user.id,
+        eventType: 'ACTIVATED',
+        previousState: 'draft',
+        newState: 'active',
+        metadata: {
+          goalId: plan.goalId,
+          machineState: stateMachine.getState(),
+        },
+      });
+    } catch (telemetryError) {
+      logger.warn('[Telemetry] Failed to record plan start event:', telemetryError);
     }
 
     logger.info(

@@ -22,6 +22,7 @@ export type {
   LearningStrategyStore,
   LearningEventStore,
   MetaLearningLogger,
+  EventStats,
 } from './types';
 
 // Enums/Constants

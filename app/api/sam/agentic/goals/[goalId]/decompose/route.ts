@@ -3,12 +3,12 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
+import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 import {
   createGoalDecomposer,
   type GoalDecomposition,
   type CreateSubGoalInput,
 } from '@sam-ai/agentic';
-import { AnthropicAdapter } from '@sam-ai/core';
 
 // Get the stores from TaxomindContext singleton
 const { goal: goalStore, subGoal: subGoalStore } = getGoalStores();
@@ -16,17 +16,13 @@ const { goal: goalStore, subGoal: subGoalStore } = getGoalStores();
 // Lazy initialize AI-dependent components
 let decomposerInstance: ReturnType<typeof createGoalDecomposer> | null = null;
 
-function getGoalDecomposer() {
+async function getGoalDecomposer() {
   if (!decomposerInstance) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+    // Use integration adapter factory instead of hardcoding Anthropic
+    const aiAdapter = await getCoreAIAdapter();
+    if (!aiAdapter) {
+      throw new Error('AI adapter not available. Check ANTHROPIC_API_KEY or OPENAI_API_KEY environment variables.');
     }
-
-    const aiAdapter = new AnthropicAdapter({
-      apiKey,
-      model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-4-20250514',
-    });
 
     decomposerInstance = createGoalDecomposer({
       aiAdapter,
@@ -89,7 +85,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     // Use the GoalDecomposer from @sam-ai/agentic package
     logger.info(`[Decompose] Starting decomposition for goal: ${goal.title}`);
-    const decomposer = getGoalDecomposer();
+    const decomposer = await getGoalDecomposer();
 
     let decomposition: GoalDecomposition;
     try {

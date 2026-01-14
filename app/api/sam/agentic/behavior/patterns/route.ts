@@ -9,10 +9,22 @@ import { logger } from '@/lib/logger';
 import { getProactiveStores } from '@/lib/sam/taxomind-context';
 import { createBehaviorMonitor } from '@sam-ai/agentic';
 
-// Lazy initialize behavior monitor using TaxomindContext stores
-let behaviorMonitorInstance: ReturnType<typeof createBehaviorMonitor> | null = null;
+/**
+ * Behavior monitor interface for type safety
+ */
+interface BehaviorMonitorLike {
+  getPatterns: (userId: string) => Promise<unknown[]>;
+  detectPatterns: (userId: string) => Promise<unknown[]>;
+}
 
-function getBehaviorMonitor() {
+// Lazy initialize behavior monitor using TaxomindContext stores
+let behaviorMonitorInstance: BehaviorMonitorLike | null = null;
+
+/**
+ * Get or create the behavior monitor instance.
+ * Exported for testing purposes.
+ */
+export function getBehaviorMonitor(): BehaviorMonitorLike {
   if (!behaviorMonitorInstance) {
     const { behaviorEvent, pattern, intervention } = getProactiveStores();
     behaviorMonitorInstance = createBehaviorMonitor({
@@ -23,6 +35,14 @@ function getBehaviorMonitor() {
     });
   }
   return behaviorMonitorInstance;
+}
+
+/**
+ * Reset the behavior monitor instance.
+ * Used in tests to inject a mock behavior monitor.
+ */
+export function resetBehaviorMonitor(mockMonitor?: BehaviorMonitorLike | null): void {
+  behaviorMonitorInstance = mockMonitor ?? null;
 }
 
 // ============================================================================

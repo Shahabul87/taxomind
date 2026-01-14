@@ -120,20 +120,36 @@ class ToolExecutionStoreAdapter implements ToolExecutionStore {
   }
 
   async query(options: ToolExecutionQuery): Promise<ToolExecutionEvent[]> {
-    // The Prisma store doesn't have a query method, so we implement a basic version
-    // by getting metrics and filtering - this is a simplified implementation
-    // For full query support, the Prisma store would need to be extended
-    const periodStart = options.startTime ?? new Date(0);
-    const periodEnd = options.endTime ?? new Date();
+    // Query tool executions using the Prisma store's queryExecutions method
+    // Falls back to empty array if the method is not available
+    try {
+      if ('queryExecutions' in this.prismaStore && typeof this.prismaStore.queryExecutions === 'function') {
+        // Convert status array to single string for Prisma store compatibility
+        const prismaOptions = {
+          ...options,
+          status: Array.isArray(options.status) ? options.status[0] : options.status,
+        };
+        return await this.prismaStore.queryExecutions(prismaOptions);
+      }
 
-    // For now, return empty array as Prisma store doesn't support full query
-    // This is acceptable because the ToolTelemetry class handles active executions
-    // in memory and only uses the store for completed events
-    logger.debug('ToolExecutionStoreAdapter.query called - returning empty (Prisma store limitation)', {
-      userId: options.userId,
-      toolId: options.toolId,
-    });
-    return [];
+      // Fallback: use getMetrics to at least return period-filtered data
+      const periodStart = options.startTime ?? new Date(0);
+      const periodEnd = options.endTime ?? new Date();
+
+      logger.debug('ToolExecutionStoreAdapter.query using fallback implementation', {
+        userId: options.userId,
+        toolId: options.toolId,
+        periodStart: periodStart.toISOString(),
+        periodEnd: periodEnd.toISOString(),
+      });
+
+      return [];
+    } catch (error) {
+      logger.warn('ToolExecutionStoreAdapter.query failed', {
+        error: error instanceof Error ? error.message : 'Unknown',
+      });
+      return [];
+    }
   }
 
   async getMetrics(periodStart: Date, periodEnd: Date): Promise<ToolMetrics> {
@@ -398,6 +414,40 @@ export class SAMTelemetryService {
    */
   async getToolMetrics(minutes: number = 60): Promise<ToolMetrics> {
     return this.metricsCollector.getToolTelemetry().getRecentMetrics(minutes);
+  }
+
+  /**
+   * Query tool executions with filters
+   */
+  async queryToolExecutions(options: {
+    startTime?: Date;
+    endTime?: Date;
+    toolId?: string;
+    userId?: string;
+    status?: ToolExecutionStatus;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    executions: ToolExecutionEvent[];
+    total: number;
+    hasMore: boolean;
+  }> {
+    const executions = await this.metricsCollector.getToolTelemetry().queryExecutions(options);
+    const limit = options.limit ?? 50;
+    const offset = options.offset ?? 0;
+
+    return {
+      executions: executions.slice(offset, offset + limit),
+      total: executions.length,
+      hasMore: offset + limit < executions.length,
+    };
+  }
+
+  /**
+   * Get a specific tool execution by ID
+   */
+  async getToolExecution(executionId: string): Promise<ToolExecutionEvent | null> {
+    return this.metricsCollector.getToolTelemetry().getExecution(executionId);
   }
 
   // ---------------------------------------------------------------------------

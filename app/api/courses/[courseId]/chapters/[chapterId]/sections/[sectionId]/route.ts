@@ -4,6 +4,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { queueSectionReindex } from '@/lib/sam/memory-lifecycle-service';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -121,6 +122,11 @@ export async function PATCH(
         chapterId: params.chapterId,
       },
       data: updateData,
+    });
+
+    // Queue memory lifecycle reindex for updated section content
+    await queueSectionReindex(params.sectionId, params.courseId, 'update').catch(err => {
+      logger.warn("[SECTION_PATCH] Memory reindex queue failed", { error: err });
     });
 
     // Return standard API response format
@@ -292,6 +298,11 @@ export async function DELETE(
         id: params.sectionId,
         chapterId: params.chapterId
       }
+    });
+
+    // Queue memory lifecycle reindex for deleted section content
+    await queueSectionReindex(params.sectionId, params.courseId, 'delete').catch(err => {
+      logger.warn("[SECTION_DELETE] Memory reindex queue failed", { error: err });
     });
 
     // Return standard API response format
