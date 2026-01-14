@@ -12,14 +12,34 @@ import {
   CircuitBreakerError,
 } from '../resilience/circuit-breaker-enhanced';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialize OpenAI client to avoid build errors
+let _openai: OpenAI | null = null;
 
-// Get circuit breaker instance
-const circuitBreakerManager = CircuitBreakerManager.getInstance();
-const openAIBreaker = circuitBreakerManager.getBreaker(ServiceCircuitBreakers.OpenAI);
+function getOpenAIClient(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is required');
+    }
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openai;
+}
+
+// Get circuit breaker instance (lazy loaded)
+let _circuitBreakerManager: CircuitBreakerManager | null = null;
+let _openAIBreaker: ReturnType<CircuitBreakerManager['getBreaker']> | null = null;
+
+function getCircuitBreaker() {
+  if (!_circuitBreakerManager) {
+    _circuitBreakerManager = CircuitBreakerManager.getInstance();
+  }
+  if (!_openAIBreaker) {
+    _openAIBreaker = _circuitBreakerManager.getBreaker(ServiceCircuitBreakers.OpenAI);
+  }
+  return _openAIBreaker;
+}
 
 /**
  * OpenAI service with circuit breaker protection
@@ -35,7 +55,9 @@ export class OpenAIServiceWithCircuitBreaker {
     max_tokens?: number;
   }): Promise<string> {
     try {
-      return await openAIBreaker.execute(async () => {
+      const breaker = getCircuitBreaker();
+      return await breaker.execute(async () => {
+        const openai = getOpenAIClient();
         const response = await openai.chat.completions.create({
           model: params.model,
           messages: params.messages as OpenAI.ChatCompletionMessageParam[],
@@ -64,7 +86,9 @@ export class OpenAIServiceWithCircuitBreaker {
     duration: string;
   }): Promise<{ title: string; description: string; chapters: string[] }> {
     try {
-      return await openAIBreaker.execute(async () => {
+      const breaker = getCircuitBreaker();
+      return await breaker.execute(async () => {
+        const openai = getOpenAIClient();
         const prompt = `Create a course outline for: ${params.topic}
 Level: ${params.level}
 Duration: ${params.duration}
@@ -128,7 +152,9 @@ Provide:
     count: number;
   }): Promise<Array<{ question: string; options: string[]; correct: number }>> {
     try {
-      return await openAIBreaker.execute(async () => {
+      const breaker = getCircuitBreaker();
+      return await breaker.execute(async () => {
+        const openai = getOpenAIClient();
         const response = await openai.chat.completions.create({
           model: 'gpt-3.5-turbo',
           messages: [
@@ -178,13 +204,13 @@ Provide:
    * Get circuit breaker metrics
    */
   static getMetrics() {
-    return openAIBreaker.getMetrics();
+    return getCircuitBreaker().getMetrics();
   }
 
   /**
    * Reset circuit breaker (for admin use)
    */
   static resetCircuitBreaker() {
-    openAIBreaker.reset();
+    getCircuitBreaker().reset();
   }
 }

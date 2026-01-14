@@ -1,5 +1,6 @@
 import {
   AnthropicAIAdapter,
+  DeepSeekEmbeddingAdapter,
   NextAuthAdapter,
   OpenAIEmbeddingAdapter,
   PgVectorAdapter,
@@ -9,6 +10,7 @@ import {
   TaxomindAIService,
   TaxomindVectorService,
   createAnthropicAIAdapter,
+  createEmbeddingAdapter,
   createNextAuthAdapter,
   createOpenAIEmbeddingAdapter,
   createPgVectorAdapter,
@@ -18,7 +20,7 @@ import {
   createTaxomindAIService,
   createTaxomindSAMVectorService,
   createTaxomindVectorService
-} from "./chunk-KFVC7I7R.js";
+} from "./chunk-LMFQUIKL.js";
 
 // src/index.ts
 import {
@@ -421,8 +423,9 @@ function createTaxomindIntegrationProfile(options) {
       },
       notifications: {
         available: true,
-        channels: ["in_app"],
-        supportsScheduling: false,
+        channels: ["in_app", "email"],
+        // Available channels (push/sms not implemented)
+        supportsScheduling: true,
         supportsTemplates: true,
         supportsBatching: false
       },
@@ -464,14 +467,14 @@ function createTaxomindIntegrationProfile(options) {
     features: {
       goalPlanning: true,
       toolExecution: true,
-      proactiveInterventions: false,
-      // Phase 4
+      proactiveInterventions: true,
+      // Phase 4: Implemented
       selfEvaluation: true,
       learningAnalytics: true,
       memorySystem: true,
       knowledgeGraph: true,
-      realTimeSync: false
-      // Phase 4
+      realTimeSync: true
+      // Phase 4: Implemented (with WebSocket fallback to REST polling)
     },
     limits: {
       maxUsersPerTenant: void 0,
@@ -490,7 +493,24 @@ function createTaxomindIntegrationProfile(options) {
       customData: {
         deploymentPlatform: process.env.VERCEL ? "vercel" : process.env.RAILWAY_ENVIRONMENT ? "railway" : "local",
         samVersion: "1.0.0",
-        prismaVersion: "6.3.0"
+        prismaVersion: "6.3.0",
+        // Phase 5: Full Power Integration - Extended features
+        phase5Features: {
+          pgvectorSearch: Boolean(process.env.PGVECTOR_ENABLED !== "false"),
+          // Auto-detect pgvector availability
+          externalKnowledge: true
+          // Semantic Scholar, NewsAPI, DevDocs
+        },
+        // Phase 5: Notification channel availability details
+        notificationChannels: {
+          in_app: { enabled: true, reason: "Always available via database notifications" },
+          email: {
+            enabled: Boolean(process.env.RESEND_API_KEY || process.env.SMTP_HOST),
+            reason: process.env.RESEND_API_KEY ? "Resend API" : process.env.SMTP_HOST ? "SMTP" : "Not configured"
+          },
+          push: { enabled: false, reason: "Requires native app or service worker (not implemented)" },
+          sms: { enabled: false, reason: "Requires Twilio integration (not implemented)" }
+        }
       }
     }
   };
@@ -556,6 +576,7 @@ function bootstrapTaxomindIntegration(options) {
 var VERSION = "0.1.0";
 export {
   AnthropicAIAdapter,
+  DeepSeekEmbeddingAdapter,
   NextAuthAdapter,
   OpenAIEmbeddingAdapter,
   PgVectorAdapter,
@@ -569,6 +590,7 @@ export {
   VERSION,
   bootstrapTaxomindIntegration,
   createAnthropicAIAdapter,
+  createEmbeddingAdapter,
   createNextAuthAdapter,
   createOpenAIEmbeddingAdapter,
   createPgVectorAdapter,

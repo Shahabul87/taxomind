@@ -1107,15 +1107,28 @@ function createTaxomindAIService(options) {
 // src/adapters/pgvector-adapter.ts
 import OpenAI from "openai";
 var OpenAIEmbeddingAdapter = class {
-  client;
+  client = null;
   model;
   _dimensions;
+  apiKey;
   constructor(options) {
-    this.client = new OpenAI({
-      apiKey: options?.apiKey ?? process.env.OPENAI_API_KEY
-    });
+    this.apiKey = options?.apiKey ?? process.env.OPENAI_API_KEY;
+    if (this.apiKey) {
+      this.client = new OpenAI({
+        apiKey: this.apiKey
+      });
+    }
     this.model = options?.model ?? "text-embedding-3-small";
     this._dimensions = options?.dimensions ?? 1536;
+  }
+  getClient() {
+    if (!this.client) {
+      throw new Error("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.");
+    }
+    return this.client;
+  }
+  isConfigured() {
+    return !!this.apiKey;
   }
   getName() {
     return "openai";
@@ -1127,7 +1140,8 @@ var OpenAIEmbeddingAdapter = class {
     return this._dimensions;
   }
   async embed(text) {
-    const response = await this.client.embeddings.create({
+    const client = this.getClient();
+    const response = await client.embeddings.create({
       model: this.model,
       input: text
     });
@@ -1137,11 +1151,12 @@ var OpenAIEmbeddingAdapter = class {
     if (texts.length === 0) {
       return [];
     }
+    const client = this.getClient();
     const batchSize = 100;
     const results = [];
     for (let i = 0; i < texts.length; i += batchSize) {
       const batch = texts.slice(i, i + batchSize);
-      const response = await this.client.embeddings.create({
+      const response = await client.embeddings.create({
         model: this.model,
         input: batch
       });
@@ -1151,6 +1166,13 @@ var OpenAIEmbeddingAdapter = class {
   }
   async healthCheck() {
     const startTime = Date.now();
+    if (!this.isConfigured()) {
+      return {
+        healthy: false,
+        latencyMs: Date.now() - startTime,
+        message: "OpenAI Embeddings API not configured (no API key)"
+      };
+    }
     try {
       await this.embed("health check");
       return {
@@ -1168,6 +1190,84 @@ var OpenAIEmbeddingAdapter = class {
     }
   }
 };
+var DeepSeekEmbeddingAdapter = class {
+  model;
+  _dimensions;
+  constructor(options) {
+    this.model = options?.model ?? "hash-based-fallback";
+    this._dimensions = options?.dimensions ?? 1536;
+  }
+  getName() {
+    return "deepseek";
+  }
+  getModelName() {
+    return this.model;
+  }
+  getDimensions() {
+    return this._dimensions;
+  }
+  async embed(text) {
+    return this.generateHashEmbedding(text);
+  }
+  async embedBatch(texts) {
+    return texts.map((text) => this.generateHashEmbedding(text));
+  }
+  /**
+   * Generate a deterministic embedding from text using hash
+   * This is a fallback when no embedding API is available
+   */
+  generateHashEmbedding(text) {
+    const embedding = new Array(this._dimensions).fill(0);
+    for (let i = 0; i < text.length; i++) {
+      const charCode = text.charCodeAt(i);
+      const index = charCode * (i + 1) % this._dimensions;
+      embedding[index] += Math.sin(charCode * 0.01) * 0.1;
+    }
+    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+    if (magnitude > 0) {
+      for (let i = 0; i < embedding.length; i++) {
+        embedding[i] /= magnitude;
+      }
+    }
+    return embedding;
+  }
+  async healthCheck() {
+    const startTime = Date.now();
+    try {
+      await this.embed("health check");
+      return {
+        healthy: true,
+        latencyMs: Date.now() - startTime,
+        message: "DeepSeek Embeddings adapter is healthy (using hash-based fallback)"
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        latencyMs: Date.now() - startTime,
+        message: `DeepSeek Embeddings error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        error: error instanceof Error ? error : new Error(String(error))
+      };
+    }
+  }
+};
+function createEmbeddingAdapter(options) {
+  const preferredProvider = options?.preferredProvider;
+  const dimensions = options?.dimensions ?? 1536;
+  if (preferredProvider === "openai" && process.env.OPENAI_API_KEY) {
+    return new OpenAIEmbeddingAdapter({ dimensions });
+  }
+  if (preferredProvider === "deepseek" && process.env.DEEPSEEK_API_KEY) {
+    return new DeepSeekEmbeddingAdapter({ dimensions });
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return new OpenAIEmbeddingAdapter({ dimensions });
+  }
+  if (process.env.DEEPSEEK_API_KEY) {
+    return new DeepSeekEmbeddingAdapter({ dimensions });
+  }
+  console.warn("[EmbeddingAdapter] No embedding API configured, using hash-based fallback");
+  return new DeepSeekEmbeddingAdapter({ dimensions });
+}
 var PgVectorAdapter = class {
   constructor(prisma, tableName = "SAMMemory", embeddingColumn = "embedding", contentColumn = "content", options) {
     this.prisma = prisma;
@@ -1618,9 +1718,11 @@ function createPgVectorAdapter(prisma, options) {
   );
 }
 function createTaxomindVectorService(prisma, options) {
-  const embeddingAdapter = new OpenAIEmbeddingAdapter({
-    apiKey: options?.openaiApiKey,
+  const embeddingAdapter = options?.openaiApiKey ? new OpenAIEmbeddingAdapter({
+    apiKey: options.openaiApiKey,
     model: options?.embeddingModel
+  }) : createEmbeddingAdapter({
+    preferredProvider: options?.preferredProvider
   });
   const vectorAdapter = new PgVectorAdapter(prisma, options?.tableName);
   return new TaxomindVectorService(embeddingAdapter, vectorAdapter);
@@ -2047,9 +2149,12 @@ function createSAMVectorEmbeddingAdapter(prisma, options) {
   return new SAMVectorEmbeddingAdapter(prisma, options);
 }
 function createTaxomindSAMVectorService(prisma, options) {
-  const embeddingAdapter = new OpenAIEmbeddingAdapter({
-    apiKey: options?.openaiApiKey,
+  const embeddingAdapter = options?.openaiApiKey ? new OpenAIEmbeddingAdapter({
+    apiKey: options.openaiApiKey,
     model: options?.embeddingModel,
+    dimensions: options?.dimensions
+  }) : createEmbeddingAdapter({
+    preferredProvider: options?.preferredProvider,
     dimensions: options?.dimensions
   });
   const vectorAdapter = new SAMVectorEmbeddingAdapter(prisma, {
@@ -2071,6 +2176,8 @@ export {
   createAnthropicAIAdapter,
   createTaxomindAIService,
   OpenAIEmbeddingAdapter,
+  DeepSeekEmbeddingAdapter,
+  createEmbeddingAdapter,
   PgVectorAdapter,
   TaxomindVectorService,
   createOpenAIEmbeddingAdapter,
@@ -2080,4 +2187,4 @@ export {
   createSAMVectorEmbeddingAdapter,
   createTaxomindSAMVectorService
 };
-//# sourceMappingURL=chunk-KFVC7I7R.js.map
+//# sourceMappingURL=chunk-LMFQUIKL.js.map

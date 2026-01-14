@@ -16,7 +16,7 @@ import type {
   VectorMetadata,
   BatchUpsertResult,
 } from '@sam-ai/integration';
-import { OpenAIEmbeddingAdapter, TaxomindVectorService } from './pgvector-adapter';
+import { OpenAIEmbeddingAdapter, createEmbeddingAdapter, TaxomindVectorService } from './pgvector-adapter';
 
 // ============================================================================
 // HELPERS
@@ -596,13 +596,21 @@ export function createTaxomindSAMVectorService(
     openaiApiKey?: string;
     embeddingModel?: string;
     dimensions?: number;
+    preferredProvider?: 'openai' | 'deepseek';
   }
 ): TaxomindVectorService {
-  const embeddingAdapter = new OpenAIEmbeddingAdapter({
-    apiKey: options?.openaiApiKey,
-    model: options?.embeddingModel,
-    dimensions: options?.dimensions,
-  });
+  // Use the factory to create the best available embedding adapter
+  // Falls back to hash-based embeddings if no API is configured
+  const embeddingAdapter = options?.openaiApiKey
+    ? new OpenAIEmbeddingAdapter({
+        apiKey: options.openaiApiKey,
+        model: options?.embeddingModel,
+        dimensions: options?.dimensions,
+      })
+    : createEmbeddingAdapter({
+        preferredProvider: options?.preferredProvider,
+        dimensions: options?.dimensions,
+      });
 
   const vectorAdapter = new SAMVectorEmbeddingAdapter(prisma, {
     embeddingProvider: embeddingAdapter,

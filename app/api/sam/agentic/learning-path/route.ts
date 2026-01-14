@@ -55,48 +55,73 @@ const completeStepSchema = z.object({
 
 let skillTrackerInstance: ReturnType<typeof createSkillTracker> | null = null;
 let pathRecommenderInstance: ReturnType<typeof createPathRecommender> | null = null;
+let initializationError: string | null = null;
 
 function getSkillTracker() {
+  if (initializationError) {
+    throw new Error(initializationError);
+  }
   if (!skillTrackerInstance) {
-    const stores = getLearningPathStores();
-    const config: SkillTrackerConfig = {
-      store: stores.skill,
-      masteryThreshold: 80,
-      struggleThreshold: 40,
-      decayRatePerDay: 0.02,
-      maxMasteryGain: 20,
-      minMasteryLoss: 5,
-      logger: {
-        debug: (msg: string, meta?: Record<string, unknown>) => logger.debug(`[SkillTracker] ${msg}`, meta),
-        info: (msg: string, meta?: Record<string, unknown>) => logger.info(`[SkillTracker] ${msg}`, meta),
-        warn: (msg: string, meta?: Record<string, unknown>) => logger.warn(`[SkillTracker] ${msg}`, meta),
-        error: (msg: string, meta?: Record<string, unknown>) => logger.error(`[SkillTracker] ${msg}`, meta),
-      },
-    };
-    skillTrackerInstance = createSkillTracker(config);
+    try {
+      const stores = getLearningPathStores();
+      const config: SkillTrackerConfig = {
+        store: stores.skill,
+        masteryThreshold: 80,
+        struggleThreshold: 40,
+        decayRatePerDay: 0.02,
+        maxMasteryGain: 20,
+        minMasteryLoss: 5,
+        logger: {
+          debug: (msg: string, meta?: Record<string, unknown>) => logger.debug(`[SkillTracker] ${msg}`, meta),
+          info: (msg: string, meta?: Record<string, unknown>) => logger.info(`[SkillTracker] ${msg}`, meta),
+          warn: (msg: string, meta?: Record<string, unknown>) => logger.warn(`[SkillTracker] ${msg}`, meta),
+          error: (msg: string, meta?: Record<string, unknown>) => logger.error(`[SkillTracker] ${msg}`, meta),
+        },
+      };
+      skillTrackerInstance = createSkillTracker(config);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('OPENAI_API_KEY') || errorMessage.includes('Missing credentials')) {
+        initializationError = 'Learning path features require OpenAI API configuration';
+        throw new Error(initializationError);
+      }
+      throw error;
+    }
   }
   return skillTrackerInstance;
 }
 
 function getPathRecommender() {
+  if (initializationError) {
+    throw new Error(initializationError);
+  }
   if (!pathRecommenderInstance) {
-    const stores = getLearningPathStores();
-    const skillTracker = getSkillTracker();
-    const config: PathRecommenderConfig = {
-      pathStore: stores.learningPath,
-      courseGraphStore: stores.courseGraph,
-      skillTracker,
-      defaultMaxSteps: 10,
-      defaultMaxMinutes: 60,
-      pathExpirationHours: 24,
-      logger: {
-        debug: (msg: string, meta?: Record<string, unknown>) => logger.debug(`[PathRecommender] ${msg}`, meta),
-        info: (msg: string, meta?: Record<string, unknown>) => logger.info(`[PathRecommender] ${msg}`, meta),
-        warn: (msg: string, meta?: Record<string, unknown>) => logger.warn(`[PathRecommender] ${msg}`, meta),
-        error: (msg: string, meta?: Record<string, unknown>) => logger.error(`[PathRecommender] ${msg}`, meta),
-      },
-    };
-    pathRecommenderInstance = createPathRecommender(config);
+    try {
+      const stores = getLearningPathStores();
+      const skillTracker = getSkillTracker();
+      const config: PathRecommenderConfig = {
+        pathStore: stores.learningPath,
+        courseGraphStore: stores.courseGraph,
+        skillTracker,
+        defaultMaxSteps: 10,
+        defaultMaxMinutes: 60,
+        pathExpirationHours: 24,
+        logger: {
+          debug: (msg: string, meta?: Record<string, unknown>) => logger.debug(`[PathRecommender] ${msg}`, meta),
+          info: (msg: string, meta?: Record<string, unknown>) => logger.info(`[PathRecommender] ${msg}`, meta),
+          warn: (msg: string, meta?: Record<string, unknown>) => logger.warn(`[PathRecommender] ${msg}`, meta),
+          error: (msg: string, meta?: Record<string, unknown>) => logger.error(`[PathRecommender] ${msg}`, meta),
+        },
+      };
+      pathRecommenderInstance = createPathRecommender(config);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('OPENAI_API_KEY') || errorMessage.includes('Missing credentials')) {
+        initializationError = 'Learning path features require OpenAI API configuration';
+        throw new Error(initializationError);
+      }
+      throw error;
+    }
   }
   return pathRecommenderInstance;
 }
@@ -220,7 +245,22 @@ export async function GET(req: NextRequest) {
         );
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Error in learning-path GET:', error);
+
+    // Check if this is a configuration error
+    if (errorMessage.includes('OpenAI') || errorMessage.includes('require') || errorMessage.includes('configuration')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Service unavailable',
+          message: 'Learning path features require additional API configuration. Please contact your administrator.',
+          code: 'SERVICE_UNAVAILABLE'
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve learning path data' },
       { status: 500 }
@@ -408,7 +448,22 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Error in learning-path POST:', error);
+
+    // Check if this is a configuration error
+    if (errorMessage.includes('OpenAI') || errorMessage.includes('require') || errorMessage.includes('configuration')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Service unavailable',
+          message: 'Learning path features require additional API configuration. Please contact your administrator.',
+          code: 'SERVICE_UNAVAILABLE'
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Failed to process learning path request' },
       { status: 500 }

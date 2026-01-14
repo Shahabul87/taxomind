@@ -1,5 +1,6 @@
 import {
   AnthropicAIAdapter,
+  DeepSeekEmbeddingAdapter,
   NextAuthAdapter,
   OpenAIEmbeddingAdapter,
   PgVectorAdapter,
@@ -9,6 +10,7 @@ import {
   TaxomindAIService,
   TaxomindVectorService,
   createAnthropicAIAdapter,
+  createEmbeddingAdapter,
   createNextAuthAdapter,
   createOpenAIEmbeddingAdapter,
   createPgVectorAdapter,
@@ -18,9 +20,10 @@ import {
   createTaxomindAIService,
   createTaxomindSAMVectorService,
   createTaxomindVectorService
-} from "../chunk-KFVC7I7R.js";
+} from "../chunk-LMFQUIKL.js";
 export {
   AnthropicAIAdapter,
+  DeepSeekEmbeddingAdapter,
   NextAuthAdapter,
   OpenAIEmbeddingAdapter,
   PgVectorAdapter,
@@ -30,6 +33,7 @@ export {
   TaxomindAIService,
   TaxomindVectorService,
   createAnthropicAIAdapter,
+  createEmbeddingAdapter,
   createNextAuthAdapter,
   createOpenAIEmbeddingAdapter,
   createPgVectorAdapter,

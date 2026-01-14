@@ -278,6 +278,7 @@ export function LearningPathWidget({
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const isLoadingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
@@ -285,6 +286,7 @@ export function LearningPathWidget({
     isLoadingRef.current = true;
     setLoading(true);
     setError(null);
+    setServiceUnavailable(false);
 
     try {
       const courseParam = courseId ? `&courseId=${courseId}` : '';
@@ -296,11 +298,20 @@ export function LearningPathWidget({
         showDueForReview ? fetch(`/api/sam/agentic/learning-path?action=due-for-review&limit=5`) : Promise.resolve(null),
       ]);
 
-      if (!pathRes.ok) {
-        throw new Error('Failed to fetch learning path');
+      const pathData = await pathRes.json();
+
+      // Check for service unavailable (missing API configuration)
+      if (pathRes.status === 503 || pathData.code === 'SERVICE_UNAVAILABLE') {
+        setServiceUnavailable(true);
+        setLoading(false);
+        isLoadingRef.current = false;
+        return;
       }
 
-      const pathData = await pathRes.json();
+      if (!pathRes.ok) {
+        throw new Error(pathData.error || 'Failed to fetch learning path');
+      }
+
       if (pathData.success) {
         setPath(pathData.data.path);
       }
@@ -395,6 +406,40 @@ export function LearningPathWidget({
       <Card className={className}>
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show "Coming Soon" for service unavailable (missing AI configuration)
+  if (serviceUnavailable) {
+    return (
+      <Card className={className}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Route className="w-5 h-5 text-primary" />
+            <CardTitle className="text-lg">Learning Path</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8 gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-yellow-500/20 flex items-center justify-center">
+              <Clock className="w-3 h-3 text-yellow-600" />
+            </div>
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="font-semibold text-foreground">Coming Soon</h3>
+            <p className="text-sm text-muted-foreground max-w-[280px]">
+              AI-powered personalized learning paths will help you master concepts efficiently.
+            </p>
+          </div>
+          <Badge variant="secondary" className="text-xs">
+            <Sparkles className="w-3 h-3 mr-1" />
+            Requires AI Configuration
+          </Badge>
         </CardContent>
       </Card>
     );

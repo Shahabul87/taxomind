@@ -408,7 +408,7 @@ export function ScaffoldingStrategyPanel({
       if (courseId) params.set('courseId', courseId);
       if (conceptId) params.set('conceptId', conceptId);
 
-      const response = await fetch(`/api/sam/pedagogy/analyze?${params}`);
+      const response = await fetch(`/api/sam/scaffolding/analyze?${params}`);
       const data = await response.json();
 
       if (!response.ok) {

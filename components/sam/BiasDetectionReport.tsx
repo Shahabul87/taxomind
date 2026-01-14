@@ -351,14 +351,30 @@ export function BiasDetectionReport({
     setLoading(true);
     setError(null);
 
+    // Require evaluations to run fairness audit
+    if (!evaluations || evaluations.length === 0) {
+      setError('No evaluation data available for fairness analysis');
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Transform evaluations to match API schema
+      const transformedEvaluations = evaluations.map((e) => ({
+        id: e.id,
+        text: `Evaluation for student ${e.studentId}`, // Required field - use placeholder
+        score: e.score,
+        maxScore: 100, // Default max score
+        studentId: e.studentId,
+        demographics: e.demographics,
+      }));
+
       const response = await fetch('/api/sam/safety/fairness-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contentId,
-          courseId,
-          evaluations,
+          evaluations: transformedEvaluations,
+          quickAudit: true, // Use quick audit for faster response
         }),
       });
 
@@ -374,7 +390,7 @@ export function BiasDetectionReport({
     } finally {
       setLoading(false);
     }
-  }, [contentId, courseId, evaluations]);
+  }, [evaluations]);
 
   useEffect(() => {
     fetchAudit();
