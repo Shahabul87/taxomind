@@ -6,6 +6,7 @@ import { ThemeProvider } from "./providers/theme-provider";
 import { InterventionProvider } from "@/components/sam/interventions";
 import { RealtimeProvider } from "./providers/realtime-provider";
 import { SAMGlobalProvider } from "@/components/sam/sam-global-provider";
+import { SAMProvider } from "@sam-ai/react";
 import { SAM_FEATURES } from "@/lib/sam/feature-flags";
 
 // Stable auth provider with no auto-reload functionality
@@ -65,15 +66,25 @@ export function Providers({ children, session }: ProvidersProps) {
     <CustomAuthProvider session={session}>
       <ThemeProvider>
         <SAMGlobalProvider>
-          <InterventionProvider
-            maxVisible={3}
-            defaultAutoDismiss={true}
-            defaultAutoDismissDelay={8000}
+          <SAMProvider
+            transport="api"
+            api={{
+              endpoint: '/api/sam/chat',
+              headers: { 'Content-Type': 'application/json' },
+            }}
+            autoDetectContext={true}
+            debug={process.env.NODE_ENV === 'development'}
           >
-            <RealtimeWrapper>
-              {children}
-            </RealtimeWrapper>
-          </InterventionProvider>
+            <InterventionProvider
+              maxVisible={3}
+              defaultAutoDismiss={true}
+              defaultAutoDismissDelay={8000}
+            >
+              <RealtimeWrapper>
+                {children}
+              </RealtimeWrapper>
+            </InterventionProvider>
+          </SAMProvider>
         </SAMGlobalProvider>
       </ThemeProvider>
     </CustomAuthProvider>

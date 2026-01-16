@@ -369,16 +369,29 @@ export class SAMAgentOrchestrator {
     }
 
     const pageMessages: Record<SAMPageType, string> = {
+      // Dashboard routes
       dashboard: "Welcome! I'm here to help you manage your courses and track your progress.",
+      'user-dashboard': "Welcome back! I can help you continue learning or explore new courses.",
+      'admin-dashboard': "I can assist with platform management, user analytics, or system settings.",
+      'teacher-dashboard': "I'm here to help you manage courses, view analytics, or create new content.",
+      'user-analytics': "I can help you understand your learning progress and identify areas for improvement.",
+      // Course management routes
       'courses-list': 'I can help you analyze your courses, create new ones, or find insights.',
       'course-detail': 'I can help you improve this course structure, generate content, or analyze its effectiveness.',
       'course-create': "Let's create an amazing course together. I'll guide you through the process.",
       'chapter-detail': 'I can help you develop this chapter, create assessments, or improve the content.',
       'section-detail': 'I can help you enhance this section with better content or assessments.',
       analytics: 'I can help you understand your analytics and provide actionable insights.',
-      settings: 'I can help you configure your preferences and settings.',
-      learning: 'I\'m here to help you learn! Ask me anything about the course material.',
+      // Learning routes
+      learning: "I'm here to help you learn! Ask me anything about the course material.",
+      'course-learning': "Ready to start learning? I can guide you through this course and answer questions.",
+      'chapter-learning': "I'm here to help you understand this chapter. Ask me about any concepts!",
+      'section-learning': "Let me help you complete this section. Feel free to ask for clarification.",
+      // Exam routes
       exam: 'I can help you prepare for this assessment or explain any concepts.',
+      'exam-results': "Let's review your results together. I can help you understand your performance and improve.",
+      // General routes
+      settings: 'I can help you configure your preferences and settings.',
       other: 'How can I assist you today?',
     };
 
@@ -442,10 +455,28 @@ export class SAMAgentOrchestrator {
    */
   private getPageActions(pageType: SAMPageType): SAMAction[] {
     const actionMap: Record<SAMPageType, SAMAction[]> = {
+      // Dashboard routes
       dashboard: [
         { id: 'act_1', type: 'navigate', label: 'View Courses', payload: { path: '/teacher/courses' } },
         { id: 'act_2', type: 'analyze', label: 'Get Insights', payload: { type: 'overview' } },
       ],
+      'user-dashboard': [
+        { id: 'act_1', type: 'navigate', label: 'Continue Learning', payload: { path: '/courses' } },
+        { id: 'act_2', type: 'custom', label: 'Get Recommendations', payload: { type: 'recommendations' } },
+      ],
+      'admin-dashboard': [
+        { id: 'act_1', type: 'analyze', label: 'Platform Analytics', payload: { type: 'platform' } },
+        { id: 'act_2', type: 'navigate', label: 'Manage Users', payload: { path: '/admin/users' } },
+      ],
+      'teacher-dashboard': [
+        { id: 'act_1', type: 'navigate', label: 'View Courses', payload: { path: '/teacher/courses' } },
+        { id: 'act_2', type: 'navigate', label: 'Create Course', payload: { path: '/teacher/create' } },
+      ],
+      'user-analytics': [
+        { id: 'act_1', type: 'analyze', label: 'Learning Insights', payload: { type: 'learning' } },
+        { id: 'act_2', type: 'custom', label: 'Set Goals', payload: { type: 'goals' } },
+      ],
+      // Course management routes
       'courses-list': [
         { id: 'act_1', type: 'navigate', label: 'Create Course', payload: { path: '/teacher/create' } },
         { id: 'act_2', type: 'analyze', label: 'Analyze Courses', payload: { type: 'courses-overview' } },
@@ -470,15 +501,34 @@ export class SAMAgentOrchestrator {
         { id: 'act_1', type: 'analyze', label: 'Deep Analysis', payload: { type: 'comprehensive' } },
         { id: 'act_2', type: 'generate', label: 'Generate Report', payload: { type: 'report' } },
       ],
-      settings: [],
+      // Learning routes
       learning: [
         { id: 'act_1', type: 'custom', label: 'Explain This', payload: { type: 'explain' } },
         { id: 'act_2', type: 'custom', label: 'Quiz Me', payload: { type: 'quiz' } },
       ],
+      'course-learning': [
+        { id: 'act_1', type: 'custom', label: 'Start Learning', payload: { type: 'start' } },
+        { id: 'act_2', type: 'custom', label: 'Ask About Course', payload: { type: 'explain' } },
+      ],
+      'chapter-learning': [
+        { id: 'act_1', type: 'custom', label: 'Explain This', payload: { type: 'explain' } },
+        { id: 'act_2', type: 'custom', label: 'Quiz Me', payload: { type: 'quiz' } },
+      ],
+      'section-learning': [
+        { id: 'act_1', type: 'custom', label: 'Get Help', payload: { type: 'help' } },
+        { id: 'act_2', type: 'custom', label: 'Check Understanding', payload: { type: 'quiz' } },
+      ],
+      // Exam routes
       exam: [
         { id: 'act_1', type: 'custom', label: 'Get Hint', payload: { type: 'hint' } },
         { id: 'act_2', type: 'custom', label: 'Explain Answer', payload: { type: 'explain' } },
       ],
+      'exam-results': [
+        { id: 'act_1', type: 'custom', label: 'Review Mistakes', payload: { type: 'review' } },
+        { id: 'act_2', type: 'custom', label: 'Improvement Tips', payload: { type: 'improve' } },
+      ],
+      // General routes
+      settings: [],
       other: [],
     };
 

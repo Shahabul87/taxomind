@@ -47,16 +47,27 @@ import {
   BarChart3,
   Milestone,
   ChevronDown,
+  Wifi,
+  WifiOff,
+  Coffee,
+  History,
+  Search,
+  Microscope,
+  GraduationCap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   SAMProvider,
   useSAM,
+  useSAMChat,
+  useSAMAnalysis,
   useSAMFormAutoDetect,
   useSAMFormAutoFill,
   useSAMFormDataEvents,
   useSAMPageLinks,
+  usePresence,
+  useSAMAutoContext,
 } from '@sam-ai/react';
 import type {
   SAMContext,
@@ -94,8 +105,25 @@ import {
 // Import Feedback Buttons for quality tracking
 import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
 
+// Import CheckInModal for enhanced proactive check-ins
+import {
+  CheckInModal,
+  type CheckInData,
+  type CheckInResponse,
+  type CheckInType,
+  type CheckInQuestion,
+  type CheckInAction,
+} from '@/components/sam/CheckInModal';
+
 // Import Confidence Indicator and SelfCritiquePanel for AI response transparency
 import { ConfidenceIndicator, SelfCritiquePanel } from '@/components/sam/confidence';
+
+// Import Memory components for conversation history and memory insights
+import {
+  MemorySearchPanel,
+  ConversationHistory,
+  MemoryInsightsWidget,
+} from '@/components/sam/memory';
 
 // ============================================================================
 // WINDOW CONTEXT TYPES
@@ -276,6 +304,50 @@ interface ProactiveIntervention {
   }>;
   timing: {
     type: 'immediate' | 'scheduled' | 'on_next_session';
+  };
+}
+
+// Helper function to convert ProactiveCheckIn to CheckInModal format
+function convertToCheckInData(checkIn: ProactiveCheckIn): CheckInData {
+  // Map the check-in type string to CheckInType
+  const typeMap: Record<string, CheckInType> = {
+    daily_reminder: 'daily_reminder',
+    progress_check: 'progress_check',
+    struggle_detection: 'struggle_detection',
+    milestone_celebration: 'milestone_celebration',
+    inactivity_reengagement: 'inactivity_reengagement',
+    streak_risk: 'streak_risk',
+    weekly_summary: 'weekly_summary',
+  };
+
+  const checkInType = typeMap[checkIn.type] || 'progress_check';
+
+  // Convert questions with proper ordering
+  const questions: CheckInQuestion[] = (checkIn.questions || []).map((q, index) => ({
+    id: q.id,
+    question: q.question,
+    type: q.type as CheckInQuestion['type'],
+    options: q.options,
+    required: q.required ?? false,
+    order: index,
+  }));
+
+  // Convert suggested actions with proper typing
+  const suggestedActions: CheckInAction[] = (checkIn.suggestedActions || []).map((action) => ({
+    id: action.id,
+    title: action.title,
+    description: action.description,
+    type: action.type as CheckInAction['type'],
+    priority: (action.priority as 'high' | 'medium' | 'low') || 'medium',
+  }));
+
+  return {
+    id: checkIn.id,
+    type: checkInType,
+    message: checkIn.message,
+    questions,
+    suggestedActions,
+    priority: checkIn.priority,
   };
 }
 
@@ -536,18 +608,34 @@ function SAMAssistantInner({
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Use useSAM for broader context and actions
   const {
     context: samContext,
-    messages: samMessages,
-    sendMessage: samSendMessage,
-    clearMessages: clearSamMessages,
-    suggestions,
     actions,
-    isProcessing,
-    isStreaming,
     lastResult,
     updateContext,
   } = useSAM();
+
+  // Use useSAMChat for enhanced chat-specific functionality
+  // This provides optimized chat handling with streaming support
+  const {
+    messages: samMessages,
+    isProcessing,
+    isStreaming,
+    sendMessage: samSendMessage,
+    clearMessages: clearSamMessages,
+    suggestions,
+  } = useSAMChat();
+
+  // Use useSAMAnalysis for content analysis and Bloom's taxonomy
+  const {
+    analyze: analyzeContent,
+    isAnalyzing,
+    lastAnalysis,
+    bloomsAnalysis,
+  } = useSAMAnalysis();
+
   const messages = samMessages as Message[];
 
   useSAMPageLinks({ enabled: true, maxLinks: 120, throttleMs: 1000 });
@@ -560,6 +648,22 @@ function SAMAssistantInner({
     preferFocused: true,
   });
   const { fillField } = useSAMFormAutoFill({ triggerEvents: true });
+
+  // User presence tracking for activity awareness
+  const {
+    status: presenceStatus,
+    isActive,
+    isIdle,
+    isAway,
+    recordActivity,
+  } = usePresence({
+    userId: session?.user?.id ?? 'anonymous',
+    sessionId: `sam-assistant-${Date.now()}`,
+    idleTimeout: 60000, // 1 minute to idle
+    awayTimeout: 300000, // 5 minutes to away
+    trackVisibility: true,
+    trackActivity: isOpen, // Only track when assistant is open
+  });
 
   const insights = useMemo(() => {
     const responseInsights = lastResult?.response.insights as SAMInsights | undefined;
@@ -614,6 +718,8 @@ function SAMAssistantInner({
   const [showCheckInPanel, setShowCheckInPanel] = useState(false);
   const [activeCheckIn, setActiveCheckIn] = useState<ProactiveCheckIn | null>(null);
   const [checkInResponses, setCheckInResponses] = useState<Record<string, unknown>>({});
+  // New state for CheckInModal
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
 
   // Tooling state
   const [tools, setTools] = useState<ToolSummary[]>([]);
@@ -652,6 +758,13 @@ function SAMAssistantInner({
     generatedAt: string;
   } | null>(null);
   const [isLoadingSelfCritique, setIsLoadingSelfCritique] = useState(false);
+
+  // Memory panel state
+  const [showMemoryPanel, setShowMemoryPanel] = useState(false);
+  const [memoryPanelView, setMemoryPanelView] = useState<'search' | 'history' | 'insights'>('insights');
+
+  // Content Analysis panel state
+  const [showContentAnalysisPanel, setShowContentAnalysisPanel] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -1221,6 +1334,9 @@ function SAMAssistantInner({
     }
 
     updateContext(contextUpdate);
+    // Note: samContext.form intentionally excluded from deps to prevent infinite loops.
+    // This effect SETS the form, it doesn't REACT to form changes.
+    // The contextKey ref already prevents duplicate updates for the same page context.
   }, [
     buildContextUpdate,
     pageContext.pageType,
@@ -1230,7 +1346,6 @@ function SAMAssistantInner({
     pageContext.grandParentEntityId,
     pageContext.capabilities,
     pageContext.breadcrumbs,
-    samContext.form,
     updateContext,
   ]);
 
@@ -1294,6 +1409,9 @@ function SAMAssistantInner({
     if (!content.trim() || isProcessing) return;
     setInput('');
     setError(null);
+
+    // Record user activity for presence tracking
+    recordActivity();
 
     // Award XP for asking question
     if (gamificationEngine) {
@@ -1740,7 +1858,7 @@ function SAMAssistantInner({
   const handleOpenCheckIn = (checkIn: ProactiveCheckIn) => {
     setActiveCheckIn(checkIn);
     setCheckInResponses({});
-    setShowCheckInPanel(true);
+    setShowCheckInModal(true); // Use the new CheckInModal
   };
 
   // Handle responding to a check-in
@@ -1785,8 +1903,55 @@ function SAMAssistantInner({
       setPendingCheckIns(prev => prev.filter(c => c.id !== checkInId));
       setActiveCheckIn(null);
       setShowCheckInPanel(false);
+      setShowCheckInModal(false);
     } catch (error) {
       console.error('[SAMAssistant] Failed to dismiss check-in:', error);
+    }
+  };
+
+  // Handle CheckInModal submission
+  const handleCheckInModalSubmit = async (response: CheckInResponse) => {
+    try {
+      const apiResponse = await fetch(`/api/sam/agentic/checkins/${response.checkInId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          answers: response.answers,
+          selectedActions: response.selectedActions,
+          emotionalState: response.emotionalState,
+        }),
+      });
+
+      if (apiResponse.ok) {
+        setPendingCheckIns(prev => prev.filter(c => c.id !== response.checkInId));
+        setActiveCheckIn(null);
+        setShowCheckInModal(false);
+        // Optionally trigger gamification reward for completing check-in
+        if (gamificationEngine) {
+          gamificationEngine.awardXP('daily_login', {
+            source: 'sam_proactive_checkin',
+            checkInId: response.checkInId,
+          });
+        }
+      } else {
+        throw new Error('Failed to submit check-in');
+      }
+    } catch (error) {
+      console.error('[SAMAssistant] Failed to submit check-in response:', error);
+      setError('Failed to submit check-in response');
+    }
+  };
+
+  // Handle CheckInModal action click
+  const handleCheckInActionClick = (action: CheckInAction) => {
+    if (action.url) {
+      window.location.href = action.url;
+    } else if (action.type === 'start_activity') {
+      sendMessage('Help me continue learning');
+    } else if (action.type === 'view_progress') {
+      sendMessage('Show me my learning progress');
+    } else if (action.type === 'contact_mentor') {
+      sendMessage('I need help from a mentor');
     }
   };
 
@@ -1925,25 +2090,28 @@ function SAMAssistantInner({
   };
 
   // Get quick actions based on page type
-  const getQuickActions = (): { label: string; icon: React.ReactNode; action: string }[] => {
+  const getQuickActions = (): { label: string; icon: React.ReactNode; action: string; isAnalysis?: boolean }[] => {
     switch (pageContext.pageType) {
       case 'course-detail':
         return [
           { label: 'Generate Chapters', icon: <FileText className="h-4 w-4" />, action: 'Generate chapter structure for this course' },
           { label: 'Improve Description', icon: <Wand2 className="h-4 w-4" />, action: 'Improve the course description' },
           { label: 'Learning Objectives', icon: <Target className="h-4 w-4" />, action: 'Generate learning objectives for this course' },
+          { label: 'Analyze Content', icon: <Microscope className="h-4 w-4" />, action: 'Analyze course content', isAnalysis: true },
         ];
       case 'chapter-detail':
         return [
           { label: 'Generate Sections', icon: <FileText className="h-4 w-4" />, action: 'Generate sections for this chapter' },
           { label: 'Generate Content', icon: <Wand2 className="h-4 w-4" />, action: 'Generate content for this chapter' },
           { label: 'Learning Outcomes', icon: <Target className="h-4 w-4" />, action: 'Generate learning outcomes' },
+          { label: 'Analyze Content', icon: <Microscope className="h-4 w-4" />, action: 'Analyze chapter content', isAnalysis: true },
         ];
       case 'section-detail':
         return [
           { label: 'Generate Content', icon: <FileText className="h-4 w-4" />, action: 'Generate section content' },
           { label: 'Create Quiz', icon: <Brain className="h-4 w-4" />, action: 'Create a quiz for this section' },
           { label: 'Improve Description', icon: <Wand2 className="h-4 w-4" />, action: 'Improve the section description' },
+          { label: 'Analyze Content', icon: <Microscope className="h-4 w-4" />, action: 'Analyze section content', isAnalysis: true },
         ];
       case 'course-create':
         return [
@@ -1955,6 +2123,7 @@ function SAMAssistantInner({
         return [
           { label: 'Help Me', icon: <Brain className="h-4 w-4" />, action: 'What can you help me with on this page?' },
           { label: 'Navigate', icon: <ChevronRight className="h-4 w-4" />, action: 'Show me available pages' },
+          { label: 'Analyze Content', icon: <Microscope className="h-4 w-4" />, action: 'Analyze page content', isAnalysis: true },
         ];
     }
   };
@@ -2041,6 +2210,30 @@ function SAMAssistantInner({
                   <span className="text-xs">{userProgress.streak}</span>
                 </>
               )}
+            </div>
+          )}
+          {/* Presence indicator */}
+          {!isMinimized && (
+            <div
+              className={cn(
+                'flex items-center gap-1 mr-1 px-2 py-1 rounded-full transition-colors',
+                isActive && 'bg-green-500/30',
+                isIdle && 'bg-yellow-500/30',
+                isAway && 'bg-gray-500/30'
+              )}
+              title={
+                isActive ? 'You are active' :
+                isIdle ? 'You seem idle - SAM is here when you need help' :
+                isAway ? 'Welcome back! SAM is ready to help' :
+                'Tracking your presence'
+              }
+            >
+              {isActive && <Wifi className="h-3 w-3 text-green-300" />}
+              {isIdle && <Coffee className="h-3 w-3 text-yellow-300" />}
+              {isAway && <WifiOff className="h-3 w-3 text-gray-300" />}
+              <span className="text-xs text-white/70 hidden sm:inline">
+                {isActive ? 'Active' : isIdle ? 'Idle' : isAway ? 'Away' : ''}
+              </span>
             </div>
           )}
           <Button
@@ -3034,6 +3227,290 @@ function SAMAssistantInner({
             </div>
           )}
 
+          {/* Memory Panel - Search, History, and Insights */}
+          <div className="px-4 py-2 bg-cyan-50 dark:bg-cyan-900/20 border-b border-cyan-100 dark:border-cyan-800 shrink-0">
+            <div
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => setShowMemoryPanel(!showMemoryPanel)}
+            >
+              <div className="flex items-center gap-2">
+                <History className="h-3.5 w-3.5 text-cyan-600" />
+                <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+                  Memory &amp; History
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {showMemoryPanel && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMemoryPanelView('insights');
+                      }}
+                      className={cn(
+                        'px-2 py-0.5 text-[10px] rounded-full transition-colors',
+                        memoryPanelView === 'insights'
+                          ? 'bg-cyan-200 dark:bg-cyan-800 text-cyan-800 dark:text-cyan-200'
+                          : 'text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'
+                      )}
+                    >
+                      Insights
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMemoryPanelView('search');
+                      }}
+                      className={cn(
+                        'px-2 py-0.5 text-[10px] rounded-full transition-colors',
+                        memoryPanelView === 'search'
+                          ? 'bg-cyan-200 dark:bg-cyan-800 text-cyan-800 dark:text-cyan-200'
+                          : 'text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'
+                      )}
+                    >
+                      Search
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMemoryPanelView('history');
+                      }}
+                      className={cn(
+                        'px-2 py-0.5 text-[10px] rounded-full transition-colors',
+                        memoryPanelView === 'history'
+                          ? 'bg-cyan-200 dark:bg-cyan-800 text-cyan-800 dark:text-cyan-200'
+                          : 'text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'
+                      )}
+                    >
+                      History
+                    </button>
+                  </div>
+                )}
+                <ChevronRight className={cn(
+                  "h-4 w-4 text-cyan-500 transition-transform",
+                  showMemoryPanel && "rotate-90"
+                )} />
+              </div>
+            </div>
+
+            {showMemoryPanel && (
+              <div className="mt-3">
+                {memoryPanelView === 'insights' && (
+                  <MemoryInsightsWidget
+                    compact
+                    context={messages.length > 0 ? messages[messages.length - 1]?.content?.slice(0, 100) : undefined}
+                    maxInsights={4}
+                    showRefresh={true}
+                    onInsightSelect={(insight) => {
+                      // Add insight context to the conversation
+                      if (insight.content) {
+                        const contextMessage = `Based on my learning history: ${insight.content.slice(0, 200)}`;
+                        sendMessage(contextMessage);
+                      }
+                    }}
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {memoryPanelView === 'search' && (
+                  <MemorySearchPanel
+                    compact
+                    maxResults={10}
+                    showFilters={false}
+                    onResultSelect={(result) => {
+                      // Use search result in conversation
+                      if (result.content) {
+                        const contextMessage = `I found this in my memory: "${result.content.slice(0, 200)}". Can you help me understand it better?`;
+                        sendMessage(contextMessage);
+                      }
+                    }}
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {memoryPanelView === 'history' && (
+                  <ConversationHistory
+                    compact
+                    showSessionSelector={true}
+                    maxTurns={20}
+                    onTurnClick={(turn) => {
+                      // Reference past conversation in current context
+                      if (turn.content) {
+                        const contextMessage = `Continuing from earlier: "${turn.content.slice(0, 150)}..."`;
+                        sendMessage(contextMessage);
+                      }
+                    }}
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Content Analysis Panel - Bloom's Taxonomy and Quality Analysis */}
+          <AnimatePresence>
+            {showContentAnalysisPanel && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+                className="px-4 py-3 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-900/30 dark:via-purple-900/20 dark:to-pink-900/20 border-b border-indigo-200/80 dark:border-indigo-800/60 shrink-0"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                    <Microscope className="h-3.5 w-3.5" />
+                    Content Analysis
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {isAnalyzing && (
+                      <span className="flex items-center gap-1 text-xs text-indigo-500">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Analyzing...
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setShowContentAnalysisPanel(false)}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Analysis Results */}
+                {bloomsAnalysis && !isAnalyzing && (
+                  <div className="space-y-3">
+                    {/* Bloom's Level Badge */}
+                    <div className="flex items-center justify-between p-2.5 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-xl border border-indigo-200/60 dark:border-indigo-700/50">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-800/60 dark:to-purple-800/60 rounded-lg">
+                          <GraduationCap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Dominant Cognitive Level</p>
+                          <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                            {bloomsAnalysis.dominantLevel ?? 'Not detected'}
+                          </p>
+                        </div>
+                      </div>
+                      {bloomsAnalysis.cognitiveDepth !== undefined && (
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Cognitive Depth</p>
+                          <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                            {Math.round(bloomsAnalysis.cognitiveDepth)}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bloom's Level Distribution */}
+                    {bloomsAnalysis.distribution && (
+                      <div className="p-2.5 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-indigo-200/50 dark:border-indigo-700/40">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                          Taxonomy Distribution
+                        </p>
+                        <div className="space-y-1.5">
+                          {Object.entries(bloomsAnalysis.distribution).map(([level, score]) => {
+                            const numScore = typeof score === 'number' ? score : 0;
+                            const colors: Record<string, string> = {
+                              'REMEMBER': 'bg-red-400',
+                              'UNDERSTAND': 'bg-orange-400',
+                              'APPLY': 'bg-yellow-400',
+                              'ANALYZE': 'bg-green-400',
+                              'EVALUATE': 'bg-blue-400',
+                              'CREATE': 'bg-purple-400',
+                            };
+                            return (
+                              <div key={level} className="flex items-center gap-2">
+                                <span className="text-[10px] w-20 text-gray-500 dark:text-gray-400 capitalize">
+                                  {level.toLowerCase()}
+                                </span>
+                                <div className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${numScore * 100}%` }}
+                                    transition={{ duration: 0.5, delay: 0.1 }}
+                                    className={cn('h-full rounded-full', colors[level] ?? 'bg-gray-400')}
+                                  />
+                                </div>
+                                <span className="text-[10px] w-8 text-right text-gray-500 dark:text-gray-400">
+                                  {Math.round(numScore * 100)}%
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {bloomsAnalysis.recommendations && bloomsAnalysis.recommendations.length > 0 && (
+                      <div className="p-2.5 bg-amber-50/80 dark:bg-amber-900/20 rounded-xl border border-amber-200/50 dark:border-amber-700/40">
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1.5 flex items-center gap-1">
+                          <Target className="h-3 w-3" />
+                          Recommendations
+                        </p>
+                        <ul className="space-y-1">
+                          {bloomsAnalysis.recommendations.slice(0, 3).map((rec, idx) => (
+                            <li key={idx} className="text-xs text-amber-600 dark:text-amber-300 flex items-start gap-1.5">
+                              <span className="text-amber-400 mt-0.5">•</span>
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Re-analyze button */}
+                    <button
+                      onClick={() => analyzeContent()}
+                      disabled={isAnalyzing}
+                      className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-100/50 dark:bg-indigo-900/30 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={cn("h-3 w-3", isAnalyzing && "animate-spin")} />
+                      Re-analyze Content
+                    </button>
+                  </div>
+                )}
+
+                {/* No analysis yet - show prompt */}
+                {!bloomsAnalysis && !isAnalyzing && (
+                  <div className="text-center py-4">
+                    <Microscope className="h-8 w-8 mx-auto mb-2 text-indigo-300 dark:text-indigo-600" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                      Click &quot;Analyze&quot; to evaluate this content&apos;s cognitive level and quality.
+                    </p>
+                    <button
+                      onClick={() => analyzeContent()}
+                      disabled={isAnalyzing}
+                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                    >
+                      Analyze Current Page
+                    </button>
+                  </div>
+                )}
+
+                {/* Loading state */}
+                {isAnalyzing && (
+                  <div className="text-center py-6">
+                    <div className="relative w-16 h-16 mx-auto mb-3">
+                      <div className="absolute inset-0 rounded-full border-4 border-indigo-200 dark:border-indigo-800" />
+                      <div className="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+                      <Microscope className="absolute inset-0 m-auto h-6 w-6 text-indigo-500" />
+                    </div>
+                    <p className="text-sm text-indigo-600 dark:text-indigo-400 font-medium">
+                      Analyzing content...
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Evaluating Bloom&apos;s taxonomy level and cognitive depth
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Engine Info */}
           {enginesInfo && enginesInfo.run.length > 0 && (
             <div className="px-4 py-1 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between shrink-0">
@@ -3059,13 +3536,44 @@ function SAMAssistantInner({
                   {getQuickActions().map((qa, idx) => (
                     <button
                       key={idx}
-                      onClick={() => sendMessage(qa.action)}
-                      className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+                      onClick={() => {
+                        if (qa.isAnalysis) {
+                          // Trigger content analysis instead of sending a message
+                          analyzeContent(qa.action);
+                          setShowContentAnalysisPanel(true);
+                        } else {
+                          sendMessage(qa.action);
+                        }
+                      }}
+                      disabled={qa.isAnalysis && isAnalyzing}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left",
+                        qa.isAnalysis
+                          ? "hover:bg-indigo-50 dark:hover:bg-indigo-950/30"
+                          : "hover:bg-gray-100 dark:hover:bg-gray-800",
+                        qa.isAnalysis && isAnalyzing && "opacity-60 cursor-not-allowed"
+                      )}
                     >
-                      <span className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg text-purple-600 dark:text-purple-400">
-                        {qa.icon}
+                      <span className={cn(
+                        "p-2 rounded-lg",
+                        qa.isAnalysis
+                          ? "bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400"
+                          : "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                      )}>
+                        {qa.isAnalysis && isAnalyzing ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          qa.icon
+                        )}
                       </span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{qa.label}</span>
+                      <span className={cn(
+                        "text-sm",
+                        qa.isAnalysis
+                          ? "text-indigo-700 dark:text-indigo-300"
+                          : "text-gray-700 dark:text-gray-300"
+                      )}>
+                        {qa.isAnalysis && isAnalyzing ? 'Analyzing...' : qa.label}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -3343,6 +3851,18 @@ function SAMAssistantInner({
         onDismiss={dismissCelebration}
         autoDismissMs={5000}
       />
+
+      {/* CheckInModal for enhanced proactive check-ins */}
+      <CheckInModal
+        checkIn={activeCheckIn ? convertToCheckInData(activeCheckIn) : null}
+        isOpen={showCheckInModal}
+        onClose={() => {
+          setShowCheckInModal(false);
+          setActiveCheckIn(null);
+        }}
+        onSubmit={handleCheckInModalSubmit}
+        onActionClick={handleCheckInActionClick}
+      />
     </div>
   );
 }
@@ -3388,6 +3908,15 @@ function buildUnifiedRequestWithOrchestration(input: {
   return buildUnifiedRequest(input, orchestrationContext);
 }
 
+/**
+ * SAMContextTracker - Invisible component for automatic page context detection
+ * Must be used within SAMProvider context
+ */
+function SAMContextTracker() {
+  useSAMAutoContext(true);
+  return null;
+}
+
 export function SAMAssistant(props: SAMAssistantProps) {
   const { enableStreaming = true } = props;
   const apiOptions = useMemo(
@@ -3401,6 +3930,8 @@ export function SAMAssistant(props: SAMAssistantProps) {
 
   return (
     <SAMProvider transport="api" api={apiOptions}>
+      {/* Auto-sync page context with SAM on route changes */}
+      <SAMContextTracker />
       <SAMAssistantInner {...props} />
     </SAMProvider>
   );

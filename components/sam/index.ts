@@ -8,6 +8,12 @@
 // ============================================================================
 
 export { SAMAssistant } from './SAMAssistant';
+export { SAMContextTracker } from './SAMContextTracker';
+export type { SAMContextTrackerProps } from './SAMContextTracker';
+
+// SAM Quick Actions - useSAMActions hook integration
+export { SAMQuickActions, DEFAULT_QUICK_ACTIONS } from './SAMQuickActions';
+export type { SAMQuickActionsProps, QuickActionDefinition } from './SAMQuickActions';
 
 export { SAMGlobalProvider } from './sam-global-provider';
 export { SamErrorBoundary, SamErrorBoundary as SAMErrorBoundary, useSamErrorBoundary } from './sam-error-boundary';
@@ -110,6 +116,10 @@ export {
   PresenceIndicator,
   ActiveLearnersWidget,
   StudyStatusBadge,
+  ConnectedStudyStatusBadge,
+  PresenceTrackingProvider,
+  usePresenceTracking,
+  usePresenceTrackingOptional,
 } from './presence';
 
 // ============================================================================
@@ -217,3 +227,78 @@ export { default as FinancialSimulatorDefault } from './FinancialSimulator';
 // Research Assistant
 export { ResearchAssistant } from './ResearchAssistant';
 export { default as ResearchAssistantDefault } from './ResearchAssistant';
+
+// ============================================================================
+// ORCHESTRATION & CHECK-IN COMPONENTS
+// ============================================================================
+
+// Check-In Modal
+export { CheckInModal } from './CheckInModal';
+export type {
+  CheckInData,
+  CheckInResponse,
+  CheckInType,
+  CheckInQuestion,
+  CheckInAction,
+} from './CheckInModal';
+
+// Check-In History
+export { CheckInHistory } from './CheckInHistory';
+export type { CheckInHistoryItem, CheckInHistoryProps } from './CheckInHistory';
+
+// Orchestration Panel (integrates StepProgressBar and PlanStepCard)
+export { OrchestrationPanel } from './OrchestrationPanel';
+export type { OrchestrationPanelProps, OrchestrationResult, LearningPlanProgress } from './OrchestrationPanel';
+
+// ============================================================================
+// PROGRESS & ACHIEVEMENT COMPONENTS
+// ============================================================================
+
+// Step Progress Bar
+export { StepProgressBar } from './StepProgressBar';
+export type { Step, StepStatus, StepProgressBarProps } from './StepProgressBar';
+
+// Plan Step Card
+export { PlanStepCard } from './PlanStepCard';
+export type {
+  PlanStep,
+  PlanStepCardProps,
+  StepDifficulty,
+  StepType,
+  Resource,
+} from './PlanStepCard';
+
+// Achievement Badges
+export { AchievementBadges } from './AchievementBadges';
+export type {
+  Achievement,
+  AchievementBadgesProps,
+  BadgeRarity,
+  BadgeCategory,
+} from './AchievementBadges';
+
+// ============================================================================
+// STUDY BUDDY & SOCIAL LEARNING COMPONENTS
+// ============================================================================
+
+// Study Buddy Finder
+export { StudyBuddyFinder } from './StudyBuddyFinder';
+export type {
+  StudyBuddy,
+  StudyBuddyFinderProps,
+  BuddyStatus,
+  MatchReason,
+} from './StudyBuddyFinder';
+
+// ============================================================================
+// GAMIFICATION COMPONENTS
+// ============================================================================
+
+// Leaderboard Widget
+export { LeaderboardWidget } from './LeaderboardWidget';
+export type {
+  LeaderboardEntry,
+  LeaderboardWidgetProps,
+  LeaderboardPeriod,
+  LeaderboardScope,
+} from './LeaderboardWidget';

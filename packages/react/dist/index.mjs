@@ -5,7 +5,8 @@ import {
   useReducer,
   useCallback,
   useEffect,
-  useMemo
+  useMemo,
+  useRef
 } from "react";
 import {
   createDefaultContext,
@@ -239,6 +240,9 @@ function SAMProvider({
     orch.registerEngine(createResponseEngine(config));
     return { orchestrator: orch, stateMachine: sm };
   }, [config, transport]);
+  const isInitializedRef = useRef(false);
+  const contextRef = useRef(state.context);
+  contextRef.current = state.context;
   useEffect(() => {
     const unsubscribe = stateMachine.subscribe((newState) => {
       dispatch({ type: "SET_STATE", payload: newState });
@@ -247,9 +251,12 @@ function SAMProvider({
         console.log("[SAM] State changed:", newState);
       }
     });
-    stateMachine.send({ type: "INITIALIZE", payload: { context: state.context } });
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      stateMachine.send({ type: "INITIALIZE", payload: { context: contextRef.current } });
+    }
     return unsubscribe;
-  }, [stateMachine, onStateChange, debug, state.context]);
+  }, [stateMachine, onStateChange, debug]);
   useEffect(() => {
     if (autoDetectContext && typeof window !== "undefined") {
       const path = window.location.pathname;
@@ -674,21 +681,21 @@ function SAMProvider({
     dispatch({ type: "UPDATE_CONTEXT", payload: updates });
   }, []);
   const updatePage = useCallback((page) => {
-    dispatch({ type: "UPDATE_CONTEXT", payload: { page: { ...state.context.page, ...page } } });
-  }, [state.context.page]);
+    dispatch({ type: "UPDATE_CONTEXT", payload: { page: { ...contextRef.current.page, ...page } } });
+  }, []);
   const updateForm = useCallback((fields) => {
-    if (!state.context.form) return;
+    if (!contextRef.current.form) return;
     dispatch({
       type: "UPDATE_CONTEXT",
       payload: {
         form: {
-          ...state.context.form,
+          ...contextRef.current.form,
           fields,
           lastUpdated: /* @__PURE__ */ new Date()
         }
       }
     });
-  }, [state.context.form]);
+  }, []);
   const analyze = useCallback(
     async (query) => {
       if (apiOptions?.endpoint) {
@@ -1009,6 +1016,9 @@ function useSAMPageContext() {
 }
 function detectContextFromPath2(path) {
   const patterns = [
+    // ============================================================================
+    // TEACHER ROUTES (most specific first)
+    // ============================================================================
     {
       pattern: /^\/teacher\/courses\/([^/]+)\/chapters\/([^/]+)\/section\/([^/]+)/,
       type: "section-detail",
@@ -1042,11 +1052,127 @@ function detectContextFromPath2(path) {
       type: "course-create"
     },
     {
+      pattern: /^\/teacher\/analytics/,
+      type: "analytics"
+    },
+    {
+      pattern: /^\/teacher/,
+      type: "teacher-dashboard"
+    },
+    // ============================================================================
+    // LEARNING ROUTES (student-facing, most specific first)
+    // ============================================================================
+    // Exam results with attempt
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)\/exams\/([^/]+)\/results\/([^/]+)/,
+      type: "exam-results",
+      extract: (match) => ({
+        entityId: match[5],
+        // attemptId
+        parentEntityId: match[4],
+        // examId
+        grandParentEntityId: match[3],
+        // sectionId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3],
+          examId: match[4],
+          attemptId: match[5]
+        }
+      })
+    },
+    // Exam page
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)\/exams\/([^/]+)/,
+      type: "exam",
+      extract: (match) => ({
+        entityId: match[4],
+        // examId
+        parentEntityId: match[3],
+        // sectionId
+        grandParentEntityId: match[2],
+        // chapterId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3],
+          examId: match[4]
+        }
+      })
+    },
+    // Section within learn flow
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)/,
+      type: "section-learning",
+      extract: (match) => ({
+        entityId: match[3],
+        // sectionId
+        parentEntityId: match[2],
+        // chapterId
+        grandParentEntityId: match[1],
+        // courseId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3]
+        }
+      })
+    },
+    // Chapter learning page
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)/,
+      type: "chapter-learning",
+      extract: (match) => ({
+        entityId: match[2],
+        // chapterId
+        parentEntityId: match[1],
+        // courseId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2]
+        }
+      })
+    },
+    // Course learning landing
+    {
+      pattern: /^\/courses\/([^/]+)\/learn/,
+      type: "course-learning",
+      extract: (match) => ({
+        entityId: match[1],
+        // courseId
+        metadata: {
+          courseId: match[1]
+        }
+      })
+    },
+    // Course detail/preview
+    {
       pattern: /^\/courses\/([^/]+)/,
       type: "course-detail",
       extract: (match) => ({
         entityId: match[1]
       })
+    },
+    // Course listing
+    {
+      pattern: /^\/courses$/,
+      type: "courses-list"
+    },
+    // ============================================================================
+    // DASHBOARD & GENERAL ROUTES
+    // ============================================================================
+    {
+      pattern: /^\/dashboard\/user\/analytics/,
+      type: "user-analytics"
+    },
+    {
+      pattern: /^\/dashboard\/user/,
+      type: "user-dashboard"
+    },
+    {
+      pattern: /^\/dashboard\/admin/,
+      type: "admin-dashboard"
     },
     {
       pattern: /^\/dashboard/,
@@ -1126,7 +1252,7 @@ function useSAMAnalysis() {
 }
 
 // src/hooks/useSAMForm.ts
-import { useState as useState3, useCallback as useCallback5, useEffect as useEffect3, useRef } from "react";
+import { useState as useState3, useCallback as useCallback5, useEffect as useEffect3, useRef as useRef2 } from "react";
 function useSAMForm() {
   const { context, updateForm, orchestrator } = useSAMContext();
   const [fields, setFields] = useState3(
@@ -1260,7 +1386,7 @@ function getFieldLabel(element) {
 }
 function useSAMFormSync(options) {
   const { syncFormToSAM } = useSAMForm();
-  const debounceRef = useRef(void 0);
+  const debounceRef = useRef2(void 0);
   useEffect3(() => {
     const form = typeof options.form === "string" ? document.querySelector(options.form) : options.form;
     if (!form) return;
@@ -1287,7 +1413,7 @@ function useSAMFormSync(options) {
 }
 
 // src/hooks/useSAMPageLinks.ts
-import { useCallback as useCallback6, useEffect as useEffect4, useRef as useRef2, useState as useState4 } from "react";
+import { useCallback as useCallback6, useEffect as useEffect4, useRef as useRef3, useState as useState4 } from "react";
 var DEFAULT_SELECTOR = "a[href]";
 function normalizeText(value) {
   const text = value?.trim();
@@ -1337,11 +1463,11 @@ function dedupeLinks(links) {
 function useSAMPageLinks(options = {}) {
   const { context, updatePage } = useSAMContext();
   const [links, setLinks] = useState4([]);
-  const optionsRef = useRef2(options);
+  const optionsRef = useRef3(options);
   optionsRef.current = options;
-  const contextRef = useRef2(context);
+  const contextRef = useRef3(context);
   contextRef.current = context;
-  const updatePageRef = useRef2(updatePage);
+  const updatePageRef = useRef3(updatePage);
   updatePageRef.current = updatePage;
   const refresh = useCallback6(() => {
     if (typeof document === "undefined") return;
@@ -1391,7 +1517,7 @@ function useSAMPageLinks(options = {}) {
 }
 
 // src/hooks/useSAMFormDataSync.ts
-import { useCallback as useCallback7, useEffect as useEffect5, useMemo as useMemo2, useRef as useRef3 } from "react";
+import { useCallback as useCallback7, useEffect as useEffect5, useMemo as useMemo2, useRef as useRef4 } from "react";
 var DEFAULT_MAX_DEPTH = 6;
 function formatLabel(name) {
   return name.replace(/([A-Z])/g, " $1").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim().replace(/^\w/, (c) => c.toUpperCase());
@@ -1499,13 +1625,13 @@ function buildFormContext(formId, formName, fields, options) {
 }
 function useSAMFormDataSync(formId, formData, options = {}) {
   const { context, updateContext } = useSAMContext();
-  const latestOptionsRef = useRef3(options);
+  const latestOptionsRef = useRef4(options);
   latestOptionsRef.current = options;
-  const contextRef = useRef3(context);
+  const contextRef = useRef4(context);
   contextRef.current = context;
-  const updateContextRef = useRef3(updateContext);
+  const updateContextRef = useRef4(updateContext);
   updateContextRef.current = updateContext;
-  const formDataRef = useRef3(formData);
+  const formDataRef = useRef4(formData);
   formDataRef.current = formData;
   const maxDepth = options.maxDepth ?? DEFAULT_MAX_DEPTH;
   const serializedData = useMemo2(() => JSON.stringify(formData), [formData]);
@@ -1604,7 +1730,7 @@ function useSAMFormDataEvents(options = {}) {
 }
 
 // src/hooks/useSAMFormAutoDetect.ts
-import { useCallback as useCallback8, useEffect as useEffect7, useRef as useRef4, useState as useState6 } from "react";
+import { useCallback as useCallback8, useEffect as useEffect7, useRef as useRef5, useState as useState6 } from "react";
 function formatLabel2(name) {
   return name.replace(/([A-Z])/g, " $1").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim().replace(/^\w/, (c) => c.toUpperCase());
 }
@@ -1704,7 +1830,7 @@ function buildFormContext2(form, fields, options) {
 function useSAMFormAutoDetect(options = {}) {
   const { context, updateContext } = useSAMContext();
   const [formContext, setFormContext] = useState6(null);
-  const optionsRef = useRef4(options);
+  const optionsRef = useRef5(options);
   optionsRef.current = options;
   const detectAndSync = useCallback8(() => {
     if (options.enabled === false) return;
@@ -1851,7 +1977,7 @@ function useSAMFormAutoFill(options = {}) {
 }
 
 // src/hooks/useSAMPracticeProblems.ts
-import { useState as useState7, useCallback as useCallback10, useRef as useRef5 } from "react";
+import { useState as useState7, useCallback as useCallback10, useRef as useRef6 } from "react";
 function useSAMPracticeProblems(options = {}) {
   const {
     apiEndpoint = "/api/sam/practice-problems",
@@ -1871,7 +1997,7 @@ function useSAMPracticeProblems(options = {}) {
   const [difficultyRecommendation, setDifficultyRecommendation] = useState7(null);
   const [error, setError] = useState7(null);
   const [hintsUsed, setHintsUsed] = useState7([]);
-  const sessionIdRef = useRef5(`session_${Date.now()}`);
+  const sessionIdRef = useRef6(`session_${Date.now()}`);
   const currentProblem = problems[currentIndex] || null;
   const generateProblems = useCallback10(
     async (input) => {
@@ -2063,7 +2189,7 @@ function useSAMPracticeProblems(options = {}) {
 }
 
 // src/hooks/useSAMAdaptiveContent.ts
-import { useState as useState8, useCallback as useCallback11, useEffect as useEffect8, useRef as useRef6 } from "react";
+import { useState as useState8, useCallback as useCallback11, useEffect as useEffect8, useRef as useRef7 } from "react";
 var CACHE_KEY_PREFIX = "sam-adaptive-profile-";
 var DEFAULT_CACHE_DURATION = 7 * 24 * 60 * 60 * 1e3;
 function useSAMAdaptiveContent(options = {}) {
@@ -2083,7 +2209,7 @@ function useSAMAdaptiveContent(options = {}) {
   const [styleDetection, setStyleDetection] = useState8(null);
   const [error, setError] = useState8(null);
   const cacheKey = userId ? `${CACHE_KEY_PREFIX}${userId}` : null;
-  const hasTriedAutoDetect = useRef6(false);
+  const hasTriedAutoDetect = useRef7(false);
   useEffect8(() => {
     if (!cacheKey) return;
     try {
@@ -2363,7 +2489,7 @@ function useSAMAdaptiveContent(options = {}) {
 }
 
 // src/hooks/useSAMSocraticDialogue.ts
-import { useState as useState9, useCallback as useCallback12, useRef as useRef7 } from "react";
+import { useState as useState9, useCallback as useCallback12, useRef as useRef8 } from "react";
 function useSAMSocraticDialogue(options = {}) {
   const {
     apiEndpoint = "/api/sam/socratic",
@@ -2387,8 +2513,8 @@ function useSAMSocraticDialogue(options = {}) {
   const [encouragement, setEncouragement] = useState9(null);
   const [availableHints, setAvailableHints] = useState9([]);
   const [error, setError] = useState9(null);
-  const currentHintIndexRef = useRef7(0);
-  const previousInsightsRef = useRef7([]);
+  const currentHintIndexRef = useRef8(0);
+  const previousInsightsRef = useRef8([]);
   const isActive = dialogue !== null && dialogueState !== "conclusion";
   const isComplete = dialogueState === "conclusion";
   const startDialogue = useCallback12(
@@ -2677,7 +2803,7 @@ function useSAMSocraticDialogue(options = {}) {
 }
 
 // src/hooks/useAgentic.ts
-import { useState as useState10, useCallback as useCallback13, useEffect as useEffect9, useRef as useRef8 } from "react";
+import { useState as useState10, useCallback as useCallback13, useEffect as useEffect9, useRef as useRef9 } from "react";
 function useAgentic(options = {}) {
   const {
     autoFetchGoals = false,
@@ -2699,7 +2825,7 @@ function useAgentic(options = {}) {
   const [isLoadingProgress, setIsLoadingProgress] = useState10(false);
   const [isLoadingSkills, setIsLoadingSkills] = useState10(false);
   const [isLoadingCheckIns, setIsLoadingCheckIns] = useState10(false);
-  const mountedRef = useRef8(true);
+  const mountedRef = useRef9(true);
   const apiCall = useCallback13(async (url, options2) => {
     try {
       const response = await fetch(url, {
@@ -3013,19 +3139,463 @@ function useAgentic(options = {}) {
 }
 
 // src/hooks/useRealtime.ts
-import { useState as useState11, useEffect as useEffect10, useCallback as useCallback14, useRef as useRef9 } from "react";
+import { useState as useState11, useEffect as useEffect10, useCallback as useCallback14, useRef as useRef10 } from "react";
 
 // src/hooks/usePresence.ts
-import { useState as useState12, useEffect as useEffect11, useCallback as useCallback15, useRef as useRef10, useMemo as useMemo4 } from "react";
+import { useState as useState12, useEffect as useEffect11, useCallback as useCallback15, useRef as useRef11, useMemo as useMemo4 } from "react";
+var DEFAULT_OPTIONS = {
+  sessionId: void 0,
+  initialStatus: "online",
+  trackVisibility: true,
+  trackActivity: true,
+  idleTimeout: 6e4,
+  // 1 minute
+  awayTimeout: 3e5,
+  // 5 minutes
+  activityDebounce: 1e3
+  // 1 second
+};
+function usePresence(options) {
+  const opts = useMemo4(
+    () => ({ ...DEFAULT_OPTIONS, ...options }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    [
+      options.userId,
+      options.sessionId,
+      options.idleTimeout,
+      options.awayTimeout,
+      options.trackActivity,
+      options.trackVisibility,
+      options.initialStatus
+    ]
+  );
+  const [status, setStatusState] = useState12(opts.initialStatus);
+  const [lastActivityAt, setLastActivityAt] = useState12(/* @__PURE__ */ new Date());
+  const [metadata, setMetadata] = useState12(() => ({
+    deviceType: detectDeviceType(),
+    browser: detectBrowser(),
+    os: detectOS()
+  }));
+  const idleTimeoutRef = useRef11(null);
+  const awayTimeoutRef = useRef11(null);
+  const activityDebounceRef = useRef11(null);
+  const previousStatusRef = useRef11(opts.initialStatus);
+  function detectDeviceType() {
+    if (typeof window === "undefined") return "desktop";
+    const ua = navigator.userAgent.toLowerCase();
+    if (/tablet|ipad|playbook|silk/i.test(ua)) return "tablet";
+    if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) return "mobile";
+    return "desktop";
+  }
+  function detectBrowser() {
+    if (typeof window === "undefined") return "unknown";
+    const ua = navigator.userAgent;
+    if (ua.includes("Chrome")) return "Chrome";
+    if (ua.includes("Firefox")) return "Firefox";
+    if (ua.includes("Safari")) return "Safari";
+    if (ua.includes("Edge")) return "Edge";
+    return "unknown";
+  }
+  function detectOS() {
+    if (typeof window === "undefined") return "unknown";
+    const ua = navigator.userAgent;
+    if (ua.includes("Windows")) return "Windows";
+    if (ua.includes("Mac")) return "macOS";
+    if (ua.includes("Linux")) return "Linux";
+    if (ua.includes("Android")) return "Android";
+    if (ua.includes("iOS") || ua.includes("iPhone")) return "iOS";
+    return "unknown";
+  }
+  const clearTimers = useCallback15(() => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current);
+      idleTimeoutRef.current = null;
+    }
+    if (awayTimeoutRef.current) {
+      clearTimeout(awayTimeoutRef.current);
+      awayTimeoutRef.current = null;
+    }
+  }, []);
+  const resetTimers = useCallback15(() => {
+    clearTimers();
+    idleTimeoutRef.current = setTimeout(() => {
+      if (previousStatusRef.current === "online" || previousStatusRef.current === "studying") {
+        setStatusState("idle");
+        opts.onIdle?.();
+      }
+    }, opts.idleTimeout);
+    awayTimeoutRef.current = setTimeout(() => {
+      if (previousStatusRef.current !== "offline" && previousStatusRef.current !== "do_not_disturb") {
+        setStatusState("away");
+        opts.onAway?.();
+      }
+    }, opts.awayTimeout);
+  }, [clearTimers, opts]);
+  const setStatus = useCallback15(
+    (newStatus) => {
+      const prevStatus = previousStatusRef.current;
+      if (newStatus !== prevStatus) {
+        previousStatusRef.current = newStatus;
+        setStatusState(newStatus);
+        opts.onStatusChange?.(newStatus, prevStatus);
+        opts.sendActivity?.({
+          type: "interaction",
+          data: { statusChange: { from: prevStatus, to: newStatus } }
+        });
+      }
+    },
+    [opts]
+  );
+  const recordActivity = useCallback15(
+    (type = "interaction") => {
+      if (activityDebounceRef.current) {
+        return;
+      }
+      activityDebounceRef.current = setTimeout(() => {
+        activityDebounceRef.current = null;
+      }, opts.activityDebounce);
+      setLastActivityAt(/* @__PURE__ */ new Date());
+      if (status === "idle" || status === "away") {
+        setStatus("online");
+        opts.onActive?.();
+      }
+      resetTimers();
+      opts.sendActivity?.({
+        type,
+        data: { timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+        pageContext: typeof window !== "undefined" ? { url: window.location.href } : void 0
+      });
+    },
+    [opts, status, setStatus, resetTimers]
+  );
+  const updateMetadata = useCallback15((updates) => {
+    setMetadata((prev) => prev ? { ...prev, ...updates } : null);
+  }, []);
+  useEffect11(() => {
+    if (!opts.trackVisibility || typeof document === "undefined") return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        recordActivity("focus");
+      } else {
+        opts.sendActivity?.({
+          type: "blur",
+          data: { timestamp: (/* @__PURE__ */ new Date()).toISOString() }
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [opts.trackVisibility, recordActivity, opts.sendActivity]);
+  useEffect11(() => {
+    if (!opts.trackActivity || typeof window === "undefined") return;
+    const handleActivity = () => {
+      recordActivity("interaction");
+    };
+    const handleScroll = () => {
+      recordActivity("scroll");
+    };
+    window.addEventListener("mousemove", handleActivity, { passive: true });
+    window.addEventListener("mousedown", handleActivity, { passive: true });
+    window.addEventListener("keydown", handleActivity, { passive: true });
+    window.addEventListener("touchstart", handleActivity, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    resetTimers();
+    return () => {
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("mousedown", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("touchstart", handleActivity);
+      window.removeEventListener("scroll", handleScroll);
+      clearTimers();
+      if (activityDebounceRef.current) {
+        clearTimeout(activityDebounceRef.current);
+      }
+    };
+  }, [opts.trackActivity, recordActivity, resetTimers, clearTimers]);
+  const presence = opts.userId && metadata ? {
+    userId: opts.userId,
+    connectionId: "",
+    // Set by WebSocket connection
+    status,
+    lastActivityAt: lastActivityAt || /* @__PURE__ */ new Date(),
+    connectedAt: /* @__PURE__ */ new Date(),
+    // Set by WebSocket connection
+    metadata,
+    subscriptions: []
+  } : null;
+  return {
+    status,
+    isActive: status === "online" || status === "studying",
+    isIdle: status === "idle",
+    isAway: status === "away",
+    isOnline: status !== "offline",
+    lastActivityAt,
+    metadata,
+    setStatus,
+    recordActivity,
+    updateMetadata,
+    presence
+  };
+}
 
 // src/hooks/useInterventions.ts
-import { useState as useState13, useEffect as useEffect12, useCallback as useCallback16, useRef as useRef11, useMemo as useMemo5 } from "react";
+import { useState as useState13, useEffect as useEffect12, useCallback as useCallback16, useRef as useRef12, useMemo as useMemo5 } from "react";
 
 // src/hooks/usePushNotifications.ts
-import { useState as useState14, useEffect as useEffect13, useCallback as useCallback17, useRef as useRef12, useMemo as useMemo6 } from "react";
+import { useState as useState14, useEffect as useEffect13, useCallback as useCallback17, useRef as useRef13, useMemo as useMemo6 } from "react";
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray.buffer;
+}
+function subscriptionToJSON(sub) {
+  const json = sub.toJSON();
+  return {
+    endpoint: json.endpoint || "",
+    keys: {
+      p256dh: json.keys?.p256dh || "",
+      auth: json.keys?.auth || ""
+    }
+  };
+}
+var DEFAULT_OPTIONS2 = {
+  serviceWorkerPath: "/sw.js",
+  autoRequest: false,
+  autoRequestOnMount: false,
+  applicationServerKey: void 0
+};
+function usePushNotifications(options = {}) {
+  const opts = useMemo6(
+    () => ({ ...DEFAULT_OPTIONS2, ...options }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    [
+      options.serviceWorkerPath,
+      options.vapidPublicKey,
+      options.applicationServerKey,
+      options.autoRequestOnMount,
+      options.onPermissionChange,
+      options.onSubscribe,
+      options.onUnsubscribe
+    ]
+  );
+  const [permission, setPermission] = useState14("default");
+  const [subscription, setSubscription] = useState14(null);
+  const [isLoading, setIsLoading] = useState14(false);
+  const swRegistrationRef = useRef13(null);
+  const isSupported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+  useEffect13(() => {
+    if (!isSupported) {
+      setPermission("unsupported");
+      return;
+    }
+    const currentPermission = Notification.permission;
+    setPermission(currentPermission);
+    const init = async () => {
+      try {
+        const registration = await navigator.serviceWorker.register(opts.serviceWorkerPath);
+        swRegistrationRef.current = registration;
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) {
+          const subJSON = subscriptionToJSON(existingSub);
+          setSubscription(subJSON);
+          opts.onSubscriptionChange?.(subJSON);
+        }
+        if (opts.autoRequest && currentPermission === "default") {
+          requestPermission();
+        }
+      } catch (error) {
+        console.error("[usePushNotifications] Service worker registration failed:", error);
+        opts.onError?.(error instanceof Error ? error : new Error("Service worker registration failed"));
+      }
+    };
+    init();
+  }, [isSupported]);
+  const requestPermission = useCallback17(async () => {
+    if (!isSupported) {
+      return "unsupported";
+    }
+    try {
+      const result = await Notification.requestPermission();
+      const state = result;
+      setPermission(state);
+      opts.onPermissionChange?.(state);
+      return state;
+    } catch (error) {
+      opts.onError?.(error instanceof Error ? error : new Error("Permission request failed"));
+      return "denied";
+    }
+  }, [isSupported, opts]);
+  const subscribe = useCallback17(async () => {
+    if (!isSupported || !swRegistrationRef.current) {
+      return null;
+    }
+    if (permission !== "granted") {
+      const newPermission = await requestPermission();
+      if (newPermission !== "granted") {
+        return null;
+      }
+    }
+    setIsLoading(true);
+    try {
+      const subscribeOptions = {
+        userVisibleOnly: true
+      };
+      if (opts.vapidPublicKey) {
+        subscribeOptions.applicationServerKey = urlBase64ToUint8Array(opts.vapidPublicKey);
+      }
+      const pushSubscription = await swRegistrationRef.current.pushManager.subscribe(subscribeOptions);
+      const subJSON = subscriptionToJSON(pushSubscription);
+      setSubscription(subJSON);
+      opts.onSubscriptionChange?.(subJSON);
+      return subJSON;
+    } catch (error) {
+      console.error("[usePushNotifications] Subscribe failed:", error);
+      opts.onError?.(error instanceof Error ? error : new Error("Subscribe failed"));
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported, permission, requestPermission, opts]);
+  const unsubscribe = useCallback17(async () => {
+    if (!isSupported || !swRegistrationRef.current) {
+      return false;
+    }
+    setIsLoading(true);
+    try {
+      const existingSub = await swRegistrationRef.current.pushManager.getSubscription();
+      if (existingSub) {
+        await existingSub.unsubscribe();
+      }
+      setSubscription(null);
+      opts.onSubscriptionChange?.(null);
+      return true;
+    } catch (error) {
+      console.error("[usePushNotifications] Unsubscribe failed:", error);
+      opts.onError?.(error instanceof Error ? error : new Error("Unsubscribe failed"));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported, opts]);
+  const showNotification = useCallback17(
+    async (notificationOptions) => {
+      if (!isSupported || permission !== "granted") {
+        return null;
+      }
+      try {
+        if (swRegistrationRef.current) {
+          const swOptions = {
+            body: notificationOptions.body,
+            icon: notificationOptions.icon,
+            badge: notificationOptions.badge,
+            tag: notificationOptions.tag,
+            requireInteraction: notificationOptions.requireInteraction,
+            silent: notificationOptions.silent,
+            data: notificationOptions.data
+          };
+          if (notificationOptions.actions) {
+            swOptions.actions = notificationOptions.actions;
+          }
+          await swRegistrationRef.current.showNotification(notificationOptions.title, swOptions);
+          return null;
+        }
+        const notification = new Notification(notificationOptions.title, {
+          body: notificationOptions.body,
+          icon: notificationOptions.icon,
+          badge: notificationOptions.badge,
+          tag: notificationOptions.tag,
+          requireInteraction: notificationOptions.requireInteraction,
+          silent: notificationOptions.silent,
+          data: notificationOptions.data
+        });
+        notification.onclick = () => {
+          opts.onNotificationClick?.(notification);
+        };
+        notification.onclose = () => {
+          opts.onNotificationClose?.(notification);
+        };
+        return notification;
+      } catch (error) {
+        console.error("[usePushNotifications] Show notification failed:", error);
+        opts.onError?.(error instanceof Error ? error : new Error("Show notification failed"));
+        return null;
+      }
+    },
+    [isSupported, permission, opts]
+  );
+  const isNotificationVisible = useCallback17(
+    async (tag) => {
+      if (!swRegistrationRef.current) {
+        return false;
+      }
+      const notifications = await swRegistrationRef.current.getNotifications({ tag });
+      return notifications.length > 0;
+    },
+    []
+  );
+  const closeNotification = useCallback17(async (tag) => {
+    if (!swRegistrationRef.current) {
+      return;
+    }
+    const notifications = await swRegistrationRef.current.getNotifications({ tag });
+    notifications.forEach((notification) => notification.close());
+  }, []);
+  const registerWithServer = useCallback17(
+    async (serverEndpoint, userId) => {
+      if (!subscription) {
+        return false;
+      }
+      setIsLoading(true);
+      try {
+        const response = await fetch(serverEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            userId,
+            subscription
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Server registration failed: ${response.status}`);
+        }
+        return true;
+      } catch (error) {
+        console.error("[usePushNotifications] Server registration failed:", error);
+        opts.onError?.(error instanceof Error ? error : new Error("Server registration failed"));
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [subscription, opts]
+  );
+  return {
+    permission,
+    isSupported,
+    isEnabled: isSupported && permission === "granted" && subscription !== null,
+    subscription,
+    isLoading,
+    requestPermission,
+    subscribe,
+    unsubscribe,
+    showNotification,
+    isNotificationVisible,
+    closeNotification,
+    registerWithServer
+  };
+}
 
 // src/hooks/useSAMMemory.ts
-import { useState as useState15, useCallback as useCallback18, useRef as useRef13 } from "react";
+import { useState as useState15, useCallback as useCallback18, useRef as useRef14 } from "react";
 function useSAMMemory(options = {}) {
   const { debug = false } = options;
   const [searchResults, setSearchResults] = useState15([]);
@@ -3034,7 +3604,7 @@ function useSAMMemory(options = {}) {
   const [isSearching, setIsSearching] = useState15(false);
   const [isStoringMemory, setIsStoringMemory] = useState15(false);
   const [isLoadingConversation, setIsLoadingConversation] = useState15(false);
-  const mountedRef = useRef13(true);
+  const mountedRef = useRef14(true);
   const apiCall = useCallback18(
     async (url, options2) => {
       try {
@@ -3204,7 +3774,7 @@ import { jsx as jsx2 } from "react/jsx-runtime";
 var TutoringOrchestrationContext = createContext2(null);
 
 // src/hooks/useNotifications.ts
-import { useState as useState17, useEffect as useEffect14, useCallback as useCallback20, useRef as useRef14 } from "react";
+import { useState as useState17, useEffect as useEffect14, useCallback as useCallback20, useRef as useRef15 } from "react";
 
 // src/hooks/useBehaviorPatterns.ts
 import { useState as useState18, useEffect as useEffect15, useCallback as useCallback21 } from "react";
@@ -3283,7 +3853,7 @@ function useBehaviorPatterns(options = {}) {
 }
 
 // src/hooks/useRecommendations.ts
-import { useState as useState19, useEffect as useEffect16, useCallback as useCallback22, useRef as useRef15 } from "react";
+import { useState as useState19, useEffect as useEffect16, useCallback as useCallback22, useRef as useRef16 } from "react";
 function useRecommendations(options = {}) {
   const {
     availableTime = 60,
@@ -3298,7 +3868,7 @@ function useRecommendations(options = {}) {
   const [context, setContext] = useState19(null);
   const [isLoading, setIsLoading] = useState19(false);
   const [error, setError] = useState19(null);
-  const typesRef = useRef15(types);
+  const typesRef = useRef16(types);
   typesRef.current = types;
   const fetchRecommendations = useCallback22(
     async (fetchOptions) => {
@@ -3559,6 +4129,8 @@ export {
   hasCapability,
   useAgentic,
   useBehaviorPatterns,
+  usePresence,
+  usePushNotifications,
   useRecommendations,
   useSAM,
   useSAMActions,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,12 +22,23 @@ import {
   Zap,
   Trophy,
   Lock,
+  Sparkles,
+  Calendar,
+  Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
+// SAM AI Components
+import { GoalPlanner } from "@/components/sam/goal-planner";
+import { ScaffoldingStrategyPanel } from "@/components/sam/ScaffoldingStrategyPanel";
+import { DailyPlanWidget } from "@/components/sam/plans/DailyPlanWidget";
+import { ConfidenceIndicator } from "@/components/sam/confidence/ConfidenceIndicator";
+import { SAMQuickActions } from "@/components/sam/SAMQuickActions";
+import { useSAMPageContext } from "@sam-ai/react";
 
 interface Section {
   id: string;
@@ -228,6 +239,38 @@ export function EnterpriseChapterView({
     );
   }, [chapter.sections]);
 
+  // SAM Page Context - Track chapter learning context
+  const { updatePage } = useSAMPageContext();
+
+  useEffect(() => {
+    updatePage({
+      type: "chapter-learning",
+      path: `/courses/${course.id}/learn/${chapter.id}`,
+      entityId: chapter.id,
+      parentEntityId: course.id,
+      metadata: {
+        courseId: course.id,
+        courseTitle: course.title,
+        chapterId: chapter.id,
+        chapterTitle: chapter.title,
+        chapterPosition: chapter.position,
+        totalSections,
+        completedSections,
+        progressPercentage,
+      },
+    });
+  }, [
+    updatePage,
+    course.id,
+    course.title,
+    chapter.id,
+    chapter.title,
+    chapter.position,
+    totalSections,
+    completedSections,
+    progressPercentage,
+  ]);
+
   // Find next incomplete section
   const nextSection = useMemo(() => {
     return chapter.sections.find(
@@ -424,6 +467,134 @@ export function EnterpriseChapterView({
             </Card>
           </motion.div>
         )}
+
+        {/* SAM AI Learning Tools */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="mb-12"
+        >
+          <Card className="border-0 shadow-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-900">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-indigo-500" />
+                SAM AI Learning Assistant
+              </CardTitle>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Personalized learning support for this chapter
+              </p>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-6">
+              {/* Top Row: Confidence & Daily Plan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Mastery/Readiness Indicator */}
+                <div className="p-4 rounded-lg bg-white/70 dark:bg-slate-800/70 border border-blue-200/50 dark:border-blue-800/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-blue-500" />
+                      Chapter Readiness
+                    </h3>
+                    <ConfidenceIndicator
+                      confidence={progressPercentage / 100}
+                      mode="badge"
+                      size="sm"
+                      showPercentage
+                      category="knowledge"
+                    />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <ConfidenceIndicator
+                      confidence={progressPercentage / 100}
+                      mode="meter"
+                      size="md"
+                      animated
+                    />
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        {progressPercentage === 0
+                          ? "Start learning to build mastery"
+                          : progressPercentage < 50
+                            ? "Building foundational knowledge"
+                            : progressPercentage < 100
+                              ? "Good progress! Keep going"
+                              : "Chapter mastered!"}
+                      </p>
+                      <div className="text-xs text-slate-500">
+                        {completedSections} of {totalSections} sections complete
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Daily Plan Widget - Compact */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-amber-500" />
+                    Today&apos;s Focus
+                  </h3>
+                  <DailyPlanWidget
+                    compact
+                    dailyGoalMinutes={30}
+                    todayStudyMinutes={Math.round((progressPercentage / 100) * 30)}
+                    className="border border-amber-200/50 dark:border-amber-800/30"
+                  />
+                </div>
+              </div>
+
+              {/* Bottom Row: Scaffolding & Goal Planner */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Readiness Check - ScaffoldingStrategyPanel Compact */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <Brain className="h-4 w-4 text-purple-500" />
+                    Learning Readiness
+                  </h3>
+                  <ScaffoldingStrategyPanel
+                    userId={userId}
+                    courseId={course.id}
+                    compact
+                    className="border border-purple-200/50 dark:border-purple-800/30"
+                  />
+                </div>
+
+                {/* Goal Planner for Chapter */}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-emerald-500" />
+                    Chapter Goals
+                  </h3>
+                  <GoalPlanner
+                    courseId={course.id}
+                    chapterId={chapter.id}
+                    compact
+                    maxGoals={3}
+                    className="border border-emerald-200/50 dark:border-emerald-800/30 rounded-lg p-3 bg-white/50 dark:bg-slate-800/50"
+                  />
+                </div>
+              </div>
+
+              {/* SAM Quick Actions - AI-powered learning assistance */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500" />
+                  Quick Actions
+                </h3>
+                <SAMQuickActions
+                  variant="compact"
+                  context={{
+                    courseId: course.id,
+                    chapterId: chapter.id,
+                    topicName: chapter.title,
+                  }}
+                  categories={['learning', 'help', 'practice']}
+                  maxActions={5}
+                  className="bg-white/50 dark:bg-slate-800/50 rounded-lg p-2 border border-amber-200/50 dark:border-amber-800/30"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Sections List */}
         <motion.div

@@ -42,16 +42,29 @@ export interface SAMUserContext {
 // ============================================================================
 
 export type SAMPageType =
+  // Dashboard routes
   | 'dashboard'
+  | 'user-dashboard'
+  | 'admin-dashboard'
+  | 'teacher-dashboard'
+  | 'user-analytics'
+  // Course management routes
   | 'courses-list'
   | 'course-detail'
   | 'course-create'
   | 'chapter-detail'
   | 'section-detail'
   | 'analytics'
-  | 'settings'
+  // Learning routes (student-facing)
   | 'learning'
+  | 'course-learning'
+  | 'chapter-learning'
+  | 'section-learning'
+  // Exam routes
   | 'exam'
+  | 'exam-results'
+  // General routes
+  | 'settings'
   | 'other';
 
 export interface SAMPageContext {

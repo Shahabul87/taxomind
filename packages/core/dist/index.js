@@ -1185,16 +1185,29 @@ var SAMAgentOrchestrator = class {
       return `I've analyzed your request and prepared insights based on the current context.`;
     }
     const pageMessages = {
+      // Dashboard routes
       dashboard: "Welcome! I'm here to help you manage your courses and track your progress.",
+      "user-dashboard": "Welcome back! I can help you continue learning or explore new courses.",
+      "admin-dashboard": "I can assist with platform management, user analytics, or system settings.",
+      "teacher-dashboard": "I'm here to help you manage courses, view analytics, or create new content.",
+      "user-analytics": "I can help you understand your learning progress and identify areas for improvement.",
+      // Course management routes
       "courses-list": "I can help you analyze your courses, create new ones, or find insights.",
       "course-detail": "I can help you improve this course structure, generate content, or analyze its effectiveness.",
       "course-create": "Let's create an amazing course together. I'll guide you through the process.",
       "chapter-detail": "I can help you develop this chapter, create assessments, or improve the content.",
       "section-detail": "I can help you enhance this section with better content or assessments.",
       analytics: "I can help you understand your analytics and provide actionable insights.",
-      settings: "I can help you configure your preferences and settings.",
+      // Learning routes
       learning: "I'm here to help you learn! Ask me anything about the course material.",
+      "course-learning": "Ready to start learning? I can guide you through this course and answer questions.",
+      "chapter-learning": "I'm here to help you understand this chapter. Ask me about any concepts!",
+      "section-learning": "Let me help you complete this section. Feel free to ask for clarification.",
+      // Exam routes
       exam: "I can help you prepare for this assessment or explain any concepts.",
+      "exam-results": "Let's review your results together. I can help you understand your performance and improve.",
+      // General routes
+      settings: "I can help you configure your preferences and settings.",
       other: "How can I assist you today?"
     };
     return pageMessages[context.page.type] || pageMessages.other;
@@ -1248,10 +1261,28 @@ var SAMAgentOrchestrator = class {
    */
   getPageActions(pageType) {
     const actionMap = {
+      // Dashboard routes
       dashboard: [
         { id: "act_1", type: "navigate", label: "View Courses", payload: { path: "/teacher/courses" } },
         { id: "act_2", type: "analyze", label: "Get Insights", payload: { type: "overview" } }
       ],
+      "user-dashboard": [
+        { id: "act_1", type: "navigate", label: "Continue Learning", payload: { path: "/courses" } },
+        { id: "act_2", type: "custom", label: "Get Recommendations", payload: { type: "recommendations" } }
+      ],
+      "admin-dashboard": [
+        { id: "act_1", type: "analyze", label: "Platform Analytics", payload: { type: "platform" } },
+        { id: "act_2", type: "navigate", label: "Manage Users", payload: { path: "/admin/users" } }
+      ],
+      "teacher-dashboard": [
+        { id: "act_1", type: "navigate", label: "View Courses", payload: { path: "/teacher/courses" } },
+        { id: "act_2", type: "navigate", label: "Create Course", payload: { path: "/teacher/create" } }
+      ],
+      "user-analytics": [
+        { id: "act_1", type: "analyze", label: "Learning Insights", payload: { type: "learning" } },
+        { id: "act_2", type: "custom", label: "Set Goals", payload: { type: "goals" } }
+      ],
+      // Course management routes
       "courses-list": [
         { id: "act_1", type: "navigate", label: "Create Course", payload: { path: "/teacher/create" } },
         { id: "act_2", type: "analyze", label: "Analyze Courses", payload: { type: "courses-overview" } }
@@ -1276,15 +1307,34 @@ var SAMAgentOrchestrator = class {
         { id: "act_1", type: "analyze", label: "Deep Analysis", payload: { type: "comprehensive" } },
         { id: "act_2", type: "generate", label: "Generate Report", payload: { type: "report" } }
       ],
-      settings: [],
+      // Learning routes
       learning: [
         { id: "act_1", type: "custom", label: "Explain This", payload: { type: "explain" } },
         { id: "act_2", type: "custom", label: "Quiz Me", payload: { type: "quiz" } }
       ],
+      "course-learning": [
+        { id: "act_1", type: "custom", label: "Start Learning", payload: { type: "start" } },
+        { id: "act_2", type: "custom", label: "Ask About Course", payload: { type: "explain" } }
+      ],
+      "chapter-learning": [
+        { id: "act_1", type: "custom", label: "Explain This", payload: { type: "explain" } },
+        { id: "act_2", type: "custom", label: "Quiz Me", payload: { type: "quiz" } }
+      ],
+      "section-learning": [
+        { id: "act_1", type: "custom", label: "Get Help", payload: { type: "help" } },
+        { id: "act_2", type: "custom", label: "Check Understanding", payload: { type: "quiz" } }
+      ],
+      // Exam routes
       exam: [
         { id: "act_1", type: "custom", label: "Get Hint", payload: { type: "hint" } },
         { id: "act_2", type: "custom", label: "Explain Answer", payload: { type: "explain" } }
       ],
+      "exam-results": [
+        { id: "act_1", type: "custom", label: "Review Mistakes", payload: { type: "review" } },
+        { id: "act_2", type: "custom", label: "Improvement Tips", payload: { type: "improve" } }
+      ],
+      // General routes
+      settings: [],
       other: []
     };
     return actionMap[pageType] || [];
@@ -1615,42 +1665,81 @@ var ContextEngine = class extends BaseEngine {
   // ============================================================================
   analyzePageContext(pageType, entityId) {
     const entityTypeMap = {
+      // Dashboard routes
       dashboard: "user",
+      "user-dashboard": "user",
+      "admin-dashboard": "user",
+      "teacher-dashboard": "user",
+      "user-analytics": "user",
+      // Course management routes
       "courses-list": "none",
       "course-detail": "course",
       "course-create": "course",
       "chapter-detail": "chapter",
       "section-detail": "section",
       analytics: "none",
-      settings: "user",
+      // Learning routes
       learning: "course",
+      "course-learning": "course",
+      "chapter-learning": "chapter",
+      "section-learning": "section",
+      // Exam routes
       exam: "section",
+      "exam-results": "section",
+      // General routes
+      settings: "user",
       other: "none"
     };
     const capabilitiesMap = {
+      // Dashboard routes
       dashboard: ["view-overview", "quick-actions", "recommendations"],
+      "user-dashboard": ["view-progress", "continue-learning", "recommendations", "goal-tracking"],
+      "admin-dashboard": ["platform-management", "user-analytics", "system-monitoring"],
+      "teacher-dashboard": ["manage-courses", "view-analytics", "student-progress", "create-content"],
+      "user-analytics": ["view-analytics", "learning-insights", "progress-tracking", "goal-progress"],
+      // Course management routes
       "courses-list": ["list-courses", "filter-courses", "create-course", "bulk-actions"],
       "course-detail": ["edit-course", "add-chapters", "publish-course", "analyze-course"],
       "course-create": ["create-course", "generate-blueprint", "set-objectives"],
       "chapter-detail": ["edit-chapter", "add-sections", "reorder-sections", "analyze-chapter"],
       "section-detail": ["edit-section", "add-content", "create-quiz", "analyze-section"],
       analytics: ["view-analytics", "export-data", "compare-metrics"],
-      settings: ["update-preferences", "manage-account"],
+      // Learning routes
       learning: ["view-content", "take-quiz", "track-progress", "ask-questions"],
+      "course-learning": ["course-overview", "view-progress", "start-learning", "ask-questions"],
+      "chapter-learning": ["view-content", "take-quiz", "track-progress", "ask-questions", "concept-explanation"],
+      "section-learning": ["view-section", "complete-activities", "ask-questions", "get-hints"],
+      // Exam routes
       exam: ["take-exam", "get-hints", "review-answers"],
+      "exam-results": ["view-results", "review-answers", "improvement-suggestions", "retry-exam"],
+      // General routes
+      settings: ["update-preferences", "manage-account"],
       other: ["general-help"]
     };
     const suggestedActionsMap = {
+      // Dashboard routes
       dashboard: ["View your courses", "Check analytics", "Create a new course"],
+      "user-dashboard": ["Continue learning", "View recommendations", "Check progress", "Set goals"],
+      "admin-dashboard": ["Manage users", "View platform analytics", "System settings"],
+      "teacher-dashboard": ["Create a course", "View student progress", "Check analytics"],
+      "user-analytics": ["View learning insights", "Track goal progress", "Identify strengths"],
+      // Course management routes
       "courses-list": ["Create a course", "Analyze course performance", "Filter by category"],
       "course-detail": ["Add chapters", "Generate course content", "Analyze structure"],
       "course-create": ["Generate blueprint", "Set learning objectives", "Define target audience"],
       "chapter-detail": ["Add sections", "Create assessment", "Reorder content"],
       "section-detail": ["Add video content", "Create quiz", "Analyze Bloom's level"],
       analytics: ["View detailed reports", "Compare courses", "Export data"],
-      settings: ["Update preferences", "Change notification settings"],
+      // Learning routes
       learning: ["Continue learning", "Take a quiz", "Ask a question"],
+      "course-learning": ["Start first chapter", "View syllabus", "Ask about the course"],
+      "chapter-learning": ["Continue to next section", "Ask about concepts", "Take practice quiz"],
+      "section-learning": ["Complete activities", "Ask for clarification", "Get hints"],
+      // Exam routes
       exam: ["Start exam", "Review material first"],
+      "exam-results": ["Review answers", "Get improvement tips", "Retry exam", "Continue learning"],
+      // General routes
+      settings: ["Update preferences", "Change notification settings"],
       other: ["How can I help you?"]
     };
     return {

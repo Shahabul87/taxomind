@@ -71,6 +71,9 @@ function detectContextFromPath(path: string): Partial<SAMContext['page']> {
     type: SAMContext['page']['type'];
     extract?: (match: RegExpMatchArray) => Partial<SAMContext['page']>;
   }> = [
+    // ============================================================================
+    // TEACHER ROUTES (most specific first)
+    // ============================================================================
     {
       pattern: /^\/teacher\/courses\/([^/]+)\/chapters\/([^/]+)\/section\/([^/]+)/,
       type: 'section-detail',
@@ -104,11 +107,117 @@ function detectContextFromPath(path: string): Partial<SAMContext['page']> {
       type: 'course-create',
     },
     {
+      pattern: /^\/teacher\/analytics/,
+      type: 'analytics',
+    },
+    {
+      pattern: /^\/teacher/,
+      type: 'teacher-dashboard',
+    },
+
+    // ============================================================================
+    // LEARNING ROUTES (student-facing, most specific first)
+    // ============================================================================
+    // Exam results with attempt
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)\/exams\/([^/]+)\/results\/([^/]+)/,
+      type: 'exam-results',
+      extract: (match) => ({
+        entityId: match[5], // attemptId
+        parentEntityId: match[4], // examId
+        grandParentEntityId: match[3], // sectionId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3],
+          examId: match[4],
+          attemptId: match[5],
+        },
+      }),
+    },
+    // Exam page
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)\/exams\/([^/]+)/,
+      type: 'exam',
+      extract: (match) => ({
+        entityId: match[4], // examId
+        parentEntityId: match[3], // sectionId
+        grandParentEntityId: match[2], // chapterId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3],
+          examId: match[4],
+        },
+      }),
+    },
+    // Section within learn flow
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)/,
+      type: 'section-learning',
+      extract: (match) => ({
+        entityId: match[3], // sectionId
+        parentEntityId: match[2], // chapterId
+        grandParentEntityId: match[1], // courseId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3],
+        },
+      }),
+    },
+    // Chapter learning page
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)/,
+      type: 'chapter-learning',
+      extract: (match) => ({
+        entityId: match[2], // chapterId
+        parentEntityId: match[1], // courseId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+        },
+      }),
+    },
+    // Course learning landing
+    {
+      pattern: /^\/courses\/([^/]+)\/learn/,
+      type: 'course-learning',
+      extract: (match) => ({
+        entityId: match[1], // courseId
+        metadata: {
+          courseId: match[1],
+        },
+      }),
+    },
+    // Course detail/preview
+    {
       pattern: /^\/courses\/([^/]+)/,
       type: 'course-detail',
       extract: (match) => ({
         entityId: match[1],
       }),
+    },
+    // Course listing
+    {
+      pattern: /^\/courses$/,
+      type: 'courses-list',
+    },
+
+    // ============================================================================
+    // DASHBOARD & GENERAL ROUTES
+    // ============================================================================
+    {
+      pattern: /^\/dashboard\/user\/analytics/,
+      type: 'user-analytics',
+    },
+    {
+      pattern: /^\/dashboard\/user/,
+      type: 'user-dashboard',
+    },
+    {
+      pattern: /^\/dashboard\/admin/,
+      type: 'admin-dashboard',
     },
     {
       pattern: /^\/dashboard/,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,7 +16,9 @@ import {
   Clock,
   Users,
   Star,
-  Zap
+  Zap,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +29,9 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
+
+// SAM AI Hook for personalized recommendations
+import { useRecommendations } from "@sam-ai/react";
 
 interface RecommendedCourse {
   id: string;
@@ -71,26 +76,62 @@ export function AIRecommendations({
   completedCourses = [],
   className
 }: AIRecommendationsProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [recommendations, setRecommendations] = useState<RecommendationSection[]>([]);
   const [activeTab, setActiveTab] = useState("for-you");
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [recommendations, setRecommendations] = useState<RecommendationSection[]>([]);
 
+  // Use SAM AI recommendations hook
+  const {
+    recommendations: samRecommendations,
+    isLoading: isSAMLoading,
+    error: samError,
+    refresh: refreshSAMRecommendations,
+    generatedAt,
+    context: samContext,
+  } = useRecommendations({
+    availableTime: 60,
+    limit: 10,
+    autoFetch: true,
+  });
+
+  // Local course recommendations loading
+  const [isCoursesLoading, setIsCoursesLoading] = useState(true);
+
+  const isLoading = isSAMLoading || isCoursesLoading;
+
+  // Fetch course-based recommendations (uses mock for now, would integrate with SAM course recommendations API)
   const fetchRecommendations = useCallback(async () => {
-    setIsLoading(true);
+    setIsCoursesLoading(true);
     try {
-      // In production, this would call your recommendation API
-      // const response = await fetch(`/api/courses/recommendations?userId=${userId}`);
-      // const data = await response.json();
+      // Integrate SAM recommendations with course data
+      // Transform SAM learning recommendations into course recommendations
+      const samBasedCourses = samRecommendations
+        .filter((rec) => rec.type === 'content' || rec.type === 'practice')
+        .map((rec) => ({
+          id: rec.id,
+          title: rec.title,
+          description: rec.description,
+          imageUrl: `/placeholder.svg`,
+          price: 0,
+          originalPrice: undefined,
+          rating: 4.5,
+          enrolledCount: 1000,
+          duration: rec.estimatedMinutes,
+          difficulty: rec.metadata?.difficulty || 'Intermediate',
+          instructor: { name: 'SAM AI Recommended' },
+          matchScore: Math.round((rec.metadata?.confidence ?? 0.8) * 100),
+          reason: rec.reason,
+          tags: rec.priority === 'high' ? ['SAM Recommended'] : [],
+        }));
 
-      // Mock data for demonstration
-      const mockRecommendations: RecommendationSection[] = [
+      // Generate section recommendations with SAM data when available
+      const recommendationSections: RecommendationSection[] = [
         {
-          title: "Recommended for You",
-          description: "Based on your learning history and interests",
+          title: "SAM AI Personalized",
+          description: "Based on your learning patterns and goals",
           icon: Sparkles,
           type: "personalized",
-          courses: generateMockCourses(4, "personalized")
+          courses: samBasedCourses.length > 0 ? samBasedCourses.slice(0, 4) : generateMockCourses(4, "personalized")
         },
         {
           title: "Next Steps in Your Journey",
@@ -115,13 +156,13 @@ export function AIRecommendations({
         }
       ];
 
-      setRecommendations(mockRecommendations);
+      setRecommendations(recommendationSections);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
     } finally {
-      setIsLoading(false);
+      setIsCoursesLoading(false);
     }
-  }, []);
+  }, [samRecommendations]);
 
   useEffect(() => {
     fetchRecommendations();
@@ -328,10 +369,41 @@ export function AIRecommendations({
             </p>
           </div>
         </div>
-        <Button variant="outline" onClick={fetchRecommendations}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            refreshSAMRecommendations();
+            fetchRecommendations();
+          }}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
           Refresh
         </Button>
       </div>
+
+      {/* SAM AI Status */}
+      {generatedAt && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+          <Sparkles className="h-3 w-3 text-purple-500" />
+          <span>
+            SAM AI recommendations generated{" "}
+            {new Date(generatedAt).toLocaleTimeString()}
+          </span>
+          {samContext && (
+            <>
+              <span>•</span>
+              <span>
+                Available time: {samContext.availableTime}min
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>

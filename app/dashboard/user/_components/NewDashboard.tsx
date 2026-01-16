@@ -22,6 +22,9 @@ import { LearningCommandCenter } from "./learning-command-center";
 // SkillBuildTracker Dashboard - Connected to real API
 import SkillBuildTrackerConnected from "@/components/dashboard/smart/skill-build-tracker-connected";
 
+// SAM AI Achievement Badges
+import { AchievementBadges } from "@/components/sam/AchievementBadges";
+
 interface NewDashboardProps {
   user: NextAuthUser;
   viewMode: "grid" | "list";
@@ -163,6 +166,11 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             <div className="lg:col-span-2">
               <AchievementsWidget maxDisplay={6} />
             </div>
+          </div>
+
+          {/* SAM AI Achievements */}
+          <div className="mt-6">
+            <AchievementBadges limit={8} showLocked compact={false} />
           </div>
 
           {/* Leaderboard (Full Width) */}

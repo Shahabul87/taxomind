@@ -31,6 +31,8 @@ __export(index_exports, {
   hasCapability: () => hasCapability,
   useAgentic: () => useAgentic,
   useBehaviorPatterns: () => useBehaviorPatterns,
+  usePresence: () => usePresence,
+  usePushNotifications: () => usePushNotifications,
   useRecommendations: () => useRecommendations,
   useSAM: () => useSAM,
   useSAMActions: () => useSAMActions,
@@ -278,6 +280,9 @@ function SAMProvider({
     orch.registerEngine((0, import_core.createResponseEngine)(config));
     return { orchestrator: orch, stateMachine: sm };
   }, [config, transport]);
+  const isInitializedRef = (0, import_react.useRef)(false);
+  const contextRef = (0, import_react.useRef)(state.context);
+  contextRef.current = state.context;
   (0, import_react.useEffect)(() => {
     const unsubscribe = stateMachine.subscribe((newState) => {
       dispatch({ type: "SET_STATE", payload: newState });
@@ -286,9 +291,12 @@ function SAMProvider({
         console.log("[SAM] State changed:", newState);
       }
     });
-    stateMachine.send({ type: "INITIALIZE", payload: { context: state.context } });
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      stateMachine.send({ type: "INITIALIZE", payload: { context: contextRef.current } });
+    }
     return unsubscribe;
-  }, [stateMachine, onStateChange, debug, state.context]);
+  }, [stateMachine, onStateChange, debug]);
   (0, import_react.useEffect)(() => {
     if (autoDetectContext && typeof window !== "undefined") {
       const path = window.location.pathname;
@@ -713,21 +721,21 @@ function SAMProvider({
     dispatch({ type: "UPDATE_CONTEXT", payload: updates });
   }, []);
   const updatePage = (0, import_react.useCallback)((page) => {
-    dispatch({ type: "UPDATE_CONTEXT", payload: { page: { ...state.context.page, ...page } } });
-  }, [state.context.page]);
+    dispatch({ type: "UPDATE_CONTEXT", payload: { page: { ...contextRef.current.page, ...page } } });
+  }, []);
   const updateForm = (0, import_react.useCallback)((fields) => {
-    if (!state.context.form) return;
+    if (!contextRef.current.form) return;
     dispatch({
       type: "UPDATE_CONTEXT",
       payload: {
         form: {
-          ...state.context.form,
+          ...contextRef.current.form,
           fields,
           lastUpdated: /* @__PURE__ */ new Date()
         }
       }
     });
-  }, [state.context.form]);
+  }, []);
   const analyze = (0, import_react.useCallback)(
     async (query) => {
       if (apiOptions?.endpoint) {
@@ -1048,6 +1056,9 @@ function useSAMPageContext() {
 }
 function detectContextFromPath2(path) {
   const patterns = [
+    // ============================================================================
+    // TEACHER ROUTES (most specific first)
+    // ============================================================================
     {
       pattern: /^\/teacher\/courses\/([^/]+)\/chapters\/([^/]+)\/section\/([^/]+)/,
       type: "section-detail",
@@ -1081,11 +1092,127 @@ function detectContextFromPath2(path) {
       type: "course-create"
     },
     {
+      pattern: /^\/teacher\/analytics/,
+      type: "analytics"
+    },
+    {
+      pattern: /^\/teacher/,
+      type: "teacher-dashboard"
+    },
+    // ============================================================================
+    // LEARNING ROUTES (student-facing, most specific first)
+    // ============================================================================
+    // Exam results with attempt
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)\/exams\/([^/]+)\/results\/([^/]+)/,
+      type: "exam-results",
+      extract: (match) => ({
+        entityId: match[5],
+        // attemptId
+        parentEntityId: match[4],
+        // examId
+        grandParentEntityId: match[3],
+        // sectionId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3],
+          examId: match[4],
+          attemptId: match[5]
+        }
+      })
+    },
+    // Exam page
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)\/exams\/([^/]+)/,
+      type: "exam",
+      extract: (match) => ({
+        entityId: match[4],
+        // examId
+        parentEntityId: match[3],
+        // sectionId
+        grandParentEntityId: match[2],
+        // chapterId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3],
+          examId: match[4]
+        }
+      })
+    },
+    // Section within learn flow
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)\/sections\/([^/]+)/,
+      type: "section-learning",
+      extract: (match) => ({
+        entityId: match[3],
+        // sectionId
+        parentEntityId: match[2],
+        // chapterId
+        grandParentEntityId: match[1],
+        // courseId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2],
+          sectionId: match[3]
+        }
+      })
+    },
+    // Chapter learning page
+    {
+      pattern: /^\/courses\/([^/]+)\/learn\/([^/]+)/,
+      type: "chapter-learning",
+      extract: (match) => ({
+        entityId: match[2],
+        // chapterId
+        parentEntityId: match[1],
+        // courseId
+        metadata: {
+          courseId: match[1],
+          chapterId: match[2]
+        }
+      })
+    },
+    // Course learning landing
+    {
+      pattern: /^\/courses\/([^/]+)\/learn/,
+      type: "course-learning",
+      extract: (match) => ({
+        entityId: match[1],
+        // courseId
+        metadata: {
+          courseId: match[1]
+        }
+      })
+    },
+    // Course detail/preview
+    {
       pattern: /^\/courses\/([^/]+)/,
       type: "course-detail",
       extract: (match) => ({
         entityId: match[1]
       })
+    },
+    // Course listing
+    {
+      pattern: /^\/courses$/,
+      type: "courses-list"
+    },
+    // ============================================================================
+    // DASHBOARD & GENERAL ROUTES
+    // ============================================================================
+    {
+      pattern: /^\/dashboard\/user\/analytics/,
+      type: "user-analytics"
+    },
+    {
+      pattern: /^\/dashboard\/user/,
+      type: "user-dashboard"
+    },
+    {
+      pattern: /^\/dashboard\/admin/,
+      type: "admin-dashboard"
     },
     {
       pattern: /^\/dashboard/,
@@ -3056,12 +3183,456 @@ var import_react15 = require("react");
 
 // src/hooks/usePresence.ts
 var import_react16 = require("react");
+var DEFAULT_OPTIONS = {
+  sessionId: void 0,
+  initialStatus: "online",
+  trackVisibility: true,
+  trackActivity: true,
+  idleTimeout: 6e4,
+  // 1 minute
+  awayTimeout: 3e5,
+  // 5 minutes
+  activityDebounce: 1e3
+  // 1 second
+};
+function usePresence(options) {
+  const opts = (0, import_react16.useMemo)(
+    () => ({ ...DEFAULT_OPTIONS, ...options }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    [
+      options.userId,
+      options.sessionId,
+      options.idleTimeout,
+      options.awayTimeout,
+      options.trackActivity,
+      options.trackVisibility,
+      options.initialStatus
+    ]
+  );
+  const [status, setStatusState] = (0, import_react16.useState)(opts.initialStatus);
+  const [lastActivityAt, setLastActivityAt] = (0, import_react16.useState)(/* @__PURE__ */ new Date());
+  const [metadata, setMetadata] = (0, import_react16.useState)(() => ({
+    deviceType: detectDeviceType(),
+    browser: detectBrowser(),
+    os: detectOS()
+  }));
+  const idleTimeoutRef = (0, import_react16.useRef)(null);
+  const awayTimeoutRef = (0, import_react16.useRef)(null);
+  const activityDebounceRef = (0, import_react16.useRef)(null);
+  const previousStatusRef = (0, import_react16.useRef)(opts.initialStatus);
+  function detectDeviceType() {
+    if (typeof window === "undefined") return "desktop";
+    const ua = navigator.userAgent.toLowerCase();
+    if (/tablet|ipad|playbook|silk/i.test(ua)) return "tablet";
+    if (/mobile|iphone|ipod|android|blackberry|opera mini|iemobile/i.test(ua)) return "mobile";
+    return "desktop";
+  }
+  function detectBrowser() {
+    if (typeof window === "undefined") return "unknown";
+    const ua = navigator.userAgent;
+    if (ua.includes("Chrome")) return "Chrome";
+    if (ua.includes("Firefox")) return "Firefox";
+    if (ua.includes("Safari")) return "Safari";
+    if (ua.includes("Edge")) return "Edge";
+    return "unknown";
+  }
+  function detectOS() {
+    if (typeof window === "undefined") return "unknown";
+    const ua = navigator.userAgent;
+    if (ua.includes("Windows")) return "Windows";
+    if (ua.includes("Mac")) return "macOS";
+    if (ua.includes("Linux")) return "Linux";
+    if (ua.includes("Android")) return "Android";
+    if (ua.includes("iOS") || ua.includes("iPhone")) return "iOS";
+    return "unknown";
+  }
+  const clearTimers = (0, import_react16.useCallback)(() => {
+    if (idleTimeoutRef.current) {
+      clearTimeout(idleTimeoutRef.current);
+      idleTimeoutRef.current = null;
+    }
+    if (awayTimeoutRef.current) {
+      clearTimeout(awayTimeoutRef.current);
+      awayTimeoutRef.current = null;
+    }
+  }, []);
+  const resetTimers = (0, import_react16.useCallback)(() => {
+    clearTimers();
+    idleTimeoutRef.current = setTimeout(() => {
+      if (previousStatusRef.current === "online" || previousStatusRef.current === "studying") {
+        setStatusState("idle");
+        opts.onIdle?.();
+      }
+    }, opts.idleTimeout);
+    awayTimeoutRef.current = setTimeout(() => {
+      if (previousStatusRef.current !== "offline" && previousStatusRef.current !== "do_not_disturb") {
+        setStatusState("away");
+        opts.onAway?.();
+      }
+    }, opts.awayTimeout);
+  }, [clearTimers, opts]);
+  const setStatus = (0, import_react16.useCallback)(
+    (newStatus) => {
+      const prevStatus = previousStatusRef.current;
+      if (newStatus !== prevStatus) {
+        previousStatusRef.current = newStatus;
+        setStatusState(newStatus);
+        opts.onStatusChange?.(newStatus, prevStatus);
+        opts.sendActivity?.({
+          type: "interaction",
+          data: { statusChange: { from: prevStatus, to: newStatus } }
+        });
+      }
+    },
+    [opts]
+  );
+  const recordActivity = (0, import_react16.useCallback)(
+    (type = "interaction") => {
+      if (activityDebounceRef.current) {
+        return;
+      }
+      activityDebounceRef.current = setTimeout(() => {
+        activityDebounceRef.current = null;
+      }, opts.activityDebounce);
+      setLastActivityAt(/* @__PURE__ */ new Date());
+      if (status === "idle" || status === "away") {
+        setStatus("online");
+        opts.onActive?.();
+      }
+      resetTimers();
+      opts.sendActivity?.({
+        type,
+        data: { timestamp: (/* @__PURE__ */ new Date()).toISOString() },
+        pageContext: typeof window !== "undefined" ? { url: window.location.href } : void 0
+      });
+    },
+    [opts, status, setStatus, resetTimers]
+  );
+  const updateMetadata = (0, import_react16.useCallback)((updates) => {
+    setMetadata((prev) => prev ? { ...prev, ...updates } : null);
+  }, []);
+  (0, import_react16.useEffect)(() => {
+    if (!opts.trackVisibility || typeof document === "undefined") return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        recordActivity("focus");
+      } else {
+        opts.sendActivity?.({
+          type: "blur",
+          data: { timestamp: (/* @__PURE__ */ new Date()).toISOString() }
+        });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [opts.trackVisibility, recordActivity, opts.sendActivity]);
+  (0, import_react16.useEffect)(() => {
+    if (!opts.trackActivity || typeof window === "undefined") return;
+    const handleActivity = () => {
+      recordActivity("interaction");
+    };
+    const handleScroll = () => {
+      recordActivity("scroll");
+    };
+    window.addEventListener("mousemove", handleActivity, { passive: true });
+    window.addEventListener("mousedown", handleActivity, { passive: true });
+    window.addEventListener("keydown", handleActivity, { passive: true });
+    window.addEventListener("touchstart", handleActivity, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    resetTimers();
+    return () => {
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("mousedown", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("touchstart", handleActivity);
+      window.removeEventListener("scroll", handleScroll);
+      clearTimers();
+      if (activityDebounceRef.current) {
+        clearTimeout(activityDebounceRef.current);
+      }
+    };
+  }, [opts.trackActivity, recordActivity, resetTimers, clearTimers]);
+  const presence = opts.userId && metadata ? {
+    userId: opts.userId,
+    connectionId: "",
+    // Set by WebSocket connection
+    status,
+    lastActivityAt: lastActivityAt || /* @__PURE__ */ new Date(),
+    connectedAt: /* @__PURE__ */ new Date(),
+    // Set by WebSocket connection
+    metadata,
+    subscriptions: []
+  } : null;
+  return {
+    status,
+    isActive: status === "online" || status === "studying",
+    isIdle: status === "idle",
+    isAway: status === "away",
+    isOnline: status !== "offline",
+    lastActivityAt,
+    metadata,
+    setStatus,
+    recordActivity,
+    updateMetadata,
+    presence
+  };
+}
 
 // src/hooks/useInterventions.ts
 var import_react17 = require("react");
 
 // src/hooks/usePushNotifications.ts
 var import_react18 = require("react");
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray.buffer;
+}
+function subscriptionToJSON(sub) {
+  const json = sub.toJSON();
+  return {
+    endpoint: json.endpoint || "",
+    keys: {
+      p256dh: json.keys?.p256dh || "",
+      auth: json.keys?.auth || ""
+    }
+  };
+}
+var DEFAULT_OPTIONS2 = {
+  serviceWorkerPath: "/sw.js",
+  autoRequest: false,
+  autoRequestOnMount: false,
+  applicationServerKey: void 0
+};
+function usePushNotifications(options = {}) {
+  const opts = (0, import_react18.useMemo)(
+    () => ({ ...DEFAULT_OPTIONS2, ...options }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    [
+      options.serviceWorkerPath,
+      options.vapidPublicKey,
+      options.applicationServerKey,
+      options.autoRequestOnMount,
+      options.onPermissionChange,
+      options.onSubscribe,
+      options.onUnsubscribe
+    ]
+  );
+  const [permission, setPermission] = (0, import_react18.useState)("default");
+  const [subscription, setSubscription] = (0, import_react18.useState)(null);
+  const [isLoading, setIsLoading] = (0, import_react18.useState)(false);
+  const swRegistrationRef = (0, import_react18.useRef)(null);
+  const isSupported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+  (0, import_react18.useEffect)(() => {
+    if (!isSupported) {
+      setPermission("unsupported");
+      return;
+    }
+    const currentPermission = Notification.permission;
+    setPermission(currentPermission);
+    const init = async () => {
+      try {
+        const registration = await navigator.serviceWorker.register(opts.serviceWorkerPath);
+        swRegistrationRef.current = registration;
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) {
+          const subJSON = subscriptionToJSON(existingSub);
+          setSubscription(subJSON);
+          opts.onSubscriptionChange?.(subJSON);
+        }
+        if (opts.autoRequest && currentPermission === "default") {
+          requestPermission();
+        }
+      } catch (error) {
+        console.error("[usePushNotifications] Service worker registration failed:", error);
+        opts.onError?.(error instanceof Error ? error : new Error("Service worker registration failed"));
+      }
+    };
+    init();
+  }, [isSupported]);
+  const requestPermission = (0, import_react18.useCallback)(async () => {
+    if (!isSupported) {
+      return "unsupported";
+    }
+    try {
+      const result = await Notification.requestPermission();
+      const state = result;
+      setPermission(state);
+      opts.onPermissionChange?.(state);
+      return state;
+    } catch (error) {
+      opts.onError?.(error instanceof Error ? error : new Error("Permission request failed"));
+      return "denied";
+    }
+  }, [isSupported, opts]);
+  const subscribe = (0, import_react18.useCallback)(async () => {
+    if (!isSupported || !swRegistrationRef.current) {
+      return null;
+    }
+    if (permission !== "granted") {
+      const newPermission = await requestPermission();
+      if (newPermission !== "granted") {
+        return null;
+      }
+    }
+    setIsLoading(true);
+    try {
+      const subscribeOptions = {
+        userVisibleOnly: true
+      };
+      if (opts.vapidPublicKey) {
+        subscribeOptions.applicationServerKey = urlBase64ToUint8Array(opts.vapidPublicKey);
+      }
+      const pushSubscription = await swRegistrationRef.current.pushManager.subscribe(subscribeOptions);
+      const subJSON = subscriptionToJSON(pushSubscription);
+      setSubscription(subJSON);
+      opts.onSubscriptionChange?.(subJSON);
+      return subJSON;
+    } catch (error) {
+      console.error("[usePushNotifications] Subscribe failed:", error);
+      opts.onError?.(error instanceof Error ? error : new Error("Subscribe failed"));
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported, permission, requestPermission, opts]);
+  const unsubscribe = (0, import_react18.useCallback)(async () => {
+    if (!isSupported || !swRegistrationRef.current) {
+      return false;
+    }
+    setIsLoading(true);
+    try {
+      const existingSub = await swRegistrationRef.current.pushManager.getSubscription();
+      if (existingSub) {
+        await existingSub.unsubscribe();
+      }
+      setSubscription(null);
+      opts.onSubscriptionChange?.(null);
+      return true;
+    } catch (error) {
+      console.error("[usePushNotifications] Unsubscribe failed:", error);
+      opts.onError?.(error instanceof Error ? error : new Error("Unsubscribe failed"));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported, opts]);
+  const showNotification = (0, import_react18.useCallback)(
+    async (notificationOptions) => {
+      if (!isSupported || permission !== "granted") {
+        return null;
+      }
+      try {
+        if (swRegistrationRef.current) {
+          const swOptions = {
+            body: notificationOptions.body,
+            icon: notificationOptions.icon,
+            badge: notificationOptions.badge,
+            tag: notificationOptions.tag,
+            requireInteraction: notificationOptions.requireInteraction,
+            silent: notificationOptions.silent,
+            data: notificationOptions.data
+          };
+          if (notificationOptions.actions) {
+            swOptions.actions = notificationOptions.actions;
+          }
+          await swRegistrationRef.current.showNotification(notificationOptions.title, swOptions);
+          return null;
+        }
+        const notification = new Notification(notificationOptions.title, {
+          body: notificationOptions.body,
+          icon: notificationOptions.icon,
+          badge: notificationOptions.badge,
+          tag: notificationOptions.tag,
+          requireInteraction: notificationOptions.requireInteraction,
+          silent: notificationOptions.silent,
+          data: notificationOptions.data
+        });
+        notification.onclick = () => {
+          opts.onNotificationClick?.(notification);
+        };
+        notification.onclose = () => {
+          opts.onNotificationClose?.(notification);
+        };
+        return notification;
+      } catch (error) {
+        console.error("[usePushNotifications] Show notification failed:", error);
+        opts.onError?.(error instanceof Error ? error : new Error("Show notification failed"));
+        return null;
+      }
+    },
+    [isSupported, permission, opts]
+  );
+  const isNotificationVisible = (0, import_react18.useCallback)(
+    async (tag) => {
+      if (!swRegistrationRef.current) {
+        return false;
+      }
+      const notifications = await swRegistrationRef.current.getNotifications({ tag });
+      return notifications.length > 0;
+    },
+    []
+  );
+  const closeNotification = (0, import_react18.useCallback)(async (tag) => {
+    if (!swRegistrationRef.current) {
+      return;
+    }
+    const notifications = await swRegistrationRef.current.getNotifications({ tag });
+    notifications.forEach((notification) => notification.close());
+  }, []);
+  const registerWithServer = (0, import_react18.useCallback)(
+    async (serverEndpoint, userId) => {
+      if (!subscription) {
+        return false;
+      }
+      setIsLoading(true);
+      try {
+        const response = await fetch(serverEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            userId,
+            subscription
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Server registration failed: ${response.status}`);
+        }
+        return true;
+      } catch (error) {
+        console.error("[usePushNotifications] Server registration failed:", error);
+        opts.onError?.(error instanceof Error ? error : new Error("Server registration failed"));
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [subscription, opts]
+  );
+  return {
+    permission,
+    isSupported,
+    isEnabled: isSupported && permission === "granted" && subscription !== null,
+    subscription,
+    isLoading,
+    requestPermission,
+    subscribe,
+    unsubscribe,
+    showNotification,
+    isNotificationVisible,
+    closeNotification,
+    registerWithServer
+  };
+}
 
 // src/hooks/useSAMMemory.ts
 var import_react19 = require("react");
@@ -3599,6 +4170,8 @@ var VERSION = "0.1.0";
   hasCapability,
   useAgentic,
   useBehaviorPatterns,
+  usePresence,
+  usePushNotifications,
   useRecommendations,
   useSAM,
   useSAMActions,

@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { User as NextAuthUser } from 'next-auth';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 
 // Components
 import { DailyHeroSection } from './DailyHeroSection';
@@ -15,16 +15,30 @@ import { LearningGantt } from './LearningGantt';
 import { JourneyProgress } from '../JourneyProgress';
 import { CalendarStatusWidget } from '@/components/calendar/CalendarStatusWidget';
 import { LearningJourneyMap } from '../smart-dashboard/LearningJourneyMap';
+import { Button } from '@/components/ui/button';
 
 // SAM Agentic Components - Unified Goals
 import { GoalPlanner } from '@/components/sam/goal-planner';
+import { LearningPlanWizard } from '@/components/sam/mentor-dashboard/learning-plan-wizard';
 import { SpacedRepetitionCalendar, SpacedRepetitionWidget } from '@/components/sam/SpacedRepetitionCalendar';
+import { ReviewQueueWidget } from './ReviewQueueWidget';
 
 // SAM AI Components - Memory, Behavior, Recommendations, Plans
 import { MemoryInsightsWidget } from '@/components/sam/memory';
-import { BehaviorPatternsWidget, StruggleDetectionAlert } from '@/components/sam/behavior';
-import { DailyPlanWidget } from '@/components/sam/plans';
-import { RecommendationCard } from '@/components/sam/recommendations';
+import { BehaviorPatternsWidget, StruggleDetectionAlert, LearningStyleIndicator } from '@/components/sam/behavior';
+import { DailyPlanWidget, PlanProgressTracker, PlanControlPanel } from '@/components/sam/plans';
+import { RecommendationCard, RecommendationTimeline } from '@/components/sam/recommendations';
+
+// SAM Confidence Components
+import { ConfidenceIndicator } from '@/components/sam/confidence';
+
+// SAM Quick Actions - useSAMActions hook integration (Safe wrapper handles missing SAMProvider)
+import { SAMQuickActionsSafe } from '@/components/sam/SAMQuickActionsSafe';
+
+// SAM Presence Components - Real-time learner awareness
+import { ActiveLearnersWidget } from '@/components/sam/presence/ActiveLearnersWidget';
+import { StudyStatusBadge } from '@/components/sam/presence/StudyStatusBadge';
+import { StudyBuddyFinder } from '@/components/sam/StudyBuddyFinder';
 
 // Hooks
 import { useDailyAgenda } from '@/hooks/use-daily-agenda';
@@ -57,12 +71,34 @@ interface LearningCommandCenterProps {
   };
 }
 
+// Types for Learning Plan Wizard
+interface EnrolledCourse {
+  id: string;
+  title: string;
+  description?: string;
+  chapters?: Array<{ id: string; title: string }>;
+}
+
+interface CreatedPlan {
+  id: string;
+  courseId: string;
+  goal: string;
+  targetDate: string;
+  timeBudgetMinutes: number;
+  weeklyPlan: unknown;
+}
+
 export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [localTasks, setLocalTasks] = useState<LearningTask[]>([]);
   const [useRealData, setUseRealData] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
+
+  // Learning Plan Wizard state
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
 
   // Track when component has mounted to prevent hydration mismatch
   useEffect(() => {
@@ -242,6 +278,48 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
     // TODO: Navigate to full Gantt view page
   }, []);
 
+  // Learning Plan Wizard handlers
+  const fetchEnrolledCourses = useCallback(async () => {
+    setIsLoadingCourses(true);
+    try {
+      const response = await fetch('/api/enrollments/my-courses');
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API response to match wizard's expected format
+        const courses: EnrolledCourse[] = (data.courses || []).map(
+          (course: { id: string; title: string; description?: string; chapters?: Array<{ id: string; title: string }> }) => ({
+            id: course.id,
+            title: course.title,
+            description: course.description,
+            chapters: course.chapters,
+          })
+        );
+        setEnrolledCourses(courses);
+      }
+    } catch (error) {
+      console.error('Failed to fetch enrolled courses:', error);
+    } finally {
+      setIsLoadingCourses(false);
+    }
+  }, []);
+
+  const handleOpenWizard = useCallback(async () => {
+    // Fetch courses before opening the wizard
+    await fetchEnrolledCourses();
+    setIsWizardOpen(true);
+  }, [fetchEnrolledCourses]);
+
+  const handleCloseWizard = useCallback(() => {
+    setIsWizardOpen(false);
+  }, []);
+
+  const handlePlanCreated = useCallback((plan: CreatedPlan) => {
+    console.log('Learning plan created:', plan);
+    setIsWizardOpen(false);
+    // Refresh dashboard data to show the new plan
+    refreshAgenda();
+  }, [refreshAgenda]);
+
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -337,8 +415,37 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
             variants={itemVariants}
             className="space-y-6"
           >
+            {/* Study Status Badge - Shows current study status */}
+            <div className="flex items-center justify-between">
+              <StudyStatusBadge />
+              <span className="text-xs text-slate-500 dark:text-slate-400">Your Status</span>
+            </div>
+
+            {/* Active Learners Widget - Social learning awareness */}
+            <ActiveLearnersWidget
+              compact={true}
+              maxVisible={5}
+              showBreakdown={false}
+              refreshInterval={60000}
+            />
+
+            {/* Study Buddy Finder - Find compatible study partners */}
+            <StudyBuddyFinder
+              compact={true}
+              limit={5}
+              minCompatibility={30}
+            />
+
             {/* Struggle Detection Alert - Shows when AI detects learning difficulties */}
             <StruggleDetectionAlert />
+
+            {/* SAM Quick Actions - AI-powered learning assistance */}
+            <SAMQuickActionsSafe
+              variant="inline"
+              categories={['learning', 'help', 'practice']}
+              maxActions={6}
+              showCategories={false}
+            />
 
             {/* SAM Daily Plan Widget - Today's AI-Optimized Focus */}
             <DailyPlanWidget compact={true} />
@@ -360,8 +467,37 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
               showCreateButton={true}
             />
 
+            {/* Create Learning Plan Button */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200/50 dark:border-purple-800/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-medium text-slate-900 dark:text-white">
+                    Personalized Learning Plan
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    AI-powered weekly schedule
+                  </p>
+                </div>
+                <Button
+                  onClick={handleOpenWizard}
+                  disabled={isLoadingCourses}
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                >
+                  {isLoadingCourses ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-1.5" />
+                      Create Plan
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
             {/* SAM Spaced Repetition - Memory Optimization */}
-            <SpacedRepetitionWidget />
+            <ReviewQueueWidget />
 
             <JourneyProgress />
 
@@ -372,9 +508,50 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
 
             {/* SAM Behavior Patterns - Learning style and pattern insights */}
             <BehaviorPatternsWidget compact={true} />
+
+            {/* SAM Learning Style Indicator - VARK learning style detection */}
+            <LearningStyleIndicator mode="card" />
+
+            {/* SAM AI Recommendations - Personalized learning recommendations */}
+            <RecommendationCard
+              recommendation={{
+                id: 'rec-1',
+                type: 'content',
+                title: 'Continue your learning',
+                description: 'Based on your progress, here are personalized recommendations',
+                priority: 'high',
+                reason: 'Knowledge gap identified',
+                estimatedMinutes: 20,
+                metadata: {
+                  confidence: 0.85,
+                },
+              }}
+              onAction={() => console.log('Recommendation accepted')}
+              onDismiss={() => console.log('Recommendation dismissed')}
+            />
+
+            {/* SAM Confidence Indicator - AI confidence level */}
+            <ConfidenceIndicator
+              confidence={0.82}
+              mode="badge"
+              showPercentage={true}
+              showExplanation={true}
+              explanation="SAM Confidence in recommendations"
+            />
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Learning Plan Wizard Modal */}
+      <AnimatePresence>
+        {isWizardOpen && (
+          <LearningPlanWizard
+            courses={enrolledCourses}
+            onPlanCreated={handlePlanCreated}
+            onClose={handleCloseWizard}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

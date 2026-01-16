@@ -16,6 +16,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react';
 import {
@@ -344,6 +345,12 @@ export function SAMProvider({
     return { orchestrator: orch, stateMachine: sm };
   }, [config, transport]);
 
+  // Track if state machine has been initialized to prevent infinite loops
+  const isInitializedRef = useRef(false);
+  // Store latest context in ref to avoid stale closures
+  const contextRef = useRef(state.context);
+  contextRef.current = state.context;
+
   // Subscribe to state machine changes
   useEffect(() => {
     const unsubscribe = stateMachine.subscribe((newState) => {
@@ -355,11 +362,14 @@ export function SAMProvider({
       }
     });
 
-    // Initialize state machine
-    stateMachine.send({ type: 'INITIALIZE', payload: { context: state.context } });
+    // Initialize state machine only once
+    if (!isInitializedRef.current) {
+      isInitializedRef.current = true;
+      stateMachine.send({ type: 'INITIALIZE', payload: { context: contextRef.current } });
+    }
 
     return unsubscribe;
-  }, [stateMachine, onStateChange, debug, state.context]);
+  }, [stateMachine, onStateChange, debug]);
 
   // Auto-detect context from URL
   // Note: We intentionally exclude state.context.page from deps to avoid infinite loops
@@ -875,23 +885,25 @@ export function SAMProvider({
     dispatch({ type: 'UPDATE_CONTEXT', payload: updates });
   }, []);
 
+  // Use contextRef to keep callbacks stable and avoid infinite loops
+  // The ref is updated on every render, so callbacks always access current state
   const updatePage = useCallback((page: Partial<SAMContextType['page']>) => {
-    dispatch({ type: 'UPDATE_CONTEXT', payload: { page: { ...state.context.page, ...page } } });
-  }, [state.context.page]);
+    dispatch({ type: 'UPDATE_CONTEXT', payload: { page: { ...contextRef.current.page, ...page } } });
+  }, []);
 
   const updateForm = useCallback((fields: Record<string, SAMFormField>) => {
-    if (!state.context.form) return;
+    if (!contextRef.current.form) return;
     dispatch({
       type: 'UPDATE_CONTEXT',
       payload: {
         form: {
-          ...state.context.form,
+          ...contextRef.current.form,
           fields,
           lastUpdated: new Date(),
         },
       },
     });
-  }, [state.context.form]);
+  }, []);
 
   const analyze = useCallback(
     async (query?: string): Promise<OrchestrationResult | null> => {

@@ -1,5 +1,5 @@
 /**
- * Taxomind Integration Context
+ * Taxomind Integration Context (SERVER-ONLY)
  *
  * Singleton wrapper that provides centralized access to all SAM agentic stores
  * and integrations. This is the SINGLE ENTRY POINT for accessing Prisma stores.
@@ -15,7 +15,11 @@
  * const goalStore = context.stores.goal;
  * const planStore = context.stores.plan;
  * ```
+ *
+ * NOTE: This module uses Prisma and MUST only be imported in server contexts.
  */
+
+import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';

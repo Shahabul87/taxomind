@@ -40,6 +40,7 @@ import { FloatingKeyboardShortcuts } from "@/components/learning/keyboard-shortc
 import { logger } from "@/lib/logger";
 import { useEmotionDetection, getEmotionSupportMessage } from "@/hooks/use-emotion-detection";
 import { useLearningStyle, getStyleAdaptations } from "@/hooks/use-learning-style";
+import { useSAMPageContext } from "@sam-ai/react";
 import type {
   UserWithRelations,
   CourseWithChapters,
@@ -128,6 +129,45 @@ export function EnterpriseSectionLearning({
     courseId,
     autoDetect: canTrackProgress,
   });
+
+  // SAM Page Context - Track section learning context
+  const { updatePage } = useSAMPageContext();
+
+  useEffect(() => {
+    updatePage({
+      type: "section-learning",
+      path: `/courses/${courseId}/learn/${chapterId}/sections/${sectionId}`,
+      entityId: sectionId,
+      parentEntityId: chapterId,
+      grandParentEntityId: courseId,
+      metadata: {
+        courseId,
+        courseTitle: course.title,
+        chapterId,
+        chapterTitle: currentChapter.title,
+        sectionId,
+        sectionTitle: currentSection.title,
+        sectionType: currentSection.type,
+        totalSections,
+        completedSections,
+        isCompleted: sectionCompleted,
+        activeTab,
+      },
+    });
+  }, [
+    updatePage,
+    courseId,
+    course.title,
+    chapterId,
+    currentChapter.title,
+    sectionId,
+    currentSection.title,
+    currentSection.type,
+    totalSections,
+    completedSections,
+    sectionCompleted,
+    activeTab,
+  ]);
 
   // State for showing learning style tips
   const [showLearningStyleTip, setShowLearningStyleTip] = useState(false);

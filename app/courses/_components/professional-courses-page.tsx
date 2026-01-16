@@ -33,6 +33,9 @@ import { CoursesNavbarResizable } from "@/components/layout/CoursesNavbarResizab
 import { EnhancedHero } from "./EnhancedHero";
 import { EnhancedCourseCard } from "./enhanced-course-card";
 
+// SAM AI Recommendations
+import { AIRecommendations } from "./ai-recommendations";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -513,6 +516,25 @@ export function ProfessionalCoursesPage({
             </Button>
           ))}
         </motion.div>
+
+        {/* SAM AI-Powered Recommendations Section */}
+        {userId && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-8 sm:mb-10 md:mb-12"
+          >
+            <Card className="border-0 bg-gradient-to-br from-white/90 via-purple-50/30 to-pink-50/30 dark:from-slate-800/90 dark:via-slate-800/80 dark:to-slate-700/80 backdrop-blur-sm shadow-lg rounded-2xl sm:rounded-3xl overflow-hidden">
+              <CardContent className="p-4 sm:p-6 md:p-8">
+                <AIRecommendations
+                  userId={userId}
+                  className="w-full"
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Most Trending Courses Section */}
         <div className="mb-8 sm:mb-10 md:mb-12">

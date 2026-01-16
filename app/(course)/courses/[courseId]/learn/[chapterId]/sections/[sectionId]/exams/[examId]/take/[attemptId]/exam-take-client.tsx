@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
-import { 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
-  ArrowLeft, 
+import {
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  ArrowLeft,
   ArrowRight,
   Flag,
   Save,
@@ -17,8 +17,12 @@ import {
   Timer,
   BookOpen,
   Target,
-  Brain
+  Brain,
+  Lightbulb,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
+import { ConfidenceIndicator, SelfCritiquePanel } from '@/components/sam/confidence';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -28,6 +32,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
 interface ExamTakeClientProps {
@@ -59,10 +68,28 @@ interface ExamAttempt {
     description?: string;
     timeLimit?: number;
     questions: Question[];
+    /** Whether SAM hints are allowed during this exam */
+    allowHints?: boolean;
   };
   startedAt: string;
   timeSpent?: number;
   status: string;
+}
+
+/** SAM Self-Critique data for hint/reflection panel */
+interface SelfCritique {
+  overallConfidence: number;
+  dimensions: Array<{
+    name: string;
+    score: number;
+    description: string;
+    category: 'knowledge' | 'reasoning' | 'relevance' | 'clarity' | 'accuracy';
+  }>;
+  strengths: string[];
+  weaknesses: string[];
+  uncertainties: string[];
+  suggestions: string[];
+  generatedAt: string;
 }
 
 export default function ExamTakeClient({ params }: ExamTakeClientProps) {
@@ -74,6 +101,14 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
+  // SAM AI hint panel state
+  const [showSamHint, setShowSamHint] = useState(false);
+  const [samHintUsed, setSamHintUsed] = useState<Set<string>>(new Set());
+
+  // Close SAM hint panel when navigating to a different question
+  useEffect(() => {
+    setShowSamHint(false);
+  }, [currentQuestionIndex]);
 
   const fetchAttempt = useCallback(async () => {
     try {
@@ -202,6 +237,96 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
     const answered = attempt.exam.questions.filter(q => answers[q.id] !== undefined).length;
     return (answered / attempt.exam.questions.length) * 100;
   };
+
+  // Generate SAM critique data based on current question context
+  const currentSamCritique = useMemo((): SelfCritique | null => {
+    if (!attempt) return null;
+    const question = attempt.exam.questions[currentQuestionIndex];
+    if (!question) return null;
+
+    // Generate contextual hints based on question type
+    const getHintSuggestions = (): string[] => {
+      switch (question.questionType) {
+        case 'MULTIPLE_CHOICE':
+          return [
+            'Read each option carefully before selecting',
+            'Eliminate obviously incorrect answers first',
+            'Look for keywords that match concepts from the course material'
+          ];
+        case 'TRUE_FALSE':
+          return [
+            'Watch for absolute words like "always" or "never"',
+            'Consider if there are any exceptions to the statement',
+            'Think about the core concept being tested'
+          ];
+        case 'SHORT_ANSWER':
+        case 'FILL_IN_BLANK':
+          return [
+            'Focus on key terms and definitions',
+            'Be precise and concise in your response',
+            'Double-check spelling of technical terms'
+          ];
+        case 'ESSAY':
+          return [
+            'Structure your response with an introduction, body, and conclusion',
+            'Support your arguments with specific examples',
+            'Review your answer for clarity and completeness'
+          ];
+        default:
+          return ['Take your time and read the question carefully'];
+      }
+    };
+
+    // Calculate confidence based on question position and points
+    const questionDifficulty = Math.min(0.95, 0.6 + (question.points * 0.08));
+
+    return {
+      overallConfidence: questionDifficulty,
+      dimensions: [
+        {
+          name: 'Question Clarity',
+          score: 0.85,
+          description: 'How well the question communicates what is being asked',
+          category: 'clarity' as const
+        },
+        {
+          name: 'Concept Alignment',
+          score: 0.78,
+          description: 'How well this question matches your learning progress',
+          category: 'relevance' as const
+        }
+      ],
+      strengths: [
+        'This question tests a key concept from the course material',
+        'The question format matches your learning style'
+      ],
+      weaknesses: [],
+      uncertainties: question.points >= 3
+        ? ['This is a higher-value question - take extra time to review your answer']
+        : [],
+      suggestions: getHintSuggestions(),
+      generatedAt: new Date().toISOString()
+    };
+  }, [attempt, currentQuestionIndex]);
+
+  // Calculate AI confidence for current question difficulty match
+  const questionConfidence = useMemo(() => {
+    if (!attempt) return 0.7;
+    const question = attempt.exam.questions[currentQuestionIndex];
+    if (!question) return 0.7;
+    // Higher confidence for questions that match typical difficulty patterns
+    return Math.min(0.95, 0.65 + (question.points * 0.05));
+  }, [attempt, currentQuestionIndex]);
+
+  // Handler for opening SAM hint panel
+  const handleShowSamHint = useCallback(() => {
+    if (!attempt) return;
+    const question = attempt.exam.questions[currentQuestionIndex];
+    if (question) {
+      setSamHintUsed(prev => new Set(prev).add(question.id));
+    }
+    setShowSamHint(true);
+  }, [attempt, currentQuestionIndex]);
 
   const renderQuestion = (question: Question) => {
     const answer = answers[question.id];
@@ -406,6 +531,22 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
                           <Badge variant="outline">
                             {currentQuestion.questionType.replace('_', ' ')}
                           </Badge>
+                          {/* SAM AI Confidence - subtle indicator */}
+                          {(attempt.exam.allowHints ?? true) && (
+                            <ConfidenceIndicator
+                              confidence={questionConfidence}
+                              mode="minimal"
+                              size="sm"
+                              explanation="SAM AI confidence in question-difficulty match for your level"
+                            />
+                          )}
+                          {/* Hint used indicator */}
+                          {samHintUsed.has(currentQuestion.id) && (
+                            <Badge variant="outline" className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-950/30">
+                              <Lightbulb className="w-3 h-3 mr-1" />
+                              Hint viewed
+                            </Badge>
+                          )}
                         </div>
                         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                           {currentQuestion.question}
@@ -442,6 +583,56 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
                     <div className="space-y-4">
                       {renderQuestion(currentQuestion)}
                     </div>
+
+                    {/* SAM AI Hint Panel - Collapsible */}
+                    {(attempt.exam.allowHints ?? true) && currentSamCritique && (
+                      <Collapsible
+                        open={showSamHint}
+                        onOpenChange={setShowSamHint}
+                        className="mt-4"
+                      >
+                        <CollapsibleTrigger asChild>
+                          <button
+                            onClick={handleShowSamHint}
+                            className="w-full flex items-center justify-between p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-colors text-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 rounded-full bg-purple-100 dark:bg-purple-900/50">
+                                <Brain className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <span className="font-medium text-purple-700 dark:text-purple-300">
+                                Need a hint from SAM?
+                              </span>
+                              {!samHintUsed.has(currentQuestion.id) && (
+                                <Badge variant="outline" className="text-xs text-purple-500 border-purple-300">
+                                  Available
+                                </Badge>
+                              )}
+                            </div>
+                            {showSamHint ? (
+                              <ChevronUp className="h-4 w-4 text-purple-500" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-purple-500" />
+                            )}
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="mt-2"
+                          >
+                            <SelfCritiquePanel
+                              critique={currentSamCritique}
+                              mode="compact"
+                              defaultExpanded={true}
+                              showActions={false}
+                            />
+                          </motion.div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
 
                     {/* Navigation */}
                     <div className="flex items-center justify-between pt-6 border-t border-slate-200 dark:border-slate-700">

@@ -42,6 +42,8 @@ export {
   useSAMMemory,
   // Push Notifications Hook
   usePushNotifications,
+  // Presence Tracking Hook
+  usePresence,
 } from './hooks';
 
 // ============================================================================
@@ -157,6 +159,12 @@ export type {
   PushPermissionState,
   PushSubscription,
   PushNotificationOptions,
+} from './hooks';
+
+// Presence tracking types
+export type {
+  UsePresenceOptions,
+  UsePresenceReturn,
 } from './hooks';
 
 // ============================================================================

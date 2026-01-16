@@ -1,5 +1,5 @@
 /**
- * SAM Real-Time Integration Module
+ * SAM Real-Time Integration Module (SERVER-ONLY)
  * Integrates @sam-ai/agentic realtime infrastructure with Taxomind
  *
  * This module provides:
@@ -9,7 +9,12 @@
  * 4. UI surface management for intervention display
  *
  * Phase 3: Infrastructure - Wire presence to Prisma store via TaxomindContext
+ *
+ * NOTE: This module uses Prisma stores and MUST only be imported in server contexts.
+ * For client-side realtime functionality, use './client.ts' instead.
  */
+
+import 'server-only';
 
 import { logger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';

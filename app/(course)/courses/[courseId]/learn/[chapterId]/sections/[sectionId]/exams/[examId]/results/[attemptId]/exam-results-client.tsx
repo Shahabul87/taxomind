@@ -4,12 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { logger } from '@/lib/logger';
-import { 
-  Trophy, 
-  Target, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Trophy,
+  Target,
+  Clock,
+  CheckCircle,
+  XCircle,
   ArrowLeft,
   BarChart3,
   Brain,
@@ -18,8 +18,13 @@ import {
   Award,
   RefreshCw,
   BookOpen,
-  Lightbulb
+  Lightbulb,
+  Sparkles
 } from "lucide-react";
+import { RecommendationCard } from "@/components/sam/recommendations";
+import { ConfidenceIndicator } from "@/components/sam/confidence";
+import { LearningStyleIndicator } from "@/components/sam/behavior";
+import { LearningPathWidget } from "@/components/sam";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -296,6 +301,75 @@ export default function ExamResultsClient({ params }: ExamResultsClientProps) {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
+            {/* SAM AI Learning Insights */}
+            <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  SAM AI Learning Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* AI Recommendation based on performance */}
+                  <RecommendationCard
+                    recommendation={{
+                      id: `exam-rec-${params.attemptId}`,
+                      type: summary.isPassed ? 'content' : 'review',
+                      title: summary.isPassed
+                        ? 'Great job! Ready for the next challenge'
+                        : 'Focus areas identified',
+                      description: summary.isPassed
+                        ? `You scored ${summary.scorePercentage.toFixed(0)}%! Consider advancing to more challenging content.`
+                        : `Review the ${summary.totalQuestions - summary.correctAnswers} incorrect answers and revisit related concepts.`,
+                      priority: summary.isPassed ? 'medium' : 'high',
+                      reason: summary.isPassed ? 'Knowledge reinforcement' : 'Struggle pattern detected',
+                      estimatedMinutes: summary.isPassed ? 15 : 30,
+                      metadata: {
+                        confidence: summary.scorePercentage / 100,
+                      },
+                    }}
+                    onAction={() => {
+                      if (summary.isPassed) {
+                        router.push(`/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}`);
+                      } else {
+                        setActiveTab('questions');
+                      }
+                    }}
+                    onDismiss={() => console.log('Recommendation dismissed')}
+                    compact={true}
+                  />
+
+                  {/* SAM Confidence Indicator */}
+                  <div className="space-y-4">
+                    <ConfidenceIndicator
+                      confidence={summary.scorePercentage / 100}
+                      mode="meter"
+                      size="lg"
+                      showPercentage={true}
+                      showExplanation={true}
+                      explanation={`Mastery Level: ${summary.scorePercentage.toFixed(0)}%`}
+                      category="knowledge"
+                    />
+                    <LearningStyleIndicator mode="badge" />
+                  </div>
+                </div>
+
+                {/* SAM Learning Path - Next Steps */}
+                <div className="mt-6 pt-6 border-t border-purple-200 dark:border-purple-800">
+                  <LearningPathWidget
+                    courseId={params.courseId}
+                    compact={true}
+                    showSkillProfile={false}
+                    showDueForReview={!summary.isPassed}
+                    onStepClick={(step) => {
+                      router.push(`/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}`);
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Performance Breakdown */}
             <Card>
               <CardHeader>

@@ -84,44 +84,83 @@ export class ContextEngine extends BaseEngine<unknown, ContextEngineOutput> {
     entityId?: string
   ): ContextEngineOutput['enrichedContext'] {
     const entityTypeMap: Record<SAMPageType, 'course' | 'chapter' | 'section' | 'user' | 'none'> = {
+      // Dashboard routes
       dashboard: 'user',
+      'user-dashboard': 'user',
+      'admin-dashboard': 'user',
+      'teacher-dashboard': 'user',
+      'user-analytics': 'user',
+      // Course management routes
       'courses-list': 'none',
       'course-detail': 'course',
       'course-create': 'course',
       'chapter-detail': 'chapter',
       'section-detail': 'section',
       analytics: 'none',
-      settings: 'user',
+      // Learning routes
       learning: 'course',
+      'course-learning': 'course',
+      'chapter-learning': 'chapter',
+      'section-learning': 'section',
+      // Exam routes
       exam: 'section',
+      'exam-results': 'section',
+      // General routes
+      settings: 'user',
       other: 'none',
     };
 
     const capabilitiesMap: Record<SAMPageType, string[]> = {
+      // Dashboard routes
       dashboard: ['view-overview', 'quick-actions', 'recommendations'],
+      'user-dashboard': ['view-progress', 'continue-learning', 'recommendations', 'goal-tracking'],
+      'admin-dashboard': ['platform-management', 'user-analytics', 'system-monitoring'],
+      'teacher-dashboard': ['manage-courses', 'view-analytics', 'student-progress', 'create-content'],
+      'user-analytics': ['view-analytics', 'learning-insights', 'progress-tracking', 'goal-progress'],
+      // Course management routes
       'courses-list': ['list-courses', 'filter-courses', 'create-course', 'bulk-actions'],
       'course-detail': ['edit-course', 'add-chapters', 'publish-course', 'analyze-course'],
       'course-create': ['create-course', 'generate-blueprint', 'set-objectives'],
       'chapter-detail': ['edit-chapter', 'add-sections', 'reorder-sections', 'analyze-chapter'],
       'section-detail': ['edit-section', 'add-content', 'create-quiz', 'analyze-section'],
       analytics: ['view-analytics', 'export-data', 'compare-metrics'],
-      settings: ['update-preferences', 'manage-account'],
+      // Learning routes
       learning: ['view-content', 'take-quiz', 'track-progress', 'ask-questions'],
+      'course-learning': ['course-overview', 'view-progress', 'start-learning', 'ask-questions'],
+      'chapter-learning': ['view-content', 'take-quiz', 'track-progress', 'ask-questions', 'concept-explanation'],
+      'section-learning': ['view-section', 'complete-activities', 'ask-questions', 'get-hints'],
+      // Exam routes
       exam: ['take-exam', 'get-hints', 'review-answers'],
+      'exam-results': ['view-results', 'review-answers', 'improvement-suggestions', 'retry-exam'],
+      // General routes
+      settings: ['update-preferences', 'manage-account'],
       other: ['general-help'],
     };
 
     const suggestedActionsMap: Record<SAMPageType, string[]> = {
+      // Dashboard routes
       dashboard: ['View your courses', 'Check analytics', 'Create a new course'],
+      'user-dashboard': ['Continue learning', 'View recommendations', 'Check progress', 'Set goals'],
+      'admin-dashboard': ['Manage users', 'View platform analytics', 'System settings'],
+      'teacher-dashboard': ['Create a course', 'View student progress', 'Check analytics'],
+      'user-analytics': ['View learning insights', 'Track goal progress', 'Identify strengths'],
+      // Course management routes
       'courses-list': ['Create a course', 'Analyze course performance', 'Filter by category'],
       'course-detail': ['Add chapters', 'Generate course content', 'Analyze structure'],
       'course-create': ['Generate blueprint', 'Set learning objectives', 'Define target audience'],
       'chapter-detail': ['Add sections', 'Create assessment', 'Reorder content'],
       'section-detail': ['Add video content', 'Create quiz', 'Analyze Bloom\'s level'],
       analytics: ['View detailed reports', 'Compare courses', 'Export data'],
-      settings: ['Update preferences', 'Change notification settings'],
+      // Learning routes
       learning: ['Continue learning', 'Take a quiz', 'Ask a question'],
+      'course-learning': ['Start first chapter', 'View syllabus', 'Ask about the course'],
+      'chapter-learning': ['Continue to next section', 'Ask about concepts', 'Take practice quiz'],
+      'section-learning': ['Complete activities', 'Ask for clarification', 'Get hints'],
+      // Exam routes
       exam: ['Start exam', 'Review material first'],
+      'exam-results': ['Review answers', 'Get improvement tips', 'Retry exam', 'Continue learning'],
+      // General routes
+      settings: ['Update preferences', 'Change notification settings'],
       other: ['How can I help you?'],
     };
 

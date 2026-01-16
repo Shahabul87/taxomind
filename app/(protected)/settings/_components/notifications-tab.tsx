@@ -14,7 +14,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { Bell, Mail, Smartphone, MessageSquare, TrendingUp } from "lucide-react";
+import { Bell, Mail, Smartphone, MessageSquare, TrendingUp, Brain } from "lucide-react";
+import { NotificationPreferences, PushNotificationOptIn } from "@/components/sam/notifications";
 
 interface NotificationsTabProps {
   form: UseFormReturn<z.infer<typeof SettingsSchema>>;
@@ -297,8 +298,13 @@ export const NotificationsTab = ({ form, isPending }: NotificationsTabProps) => 
 
         <div className="mt-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            💡 <strong>Note:</strong> Push notifications require browser permission. You&apos;ll be prompted to allow notifications when you enable this feature.
+            <strong>Note:</strong> Push notifications require browser permission. You&apos;ll be prompted to allow notifications when you enable this feature.
           </p>
+        </div>
+
+        {/* Browser Push Notification Opt-In */}
+        <div className="mt-6">
+          <PushNotificationOptIn mode="inline" />
         </div>
       </div>
 
@@ -330,6 +336,30 @@ export const NotificationsTab = ({ form, isPending }: NotificationsTabProps) => 
             <span>You can always adjust these settings to fit your preferences</span>
           </li>
         </ul>
+      </div>
+
+      {/* SAM AI Notification Preferences */}
+      <div className={cn(
+        "p-6 rounded-3xl",
+        "bg-white/80 dark:bg-slate-800/80",
+        "backdrop-blur-sm",
+        "border border-slate-200/50 dark:border-slate-700/50",
+        "shadow-lg"
+      )}>
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
+            <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              SAM AI Notifications
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Personalized learning notifications from your AI mentor
+            </p>
+          </div>
+        </div>
+        <NotificationPreferences compact={true} />
       </div>
     </motion.div>
   );

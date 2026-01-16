@@ -72,6 +72,7 @@ import type {
   RecommendationType,
   RecommendationPriority,
 } from '@sam-ai/react';
+import { RecommendationReasonDisplay } from './RecommendationReasonDisplay';
 
 // ============================================================================
 // TYPES
@@ -85,6 +86,8 @@ interface RecommendationCardProps {
   compact?: boolean;
   /** Show reason by default */
   showReason?: boolean;
+  /** Use detailed reason display with multi-factor breakdown */
+  useDetailedReason?: boolean;
   /** Callback when action taken */
   onAction?: (recommendation: LearningRecommendation) => void;
   /** Callback when snoozed */
@@ -197,6 +200,7 @@ export function RecommendationCard({
   recommendation,
   compact = false,
   showReason = false,
+  useDetailedReason = false,
   onAction,
   onSnooze,
   onFeedback,
@@ -390,7 +394,7 @@ export function RecommendationCard({
               )}
             </div>
 
-            {/* Reason (expandable) */}
+            {/* Reason (expandable) - Simple or Detailed mode */}
             <AnimatePresence>
               {(showReasonExpanded || showReason) && recommendation.reason && (
                 <motion.div
@@ -399,12 +403,21 @@ export function RecommendationCard({
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
-                    <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                    <span className="text-sm text-amber-700 dark:text-amber-300">
-                      {recommendation.reason}
-                    </span>
-                  </div>
+                  {useDetailedReason ? (
+                    <RecommendationReasonDisplay
+                      recommendation={recommendation}
+                      mode="inline"
+                      showConfidence
+                      showFactors
+                    />
+                  ) : (
+                    <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                      <Lightbulb className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                      <span className="text-sm text-amber-700 dark:text-amber-300">
+                        {recommendation.reason}
+                      </span>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

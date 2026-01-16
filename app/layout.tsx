@@ -127,8 +127,10 @@ import { auth } from '@/auth'
 import { ConfettiProvider } from '@/components/providers/confetti-provider';
 import { Providers } from "@/components/providers";
 import ClientToaster from '@/components/client-toaster';
-// SAM AI Assistant - Context-aware assistant
-import { SAMAssistant } from '@/components/sam/SAMAssistant';
+// SAM AI Assistant - Client wrapper to prevent server-only module bundling issues
+import { SAMAssistantWrapper } from '@/components/sam/SAMAssistantWrapper';
+// SAM AI Intervention Provider - Enables proactive interventions globally
+import { InterventionProvider } from '@/components/sam/interventions/InterventionProvider';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 
@@ -268,15 +270,22 @@ export default async function RootLayout({
           </a>
           <ConfettiProvider />
           <ClientToaster />
-          {/* Suspense boundary for consistent server/client structure during streaming */}
-          <Suspense fallback={null}>
-            <div className="min-h-screen" suppressHydrationWarning>
-              {children}
-            </div>
-          </Suspense>
+          {/* SAM AI Intervention Provider - Enables proactive interventions globally */}
+          <InterventionProvider
+            maxVisible={3}
+            defaultAutoDismiss={true}
+            defaultAutoDismissDelay={8000}
+          >
+            {/* Suspense boundary for consistent server/client structure during streaming */}
+            <Suspense fallback={null}>
+              <div className="min-h-screen" suppressHydrationWarning>
+                {children}
+              </div>
+            </Suspense>
 
-          {/* SAM AI Assistant - Context-aware floating assistant */}
-          <SAMAssistant />
+            {/* SAM AI Assistant - Context-aware floating assistant */}
+            <SAMAssistantWrapper />
+          </InterventionProvider>
 
           {/* CSS Error Monitor - Only in development */}
           <CSSErrorMonitorClient />
