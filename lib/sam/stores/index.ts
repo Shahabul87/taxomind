@@ -166,3 +166,68 @@ export {
   type CreateMultimodalInput as CreateMultimodalInputType,
   type MultimodalStore,
 } from './prisma-multimodal-store';
+
+// =============================================================================
+// PHASE 7: 10,000 HOUR PRACTICE TRACKING STORES
+// =============================================================================
+
+// Practice Session Store
+export {
+  PrismaPracticeSessionStore,
+  createPrismaPracticeSessionStore,
+  type PracticeSession,
+  type PracticeSessionType,
+  type PracticeFocusLevel,
+  type PracticeSessionStatus,
+  type CreatePracticeSessionInput,
+  type UpdatePracticeSessionInput,
+  type EndPracticeSessionInput,
+  type PracticeSessionFilters,
+  type PracticeSessionStore,
+  type SessionStats,
+  SESSION_TYPE_MULTIPLIERS,
+  FOCUS_LEVEL_MULTIPLIERS,
+  BLOOMS_MULTIPLIERS,
+  calculateQualityMultiplier,
+} from './prisma-practice-session-store';
+
+// Skill Mastery 10K Store
+export {
+  PrismaSkillMastery10KStore,
+  createPrismaSkillMastery10KStore,
+  type SkillMastery10K,
+  type PracticeMilestone,
+  type PracticeMilestoneType,
+  type ProficiencyLevel,
+  type CreateSkillMasteryInput,
+  type UpdateSkillMasteryInput,
+  type SkillMastery10KStore,
+  type MasteryOverview,
+  MILESTONE_HOURS,
+  MILESTONE_XP_REWARDS,
+  MILESTONE_BADGE_NAMES,
+  getProficiencyLevel,
+} from './prisma-skill-mastery-10k-store';
+
+// Practice Leaderboard Store
+export {
+  PrismaPracticeLeaderboardStore,
+  createPrismaPracticeLeaderboardStore,
+  type PracticeLeaderboardEntry,
+  type LeaderboardScope,
+  type LeaderboardTimeframe,
+  type LeaderboardFilters,
+  type PracticeLeaderboardStore,
+  type LeaderboardUpdateData,
+} from './prisma-practice-leaderboard-store';
+
+// Daily Practice Log Store (Heatmap)
+export {
+  PrismaDailyPracticeLogStore,
+  createPrismaDailyPracticeLogStore,
+  type DailyPracticeLog,
+  type DailyPracticeLogUpdate,
+  type DailyPracticeLogStore,
+  type HeatmapData,
+  type YearlyStats,
+} from './prisma-daily-practice-log-store';

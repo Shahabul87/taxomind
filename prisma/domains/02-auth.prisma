@@ -393,6 +393,15 @@ model User {
   samPeerLearningActivities  SAMPeerLearningActivity[]     @relation("SAMPeerLearningActivities")
   samIntegrityChecks         SAMIntegrityCheck[]           @relation("SAMIntegrityChecks")
   samMultimodalInputs        SAMMultimodalInput[]          @relation("SAMMultimodalInputs")
+
+  // Phase 7: 10,000 Hour Practice Tracking System (added January 2026)
+  practiceSessions           PracticeSession[]             @relation("UserPracticeSessions")
+  skillMastery10K            SkillMastery10K[]             @relation("UserSkillMastery10K")
+  practiceMilestones         PracticeMilestone[]           @relation("UserPracticeMilestones")
+  challengesCreated          PracticeChallenge[]           @relation("ChallengesCreated")
+  challengeParticipations    PracticeChallengeParticipant[] @relation("ChallengeParticipations")
+  practiceLeaderboards       PracticeLeaderboard[]         @relation("UserPracticeLeaderboards")
+  dailyPracticeLogs          DailyPracticeLog[]            @relation("UserDailyPracticeLogs")
 }
 
 model Account {

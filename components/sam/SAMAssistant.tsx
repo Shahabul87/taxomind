@@ -125,6 +125,9 @@ import {
   MemoryInsightsWidget,
 } from '@/components/sam/memory';
 
+// Import CheckInHistory for past check-in tracking
+import { CheckInHistory } from '@/components/sam/CheckInHistory';
+
 // ============================================================================
 // WINDOW CONTEXT TYPES
 // ============================================================================
@@ -761,7 +764,7 @@ function SAMAssistantInner({
 
   // Memory panel state
   const [showMemoryPanel, setShowMemoryPanel] = useState(false);
-  const [memoryPanelView, setMemoryPanelView] = useState<'search' | 'history' | 'insights'>('insights');
+  const [memoryPanelView, setMemoryPanelView] = useState<'search' | 'history' | 'insights' | 'checkins'>('insights');
 
   // Content Analysis panel state
   const [showContentAnalysisPanel, setShowContentAnalysisPanel] = useState(false);
@@ -2113,11 +2116,74 @@ function SAMAssistantInner({
           { label: 'Improve Description', icon: <Wand2 className="h-4 w-4" />, action: 'Improve the section description' },
           { label: 'Analyze Content', icon: <Microscope className="h-4 w-4" />, action: 'Analyze section content', isAnalysis: true },
         ];
+      // Learner-focused Quick Actions for active learning
+      case 'course-learning':
+        return [
+          { label: 'Explain This', icon: <Brain className="h-4 w-4" />, action: 'Explain the key concepts of this course in simple terms' },
+          { label: 'Quiz Me', icon: <Target className="h-4 w-4" />, action: 'Create a quick quiz to test my understanding of this course' },
+          { label: 'Summarize', icon: <FileText className="h-4 w-4" />, action: 'Give me a brief summary of what I should learn from this course' },
+          { label: 'Study Plan', icon: <Wand2 className="h-4 w-4" />, action: 'Create a personalized study plan for this course' },
+        ];
+      case 'chapter-learning':
+        return [
+          { label: 'Explain This', icon: <Brain className="h-4 w-4" />, action: 'Explain the key concepts of this chapter in simple terms' },
+          { label: 'Quiz Me', icon: <Target className="h-4 w-4" />, action: 'Create a quick quiz to test my understanding of this chapter' },
+          { label: 'Summarize', icon: <FileText className="h-4 w-4" />, action: 'Summarize the main points of this chapter' },
+          { label: 'Practice Problems', icon: <Wand2 className="h-4 w-4" />, action: 'Give me practice problems related to this chapter' },
+        ];
+      case 'section-learning':
+        return [
+          { label: 'Explain This', icon: <Brain className="h-4 w-4" />, action: 'Explain this section content in simple terms' },
+          { label: 'Quiz Me', icon: <Target className="h-4 w-4" />, action: 'Create a quick quiz to test my understanding of this section' },
+          { label: 'Summarize', icon: <FileText className="h-4 w-4" />, action: 'Give me a concise summary of this section' },
+          { label: 'Ask Follow-up', icon: <ChevronRight className="h-4 w-4" />, action: 'I have a question about what I just learned' },
+        ];
+      case 'exam':
+        return [
+          { label: 'Clarify Question', icon: <Brain className="h-4 w-4" />, action: 'Help me understand this exam question better' },
+          { label: 'Hint', icon: <Wand2 className="h-4 w-4" />, action: 'Give me a hint without revealing the answer' },
+          { label: 'Explain Concept', icon: <FileText className="h-4 w-4" />, action: 'Explain the concept being tested here' },
+        ];
+      case 'exam-results':
+        return [
+          { label: 'Explain Mistakes', icon: <Brain className="h-4 w-4" />, action: 'Explain why my incorrect answers were wrong' },
+          { label: 'Review Topics', icon: <Target className="h-4 w-4" />, action: 'What topics should I review based on my results?' },
+          { label: 'Practice More', icon: <Wand2 className="h-4 w-4" />, action: 'Generate practice questions for areas I struggled with' },
+        ];
       case 'course-create':
         return [
           { label: 'Course Ideas', icon: <Brain className="h-4 w-4" />, action: 'Suggest course ideas based on current trends' },
           { label: 'Structure Help', icon: <FileText className="h-4 w-4" />, action: 'Help me structure this course' },
           { label: 'Title Suggestions', icon: <Wand2 className="h-4 w-4" />, action: 'Suggest engaging course titles' },
+        ];
+      // Dashboard Quick Actions
+      case 'user-dashboard':
+      case 'dashboard':
+        return [
+          { label: 'My Progress', icon: <Target className="h-4 w-4" />, action: 'Show me a summary of my learning progress' },
+          { label: 'What to Learn', icon: <Brain className="h-4 w-4" />, action: 'Recommend what I should learn next based on my goals' },
+          { label: 'Study Tips', icon: <Wand2 className="h-4 w-4" />, action: 'Give me personalized study tips to improve my learning' },
+          { label: 'Set Goals', icon: <FileText className="h-4 w-4" />, action: 'Help me set effective learning goals' },
+        ];
+      case 'user-analytics':
+        return [
+          { label: 'Analyze Progress', icon: <Microscope className="h-4 w-4" />, action: 'Analyze my learning analytics and suggest improvements', isAnalysis: true },
+          { label: 'Strength Areas', icon: <Target className="h-4 w-4" />, action: 'What are my strongest learning areas?' },
+          { label: 'Improve Weak Areas', icon: <Brain className="h-4 w-4" />, action: 'How can I improve my weak areas based on my analytics?' },
+          { label: 'Learning Patterns', icon: <FileText className="h-4 w-4" />, action: 'What patterns do you see in my learning behavior?' },
+        ];
+      case 'settings':
+        return [
+          { label: 'Optimize Settings', icon: <Wand2 className="h-4 w-4" />, action: 'Recommend optimal settings for my learning style' },
+          { label: 'SAM Preferences', icon: <Brain className="h-4 w-4" />, action: 'How can I customize SAM to better help me?' },
+          { label: 'Help', icon: <FileText className="h-4 w-4" />, action: 'Explain what each setting does' },
+        ];
+      case 'courses-list':
+        return [
+          { label: 'Find Course', icon: <Brain className="h-4 w-4" />, action: 'Help me find the right course for my goals' },
+          { label: 'Compare Courses', icon: <Target className="h-4 w-4" />, action: 'Compare courses to help me decide which to take' },
+          { label: 'Learning Path', icon: <FileText className="h-4 w-4" />, action: 'Suggest a learning path based on my interests' },
+          { label: 'Trending Topics', icon: <Wand2 className="h-4 w-4" />, action: 'What skills are trending in my field?' },
         ];
       default:
         return [
@@ -3284,6 +3350,20 @@ function SAMAssistantInner({
                     >
                       History
                     </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMemoryPanelView('checkins');
+                      }}
+                      className={cn(
+                        'px-2 py-0.5 text-[10px] rounded-full transition-colors',
+                        memoryPanelView === 'checkins'
+                          ? 'bg-cyan-200 dark:bg-cyan-800 text-cyan-800 dark:text-cyan-200'
+                          : 'text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/50'
+                      )}
+                    >
+                      Check-ins
+                    </button>
                   </div>
                 )}
                 <ChevronRight className={cn(
@@ -3337,6 +3417,22 @@ function SAMAssistantInner({
                       // Reference past conversation in current context
                       if (turn.content) {
                         const contextMessage = `Continuing from earlier: "${turn.content.slice(0, 150)}..."`;
+                        sendMessage(contextMessage);
+                      }
+                    }}
+                    className="border-0 shadow-none bg-transparent"
+                  />
+                )}
+
+                {memoryPanelView === 'checkins' && (
+                  <CheckInHistory
+                    compact
+                    limit={10}
+                    showFilters={false}
+                    onItemClick={(item) => {
+                      // Reference past check-in in conversation
+                      if (item.message) {
+                        const contextMessage = `About my previous check-in: "${item.message.slice(0, 150)}..."`;
                         sendMessage(contextMessage);
                       }
                     }}

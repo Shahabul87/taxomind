@@ -164,22 +164,71 @@ export class PrismaSkillStore implements SkillStore {
 
   /**
    * Get all skills for a course
-   * Note: Skills are not directly linked to courses in the schema,
-   * so we return all user skills. Course-skill mapping can be added later.
+   * Uses CourseSkill mapping to filter skills relevant to the course
    */
   async getSkillsForCourse(
     userId: string,
-    _courseId: string
+    courseId: string
   ): Promise<UserSkill[]> {
     try {
-      // Get all skill progress for the user
-      // TODO: Add course-skill mapping when CourseSkill relation is available
+      // Get skill IDs associated with this course via CourseSkill mapping
+      const courseSkills = await db.courseSkill.findMany({
+        where: { courseId },
+        select: { skillId: true },
+        orderBy: { order: 'asc' },
+      });
+
+      const courseSkillIds = courseSkills.map((cs) => cs.skillId);
+
+      // If no skills mapped to course, return empty array
+      if (courseSkillIds.length === 0) {
+        return [];
+      }
+
+      // Get user's progress for these specific skills
       const skillProgress = await db.skillProgress.findMany({
-        where: { userId },
+        where: {
+          userId,
+          skillId: { in: courseSkillIds },
+        },
         include: { skill: true },
       });
 
-      return skillProgress.map((sp) => this.mapSkillProgressToUserSkill(sp));
+      // Also get skills the user hasn't started yet
+      const userSkillIds = skillProgress.map((sp) => sp.skillId);
+      const unstartedSkillIds = courseSkillIds.filter(
+        (id) => !userSkillIds.includes(id)
+      );
+
+      // Get skill names for unstarted skills
+      const unstartedSkills = unstartedSkillIds.length > 0
+        ? await db.skill.findMany({
+            where: { id: { in: unstartedSkillIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+
+      // Map started skills
+      const startedUserSkills = skillProgress.map((sp) =>
+        this.mapSkillProgressToUserSkill(sp)
+      );
+
+      // Create placeholder UserSkill for unstarted skills
+      const unstartedUserSkills: UserSkill[] = unstartedSkills.map((skill) => ({
+        conceptId: skill.id,
+        conceptName: skill.name,
+        masteryLevel: 0,
+        confidenceScore: 0,
+        practiceCount: 0,
+        correctCount: 0,
+        lastPracticedAt: new Date(),
+        firstLearnedAt: new Date(),
+        strengthTrend: 'stable' as SkillTrend,
+        nextReviewAt: undefined,
+        retentionScore: undefined,
+      }));
+
+      return [...startedUserSkills, ...unstartedUserSkills];
     } catch (error) {
       console.error('Failed to get skills for course:', error);
       return [];

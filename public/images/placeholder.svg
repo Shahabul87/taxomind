@@ -1,0 +1,17 @@
+<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="defaultGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#defaultGrad)"/>
+  <g transform="translate(400, 180)">
+    <rect x="-40" y="-30" width="80" height="60" rx="8" fill="white" fill-opacity="0.2"/>
+    <circle cx="-15" cy="-10" r="10" fill="white" fill-opacity="0.5"/>
+    <polygon points="-30,20 0,-5 20,10 40,20 -30,20" fill="white" fill-opacity="0.4"/>
+  </g>
+  <text x="50%" y="75%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="600">
+    Image
+  </text>
+</svg>

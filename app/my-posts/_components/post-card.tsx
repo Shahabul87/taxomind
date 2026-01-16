@@ -31,7 +31,7 @@ export const PostCard = ({ post }: PostCardProps) => {
   const viewLink = isPublished ? `/posts/${post.slug || post.id}` : editLink;
   
   // Default placeholder for images, allow for flexible image fields
-  const imageUrl = post.coverImage || post.image || post.imageUrl || "/images/post-placeholder.jpg";
+  const imageUrl = post.coverImage || post.image || post.imageUrl || "/images/post-placeholder.svg";
 
   // Prepare categories/tags display
   const categories = post.categories || 

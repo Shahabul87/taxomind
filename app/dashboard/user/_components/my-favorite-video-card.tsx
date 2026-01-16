@@ -35,14 +35,14 @@ const MyFavoriteVideoCard = ({ video }: VideoCardProps) => {
         };
       } catch {
         return {
-          thumbnailUrl: "/images/video-placeholder.jpg",
+          thumbnailUrl: "/images/video-placeholder.svg",
           embedUrl: null,
           isYoutube: false
         };
       }
     }
     return {
-      thumbnailUrl: "/images/video-placeholder.jpg",
+      thumbnailUrl: "/images/video-placeholder.svg",
       embedUrl: null,
       isYoutube: false
     };

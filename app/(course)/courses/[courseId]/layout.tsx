@@ -6,6 +6,12 @@ import { CommerceProvider } from '@/components/commerce/commerce-context';
 import { PresenceTrackingProvider } from '@/components/sam/presence';
 import { initAnalyticsDomBridge } from '@/lib/analytics/dom-bridge';
 
+// SAM AI Assistant - Conversational AI Mentor (dynamically loaded to prevent SSR issues)
+import { SAMAssistantWrapper } from '@/components/sam/SAMAssistantWrapper';
+
+// SAM Context Tracker - Automatically syncs page context with SAM
+import { SAMContextTracker } from '@/components/sam/SAMContextTracker';
+
 /**
  * Layout for course detail pages
  * Provides commerce + analytics + presence tracking context for course pages
@@ -39,9 +45,15 @@ export default function CourseDetailLayout({
         sectionId={sectionId}
         autoStudyingMode={isLearningPage}
       >
+        {/* SAM Context Tracker - Invisible, syncs page context with course info */}
+        <SAMContextTracker />
+
         <div className="min-h-screen">
           {children}
         </div>
+
+        {/* SAM AI Assistant - Always available during course learning */}
+        <SAMAssistantWrapper />
       </PresenceTrackingProvider>
     </CommerceProvider>
   );

@@ -7,6 +7,9 @@ import { GroupsEnterpriseHero } from "./_components/groups-enterprise-hero";
 import { TrendingSection, MainGroupsSection } from "./_components/enterprise-groups-sections";
 import { HeroSkeleton, TrendingSectionSkeleton, GroupsSkeleton } from "./_components/groups-skeleton";
 
+// SAM AI Study Buddy Integration
+import { StudyBuddyFinder } from "@/components/sam/StudyBuddyFinder";
+
 export const revalidate = 0;
 
 interface GroupsPageProps {
@@ -163,6 +166,25 @@ export default async function GroupsPage(props: GroupsPageProps) {
         <Suspense fallback={<TrendingSectionSkeleton />}>
           <TrendingWithData />
         </Suspense>
+
+        {/* SAM AI Study Buddy Finder - Find compatible study partners */}
+        <section className="my-8 sm:my-10">
+          <div className="mb-4">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              Find Study Buddies
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              SAM AI matches you with compatible learners based on shared courses and interests
+            </p>
+          </div>
+          <StudyBuddyFinder
+            limit={6}
+            compact={false}
+            minCompatibility={30}
+            showConnectionStatus={true}
+            autoRefreshInterval={60000}
+          />
+        </section>
 
         {/* Main Groups Section */}
         <Suspense

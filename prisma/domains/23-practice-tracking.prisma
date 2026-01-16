@@ -1,0 +1,457 @@
+// ==========================================
+// 10,000 Hour Practice Tracking System (Phase 7)
+// ==========================================
+// Comprehensive deliberate practice tracking with quality-adjusted hours,
+// milestone achievements, leaderboards, and SAM AI recommendations.
+//
+// Total Models: 7
+// Priority: 11
+//
+// Created: January 2025
+// ==========================================
+
+// ==========================================
+// Enums for Practice Tracking
+// ==========================================
+
+enum PracticeSessionType {
+  DELIBERATE     // Focused, intentional practice (1.5x multiplier)
+  POMODORO       // 25-min focused sessions (1.4x multiplier)
+  GUIDED         // SAM-assisted practice (1.25x multiplier)
+  ASSESSMENT     // Quiz/test taking (1.1x multiplier)
+  CASUAL         // Regular learning (1.0x multiplier)
+  REVIEW         // Spaced repetition review (0.8x multiplier)
+}
+
+enum PracticeFocusLevel {
+  DEEP_FLOW      // Complete immersion, no distractions (1.5x)
+  HIGH           // Strong focus, minimal distractions (1.25x)
+  MEDIUM         // Normal focus, some distractions (1.0x)
+  LOW            // Distracted, frequent interruptions (0.75x)
+  VERY_LOW       // Barely engaged, many interruptions (0.5x)
+}
+
+enum PracticeSessionStatus {
+  ACTIVE         // Currently in progress
+  PAUSED         // Temporarily paused
+  COMPLETED      // Successfully completed
+  ABANDONED      // User quit without completing
+}
+
+enum PracticeMilestoneType {
+  HOURS_100      // Century milestone
+  HOURS_500      // Halfway to thousand
+  HOURS_1000     // Thousand hour club
+  HOURS_2500     // Quarter master
+  HOURS_5000     // Halfway to mastery
+  HOURS_7500     // Three-quarters
+  HOURS_10000    // Grand Master
+}
+
+enum LeaderboardScope {
+  GLOBAL         // All users
+  SKILL          // Specific skill
+  FRIENDS        // User's friends only
+  COURSE         // Specific course
+  ORGANIZATION   // Company/school
+}
+
+enum LeaderboardTimeframe {
+  DAILY          // Today only
+  WEEKLY         // This week
+  MONTHLY        // This month
+  ALL_TIME       // All time
+}
+
+enum ChallengeType {
+  INDIVIDUAL     // Personal challenge
+  GROUP          // Team challenge
+  COMPETITION    // Head-to-head
+  COMMUNITY      // Platform-wide
+}
+
+enum ChallengeStatus {
+  DRAFT          // Being created
+  SCHEDULED      // Starts in future
+  ACTIVE         // Currently running
+  COMPLETED      // Finished
+  CANCELLED      // Cancelled
+}
+
+// ==========================================
+// Practice Session Model
+// ==========================================
+
+model PracticeSession {
+  id                    String                @id @default(cuid())
+  userId                String
+
+  // Session Configuration
+  skillId               String?               // Optional: specific skill being practiced
+  skillName             String?               // Denormalized for display
+  courseId              String?               // Optional: related course
+  courseName            String?               // Denormalized for display
+  sectionId             String?               // Optional: specific section
+  chapterId             String?               // Optional: specific chapter
+
+  // Session Type & Quality
+  sessionType           PracticeSessionType   @default(CASUAL)
+  focusLevel            PracticeFocusLevel    @default(MEDIUM)
+
+  // Timing
+  startedAt             DateTime              @default(now())
+  endedAt               DateTime?
+  pausedAt              DateTime?             // When current pause started
+  totalPausedSeconds    Int                   @default(0) // Cumulative pause time
+  durationMinutes       Int                   @default(0) // Active practice time (excludes pauses)
+
+  // Status
+  status                PracticeSessionStatus @default(ACTIVE)
+
+  // Quality Metrics (calculated at session end)
+  rawHours              Float                 @default(0) // durationMinutes / 60
+  qualityMultiplier     Float                 @default(1.0) // Combined multiplier (max 2.5)
+  qualityHours          Float                 @default(0) // rawHours * qualityMultiplier
+
+  // Optional: Bloom's level during session (from existing MasteryTracker)
+  bloomsLevel           String?               // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
+  bloomsMultiplier      Float                 @default(1.0)
+
+  // Session Details
+  notes                 String?               // User notes about the session
+  distractionCount      Int                   @default(0) // Self-reported distractions
+  pomodoroCount         Int                   @default(0) // Number of pomodoros completed
+  breaksTaken           Int                   @default(0) // Number of breaks
+
+  // Metadata
+  metadata              Json?                 // Additional session data
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  user                  User                  @relation("UserPracticeSessions", fields: [userId], references: [id], onDelete: Cascade)
+  course                Course?               @relation("CoursePracticeSessions", fields: [courseId], references: [id], onDelete: SetNull)
+  skill                 SkillBuildDefinition? @relation("SkillPracticeSessions", fields: [skillId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([skillId])
+  @@index([courseId])
+  @@index([startedAt])
+  @@index([status])
+  @@index([sessionType])
+  @@map("practice_sessions")
+}
+
+// ==========================================
+// Skill Mastery 10K Model
+// ==========================================
+
+model SkillMastery10K {
+  id                    String                @id @default(cuid())
+  userId                String
+  skillId               String
+  skillName             String                // Denormalized for display
+
+  // Hour Tracking
+  totalRawHours         Float                 @default(0) // Actual hours practiced
+  totalQualityHours     Float                 @default(0) // Quality-adjusted hours
+  targetHours           Float                 @default(10000) // Default 10K, can be customized
+
+  // Progress Metrics
+  progressPercentage    Float                 @default(0) // (qualityHours / targetHours) * 100
+  estimatedDaysToGoal   Int?                  // Based on current pace
+
+  // Practice Patterns
+  sessionsCount         Int                   @default(0) // Total sessions
+  averageSessionMinutes Float                 @default(0) // Avg session length
+  averageQualityScore   Float                 @default(1.0) // Avg quality multiplier
+  lastPracticedAt       DateTime?
+
+  // Streak Tracking
+  currentStreak         Int                   @default(0) // Consecutive days
+  longestStreak         Int                   @default(0) // Best ever
+  streakStartDate       DateTime?
+  lastStreakDate        DateTime?             // Last day that counted toward streak
+
+  // Pace Metrics (calculated weekly)
+  hoursThisWeek         Float                 @default(0)
+  hoursThisMonth        Float                 @default(0)
+  avgWeeklyHours        Float                 @default(0) // Rolling average
+  avgMonthlyHours       Float                 @default(0)
+
+  // Proficiency Level (derived from quality hours)
+  // 0-100h: Beginner, 100-500h: Novice, 500-1000h: Intermediate
+  // 1000-2500h: Competent, 2500-5000h: Proficient
+  // 5000-7500h: Advanced, 7500-10000h: Expert, 10000+: Master
+  proficiencyLevel      String                @default("BEGINNER")
+
+  // Best Session Records
+  bestSessionDuration   Int                   @default(0) // Minutes
+  bestQualityMultiplier Float                 @default(1.0)
+  bestSessionDate       DateTime?
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  user                  User                  @relation("UserSkillMastery10K", fields: [userId], references: [id], onDelete: Cascade)
+  skill                 SkillBuildDefinition? @relation("SkillMastery10KDefinition", fields: [skillId], references: [id], onDelete: SetNull)
+  milestones            PracticeMilestone[]   @relation("SkillMilestones")
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+  @@index([totalQualityHours])
+  @@index([currentStreak])
+  @@index([proficiencyLevel])
+  @@map("skill_mastery_10k")
+}
+
+// ==========================================
+// Practice Milestone Model
+// ==========================================
+
+model PracticeMilestone {
+  id                    String                @id @default(cuid())
+  userId                String
+  skillMasteryId        String
+  skillId               String
+  skillName             String                // Denormalized
+
+  // Milestone Info
+  milestoneType         PracticeMilestoneType
+  hoursRequired         Float                 // Hours needed for this milestone
+  hoursAtUnlock         Float                 // Actual hours when unlocked
+
+  // Achievement Details
+  unlockedAt            DateTime              @default(now())
+  claimed               Boolean               @default(false) // User claimed reward
+  claimedAt             DateTime?
+
+  // Rewards
+  xpReward              Int                   @default(0) // XP awarded
+  badgeId               String?               // Badge earned
+  badgeName             String?
+  rewardMetadata        Json?                 // Additional rewards (coins, items, etc.)
+
+  // Display
+  celebrationShown      Boolean               @default(false) // Animation shown to user
+  shareCount            Int                   @default(0) // Times shared on social
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  user                  User                  @relation("UserPracticeMilestones", fields: [userId], references: [id], onDelete: Cascade)
+  skillMastery          SkillMastery10K       @relation("SkillMilestones", fields: [skillMasteryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId, milestoneType])
+  @@index([userId])
+  @@index([skillMasteryId])
+  @@index([milestoneType])
+  @@index([unlockedAt])
+  @@map("practice_milestones")
+}
+
+// ==========================================
+// Practice Challenge Model
+// ==========================================
+
+model PracticeChallenge {
+  id                    String                @id @default(cuid())
+
+  // Challenge Details
+  title                 String
+  description           String?
+  challengeType         ChallengeType         @default(INDIVIDUAL)
+  status                ChallengeStatus       @default(DRAFT)
+
+  // Timing
+  startsAt              DateTime
+  endsAt                DateTime
+
+  // Goals
+  targetHours           Float?                // Hours to complete
+  targetSessions        Int?                  // Number of sessions
+  targetStreak          Int?                  // Streak days
+  targetQualityHours    Float?                // Quality-adjusted hours
+
+  // Scope
+  skillId               String?               // Specific skill challenge
+  skillName             String?
+  courseId              String?               // Course-specific challenge
+
+  // Rewards
+  xpReward              Int                   @default(0)
+  badgeReward           String?
+  rewardDescription     String?
+
+  // Settings
+  maxParticipants       Int?                  // Null = unlimited
+  isPublic              Boolean               @default(true)
+  requiresApproval      Boolean               @default(false)
+
+  // Creator
+  createdById           String
+  organizationId        String?               // For org-specific challenges
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  createdBy             User                  @relation("ChallengesCreated", fields: [createdById], references: [id], onDelete: Cascade)
+  participants          PracticeChallengeParticipant[]
+
+  @@index([status])
+  @@index([challengeType])
+  @@index([startsAt, endsAt])
+  @@index([skillId])
+  @@index([createdById])
+  @@map("practice_challenges")
+}
+
+// ==========================================
+// Practice Challenge Participant Model
+// ==========================================
+
+model PracticeChallengeParticipant {
+  id                    String                @id @default(cuid())
+  challengeId           String
+  userId                String
+
+  // Progress
+  hoursCompleted        Float                 @default(0)
+  qualityHoursCompleted Float                 @default(0)
+  sessionsCompleted     Int                   @default(0)
+  currentStreak         Int                   @default(0)
+
+  // Status
+  joinedAt              DateTime              @default(now())
+  completedAt           DateTime?             // When goal was achieved
+  rank                  Int?                  // Current rank in challenge
+
+  // Rewards
+  rewardClaimed         Boolean               @default(false)
+  rewardClaimedAt       DateTime?
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  challenge             PracticeChallenge     @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user                  User                  @relation("ChallengeParticipations", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([challengeId])
+  @@index([userId])
+  @@index([rank])
+  @@map("practice_challenge_participants")
+}
+
+// ==========================================
+// Practice Leaderboard Model (Cached)
+// ==========================================
+
+model PracticeLeaderboard {
+  id                    String                @id @default(cuid())
+  userId                String
+
+  // Scope
+  scope                 LeaderboardScope      @default(GLOBAL)
+  scopeId               String?               // skillId, courseId, orgId, etc.
+  timeframe             LeaderboardTimeframe  @default(WEEKLY)
+  periodStart           DateTime              @db.Date // Start of period (week, month, etc.)
+
+  // Stats for Period
+  totalHours            Float                 @default(0)
+  qualityHours          Float                 @default(0)
+  sessionsCount         Int                   @default(0)
+  avgQualityMultiplier  Float                 @default(1.0)
+  streakDays            Int                   @default(0)
+
+  // Ranking
+  rank                  Int?
+  previousRank          Int?                  // Last period's rank
+  rankChange            Int?                  // Positive = moved up
+
+  // Percentile
+  percentile            Float?                // Top X%
+
+  // Display Info (denormalized)
+  userName              String?
+  userAvatar            String?
+
+  // Last Calculated
+  lastCalculatedAt      DateTime              @default(now())
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  user                  User                  @relation("UserPracticeLeaderboards", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scope, scopeId, timeframe, periodStart])
+  @@index([scope, scopeId, timeframe, periodStart])
+  @@index([rank])
+  @@index([qualityHours])
+  @@map("practice_leaderboards")
+}
+
+// ==========================================
+// Daily Practice Log Model (Heatmap Data)
+// ==========================================
+
+model DailyPracticeLog {
+  id                    String                @id @default(cuid())
+  userId                String
+  date                  DateTime              @db.Date // The day
+
+  // Daily Totals
+  totalMinutes          Int                   @default(0) // Raw minutes practiced
+  totalHours            Float                 @default(0) // totalMinutes / 60
+  qualityHours          Float                 @default(0) // Quality-adjusted
+  sessionsCount         Int                   @default(0) // Number of sessions
+
+  // Session Types Count
+  deliberateSessions    Int                   @default(0)
+  pomodoroSessions      Int                   @default(0)
+  guidedSessions        Int                   @default(0)
+  assessmentSessions    Int                   @default(0)
+  casualSessions        Int                   @default(0)
+  reviewSessions        Int                   @default(0)
+
+  // Quality Metrics
+  avgFocusLevel         Float                 @default(3.0) // 1-5 scale
+  avgQualityMultiplier  Float                 @default(1.0)
+  pomodorosCompleted    Int                   @default(0)
+
+  // Skills Practiced (JSON array of skillIds)
+  skillsPracticed       String[]              @default([])
+  primarySkillId        String?               // Most practiced skill
+
+  // Heatmap Intensity (0-4 scale like GitHub)
+  // 0: No activity, 1: 1-30min, 2: 30-60min, 3: 60-120min, 4: 120+min
+  intensityLevel        Int                   @default(0)
+
+  // Streak Info
+  contributesToStreak   Boolean               @default(false) // Met daily goal
+  streakDayNumber       Int?                  // Which day of streak this is
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  user                  User                  @relation("UserDailyPracticeLogs", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@index([date])
+  @@index([intensityLevel])
+  @@map("daily_practice_logs")
+}

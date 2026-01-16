@@ -137,7 +137,7 @@ export const OptimizedImage = forwardRef<HTMLImageElement, OptimizedImageProps>(
   style,
   onLoad,
   onError,
-  fallbackSrc = '/images/placeholder.jpg',
+  fallbackSrc = '/images/placeholder.svg',
   loading = 'lazy',
   ...props
 }, ref) => {

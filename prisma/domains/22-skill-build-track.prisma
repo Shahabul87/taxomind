@@ -126,6 +126,10 @@ model SkillBuildDefinition {
   profiles            SkillBuildProfile[]
   benchmarks          SkillBuildBenchmarkData[]
 
+  // Phase 7: 10,000 Hour Practice Tracking Relations
+  practiceSessions    PracticeSession[]           @relation("SkillPracticeSessions")
+  skillMastery10K     SkillMastery10K[]           @relation("SkillMastery10KDefinition")
+
   @@index([category])
   @@index([parentId])
   @@index([demandLevel])

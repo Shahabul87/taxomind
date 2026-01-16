@@ -142,6 +142,9 @@ model Course {
   samLearningEvents        SAMLearningEvent[]      @relation("SAMLearningEventCourses")
   samJourneyTimelines      SAMJourneyTimeline[]    @relation("SAMJourneyTimelineCourses")
 
+  // Phase 7: 10,000 Hour Practice Tracking Relations
+  practiceSessions         PracticeSession[]       @relation("CoursePracticeSessions")
+
   @@index([categoryId])
   @@index([organizationId])
 }

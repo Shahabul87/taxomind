@@ -8,14 +8,15 @@
  * shared courses, learning goals, and availability.
  *
  * Features:
- * - Real-time presence awareness
+ * - Real-time presence awareness with auto-refresh
  * - Course/topic matching
  * - Availability indicators
  * - Quick connect actions
  * - Compatibility scoring
+ * - Integration with PresenceTrackingProvider for live updates
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Card,
@@ -59,7 +60,10 @@ import {
   CheckCircle2,
   Circle,
   Zap,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
+import { usePresenceTrackingOptional } from './presence';
 
 // ============================================================================
 // TYPES
@@ -92,6 +96,10 @@ export interface StudyBuddyFinderProps {
   minCompatibility?: number;
   /** Compact mode */
   compact?: boolean;
+  /** Auto-refresh interval in milliseconds (default: 30000 = 30 sec, 0 to disable) */
+  autoRefreshInterval?: number;
+  /** Show real-time connection indicator */
+  showConnectionStatus?: boolean;
   /** On buddy click callback */
   onBuddyClick?: (buddy: StudyBuddy) => void;
   /** On connect click callback */
@@ -378,6 +386,8 @@ export function StudyBuddyFinder({
   statusFilter = 'all',
   minCompatibility = 0,
   compact = false,
+  autoRefreshInterval = 30000, // 30 seconds default
+  showConnectionStatus = true,
   onBuddyClick,
   onConnect,
   onMessage,
@@ -387,9 +397,17 @@ export function StudyBuddyFinder({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<BuddyStatus | 'all'>(statusFilter);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchBuddies = useCallback(async () => {
-    setIsLoading(true);
+  // Get presence context (optional - works even without PresenceTrackingProvider)
+  const presence = usePresenceTrackingOptional();
+  const isConnected = presence?.status !== undefined && presence.status !== 'offline';
+
+  const fetchBuddies = useCallback(async (silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+    }
     setError(null);
 
     try {
@@ -410,17 +428,45 @@ export function StudyBuddyFinder({
       } else {
         setBuddies([]);
       }
+      setLastRefresh(new Date());
     } catch (err) {
       console.error('[StudyBuddyFinder] Fetch error:', err);
-      setError('Failed to load study buddies');
+      if (!silent) {
+        setError('Failed to load study buddies');
+      }
     } finally {
       setIsLoading(false);
     }
   }, [limit, filter, minCompatibility]);
 
+  // Initial fetch
   useEffect(() => {
     fetchBuddies();
   }, [fetchBuddies]);
+
+  // Auto-refresh interval
+  useEffect(() => {
+    if (autoRefreshInterval <= 0) return;
+
+    refreshIntervalRef.current = setInterval(() => {
+      fetchBuddies(true); // Silent refresh
+    }, autoRefreshInterval);
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [autoRefreshInterval, fetchBuddies]);
+
+  // Refresh when presence changes (user comes online)
+  useEffect(() => {
+    if (presence?.status === 'online' || presence?.status === 'studying') {
+      // Small delay to allow server to sync
+      const timeout = setTimeout(() => fetchBuddies(true), 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [presence?.status, fetchBuddies]);
 
   const filteredBuddies = useMemo(() => {
     let result = buddies;
@@ -462,11 +508,46 @@ export function StudyBuddyFinder({
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-indigo-500" />
             <CardTitle className="text-base">Study Buddies</CardTitle>
+            {showConnectionStatus && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn(
+                      'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs',
+                      isConnected
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                    )}>
+                      {isConnected ? (
+                        <Wifi className="h-3 w-3" />
+                      ) : (
+                        <WifiOff className="h-3 w-3" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {isConnected ? 'Live' : 'Offline'}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {isConnected
+                        ? 'Real-time updates active'
+                        : 'Updates via polling'}
+                    </p>
+                    {lastRefresh && (
+                      <p className="text-xs text-muted-foreground">
+                        Last updated: {formatLastActive(lastRefresh.toISOString())}
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
           <Button
             variant="ghost"
             size="icon"
-            onClick={fetchBuddies}
+            onClick={() => fetchBuddies()}
             disabled={isLoading}
             className="h-8 w-8"
           >
@@ -479,6 +560,11 @@ export function StudyBuddyFinder({
         </div>
         <CardDescription>
           {stats.online} online • {stats.highMatch} high matches
+          {autoRefreshInterval > 0 && (
+            <span className="text-xs text-muted-foreground ml-2">
+              (auto-refresh {Math.round(autoRefreshInterval / 1000)}s)
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
 
@@ -514,7 +600,7 @@ export function StudyBuddyFinder({
           <div className="text-center py-6">
             <Users className="h-8 w-8 mx-auto text-amber-500 mb-2" />
             <p className="text-sm text-muted-foreground">{error}</p>
-            <Button variant="ghost" size="sm" onClick={fetchBuddies} className="mt-2">
+            <Button variant="ghost" size="sm" onClick={() => fetchBuddies()} className="mt-2">
               Try Again
             </Button>
           </div>

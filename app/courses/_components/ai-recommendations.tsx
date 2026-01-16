@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,23 +10,27 @@ import {
   Target,
   Brain,
   ChevronRight,
-  ChevronLeft,
   X,
-  BookOpen,
   Clock,
   Users,
   Star,
   Zap,
   RefreshCw,
   Loader2,
+  GraduationCap,
 } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/format";
 
@@ -41,24 +45,40 @@ interface RecommendedCourse {
   price: number;
   originalPrice?: number;
   rating: number;
+  reviewsCount: number;
   enrolledCount: number;
   duration: number;
   difficulty: string;
+  category: {
+    id: string;
+    name: string;
+  };
   instructor: {
+    id: string;
     name: string;
     avatar?: string;
   };
   matchScore: number; // 0-100 percentage match
   reason: string;
+  recommendationType: "personalized" | "similar" | "trending" | "next-step";
   tags: string[];
 }
 
 interface RecommendationSection {
+  type: "personalized" | "similar" | "trending" | "next-step";
   title: string;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  type: "similar" | "next-step" | "popular" | "personalized" | "trending";
   courses: RecommendedCourse[];
+}
+
+interface APIRecommendationResponse {
+  success: boolean;
+  data: {
+    sections: RecommendationSection[];
+    generatedAt: string;
+    userId: string;
+  };
+  error?: string;
 }
 
 interface AIRecommendationsProps {
@@ -69,24 +89,33 @@ interface AIRecommendationsProps {
   className?: string;
 }
 
+// Type icon mapping
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  personalized: Sparkles,
+  "next-step": Target,
+  similar: Brain,
+  trending: TrendingUp,
+};
+
 export function AIRecommendations({
   userId,
-  currentCourseId,
-  userInterests = [],
-  completedCourses = [],
   className
 }: AIRecommendationsProps) {
   const [activeTab, setActiveTab] = useState("for-you");
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-  const [recommendations, setRecommendations] = useState<RecommendationSection[]>([]);
+  const [sections, setSections] = useState<RecommendationSection[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
-  // Use SAM AI recommendations hook
+  // Use ref to prevent infinite loops
+  const isFetchingRef = useRef(false);
+
+  // Use SAM AI recommendations hook for learning insights
   const {
     recommendations: samRecommendations,
     isLoading: isSAMLoading,
-    error: samError,
     refresh: refreshSAMRecommendations,
-    generatedAt,
     context: samContext,
   } = useRecommendations({
     availableTime: 60,
@@ -94,144 +123,57 @@ export function AIRecommendations({
     autoFetch: true,
   });
 
-  // Local course recommendations loading
-  const [isCoursesLoading, setIsCoursesLoading] = useState(true);
+  // Fetch real course recommendations from API
+  const fetchRecommendations = useCallback(async (silent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
 
-  const isLoading = isSAMLoading || isCoursesLoading;
+    if (!silent) {
+      setIsLoading(true);
+      setError(null);
+    }
 
-  // Fetch course-based recommendations (uses mock for now, would integrate with SAM course recommendations API)
-  const fetchRecommendations = useCallback(async () => {
-    setIsCoursesLoading(true);
     try {
-      // Integrate SAM recommendations with course data
-      // Transform SAM learning recommendations into course recommendations
-      const samBasedCourses = samRecommendations
-        .filter((rec) => rec.type === 'content' || rec.type === 'practice')
-        .map((rec) => ({
-          id: rec.id,
-          title: rec.title,
-          description: rec.description,
-          imageUrl: `/placeholder.svg`,
-          price: 0,
-          originalPrice: undefined,
-          rating: 4.5,
-          enrolledCount: 1000,
-          duration: rec.estimatedMinutes,
-          difficulty: rec.metadata?.difficulty || 'Intermediate',
-          instructor: { name: 'SAM AI Recommended' },
-          matchScore: Math.round((rec.metadata?.confidence ?? 0.8) * 100),
-          reason: rec.reason,
-          tags: rec.priority === 'high' ? ['SAM Recommended'] : [],
-        }));
+      const response = await fetch('/api/sam/courses/recommendations?limit=8&type=all');
+      const result: APIRecommendationResponse = await response.json();
 
-      // Generate section recommendations with SAM data when available
-      const recommendationSections: RecommendationSection[] = [
-        {
-          title: "SAM AI Personalized",
-          description: "Based on your learning patterns and goals",
-          icon: Sparkles,
-          type: "personalized",
-          courses: samBasedCourses.length > 0 ? samBasedCourses.slice(0, 4) : generateMockCourses(4, "personalized")
-        },
-        {
-          title: "Next Steps in Your Journey",
-          description: "Continue building on what you&apos;ve learned",
-          icon: Target,
-          type: "next-step",
-          courses: generateMockCourses(3, "next-step")
-        },
-        {
-          title: "Similar Courses",
-          description: "Courses similar to what you&apos;re currently learning",
-          icon: Brain,
-          type: "similar",
-          courses: generateMockCourses(4, "similar")
-        },
-        {
-          title: "Trending Now",
-          description: "Popular courses other learners are taking",
-          icon: TrendingUp,
-          type: "trending",
-          courses: generateMockCourses(4, "trending")
-        }
-      ];
-
-      setRecommendations(recommendationSections);
-    } catch (error) {
-      console.error("Error fetching recommendations:", error);
+      if (result.success && result.data) {
+        setSections(result.data.sections);
+        setGeneratedAt(result.data.generatedAt);
+      } else {
+        setError(result.error || 'Failed to fetch recommendations');
+      }
+    } catch (err) {
+      console.error("Error fetching course recommendations:", err);
+      setError('Failed to load recommendations');
     } finally {
-      setIsCoursesLoading(false);
+      setIsLoading(false);
+      isFetchingRef.current = false;
     }
-  }, [samRecommendations]);
+  }, []);
 
+  // Initial fetch
   useEffect(() => {
-    fetchRecommendations();
-  }, [fetchRecommendations]);
-
-  const handleDismiss = (courseId: string) => {
-    setDismissedIds(new Set([...dismissedIds, courseId]));
-    // In production, you'd also call an API to record this dismissal
-  };
-
-  const generateMockCourses = (count: number, type: string): RecommendedCourse[] => {
-    const courses: RecommendedCourse[] = [];
-    const reasons = {
-      personalized: [
-        "Matches your interest in web development",
-        "Based on your previous React courses",
-        "Recommended for your skill level",
-        "Popular among similar learners"
-      ],
-      "next-step": [
-        "Natural progression from your last course",
-        "Builds on your existing knowledge",
-        "Completes your learning path",
-        "Advanced concepts you&apos;re ready for"
-      ],
-      similar: [
-        "Similar to courses you&apos;ve enjoyed",
-        "Same instructor as your favorite course",
-        "Covers related topics",
-        "Similar teaching style"
-      ],
-      trending: [
-        "Trending in your field",
-        "High enrollment this week",
-        "Recently updated content",
-        "Industry demanded skills"
-      ]
-    };
-
-    for (let i = 0; i < count; i++) {
-      courses.push({
-        id: `${type}-${i}`,
-        title: `${type === "next-step" ? "Advanced" : type === "similar" ? "Alternative" : "Popular"} ${["React", "Node.js", "Python", "Data Science"][i % 4]} Course`,
-        description: "Master advanced concepts and build real-world projects with industry best practices.",
-        imageUrl: `data:image/svg+xml;base64,${btoa(`<svg width="400" height="225" xmlns="http://www.w3.org/2000/svg"><rect fill="${["#3B82F6", "#8B5CF6", "#10B981", "#F59E0B"][i % 4]}" width="400" height="225"/><text x="50%" y="50%" text-anchor="middle" fill="white" font-size="20" font-family="Arial">Course ${i + 1}</text></svg>`)}`,
-        price: Math.floor(Math.random() * 100) + 50,
-        originalPrice: Math.floor(Math.random() * 50) + 150,
-        rating: 4 + Math.random(),
-        enrolledCount: Math.floor(Math.random() * 5000) + 1000,
-        duration: Math.floor(Math.random() * 20) + 5,
-        difficulty: ["Beginner", "Intermediate", "Advanced"][Math.floor(Math.random() * 3)],
-        instructor: {
-          name: ["Dr. Sarah Johnson", "Prof. Michael Chen", "Emma Wilson", "John Davis"][i % 4],
-          avatar: undefined
-        },
-        matchScore: Math.floor(Math.random() * 30) + 70,
-        reason: reasons[type as keyof typeof reasons][i % 4],
-        tags: ["Bestseller", "Updated", "Hot", "New"].slice(0, Math.floor(Math.random() * 2) + 1)
-      });
+    if (userId) {
+      fetchRecommendations();
     }
+  }, [userId, fetchRecommendations]);
 
-    return courses;
-  };
+  const handleDismiss = useCallback((courseId: string) => {
+    setDismissedIds(prev => new Set([...prev, courseId]));
+    // In production, you'd also call an API to record this dismissal
+  }, []);
 
-  const RecommendationCard = ({ course, type }: { course: RecommendedCourse; type: string }) => {
+  const handleRefresh = useCallback(() => {
+    refreshSAMRecommendations();
+    fetchRecommendations();
+  }, [refreshSAMRecommendations, fetchRecommendations]);
+
+  const RecommendationCard = ({ course }: { course: RecommendedCourse }) => {
     const isDismissed = dismissedIds.has(course.id);
 
     // Ensure image URL uses HTTPS for Next.js Image component
-    const secureImageUrl = course.imageUrl?.replace(/^http:\/\//i, 'https://') || null;
+    const secureImageUrl = course.imageUrl?.replace(/^http:\/\//i, 'https://') || '/placeholder.svg';
 
     if (isDismissed) return null;
 
@@ -243,91 +185,161 @@ export function AIRecommendations({
         whileHover={{ y: -5 }}
         transition={{ duration: 0.3 }}
       >
-        <Card className="h-full hover:shadow-lg transition-shadow relative group">
+        <Card className="h-full hover:shadow-lg transition-shadow relative group overflow-hidden">
           {/* Dismiss Button */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={() => handleDismiss(course.id)}
+            className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 hover:bg-black/40"
+            onClick={(e) => {
+              e.preventDefault();
+              handleDismiss(course.id);
+            }}
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-white" />
           </Button>
 
           {/* Match Score Badge */}
           {course.matchScore >= 80 && (
-            <Badge className="absolute top-2 left-2 z-10 bg-gradient-to-r from-purple-500 to-pink-500">
+            <Badge className="absolute top-2 left-2 z-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
               <Zap className="h-3 w-3 mr-1" />
               {course.matchScore}% Match
             </Badge>
           )}
 
-          {secureImageUrl && (
-            <div className="relative h-40 w-full overflow-hidden rounded-t-lg">
-              <Image
-                src={secureImageUrl}
-                alt={course.title}
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="relative h-40 w-full overflow-hidden">
+            <Image
+              src={secureImageUrl}
+              alt={course.title}
+              fill
+              className="object-cover transition-transform group-hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.src = '/placeholder.svg';
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
-              {/* Tags */}
-              <div className="absolute bottom-2 left-2 flex gap-1">
-                {course.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+            {/* Tags */}
+            <div className="absolute bottom-2 left-2 flex gap-1">
+              {course.tags.map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className={cn(
+                    "text-xs backdrop-blur-sm",
+                    tag === "Hot" && "bg-orange-500/90 text-white",
+                    tag === "Trending" && "bg-blue-500/90 text-white",
+                    tag === "Top Rated" && "bg-amber-500/90 text-white",
+                    tag === "Level Up" && "bg-green-500/90 text-white"
+                  )}
+                >
+                  {tag}
+                </Badge>
+              ))}
             </div>
-          )}
+
+            {/* Category Badge */}
+            {course.category?.name && (
+              <div className="absolute top-2 right-12 z-10">
+                <Badge variant="outline" className="bg-white/80 backdrop-blur-sm text-xs">
+                  {course.category.name}
+                </Badge>
+              </div>
+            )}
+          </div>
 
           <CardContent className="p-4">
-            <h4 className="font-semibold text-base mb-1 line-clamp-2">{course.title}</h4>
+            <h4 className="font-semibold text-base mb-1 line-clamp-2 group-hover:text-blue-600 transition-colors">
+              {course.title}
+            </h4>
+
+            {/* Instructor */}
+            {course.instructor?.name && (
+              <div className="flex items-center gap-2 mb-2">
+                {course.instructor.avatar ? (
+                  <div className="relative w-5 h-5 rounded-full overflow-hidden">
+                    <Image
+                      src={course.instructor.avatar}
+                      alt={course.instructor.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                    <span className="text-white text-[10px] font-bold">
+                      {course.instructor.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <span className="text-xs text-muted-foreground truncate">
+                  {course.instructor.name}
+                </span>
+              </div>
+            )}
 
             {/* Reason for recommendation */}
-            <p className="text-xs text-muted-foreground mb-2 italic">
-              {course.reason}
-            </p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mb-2 italic line-clamp-1 cursor-help">
+                    <Sparkles className="h-3 w-3 inline mr-1" />
+                    {course.reason}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">{course.reason}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
               <div className="flex items-center gap-1">
                 <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                 <span>{course.rating.toFixed(1)}</span>
+                {course.reviewsCount > 0 && (
+                  <span className="text-gray-400">({course.reviewsCount})</span>
+                )}
               </div>
               <span>•</span>
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3" />
                 <span>{course.enrolledCount.toLocaleString()}</span>
               </div>
-              <span>•</span>
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>{course.duration}h</span>
-              </div>
+              {course.duration > 0 && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{course.duration}h</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="flex items-center justify-between mb-3">
               <div>
                 {course.originalPrice && course.originalPrice > course.price ? (
                   <div className="flex items-center gap-2">
-                    <span className="font-bold">{formatPrice(course.price)}</span>
+                    <span className="font-bold text-green-600">{formatPrice(course.price)}</span>
                     <span className="text-xs line-through text-muted-foreground">
                       {formatPrice(course.originalPrice)}
                     </span>
                   </div>
+                ) : course.price === 0 ? (
+                  <span className="font-bold text-green-600">Free</span>
                 ) : (
                   <span className="font-bold">{formatPrice(course.price)}</span>
                 )}
               </div>
               <Badge variant="outline" className="text-xs">
+                <GraduationCap className="h-3 w-3 mr-1" />
                 {course.difficulty}
               </Badge>
             </div>
 
             <Link href={`/courses/${course.id}`}>
-              <Button className="w-full" size="sm">
+              <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" size="sm">
                 View Course
                 <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
@@ -338,32 +350,91 @@ export function AIRecommendations({
     );
   };
 
-  if (isLoading) {
+  // Loading state
+  if (isLoading && sections.length === 0) {
     return (
       <div className={cn("space-y-6", className)}>
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="h-5 w-5 text-purple-500" />
+          <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+            <Sparkles className="h-5 w-5 text-white" />
+          </div>
           <h2 className="text-2xl font-bold">AI-Powered Recommendations</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-80" />
+            <Skeleton key={i} className="h-96 rounded-lg" />
           ))}
         </div>
       </div>
     );
   }
 
+  // Error state
+  if (error && sections.length === 0) {
+    return (
+      <div className={cn("space-y-6", className)}>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Sparkles className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={() => fetchRecommendations()} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state (no recommendations)
+  if (sections.length === 0) {
+    return (
+      <div className={cn("space-y-6", className)}>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Sparkles className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">
+              Start exploring courses to get personalized recommendations
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Helper to get icon for section type
+  const getSectionIcon = (type: string) => {
+    const Icon = TYPE_ICONS[type] || Sparkles;
+    return Icon;
+  };
+
+  // Helper to get icon color for section type
+  const getIconColor = (type: string) => {
+    switch (type) {
+      case "personalized":
+        return "text-purple-500";
+      case "next-step":
+        return "text-green-500";
+      case "trending":
+        return "text-orange-500";
+      case "similar":
+        return "text-blue-500";
+      default:
+        return "text-purple-500";
+    }
+  };
+
   return (
     <div className={cn("space-y-6", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold">AI-Powered Recommendations</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">AI-Powered Recommendations</h2>
             <p className="text-sm text-muted-foreground">
               Personalized courses based on your learning journey
             </p>
@@ -371,16 +442,14 @@ export function AIRecommendations({
         </div>
         <Button
           variant="outline"
-          onClick={() => {
-            refreshSAMRecommendations();
-            fetchRecommendations();
-          }}
+          onClick={handleRefresh}
           disabled={isLoading}
+          className="gap-2"
         >
           {isLoading ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <RefreshCw className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4" />
           )}
           Refresh
         </Button>
@@ -388,7 +457,7 @@ export function AIRecommendations({
 
       {/* SAM AI Status */}
       {generatedAt && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg px-3 py-2 border border-purple-200 dark:border-purple-800">
           <Sparkles className="h-3 w-3 text-purple-500" />
           <span>
             SAM AI recommendations generated{" "}
@@ -402,90 +471,130 @@ export function AIRecommendations({
               </span>
             </>
           )}
+          <span>•</span>
+          <span className="text-purple-600 dark:text-purple-400">
+            {sections.reduce((sum, s) => sum + s.courses.length, 0)} courses recommended
+          </span>
         </div>
       )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="for-you">For You</TabsTrigger>
-          <TabsTrigger value="next-steps">Next Steps</TabsTrigger>
-          <TabsTrigger value="trending">Trending</TabsTrigger>
+          <TabsTrigger value="for-you" className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">For You</span>
+          </TabsTrigger>
+          <TabsTrigger value="next-steps" className="gap-2">
+            <Target className="h-4 w-4" />
+            <span className="hidden sm:inline">Next Steps</span>
+          </TabsTrigger>
+          <TabsTrigger value="trending" className="gap-2">
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Trending</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="for-you" className="space-y-6 mt-6">
-          {recommendations
+        <TabsContent value="for-you" className="space-y-8 mt-6">
+          {sections
             .filter((section) => section.type === "personalized" || section.type === "similar")
-            .map((section) => (
-              <div key={section.type}>
-                <div className="flex items-center gap-2 mb-4">
-                  <section.icon className="h-5 w-5 text-purple-500" />
-                  <h3 className="text-lg font-semibold">{section.title}</h3>
+            .map((section) => {
+              const Icon = getSectionIcon(section.type);
+              const iconColor = getIconColor(section.type);
+              return (
+                <div key={section.type}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon className={cn("h-5 w-5", iconColor)} />
+                    <h3 className="text-lg font-semibold">{section.title}</h3>
+                    <Badge variant="secondary" className="ml-2">
+                      {section.courses.length} courses
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <AnimatePresence>
+                      {section.courses.map((course) => (
+                        <RecommendationCard key={course.id} course={course} />
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <AnimatePresence>
-                    {section.courses.map((course) => (
-                      <RecommendationCard
-                        key={course.id}
-                        course={course}
-                        type={section.type}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+          {sections.filter((s) => s.type === "personalized" || s.type === "similar").length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Brain className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Enroll in some courses to get personalized recommendations</p>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="next-steps" className="space-y-6 mt-6">
-          {recommendations
+        <TabsContent value="next-steps" className="space-y-8 mt-6">
+          {sections
             .filter((section) => section.type === "next-step")
-            .map((section) => (
-              <div key={section.type}>
-                <div className="flex items-center gap-2 mb-4">
-                  <section.icon className="h-5 w-5 text-green-500" />
-                  <h3 className="text-lg font-semibold">{section.title}</h3>
+            .map((section) => {
+              const Icon = getSectionIcon(section.type);
+              const iconColor = getIconColor(section.type);
+              return (
+                <div key={section.type}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon className={cn("h-5 w-5", iconColor)} />
+                    <h3 className="text-lg font-semibold">{section.title}</h3>
+                    <Badge variant="secondary" className="ml-2">
+                      {section.courses.length} courses
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <AnimatePresence>
+                      {section.courses.map((course) => (
+                        <RecommendationCard key={course.id} course={course} />
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <AnimatePresence>
-                    {section.courses.map((course) => (
-                      <RecommendationCard
-                        key={course.id}
-                        course={course}
-                        type={section.type}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+          {sections.filter((s) => s.type === "next-step").length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>Complete some courses to get next-step recommendations</p>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="trending" className="space-y-6 mt-6">
-          {recommendations
-            .filter((section) => section.type === "trending" || section.type === "popular")
-            .map((section) => (
-              <div key={section.type}>
-                <div className="flex items-center gap-2 mb-4">
-                  <section.icon className="h-5 w-5 text-orange-500" />
-                  <h3 className="text-lg font-semibold">{section.title}</h3>
+        <TabsContent value="trending" className="space-y-8 mt-6">
+          {sections
+            .filter((section) => section.type === "trending")
+            .map((section) => {
+              const Icon = getSectionIcon(section.type);
+              const iconColor = getIconColor(section.type);
+              return (
+                <div key={section.type}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon className={cn("h-5 w-5", iconColor)} />
+                    <h3 className="text-lg font-semibold">{section.title}</h3>
+                    <Badge variant="secondary" className="ml-2">
+                      {section.courses.length} courses
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <AnimatePresence>
+                      {section.courses.map((course) => (
+                        <RecommendationCard key={course.id} course={course} />
+                      ))}
+                    </AnimatePresence>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">{section.description}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <AnimatePresence>
-                    {section.courses.map((course) => (
-                      <RecommendationCard
-                        key={course.id}
-                        course={course}
-                        type={section.type}
-                      />
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
-            ))}
+              );
+            })}
+          {sections.filter((s) => s.type === "trending").length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No trending courses available right now</p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

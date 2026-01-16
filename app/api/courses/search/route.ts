@@ -263,7 +263,7 @@ export async function GET(request: NextRequest) {
         title: course.title,
         subtitle: course.subtitle,
         description: course.description || "",
-        imageUrl: course.imageUrl || "/images/course-placeholder.jpg",
+        imageUrl: course.imageUrl || "/images/course-placeholder.svg",
         price: course.price || 0,
         originalPrice: course.originalPrice,
         category: {

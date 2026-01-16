@@ -7,6 +7,9 @@ import { GroupContent } from "./_components/group-content";
 import Link from "next/link";
 import { ArrowLeft, Users, ChevronRight, Bell, MessageCircle, Calendar, BookOpen, Settings } from "lucide-react";
 
+// SAM AI Study Buddy Integration
+import { StudyBuddyFinder } from "@/components/sam/StudyBuddyFinder";
+
 interface GroupPageProps {
   params: Promise<{
     groupId: string;
@@ -174,7 +177,7 @@ export default async function GroupPage(props: GroupPageProps) {
                 </h4>
                 <div className="space-y-1">
                   {userGroups.map((membership) => (
-                    <Link 
+                    <Link
                       key={membership.Group.id}
                       href={`/groups/${membership.Group.id}`}
                       className="flex items-center justify-between px-3 py-2 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -186,6 +189,20 @@ export default async function GroupPage(props: GroupPageProps) {
                 </div>
               </div>
             )}
+
+            {/* SAM AI Study Buddy Finder */}
+            <div className="mt-6 px-2">
+              <h4 className="px-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                Study Buddies
+              </h4>
+              <StudyBuddyFinder
+                limit={3}
+                compact={true}
+                minCompatibility={30}
+                showConnectionStatus={true}
+                autoRefreshInterval={120000}
+              />
+            </div>
           </nav>
         </aside>
         

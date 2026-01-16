@@ -46,6 +46,16 @@ export interface UserStats {
   totalStudyTime: number; // in minutes
   contentCreated: number;
   helpfulResponses: number;
+  // Phase 7: 10,000 Hour Practice Tracking Stats
+  practiceSessionsCompleted: number;
+  practiceRawHours: number;
+  practiceQualityHours: number;
+  practicePomodorosCompleted: number;
+  practiceDeliberateSessions: number;
+  practiceDeepFlowSessions: number;
+  practiceCurrentStreak: number;
+  practiceLongestStreak: number;
+  practiceSkillsTracked: number;
 }
 
 export interface XPEvent {
@@ -71,7 +81,20 @@ export type XPEventType =
   | 'daily_login'
   | 'weekly_goal'
   | 'blooms_level_up'
-  | 'mastery_achieved';
+  | 'mastery_achieved'
+  // Phase 7: 10,000 Hour Practice Tracking Events
+  | 'practice_session_completed'
+  | 'practice_streak_maintained'
+  | 'practice_pomodoro_completed'
+  | 'practice_deliberate_session'
+  | 'practice_deep_flow'
+  | 'practice_milestone_100h'
+  | 'practice_milestone_500h'
+  | 'practice_milestone_1000h'
+  | 'practice_milestone_2500h'
+  | 'practice_milestone_5000h'
+  | 'practice_milestone_7500h'
+  | 'practice_milestone_10000h';
 
 export interface LevelInfo {
   level: number;
@@ -101,6 +124,19 @@ export const XP_VALUES: Record<XPEventType, number> = {
   weekly_goal: 100,
   blooms_level_up: 35,
   mastery_achieved: 150,
+  // Phase 7: 10,000 Hour Practice Tracking XP Values
+  practice_session_completed: 15,
+  practice_streak_maintained: 25,
+  practice_pomodoro_completed: 20,
+  practice_deliberate_session: 30,
+  practice_deep_flow: 40,
+  practice_milestone_100h: 100,
+  practice_milestone_500h: 250,
+  practice_milestone_1000h: 500,
+  practice_milestone_2500h: 1000,
+  practice_milestone_5000h: 2500,
+  practice_milestone_7500h: 5000,
+  practice_milestone_10000h: 10000,
 };
 
 export const LEVELS: LevelInfo[] = [
@@ -148,6 +184,33 @@ export const ACHIEVEMENTS_CONFIG: Omit<Achievement, 'unlockedAt'>[] = [
   // Content Creation
   { id: 'content_creator', name: 'Content Creator', description: 'Generate content with SAM', icon: '✍️', rarity: 'common' },
   { id: 'prolific_creator', name: 'Prolific Creator', description: 'Generate 50 pieces of content', icon: '📝', rarity: 'rare' },
+
+  // Phase 7: 10,000 Hour Practice Achievements
+  // Practice Milestones
+  { id: 'practice_first_session', name: 'Practice Begins', description: 'Complete your first practice session', icon: '⏱️', rarity: 'common' },
+  { id: 'practice_century', name: 'Century', description: 'Achieve 100 quality hours in a skill', icon: '🎯', rarity: 'uncommon' },
+  { id: 'practice_five_hundred', name: 'Halfway Hero', description: 'Achieve 500 quality hours in a skill', icon: '⭐', rarity: 'rare' },
+  { id: 'practice_thousand', name: 'Thousand Hour Club', description: 'Achieve 1,000 quality hours in a skill', icon: '🔥', rarity: 'rare' },
+  { id: 'practice_twenty_five_hundred', name: 'Dedicated Practitioner', description: 'Achieve 2,500 quality hours in a skill', icon: '💎', rarity: 'epic' },
+  { id: 'practice_five_thousand', name: 'Expert Practitioner', description: 'Achieve 5,000 quality hours in a skill', icon: '🌟', rarity: 'epic' },
+  { id: 'practice_seventy_five_hundred', name: 'Near Master', description: 'Achieve 7,500 quality hours in a skill', icon: '👑', rarity: 'legendary' },
+  { id: 'practice_grand_master', name: 'Grand Master', description: 'Achieve 10,000 quality hours - True mastery!', icon: '🏆', rarity: 'legendary' },
+
+  // Practice Streaks
+  { id: 'practice_week_warrior', name: 'Week Warrior', description: 'Maintain a 7-day practice streak', icon: '🔥', rarity: 'uncommon' },
+  { id: 'practice_month_master', name: 'Month Master', description: 'Maintain a 30-day practice streak', icon: '💪', rarity: 'rare' },
+  { id: 'practice_quarter_champion', name: 'Quarter Champion', description: 'Maintain a 90-day practice streak', icon: '⚡', rarity: 'epic' },
+  { id: 'practice_year_legend', name: 'Year Legend', description: 'Maintain a 365-day practice streak', icon: '🌟', rarity: 'legendary' },
+
+  // Practice Quality
+  { id: 'practice_deep_focus', name: 'Deep Focus', description: 'Complete 10 deep flow practice sessions', icon: '🧘', rarity: 'uncommon' },
+  { id: 'practice_deliberate_master', name: 'Deliberate Master', description: 'Complete 50 deliberate practice sessions', icon: '🎯', rarity: 'rare' },
+  { id: 'practice_pomodoro_pro', name: 'Pomodoro Pro', description: 'Complete 100 Pomodoro sessions', icon: '🍅', rarity: 'rare' },
+  { id: 'practice_bloom_master', name: 'Bloom Master', description: 'Achieve CREATE level in 5 different skills', icon: '💡', rarity: 'epic' },
+
+  // Practice Variety
+  { id: 'practice_multi_skill', name: 'Multi-Skilled', description: 'Track practice in 5 different skills', icon: '📚', rarity: 'uncommon' },
+  { id: 'practice_polymath', name: 'Polymath', description: 'Track practice in 10 different skills', icon: '🧠', rarity: 'rare' },
 ];
 
 // ============================================================================
@@ -181,6 +244,16 @@ export class GamificationEngine {
         totalStudyTime: 0,
         contentCreated: 0,
         helpfulResponses: 0,
+        // Phase 7: 10,000 Hour Practice Tracking Stats Defaults
+        practiceSessionsCompleted: 0,
+        practiceRawHours: 0,
+        practiceQualityHours: 0,
+        practicePomodorosCompleted: 0,
+        practiceDeliberateSessions: 0,
+        practiceDeepFlowSessions: 0,
+        practiceCurrentStreak: 0,
+        practiceLongestStreak: 0,
+        practiceSkillsTracked: 0,
       },
     };
   }
@@ -333,6 +406,19 @@ export class GamificationEngine {
       weekly_goal: 'Weekly goal achieved!',
       blooms_level_up: 'Bloom\'s level increased',
       mastery_achieved: 'Mastery achieved!',
+      // Phase 7: 10,000 Hour Practice Tracking Descriptions
+      practice_session_completed: 'Practice session completed',
+      practice_streak_maintained: 'Practice streak maintained!',
+      practice_pomodoro_completed: 'Pomodoro session completed 🍅',
+      practice_deliberate_session: 'Deliberate practice completed',
+      practice_deep_flow: 'Deep flow state achieved!',
+      practice_milestone_100h: '100-hour milestone reached!',
+      practice_milestone_500h: '500-hour milestone reached!',
+      practice_milestone_1000h: '1,000-hour milestone reached!',
+      practice_milestone_2500h: '2,500-hour milestone reached!',
+      practice_milestone_5000h: '5,000-hour milestone reached!',
+      practice_milestone_7500h: '7,500-hour milestone reached!',
+      practice_milestone_10000h: '10,000 HOURS - MASTERY ACHIEVED! 🏆',
     };
     return descriptions[eventType];
   }
@@ -360,6 +446,20 @@ export class GamificationEngine {
       case 'content_created':
       case 'content_generated':
         this.progress.stats.contentCreated++;
+        break;
+      // Phase 7: 10,000 Hour Practice Tracking Stats Updates
+      case 'practice_session_completed':
+        this.progress.stats.practiceSessionsCompleted++;
+        break;
+      case 'practice_pomodoro_completed':
+        this.progress.stats.practicePomodorosCompleted++;
+        this.progress.stats.practiceSessionsCompleted++;
+        break;
+      case 'practice_deliberate_session':
+        this.progress.stats.practiceDeliberateSessions++;
+        break;
+      case 'practice_deep_flow':
+        this.progress.stats.practiceDeepFlowSessions++;
         break;
     }
   }
@@ -535,6 +635,66 @@ export function createGamificationHooks(engine: GamificationEngine) {
      * Subscribe to events
      */
     subscribe: (listener: (event: GamificationEvent) => void) => engine.subscribe(listener),
+
+    // ========================================================================
+    // Phase 7: 10,000 Hour Practice Tracking Hooks
+    // ========================================================================
+
+    /**
+     * Called when a practice session is completed
+     */
+    onPracticeSessionComplete: (metadata?: {
+      sessionType: string;
+      focusLevel: string;
+      rawHours: number;
+      qualityHours: number;
+    }) => {
+      engine.awardXP('practice_session_completed', metadata);
+
+      // Award bonus for deliberate practice
+      if (metadata?.sessionType === 'DELIBERATE') {
+        engine.awardXP('practice_deliberate_session', metadata);
+      }
+
+      // Award bonus for deep flow
+      if (metadata?.focusLevel === 'DEEP_FLOW') {
+        engine.awardXP('practice_deep_flow', metadata);
+      }
+    },
+
+    /**
+     * Called when a Pomodoro session is completed
+     */
+    onPomodoroComplete: (pomodoroNumber: number) => {
+      engine.awardXP('practice_pomodoro_completed', { pomodoroNumber });
+    },
+
+    /**
+     * Called when practice streak is maintained
+     */
+    onPracticeStreakMaintained: (streakDays: number) => {
+      engine.awardXP('practice_streak_maintained', { streakDays });
+    },
+
+    /**
+     * Called when a practice milestone is achieved
+     */
+    onPracticeMilestone: (hours: number, skillName?: string) => {
+      const milestoneMap: Record<number, XPEventType> = {
+        100: 'practice_milestone_100h',
+        500: 'practice_milestone_500h',
+        1000: 'practice_milestone_1000h',
+        2500: 'practice_milestone_2500h',
+        5000: 'practice_milestone_5000h',
+        7500: 'practice_milestone_7500h',
+        10000: 'practice_milestone_10000h',
+      };
+
+      const eventType = milestoneMap[hours];
+      if (eventType) {
+        engine.awardXP(eventType, { hours, skillName });
+      }
+    },
   };
 }
 

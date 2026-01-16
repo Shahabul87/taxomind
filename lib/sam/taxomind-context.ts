@@ -70,6 +70,11 @@ import {
   createPrismaPeerLearningStore,
   createPrismaIntegrityStore,
   createPrismaMultimodalStore,
+  // Phase 7: 10,000 Hour Practice Tracking Store Factories
+  createPrismaPracticeSessionStore,
+  createPrismaSkillMastery10KStore,
+  createPrismaPracticeLeaderboardStore,
+  createPrismaDailyPracticeLogStore,
 } from './stores';
 
 // Import adapter-prisma stores for observability, presence, student profile, review schedule, push queue
@@ -131,6 +136,11 @@ import type {
   PrismaPeerLearningStore,
   PrismaIntegrityStore,
   PrismaMultimodalStore,
+  // Phase 7: 10,000 Hour Practice Tracking Store Types
+  PrismaPracticeSessionStore,
+  PrismaSkillMastery10KStore,
+  PrismaPracticeLeaderboardStore,
+  PrismaDailyPracticeLogStore,
 } from './stores';
 
 // ============================================================================
@@ -224,6 +234,12 @@ export interface TaxomindAgenticStores {
   peerLearning: PrismaPeerLearningStore;
   integrity: PrismaIntegrityStore;
   multimodal: PrismaMultimodalStore;
+
+  // Phase 7: 10,000 Hour Practice Tracking Stores
+  practiceSession: PrismaPracticeSessionStore;
+  skillMastery10K: PrismaSkillMastery10KStore;
+  practiceLeaderboard: PrismaPracticeLeaderboardStore;
+  dailyPracticeLog: PrismaDailyPracticeLogStore;
 }
 
 /**
@@ -342,6 +358,12 @@ function initializeStores(): TaxomindAgenticStores {
     peerLearning: createPrismaPeerLearningStore(),
     integrity: createPrismaIntegrityStore(),
     multimodal: createPrismaMultimodalStore(),
+
+    // Phase 7: 10,000 Hour Practice Tracking Stores
+    practiceSession: createPrismaPracticeSessionStore(),
+    skillMastery10K: createPrismaSkillMastery10KStore(),
+    practiceLeaderboard: createPrismaPracticeLeaderboardStore(),
+    dailyPracticeLog: createPrismaDailyPracticeLogStore(),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {
@@ -628,6 +650,24 @@ export function getEducationalEngineStores(): {
   };
 }
 
+/**
+ * Get all practice tracking stores (Phase 7: 10,000 Hour Practice)
+ */
+export function getPracticeStores(): {
+  practiceSession: PrismaPracticeSessionStore;
+  skillMastery10K: PrismaSkillMastery10KStore;
+  practiceLeaderboard: PrismaPracticeLeaderboardStore;
+  dailyPracticeLog: PrismaDailyPracticeLogStore;
+} {
+  const { stores } = getTaxomindContext();
+  return {
+    practiceSession: stores.practiceSession,
+    skillMastery10K: stores.skillMastery10K,
+    practiceLeaderboard: stores.practiceLeaderboard,
+    dailyPracticeLog: stores.dailyPracticeLog,
+  };
+}
+
 // Re-export store types for external use
 export type {
   // From @sam-ai/agentic (interface types)
@@ -673,4 +713,9 @@ export type {
   PrismaPeerLearningStore,
   PrismaIntegrityStore,
   PrismaMultimodalStore,
+  // Phase 7: 10,000 Hour Practice Tracking Store Types
+  PrismaPracticeSessionStore,
+  PrismaSkillMastery10KStore,
+  PrismaPracticeLeaderboardStore,
+  PrismaDailyPracticeLogStore,
 };
