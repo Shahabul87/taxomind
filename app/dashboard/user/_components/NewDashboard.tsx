@@ -47,6 +47,9 @@ import { StudyBuddyFinder } from "@/components/sam/StudyBuddyFinder";
 import { CompetencyDashboard } from "@/components/sam/CompetencyDashboard";
 import { ConfidenceCalibrationWidget } from "@/components/sam/ConfidenceCalibrationWidget";
 
+// Cognitive Load Monitoring - Real-time mental workload tracking
+import { CognitiveLoadMonitor } from "@/components/sam/CognitiveLoadMonitor";
+
 // Additional SAM AI Widgets - Underutilized Engines Integration
 import { QualityScoreDashboard } from "@/components/sam/QualityScoreDashboard";
 import { KnowledgeGraphBrowser } from "@/components/sam/KnowledgeGraphBrowser";
@@ -216,8 +219,16 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             <LearningPathWidget />
           </div>
 
-          {/* Check-in History & Study Buddy Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Cognitive Load & Check-in History Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Cognitive Load Monitor - Real-time mental workload tracking */}
+            <CognitiveLoadMonitor
+              sessionId={`dashboard-${user.id}`}
+              autoRefresh={true}
+              refreshInterval={60000}
+              compact={false}
+            />
+
             {/* Recent Check-ins - Proactive System History */}
             <CheckInHistory limit={5} />
 
@@ -258,11 +269,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
 
           {/* Streak Display */}
           <div className="mb-6">
-            <PracticeStreakDisplay
-              currentStreak={0}
-              longestStreak={0}
-              variant="large"
-            />
+            <PracticeStreakDisplay variant="large" />
           </div>
 
           {/* Timer Section - Two Timers Side by Side */}
