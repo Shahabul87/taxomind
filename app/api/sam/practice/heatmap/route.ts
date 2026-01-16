@@ -39,22 +39,11 @@ export async function GET(req: NextRequest) {
 
     const currentYear = query.year ?? new Date().getFullYear();
 
-    // Get heatmap data
-    let heatmapData;
-    if (query.startDate && query.endDate) {
-      heatmapData = await dailyLogStore.getHeatmapData(
-        session.user.id,
-        new Date(query.startDate),
-        new Date(query.endDate)
-      );
-    } else {
-      // Default to full year
-      heatmapData = await dailyLogStore.getHeatmapData(
-        session.user.id,
-        new Date(currentYear, 0, 1),
-        new Date(currentYear, 11, 31)
-      );
-    }
+    // Get heatmap data - uses year, not date range
+    const heatmapData = await dailyLogStore.getHeatmapData(
+      session.user.id,
+      currentYear
+    );
 
     // Get yearly stats
     const yearlyStats = await dailyLogStore.getYearlyStats(session.user.id, currentYear);
@@ -62,8 +51,8 @@ export async function GET(req: NextRequest) {
     // Get weekly trend (last 12 weeks)
     const weeklyTrend = await dailyLogStore.getWeeklyTrend(session.user.id, 12);
 
-    // Get monthly trend for the year
-    const monthlyTrend = await dailyLogStore.getMonthlyTrend(session.user.id, currentYear);
+    // Get monthly trend for the last 12 months
+    const monthlyTrend = await dailyLogStore.getMonthlyTrend(session.user.id, 12);
 
     // Calculate streak info from daily logs
     const today = new Date();
@@ -83,7 +72,7 @@ export async function GET(req: NextRequest) {
       const dayDate = new Date(day.date);
       dayDate.setHours(0, 0, 0, 0);
 
-      if (day.totalQualityHours > 0) {
+      if (day.hours > 0) {
         if (!lastActiveDate) {
           lastActiveDate = dayDate;
           tempStreak = 1;
@@ -117,11 +106,11 @@ export async function GET(req: NextRequest) {
     longestStreak = Math.max(longestStreak, tempStreak);
 
     // Calculate intensity levels for the heatmap
-    const maxHours = Math.max(...heatmapData.map((d) => d.totalQualityHours), 1);
+    const maxHours = Math.max(...heatmapData.map((d) => d.hours), 1);
     const enrichedHeatmapData = heatmapData.map((day) => ({
       ...day,
-      intensity: getIntensityLevel(day.totalQualityHours, maxHours),
-      color: getIntensityColor(day.totalQualityHours, maxHours),
+      intensity: getIntensityLevel(day.hours, maxHours),
+      color: getIntensityColor(day.hours, maxHours),
     }));
 
     return NextResponse.json({
@@ -139,7 +128,7 @@ export async function GET(req: NextRequest) {
         metadata: {
           year: currentYear,
           totalDays: heatmapData.length,
-          activeDays: heatmapData.filter((d) => d.totalQualityHours > 0).length,
+          activeDays: heatmapData.filter((d) => d.hours > 0).length,
           maxHoursInDay: maxHours,
         },
       },

@@ -122,6 +122,8 @@ export function PresenceTrackingProvider({
     sectionId,
     pageUrl: typeof window !== 'undefined' ? window.location.href : undefined,
   });
+  // Track if initial sync has been done to prevent multiple syncs on mount
+  const hasInitialSyncRef = useRef(false);
 
   // Send activity to API
   const sendActivity = useCallback(async (activity: ActivityPayload) => {
@@ -180,52 +182,64 @@ export function PresenceTrackingProvider({
     },
   });
 
-  // Update location context
+  // Store presence in ref to prevent infinite loops (per CLAUDE.md guidelines)
+  // Presence object changes every render, so we access it via ref in callbacks
+  const presenceRef = useRef(presence);
+  presenceRef.current = presence;
+
+  // Update location context - stable callback using ref
   const updateLocation = useCallback((location: PresenceLocation) => {
     locationRef.current = {
       ...locationRef.current,
       ...location,
     };
 
-    // Update metadata with new location
-    presence.updateMetadata({
+    // Update metadata with new location via ref
+    presenceRef.current.updateMetadata({
       location: locationRef.current,
     });
-  }, [presence]);
+  }, []); // No dependencies - uses refs
 
-  // Set studying mode
+  // Set studying mode - stable callback using ref
   const setStudying = useCallback(() => {
-    presence.setStatus('studying');
-  }, [presence]);
+    presenceRef.current.setStatus('studying');
+  }, []); // No dependencies - uses ref
 
-  // Set break mode
+  // Set break mode - stable callback using ref
   const setOnBreak = useCallback(() => {
-    presence.setStatus('on_break');
-  }, [presence]);
+    presenceRef.current.setStatus('on_break');
+  }, []); // No dependencies - uses ref
 
-  // Resume normal online status
+  // Resume normal online status - stable callback using ref
   const resume = useCallback(() => {
-    presence.setStatus('online');
-  }, [presence]);
+    presenceRef.current.setStatus('online');
+  }, []); // No dependencies - uses ref
 
   // Sync presence to API periodically
   useEffect(() => {
     if (!session?.user?.id || sessionStatus !== 'authenticated') return;
 
     const syncPresence = async () => {
+      // Prevent multiple initial syncs
+      if (!hasInitialSyncRef.current) {
+        hasInitialSyncRef.current = true;
+      }
+
       const now = new Date();
       if (lastSyncRef.current && now.getTime() - lastSyncRef.current.getTime() < syncInterval / 2) {
         return; // Don't sync too frequently
       }
 
       try {
+        // Access current values via ref to avoid dependency issues
+        const currentPresence = presenceRef.current;
         await fetch('/api/sam/realtime/presence', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            status: presence.status,
+            status: currentPresence.status,
             metadata: {
-              ...presence.metadata,
+              ...currentPresence.metadata,
               location: locationRef.current,
             },
           }),
@@ -236,8 +250,10 @@ export function PresenceTrackingProvider({
       }
     };
 
-    // Initial sync
-    syncPresence();
+    // Initial sync (only once)
+    if (!hasInitialSyncRef.current) {
+      syncPresence();
+    }
 
     // Set up periodic sync
     syncIntervalRef.current = setInterval(syncPresence, syncInterval);
@@ -247,7 +263,7 @@ export function PresenceTrackingProvider({
         clearInterval(syncIntervalRef.current);
       }
     };
-  }, [session?.user?.id, sessionStatus, presence.status, presence.metadata, syncInterval]);
+  }, [session?.user?.id, sessionStatus, syncInterval]); // Removed presence.status/metadata - accessed via ref
 
   // Update location when props change
   useEffect(() => {
@@ -261,12 +277,27 @@ export function PresenceTrackingProvider({
     }
   }, [courseId, chapterId, sectionId, updateLocation]);
 
-  // Auto-set studying mode when on course pages
+  // Track if studying mode has been set for this course
+  const hasSetStudyingRef = useRef(false);
+  const lastCourseIdRef = useRef(courseId);
+
+  // Auto-set studying mode when on course pages (only once per course)
   useEffect(() => {
-    if (autoStudyingMode && courseId && presence.status === 'online') {
-      setStudying();
+    // Reset if course changes
+    if (courseId !== lastCourseIdRef.current) {
+      hasSetStudyingRef.current = false;
+      lastCourseIdRef.current = courseId;
     }
-  }, [autoStudyingMode, courseId, presence.status, setStudying]);
+
+    // Only set studying mode once per course entry
+    if (autoStudyingMode && courseId && !hasSetStudyingRef.current) {
+      const currentStatus = presenceRef.current.status;
+      if (currentStatus === 'online' || currentStatus === 'idle') {
+        hasSetStudyingRef.current = true;
+        setStudying();
+      }
+    }
+  }, [autoStudyingMode, courseId, setStudying]); // Removed presence.status - checked via ref
 
   // Mark as offline when unmounting (user leaves page)
   useEffect(() => {

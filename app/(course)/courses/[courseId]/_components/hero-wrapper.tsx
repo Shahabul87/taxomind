@@ -109,30 +109,39 @@ export function HeroWrapper({
     onEnroll: handleEnroll,
   };
 
-  switch (variant) {
-    case 'programming':
-      return (
-        <ProgrammingHero
-          {...commonProps}
-          techStack={categorySpecificProps.techStack}
-        />
-      );
-    case 'ai-ml':
-    case 'data-science':
-      return (
-        <AIMLHero
-          {...commonProps}
-          models={categorySpecificProps.models}
-        />
-      );
-    case 'design':
-      return (
-        <DesignHero
-          {...commonProps}
-          tools={categorySpecificProps.tools}
-        />
-      );
-    default:
-      return <DefaultHero {...commonProps} />;
-  }
+  // Render hero based on variant
+  const renderHero = () => {
+    switch (variant) {
+      case 'programming':
+        return (
+          <ProgrammingHero
+            {...commonProps}
+            techStack={categorySpecificProps.techStack}
+          />
+        );
+      case 'ai-ml':
+      case 'data-science':
+        return (
+          <AIMLHero
+            {...commonProps}
+            models={categorySpecificProps.models}
+          />
+        );
+      case 'design':
+        return (
+          <DesignHero
+            {...commonProps}
+            tools={categorySpecificProps.tools}
+          />
+        );
+      default:
+        return <DefaultHero {...commonProps} />;
+    }
+  };
+
+  return (
+    <div className="relative">
+      {renderHero()}
+    </div>
+  );
 }

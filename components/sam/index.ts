@@ -87,6 +87,11 @@ export { LearningPathOptimizer } from './LearningPathOptimizer';
 
 // Safety & Fairness
 export { BiasDetectionReport } from './BiasDetectionReport';
+export { default as BiasDetectionReportDefault } from './BiasDetectionReport';
+
+// Cognitive Load Monitoring
+export { CognitiveLoadMonitor } from './CognitiveLoadMonitor';
+export { default as CognitiveLoadMonitorDefault } from './CognitiveLoadMonitor';
 
 // ============================================================================
 // MEMORY COMPONENTS

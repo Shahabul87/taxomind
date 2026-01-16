@@ -1,20 +1,27 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Flame, Sparkles, Trophy } from 'lucide-react';
+import { Flame, Sparkles, Trophy, Loader2 } from 'lucide-react';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 interface PracticeStreakDisplayProps {
-  currentStreak: number;
-  longestStreak: number;
+  currentStreak?: number;
+  longestStreak?: number;
   lastPracticeDate?: Date | string | null;
   variant?: 'default' | 'compact' | 'large';
   className?: string;
+}
+
+interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  lastPracticeDate: string | null;
 }
 
 // ============================================================================
@@ -22,12 +29,76 @@ interface PracticeStreakDisplayProps {
 // ============================================================================
 
 export function PracticeStreakDisplay({
-  currentStreak,
-  longestStreak,
-  lastPracticeDate,
+  currentStreak: propCurrentStreak,
+  longestStreak: propLongestStreak,
+  lastPracticeDate: propLastPracticeDate,
   variant = 'default',
   className,
 }: PracticeStreakDisplayProps) {
+  const [streakData, setStreakData] = useState<StreakData | null>(null);
+  const [isLoading, setIsLoading] = useState(
+    propCurrentStreak === undefined || propLongestStreak === undefined
+  );
+
+  // Fetch streak data if props not provided
+  useEffect(() => {
+    if (propCurrentStreak !== undefined && propLongestStreak !== undefined) {
+      setStreakData({
+        currentStreak: propCurrentStreak,
+        longestStreak: propLongestStreak,
+        lastPracticeDate: propLastPracticeDate?.toString() ?? null,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    const fetchStreakData = async () => {
+      try {
+        const response = await fetch('/api/sam/practice/mastery/overview');
+        const data = await response.json();
+
+        if (data.success) {
+          setStreakData({
+            currentStreak: data.data.streaks?.current ?? 0,
+            longestStreak: data.data.streaks?.longest ?? 0,
+            lastPracticeDate: data.data.lastPracticeAt ?? null,
+          });
+        } else {
+          setStreakData({
+            currentStreak: 0,
+            longestStreak: 0,
+            lastPracticeDate: null,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching streak data:', error);
+        setStreakData({
+          currentStreak: 0,
+          longestStreak: 0,
+          lastPracticeDate: null,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStreakData();
+  }, [propCurrentStreak, propLongestStreak, propLastPracticeDate]);
+
+  if (isLoading) {
+    return (
+      <Card className={cn('', className)}>
+        <CardContent className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const currentStreak = streakData?.currentStreak ?? 0;
+  const longestStreak = streakData?.longestStreak ?? 0;
+  const lastPracticeDate = streakData?.lastPracticeDate ?? null;
+
   const isNewRecord = currentStreak > 0 && currentStreak >= longestStreak;
   const isAtRisk = isStreakAtRisk(lastPracticeDate);
 

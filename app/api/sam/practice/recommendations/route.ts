@@ -59,10 +59,10 @@ export async function GET(req: NextRequest) {
     const recommendations: PracticeRecommendation[] = [];
 
     // Get user's masteries
-    const masteries = await masteryStore.getByUser(session.user.id);
+    const masteries = await masteryStore.getUserMasteries(session.user.id);
 
     // Get recent sessions
-    const recentSessions = await sessionStore.getByUser(session.user.id, {
+    const recentSessions = await sessionStore.getUserSessions(session.user.id, {
       status: 'COMPLETED',
       limit: 30,
     });
@@ -102,8 +102,10 @@ export async function GET(req: NextRequest) {
     }
 
     // 2. Check for milestone push opportunities
+    // MILESTONE_HOURS is a Record, get values as sorted array
+    const milestoneHoursArray = Object.values(MILESTONE_HOURS).sort((a, b) => a - b);
     for (const mastery of masteries) {
-      const nextMilestone = MILESTONE_HOURS.find((h) => h > mastery.totalQualityHours);
+      const nextMilestone = milestoneHoursArray.find((h) => h > mastery.totalQualityHours);
       if (nextMilestone) {
         const hoursToMilestone = nextMilestone - mastery.totalQualityHours;
         // Recommend if within 10 hours of milestone

@@ -3,7 +3,6 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
-import { type BloomsLevel } from '@/lib/sam/stores/prisma-practice-session-store';
 
 // Get practice stores from TaxomindContext singleton
 const {
@@ -24,6 +23,18 @@ const BloomsLevelEnum = z.enum([
   'EVALUATE',
   'CREATE',
 ]);
+
+// Convert focus level string to numeric value for daily log
+function focusLevelToNumber(level: string): number {
+  const mapping: Record<string, number> = {
+    VERY_LOW: 1,
+    LOW: 2,
+    MEDIUM: 3,
+    HIGH: 4,
+    DEEP_FLOW: 5,
+  };
+  return mapping[level] ?? 3;
+}
 
 const EndSessionSchema = z.object({
   bloomsLevel: BloomsLevelEnum.optional(),
@@ -79,44 +90,46 @@ export async function POST(
     const validated = EndSessionSchema.parse(body);
 
     // End the practice session
-    const completedSession = await practiceSessionStore.end(sessionId, {
-      bloomsLevel: validated.bloomsLevel as BloomsLevel | undefined,
-      difficultyRating: validated.difficultyRating,
+    const completedSession = await practiceSessionStore.endSession(sessionId, {
       notes: validated.notes
         ? (existingSession.notes ? `${existingSession.notes}\n\n${validated.notes}` : validated.notes)
         : undefined,
     });
 
+    // Calculate session duration in minutes
+    const sessionDurationMinutes = completedSession.rawHours * 60;
+
     // Update skill mastery with the completed session
-    const updatedMastery = await masteryStore.addSessionToMastery(
+    const updatedMastery = await masteryStore.recordSessionToMastery(
       session.user.id,
       existingSession.skillId,
-      {
-        rawHours: completedSession.rawHours,
-        qualityHours: completedSession.qualityHours,
-        qualityMultiplier: completedSession.qualityMultiplier,
-        bloomsLevel: completedSession.bloomsLevel,
-        sessionType: completedSession.sessionType,
-      }
-    );
-
-    // Update daily practice log for heatmap
-    await dailyLogStore.addOrUpdateLog(
-      session.user.id,
+      existingSession.skillName ?? 'Unknown Skill',
       completedSession.rawHours,
       completedSession.qualityHours,
-      1,
+      sessionDurationMinutes,
       completedSession.qualityMultiplier
     );
 
-    // Check for newly achieved milestones
-    const milestones = await masteryStore.getMilestones(
+    // Update daily practice log for heatmap
+    await dailyLogStore.recordActivity(
       session.user.id,
-      existingSession.skillId
+      new Date(),
+      {
+        totalMinutes: completedSession.rawHours * 60,
+        qualityHours: completedSession.qualityHours,
+        sessionsCount: 1,
+        sessionType: completedSession.sessionType,
+        qualityMultiplier: completedSession.qualityMultiplier,
+        focusLevel: focusLevelToNumber(completedSession.focusLevel),
+        skillId: existingSession.skillId,
+      }
     );
+
+    // Check for newly achieved milestones
+    const milestones = await masteryStore.getMilestones(session.user.id);
     const newMilestones = milestones.filter(
-      (m) => m.achievedAt &&
-        new Date(m.achievedAt).getTime() > Date.now() - 60000 // Within last minute
+      (m) => m.unlockedAt &&
+        new Date(m.unlockedAt).getTime() > Date.now() - 60000 // Within last minute
     );
 
     logger.info(

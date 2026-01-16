@@ -58,7 +58,7 @@ interface SessionSummary {
 }
 
 interface PracticeTimerProps {
-  skills: Skill[];
+  skills?: Skill[];
   onSessionComplete?: (summary: SessionSummary) => void;
   className?: string;
 }
@@ -82,11 +82,12 @@ const FOCUS_LEVELS = [
 // ============================================================================
 
 export function PracticeTimer({
-  skills,
+  skills: propSkills,
   onSessionComplete,
   className,
 }: PracticeTimerProps) {
   // State
+  const [skills, setSkills] = useState<Skill[]>(propSkills ?? []);
   const [selectedSkill, setSelectedSkill] = useState<string>('');
   const [sessionType, setSessionType] = useState<string>('DELIBERATE');
   const [focusLevel, setFocusLevel] = useState<string>('HIGH');
@@ -111,6 +112,46 @@ export function PracticeTimer({
     }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }, []);
+
+  // Fetch skills if not provided via props
+  useEffect(() => {
+    if (propSkills && propSkills.length > 0) {
+      setSkills(propSkills);
+      return;
+    }
+
+    const fetchSkills = async () => {
+      try {
+        const response = await fetch('/api/sam/skills');
+        const data = await response.json();
+
+        if (data.success && data.data?.skills) {
+          setSkills(data.data.skills);
+        } else {
+          // Fallback: fetch from skill-build-track if main API doesn't exist
+          const fallbackResponse = await fetch('/api/skill-build-track');
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.skills) {
+            setSkills(fallbackData.skills.map((s: { id: string; name: string; icon?: string }) => ({
+              id: s.id,
+              name: s.name,
+              icon: s.icon,
+            })));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching skills:', error);
+        // Set some default skills as fallback
+        setSkills([
+          { id: 'default-1', name: 'General Practice', icon: '📚' },
+          { id: 'default-2', name: 'Coding', icon: '💻' },
+          { id: 'default-3', name: 'Reading', icon: '📖' },
+        ]);
+      }
+    };
+
+    fetchSkills();
+  }, [propSkills]);
 
   // Check for active session on mount
   useEffect(() => {
@@ -331,7 +372,7 @@ export function PracticeTimer({
   };
 
   // Get selected skill name
-  const selectedSkillName = skills.find((s) => s.id === selectedSkill)?.name ?? 'Select a skill';
+  const selectedSkillName = skills?.find((s) => s.id === selectedSkill)?.name ?? 'Select a skill';
 
   // Calculate estimated quality hours
   const getMultiplier = () => {
@@ -397,7 +438,7 @@ export function PracticeTimer({
                   <SelectValue placeholder="Select a skill to practice" />
                 </SelectTrigger>
                 <SelectContent>
-                  {skills.map((skill) => (
+                  {(skills ?? []).map((skill) => (
                     <SelectItem key={skill.id} value={skill.id}>
                       {skill.icon && <span className="mr-2">{skill.icon}</span>}
                       {skill.name}

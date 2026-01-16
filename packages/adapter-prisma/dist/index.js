@@ -7388,11 +7388,22 @@ function createPrismaGoldenTestStore(config) {
 }
 
 // src/presence-store.ts
+function mapPrismaEnumToStatus(prismaStatus) {
+  const statusMap = {
+    "ONLINE": "online",
+    "AWAY": "away",
+    "IDLE": "idle",
+    "STUDYING": "studying",
+    "OFFLINE": "offline",
+    "DO_NOT_DISTURB": "do_not_disturb"
+  };
+  return statusMap[prismaStatus.toUpperCase()] || "online";
+}
 function mapRecordToPresence(record) {
   return {
     userId: record.userId,
     connectionId: record.connectionId || "",
-    status: record.status,
+    status: mapPrismaEnumToStatus(record.status),
     lastActivityAt: record.lastActivityAt,
     connectedAt: record.connectedAt || record.createdAt,
     metadata: {
@@ -7414,10 +7425,23 @@ function mapRecordToPresence(record) {
     subscriptions: record.subscriptions
   };
 }
+function mapStatusToPrismaEnum(status) {
+  const statusMap = {
+    "online": "ONLINE",
+    "away": "AWAY",
+    "idle": "IDLE",
+    "studying": "STUDYING",
+    "offline": "OFFLINE",
+    "do_not_disturb": "DO_NOT_DISTURB",
+    "on_break": "AWAY"
+    // Map on_break to AWAY (closest equivalent)
+  };
+  return statusMap[status.toLowerCase()] || "ONLINE";
+}
 function mapPresenceToData(presence) {
   return {
     connectionId: presence.connectionId || null,
-    status: presence.status,
+    status: mapStatusToPrismaEnum(presence.status),
     lastActivityAt: presence.lastActivityAt,
     connectedAt: presence.connectedAt,
     deviceType: presence.metadata.deviceType,

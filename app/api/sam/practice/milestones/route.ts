@@ -51,9 +51,9 @@ export async function GET(req: NextRequest) {
     }
 
     if (query.claimed === 'true') {
-      whereClause.rewardClaimed = true;
+      whereClause.claimed = true;
     } else if (query.claimed === 'false') {
-      whereClause.rewardClaimed = false;
+      whereClause.claimed = false;
     }
 
     // Get milestones from database
@@ -61,21 +61,10 @@ export async function GET(req: NextRequest) {
       db.practiceMilestone.findMany({
         where: whereClause,
         orderBy: [
-          { achievedAt: 'desc' },
+          { unlockedAt: 'desc' },
         ],
         skip: query.offset,
         take: query.limit,
-        include: {
-          skill: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-              icon: true,
-              color: true,
-            },
-          },
-        },
       }),
       db.practiceMilestone.count({ where: whereClause }),
     ]);
@@ -94,7 +83,7 @@ export async function GET(req: NextRequest) {
     const unclaimedCount = await db.practiceMilestone.count({
       where: {
         userId: session.user.id,
-        rewardClaimed: false,
+        claimed: false,
       },
     });
 
@@ -106,13 +95,16 @@ export async function GET(req: NextRequest) {
     });
 
     const achievedMilestoneTypes = new Set(milestoneCounts.map((m) => m.milestoneType));
-    const milestoneStats = MILESTONE_HOURS.map((hours) => ({
+
+    // MILESTONE_HOURS is a Record<PracticeMilestoneType, number>, convert to array entries
+    const milestoneHoursEntries = Object.entries(MILESTONE_HOURS) as [keyof typeof MILESTONE_HOURS, number][];
+    const milestoneStats = milestoneHoursEntries.map(([type, hours]) => ({
       hours,
-      type: `HOURS_${hours}`,
-      badgeName: MILESTONE_BADGE_NAMES[hours as keyof typeof MILESTONE_BADGE_NAMES],
-      xpReward: MILESTONE_XP_REWARDS[hours as keyof typeof MILESTONE_XP_REWARDS],
-      achieved: achievedMilestoneTypes.has(`HOURS_${hours}`),
-      count: milestoneCounts.find((m) => m.milestoneType === `HOURS_${hours}`)?._count.id ?? 0,
+      type,
+      badgeName: MILESTONE_BADGE_NAMES[type],
+      xpReward: MILESTONE_XP_REWARDS[type],
+      achieved: achievedMilestoneTypes.has(type),
+      count: milestoneCounts.find((m) => m.milestoneType === type)?._count.id ?? 0,
     }));
 
     return NextResponse.json({

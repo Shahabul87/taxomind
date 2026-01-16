@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,9 +50,16 @@ interface PracticeRecommendationsProps {
   className?: string;
 }
 
+// Default config for unknown recommendation types
+const DEFAULT_CONFIG = {
+  icon: <Lightbulb className="h-5 w-5" />,
+  color: 'text-gray-500',
+  bgColor: 'bg-gray-50 dark:bg-gray-950/30',
+};
+
 // Recommendation type icons and colors
 const RECOMMENDATION_CONFIG: Record<
-  Recommendation['type'],
+  string,
   { icon: React.ReactNode; color: string; bgColor: string }
 > = {
   SKILL_FOCUS: {
@@ -87,6 +94,11 @@ const RECOMMENDATION_CONFIG: Record<
   },
 };
 
+// Helper to get config with fallback
+function getRecommendationConfig(type: string) {
+  return RECOMMENDATION_CONFIG[type] ?? DEFAULT_CONFIG;
+}
+
 const PRIORITY_BADGES: Record<
   Recommendation['priority'],
   { variant: 'default' | 'secondary' | 'outline'; label: string }
@@ -111,8 +123,8 @@ export function PracticeRecommendations({
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch recommendations
-  const fetchRecommendations = async (showLoading = true) => {
+  // Fetch recommendations - wrapped in useCallback for stable reference
+  const fetchRecommendations = useCallback(async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     else setIsRefreshing(true);
 
@@ -129,11 +141,11 @@ export function PracticeRecommendations({
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
+  }, [limit]);
 
   useEffect(() => {
     fetchRecommendations();
-  }, [limit]);
+  }, [fetchRecommendations]);
 
   // Handle action click
   const handleAction = (rec: Recommendation) => {
@@ -211,8 +223,8 @@ interface RecommendationCardProps {
 }
 
 function RecommendationCard({ recommendation, onAction }: RecommendationCardProps) {
-  const config = RECOMMENDATION_CONFIG[recommendation.type];
-  const priorityBadge = PRIORITY_BADGES[recommendation.priority];
+  const config = getRecommendationConfig(recommendation.type);
+  const priorityBadge = PRIORITY_BADGES[recommendation.priority] ?? { variant: 'outline' as const, label: 'Info' };
 
   return (
     <div
@@ -330,7 +342,7 @@ export function CompactRecommendations({
     return null;
   }
 
-  const config = RECOMMENDATION_CONFIG[topRecommendation.type];
+  const config = getRecommendationConfig(topRecommendation.type);
 
   return (
     <div

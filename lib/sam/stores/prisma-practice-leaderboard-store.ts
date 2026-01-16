@@ -178,15 +178,14 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
     const timeframe = filters.timeframe || 'WEEKLY';
     const periodStart = this.getCurrentPeriodStart(timeframe);
 
-    const entry = await db.practiceLeaderboard.findUnique({
+    // Use findFirst instead of findUnique to handle nullable scopeId correctly
+    const entry = await db.practiceLeaderboard.findFirst({
       where: {
-        userId_scope_scopeId_timeframe_periodStart: {
-          userId,
-          scope,
-          scopeId: filters.scopeId ?? null,
-          timeframe,
-          periodStart,
-        },
+        userId,
+        scope,
+        scopeId: filters.scopeId ?? null,
+        timeframe,
+        periodStart,
       },
     });
 

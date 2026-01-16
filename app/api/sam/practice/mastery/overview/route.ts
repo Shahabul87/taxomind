@@ -27,10 +27,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Get all masteries
-    const masteries = await masteryStore.getByUser(session.user.id);
+    const masteries = await masteryStore.getUserMasteries(session.user.id);
 
     // Get the overview/aggregate data
-    const overview = await masteryStore.getOverview(session.user.id);
+    const overview = await masteryStore.getMasteryOverview(session.user.id);
 
     // Get skill definitions for the top skills
     const topSkillIds = masteries
@@ -44,8 +44,7 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         category: true,
-        icon: true,
-        color: true,
+        tags: true,
       },
     });
 
@@ -55,8 +54,9 @@ export async function GET(req: NextRequest) {
     const currentYear = new Date().getFullYear();
     const yearlyStats = await dailyLogStore.getYearlyStats(session.user.id, currentYear);
 
-    // Calculate milestone progress
-    const milestoneProgress = MILESTONE_HOURS.map((hours) => {
+    // Calculate milestone progress - MILESTONE_HOURS is a Record, convert to array
+    const milestoneHoursArray = Object.values(MILESTONE_HOURS).sort((a, b) => a - b);
+    const milestoneProgress = milestoneHoursArray.map((hours) => {
       const achieved = masteries.some((m) => m.totalQualityHours >= hours);
       const closest = masteries.reduce((best, m) => {
         if (m.totalQualityHours >= hours) return hours;
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
         ...m,
         skill: skillsById.get(m.skillId),
         progressTo10K: (m.totalQualityHours / 10000) * 100,
-        nextMilestone: MILESTONE_HOURS.find((h) => h > m.totalQualityHours) ?? 10000,
+        nextMilestone: milestoneHoursArray.find((h) => h > m.totalQualityHours) ?? 10000,
       }));
 
     return NextResponse.json({

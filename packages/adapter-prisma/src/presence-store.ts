@@ -57,11 +57,26 @@ interface PrismaPresenceRecord {
 // HELPER FUNCTIONS
 // ============================================================================
 
+/**
+ * Convert uppercase Prisma enum to lowercase status for @sam-ai/agentic
+ */
+function mapPrismaEnumToStatus(prismaStatus: string): PresenceStatus {
+  const statusMap: Record<string, PresenceStatus> = {
+    'ONLINE': 'online',
+    'AWAY': 'away',
+    'IDLE': 'idle',
+    'STUDYING': 'studying',
+    'OFFLINE': 'offline',
+    'DO_NOT_DISTURB': 'do_not_disturb',
+  };
+  return statusMap[prismaStatus.toUpperCase()] || 'online';
+}
+
 function mapRecordToPresence(record: PrismaPresenceRecord): UserPresence {
   return {
     userId: record.userId,
     connectionId: record.connectionId || '',
-    status: record.status as PresenceStatus,
+    status: mapPrismaEnumToStatus(record.status),
     lastActivityAt: record.lastActivityAt,
     connectedAt: record.connectedAt || record.createdAt,
     metadata: {
@@ -84,10 +99,26 @@ function mapRecordToPresence(record: PrismaPresenceRecord): UserPresence {
   };
 }
 
+/**
+ * Convert lowercase status from @sam-ai/agentic to uppercase Prisma enum
+ */
+function mapStatusToPrismaEnum(status: string): string {
+  const statusMap: Record<string, string> = {
+    'online': 'ONLINE',
+    'away': 'AWAY',
+    'idle': 'IDLE',
+    'studying': 'STUDYING',
+    'offline': 'OFFLINE',
+    'do_not_disturb': 'DO_NOT_DISTURB',
+    'on_break': 'AWAY', // Map on_break to AWAY (closest equivalent)
+  };
+  return statusMap[status.toLowerCase()] || 'ONLINE';
+}
+
 function mapPresenceToData(presence: UserPresence): Record<string, unknown> {
   return {
     connectionId: presence.connectionId || null,
-    status: presence.status,
+    status: mapStatusToPrismaEnum(presence.status),
     lastActivityAt: presence.lastActivityAt,
     connectedAt: presence.connectedAt,
     deviceType: presence.metadata.deviceType,
