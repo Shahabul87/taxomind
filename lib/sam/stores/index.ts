@@ -231,3 +231,17 @@ export {
   type HeatmapData,
   type YearlyStats,
 } from './prisma-daily-practice-log-store';
+
+// Practice Challenge Store
+export {
+  PrismaPracticeChallengeStore,
+  createPrismaPracticeChallengeStore,
+  type PracticeChallenge,
+  type ChallengeParticipant,
+  type ChallengeType,
+  type ChallengeStatus,
+  type CreateChallengeInput,
+  type UpdateChallengeInput,
+  type ChallengeFilters,
+  type PracticeChallengeStore,
+} from './prisma-practice-challenge-store';

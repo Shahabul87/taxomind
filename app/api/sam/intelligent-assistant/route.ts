@@ -3,6 +3,50 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { runSAMChat } from '@/lib/sam/ai-provider';
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+interface CourseChapter {
+  id: string;
+  title: string;
+  description?: string;
+  position: number;
+  isPublished?: boolean;
+  isFree?: boolean;
+}
+
+interface ConversationMessage {
+  type: 'user' | 'assistant';
+  content: string;
+}
+
+interface CourseContext {
+  title: string;
+  description?: string;
+  category: string;
+  healthScore: number;
+  chapterCount: number;
+  chapters: CourseChapter[];
+  objectiveCount: number;
+  learningObjectives: string[];
+  canUpdateObjectives: boolean;
+  canUpdateChapters: boolean;
+  canDeleteChapters: boolean;
+  canUpdateTitle: boolean;
+  canUpdateDescription: boolean;
+  bloomsDistribution: Record<string, number>;
+}
+
+interface GeneratedChapter {
+  title: string;
+  description: string;
+  position: number;
+  isPublished: boolean;
+  isFree: boolean;
+  sections: unknown[];
+}
+
 // Bloom's Taxonomy levels and verbs
 const BLOOMS_TAXONOMY = {
   remember: ["identify", "recognize", "recall", "list", "describe", "name", "find", "match", "define", "label"],
@@ -20,7 +64,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { message, intent, context, conversationHistory } = await req.json();
+    const { message, intent, context, conversationHistory } = await req.json() as {
+      message: string;
+      intent: string;
+      context: CourseContext;
+      conversationHistory: ConversationMessage[];
+    };
 
     // Build system prompt based on context
     const systemPrompt = `You are SAM, an intelligent AI course assistant specializing in educational content creation. Your primary goal is to help create high-quality, relevant course content.
@@ -30,7 +79,7 @@ COURSE CONTEXT:
 - Course Description: "${context.description || 'Not provided'}"
 - Category: ${context.category}
 - Current Health Score: ${context.healthScore}%
-- Existing Chapters: ${context.chapterCount} (${context.chapters.map((ch: any) => ch.title).join(', ') || 'None yet'})
+- Existing Chapters: ${context.chapterCount} (${context.chapters.map((ch: CourseChapter) => ch.title).join(', ') || 'None yet'})
 - Learning Objectives: ${context.objectiveCount} objectives
 - Learning Objectives Content: ${context.learningObjectives.length > 0 ? context.learningObjectives.join(', ') : 'No objectives set yet'}
 
@@ -88,7 +137,7 @@ COURSE CONTEXT:
 - Course Title: "${context.title}"
 - Course Description: "${context.description || 'No description provided'}"
 - Learning Objectives: ${context.learningObjectives.length > 0 ? context.learningObjectives.join(', ') : 'No objectives set yet'}
-- Current Chapters: ${context.chapterCount} (${context.chapters.map((ch: any) => ch.title).join(', ') || 'None yet'})
+- Current Chapters: ${context.chapterCount} (${context.chapters.map((ch: CourseChapter) => ch.title).join(', ') || 'None yet'})
 
 STRICT REQUIREMENTS:
 1. Generate EXACTLY ${requestedNumber} chapters, no more, no less
@@ -118,7 +167,7 @@ Generate the chapters now:`;
 
       case 'delete_chapters':
         expectedAction = 'delete_chapters';
-        userPrompt = `${message}\n\nIdentify which chapters to delete based on the user's request. Current chapters: ${context.chapters.map((ch: any) => `${ch.title} (ID: ${ch.id})`).join(', ')}`;
+        userPrompt = `${message}\n\nIdentify which chapters to delete based on the user's request. Current chapters: ${context.chapters.map((ch: CourseChapter) => `${ch.title} (ID: ${ch.id})`).join(', ')}`;
         break;
 
       case 'blooms_analysis':
@@ -132,7 +181,7 @@ Generate the chapters now:`;
 
     // Generate response using Anthropic
     const messages = [
-      ...conversationHistory.map((msg: any) => ({
+      ...conversationHistory.map((msg: ConversationMessage) => ({
         role: msg.type === 'user' ? 'user' as const : 'assistant' as const,
         content: msg.content
       })),
@@ -179,9 +228,16 @@ Generate the chapters now:`;
           type: 'update_chapters',
           data: { chapters }
         };
-
       } else {
-}
+        // Log when chapters couldn't be extracted or user lacks permission
+        logger.warn('Chapter generation skipped', {
+          chaptersExtracted: chapters.length,
+          canUpdateChapters: context.canUpdateChapters,
+          reason: chapters.length === 0
+            ? 'No chapters could be extracted from AI response'
+            : 'User does not have permission to update chapters'
+        });
+      }
       suggestions = [
         "Review the chapter structure",
         "Add more chapters",
@@ -267,12 +323,12 @@ function extractLearningObjectives(response: string): string[] {
 }
 
 // Helper function to extract chapters from AI response
-function extractChapters(response: string, requestedNumber?: number): any[] {
-  const chapters: any[] = [];
-  
+function extractChapters(response: string, requestedNumber?: number): GeneratedChapter[] {
+  const chapters: GeneratedChapter[] = [];
+
   // Extract chapters with titles and descriptions
   const lines = response.split('\n');
-  let currentChapter: any = null;
+  let currentChapter: GeneratedChapter | null = null;
   let position = 1;
   
   for (const line of lines) {
@@ -322,15 +378,18 @@ function extractChapters(response: string, requestedNumber?: number): any[] {
   
   // Ensure we return exactly the requested number
   const finalChapters = chapters.slice(0, requestedNumber || 10);
-  
-  console.log(`Extracted ${finalChapters.length} chapters (requested: ${requestedNumber || 'default'})`);
-  console.log('Chapter titles:', finalChapters.map(ch => ch.title));
-  
+
+  logger.debug('Chapters extracted from AI response', {
+    extractedCount: finalChapters.length,
+    requestedNumber: requestedNumber ?? 'default',
+    titles: finalChapters.map(ch => ch.title)
+  });
+
   return finalChapters;
 }
 
 // Helper function to extract chapters to delete from AI response
-function extractChaptersToDelete(response: string, existingChapters: any[]): string[] {
+function extractChaptersToDelete(response: string, existingChapters: CourseChapter[]): string[] {
   const chapterIds: string[] = [];
   const lines = response.split('\n');
   

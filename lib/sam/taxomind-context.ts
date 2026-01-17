@@ -75,6 +75,8 @@ import {
   createPrismaSkillMastery10KStore,
   createPrismaPracticeLeaderboardStore,
   createPrismaDailyPracticeLogStore,
+  // Practice Challenge Store Factory
+  createPrismaPracticeChallengeStore,
 } from './stores';
 
 // Import adapter-prisma stores for observability, presence, student profile, review schedule, push queue
@@ -141,6 +143,8 @@ import type {
   PrismaSkillMastery10KStore,
   PrismaPracticeLeaderboardStore,
   PrismaDailyPracticeLogStore,
+  // Practice Challenge Store Type
+  PrismaPracticeChallengeStore,
 } from './stores';
 
 // ============================================================================
@@ -240,6 +244,9 @@ export interface TaxomindAgenticStores {
   skillMastery10K: PrismaSkillMastery10KStore;
   practiceLeaderboard: PrismaPracticeLeaderboardStore;
   dailyPracticeLog: PrismaDailyPracticeLogStore;
+
+  // Practice Challenge Store
+  practiceChallenge: PrismaPracticeChallengeStore;
 }
 
 /**
@@ -364,6 +371,9 @@ function initializeStores(): TaxomindAgenticStores {
     skillMastery10K: createPrismaSkillMastery10KStore(),
     practiceLeaderboard: createPrismaPracticeLeaderboardStore(),
     dailyPracticeLog: createPrismaDailyPracticeLogStore(),
+
+    // Practice Challenge Store
+    practiceChallenge: createPrismaPracticeChallengeStore(),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {
@@ -658,6 +668,7 @@ export function getPracticeStores(): {
   skillMastery10K: PrismaSkillMastery10KStore;
   practiceLeaderboard: PrismaPracticeLeaderboardStore;
   dailyPracticeLog: PrismaDailyPracticeLogStore;
+  practiceChallenge: PrismaPracticeChallengeStore;
 } {
   const { stores } = getTaxomindContext();
   return {
@@ -665,6 +676,7 @@ export function getPracticeStores(): {
     skillMastery10K: stores.skillMastery10K,
     practiceLeaderboard: stores.practiceLeaderboard,
     dailyPracticeLog: stores.dailyPracticeLog,
+    practiceChallenge: stores.practiceChallenge,
   };
 }
 
@@ -718,4 +730,6 @@ export type {
   PrismaSkillMastery10KStore,
   PrismaPracticeLeaderboardStore,
   PrismaDailyPracticeLogStore,
+  // Practice Challenge Store Type
+  PrismaPracticeChallengeStore,
 };
