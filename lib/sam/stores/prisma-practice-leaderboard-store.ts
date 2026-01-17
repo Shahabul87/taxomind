@@ -219,7 +219,7 @@ export class PrismaPracticeLeaderboardStore implements PracticeLeaderboardStore 
         userId_scope_scopeId_timeframe_periodStart: {
           userId,
           scope,
-          scopeId,
+          scopeId: scopeId ?? '',
           timeframe,
           periodStart,
         },

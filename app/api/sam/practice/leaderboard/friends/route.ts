@@ -25,6 +25,8 @@ const GetLeaderboardQuerySchema = z.object({
 
 // ============================================================================
 // GET - Get friends practice leaderboard
+// Note: Friends feature is not yet implemented. This returns only the current
+// user's data as a placeholder until the friendship system is built.
 // ============================================================================
 
 export async function GET(req: NextRequest) {
@@ -43,87 +45,51 @@ export async function GET(req: NextRequest) {
       offset: searchParams.get('offset') ?? undefined,
     });
 
-    // Get user's friends (both directions of friendship)
-    const friendships = await db.friendship.findMany({
-      where: {
-        OR: [
-          { userId: session.user.id, status: 'ACCEPTED' },
-          { friendId: session.user.id, status: 'ACCEPTED' },
-        ],
-      },
-      select: {
-        userId: true,
-        friendId: true,
-      },
-    });
-
-    // Extract friend IDs
-    const friendIds = new Set<string>();
-    friendships.forEach((f) => {
-      if (f.userId === session.user.id) {
-        friendIds.add(f.friendId);
-      } else {
-        friendIds.add(f.userId);
-      }
-    });
-
-    // Include current user in the leaderboard
-    friendIds.add(session.user.id);
-
     const periodStart = leaderboardStore.getCurrentPeriodStart(query.timeframe as LeaderboardTimeframe);
 
-    // Get leaderboard entries for friends from the global scope
-    // (we filter by friend IDs manually since FRIENDS scope would need a scopeId)
-    const allEntries = await db.practiceLeaderboard.findMany({
+    // Note: Friendship model not yet implemented
+    // For now, just return the current user's leaderboard entry
+    const currentUserEntry = await db.practiceLeaderboard.findFirst({
       where: {
         scope: 'GLOBAL',
         timeframe: query.timeframe,
         periodStart,
-        userId: { in: Array.from(friendIds) },
+        userId: session.user.id,
       },
-      orderBy: [
-        { qualityHours: 'desc' },
-        { sessionsCount: 'desc' },
-      ],
     });
 
-    // Enrich with rank among friends
-    const rankedEntries = allEntries.map((entry, index) => ({
-      ...entry,
-      friendRank: index + 1,
-      isCurrentUser: entry.userId === session.user.id,
-    }));
-
-    // Apply pagination
-    const paginatedEntries = rankedEntries.slice(
-      query.offset,
-      query.offset + query.limit
-    );
-
-    // Get current user's entry
-    const currentUserEntry = rankedEntries.find((e) => e.userId === session.user.id);
-
-    // Get top 3 friends for podium
-    const podium = rankedEntries.slice(0, 3);
+    // Create a placeholder response
+    const entries = currentUserEntry
+      ? [
+          {
+            ...currentUserEntry,
+            friendRank: 1,
+            isCurrentUser: true,
+          },
+        ]
+      : [];
 
     return NextResponse.json({
       success: true,
       data: {
-        leaderboard: paginatedEntries,
-        currentUser: currentUserEntry ?? null,
-        podium,
-        friendsCount: friendIds.size - 1, // Exclude current user
+        leaderboard: entries,
+        currentUser: currentUserEntry
+          ? { ...currentUserEntry, friendRank: 1, isCurrentUser: true }
+          : null,
+        podium: entries.slice(0, 3),
+        friendsCount: 0,
         period: {
           timeframe: query.timeframe,
           start: periodStart,
           label: getPeriodLabel(query.timeframe, periodStart),
         },
         pagination: {
-          total: rankedEntries.length,
+          total: entries.length,
           limit: query.limit,
           offset: query.offset,
-          hasMore: query.offset + query.limit < rankedEntries.length,
+          hasMore: false,
         },
+        message: 'Friends feature coming soon. Add friends to compare your practice progress!',
       },
     });
   } catch (error) {

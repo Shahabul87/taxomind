@@ -61,10 +61,9 @@ export async function GET(req: NextRequest) {
     // Get user's masteries
     const masteries = await masteryStore.getUserMasteries(session.user.id);
 
-    // Get recent sessions
+    // Get recent sessions (store returns up to 100, we'll slice as needed)
     const recentSessions = await sessionStore.getUserSessions(session.user.id, {
       status: 'COMPLETED',
-      limit: 30,
     });
 
     // Get skill definitions
@@ -96,7 +95,7 @@ export async function GET(req: NextRequest) {
         reason: 'Based on your previous streak achievement',
         metrics: {
           previousStreak: topStreakyMastery.longestStreak,
-          daysSinceLastPractice: getDaysSince(topStreakyMastery.lastPracticeAt),
+          daysSinceLastPractice: getDaysSince(topStreakyMastery.lastPracticedAt),
         },
       });
     }
@@ -142,7 +141,7 @@ export async function GET(req: NextRequest) {
         if (otherMasteries.length > 0) {
           const suggestedMastery = otherMasteries.sort(
             (a, b) =>
-              getDaysSince(b.lastPracticeAt) - getDaysSince(a.lastPracticeAt)
+              getDaysSince(b.lastPracticedAt) - getDaysSince(a.lastPracticedAt)
           )[0];
           const skill = skillsById.get(suggestedMastery.skillId);
           recommendations.push({
@@ -156,7 +155,7 @@ export async function GET(req: NextRequest) {
             actionLabel: 'Try This Skill',
             reason: 'Variety improves long-term retention and prevents burnout',
             metrics: {
-              daysSincePracticed: getDaysSince(suggestedMastery.lastPracticeAt),
+              daysSincePracticed: getDaysSince(suggestedMastery.lastPracticedAt),
             },
           });
         }
@@ -190,8 +189,8 @@ export async function GET(req: NextRequest) {
 
     // 5. Focus on least practiced skill with high potential
     const neglectedMasteries = masteries
-      .filter((m) => getDaysSince(m.lastPracticeAt) >= 7 && m.totalQualityHours > 0)
-      .sort((a, b) => getDaysSince(b.lastPracticeAt) - getDaysSince(a.lastPracticeAt));
+      .filter((m) => getDaysSince(m.lastPracticedAt) >= 7 && m.totalQualityHours > 0)
+      .sort((a, b) => getDaysSince(b.lastPracticedAt) - getDaysSince(a.lastPracticedAt));
 
     if (neglectedMasteries.length > 0) {
       const neglected = neglectedMasteries[0];
@@ -201,13 +200,13 @@ export async function GET(req: NextRequest) {
         type: 'skill_focus',
         priority: 'low',
         title: 'Return to Practice 📚',
-        description: `It's been ${getDaysSince(neglected.lastPracticeAt)} days since you practiced ${skill?.name ?? 'this skill'}. Keep the momentum going!`,
+        description: `It&apos;s been ${getDaysSince(neglected.lastPracticedAt)} days since you practiced ${skill?.name ?? 'this skill'}. Keep the momentum going!`,
         skillId: neglected.skillId,
         skillName: skill?.name,
         actionLabel: 'Resume Practice',
         reason: 'Consistent practice is key to mastery',
         metrics: {
-          daysSincePractice: getDaysSince(neglected.lastPracticeAt),
+          daysSincePractice: getDaysSince(neglected.lastPracticedAt),
           totalHours: neglected.totalQualityHours,
         },
       });

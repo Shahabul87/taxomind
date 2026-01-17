@@ -7,6 +7,7 @@ import {
   MILESTONE_HOURS,
   MILESTONE_BADGE_NAMES,
   MILESTONE_XP_REWARDS,
+  type PracticeMilestoneType,
 } from '@/lib/sam/stores/prisma-skill-mastery-10k-store';
 
 // ============================================================================
@@ -71,11 +72,11 @@ export async function GET(req: NextRequest) {
 
     // Enrich with badge names and XP rewards
     const enrichedMilestones = milestones.map((m) => {
-      const hoursKey = parseInt(m.milestoneType.replace('HOURS_', ''), 10);
+      const milestoneType = m.milestoneType as PracticeMilestoneType;
       return {
         ...m,
-        badgeName: MILESTONE_BADGE_NAMES[hoursKey as keyof typeof MILESTONE_BADGE_NAMES] ?? m.milestoneType,
-        xpReward: MILESTONE_XP_REWARDS[hoursKey as keyof typeof MILESTONE_XP_REWARDS] ?? 0,
+        badgeName: MILESTONE_BADGE_NAMES[milestoneType] ?? m.milestoneType,
+        xpReward: MILESTONE_XP_REWARDS[milestoneType] ?? 0,
       };
     });
 

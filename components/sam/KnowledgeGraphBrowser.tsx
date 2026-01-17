@@ -21,6 +21,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip,
@@ -47,6 +54,8 @@ import {
   Target,
   Brain,
   Sparkles,
+  Filter,
+  GitBranch,
 } from 'lucide-react';
 
 // ============================================================================
@@ -125,9 +134,22 @@ interface KnowledgeGraphBrowserProps {
   onConceptSelect?: (conceptId: string) => void;
   showSearch?: boolean;
   showStats?: boolean;
+  showFilters?: boolean;
   height?: string;
   className?: string;
 }
+
+// Relationship type definitions
+const RELATIONSHIP_TYPES = [
+  { value: 'all', label: 'All Relationships', description: 'Show all connections' },
+  { value: 'prerequisite', label: 'Prerequisites', description: 'Required prior knowledge' },
+  { value: 'related_to', label: 'Related Concepts', description: 'Connected topics' },
+  { value: 'part_of', label: 'Part Of', description: 'Hierarchical structure' },
+  { value: 'follows', label: 'Sequence', description: 'Learning order' },
+  { value: 'applies_to', label: 'Applications', description: 'Practical uses' },
+] as const;
+
+type RelationshipType = typeof RELATIONSHIP_TYPES[number]['value'];
 
 // ============================================================================
 // CONSTANTS
@@ -540,6 +562,7 @@ export function KnowledgeGraphBrowser({
   onConceptSelect,
   showSearch = true,
   showStats = true,
+  showFilters = true,
   height = '600px',
   className,
 }: KnowledgeGraphBrowserProps) {
@@ -555,8 +578,38 @@ export function KnowledgeGraphBrowser({
   const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
   const [availableCourses, setAvailableCourses] = useState<Array<{id: string; title: string}>>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(courseId);
+  const [relationshipFilter, setRelationshipFilter] = useState<RelationshipType>('all');
 
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Filter edges based on relationship type
+  const filteredGraphData = useMemo(() => {
+    if (!graphData) return null;
+    if (relationshipFilter === 'all') return graphData;
+
+    const filteredEdges = graphData.edges.filter(
+      (edge) => edge.type.toLowerCase() === relationshipFilter.toLowerCase()
+    );
+
+    // Get nodes that are still connected after filtering
+    const connectedNodeIds = new Set<string>();
+    for (const edge of filteredEdges) {
+      connectedNodeIds.add(edge.source);
+      connectedNodeIds.add(edge.target);
+    }
+
+    // Keep all nodes but mark unconnected ones
+    const filteredNodes = graphData.nodes.map((node) => ({
+      ...node,
+      isFiltered: filteredEdges.length > 0 && !connectedNodeIds.has(node.id),
+    }));
+
+    return {
+      ...graphData,
+      nodes: filteredNodes,
+      edges: filteredEdges,
+    };
+  }, [graphData, relationshipFilter]);
 
   // Fetch available courses when no courseId is provided
   const fetchAvailableCourses = useCallback(async () => {
@@ -849,6 +902,38 @@ export function KnowledgeGraphBrowser({
             </TooltipProvider>
           </div>
         </div>
+        {/* Relationship Filter */}
+        {showFilters && graphData && (
+          <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Filter by:</span>
+            </div>
+            <Select
+              value={relationshipFilter}
+              onValueChange={(value) => setRelationshipFilter(value as RelationshipType)}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RELATIONSHIP_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="h-3 w-3" />
+                      <span>{type.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {relationshipFilter !== 'all' && (
+              <Badge variant="secondary" className="text-xs">
+                {filteredGraphData?.edges.length ?? 0} connections
+              </Badge>
+            )}
+          </div>
+        )}
         {showStats && graphData?.stats && <GraphStats stats={graphData.stats} />}
       </CardHeader>
 
@@ -893,10 +978,10 @@ export function KnowledgeGraphBrowser({
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="graph" className="flex-1 mt-3">
-                {graphData && (
+                {filteredGraphData && (
                   <GraphCanvas
-                    nodes={graphData.nodes}
-                    edges={graphData.edges}
+                    nodes={filteredGraphData.nodes}
+                    edges={filteredGraphData.edges}
                     selectedNodeId={selectedNodeId}
                     onNodeClick={handleNodeClick}
                     zoom={zoom}
@@ -906,7 +991,7 @@ export function KnowledgeGraphBrowser({
               <TabsContent value="list" className="flex-1 mt-3">
                 <ScrollArea className="h-full">
                   <div className="space-y-2 pr-4">
-                    {graphData?.nodes.map((node) => (
+                    {filteredGraphData?.nodes.map((node) => (
                       <NodeCard
                         key={node.id}
                         node={node}

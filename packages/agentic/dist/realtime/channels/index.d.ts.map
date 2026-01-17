@@ -1,0 +1,1 @@
+{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../src/realtime/channels/index.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,OAAO,EACL,YAAY,EACZ,kBAAkB,EAClB,KAAK,kBAAkB,EACvB,KAAK,gBAAgB,EACrB,KAAK,mBAAmB,GACzB,MAAM,iBAAiB,CAAC;AAEzB,OAAO,EACL,kBAAkB,EAClB,wBAAwB,EACxB,KAAK,wBAAwB,EAC7B,KAAK,oBAAoB,EACzB,KAAK,qBAAqB,EAC1B,KAAK,uBAAuB,GAC7B,MAAM,wBAAwB,CAAC"}

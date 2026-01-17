@@ -322,6 +322,10 @@ model PracticeChallengeParticipant {
   challengeId           String
   userId                String
 
+  // Linked Goal (auto-created when joining challenge)
+  linkedGoalId          String?               // Optional: auto-created practice goal for this challenge
+  linkedGoal            PracticeGoal?         @relation("ChallengeLinkedGoals", fields: [linkedGoalId], references: [id], onDelete: SetNull)
+
   // Progress
   hoursCompleted        Float                 @default(0)
   qualityHoursCompleted Float                 @default(0)
@@ -349,6 +353,7 @@ model PracticeChallengeParticipant {
   @@index([challengeId])
   @@index([userId])
   @@index([rank])
+  @@index([linkedGoalId])
   @@map("practice_challenge_participants")
 }
 
@@ -454,4 +459,57 @@ model DailyPracticeLog {
   @@index([date])
   @@index([intensityLevel])
   @@map("daily_practice_logs")
+}
+
+// ==========================================
+// Practice Goal Model (Advanced Goal Setting)
+// ==========================================
+
+enum PracticeGoalType {
+  HOURS           // Total hours
+  QUALITY_HOURS   // Quality-adjusted hours
+  SESSIONS        // Session count
+  STREAK          // Consecutive days
+  WEEKLY_HOURS    // Weekly target
+}
+
+model PracticeGoal {
+  id                    String                @id @default(cuid())
+  userId                String
+
+  // Goal Configuration
+  title                 String
+  description           String?
+  goalType              PracticeGoalType      @default(HOURS)
+  targetValue           Float
+  currentValue          Float                 @default(0)
+
+  // Optional Skill Association
+  skillId               String?
+  skillName             String?
+
+  // Timing
+  deadline              DateTime?
+  startDate             DateTime              @default(now())
+
+  // Status
+  isCompleted           Boolean               @default(false)
+  completedAt           DateTime?
+
+  // Notifications
+  reminderEnabled       Boolean               @default(false)
+  reminderFrequency     String?               // DAILY, WEEKLY, etc.
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  user                  User                  @relation("UserPracticeGoals", fields: [userId], references: [id], onDelete: Cascade)
+  linkedChallenges      PracticeChallengeParticipant[] @relation("ChallengeLinkedGoals")
+
+  @@index([userId])
+  @@index([isCompleted])
+  @@index([deadline])
+  @@map("practice_goals")
 }

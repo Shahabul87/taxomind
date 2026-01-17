@@ -473,11 +473,20 @@ model SAMRecommendation {
   isCompleted     Boolean                   @default(false)
   userRating      Int?
 
+  // Feedback tracking
+  feedbackType    SAMRecommendationFeedback?
+  feedbackComment String?                   @db.Text
+  feedbackAt      DateTime?
+  isDismissed     Boolean                   @default(false)
+  dismissedAt     DateTime?
+  dismissReason   String?
+
   // Relations
   user            User                      @relation("SAMRecommendations", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isViewed, isCompleted])
   @@index([priority])
+  @@index([feedbackType])
   @@map("sam_recommendations")
 }
 
@@ -1116,6 +1125,17 @@ model SAMPresenceHistory {
 enum SAMFeedbackRating {
   HELPFUL
   NOT_HELPFUL
+}
+
+enum SAMRecommendationFeedback {
+  HELPFUL
+  NOT_HELPFUL
+  TOO_EASY
+  TOO_HARD
+  NOT_RELEVANT
+  ALREADY_KNOW
+  WRONG_TIMING
+  COMPLETED_ELSEWHERE
 }
 
 model SAMFeedback {
@@ -1945,4 +1965,100 @@ model UserDeviceToken {
   @@index([userId, isActive])
   @@index([token])
   @@map("user_device_tokens")
+}
+
+// ==========================================
+// PREDICTION TRACKING MODELS
+// ==========================================
+
+enum SAMPredictionType {
+  GRADE
+  COMPLETION
+  MASTERY
+  ENGAGEMENT
+  RISK
+}
+
+enum SAMPredictionStatus {
+  ACTIVE
+  EXPIRED
+  VERIFIED_ACCURATE
+  VERIFIED_INACCURATE
+}
+
+model SAMPrediction {
+  id               String              @id @default(cuid())
+  userId           String
+  type             SAMPredictionType
+  title            String
+
+  // Prediction values
+  predictedValue   Float
+  confidence       Float               @default(0.5)
+  targetDate       DateTime?
+
+  // Context
+  courseId         String?
+  skillId          String?
+  contextData      Json?               // Additional context for the prediction
+
+  // Status tracking
+  status           SAMPredictionStatus @default(ACTIVE)
+
+  // Outcome tracking (filled in when verified)
+  actualValue      Float?
+  accuracyScore    Float?              // 0-1, how close was the prediction
+  verifiedAt       DateTime?
+  verificationMethod String?           // 'manual', 'automatic', 'system'
+
+  // Metadata
+  factors          Json?               // Contributing factors
+  notes            String?             @db.Text
+
+  // Timestamps
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  expiresAt        DateTime?
+
+  // Relations
+  user             User                @relation("SAMPredictions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, status])
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+  @@map("sam_predictions")
+}
+
+// Aggregated prediction accuracy metrics
+model SAMPredictionAccuracy {
+  id               String              @id @default(cuid())
+  userId           String?             // null for system-wide metrics
+  type             SAMPredictionType?  // null for overall accuracy
+
+  // Accuracy metrics
+  totalPredictions Int                 @default(0)
+  verifiedCount    Int                 @default(0)
+  accurateCount    Int                 @default(0)
+
+  // Calculated metrics
+  accuracyRate     Float               @default(0)  // accurateCount / verifiedCount
+  avgConfidence    Float               @default(0)
+  avgError         Float               @default(0)  // Average prediction error
+
+  // Calibration data
+  calibrationData  Json?               // Confidence vs accuracy buckets
+
+  // Period
+  periodStart      DateTime
+  periodEnd        DateTime
+
+  // Timestamps
+  calculatedAt     DateTime            @default(now())
+
+  // Relations
+  user             User?               @relation("SAMPredictionAccuracy", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, periodStart])
+  @@index([userId, calculatedAt])
+  @@map("sam_prediction_accuracy")
 }

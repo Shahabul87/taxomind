@@ -49,7 +49,7 @@ export async function POST(
       );
     }
 
-    const pausedSession = await practiceSessionStore.pause(sessionId);
+    const pausedSession = await practiceSessionStore.pauseSession(sessionId);
 
     logger.info(`Paused practice session: ${sessionId}`);
 

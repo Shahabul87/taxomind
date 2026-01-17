@@ -5,7 +5,6 @@ import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
 import type {
   PracticeFocusLevel,
-  BloomsLevel,
 } from '@/lib/sam/stores/prisma-practice-session-store';
 
 // Get practice stores from TaxomindContext singleton
@@ -43,15 +42,16 @@ const BloomsLevelEnum = z.enum([
 
 const StartPomodoroSchema = z.object({
   skillId: z.string().min(1),
+  skillName: z.string().optional(),
   courseId: z.string().optional(),
+  courseName: z.string().optional(),
   chapterId: z.string().optional(),
   sectionId: z.string().optional(),
   focusLevel: FocusLevelEnum.optional().default('HIGH'),
   bloomsLevel: BloomsLevelEnum.optional(),
-  difficultyRating: z.number().min(1).max(10).optional(),
   pomodoroNumber: z.number().int().min(1).max(20).optional().default(1),
   notes: z.string().max(2000).optional(),
-  tags: z.array(z.string()).optional().default([]),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 // ============================================================================
@@ -86,16 +86,16 @@ export async function POST(req: NextRequest) {
     const pomodoroSession = await practiceSessionStore.create({
       userId: session.user.id,
       skillId: validated.skillId,
+      skillName: validated.skillName,
       courseId: validated.courseId,
+      courseName: validated.courseName,
       chapterId: validated.chapterId,
       sectionId: validated.sectionId,
       sessionType: 'POMODORO', // Pomodoro sessions get 1.4x multiplier
       focusLevel: validated.focusLevel as PracticeFocusLevel,
-      bloomsLevel: validated.bloomsLevel as BloomsLevel | undefined,
-      difficultyRating: validated.difficultyRating,
-      plannedDurationMinutes: POMODORO_DURATION_MINUTES,
-      notes: validated.notes,
-      tags: [...validated.tags, `pomodoro-${validated.pomodoroNumber}`],
+      bloomsLevel: validated.bloomsLevel,
+      notes: `Pomodoro #${validated.pomodoroNumber}${validated.notes ? `\n${validated.notes}` : ''}`,
+      metadata: { ...validated.metadata, pomodoroNumber: validated.pomodoroNumber },
     });
 
     // Calculate next break type

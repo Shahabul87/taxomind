@@ -5,7 +5,7 @@ import type { User as NextAuthUser } from "next-auth";
 import { ActivityStream } from "./ActivityStream";
 import { EmptyState } from "./EmptyState";
 import { useActivities } from "@/hooks/use-activities";
-import { Loader2, LayoutDashboard, Trophy, Target, Timer } from "lucide-react";
+import { Loader2, LayoutDashboard, Trophy, Target, Timer, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Enhanced Gamification Components
@@ -55,6 +55,44 @@ import { QualityScoreDashboard } from "@/components/sam/QualityScoreDashboard";
 import { KnowledgeGraphBrowser } from "@/components/sam/KnowledgeGraphBrowser";
 import { PeerLearningHub } from "@/components/sam/PeerLearningHub";
 
+// Gap 1 Hidden Capabilities - Now Exposed
+import { BiasDetectionReport } from "@/components/sam/BiasDetectionReport";
+import { LearningPathOptimizer } from "@/components/sam/LearningPathOptimizer";
+import { MetacognitionPanel } from "@/components/sam/MetacognitionPanel";
+import { BehaviorPatternsWidget } from "@/components/sam/behavior/BehaviorPatternsWidget";
+import { MemorySearchPanel } from "@/components/sam/memory/MemorySearchPanel";
+import { TrendsExplorer } from "@/components/sam/TrendsExplorer";
+
+// Gap 3 Orphaned Components - Now Integrated
+import { SocialLearningFeed } from "@/components/sam/SocialLearningFeed";
+import { CollaborationSpace } from "@/components/sam/CollaborationSpace";
+import { ResearchAssistant } from "@/components/sam/ResearchAssistant";
+import { IntegrityChecker } from "@/components/sam/IntegrityChecker";
+import {
+  CelebrationOverlay,
+  useCelebration,
+} from "@/components/sam/CelebrationOverlay";
+import {
+  ToolApprovalDialog,
+  useToolApproval,
+} from "@/components/sam/ToolApprovalDialog";
+
+// Gap 2: Underutilized React Hooks - Now Connected to Dashboard
+// These widgets expose powerful @sam-ai/react hooks that were built but not used
+import { PracticeProblemsWidget } from "@/components/sam/PracticeProblemsWidget";
+import { AdaptiveContentWidget } from "@/components/sam/AdaptiveContentWidget";
+import { SocraticDialogueWidget } from "@/components/sam/SocraticDialogueWidget";
+import { TutoringOrchestrationWidget } from "@/components/sam/TutoringOrchestrationWidget";
+import { RealtimeCollaborationWidget } from "@/components/sam/RealtimeCollaborationWidget";
+import { UserInterventionsWidget } from "@/components/sam/UserInterventionsWidget";
+
+// Gap 2 Final: Last 2 hooks now connected (22/22 complete)
+import { NotificationsWidget } from "@/components/sam/NotificationsWidget";
+import { LearningRecommendationsWidget } from "@/components/sam/LearningRecommendationsWidget";
+
+// Learning Gap Analysis Dashboard
+import { LearningGapDashboard } from "@/components/sam/learning-gap";
+
 // 10,000 Hour Practice Tracking Components
 import {
   PracticeTimer,
@@ -67,12 +105,15 @@ import {
   PracticeRecommendations,
 } from "@/components/practice";
 
+// Practice Goal Setting
+import { PracticeGoalSetter } from "@/components/practice/PracticeGoalSetter";
+
 interface NewDashboardProps {
   user: NextAuthUser;
   viewMode: "grid" | "list";
 }
 
-type DashboardView = "learning" | "gamification" | "skills" | "practice";
+type DashboardView = "learning" | "gamification" | "skills" | "practice" | "gaps";
 
 export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   const [dashboardView, setDashboardView] = useState<DashboardView>("learning");
@@ -86,6 +127,26 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
     updateActivity,
     deleteActivity,
   } = useActivities();
+
+  // Gap 3 Integration: Celebration system for achievements
+  const { celebration, showCelebration, dismissCelebration } = useCelebration();
+
+  // Gap 3 Integration: Tool approval system for SAM
+  const {
+    pendingRequest,
+    isOpen: isToolApprovalOpen,
+    isProcessing: isToolApprovalProcessing,
+    handleApprove: handleToolApprove,
+    handleDeny: handleToolDeny,
+    setIsOpen: setToolApprovalOpen,
+  } = useToolApproval({
+    onApproved: (requestId, toolId) => {
+      console.log("Tool approved:", toolId);
+    },
+    onDenied: (requestId, toolId) => {
+      console.log("Tool denied:", toolId);
+    },
+  });
 
   // Event handlers
   const handleViewDetails = (id: string) => {
@@ -168,6 +229,15 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <Trophy className="h-4 w-4" />
         <span className="hidden sm:inline">Achievements</span>
       </Button>
+      <Button
+        variant={dashboardView === "gaps" ? "default" : "ghost"}
+        size="sm"
+        onClick={() => setDashboardView("gaps")}
+        className="gap-2"
+      >
+        <AlertTriangle className="h-4 w-4" />
+        <span className="hidden sm:inline">Gaps</span>
+      </Button>
     </div>
   );
 
@@ -240,10 +310,155 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           <div className="mt-6">
             <PeerLearningHub />
           </div>
+
+          {/* ============================================================= */}
+          {/* GAP 1: Hidden Capabilities Now Exposed */}
+          {/* ============================================================= */}
+
+          {/* Learning Path Optimizer - Personalized pathway recommendations */}
+          <div className="mt-6">
+            <LearningPathOptimizer
+              userId={user.id ?? ""}
+              courseId=""
+              className="w-full"
+            />
+          </div>
+
+          {/* Metacognition & Behavior Analysis Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* MetacognitionPanel - Self-reflection and study habit analysis */}
+            <MetacognitionPanel className="w-full" />
+
+            {/* BehaviorPatternsWidget - Detected learning behavior patterns */}
+            <BehaviorPatternsWidget
+              maxPatterns={5}
+              showDetect={true}
+              compact={false}
+            />
+          </div>
+
+          {/* Memory Search & Trends Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* MemorySearchPanel - Search past learning memories */}
+            <MemorySearchPanel
+              showFilters={true}
+              maxResults={10}
+              compact={false}
+            />
+
+            {/* TrendsExplorer - Industry trends and skill demand insights */}
+            <TrendsExplorer compact={false} />
+          </div>
+
+          {/* ============================================================= */}
+          {/* GAP 3: Previously Orphaned Components Now Integrated */}
+          {/* ============================================================= */}
+
+          {/* Social Learning & Collaboration Section */}
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* SocialLearningFeed - Community engagement and achievement sharing */}
+            <SocialLearningFeed
+              compact={false}
+              onPostClick={(post) => console.log("Post clicked:", post)}
+              onChallengeJoin={(challengeId) =>
+                console.log("Joining challenge:", challengeId)
+              }
+            />
+
+            {/* CollaborationSpace - Real-time collaborative workspace */}
+            <CollaborationSpace
+              compact={false}
+              onJoinSession={(sessionId) =>
+                console.log("Joining session:", sessionId)
+              }
+              onCreateResource={(type) =>
+                console.log("Creating resource:", type)
+              }
+            />
+          </div>
+
+          {/* ============================================================= */}
+          {/* GAP 2: Underutilized React Hooks - Now Connected */}
+          {/* These widgets expose the powerful @sam-ai/react hooks */}
+          {/* ============================================================= */}
+
+          {/* Socratic Dialogue & Adaptive Learning Row */}
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* SocraticDialogueWidget - Learn through guided questioning */}
+            <SocraticDialogueWidget
+              courseId=""
+              className="min-h-[400px]"
+            />
+
+            {/* AdaptiveContentWidget - Personalized learning style profile */}
+            <AdaptiveContentWidget
+              showTips={true}
+              className="min-h-[400px]"
+            />
+          </div>
+
+          {/* Practice Problems & Tutoring Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* PracticeProblemsWidget - AI-generated practice problems */}
+            <PracticeProblemsWidget
+              defaultTopic=""
+              className="min-h-[400px]"
+            />
+
+            {/* TutoringOrchestrationWidget - Learning plan progress */}
+            <TutoringOrchestrationWidget className="min-h-[400px]" />
+          </div>
+
+          {/* Realtime & Interventions Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* RealtimeCollaborationWidget - WebSocket connection status */}
+            <RealtimeCollaborationWidget
+              showEvents={true}
+              maxEvents={10}
+            />
+
+            {/* UserInterventionsWidget - Proactive SAM interventions */}
+            <UserInterventionsWidget
+              maxVisible={3}
+              enableSound={false}
+            />
+          </div>
+
+          {/* Gap 2 Final: Notifications and Learning Recommendations (22/22 hooks complete) */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* NotificationsWidget - useNotifications hook */}
+            <NotificationsWidget
+              maxVisible={5}
+              refreshInterval={60000}
+            />
+
+            {/* LearningRecommendationsWidget - useRecommendations hook */}
+            <LearningRecommendationsWidget
+              maxRecommendations={5}
+              defaultAvailableTime={60}
+              autoRefresh={true}
+            />
+          </div>
         </div>
 
         {/* SAM AI Assistant - Always available conversational mentor */}
         <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
       </div>
     );
   }
@@ -286,6 +501,11 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             <PracticeRecommendations limit={3} />
           </div>
 
+          {/* Practice Goals */}
+          <div className="mb-6">
+            <PracticeGoalSetter />
+          </div>
+
           {/* Calendar Heatmap - Full Width */}
           <div className="mb-6">
             <PracticeCalendarHeatmap />
@@ -303,6 +523,22 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
 
         {/* SAM AI Assistant - Always available conversational mentor */}
         <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
       </div>
     );
   }
@@ -327,10 +563,79 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             {/* Quality Score Dashboard - Content quality metrics */}
             <QualityScoreDashboard />
           </div>
+
+          {/* Gap 1: Bias Detection Report - Fairness Analysis (Full Width) */}
+          <div className="mt-8">
+            <BiasDetectionReport className="w-full" />
+          </div>
+
+          {/* ============================================================= */}
+          {/* GAP 3: Previously Orphaned Components Now Integrated */}
+          {/* ============================================================= */}
+
+          {/* Research & Academic Integrity Section */}
+          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* ResearchAssistant - Academic research and citation management */}
+            <ResearchAssistant userId={user.id ?? ""} className="w-full" />
+
+            {/* IntegrityChecker - Academic integrity verification */}
+            <IntegrityChecker className="w-full" />
+          </div>
         </div>
 
         {/* SAM AI Assistant - Always available conversational mentor */}
         <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
+  // Gaps view with Learning Gap Analysis Dashboard
+  if (dashboardView === "gaps") {
+    return (
+      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/30 dark:from-slate-900 dark:via-red-900/10 dark:to-orange-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+        <ViewToggle />
+
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+          {/* Learning Gap Dashboard */}
+          <LearningGapDashboard />
+        </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
       </div>
     );
   }
@@ -433,6 +738,22 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
       </div>
       {/* SAM AI Assistant - Always available conversational mentor */}
       <SAMAssistantWrapper />
+
+      {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+      <ToolApprovalDialog
+        request={pendingRequest}
+        open={isToolApprovalOpen}
+        onOpenChange={setToolApprovalOpen}
+        onApprove={handleToolApprove}
+        onDeny={handleToolDeny}
+        isProcessing={isToolApprovalProcessing}
+      />
+
+      {/* Gap 3: Celebration Overlay for achievements */}
+      <CelebrationOverlay
+        celebration={celebration}
+        onDismiss={dismissCelebration}
+      />
     </div>
   );
 }

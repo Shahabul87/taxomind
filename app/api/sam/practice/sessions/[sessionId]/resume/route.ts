@@ -49,7 +49,7 @@ export async function POST(
       );
     }
 
-    const resumedSession = await practiceSessionStore.resume(sessionId);
+    const resumedSession = await practiceSessionStore.resumeSession(sessionId);
 
     logger.info(`Resumed practice session: ${sessionId}`);
 

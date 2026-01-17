@@ -34,15 +34,15 @@ export async function GET(req: NextRequest) {
 
     if (activeSession.status === 'ACTIVE' && activeSession.startedAt) {
       const startTime = new Date(activeSession.startedAt);
-      const pausedSeconds = activeSession.pausedDurationSeconds || 0;
+      const pausedSeconds = activeSession.totalPausedSeconds || 0;
       elapsedSeconds = Math.floor((now.getTime() - startTime.getTime()) / 1000) - pausedSeconds;
     } else if (activeSession.status === 'PAUSED') {
       // For paused sessions, use the stored elapsed time
       const startTime = new Date(activeSession.startedAt);
-      const lastPauseStart = activeSession.lastPauseStart
-        ? new Date(activeSession.lastPauseStart)
+      const lastPauseStart = activeSession.pausedAt
+        ? new Date(activeSession.pausedAt)
         : now;
-      const pausedSeconds = activeSession.pausedDurationSeconds || 0;
+      const pausedSeconds = activeSession.totalPausedSeconds || 0;
       elapsedSeconds = Math.floor((lastPauseStart.getTime() - startTime.getTime()) / 1000) - pausedSeconds;
     }
 

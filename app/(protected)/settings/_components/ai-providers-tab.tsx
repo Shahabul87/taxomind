@@ -42,6 +42,12 @@ interface AIPreferences {
   preferredCourseProvider: AIProviderType | null;
   preferredAnalysisProvider: AIProviderType | null;
   preferredCodeProvider: AIProviderType | null;
+  // Per-provider model selection
+  anthropicModel: string | null;
+  deepseekModel: string | null;
+  openaiModel: string | null;
+  geminiModel: string | null;
+  mistralModel: string | null;
 }
 
 const PROVIDER_ICONS: Record<AIProviderType, string> = {
@@ -80,6 +86,12 @@ export function AIProvidersTab() {
     preferredCourseProvider: null,
     preferredAnalysisProvider: null,
     preferredCodeProvider: null,
+    // Per-provider model selection
+    anthropicModel: null,
+    deepseekModel: null,
+    openaiModel: null,
+    geminiModel: null,
+    mistralModel: null,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,6 +118,12 @@ export function AIProvidersTab() {
             preferredCourseProvider: data.preferredCourseProvider || "anthropic",
             preferredAnalysisProvider: data.preferredAnalysisProvider || "anthropic",
             preferredCodeProvider: data.preferredCodeProvider || "anthropic",
+            // Per-provider model selection
+            anthropicModel: data.anthropicModel || "claude-sonnet-4-5-20250929",
+            deepseekModel: data.deepseekModel || "deepseek-chat",
+            openaiModel: data.openaiModel || "gpt-4o",
+            geminiModel: data.geminiModel || "gemini-pro",
+            mistralModel: data.mistralModel || "mistral-large",
           });
         }
       } catch (error) {
@@ -126,6 +144,18 @@ export function AIProvidersTab() {
     setPreferences((prev) => ({
       ...prev,
       [capability]: provider,
+    }));
+    setHasChanges(true);
+  };
+
+  const handleModelChange = (
+    providerId: AIProviderType,
+    model: string
+  ) => {
+    const modelKey = `${providerId}Model` as keyof AIPreferences;
+    setPreferences((prev) => ({
+      ...prev,
+      [modelKey]: model,
     }));
     setHasChanges(true);
   };
@@ -271,6 +301,88 @@ export function AIProvidersTab() {
           </p>
         )}
       </div>
+
+      {/* Model Selection per Provider */}
+      {configuredProviders.length > 0 && (
+        <div
+          className={cn(
+            "p-6 rounded-3xl",
+            "bg-white/80 dark:bg-slate-800/80",
+            "backdrop-blur-sm",
+            "border border-slate-200/50 dark:border-slate-700/50",
+            "shadow-lg"
+          )}
+        >
+          <h4 className="text-md font-semibold text-slate-900 dark:text-white mb-2">
+            Model Selection
+          </h4>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Choose which model to use for each configured provider
+          </p>
+
+          <div className="space-y-4">
+            {configuredProviders.map((provider) => {
+              const modelKey = `${provider.id}Model` as keyof AIPreferences;
+              const currentModel = preferences[modelKey] as string | null;
+
+              return (
+                <div
+                  key={provider.id}
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="text-2xl">{PROVIDER_ICONS[provider.id]}</span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900 dark:text-white">
+                        {provider.name}
+                      </p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {provider.models.length} model{provider.models.length !== 1 ? "s" : ""} available
+                      </p>
+                    </div>
+                  </div>
+
+                  <Select
+                    value={currentModel || provider.defaultModel}
+                    onValueChange={(value) => handleModelChange(provider.id, value)}
+                  >
+                    <SelectTrigger className="w-full sm:w-[240px] bg-white dark:bg-slate-800">
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provider.models.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          <div className="flex items-center gap-2">
+                            <span>{model}</span>
+                            {model === provider.defaultModel && (
+                              <span className="text-xs text-slate-400">(default)</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Model Info Card */}
+          <div className="mt-4 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+            <div className="flex items-start gap-3">
+              <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-800 dark:text-amber-200">
+                <p className="font-medium mb-1">Model Selection Tips</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li><strong>DeepSeek:</strong> Use &quot;deepseek-chat&quot; for general tasks, &quot;deepseek-reasoner&quot; for complex reasoning</li>
+                  <li><strong>OpenAI:</strong> &quot;gpt-4o&quot; is the fastest, &quot;o1&quot; for advanced reasoning</li>
+                  <li><strong>Anthropic:</strong> Claude Sonnet models offer the best balance of speed and quality</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Provider Selection by Capability */}
       <div

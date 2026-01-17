@@ -107,10 +107,28 @@ export async function POST(req: NextRequest) {
     const role = mapUserToToolRole(session.user as { role?: string; isTeacher?: boolean });
     await ensureDefaultToolPermissions(session.user.id, role, session.user.id);
 
+    // Auto-inject userId into tool input if it's an object and doesn't already have userId
+    // Most mentor tools require userId for authorization and data scoping
+    let enrichedInput = parsed.data.input;
+    if (
+      typeof parsed.data.input === 'object' &&
+      parsed.data.input !== null &&
+      !Array.isArray(parsed.data.input)
+    ) {
+      const inputObj = parsed.data.input as Record<string, unknown>;
+      if (!inputObj.userId) {
+        enrichedInput = { ...inputObj, userId: session.user.id };
+        logger.debug('[Tools API] Auto-injected userId into tool input', {
+          toolId: parsed.data.toolId,
+          userId: session.user.id,
+        });
+      }
+    }
+
     const execution = await tooling.toolExecutor.execute(
       parsed.data.toolId,
       session.user.id,
-      parsed.data.input,
+      enrichedInput,
       {
         sessionId: parsed.data.sessionId,
         skipConfirmation: parsed.data.skipConfirmation,
@@ -129,9 +147,13 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error invoking tool:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Error invoking tool:', { error: errorMessage, stack: error instanceof Error ? error.stack : undefined });
     return NextResponse.json(
-      { error: 'Failed to invoke tool' },
+      {
+        error: 'Failed to invoke tool',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
       { status: 500 }
     );
   }

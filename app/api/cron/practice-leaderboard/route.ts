@@ -69,8 +69,8 @@ async function recalculateLeaderboard(timeframe: LeaderboardTimeframe): Promise<
       startedAt: periodStart ? { gte: periodStart } : undefined,
     },
     _sum: {
-      rawDuration: true,
-      qualityDuration: true,
+      rawHours: true,
+      qualityHours: true,
     },
     _count: {
       id: true,
@@ -107,8 +107,8 @@ async function recalculateLeaderboard(timeframe: LeaderboardTimeframe): Promise<
   const sortedData = practiceData
     .map((d) => ({
       userId: d.userId,
-      totalHours: (d._sum.rawDuration ?? 0) / 3600, // Convert seconds to hours
-      qualityHours: (d._sum.qualityDuration ?? 0) / 3600,
+      totalHours: d._sum.rawHours ?? 0,
+      qualityHours: d._sum.qualityHours ?? 0,
       sessionsCount: d._count.id,
       avgQualityMultiplier: d._avg.qualityMultiplier ?? 1,
       streakDays: streakMap.get(d.userId) ?? 0,
@@ -137,7 +137,7 @@ async function recalculateLeaderboard(timeframe: LeaderboardTimeframe): Promise<
           sessionsCount: entry.sessionsCount,
           avgQualityMultiplier: entry.avgQualityMultiplier,
           streakDays: entry.streakDays,
-          lastUpdatedAt: new Date(),
+          updatedAt: new Date(),
         },
       });
     } else {

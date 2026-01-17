@@ -1,6 +1,6 @@
 /**
  * SAM Agentic Recommendations API
- * Generates personalized learning recommendations
+ * Generates personalized learning recommendations with feedback-aware improvements
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,6 +8,7 @@ import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
+import { getQuickPreferences } from '@/lib/sam/recommendation-feedback-analyzer';
 import {
   createProgressAnalyzer,
   createSkillAssessor,
@@ -138,10 +139,17 @@ export async function GET(req: NextRequest) {
     const skillAssessor = getSkillAssessor();
     const recommendationEngine = getRecommendationEngine();
 
-    const [learningGaps, topicProgress, skillAssessments] = await Promise.all([
+    // Get user feedback preferences to improve recommendations
+    const [learningGaps, topicProgress, skillAssessments, feedbackPrefs] = await Promise.all([
       progressAnalyzer.detectGaps(user.id),
       progressAnalyzer.getAllProgress(user.id),
       skillAssessor.getUserAssessments(user.id),
+      getQuickPreferences(user.id).catch(() => ({
+        preferredTypes: [],
+        avoidedTypes: [],
+        difficultyBias: 0,
+        hasEnoughData: false,
+      })),
     ]);
 
     const batch = await recommendationEngine.generateRecommendations({
@@ -152,9 +160,41 @@ export async function GET(req: NextRequest) {
       availableTime: time,
     });
 
+    // Apply feedback-based filtering and reordering
+    let filteredRecommendations = batch.recommendations;
+    if (feedbackPrefs.hasEnoughData) {
+      // Filter out types the user consistently dislikes
+      if (feedbackPrefs.avoidedTypes.length > 0) {
+        filteredRecommendations = filteredRecommendations.filter(
+          (rec) => !feedbackPrefs.avoidedTypes.includes(rec.type)
+        );
+      }
+
+      // Boost preferred types to the top
+      if (feedbackPrefs.preferredTypes.length > 0) {
+        filteredRecommendations.sort((a, b) => {
+          const aPreferred = feedbackPrefs.preferredTypes.includes(a.type) ? 1 : 0;
+          const bPreferred = feedbackPrefs.preferredTypes.includes(b.type) ? 1 : 0;
+          return bPreferred - aPreferred;
+        });
+      }
+    }
+
+    const adjustedBatch: AgenticRecommendationBatch = {
+      ...batch,
+      recommendations: filteredRecommendations,
+    };
+
     return NextResponse.json({
       success: true,
-      data: mapRecommendationBatch(batch, time, limit),
+      data: {
+        ...mapRecommendationBatch(adjustedBatch, time, limit),
+        feedbackAdjusted: feedbackPrefs.hasEnoughData,
+        preferences: feedbackPrefs.hasEnoughData ? {
+          preferredTypes: feedbackPrefs.preferredTypes,
+          difficultyBias: feedbackPrefs.difficultyBias,
+        } : undefined,
+      },
     });
   } catch (error) {
     logger.error('Error generating recommendations:', error);

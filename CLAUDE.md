@@ -132,7 +132,45 @@ npm test                       # Run tests
 npm run dev:docker:start       # Start PostgreSQL container
 npm run dev:db:studio         # Open Prisma Studio
 npx prisma generate           # Update Prisma client
+
+# TypeScript Type Checking (Memory-Optimized)
+npm run typecheck:parallel         # Incremental check (fast, low memory)
+npm run typecheck:parallel:force   # Full rebuild
+npm run typecheck:parallel:watch   # Watch mode
+npm run typecheck:parallel:clean   # Clear cache
 ```
+
+## 🧠 TypeScript Memory Optimization
+
+**IMPORTANT**: This codebase uses industry-standard TypeScript project references to handle memory constraints.
+
+**📚 Full Documentation**: `codebase-memory/build-optimization/TYPESCRIPT_MEMORY_SOLUTION.md`
+
+### Quick Reference
+
+| Task | Command | Memory |
+|------|---------|--------|
+| Daily development | `npm run dev` | Low |
+| Type check changes | `npm run typecheck:parallel` | ~500MB |
+| Production build | `npm run build` | ~4GB |
+| Full type check | `npm run typecheck:parallel:force` | ~2GB |
+
+### ❌ NEVER Run
+```bash
+npx tsc --noEmit  # Will OOM on full project (8GB+)
+```
+
+### ✅ ALWAYS Use
+```bash
+npm run typecheck:parallel  # Incremental, cached, low memory
+npm run lint                # Catches most type issues via ESLint
+```
+
+### Why This Works
+- 16 packages compile independently with caching
+- Only changed packages rebuild
+- `.tsbuildinfo` files cache results
+- Editor provides real-time feedback
 
 ## Architecture Quick Reference
 

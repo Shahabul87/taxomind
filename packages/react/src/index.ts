@@ -38,12 +38,25 @@ export {
   // Behavior & Recommendations Hooks
   useBehaviorPatterns,
   useRecommendations,
+  // Notifications Hook
+  useNotifications,
   // Memory Hook
   useSAMMemory,
   // Push Notifications Hook
   usePushNotifications,
   // Presence Tracking Hook
   usePresence,
+  // Real-time Communication Hook
+  useRealtime,
+  // Interventions Hook
+  useInterventions,
+  // Tutoring Orchestration Hook & Provider
+  useTutoringOrchestration,
+  useCurrentStep,
+  useStepProgress,
+  useStepCelebration,
+  TutoringOrchestrationProvider,
+  useTutoringOrchestrationContext,
 } from './hooks';
 
 // ============================================================================
@@ -165,6 +178,37 @@ export type {
 export type {
   UsePresenceOptions,
   UsePresenceReturn,
+} from './hooks';
+
+// Notifications types
+export type {
+  UseNotificationsOptions,
+  UseNotificationsReturn,
+  SAMNotification,
+  NotificationType,
+  NotificationFeedback,
+} from './hooks';
+
+// Real-time communication types
+export type {
+  UseRealtimeOptions,
+  UseRealtimeReturn,
+} from './hooks';
+
+// Interventions types
+export type {
+  UseInterventionsOptions,
+  UseInterventionsReturn,
+} from './hooks';
+
+// Tutoring orchestration types
+export type {
+  TutoringStep,
+  StepProgress,
+  StepTransition,
+  PendingConfirmation,
+  OrchestrationMetadata,
+  TutoringOrchestrationState,
 } from './hooks';
 
 // ============================================================================

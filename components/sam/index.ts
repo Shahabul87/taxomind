@@ -71,6 +71,14 @@ export { default as ProgressDashboardDefault } from './progress-dashboard';
 export { KnowledgeGraphBrowser } from './KnowledgeGraphBrowser';
 export { default as KnowledgeGraphBrowserDefault } from './KnowledgeGraphBrowser';
 
+// Prerequisite Tree View - Hierarchical view of concept prerequisites
+export { PrerequisiteTreeView } from './PrerequisiteTreeView';
+export { default as PrerequisiteTreeViewDefault } from './PrerequisiteTreeView';
+
+// Learning Path Timeline - Chronological progress visualization
+export { LearningPathTimeline } from './LearningPathTimeline';
+export { default as LearningPathTimelineDefault } from './LearningPathTimeline';
+
 // Quality & Calibration
 export { QualityScoreDashboard } from './QualityScoreDashboard';
 export { ConfidenceCalibrationWidget } from './ConfidenceCalibrationWidget';
@@ -88,6 +96,14 @@ export { LearningPathOptimizer } from './LearningPathOptimizer';
 // Safety & Fairness
 export { BiasDetectionReport } from './BiasDetectionReport';
 export { default as BiasDetectionReportDefault } from './BiasDetectionReport';
+
+// Accessibility Metrics Widget - Readability and text complexity analysis
+export { AccessibilityMetricsWidget } from './AccessibilityMetricsWidget';
+export { default as AccessibilityMetricsWidgetDefault } from './AccessibilityMetricsWidget';
+
+// Discouraging Language Alert - Detects harmful language in feedback
+export { DiscouragingLanguageAlert } from './DiscouragingLanguageAlert';
+export { default as DiscouragingLanguageAlertDefault } from './DiscouragingLanguageAlert';
 
 // Cognitive Load Monitoring
 export { CognitiveLoadMonitor } from './CognitiveLoadMonitor';
@@ -307,3 +323,115 @@ export type {
   LeaderboardPeriod,
   LeaderboardScope,
 } from './LeaderboardWidget';
+
+// ============================================================================
+// CELEBRATION & GAMIFICATION COMPONENTS
+// ============================================================================
+
+// Celebration Overlay - Animated celebration for achievements
+export { CelebrationOverlay, useCelebration, MiniCelebration } from './CelebrationOverlay';
+export type {
+  CelebrationType,
+  CelebrationData,
+} from './CelebrationOverlay';
+
+// ============================================================================
+// TOOL APPROVAL & SAFETY COMPONENTS
+// ============================================================================
+
+// Tool Approval Dialog - Permission dialog for SAM tool executions
+export { ToolApprovalDialog, useToolApproval } from './ToolApprovalDialog';
+export type {
+  ToolApprovalRequest,
+  ToolApprovalDialogProps,
+  RiskLevel,
+  ToolCategory,
+  UseToolApprovalOptions,
+} from './ToolApprovalDialog';
+
+// ============================================================================
+// GAP 2: UNDERUTILIZED REACT HOOKS - NOW CONNECTED
+// These widgets expose the powerful @sam-ai/react hooks
+// ============================================================================
+
+// Practice Problems Widget - useSAMPracticeProblems hook
+export { PracticeProblemsWidget } from './PracticeProblemsWidget';
+export { default as PracticeProblemsWidgetDefault } from './PracticeProblemsWidget';
+
+// Adaptive Content Widget - useSAMAdaptiveContent hook
+export { AdaptiveContentWidget } from './AdaptiveContentWidget';
+export { default as AdaptiveContentWidgetDefault } from './AdaptiveContentWidget';
+
+// Socratic Dialogue Widget - useSAMSocraticDialogue hook
+export { SocraticDialogueWidget } from './SocraticDialogueWidget';
+export { default as SocraticDialogueWidgetDefault } from './SocraticDialogueWidget';
+
+// Tutoring Orchestration Widget - useTutoringOrchestration hook
+export { TutoringOrchestrationWidget } from './TutoringOrchestrationWidget';
+export { default as TutoringOrchestrationWidgetDefault } from './TutoringOrchestrationWidget';
+
+// Realtime Collaboration Widget - useRealtime hook
+export { RealtimeCollaborationWidget } from './RealtimeCollaborationWidget';
+export { default as RealtimeCollaborationWidgetDefault } from './RealtimeCollaborationWidget';
+
+// User Interventions Widget - useInterventions hook
+export { UserInterventionsWidget } from './UserInterventionsWidget';
+export { default as UserInterventionsWidgetDefault } from './UserInterventionsWidget';
+
+// Notifications Widget - useNotifications hook
+export { NotificationsWidget } from './NotificationsWidget';
+export { default as NotificationsWidgetDefault } from './NotificationsWidget';
+
+// Learning Recommendations Widget - useRecommendations hook
+export { LearningRecommendationsWidget } from './LearningRecommendationsWidget';
+export { default as LearningRecommendationsWidgetDefault } from './LearningRecommendationsWidget';
+
+// ============================================================================
+// LEARNING GAP ANALYSIS COMPONENTS
+// ============================================================================
+
+export {
+  LearningGapDashboard,
+  LearningGapDashboardDefault,
+  GapOverviewWidget,
+  GapOverviewWidgetDefault,
+  SkillDecayTracker,
+  SkillDecayTrackerDefault,
+  TrendAnalysisChart,
+  TrendAnalysisChartDefault,
+  PersonalizedRecommendations,
+  PersonalizedRecommendationsDefault,
+  ComparisonView,
+  ComparisonViewDefault,
+  useLearningGaps,
+  useLearningGapsDefault,
+} from './learning-gap';
+
+export type {
+  // Learning Gap Types
+  GapSeverity,
+  GapStatus,
+  DecayRiskLevel,
+  TrendDirection,
+  LearningGapEvidence,
+  GapAction,
+  LearningGapData,
+  DecayPrediction,
+  SkillDecayData,
+  TrendMetricPoint,
+  TrendMetric,
+  TrendInsight,
+  TrendAnalysisData,
+  GapRecommendation,
+  ComparisonMetric,
+  ComparisonInsight,
+  ComparisonData,
+  GapSummary,
+  LearningGapDashboardData,
+  LearningGapDashboardProps,
+  GapOverviewWidgetProps,
+  SkillDecayTrackerProps,
+  TrendAnalysisChartProps,
+  PersonalizedRecommendationsProps,
+  ComparisonViewProps,
+} from './learning-gap';

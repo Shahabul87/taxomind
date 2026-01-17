@@ -245,3 +245,29 @@ export {
   type ChallengeFilters,
   type PracticeChallengeStore,
 } from './prisma-practice-challenge-store';
+
+// Practice Goal Store
+export {
+  PrismaPracticeGoalStore,
+  createPrismaPracticeGoalStore,
+  type PracticeGoal as PracticeGoalData,
+  type GoalType,
+  type CreatePracticeGoalInput,
+  type UpdatePracticeGoalInput,
+  type GoalProgressUpdate,
+  type GoalFilters,
+  type UpdatedGoalResult,
+} from './prisma-practice-goal-store';
+
+// Spaced Repetition Store (SM-2 Algorithm)
+export {
+  PrismaSpacedRepetitionStore,
+  createPrismaSpacedRepetitionStore,
+  type ReviewScheduleEntry,
+  type ScheduleReviewInput,
+  type CompleteReviewInput,
+  type ReviewStats,
+  type ReviewPriority,
+  type ReviewStatus,
+  type SM2Config,
+} from './prisma-spaced-repetition-store';

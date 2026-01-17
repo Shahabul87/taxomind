@@ -1,0 +1,9 @@
+/**
+ * @sam-ai/agentic - Learning Analytics Module
+ * Provides progress analysis, skill assessment, and personalized recommendations
+ */
+export { TrendDirection, MasteryLevel, LearningStyle, ContentType, RecommendationPriority, RecommendationReason, TimePeriod, AssessmentSource, type LearningSession, type TopicProgress, type LearningGap, type GapEvidence, type ProgressSnapshot, type ProgressTrend, type TrendDataPoint, type ProgressReport, type ProgressSummary, type Achievement, type Skill, type SkillAssessment, type AssessmentEvidence, type SkillMap, type SkillNode, type SkillDecay, type SkillComparison, type Recommendation, type RecommendationBatch, type RecommendationContext, type LearningPath, type LearningPathStep, type ContentItem, type ContentFilters, type LearningSessionStore, type TopicProgressStore, type LearningGapStore, type SkillAssessmentStore, type RecommendationStore, type ContentStore, type AnalyticsLogger, LearningSessionInputSchema, SkillAssessmentInputSchema, RecommendationFeedbackSchema, type LearningSessionInput, type SkillAssessmentInput, type RecommendationFeedback, } from './types';
+export { ProgressAnalyzer, createProgressAnalyzer, InMemoryLearningSessionStore, InMemoryTopicProgressStore, InMemoryLearningGapStore, type ProgressAnalyzerConfig, } from './progress-analyzer';
+export { SkillAssessor, createSkillAssessor, InMemorySkillAssessmentStore, type SkillAssessorConfig, } from './skill-assessor';
+export { RecommendationEngine, createRecommendationEngine, InMemoryRecommendationStore, InMemoryContentStore, type RecommendationEngineConfig, type RecommendationInput, } from './recommendation-engine';
+//# sourceMappingURL=index.d.ts.map

@@ -1,6 +1,7 @@
 /**
  * SAM Agentic Analytics Predictions API
  * Provides AI-powered learning outcome predictions and risk assessments
+ * Stores predictions for accuracy tracking
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,6 +9,7 @@ import { currentUser } from '@/lib/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import type { SAMPredictionType } from '@prisma/client';
 
 // ============================================================================
 // TYPES
@@ -149,14 +151,14 @@ export async function GET(req: NextRequest) {
 
     // Fetch user's learning data for predictions
     const [enrollments, practiceSessionsData, masteryData] = await Promise.all([
-      // Get enrollments with progress
+      // Get enrollments with course info
       db.enrollment.findMany({
         where: {
           userId: targetUserId,
           ...(courseId ? { courseId } : {}),
         },
         include: {
-          course: {
+          Course: {
             select: {
               id: true,
               title: true,
@@ -256,23 +258,27 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Completion prediction for enrollments
+    // Completion prediction for enrollments (simplified - no progress tracking in Enrollment model)
     for (const enrollment of enrollments.slice(0, 2)) {
-      const progress = (enrollment.completedChapters / Math.max(1, enrollment.totalChapters)) * 100;
+      // Since Enrollment doesn't have progress fields, use a simplified prediction
+      const courseTitle = enrollment.Course?.title || 'Course';
+      const enrolledDaysAgo = Math.floor((Date.now() - enrollment.createdAt.getTime()) / (1000 * 60 * 60 * 24));
+      const estimatedProgress = Math.min(90, enrolledDaysAgo * 3); // Rough estimate
+
       predictions.push({
         id: `pred_completion_${enrollment.courseId}`,
         type: 'completion',
-        title: `${enrollment.course.title} Completion`,
-        predictedValue: Math.min(100, progress + 10),
-        confidence: 70,
-        trend: determineTrend(progress + 10, progress),
+        title: `${courseTitle} Completion`,
+        predictedValue: Math.min(100, estimatedProgress + 10),
+        confidence: 60, // Lower confidence since we don't have actual progress data
+        trend: enrolledDaysAgo > 7 ? 'stable' : 'improving',
         changePercent: 10,
         factors: [
           {
-            name: 'Current Progress',
-            impact: progress,
-            direction: progress > 50 ? 'positive' : 'neutral',
-            description: `${Math.round(progress)}% complete`,
+            name: 'Enrollment Duration',
+            impact: Math.min(50, enrolledDaysAgo),
+            direction: enrolledDaysAgo > 0 ? 'positive' : 'neutral',
+            description: `Enrolled ${enrolledDaysAgo} days ago`,
           },
         ],
         timestamp: new Date().toISOString(),
@@ -373,6 +379,11 @@ export async function GET(req: NextRequest) {
       predictions.reduce((sum, p) => sum + p.confidence, 0) / Math.max(1, predictions.length)
     );
 
+    // Store predictions for accuracy tracking (non-blocking)
+    storePredictionsForTracking(targetUserId, predictions, courseId).catch((err) =>
+      logger.error('Failed to store predictions for tracking:', err)
+    );
+
     const data: PredictiveInsightsData = {
       predictions,
       risks,
@@ -393,5 +404,72 @@ export async function GET(req: NextRequest) {
       { success: false, error: 'Failed to generate predictions' },
       { status: 500 }
     );
+  }
+}
+
+// ============================================================================
+// PREDICTION STORAGE FOR ACCURACY TRACKING
+// ============================================================================
+
+async function storePredictionsForTracking(
+  userId: string,
+  predictions: Prediction[],
+  courseId?: string
+): Promise<void> {
+  const typeMap: Record<string, SAMPredictionType> = {
+    grade: 'GRADE',
+    completion: 'COMPLETION',
+    mastery: 'MASTERY',
+    engagement: 'ENGAGEMENT',
+  };
+
+  // Calculate expiry date (30 days from now for most predictions)
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
+
+  // Store each prediction
+  for (const pred of predictions) {
+    try {
+      // Check if a similar prediction already exists recently (last 24 hours)
+      const existingPrediction = await db.sAMPrediction.findFirst({
+        where: {
+          userId,
+          type: typeMap[pred.type] || 'ENGAGEMENT',
+          title: pred.title,
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          },
+        },
+      });
+
+      if (existingPrediction) {
+        // Update existing prediction
+        await db.sAMPrediction.update({
+          where: { id: existingPrediction.id },
+          data: {
+            predictedValue: pred.predictedValue,
+            confidence: pred.confidence / 100, // Convert to 0-1 scale
+            factors: pred.factors,
+          },
+        });
+      } else {
+        // Create new prediction
+        await db.sAMPrediction.create({
+          data: {
+            userId,
+            type: typeMap[pred.type] || 'ENGAGEMENT',
+            title: pred.title,
+            predictedValue: pred.predictedValue,
+            confidence: pred.confidence / 100, // Convert to 0-1 scale
+            courseId: courseId || null,
+            factors: pred.factors,
+            expiresAt,
+          },
+        });
+      }
+    } catch (error) {
+      logger.warn(`Failed to store prediction ${pred.id}:`, error);
+      // Continue with other predictions
+    }
   }
 }

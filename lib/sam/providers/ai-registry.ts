@@ -52,7 +52,7 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
     name: 'DeepSeek',
     description: 'Cost-effective reasoning and coding specialist',
     models: ['deepseek-chat', 'deepseek-reasoner'],
-    defaultModel: 'deepseek-reasoner',
+    defaultModel: 'deepseek-chat',
     capabilities: ['chat', 'course-creation', 'analysis', 'code', 'reasoning'],
     isConfigured: () => Boolean(process.env.DEEPSEEK_API_KEY),
     envKeyName: 'DEEPSEEK_API_KEY',

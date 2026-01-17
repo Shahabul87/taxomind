@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { headers } from 'next/headers';
+import { getPracticeStores } from '@/lib/sam/taxomind-context';
+
+// Get practice goal store for updating streak goals
+const { practiceGoal: practiceGoalStore } = getPracticeStores();
 
 // ============================================================================
 // CRON: Practice Streak Updates
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
         skillId: true,
         currentStreak: true,
         longestStreak: true,
-        lastPracticeAt: true,
+        lastPracticedAt: true,
       },
     });
 
@@ -54,8 +58,8 @@ export async function GET(request: NextRequest) {
     let maintainedStreaks = 0;
 
     for (const mastery of activeMasteries) {
-      const lastPractice = mastery.lastPracticeAt
-        ? new Date(mastery.lastPracticeAt)
+      const lastPractice = mastery.lastPracticedAt
+        ? new Date(mastery.lastPracticedAt)
         : null;
 
       if (!lastPractice) {
@@ -99,7 +103,7 @@ export async function GET(request: NextRequest) {
     const milestoneMasteries = await db.skillMastery10K.findMany({
       where: {
         currentStreak: { in: streakMilestones },
-        lastPracticeAt: { gte: yesterday },
+        lastPracticedAt: { gte: yesterday },
       },
       select: {
         id: true,
@@ -120,6 +124,56 @@ export async function GET(request: NextRequest) {
       streakMilestonesAwarded++;
     }
 
+    // =========================================================================
+    // UPDATE STREAK-BASED PRACTICE GOALS
+    // =========================================================================
+
+    console.log('[CRON] Updating streak-based practice goals...');
+
+    // Get all users with active streak goals
+    const usersWithStreakGoals = await db.practiceGoal.findMany({
+      where: {
+        goalType: 'STREAK',
+        isCompleted: false,
+      },
+      select: {
+        userId: true,
+      },
+      distinct: ['userId'],
+    });
+
+    let streakGoalsUpdated = 0;
+    let streakGoalsCompleted = 0;
+
+    for (const { userId } of usersWithStreakGoals) {
+      // Get the user's best current streak across all skills
+      const userStreaks = await db.skillMastery10K.findMany({
+        where: { userId },
+        select: { currentStreak: true },
+        orderBy: { currentStreak: 'desc' },
+        take: 1,
+      });
+
+      const bestStreak = userStreaks[0]?.currentStreak ?? 0;
+
+      // Update all streak goals for this user
+      const goalResults = await practiceGoalStore.updateStreakGoals(userId, bestStreak);
+
+      streakGoalsUpdated += goalResults.length;
+      streakGoalsCompleted += goalResults.filter((g) => g.wasCompleted).length;
+
+      // Log completed goals
+      const completed = goalResults.filter((g) => g.wasCompleted);
+      if (completed.length > 0) {
+        console.log(
+          `[CRON] User ${userId} completed ${completed.length} streak goal(s): ` +
+          completed.map((g) => g.goal.title).join(', ')
+        );
+      }
+    }
+
+    console.log(`[CRON] Streak goals - Updated: ${streakGoalsUpdated}, Completed: ${streakGoalsCompleted}`);
+
     console.log('[CRON] Practice streak updates complete');
     console.log(`[CRON] - Broken streaks: ${brokenStreaks}`);
     console.log(`[CRON] - Maintained streaks: ${maintainedStreaks}`);
@@ -134,6 +188,8 @@ export async function GET(request: NextRequest) {
           brokenStreaks,
           maintainedStreaks,
           streakMilestonesAwarded,
+          streakGoalsUpdated,
+          streakGoalsCompleted,
         },
         timestamp: new Date().toISOString(),
       },
@@ -164,16 +220,13 @@ async function createStreakBrokenNotification(
     await db.sAMIntervention.create({
       data: {
         userId,
-        interventionType: 'NUDGE',
-        triggerType: 'BEHAVIOR_PATTERN',
-        title: `${skill?.name ?? 'Skill'} Streak Broken`,
-        message: `Your ${previousStreak}-day practice streak has ended. Start a new streak today!`,
+        type: 'STREAK_REMINDER',
         priority: 'MEDIUM',
-        status: 'PENDING',
-        metadata: {
+        message: `${skill?.name ?? 'Skill'} Streak Broken: Your ${previousStreak}-day practice streak has ended. Start a new streak today!`,
+        suggestedActions: {
           skillId,
           previousStreak,
-          type: 'STREAK_BROKEN',
+          actionType: 'STREAK_BROKEN',
         },
       },
     });
@@ -204,41 +257,33 @@ async function awardStreakMilestone(
 
     if (xpReward === 0) return;
 
-    // Check if this milestone was already awarded today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Try to create a SAM intervention to celebrate streak milestone
+    try {
+      // Get skill name
+      const skill = await db.skillBuildDefinition.findUnique({
+        where: { id: skillId },
+        select: { name: true },
+      });
 
-    const existingMilestone = await db.practiceMilestone.findFirst({
-      where: {
-        userId,
-        skillId,
-        milestoneType: `STREAK_${streakDays}`,
-        achievedAt: { gte: today },
-      },
-    });
-
-    if (existingMilestone) return; // Already awarded
-
-    // Create milestone record
-    const milestone = await db.practiceMilestone.create({
-      data: {
-        userId,
-        skillId,
-        milestoneType: `STREAK_${streakDays}`,
-        qualityHoursAtAchievement: 0, // N/A for streak milestones
-        badgeName: getStreakBadgeName(streakDays),
-        xpReward,
-        rewardClaimed: false,
-      },
-    });
-
-    // Award XP through gamification system
-    await db.userStats.updateMany({
-      where: { id: userId },
-      data: {
-        xp: { increment: xpReward },
-      },
-    });
+      await db.sAMIntervention.create({
+        data: {
+          userId,
+          type: 'PROGRESS_CELEBRATION',
+          priority: 'HIGH',
+          message: `🎉 ${streakDays}-Day Streak! ${getStreakBadgeName(streakDays)} - Congratulations! You've maintained a ${streakDays}-day practice streak in ${skill?.name ?? 'a skill'}!`,
+          suggestedActions: {
+            skillId,
+            streakDays,
+            actionType: 'STREAK_MILESTONE',
+            xpReward,
+            badgeName: getStreakBadgeName(streakDays),
+          },
+        },
+      });
+    } catch {
+      // Intervention creation may fail, but we continue
+      console.warn('[CRON] Could not create streak celebration intervention');
+    }
 
     console.log(
       `[CRON] Awarded ${streakDays}-day streak milestone to user ${userId}`

@@ -55,8 +55,7 @@ export async function GET(
         id: true,
         name: true,
         category: true,
-        icon: true,
-        color: true,
+        description: true,
       },
     });
 

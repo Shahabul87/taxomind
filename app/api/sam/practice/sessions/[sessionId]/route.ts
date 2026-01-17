@@ -5,7 +5,6 @@ import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
 import {
   type PracticeFocusLevel,
-  type BloomsLevel,
 } from '@/lib/sam/stores/prisma-practice-session-store';
 
 // Get practice stores from TaxomindContext singleton
@@ -35,9 +34,11 @@ const BloomsLevelEnum = z.enum([
 const UpdateSessionSchema = z.object({
   focusLevel: FocusLevelEnum.optional(),
   bloomsLevel: BloomsLevelEnum.optional(),
-  difficultyRating: z.number().min(1).max(10).optional(),
   notes: z.string().max(2000).optional(),
-  tags: z.array(z.string()).optional(),
+  distractionCount: z.number().int().min(0).optional(),
+  pomodoroCount: z.number().int().min(0).optional(),
+  breaksTaken: z.number().int().min(0).optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 // ============================================================================
@@ -132,10 +133,12 @@ export async function PATCH(
 
     const updatedSession = await practiceSessionStore.update(sessionId, {
       focusLevel: validated.focusLevel as PracticeFocusLevel | undefined,
-      bloomsLevel: validated.bloomsLevel as BloomsLevel | undefined,
-      difficultyRating: validated.difficultyRating,
+      bloomsLevel: validated.bloomsLevel,
       notes: validated.notes,
-      tags: validated.tags,
+      distractionCount: validated.distractionCount,
+      pomodoroCount: validated.pomodoroCount,
+      breaksTaken: validated.breaksTaken,
+      metadata: validated.metadata,
     });
 
     logger.info(`Updated practice session: ${sessionId}`);
@@ -203,7 +206,7 @@ export async function DELETE(
       );
     }
 
-    const abandonedSession = await practiceSessionStore.abandon(sessionId);
+    const abandonedSession = await practiceSessionStore.abandonSession(sessionId);
 
     logger.info(`Abandoned practice session: ${sessionId}`);
 

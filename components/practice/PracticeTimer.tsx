@@ -41,6 +41,7 @@ interface ActiveSession {
   skillId: string;
   sessionType: string;
   focusLevel: string;
+  bloomsLevel?: string;
   status: 'ACTIVE' | 'PAUSED';
   startedAt: string;
   pausedDurationSeconds: number;
@@ -77,6 +78,16 @@ const FOCUS_LEVELS = [
   { value: 'LOW', label: 'Low Focus', multiplier: '0.75x' },
 ];
 
+// Bloom's Taxonomy Cognitive Levels
+const BLOOMS_LEVELS = [
+  { value: 'CREATE', label: 'Create', multiplier: '1.1x', description: 'Building projects, designing solutions' },
+  { value: 'EVALUATE', label: 'Evaluate', multiplier: '1.05x', description: 'Code review, comparing approaches' },
+  { value: 'ANALYZE', label: 'Analyze', multiplier: '1.0x', description: 'Debugging, understanding patterns' },
+  { value: 'APPLY', label: 'Apply', multiplier: '0.9x', description: 'Solving problems, writing code' },
+  { value: 'UNDERSTAND', label: 'Understand', multiplier: '0.8x', description: 'Reading docs, watching tutorials' },
+  { value: 'REMEMBER', label: 'Remember', multiplier: '0.7x', description: 'Flashcards, memorizing syntax' },
+];
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -91,6 +102,7 @@ export function PracticeTimer({
   const [selectedSkill, setSelectedSkill] = useState<string>('');
   const [sessionType, setSessionType] = useState<string>('DELIBERATE');
   const [focusLevel, setFocusLevel] = useState<string>('HIGH');
+  const [bloomsLevel, setBloomsLevel] = useState<string>('APPLY');
   const [notes, setNotes] = useState<string>('');
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -166,6 +178,9 @@ export function PracticeTimer({
           setSelectedSkill(data.data.skillId);
           setSessionType(data.data.sessionType);
           setFocusLevel(data.data.focusLevel);
+          if (data.data.bloomsLevel) {
+            setBloomsLevel(data.data.bloomsLevel);
+          }
         }
       } catch (error) {
         console.error('Error checking active session:', error);
@@ -213,6 +228,7 @@ export function PracticeTimer({
           skillId: selectedSkill,
           sessionType,
           focusLevel,
+          bloomsLevel,
           notes: notes || undefined,
         }),
       });
@@ -378,9 +394,11 @@ export function PracticeTimer({
   const getMultiplier = () => {
     const sessionMult = SESSION_TYPES.find((t) => t.value === sessionType)?.multiplier ?? '1.0x';
     const focusMult = FOCUS_LEVELS.find((f) => f.value === focusLevel)?.multiplier ?? '1.0x';
+    const bloomsMult = BLOOMS_LEVELS.find((b) => b.value === bloomsLevel)?.multiplier ?? '1.0x';
     const sessionVal = parseFloat(sessionMult);
     const focusVal = parseFloat(focusMult);
-    return Math.min(sessionVal * focusVal, 2.5).toFixed(2);
+    const bloomsVal = parseFloat(bloomsMult);
+    return Math.min(sessionVal * focusVal * bloomsVal, 2.5).toFixed(2);
   };
 
   if (isCheckingActive) {
@@ -493,6 +511,35 @@ export function PracticeTimer({
               </Select>
             </div>
 
+            {/* Bloom's Cognitive Level */}
+            <div>
+              <label className="text-sm font-medium mb-1 block">
+                Cognitive Level (Bloom&apos;s)
+              </label>
+              <Select value={bloomsLevel} onValueChange={setBloomsLevel}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BLOOMS_LEVELS.map((level) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      <div className="flex flex-col">
+                        <span className="flex items-center gap-2">
+                          {level.label}
+                          <Badge variant="outline" className="ml-auto text-xs">
+                            {level.multiplier}
+                          </Badge>
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {level.description}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Notes */}
             <div>
               <label className="text-sm font-medium mb-1 block">Notes (optional)</label>
@@ -511,8 +558,11 @@ export function PracticeTimer({
           <div className="bg-muted rounded-lg p-3 space-y-1">
             <p className="font-medium">{selectedSkillName}</p>
             <p className="text-sm text-muted-foreground">
-              {SESSION_TYPES.find((t) => t.value === activeSession.sessionType)?.label} | {' '}
+              {SESSION_TYPES.find((t) => t.value === activeSession.sessionType)?.label} |{' '}
               {FOCUS_LEVELS.find((f) => f.value === activeSession.focusLevel)?.label}
+              {activeSession.bloomsLevel && (
+                <> | {BLOOMS_LEVELS.find((b) => b.value === activeSession.bloomsLevel)?.label}</>
+              )}
             </p>
           </div>
         )}

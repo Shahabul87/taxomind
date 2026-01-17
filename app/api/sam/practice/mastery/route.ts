@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { getPracticeStores } from '@/lib/sam/taxomind-context';
 import { db } from '@/lib/db';
 import {
   MILESTONE_HOURS,
-  getProficiencyLevel,
 } from '@/lib/sam/stores/prisma-skill-mastery-10k-store';
+import { SkillMastery10K } from '@prisma/client';
 
-// Get practice stores from TaxomindContext singleton
-const { skillMastery10K: masteryStore } = getPracticeStores();
+// Get milestone hours as sorted array for finding next milestone
+const MILESTONE_HOURS_ARRAY = Object.values(MILESTONE_HOURS).sort((a, b) => a - b);
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -20,7 +19,7 @@ const GetMasteryQuerySchema = z.object({
   courseId: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional().default(50),
   offset: z.coerce.number().int().min(0).optional().default(0),
-  sortBy: z.enum(['qualityHours', 'totalRawHours', 'lastPracticeAt', 'proficiencyLevel']).optional().default('qualityHours'),
+  sortBy: z.enum(['qualityHours', 'totalRawHours', 'lastPracticedAt', 'proficiencyLevel']).optional().default('qualityHours'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 });
 
@@ -47,29 +46,30 @@ export async function GET(req: NextRequest) {
     });
 
     // Get all masteries for the user
-    const masteries = await masteryStore.getByUser(session.user.id);
+    const masteries: SkillMastery10K[] = await db.skillMastery10K.findMany({
+      where: { userId: session.user.id },
+    });
 
     // Get skill definitions for enrichment
-    const skillIds = masteries.map((m) => m.skillId);
+    const skillIds = masteries.map((m: SkillMastery10K) => m.skillId);
     const skills = await db.skillBuildDefinition.findMany({
       where: { id: { in: skillIds } },
       select: {
         id: true,
         name: true,
         category: true,
-        icon: true,
-        color: true,
+        description: true,
       },
     });
 
     const skillsById = new Map(skills.map((s) => [s.id, s]));
 
     // Enrich masteries with skill data
-    const enrichedMasteries = masteries.map((mastery) => ({
+    const enrichedMasteries = masteries.map((mastery: SkillMastery10K) => ({
       ...mastery,
       skill: skillsById.get(mastery.skillId) ?? null,
       progressTo10K: Math.min((mastery.totalQualityHours / 10000) * 100, 100),
-      nextMilestone: MILESTONE_HOURS.find((h) => h > mastery.totalQualityHours) ?? 10000,
+      nextMilestone: MILESTONE_HOURS_ARRAY.find((h) => h > mastery.totalQualityHours) ?? 10000,
       proficiencyInfo: {
         level: mastery.proficiencyLevel,
         description: getProficiencyDescription(mastery.proficiencyLevel),
@@ -77,14 +77,14 @@ export async function GET(req: NextRequest) {
     }));
 
     // Sort the results
-    enrichedMasteries.sort((a, b) => {
+    enrichedMasteries.sort((a: typeof enrichedMasteries[0], b: typeof enrichedMasteries[0]) => {
       const order = query.sortOrder === 'asc' ? 1 : -1;
       switch (query.sortBy) {
         case 'totalRawHours':
           return (a.totalRawHours - b.totalRawHours) * order;
-        case 'lastPracticeAt':
-          const aDate = a.lastPracticeAt ? new Date(a.lastPracticeAt).getTime() : 0;
-          const bDate = b.lastPracticeAt ? new Date(b.lastPracticeAt).getTime() : 0;
+        case 'lastPracticedAt':
+          const aDate = a.lastPracticedAt ? new Date(a.lastPracticedAt).getTime() : 0;
+          const bDate = b.lastPracticedAt ? new Date(b.lastPracticedAt).getTime() : 0;
           return (aDate - bDate) * order;
         case 'proficiencyLevel':
           return (getProficiencyOrder(a.proficiencyLevel) - getProficiencyOrder(b.proficiencyLevel)) * order;
@@ -101,10 +101,10 @@ export async function GET(req: NextRequest) {
     );
 
     // Calculate aggregated stats
-    const totalQualityHours = masteries.reduce((sum, m) => sum + m.totalQualityHours, 0);
-    const totalRawHours = masteries.reduce((sum, m) => sum + m.totalRawHours, 0);
-    const totalSessions = masteries.reduce((sum, m) => sum + m.sessionsCount, 0);
-    const bestStreak = masteries.length > 0 ? Math.max(...masteries.map((m) => m.longestStreak)) : 0;
+    const totalQualityHours = masteries.reduce((sum: number, m: SkillMastery10K) => sum + m.totalQualityHours, 0);
+    const totalRawHours = masteries.reduce((sum: number, m: SkillMastery10K) => sum + m.totalRawHours, 0);
+    const totalSessions = masteries.reduce((sum: number, m: SkillMastery10K) => sum + m.sessionsCount, 0);
+    const bestStreak = masteries.length > 0 ? Math.max(...masteries.map((m: SkillMastery10K) => m.longestStreak)) : 0;
 
     return NextResponse.json({
       success: true,

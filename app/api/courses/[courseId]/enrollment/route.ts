@@ -83,65 +83,87 @@ export async function GET(
         ) {
           const course = await db.course.findUnique({
             where: { id: courseId },
-            include: {
-              chapters: {
-                where: { isPublished: true },
-                include: {
-                  sections: {
-                    where: { isPublished: true },
-                    select: { id: true },
-                  },
-                },
-                orderBy: { position: "asc" },
-              },
-              user: {
-                select: {
-                  name: true,
-                  image: true,
-                },
-              },
-              _count: {
-                select: { Enrollment: true },
-              },
-            },
+            select: { id: true, price: true },
           });
 
           if (course) {
-            enrollment = await db.enrollment.create({
-              data: {
-                id: crypto.randomUUID(),
-                userId: user.id,
-                courseId,
-                enrollmentType: "PAID",
-                status: "ACTIVE",
-                updatedAt: new Date(),
-              },
-              include: {
-                Course: {
-                  include: {
-                    chapters: {
-                      where: { isPublished: true },
-                      include: {
-                        sections: {
-                          where: { isPublished: true },
-                          select: { id: true },
+            // Check if PaymentTransaction already exists for this session
+            const existingTransaction = await db.paymentTransaction.findUnique({
+              where: { providerSessionId: session.id },
+            });
+
+            // Use transaction to create PaymentTransaction and Enrollment atomically
+            const result = await db.$transaction(async (tx) => {
+              // Create PaymentTransaction if it doesn't exist
+              let transactionId = existingTransaction?.id;
+
+              if (!existingTransaction) {
+                const paymentTransaction = await tx.paymentTransaction.create({
+                  data: {
+                    id: crypto.randomUUID(),
+                    userId: user.id,
+                    courseId,
+                    amount: (session.amount_total ?? 0) / 100,
+                    currency: session.currency?.toUpperCase() ?? "USD",
+                    status: "COMPLETED",
+                    provider: "STRIPE",
+                    providerSessionId: session.id,
+                    providerTxnId: session.payment_intent as string | null,
+                    metadata: {
+                      fallbackCreation: true,
+                      createdAt: new Date().toISOString(),
+                    },
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                  },
+                });
+                transactionId = paymentTransaction.id;
+                logger.info(`[ENROLLMENT_FALLBACK] Created PaymentTransaction ${transactionId} for session ${session.id}`);
+              }
+
+              // Create enrollment with payment transaction link
+              const newEnrollment = await tx.enrollment.create({
+                data: {
+                  id: crypto.randomUUID(),
+                  userId: user.id,
+                  courseId,
+                  enrollmentType: "PAID",
+                  status: "ACTIVE",
+                  paymentTransactionId: transactionId,
+                  updatedAt: new Date(),
+                },
+                include: {
+                  Course: {
+                    include: {
+                      chapters: {
+                        where: { isPublished: true },
+                        include: {
+                          sections: {
+                            where: { isPublished: true },
+                            select: { id: true },
+                          },
+                        },
+                        orderBy: { position: "asc" },
+                      },
+                      user: {
+                        select: {
+                          name: true,
+                          image: true,
                         },
                       },
-                      orderBy: { position: "asc" },
-                    },
-                    user: {
-                      select: {
-                        name: true,
-                        image: true,
+                      _count: {
+                        select: { Enrollment: true },
                       },
-                    },
-                    _count: {
-                      select: { Enrollment: true },
                     },
                   },
                 },
-              },
+              });
+
+              return newEnrollment;
             });
+
+            enrollment = result;
+            logger.info(`[ENROLLMENT_FALLBACK] Created enrollment ${enrollment.id} for user ${user.id}, course ${courseId}`);
           }
         }
       } catch (error) {

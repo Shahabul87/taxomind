@@ -402,6 +402,11 @@ model User {
   challengeParticipations    PracticeChallengeParticipant[] @relation("ChallengeParticipations")
   practiceLeaderboards       PracticeLeaderboard[]         @relation("UserPracticeLeaderboards")
   dailyPracticeLogs          DailyPracticeLog[]            @relation("UserDailyPracticeLogs")
+  practiceGoals              PracticeGoal[]                @relation("UserPracticeGoals")
+
+  // Prediction Tracking System (added January 2026)
+  samPredictions             SAMPrediction[]               @relation("SAMPredictions")
+  samPredictionAccuracy      SAMPredictionAccuracy[]       @relation("SAMPredictionAccuracy")
 }
 
 model Account {

@@ -77,6 +77,10 @@ import {
   createPrismaDailyPracticeLogStore,
   // Practice Challenge Store Factory
   createPrismaPracticeChallengeStore,
+  // Practice Goal Store Factory
+  createPrismaPracticeGoalStore,
+  // Spaced Repetition Store Factory
+  createPrismaSpacedRepetitionStore,
 } from './stores';
 
 // Import adapter-prisma stores for observability, presence, student profile, review schedule, push queue
@@ -145,6 +149,10 @@ import type {
   PrismaDailyPracticeLogStore,
   // Practice Challenge Store Type
   PrismaPracticeChallengeStore,
+  // Practice Goal Store Type
+  PrismaPracticeGoalStore,
+  // Spaced Repetition Store Type
+  PrismaSpacedRepetitionStore,
 } from './stores';
 
 // ============================================================================
@@ -247,6 +255,12 @@ export interface TaxomindAgenticStores {
 
   // Practice Challenge Store
   practiceChallenge: PrismaPracticeChallengeStore;
+
+  // Practice Goal Store
+  practiceGoal: PrismaPracticeGoalStore;
+
+  // Spaced Repetition Store (SM-2 Algorithm)
+  spacedRepetition: PrismaSpacedRepetitionStore;
 }
 
 /**
@@ -374,6 +388,12 @@ function initializeStores(): TaxomindAgenticStores {
 
     // Practice Challenge Store
     practiceChallenge: createPrismaPracticeChallengeStore(),
+
+    // Practice Goal Store
+    practiceGoal: createPrismaPracticeGoalStore(),
+
+    // Spaced Repetition Store (SM-2 Algorithm)
+    spacedRepetition: createPrismaSpacedRepetitionStore(),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {
@@ -669,6 +689,8 @@ export function getPracticeStores(): {
   practiceLeaderboard: PrismaPracticeLeaderboardStore;
   dailyPracticeLog: PrismaDailyPracticeLogStore;
   practiceChallenge: PrismaPracticeChallengeStore;
+  practiceGoal: PrismaPracticeGoalStore;
+  spacedRepetition: PrismaSpacedRepetitionStore;
 } {
   const { stores } = getTaxomindContext();
   return {
@@ -677,7 +699,16 @@ export function getPracticeStores(): {
     practiceLeaderboard: stores.practiceLeaderboard,
     dailyPracticeLog: stores.dailyPracticeLog,
     practiceChallenge: stores.practiceChallenge,
+    practiceGoal: stores.practiceGoal,
+    spacedRepetition: stores.spacedRepetition,
   };
+}
+
+/**
+ * Get spaced repetition store for SM-2 review scheduling
+ */
+export function getSpacedRepetitionStore(): PrismaSpacedRepetitionStore {
+  return getTaxomindContext().stores.spacedRepetition;
 }
 
 // Re-export store types for external use
@@ -732,4 +763,8 @@ export type {
   PrismaDailyPracticeLogStore,
   // Practice Challenge Store Type
   PrismaPracticeChallengeStore,
+  // Practice Goal Store Type
+  PrismaPracticeGoalStore,
+  // Spaced Repetition Store Type
+  PrismaSpacedRepetitionStore,
 };

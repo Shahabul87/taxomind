@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import {
   MILESTONE_XP_REWARDS,
   MILESTONE_BADGE_NAMES,
+  type PracticeMilestoneType,
 } from '@/lib/sam/stores/prisma-skill-mastery-10k-store';
 
 // ============================================================================
@@ -27,14 +28,6 @@ export async function POST(
     // Get the milestone
     const milestone = await db.practiceMilestone.findUnique({
       where: { id: milestoneId },
-      include: {
-        skill: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
     });
 
     if (!milestone) {
@@ -50,17 +43,17 @@ export async function POST(
     }
 
     // Check if already claimed
-    if (milestone.rewardClaimed) {
+    if (milestone.claimed) {
       return NextResponse.json(
         { error: 'Reward already claimed' },
         { status: 400 }
       );
     }
 
-    // Calculate XP reward
-    const hoursKey = parseInt(milestone.milestoneType.replace('HOURS_', ''), 10);
-    const xpReward = MILESTONE_XP_REWARDS[hoursKey as keyof typeof MILESTONE_XP_REWARDS] ?? 0;
-    const badgeName = MILESTONE_BADGE_NAMES[hoursKey as keyof typeof MILESTONE_BADGE_NAMES] ?? milestone.milestoneType;
+    // Calculate XP reward using milestoneType as key
+    const milestoneType = milestone.milestoneType as PracticeMilestoneType;
+    const xpReward = MILESTONE_XP_REWARDS[milestoneType] ?? 0;
+    const badgeName = MILESTONE_BADGE_NAMES[milestoneType] ?? milestone.milestoneType;
 
     // Use transaction to claim reward and update XP
     const result = await db.$transaction(async (tx) => {
@@ -68,8 +61,8 @@ export async function POST(
       const updatedMilestone = await tx.practiceMilestone.update({
         where: { id: milestoneId },
         data: {
-          rewardClaimed: true,
-          rewardClaimedAt: new Date(),
+          claimed: true,
+          claimedAt: new Date(),
         },
       });
 
@@ -80,58 +73,45 @@ export async function POST(
 
       try {
         // Try to update user XP in the gamification system
-        const existingXp = await tx.userXP.findUnique({
-          where: { id: session.user.id },
+        const existingXp = await tx.gamificationUserXP.findUnique({
+          where: { userId: session.user.id },
         });
 
         if (existingXp) {
-          const updated = await tx.userXP.update({
-            where: { id: session.user.id },
+          const updated = await tx.gamificationUserXP.update({
+            where: { userId: session.user.id },
             data: {
-              totalXp: { increment: xpReward },
-              weeklyXp: { increment: xpReward },
-              monthlyXp: { increment: xpReward },
+              totalXP: { increment: xpReward },
+              xpInCurrentLevel: { increment: xpReward },
             },
           });
-          newTotalXp = updated.totalXp;
+          newTotalXp = updated.totalXP;
           xpAwarded = true;
         } else {
           // Create new XP record
-          const created = await tx.userXP.create({
+          const created = await tx.gamificationUserXP.create({
             data: {
-              id: session.user.id,
-              totalXp: xpReward,
-              weeklyXp: xpReward,
-              monthlyXp: xpReward,
-              level: 1,
+              userId: session.user.id,
+              totalXP: xpReward,
+              xpInCurrentLevel: xpReward,
+              currentLevel: 1,
             },
           });
-          newTotalXp = created.totalXp;
+          newTotalXp = created.totalXP;
           xpAwarded = true;
         }
       } catch {
-        // UserXP table might not exist or have different schema
+        // GamificationUserXP table might not exist or have different schema
         logger.warn('Could not award XP - gamification system may not be configured');
       }
 
-      // Try to create a badge/achievement record
-      try {
-        await tx.userAchievement.create({
-          data: {
-            id: `${session.user.id}_${milestone.milestoneType}_${milestone.skillId}`,
-            name: badgeName,
-            description: `Achieved ${hoursKey} hours of quality practice in ${milestone.skill?.name ?? 'a skill'}`,
-            category: 'PRACTICE_MILESTONE',
-            icon: getMilestoneIcon(hoursKey),
-            earnedAt: new Date(),
-            xpAwarded: xpReward,
-            userId: session.user.id,
-          },
-        });
-      } catch {
-        // Achievement might already exist or table not configured
-        logger.warn('Could not create achievement record');
-      }
+      // Log milestone achievement (gamification achievements are tracked separately)
+      // Note: GamificationUserAchievement requires a predefined achievementId from GamificationAchievement
+      // Practice milestones are tracked in the PracticeMilestone table itself
+      logger.info(
+        `Milestone claimed: ${badgeName} for user ${session.user.id}, ` +
+        `${milestone.hoursRequired} hours in ${milestone.skillName}`
+      );
 
       return {
         milestone: updatedMilestone,

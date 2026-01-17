@@ -16,6 +16,38 @@ interface WebhookJobData {
   retryCount?: number;
 }
 
+// Type-safe Stripe webhook payload structures
+interface StripeEventPayload {
+  data?: {
+    object?: StripeCheckoutSession | StripePaymentIntent | StripeCharge;
+  };
+}
+
+interface StripeCheckoutSession {
+  id: string;
+  payment_intent?: string | null;
+  amount_total?: number | null;
+  currency?: string | null;
+  metadata?: {
+    userId?: string;
+    courseId?: string;
+    [key: string]: string | undefined;
+  };
+}
+
+interface StripePaymentIntent {
+  id: string;
+  last_payment_error?: {
+    code?: string;
+    message?: string;
+  } | null;
+}
+
+interface StripeCharge {
+  id: string;
+  payment_intent?: string | null;
+}
+
 /**
  * Process webhook event
  */
@@ -114,10 +146,16 @@ async function processStripeWebhook(
  * Handle Stripe checkout completed
  */
 async function handleStripeCheckoutCompleted(payload: Record<string, unknown>): Promise<void> {
-  const data = payload.data as any;
-  const session = data?.object as any;
-  const metadata = session?.metadata || {};
-  const { userId, courseId } = metadata;
+  const stripePayload = payload as StripeEventPayload;
+  const session = stripePayload.data?.object as StripeCheckoutSession | undefined;
+
+  if (!session) {
+    logger.error('[WEBHOOK_WORKER] Missing session object in Stripe payload');
+    return;
+  }
+
+  const userId = session.metadata?.userId;
+  const courseId = session.metadata?.courseId;
 
   if (!userId || !courseId) {
     logger.error('[WEBHOOK_WORKER] Missing userId or courseId in Stripe session metadata');
@@ -130,12 +168,12 @@ async function handleStripeCheckoutCompleted(payload: Record<string, unknown>): 
       id: crypto.randomUUID(),
       userId,
       courseId,
-      amount: (session.amount_total || 0) / 100, // Convert cents to dollars
-      currency: session.currency?.toUpperCase() || 'USD',
+      amount: (session.amount_total ?? 0) / 100, // Convert cents to dollars
+      currency: session.currency?.toUpperCase() ?? 'USD',
       status: 'COMPLETED',
       provider: 'STRIPE',
       providerSessionId: session.id,
-      providerTxnId: session.payment_intent,
+      providerTxnId: session.payment_intent ?? null,
       metadata: payload,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -163,8 +201,13 @@ async function handleStripeCheckoutCompleted(payload: Record<string, unknown>): 
  * Handle Stripe payment succeeded
  */
 async function handleStripePaymentSucceeded(payload: Record<string, unknown>): Promise<void> {
-  const data = payload.data as any;
-  const paymentIntent = data?.object as any;
+  const stripePayload = payload as StripeEventPayload;
+  const paymentIntent = stripePayload.data?.object as StripePaymentIntent | undefined;
+
+  if (!paymentIntent?.id) {
+    logger.error('[WEBHOOK_WORKER] Missing payment intent in payload');
+    return;
+  }
 
   logger.info(`[WEBHOOK_WORKER] Payment succeeded: ${paymentIntent.id}`);
 
@@ -184,8 +227,13 @@ async function handleStripePaymentSucceeded(payload: Record<string, unknown>): P
  * Handle Stripe payment failed
  */
 async function handleStripePaymentFailed(payload: Record<string, unknown>): Promise<void> {
-  const data = payload.data as any;
-  const paymentIntent = data?.object as any;
+  const stripePayload = payload as StripeEventPayload;
+  const paymentIntent = stripePayload.data?.object as StripePaymentIntent | undefined;
+
+  if (!paymentIntent?.id) {
+    logger.error('[WEBHOOK_WORKER] Missing payment intent in payload');
+    return;
+  }
 
   logger.error(`[WEBHOOK_WORKER] Payment failed: ${paymentIntent.id}`);
 
@@ -196,8 +244,8 @@ async function handleStripePaymentFailed(payload: Record<string, unknown>): Prom
     },
     data: {
       status: 'FAILED',
-      errorCode: paymentIntent.last_payment_error?.code,
-      errorMessage: paymentIntent.last_payment_error?.message,
+      errorCode: paymentIntent.last_payment_error?.code ?? null,
+      errorMessage: paymentIntent.last_payment_error?.message ?? null,
       updatedAt: new Date(),
     },
   });
@@ -207,10 +255,20 @@ async function handleStripePaymentFailed(payload: Record<string, unknown>): Prom
  * Handle Stripe refund
  */
 async function handleStripeRefund(payload: Record<string, unknown>): Promise<void> {
-  const data = payload.data as any;
-  const charge = data?.object as any;
+  const stripePayload = payload as StripeEventPayload;
+  const charge = stripePayload.data?.object as StripeCharge | undefined;
+
+  if (!charge?.id) {
+    logger.error('[WEBHOOK_WORKER] Missing charge in payload');
+    return;
+  }
 
   logger.info(`[WEBHOOK_WORKER] Refund processed: ${charge.id}`);
+
+  if (!charge.payment_intent) {
+    logger.warn(`[WEBHOOK_WORKER] No payment intent for charge: ${charge.id}`);
+    return;
+  }
 
   // Update payment transaction status
   await db.paymentTransaction.updateMany({

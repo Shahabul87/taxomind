@@ -15,6 +15,12 @@ const AIPreferencesSchema = z.object({
   preferredCourseProvider: z.string().nullable().optional(),
   preferredAnalysisProvider: z.string().nullable().optional(),
   preferredCodeProvider: z.string().nullable().optional(),
+  // Per-provider model selection
+  anthropicModel: z.string().nullable().optional(),
+  deepseekModel: z.string().nullable().optional(),
+  openaiModel: z.string().nullable().optional(),
+  geminiModel: z.string().nullable().optional(),
+  mistralModel: z.string().nullable().optional(),
 });
 
 export async function GET() {
@@ -36,6 +42,12 @@ export async function GET() {
         preferredCourseProvider: true,
         preferredAnalysisProvider: true,
         preferredCodeProvider: true,
+        // Per-provider model selection
+        anthropicModel: true,
+        deepseekModel: true,
+        openaiModel: true,
+        geminiModel: true,
+        mistralModel: true,
       },
     });
 
@@ -46,6 +58,12 @@ export async function GET() {
         preferredCourseProvider: "anthropic",
         preferredAnalysisProvider: "anthropic",
         preferredCodeProvider: "anthropic",
+        // Default models per provider
+        anthropicModel: "claude-sonnet-4-5-20250929",
+        deepseekModel: "deepseek-chat",
+        openaiModel: "gpt-4o",
+        geminiModel: "gemini-pro",
+        mistralModel: "mistral-large",
       });
     }
 
@@ -96,6 +114,12 @@ export async function PUT(request: Request) {
           preferredCourseProvider: validatedData.preferredCourseProvider,
           preferredAnalysisProvider: validatedData.preferredAnalysisProvider,
           preferredCodeProvider: validatedData.preferredCodeProvider,
+          // Per-provider model selection
+          anthropicModel: validatedData.anthropicModel,
+          deepseekModel: validatedData.deepseekModel,
+          openaiModel: validatedData.openaiModel,
+          geminiModel: validatedData.geminiModel,
+          mistralModel: validatedData.mistralModel,
           updatedAt: new Date(),
         },
       });
@@ -119,6 +143,12 @@ export async function PUT(request: Request) {
           preferredCourseProvider: validatedData.preferredCourseProvider ?? "anthropic",
           preferredAnalysisProvider: validatedData.preferredAnalysisProvider ?? "anthropic",
           preferredCodeProvider: validatedData.preferredCodeProvider ?? "anthropic",
+          // Per-provider model selection with defaults
+          anthropicModel: validatedData.anthropicModel ?? "claude-sonnet-4-5-20250929",
+          deepseekModel: validatedData.deepseekModel ?? "deepseek-chat",
+          openaiModel: validatedData.openaiModel ?? "gpt-4o",
+          geminiModel: validatedData.geminiModel ?? "gemini-pro",
+          mistralModel: validatedData.mistralModel ?? "mistral-large",
           updatedAt: new Date(),
         },
       });
@@ -132,6 +162,12 @@ export async function PUT(request: Request) {
         preferredCourseProvider: preferences.preferredCourseProvider,
         preferredAnalysisProvider: preferences.preferredAnalysisProvider,
         preferredCodeProvider: preferences.preferredCodeProvider,
+        // Per-provider model selection
+        anthropicModel: preferences.anthropicModel,
+        deepseekModel: preferences.deepseekModel,
+        openaiModel: preferences.openaiModel,
+        geminiModel: preferences.geminiModel,
+        mistralModel: preferences.mistralModel,
       },
     });
   } catch (error) {

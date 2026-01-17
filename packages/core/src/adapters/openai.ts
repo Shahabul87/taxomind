@@ -347,7 +347,7 @@ export class OpenAIAdapter implements AIAdapter {
     let recoverable = true;
 
     try {
-      const errorBody = await response.json();
+      const errorBody = await response.json() as { error?: { message?: string } };
       errorMessage = errorBody.error?.message || errorMessage;
     } catch {
       // Ignore JSON parse errors

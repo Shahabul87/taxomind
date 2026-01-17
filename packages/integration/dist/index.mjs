@@ -2614,9 +2614,76 @@ function createTaxomindProfile() {
   return new ProfileBuilder("taxomind", "Taxomind LMS").description("Enterprise LMS with SAM AI Integration").nextjs().prisma({ supportsVectors: true, vectorAdapter: VectorAdapterType.PGVECTOR }).nextAuth(["admin", "user", "student", "teacher"]).anthropic().openaiEmbeddings().sse().curriculum().userHistory().allFeatures().tags("lms", "education", "ai-tutor");
 }
 
+// src/bridges/ai-core-bridge.ts
+var mapMessages = (messages) => messages.map((message) => ({
+  role: message.role,
+  content: message.content
+}));
+var resolveModel = (adapter, params, overrideModel) => params.model ?? overrideModel ?? adapter.getDefaultModel();
+var buildOptions = (params, model) => ({
+  model,
+  temperature: params.temperature,
+  maxTokens: params.maxTokens,
+  stopSequences: params.stopSequences
+});
+var mapFinishReason = (reason) => {
+  if (reason === "stop") return "stop";
+  if (reason === "length") return "max_tokens";
+  return "error";
+};
+var chunkToStream = function* (chunk) {
+  const content = chunk.delta?.content ?? "";
+  const done = Boolean(chunk.finishReason);
+  if (content.length > 0 || done) {
+    yield { content, done };
+  }
+};
+function createCoreAIAdapterFromIntegration(adapter, options) {
+  return {
+    name: adapter.getName(),
+    version: "integration-bridge",
+    isConfigured: () => true,
+    getModel: () => resolveModel(adapter, { }, options?.model),
+    chat: async (params) => {
+      const messages = mapMessages(params.messages);
+      const model = resolveModel(adapter, params, options?.model);
+      const completionOptions = buildOptions(params, model);
+      const response = params.systemPrompt ? await adapter.chatWithSystem(params.systemPrompt, messages, completionOptions) : await adapter.chat(messages, completionOptions);
+      return {
+        content: response.content,
+        model: response.model,
+        usage: {
+          inputTokens: response.usage.promptTokens,
+          outputTokens: response.usage.completionTokens
+        },
+        finishReason: mapFinishReason(response.finishReason)
+      };
+    },
+    chatStream: async function* (params) {
+      const messages = mapMessages(params.messages);
+      const model = resolveModel(adapter, params, options?.model);
+      const completionOptions = buildOptions(params, model);
+      const stream = params.systemPrompt ? adapter.chatStreamWithSystem(params.systemPrompt, messages, completionOptions) : adapter.chatStream(messages, completionOptions);
+      for await (const chunk of stream) {
+        yield* chunkToStream(chunk);
+      }
+    }
+  };
+}
+
+// src/bridges/embedding-provider-bridge.ts
+function createEmbeddingProviderFromIntegration(adapter) {
+  return {
+    embed: (text) => adapter.embed(text),
+    embedBatch: (texts) => adapter.embedBatch(texts),
+    getDimensions: () => adapter.getDimensions(),
+    getModelName: () => adapter.getModelName()
+  };
+}
+
 // src/index.ts
 var VERSION = "1.0.0";
 
-export { AICapabilitySchema, AIProviderType, AIServiceConfigSchema, AdapterFactory, AuthCapabilitySchema, AuthProviderType, CapabilityRegistry, ChatMessageSchema, CompletionOptionsSchema, ConnectionState, CreateSAMGoalInputSchema, DataSourceType, DatabaseCapabilitySchema, DatabaseType, DefaultRolePermissions, EmbeddingProviderType, HostDetector, HostFrameworkType, IntegrationProfileSchema, NotificationChannel, NotificationChannelType, NotificationPayloadSchema, NotificationPriority, NotificationRecipientSchema, NotificationRequestSchema, NotificationStatus, PresenceStateSchema, ProfileBuilder, QueryOptionsSchema, RealtimeEventSchema, RealtimeRoomSchema, RealtimeType, ResourcePermissionSchema, RuntimeEnvironment, SAMAuthSessionSchema, SAMPermissions, SAMRealtimeEventType, SAMRoles, SAMStreamChunkSchema, SAMUserSchema, ToolDefinitionSchema, ToolPermissionLevel, UpdateSAMGoalInputSchema, VERSION, VectorAdapterType, VectorMetadataSchema, VectorSearchFilterSchema, VectorSearchOptionsSchema, VectorUpsertInputSchema, createAdapterFactory, createCapabilityRegistry, createHostDetector, createMinimalProfile, createProfileBuilder, createTaxomindProfile, detectHost, generateProfileFromHost, validateIntegrationProfile };
+export { AICapabilitySchema, AIProviderType, AIServiceConfigSchema, AdapterFactory, AuthCapabilitySchema, AuthProviderType, CapabilityRegistry, ChatMessageSchema, CompletionOptionsSchema, ConnectionState, CreateSAMGoalInputSchema, DataSourceType, DatabaseCapabilitySchema, DatabaseType, DefaultRolePermissions, EmbeddingProviderType, HostDetector, HostFrameworkType, IntegrationProfileSchema, NotificationChannel, NotificationChannelType, NotificationPayloadSchema, NotificationPriority, NotificationRecipientSchema, NotificationRequestSchema, NotificationStatus, PresenceStateSchema, ProfileBuilder, QueryOptionsSchema, RealtimeEventSchema, RealtimeRoomSchema, RealtimeType, ResourcePermissionSchema, RuntimeEnvironment, SAMAuthSessionSchema, SAMPermissions, SAMRealtimeEventType, SAMRoles, SAMStreamChunkSchema, SAMUserSchema, ToolDefinitionSchema, ToolPermissionLevel, UpdateSAMGoalInputSchema, VERSION, VectorAdapterType, VectorMetadataSchema, VectorSearchFilterSchema, VectorSearchOptionsSchema, VectorUpsertInputSchema, createAdapterFactory, createCapabilityRegistry, createCoreAIAdapterFromIntegration, createEmbeddingProviderFromIntegration, createHostDetector, createMinimalProfile, createProfileBuilder, createTaxomindProfile, detectHost, generateProfileFromHost, validateIntegrationProfile };
 //# sourceMappingURL=index.mjs.map
 //# sourceMappingURL=index.mjs.map

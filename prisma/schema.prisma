@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-16T04:38:57.123Z
+// Generated: 2026-01-17T04:25:23.878Z
 // Source: 24 domain files
 // ==========================================
 
@@ -1724,6 +1724,7 @@ model User {
   challengeParticipations    PracticeChallengeParticipant[] @relation("ChallengeParticipations")
   practiceLeaderboards       PracticeLeaderboard[]         @relation("UserPracticeLeaderboards")
   dailyPracticeLogs          DailyPracticeLog[]            @relation("UserDailyPracticeLogs")
+  practiceGoals              PracticeGoal[]                @relation("UserPracticeGoals")
 }
 
 model Account {
@@ -5525,6 +5526,13 @@ model UserAIPreferences {
   preferredCourseProvider   String?  @default("anthropic")  // Provider for course creation
   preferredAnalysisProvider String?  @default("anthropic")  // Provider for analysis tasks
   preferredCodeProvider     String?  @default("anthropic")  // Provider for code-related tasks
+
+  // Per-Provider Model Selection (added January 2026)
+  anthropicModel            String?  @default("claude-sonnet-4-5-20250929")   // claude-sonnet-4-20250514, claude-sonnet-4-5-20250929
+  deepseekModel             String?  @default("deepseek-chat")                // deepseek-chat, deepseek-reasoner
+  openaiModel               String?  @default("gpt-4o")                       // gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, o1, o1-mini
+  geminiModel               String?  @default("gemini-pro")                   // gemini-pro, gemini-ultra
+  mistralModel              String?  @default("mistral-large")                // mistral-large, codestral, mistral-small
 }
 
 model AIModelPerformance {
@@ -12595,4 +12603,56 @@ model DailyPracticeLog {
   @@index([date])
   @@index([intensityLevel])
   @@map("daily_practice_logs")
+}
+
+// ==========================================
+// Practice Goal Model (Advanced Goal Setting)
+// ==========================================
+
+enum PracticeGoalType {
+  HOURS           // Total hours
+  QUALITY_HOURS   // Quality-adjusted hours
+  SESSIONS        // Session count
+  STREAK          // Consecutive days
+  WEEKLY_HOURS    // Weekly target
+}
+
+model PracticeGoal {
+  id                    String                @id @default(cuid())
+  userId                String
+
+  // Goal Configuration
+  title                 String
+  description           String?
+  goalType              PracticeGoalType      @default(HOURS)
+  targetValue           Float
+  currentValue          Float                 @default(0)
+
+  // Optional Skill Association
+  skillId               String?
+  skillName             String?
+
+  // Timing
+  deadline              DateTime?
+  startDate             DateTime              @default(now())
+
+  // Status
+  isCompleted           Boolean               @default(false)
+  completedAt           DateTime?
+
+  // Notifications
+  reminderEnabled       Boolean               @default(false)
+  reminderFrequency     String?               // DAILY, WEEKLY, etc.
+
+  // Timestamps
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  // Relations
+  user                  User                  @relation("UserPracticeGoals", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isCompleted])
+  @@index([deadline])
+  @@map("practice_goals")
 }

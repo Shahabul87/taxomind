@@ -1,0 +1,4 @@
+/**
+ * Collaboration Engine Types
+ */
+export {};

@@ -99,7 +99,7 @@ export class DeepSeekAdapter implements AIAdapter {
     }
 
     this.apiKey = options.apiKey;
-    this.model = options.model ?? 'deepseek-reasoner';
+    this.model = options.model ?? 'deepseek-chat';
     this.baseURL = options.baseURL ?? 'https://api.deepseek.com';
     this.maxRetries = options.maxRetries ?? 2;
     this.timeout = options.timeout ?? 60000;
@@ -332,7 +332,7 @@ export class DeepSeekAdapter implements AIAdapter {
     let recoverable = true;
 
     try {
-      const errorBody = await response.json();
+      const errorBody = await response.json() as { error?: { message?: string } };
       errorMessage = errorBody.error?.message || errorMessage;
     } catch {
       // Ignore JSON parse errors

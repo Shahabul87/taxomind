@@ -48,6 +48,16 @@ let externalToolsRegistered = false;
 let toolAiAdapter: AIAdapter | null = null;
 let toolAiAdapterPromise: Promise<AIAdapter | null> | null = null;
 
+/**
+ * Reset tooling adapter cache (useful when switching providers)
+ */
+export function resetToolingAdapterCache(): void {
+  toolAiAdapter = null;
+  toolAiAdapterPromise = null;
+  toolRegistrationDone = false;
+  logger.info('[Tooling] Adapter cache cleared, tools will re-register');
+}
+
 async function getToolAiAdapter(): Promise<AIAdapter | null> {
   if (toolAiAdapter) {
     return toolAiAdapter;

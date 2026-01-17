@@ -6,14 +6,17 @@ import { db } from '@/lib/db';
 import {
   MILESTONE_HOURS,
   MILESTONE_BADGE_NAMES,
-  getProficiencyLevel,
 } from '@/lib/sam/stores/prisma-skill-mastery-10k-store';
+import { PracticeMilestoneType } from '@prisma/client';
 
 // Get practice stores from TaxomindContext singleton
 const {
   skillMastery10K: masteryStore,
-  practiceSession: sessionStore,
 } = getPracticeStores();
+
+// Get milestone hours as sorted array for finding next milestone
+const MILESTONE_HOURS_ARRAY = Object.values(MILESTONE_HOURS).sort((a, b) => a - b);
+const FIRST_MILESTONE = MILESTONE_HOURS_ARRAY[0] ?? 100;
 
 // ============================================================================
 // GET - Get skill mastery details for a specific skill
@@ -43,8 +46,6 @@ export async function GET(
         name: true,
         description: true,
         category: true,
-        icon: true,
-        color: true,
       },
     });
 
@@ -70,9 +71,9 @@ export async function GET(
             description: 'Just starting out (0-100 hours)',
           },
           nextMilestone: {
-            hours: MILESTONE_HOURS[0],
-            badge: MILESTONE_BADGE_NAMES[MILESTONE_HOURS[0]],
-            hoursRemaining: MILESTONE_HOURS[0],
+            hours: FIRST_MILESTONE,
+            badge: MILESTONE_BADGE_NAMES.HOURS_100 ?? 'Century Club',
+            hoursRemaining: FIRST_MILESTONE,
             progressPercent: 0,
           },
           streakInfo: {
@@ -85,18 +86,28 @@ export async function GET(
     }
 
     // Get milestones for this skill
-    const milestones = await masteryStore.getMilestones(session.user.id, skillId);
+    const milestones = await db.practiceMilestone.findMany({
+      where: {
+        userId: session.user.id,
+        skillId,
+      },
+      orderBy: { unlockedAt: 'desc' },
+    });
 
     // Get recent practice sessions for this skill
-    const recentSessions = await sessionStore.getByUser(session.user.id, {
-      skillId,
-      status: 'COMPLETED',
-      limit: 10,
+    const recentSessions = await db.practiceSession.findMany({
+      where: {
+        userId: session.user.id,
+        skillId,
+        status: 'COMPLETED',
+      },
+      orderBy: { startedAt: 'desc' },
+      take: 10,
     });
 
     // Calculate next milestone
-    const nextMilestoneHours = MILESTONE_HOURS.find((h) => h > mastery.totalQualityHours) ?? 10000;
-    const prevMilestoneHours = [...MILESTONE_HOURS].reverse().find((h) => h <= mastery.totalQualityHours) ?? 0;
+    const nextMilestoneHours = MILESTONE_HOURS_ARRAY.find((h) => h > mastery.totalQualityHours) ?? 10000;
+    const prevMilestoneHours = [...MILESTONE_HOURS_ARRAY].reverse().find((h) => h <= mastery.totalQualityHours) ?? 0;
     const progressToNextMilestone =
       nextMilestoneHours > prevMilestoneHours
         ? ((mastery.totalQualityHours - prevMilestoneHours) / (nextMilestoneHours - prevMilestoneHours)) * 100
@@ -109,6 +120,14 @@ export async function GET(
     const estimatedSessionsToNext =
       avgHoursPerSession > 0 ? Math.ceil(hoursToNext / avgHoursPerSession) : null;
 
+    // Get badge name for next milestone
+    const nextMilestoneType = Object.entries(MILESTONE_HOURS).find(
+      ([, hours]) => hours === nextMilestoneHours
+    )?.[0] as PracticeMilestoneType | undefined;
+    const nextBadgeName = nextMilestoneType
+      ? MILESTONE_BADGE_NAMES[nextMilestoneType] ?? `${nextMilestoneHours} Hours`
+      : `${nextMilestoneHours} Hours`;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -116,7 +135,7 @@ export async function GET(
         mastery,
         milestones: milestones.map((m) => ({
           ...m,
-          badge: MILESTONE_BADGE_NAMES[m.milestoneType as keyof typeof MILESTONE_BADGE_NAMES] ?? m.milestoneType,
+          badge: MILESTONE_BADGE_NAMES[m.milestoneType as PracticeMilestoneType] ?? m.milestoneType,
         })),
         recentSessions,
         progressTo10K: Math.min((mastery.totalQualityHours / 10000) * 100, 100),
@@ -126,7 +145,7 @@ export async function GET(
         },
         nextMilestone: {
           hours: nextMilestoneHours,
-          badge: MILESTONE_BADGE_NAMES[nextMilestoneHours as keyof typeof MILESTONE_BADGE_NAMES] ?? `${nextMilestoneHours} Hours`,
+          badge: nextBadgeName,
           hoursRemaining: Math.max(0, hoursToNext),
           progressPercent: progressToNextMilestone,
           estimatedSessions: estimatedSessionsToNext,
@@ -134,11 +153,11 @@ export async function GET(
         streakInfo: {
           currentStreak: mastery.currentStreak,
           longestStreak: mastery.longestStreak,
-          lastPractice: mastery.lastPracticeAt,
+          lastPractice: mastery.lastPracticedAt,
         },
         averages: {
           hoursPerSession: avgHoursPerSession,
-          qualityMultiplier: mastery.avgQualityMultiplier,
+          qualityMultiplier: mastery.averageQualityScore,
           sessionsPerWeek: calculateSessionsPerWeek(mastery.createdAt, mastery.sessionsCount),
         },
       },

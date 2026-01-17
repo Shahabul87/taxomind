@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
-import type { BloomsLevel } from '@/lib/sam/stores/prisma-practice-session-store';
+// Practice session store for types and methods
 
 // Get practice stores from TaxomindContext singleton
 const {
@@ -25,20 +25,9 @@ const POMODORO_XP_BONUS = 5; // Extra XP for completing a full pomodoro
 // VALIDATION SCHEMAS
 // ============================================================================
 
-const BloomsLevelEnum = z.enum([
-  'REMEMBER',
-  'UNDERSTAND',
-  'APPLY',
-  'ANALYZE',
-  'EVALUATE',
-  'CREATE',
-]);
-
 const CompletePomodoroSchema = z.object({
   sessionId: z.string().min(1),
   pomodoroNumber: z.number().int().min(1).max(20).optional().default(1),
-  bloomsLevel: BloomsLevelEnum.optional(),
-  difficultyRating: z.number().min(1).max(10).optional(),
   notes: z.string().max(2000).optional(),
   wasInterrupted: z.boolean().optional().default(false),
   interruptionReason: z.string().max(500).optional(),
@@ -102,42 +91,55 @@ export async function POST(req: NextRequest) {
     }
 
     // End the session
-    const completedSession = await practiceSessionStore.end(validated.sessionId, {
-      bloomsLevel: validated.bloomsLevel as BloomsLevel | undefined,
-      difficultyRating: validated.difficultyRating,
+    const completedSession = await practiceSessionStore.endSession(validated.sessionId, {
       notes: finalNotes.trim() || undefined,
     });
 
-    // Update skill mastery
-    const updatedMastery = await masteryStore.addSessionToMastery(
+    // Calculate session duration in minutes
+    const sessionDurationMinutes = completedSession.rawHours * 60;
+
+    // Update skill mastery only if skillId is provided
+    let updatedMastery = null;
+    if (existingSession.skillId) {
+      updatedMastery = await masteryStore.recordSessionToMastery(
+        session.user.id,
+        existingSession.skillId,
+        existingSession.skillName ?? 'Unknown Skill',
+        completedSession.rawHours,
+        completedSession.qualityHours,
+        sessionDurationMinutes,
+        completedSession.qualityMultiplier
+      );
+    }
+
+    // Convert focus level to number for daily log
+    const focusLevelToNumber = (level: string): number => {
+      const mapping: Record<string, number> = {
+        VERY_LOW: 1, LOW: 2, MEDIUM: 3, HIGH: 4, DEEP_FLOW: 5,
+      };
+      return mapping[level] ?? 3;
+    };
+
+    // Update daily practice log
+    await dailyLogStore.recordActivity(
       session.user.id,
-      existingSession.skillId,
+      new Date(),
       {
-        rawHours: completedSession.rawHours,
+        totalMinutes: completedSession.rawHours * 60,
         qualityHours: completedSession.qualityHours,
-        qualityMultiplier: completedSession.qualityMultiplier,
-        bloomsLevel: completedSession.bloomsLevel,
+        sessionsCount: 1,
         sessionType: completedSession.sessionType,
+        qualityMultiplier: completedSession.qualityMultiplier,
+        focusLevel: focusLevelToNumber(completedSession.focusLevel),
+        skillId: existingSession.skillId,
       }
     );
 
-    // Update daily practice log
-    await dailyLogStore.addOrUpdateLog(
-      session.user.id,
-      completedSession.rawHours,
-      completedSession.qualityHours,
-      1,
-      completedSession.qualityMultiplier
-    );
-
     // Check for new milestones
-    const milestones = await masteryStore.getMilestones(
-      session.user.id,
-      existingSession.skillId
-    );
+    const milestones = await masteryStore.getMilestones(session.user.id);
     const newMilestones = milestones.filter(
-      (m) => m.achievedAt &&
-        new Date(m.achievedAt).getTime() > Date.now() - 60000
+      (m) => m.unlockedAt &&
+        new Date(m.unlockedAt).getTime() > Date.now() - 60000
     );
 
     // Determine break info
@@ -173,7 +175,7 @@ export async function POST(req: NextRequest) {
           rawMinutes: Math.round(completedSession.rawHours * 60),
           qualityMinutes: Math.round(completedSession.qualityHours * 60),
           qualityMultiplier: completedSession.qualityMultiplier,
-          totalQualityHours: updatedMastery.totalQualityHours,
+          totalQualityHours: updatedMastery?.totalQualityHours ?? 0,
           bonusXp: validated.wasInterrupted ? 0 : POMODORO_XP_BONUS,
         },
       },
