@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { AlertCircle, ArrowRight, BarChart3, Brain, History, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, BarChart3, Brain, History, Sparkles, RefreshCw, Loader2, TrendingUp } from 'lucide-react';
+import { useAdvancedAnalytics } from '@/hooks/use-advanced-analytics';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,6 +22,15 @@ import {
   MicrolearningWidget,
   CompetencyDashboard,
 } from '@/components/sam';
+import {
+  RetentionCurveChart,
+  WeeklyTrendsChart,
+  LevelProgressionChart,
+  SkillTrajectoryChart,
+  EfficiencyDashboard,
+  MasteryProgressChart,
+  RecommendationInsightsWidget,
+} from '@/components/sam/analytics';
 import { OrchestrationPanel } from '@/components/sam/OrchestrationPanel';
 import { BloomsProgressChart } from '@/components/sam/student-dashboard/blooms-progress-chart';
 import { CognitivePerformanceMetrics } from '@/components/sam/student-dashboard/cognitive-performance-metrics';
@@ -342,6 +352,204 @@ function LearningInsightsGrid({ userId, courseId }: LearningInsightsGridProps) {
 }
 
 /**
+ * Advanced Analytics Content Component
+ * Uses the useAdvancedAnalytics hook to fetch and display advanced analytics data
+ */
+function AdvancedAnalyticsContent() {
+  const { data, loading, error, refresh, isStale } = useAdvancedAnalytics({
+    enabled: true,
+    days: 30,
+  });
+  const { toast } = useToast();
+
+  const handleRefresh = () => {
+    refresh();
+    toast({
+      title: 'Refreshing',
+      description: 'Updating your advanced analytics...',
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center">
+          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-primary" />
+          <p className="text-slate-500 dark:text-slate-400">Loading advanced analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-red-200 dark:border-red-800">
+        <CardContent className="py-12 text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+          <p className="text-slate-600 dark:text-slate-400 mb-4">
+            Failed to load advanced analytics: {error}
+          </p>
+          <Button onClick={handleRefresh} variant="outline">
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!data) {
+    return (
+      <Card className="border-slate-200 dark:border-slate-700">
+        <CardContent className="py-12 text-center">
+          <BarChart3 className="mx-auto mb-4 h-12 w-12 text-slate-400" />
+          <p className="text-slate-500 dark:text-slate-400">
+            No analytics data available yet. Start learning to see your progress!
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Advanced Analytics
+          </h2>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Deep dive into your learning patterns, retention, and efficiency metrics
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isStale && (
+            <span className="text-xs text-amber-600 dark:text-amber-400">Data may be outdated</span>
+          )}
+          <Button onClick={handleRefresh} variant="outline" size="sm" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
+      {/* Mastery Progress Section */}
+      <section>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          Overall Mastery Progress
+        </h3>
+        <MasteryProgressChart
+          masteryHistory={data.mastery.history}
+          courseMastery={data.mastery.courses}
+          topicMastery={data.mastery.topics}
+          milestones={data.mastery.milestones}
+          overallMastery={data.mastery.overallMastery}
+          className="w-full"
+        />
+      </section>
+
+      {/* Retention and Memory Section */}
+      <section>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          Memory Retention Analysis
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+          Visualize your forgetting curve and how spaced repetition improves retention
+        </p>
+        <RetentionCurveChart
+          retentionData={data.retention.dataPoints}
+          topicRetention={data.retention.topicRetention}
+          averageRetention={data.retention.averageRetention}
+          optimalReviewInterval={data.retention.optimalReviewInterval}
+          className="w-full"
+        />
+      </section>
+
+      {/* Weekly Trends Section */}
+      <section>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          Weekly Learning Patterns
+        </h3>
+        <WeeklyTrendsChart
+          dailyData={data.weekly.dailyData}
+          weeklyComparison={data.weekly.comparison}
+          hourlyActivity={data.weekly.hourlyActivity}
+          currentWeekGoal={data.weekly.weeklyGoal}
+          className="w-full"
+        />
+      </section>
+
+      {/* Two-column grid for smaller visualizations */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Skill Trajectory */}
+        <section>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            Skill Development Trajectories
+          </h3>
+          <SkillTrajectoryChart
+            skills={data.skills.items}
+            categories={data.skills.categories}
+            targetMastery={data.skills.targetMastery}
+            className="w-full"
+          />
+        </section>
+
+        {/* Level Progression */}
+        <section>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            XP &amp; Level Progression
+          </h3>
+          <LevelProgressionChart
+            xpHistory={data.level.xpHistory}
+            currentLevel={data.level.currentLevel}
+            currentXP={data.level.currentXP}
+            xpToNextLevel={data.level.xpToNextLevel}
+            totalXP={data.level.totalXP}
+            milestones={data.level.milestones}
+            achievements={data.level.achievements}
+            dailyXPGoal={data.level.dailyXPGoal}
+            className="w-full"
+          />
+        </section>
+      </div>
+
+      {/* Learning Efficiency Section */}
+      <section>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          Learning Efficiency Metrics
+        </h3>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+          Analyze how effectively you convert study time into mastery
+        </p>
+        <EfficiencyDashboard
+          metrics={data.efficiency.metrics}
+          topicEfficiency={data.efficiency.topicEfficiency}
+          recentSessions={data.efficiency.recentSessions}
+          weeklyGoal={data.efficiency.weeklyGoal}
+          className="w-full"
+        />
+      </section>
+
+      {/* Recommendation Insights Section */}
+      <section>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          Recommendation Effectiveness
+        </h3>
+        <RecommendationInsightsWidget
+          insights={data.recommendations.insights}
+          recentRecommendations={data.recommendations.recent}
+          overallFollowRate={data.recommendations.overallFollowRate}
+          overallEffectiveness={data.recommendations.overallEffectiveness}
+          totalRecommendations={data.recommendations.total}
+          onRefresh={handleRefresh}
+          isLoading={loading}
+          className="w-full"
+        />
+      </section>
+    </div>
+  );
+}
+
+/**
  * User Analytics Page - Enterprise Edition
  *
  * A comprehensive analytics dashboard with:
@@ -357,7 +565,7 @@ export default function UserAnalyticsPage() {
   const { data: session, status } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [activeTab, setActiveTab] = useState<'learning' | 'detailed' | 'recommendations' | 'ai-insights'>('learning');
+  const [activeTab, setActiveTab] = useState<'learning' | 'detailed' | 'recommendations' | 'ai-insights' | 'advanced'>('learning');
 
   // Memoize the user to prevent unnecessary re-renders
   const user = useMemo((): ExtendedUser | null => {
@@ -478,22 +686,26 @@ export default function UserAnalyticsPage() {
           onValueChange={(v) => setActiveTab(v as typeof activeTab)}
           className="space-y-6"
         >
-          <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-slate-100/80 dark:bg-slate-800/80">
+          <TabsList className="grid w-full max-w-4xl grid-cols-5 bg-slate-100/80 dark:bg-slate-800/80">
             <TabsTrigger value="learning" className="gap-2">
               <Brain className="h-4 w-4" />
-              Learning Insights
+              <span className="hidden sm:inline">Learning</span>
             </TabsTrigger>
             <TabsTrigger value="detailed" className="gap-2">
               <BarChart3 className="h-4 w-4" />
-              Detailed Analytics
+              <span className="hidden sm:inline">Detailed</span>
+            </TabsTrigger>
+            <TabsTrigger value="advanced" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Advanced</span>
             </TabsTrigger>
             <TabsTrigger value="recommendations" className="gap-2">
               <History className="h-4 w-4" />
-              Recommendations
+              <span className="hidden sm:inline">Recs</span>
             </TabsTrigger>
             <TabsTrigger value="ai-insights" className="gap-2">
               <Sparkles className="h-4 w-4" />
-              AI Insights
+              <span className="hidden sm:inline">AI</span>
             </TabsTrigger>
           </TabsList>
 
@@ -518,6 +730,13 @@ export default function UserAnalyticsPage() {
                 variant="fullpage"
                 className="min-h-screen"
               />
+            </AnalyticsErrorBoundary>
+          </TabsContent>
+
+          {/* Advanced Analytics Tab (Phase 3) */}
+          <TabsContent value="advanced">
+            <AnalyticsErrorBoundary>
+              <AdvancedAnalyticsContent />
             </AnalyticsErrorBoundary>
           </TabsContent>
 

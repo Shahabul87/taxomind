@@ -320,7 +320,6 @@ export function SAMInsights({
   const handleAskSAM = () => {
     // Only open SAM if the context is available
     if (!samContext) {
-      console.warn('SAM context not available - SAMGlobalProvider not found');
       return;
     }
 

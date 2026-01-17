@@ -133,6 +133,7 @@ import { SAMAssistantWrapper } from '@/components/sam/SAMAssistantWrapper';
 import { InterventionProvider } from '@/components/sam/interventions/InterventionProvider';
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
+import { ServiceWorkerManager } from '@/components/service-worker-manager';
 
 // Use auto dynamic rendering (Next.js will determine optimal rendering)
 // export const dynamic = 'force-dynamic'; // Commented out to fix SSR bailout issue
@@ -292,6 +293,12 @@ export default async function RootLayout({
 
           {/* PWA Service Worker Registration */}
           <ServiceWorkerRegistration />
+
+          {/* PWA Service Worker Manager - UI for offline indicator and update notifications */}
+          <ServiceWorkerManager
+            showOfflineIndicator={true}
+            enableNotifications={true}
+          />
         </Providers>
       </body>
     </html>

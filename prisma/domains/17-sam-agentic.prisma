@@ -2062,3 +2062,188 @@ model SAMPredictionAccuracy {
   @@index([userId, calculatedAt])
   @@map("sam_prediction_accuracy")
 }
+
+// ==========================================
+// RECOMMENDATION TRACKING MODELS
+// ==========================================
+
+enum SAMRecommendationAction {
+  VIEWED
+  FOLLOWED
+  DISMISSED
+  DEFERRED
+}
+
+model SAMRecommendationTracking {
+  id                   String                  @id @default(cuid())
+  userId               String
+  recommendationId     String
+  recommendationType   String                  // content, practice, review, course, skill, etc.
+  action               SAMRecommendationAction @default(VIEWED)
+  wasFollowed          Boolean                 @default(false)
+
+  // Outcome tracking
+  outcomeScore         Float?                  // 0-100 measuring effectiveness
+  timeToAction         Int?                    // milliseconds from recommendation to action
+  outcomeRecordedAt    DateTime?
+
+  // Context
+  context              Json?                   // Additional context data
+  actionTimestamp      DateTime                @default(now())
+
+  // Timestamps
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  // Relations
+  user                 User                    @relation("SAMRecommendationTrackings", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recommendationType])
+  @@index([userId, createdAt])
+  @@index([recommendationType, wasFollowed])
+  @@map("sam_recommendation_trackings")
+}
+
+model SAMRecommendationStats {
+  id                   String   @id @default(cuid())
+  userId               String
+  recommendationType   String
+
+  // Counts
+  totalRecommendations Int      @default(0)
+  totalFollowed        Int      @default(0)
+
+  // Rates
+  followRate30d        Float    @default(0)    // Follow rate in last 30 days
+
+  // Timestamps
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  user                 User     @relation("SAMRecommendationStats", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recommendationType])
+  @@index([userId])
+  @@map("sam_recommendation_stats")
+}
+
+// ==========================================
+// CERTIFICATION PATHWAY MODELS
+// ==========================================
+
+model SAMCertificationProgress {
+  id                   String    @id @default(cuid())
+  userId               String
+  certificationId      String
+  certificationName    String
+  provider             String
+
+  // Status
+  status               String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, SCHEDULED, COMPLETED, EXPIRED
+
+  // Dates
+  startDate            DateTime?
+  targetDate           DateTime?
+  completedDate        DateTime?
+  expiryDate           DateTime?
+
+  // Progress tracking
+  studyProgress        Int       @default(0) // 0-100
+  studyHoursLogged     Int       @default(0)
+  practiceExamScores   Json      @default("[]") // Array of scores
+
+  // Study plan
+  studyPlanId          String?
+  nextMilestone        Json?     // { title: string, dueDate: string }
+
+  // Credential details (after completion)
+  credentialUrl        String?
+  credentialId         String?
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  user                 User      @relation("SAMCertificationProgress", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, certificationId])
+  @@index([userId, status])
+  @@index([certificationId])
+  @@map("sam_certification_progress")
+}
+
+// ==========================================
+// PORTFOLIO MODELS
+// ==========================================
+
+model SAMPortfolioSettings {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+
+  // Visibility
+  isPublic             Boolean   @default(false)
+
+  // Profile
+  title                String
+  bio                  String?   @db.Text
+  headline             String?
+
+  // Social links
+  socialLinks          Json?     // { linkedin?, github?, twitter?, website? }
+
+  // Customization
+  theme                String    @default("professional") // professional, creative, minimal, dark
+  featuredProjectIds   Json      @default("[]") // Array of project IDs
+  featuredSkillIds     Json      @default("[]") // Array of skill IDs
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  user                 User      @relation("SAMPortfolioSettings", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sam_portfolio_settings")
+}
+
+model SAMPortfolioProject {
+  id                   String    @id @default(cuid())
+  userId               String
+  courseId             String?
+
+  // Project details
+  title                String
+  description          String    @db.Text
+  type                 String    // personal, course, open_source, professional, hackathon, research
+
+  // Skills and technologies
+  skills               Json      @default("[]") // Array of skill names
+  technologies         Json      @default("[]") // Array of technology names
+
+  // Links
+  url                  String?
+  repositoryUrl        String?
+  imageUrl             String?
+
+  // Dates
+  startDate            DateTime?
+  endDate              DateTime?
+
+  // Details
+  highlights           Json      @default("[]") // Array of highlight strings
+  isPublic             Boolean   @default(true)
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  user                 User      @relation("SAMPortfolioProjects", fields: [userId], references: [id], onDelete: Cascade)
+  course               Course?   @relation("SAMPortfolioProjectCourses", fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, isPublic])
+  @@map("sam_portfolio_projects")
+}

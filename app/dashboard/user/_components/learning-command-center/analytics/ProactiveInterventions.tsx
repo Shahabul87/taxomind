@@ -357,7 +357,6 @@ export function ProactiveInterventions({
   // Handle asking SAM about an intervention
   const handleAskSAM = useCallback((intervention: SAMIntervention) => {
     if (!samContext) {
-      console.warn('SAM context not available - SAMGlobalProvider not found');
       return;
     }
     samContext.updateContext({

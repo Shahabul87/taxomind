@@ -407,6 +407,15 @@ model User {
   // Prediction Tracking System (added January 2026)
   samPredictions             SAMPrediction[]               @relation("SAMPredictions")
   samPredictionAccuracy      SAMPredictionAccuracy[]       @relation("SAMPredictionAccuracy")
+
+  // Recommendation Tracking (added January 2026)
+  samRecommendationTrackings SAMRecommendationTracking[]   @relation("SAMRecommendationTrackings")
+  samRecommendationStats     SAMRecommendationStats[]      @relation("SAMRecommendationStats")
+
+  // Phase 5: Market Integration - Certification & Portfolio (added January 2026)
+  samCertificationProgress   SAMCertificationProgress[]    @relation("SAMCertificationProgress")
+  samPortfolioSettings       SAMPortfolioSettings?         @relation("SAMPortfolioSettings")
+  samPortfolioProjects       SAMPortfolioProject[]         @relation("SAMPortfolioProjects")
 }
 
 model Account {

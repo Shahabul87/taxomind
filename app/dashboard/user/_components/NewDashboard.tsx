@@ -63,6 +63,20 @@ import { BehaviorPatternsWidget } from "@/components/sam/behavior/BehaviorPatter
 import { MemorySearchPanel } from "@/components/sam/memory/MemorySearchPanel";
 import { TrendsExplorer } from "@/components/sam/TrendsExplorer";
 
+// Phase 2: High-Value Components - Learning Path & Prerequisites
+import { PrerequisiteTreeView } from "@/components/sam/PrerequisiteTreeView";
+import { LearningPathTimeline } from "@/components/sam/LearningPathTimeline";
+
+// Phase 2: Safety & Accessibility Components
+import { AccessibilityMetricsWidget } from "@/components/sam/AccessibilityMetricsWidget";
+import { DiscouragingLanguageAlert } from "@/components/sam/DiscouragingLanguageAlert";
+
+// Phase 2: Social Learning - Active Learners
+import { ActiveLearnersWidget } from "@/components/sam/presence/ActiveLearnersWidget";
+
+// Phase 2: Contextual Help Widget
+import { ContextualHelpWidget } from "@/components/sam/ContextualHelpWidget";
+
 // Gap 3 Orphaned Components - Now Integrated
 import { SocialLearningFeed } from "@/components/sam/SocialLearningFeed";
 import { CollaborationSpace } from "@/components/sam/CollaborationSpace";
@@ -107,6 +121,9 @@ import {
 
 // Practice Goal Setting
 import { PracticeGoalSetter } from "@/components/practice/PracticeGoalSetter";
+
+// Phase 5: Market Integration - Career Progress Widget
+import { CareerProgressWidget } from "@/components/sam/CareerProgressWidget";
 
 interface NewDashboardProps {
   user: NextAuthUser;
@@ -272,6 +289,26 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             </div>
           </div>
 
+          {/* ============================================================= */}
+          {/* PHASE 2: Contextual Help - Smart Help System */}
+          {/* ============================================================= */}
+
+          {/* Help & Recommendations Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Contextual Help Widget - Smart contextual assistance */}
+            <ContextualHelpWidget
+              context="learning"
+              showSearch={true}
+              showShortcuts={true}
+              maxItems={5}
+              compact={false}
+              className="lg:col-span-1"
+            />
+
+            {/* Placeholder for balance */}
+            <div className="hidden lg:col-span-2 lg:block" />
+          </div>
+
           {/* Secondary Widgets Row */}
           <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Microlearning Widget - Bite-sized Lessons */}
@@ -289,8 +326,30 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             <LearningPathWidget />
           </div>
 
+          {/* ============================================================= */}
+          {/* PHASE 2: Prerequisite Tree & Learning Timeline */}
+          {/* ============================================================= */}
+
+          {/* Prerequisites & Timeline Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* PrerequisiteTreeView - Shows what needs to be learned first */}
+            <PrerequisiteTreeView
+              userId={user.id ?? ""}
+              courseId=""
+              conceptId=""
+              className="min-h-[400px]"
+            />
+
+            {/* LearningPathTimeline - Chronological milestone timeline */}
+            <LearningPathTimeline
+              userId={user.id ?? ""}
+              courseId=""
+              className="min-h-[400px]"
+            />
+          </div>
+
           {/* Cognitive Load & Check-in History Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Cognitive Load Monitor - Real-time mental workload tracking */}
             <CognitiveLoadMonitor
               sessionId={`dashboard-${user.id}`}
@@ -301,9 +360,27 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
 
             {/* Recent Check-ins - Proactive System History */}
             <CheckInHistory limit={5} />
+          </div>
 
+          {/* ============================================================= */}
+          {/* PHASE 2: Social Learning & Active Learners */}
+          {/* ============================================================= */}
+
+          {/* Social Learning Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Study Buddy Finder - Peer Learning */}
             <StudyBuddyFinder />
+
+            {/* ActiveLearnersWidget - Real-time active learner awareness */}
+            <ActiveLearnersWidget
+              maxVisible={8}
+              showBreakdown={true}
+              refreshInterval={30000}
+              compact={false}
+            />
+
+            {/* Placeholder for balance - will be filled by other social features */}
+            <div className="hidden lg:block" />
           </div>
 
           {/* Peer Learning Hub - Collaborative Learning (Full Width) */}
@@ -348,6 +425,41 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
 
             {/* TrendsExplorer - Industry trends and skill demand insights */}
             <TrendsExplorer compact={false} />
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 5: Market Integration - Career Progress */}
+          {/* ============================================================= */}
+
+          {/* Career Progress & Portfolio Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* CareerProgressWidget - Certifications, portfolio & career readiness */}
+            <CareerProgressWidget
+              compact={false}
+              onViewCertifications={() => console.log("View certifications")}
+              onViewPortfolio={() => console.log("View portfolio")}
+              onAddProject={() => console.log("Add project")}
+            />
+
+            {/* Placeholder for additional market features */}
+            <div className="hidden lg:block" />
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 2: Safety & Accessibility Monitoring */}
+          {/* ============================================================= */}
+
+          {/* Safety & Accessibility Row */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* AccessibilityMetricsWidget - Readability and accessibility insights */}
+            <AccessibilityMetricsWidget
+              className="min-h-[300px]"
+            />
+
+            {/* DiscouragingLanguageAlert - Content sentiment monitoring */}
+            <DiscouragingLanguageAlert
+              className="min-h-[300px]"
+            />
           </div>
 
           {/* ============================================================= */}

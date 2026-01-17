@@ -12,21 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   WifiOff,
   Wifi,
-  Download,
   RefreshCw,
-  Check,
   X,
-  AlertCircle,
-  Loader2,
-  CloudOff,
   Cloud,
-  HardDrive,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -57,7 +50,7 @@ export function ServiceWorkerManager({
     }
   }, []);
 
-  // Update service worker - defined before registerServiceWorker to avoid dependency issues
+  // Update service worker
   const updateServiceWorker = useCallback(() => {
     if (swRegistration && swRegistration.waiting) {
       // Tell service worker to skip waiting
@@ -70,61 +63,9 @@ export function ServiceWorkerManager({
     }
   }, [swRegistration]);
 
-  const registerServiceWorker = useCallback(async () => {
-    try {
-      setIsInstalling(true);
-
-      const registration = await navigator.serviceWorker.register('/service-worker.js', {
-        scope: '/',
-      });
-
-      setSwRegistration(registration);
-
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              setUpdateAvailable(true);
-              toast.info('A new version is available!', {
-                duration: Infinity,
-                action: {
-                  label: 'Update',
-                  onClick: () => updateServiceWorker(),
-                },
-              });
-            }
-          });
-        }
-      });
-
-      // Listen for messages from service worker
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data.type === 'SYNC_COMPLETE') {
-          toast.success(event.data.message);
-        }
-      });
-
-      // Check if service worker is already installed
-      if (registration.active) {
-        setOfflineReady(true);
-        calculateCacheSize();
-      }
-
-      console.log('Service Worker registered successfully');
-      setIsInstalling(false);
-    } catch (error) {
-      console.error('Service Worker registration failed:', error);
-      setIsInstalling(false);
-    }
-  }, [calculateCacheSize, updateServiceWorker]);
-
-  // Register service worker on mount
+  // Use existing service worker registration (registered by ServiceWorkerRegistration component)
   useEffect(() => {
-    if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-      registerServiceWorker();
-    }
+    if (!('serviceWorker' in navigator)) return;
 
     // Check online status
     setIsOnline(navigator.onLine);
@@ -143,11 +84,58 @@ export function ServiceWorkerManager({
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // Get existing service worker registration (don't re-register)
+    // ServiceWorkerRegistration component already registers /sw.js
+    const initServiceWorker = async () => {
+      try {
+        setIsInstalling(true);
+
+        // Wait for the service worker to be ready
+        const registration = await navigator.serviceWorker.ready;
+        setSwRegistration(registration);
+        setOfflineReady(true);
+        calculateCacheSize();
+
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                setUpdateAvailable(true);
+                toast.info('A new version is available!', {
+                  duration: Infinity,
+                  action: {
+                    label: 'Update',
+                    onClick: () => updateServiceWorker(),
+                  },
+                });
+              }
+            });
+          }
+        });
+
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'SYNC_COMPLETE') {
+            toast.success(event.data.message);
+          }
+        });
+
+        setIsInstalling(false);
+      } catch (error) {
+        console.error('Service Worker initialization failed:', error);
+        setIsInstalling(false);
+      }
+    };
+
+    initServiceWorker();
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [registerServiceWorker]);
+  }, [calculateCacheSize, updateServiceWorker]);
 
   // Clear cache
   const clearCache = async () => {
@@ -157,10 +145,10 @@ export function ServiceWorkerManager({
       setCacheSize(0);
       toast.success('Cache cleared successfully');
 
-      // Re-register service worker
+      // Reload to let ServiceWorkerRegistration handle fresh registration
       if (swRegistration) {
         await swRegistration.unregister();
-        await registerServiceWorker();
+        window.location.reload();
       }
     }
   };

@@ -1,0 +1,1 @@
+{"version":3,"file":"ai-core-bridge.d.ts","sourceRoot":"","sources":["../../src/bridges/ai-core-bridge.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EACV,SAAS,IAAI,aAAa,EAI3B,MAAM,cAAc,CAAC;AACtB,OAAO,KAAK,EACV,SAAS,IAAI,oBAAoB,EAKlC,MAAM,gBAAgB,CAAC;AAwCxB,wBAAgB,kCAAkC,CAChD,OAAO,EAAE,oBAAoB,EAC7B,OAAO,CAAC,EAAE;IAAE,KAAK,CAAC,EAAE,MAAM,CAAA;CAAE,GAC3B,aAAa,CAuCf"}

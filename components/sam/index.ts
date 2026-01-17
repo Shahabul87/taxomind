@@ -224,6 +224,8 @@ export { default as PredictiveInsightsDefault } from './PredictiveInsights';
 // Trends Explorer
 export { TrendsExplorer } from './TrendsExplorer';
 export { default as TrendsExplorerDefault } from './TrendsExplorer';
+export { ContextualHelpWidget } from './ContextualHelpWidget';
+export { default as ContextualHelpWidgetDefault } from './ContextualHelpWidget';
 
 // Collaboration Space
 export { CollaborationSpace } from './CollaborationSpace';

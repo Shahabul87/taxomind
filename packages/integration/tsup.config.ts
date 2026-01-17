@@ -6,7 +6,12 @@ export default defineConfig({
     'adapters/index': 'src/adapters/index.ts',
   },
   format: ['cjs', 'esm'],
-  dts: true,
+  dts: {
+    compilerOptions: {
+      composite: false,
+      incremental: false,
+    },
+  },
   clean: true,
   sourcemap: true,
   splitting: false,
