@@ -1,11 +1,7 @@
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { createProgressAnalyzer, TimePeriod, type ProgressReport } from '@sam-ai/agentic';
-import {
-  createPrismaLearningSessionStore,
-  createPrismaTopicProgressStore,
-  createPrismaLearningGapStore,
-} from '@/lib/sam/stores';
+import { getAnalyticsStores } from '@/lib/sam/taxomind-context';
 
 export type RollupPeriod = 'daily' | 'weekly' | 'monthly';
 
@@ -28,11 +24,12 @@ let progressAnalyzerInstance: ReturnType<typeof createProgressAnalyzer> | null =
 
 function getProgressAnalyzer() {
   if (!progressAnalyzerInstance) {
+    const { learningSession, topicProgress, learningGap } = getAnalyticsStores();
     progressAnalyzerInstance = createProgressAnalyzer({
       logger,
-      sessionStore: createPrismaLearningSessionStore(),
-      progressStore: createPrismaTopicProgressStore(),
-      gapStore: createPrismaLearningGapStore(),
+      sessionStore: learningSession,
+      progressStore: topicProgress,
+      gapStore: learningGap,
     });
   }
   return progressAnalyzerInstance;

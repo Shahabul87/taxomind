@@ -271,3 +271,13 @@ export {
   type ReviewStatus,
   type SM2Config,
 } from './prisma-spaced-repetition-store';
+
+// =============================================================================
+// MEMORY LIFECYCLE STORES
+// =============================================================================
+
+// Reindex Job Store
+export {
+  PrismaReindexJobStore,
+  createPrismaReindexJobStore,
+} from './prisma-reindex-job-store';

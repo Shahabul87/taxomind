@@ -40,10 +40,8 @@ import {
   type KGRefreshStats,
 } from '@sam-ai/agentic';
 import type { VectorAdapter } from '@sam-ai/integration';
-import { getAdapterFactory } from '@/lib/sam/taxomind-context';
+import { getAdapterFactory, getMemoryStores, getReindexJobStore } from '@/lib/sam/taxomind-context';
 import { logger } from '@/lib/logger';
-import { getMemoryStores } from '@/lib/sam/taxomind-context';
-import { createPrismaReindexJobStore } from '@/lib/sam/stores/prisma-reindex-job-store';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 
 // ============================================================================
@@ -206,7 +204,7 @@ export async function initializeMemoryLifecycle(
 
   lifecycleManager = createMemoryLifecycleManager({
     vectorAdapter,
-    store: createPrismaReindexJobStore(),
+    store: getReindexJobStore(),
     config: {
       autoReindexEnabled: true,
       debounceMs: 5000,

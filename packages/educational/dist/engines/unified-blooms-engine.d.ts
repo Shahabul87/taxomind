@@ -76,6 +76,13 @@ export declare class UnifiedBloomsEngine {
     updateCognitiveProgress(userId: string, sectionId: string, bloomsLevel: BloomsLevel, score: number): Promise<void>;
     /**
      * Get cognitive profile for a user
+     *
+     * Fetches student's Bloom's progress from the database and transforms it
+     * into a cognitive profile for adaptive learning and personalization.
+     *
+     * @param userId - User ID to fetch profile for
+     * @param courseId - Optional course ID to scope the profile
+     * @returns Cognitive profile with level mastery and learning insights
      */
     getCognitiveProfile(userId: string, courseId?: string): Promise<CognitiveProfile>;
     /**
@@ -133,7 +140,16 @@ export declare class UnifiedBloomsEngine {
     private identifyPreferredLevels;
     private identifyChallengeAreas;
     private generateProgressRecommendations;
+    /**
+     * Extract text from chapter for Bloom's analysis
+     * Enriched to include learning outcomes, objectives, and question text
+     */
     private extractChapterText;
+    /**
+     * Get the dominant Bloom's level from an array of levels
+     * Used to determine section-level classification from assessment questions
+     */
+    private getDominantLevel;
     private aggregateDistributions;
     private generateCacheKey;
     private hashString;

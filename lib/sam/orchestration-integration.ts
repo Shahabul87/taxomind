@@ -32,8 +32,7 @@ import type { GoalStore, PlanStore } from '@sam-ai/agentic';
 import type { ToolStore } from '@sam-ai/agentic';
 import type { SessionContext } from '@sam-ai/agentic';
 
-// Import Prisma-based session store for cross-session continuity
-import { createPrismaTutoringSessionStore } from './stores';
+import { getMultiSessionStores } from './taxomind-context';
 
 // Import AI-powered criterion evaluator
 import { createBestAvailableCriterionEvaluator } from './criterion-evaluator';
@@ -92,9 +91,9 @@ export function initializeOrchestration(
   }
 
   // Create stores for session and confirmation management
-  // Use Prisma-based session store for cross-session persistence
+  // Use Prisma-based session store from TaxomindContext for cross-session persistence
   const confirmationStore = createInMemoryOrchestrationConfirmationStore();
-  const sessionStore = createPrismaTutoringSessionStore();
+  const sessionStore = getMultiSessionStores().tutoringSession;
 
   // Create AI-powered criterion evaluator (if ANTHROPIC_API_KEY is available)
   // This enables intelligent evaluation of learning criteria using Claude

@@ -41,6 +41,9 @@ import { logger } from "@/lib/logger";
 import { useEmotionDetection, getEmotionSupportMessage } from "@/hooks/use-emotion-detection";
 import { useLearningStyle, getStyleAdaptations } from "@/hooks/use-learning-style";
 import { useSAMPageContext } from "@sam-ai/react";
+
+// SAM AI Course Learning Integration - Full AI mentor support during learning
+import { SAMCourseLearningIntegration } from "@/components/sam/course-learning";
 import type {
   UserWithRelations,
   CourseWithChapters,
@@ -735,6 +738,31 @@ export function EnterpriseSectionLearning({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* SAM AI Course Learning Integration - Full AI mentor support */}
+      <SAMCourseLearningIntegration
+        context={{
+          courseId,
+          courseTitle: course.title,
+          chapterId,
+          chapterTitle: currentChapter.title,
+          sectionId,
+          sectionTitle: currentSection.title,
+          sectionType: currentSection.type,
+          userId: user?.id,
+          isEnrolled: canTrackProgress,
+          progress: (completedSections / totalSections) * 100,
+        }}
+        onAskSAM={(question) => {
+          // Track SAM usage for analytics
+          analytics.trackEvent("SAM_QUESTION_ASKED", { question: question.slice(0, 100) });
+          // The SAM assistant will handle the question
+          toast.info("Opening SAM Assistant...");
+        }}
+        onRecommendationClick={(recId) => {
+          analytics.trackEvent("SAM_RECOMMENDATION_CLICKED", { recommendationId: recId });
+        }}
+      />
     </div>
   );
 }

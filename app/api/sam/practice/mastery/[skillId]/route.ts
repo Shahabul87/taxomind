@@ -1,25 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { getPracticeStores } from '@/lib/sam/taxomind-context';
 import { db } from '@/lib/db';
-import {
-  MILESTONE_HOURS,
-  MILESTONE_BADGE_NAMES,
-} from '@/lib/sam/stores/prisma-skill-mastery-10k-store';
-import { PracticeMilestoneType } from '@prisma/client';
-
-// Get practice stores from TaxomindContext singleton
-const {
-  skillMastery10K: masteryStore,
-} = getPracticeStores();
-
-// Get milestone hours as sorted array for finding next milestone
-const MILESTONE_HOURS_ARRAY = Object.values(MILESTONE_HOURS).sort((a, b) => a - b);
-const FIRST_MILESTONE = MILESTONE_HOURS_ARRAY[0] ?? 100;
 
 // ============================================================================
-// GET - Get skill mastery details for a specific skill
+// VALIDATION SCHEMAS
+// ============================================================================
+
+const UpdateTargetHoursSchema = z.object({
+  targetHours: z
+    .number()
+    .int()
+    .min(100, 'Target hours must be at least 100')
+    .max(20000, 'Target hours cannot exceed 20,000'),
+});
+
+// ============================================================================
+// GET - Get mastery details for a specific skill
 // ============================================================================
 
 export async function GET(
@@ -35,55 +33,48 @@ export async function GET(
 
     const { skillId } = await params;
 
-    // Get skill mastery
-    const mastery = await masteryStore.getByUserAndSkill(session.user.id, skillId);
-
-    // Get skill definition
-    const skill = await db.skillBuildDefinition.findUnique({
-      where: { id: skillId },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        category: true,
+    // Get mastery record for this skill
+    const mastery = await db.skillMastery10K.findUnique({
+      where: {
+        userId_skillId: {
+          userId: session.user.id,
+          skillId,
+        },
       },
     });
 
-    if (!skill) {
+    if (!mastery) {
       return NextResponse.json(
-        { error: 'Skill not found' },
+        { error: 'Mastery record not found for this skill' },
         { status: 404 }
       );
     }
 
-    // If no mastery exists yet, return default data
-    if (!mastery) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          skill,
-          mastery: null,
-          milestones: [],
-          recentSessions: [],
-          progressTo10K: 0,
-          currentProficiency: {
-            level: 'BEGINNER',
-            description: 'Just starting out (0-100 hours)',
-          },
-          nextMilestone: {
-            hours: FIRST_MILESTONE,
-            badge: MILESTONE_BADGE_NAMES.HOURS_100 ?? 'Century Club',
-            hoursRemaining: FIRST_MILESTONE,
-            progressPercent: 0,
-          },
-          streakInfo: {
-            currentStreak: 0,
-            longestStreak: 0,
-            lastPractice: null,
-          },
-        },
-      });
-    }
+    // Get skill details
+    const skill = await db.skillBuildDefinition.findUnique({
+      where: { id: skillId },
+      select: { id: true, name: true, icon: true, description: true },
+    });
+
+    // Get recent sessions for this skill
+    const recentSessions = await db.practiceSession.findMany({
+      where: {
+        userId: session.user.id,
+        skillId,
+        status: 'COMPLETED',
+      },
+      orderBy: { endedAt: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        rawHours: true,
+        qualityHours: true,
+        qualityMultiplier: true,
+        sessionType: true,
+        focusLevel: true,
+        endedAt: true,
+      },
+    });
 
     // Get milestones for this skill
     const milestones = await db.practiceMilestone.findMany({
@@ -91,75 +82,61 @@ export async function GET(
         userId: session.user.id,
         skillId,
       },
-      orderBy: { unlockedAt: 'desc' },
+      orderBy: { hoursRequired: 'asc' },
     });
-
-    // Get recent practice sessions for this skill
-    const recentSessions = await db.practiceSession.findMany({
-      where: {
-        userId: session.user.id,
-        skillId,
-        status: 'COMPLETED',
-      },
-      orderBy: { startedAt: 'desc' },
-      take: 10,
-    });
-
-    // Calculate next milestone
-    const nextMilestoneHours = MILESTONE_HOURS_ARRAY.find((h) => h > mastery.totalQualityHours) ?? 10000;
-    const prevMilestoneHours = [...MILESTONE_HOURS_ARRAY].reverse().find((h) => h <= mastery.totalQualityHours) ?? 0;
-    const progressToNextMilestone =
-      nextMilestoneHours > prevMilestoneHours
-        ? ((mastery.totalQualityHours - prevMilestoneHours) / (nextMilestoneHours - prevMilestoneHours)) * 100
-        : 100;
-
-    // Calculate estimated time to next milestone
-    const avgHoursPerSession =
-      mastery.sessionsCount > 0 ? mastery.totalQualityHours / mastery.sessionsCount : 0;
-    const hoursToNext = nextMilestoneHours - mastery.totalQualityHours;
-    const estimatedSessionsToNext =
-      avgHoursPerSession > 0 ? Math.ceil(hoursToNext / avgHoursPerSession) : null;
-
-    // Get badge name for next milestone
-    const nextMilestoneType = Object.entries(MILESTONE_HOURS).find(
-      ([, hours]) => hours === nextMilestoneHours
-    )?.[0] as PracticeMilestoneType | undefined;
-    const nextBadgeName = nextMilestoneType
-      ? MILESTONE_BADGE_NAMES[nextMilestoneType] ?? `${nextMilestoneHours} Hours`
-      : `${nextMilestoneHours} Hours`;
 
     return NextResponse.json({
       success: true,
       data: {
-        skill,
-        mastery,
-        milestones: milestones.map((m) => ({
-          ...m,
-          badge: MILESTONE_BADGE_NAMES[m.milestoneType as PracticeMilestoneType] ?? m.milestoneType,
-        })),
-        recentSessions,
-        progressTo10K: Math.min((mastery.totalQualityHours / 10000) * 100, 100),
-        currentProficiency: {
-          level: mastery.proficiencyLevel,
-          description: getProficiencyDescription(mastery.proficiencyLevel),
-        },
-        nextMilestone: {
-          hours: nextMilestoneHours,
-          badge: nextBadgeName,
-          hoursRemaining: Math.max(0, hoursToNext),
-          progressPercent: progressToNextMilestone,
-          estimatedSessions: estimatedSessionsToNext,
-        },
-        streakInfo: {
+        mastery: {
+          id: mastery.id,
+          skillId: mastery.skillId,
+          skillName: mastery.skillName,
+          totalRawHours: mastery.totalRawHours,
+          totalQualityHours: mastery.totalQualityHours,
+          targetHours: mastery.targetHours,
+          progressPercentage: mastery.progressPercentage,
+          estimatedDaysToGoal: mastery.estimatedDaysToGoal,
+          sessionsCount: mastery.sessionsCount,
+          averageSessionMinutes: mastery.averageSessionMinutes,
+          averageQualityScore: mastery.averageQualityScore,
           currentStreak: mastery.currentStreak,
           longestStreak: mastery.longestStreak,
-          lastPractice: mastery.lastPracticedAt,
+          lastPracticedAt: mastery.lastPracticedAt?.toISOString() ?? null,
+          hoursThisWeek: mastery.hoursThisWeek,
+          hoursThisMonth: mastery.hoursThisMonth,
+          avgWeeklyHours: mastery.avgWeeklyHours,
+          avgMonthlyHours: mastery.avgMonthlyHours,
+          proficiencyLevel: mastery.proficiencyLevel,
+          bestSessionDuration: mastery.bestSessionDuration,
+          bestQualityMultiplier: mastery.bestQualityMultiplier,
         },
-        averages: {
-          hoursPerSession: avgHoursPerSession,
-          qualityMultiplier: mastery.averageQualityScore,
-          sessionsPerWeek: calculateSessionsPerWeek(mastery.createdAt, mastery.sessionsCount),
-        },
+        skill: skill
+          ? {
+              id: skill.id,
+              name: skill.name,
+              icon: skill.icon,
+              description: skill.description,
+            }
+          : null,
+        recentSessions: recentSessions.map((s) => ({
+          id: s.id,
+          rawHours: s.rawHours,
+          qualityHours: s.qualityHours,
+          qualityMultiplier: s.qualityMultiplier,
+          sessionType: s.sessionType,
+          focusLevel: s.focusLevel,
+          endedAt: s.endedAt?.toISOString() ?? null,
+        })),
+        milestones: milestones.map((m) => ({
+          id: m.id,
+          milestoneType: m.milestoneType,
+          hoursRequired: m.hoursRequired,
+          achievedAt: m.unlockedAt.toISOString(),
+          claimed: m.claimed,
+          badgeName: m.badgeName,
+          xpReward: m.xpReward,
+        })),
       },
     });
   } catch (error) {
@@ -172,23 +149,99 @@ export async function GET(
   }
 }
 
-// Helper functions
-function getProficiencyDescription(level: string): string {
-  const descriptions: Record<string, string> = {
-    BEGINNER: 'Just starting out (0-100 hours)',
-    NOVICE: 'Building foundations (100-500 hours)',
-    INTERMEDIATE: 'Developing competence (500-1,000 hours)',
-    COMPETENT: 'Solid skills (1,000-2,500 hours)',
-    PROFICIENT: 'High proficiency (2,500-5,000 hours)',
-    ADVANCED: 'Expert-level (5,000-7,500 hours)',
-    EXPERT: 'Near mastery (7,500-10,000 hours)',
-    MASTER: '10,000 hours achieved!',
-  };
-  return descriptions[level] ?? 'Unknown level';
-}
+// ============================================================================
+// PATCH - Update target hours for a skill
+// ============================================================================
 
-function calculateSessionsPerWeek(startDate: Date, totalSessions: number): number {
-  const now = new Date();
-  const weeksElapsed = Math.max(1, (now.getTime() - new Date(startDate).getTime()) / (7 * 24 * 60 * 60 * 1000));
-  return Number((totalSessions / weeksElapsed).toFixed(2));
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ skillId: string }> }
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { skillId } = await params;
+    const body = await req.json();
+
+    // Validate input
+    const validated = UpdateTargetHoursSchema.parse(body);
+
+    // Check if mastery record exists
+    const existingMastery = await db.skillMastery10K.findUnique({
+      where: {
+        userId_skillId: {
+          userId: session.user.id,
+          skillId,
+        },
+      },
+    });
+
+    if (!existingMastery) {
+      return NextResponse.json(
+        { error: 'Mastery record not found for this skill' },
+        { status: 404 }
+      );
+    }
+
+    // Update target hours and recalculate progress
+    const newProgressPercentage =
+      (existingMastery.totalQualityHours / validated.targetHours) * 100;
+
+    // Recalculate estimated days to goal
+    let newEstimatedDays: number | null = null;
+    if (existingMastery.avgWeeklyHours > 0) {
+      const dailyRate = existingMastery.avgWeeklyHours / 7;
+      const remainingHours = validated.targetHours - existingMastery.totalQualityHours;
+      if (remainingHours > 0 && dailyRate > 0) {
+        newEstimatedDays = Math.ceil(remainingHours / dailyRate);
+      } else if (remainingHours <= 0) {
+        newEstimatedDays = 0;
+      }
+    }
+
+    const updatedMastery = await db.skillMastery10K.update({
+      where: { id: existingMastery.id },
+      data: {
+        targetHours: validated.targetHours,
+        progressPercentage: newProgressPercentage,
+        estimatedDaysToGoal: newEstimatedDays,
+      },
+    });
+
+    logger.info(
+      `Updated target hours for skill ${skillId}: ${existingMastery.targetHours} -> ${validated.targetHours}`
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: updatedMastery.id,
+        skillId: updatedMastery.skillId,
+        skillName: updatedMastery.skillName,
+        targetHours: updatedMastery.targetHours,
+        totalQualityHours: updatedMastery.totalQualityHours,
+        progressPercentage: updatedMastery.progressPercentage,
+        estimatedDaysToGoal: updatedMastery.estimatedDaysToGoal,
+      },
+      message: `Target hours updated to ${validated.targetHours}. New progress: ${newProgressPercentage.toFixed(1)}%`,
+    });
+  } catch (error) {
+    logger.error('Error updating target hours:', error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to update target hours' },
+      { status: 500 }
+    );
+  }
 }

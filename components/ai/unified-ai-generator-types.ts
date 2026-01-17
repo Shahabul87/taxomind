@@ -6,6 +6,10 @@
  */
 
 import { LucideIcon } from "lucide-react";
+import { BloomsLevel as PrismaBloomsLevel } from "@prisma/client";
+
+// Re-export Prisma BloomsLevel for backend compatibility
+export type BloomsLevelPrisma = PrismaBloomsLevel;
 
 // ============================================================================
 // Context Types
@@ -44,6 +48,15 @@ export interface FullContext {
 // Bloom's Taxonomy Types
 // ============================================================================
 
+/**
+ * Frontend Bloom's level format (lowercase)
+ *
+ * Used in UI components for display and user interaction.
+ * For backend/Prisma operations, use BloomsLevelPrisma or convert using:
+ * - normalizeToUppercase() from '@/lib/sam/utils/blooms-normalizer'
+ *
+ * @see lib/sam/utils/blooms-normalizer.ts for conversion utilities
+ */
 export type BloomsLevel =
   | 'remember'
   | 'understand'

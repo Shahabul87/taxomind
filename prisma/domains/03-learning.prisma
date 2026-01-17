@@ -202,8 +202,14 @@ model Chapter {
   prerequisites       String?
   resources           String?
   status              String?
+
+  // Bloom's Taxonomy Curriculum Design (Task 6 - January 2025)
+  targetBloomsLevel   BloomsLevel?          // Teacher-set target cognitive level
+  actualBloomsLevel   BloomsLevel?          // Computed from section analysis
+
   AIGeneratedContent  AIGeneratedContent[]
   course              Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  ChapterBloomsAnalysis ChapterBloomsAnalysis?
   MultiMediaAnalysis  MultiMediaAnalysis[]
   sections            Section[]
   learning_sessions   learning_sessions[]
@@ -647,6 +653,23 @@ model SectionBloomsMapping {
 
   @@index([sectionId])
   @@index([bloomsLevel])
+}
+
+// Chapter-level Bloom's analysis (Task 6 - January 2025)
+model ChapterBloomsAnalysis {
+  id                 String      @id @default(uuid())
+  chapterId          String      @unique
+  primaryLevel       BloomsLevel
+  distribution       Json        // { REMEMBER: 0.1, UNDERSTAND: 0.3, ... }
+  confidence         Float       @default(0.5)
+  sectionCount       Int         @default(0)
+  recommendations    Json?       // Array of improvement recommendations
+  analyzedAt         DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  chapter            Chapter     @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([chapterId])
+  @@index([primaryLevel])
 }
 
 model ExamBloomsProfile {

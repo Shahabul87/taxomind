@@ -266,6 +266,14 @@ export interface CourseChapter {
   id: string;
   title: string;
   position: number;
+  /**
+   * Chapter-level learning outcomes
+   */
+  learningOutcomes?: string;
+  /**
+   * Chapter-level course goals
+   */
+  courseGoals?: string;
   sections: CourseSection[];
 }
 

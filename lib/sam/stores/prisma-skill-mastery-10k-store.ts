@@ -156,7 +156,7 @@ export interface MasteryOverview {
 // CONSTANTS
 // ============================================================================
 
-const MILESTONE_HOURS: Record<PracticeMilestoneType, number> = {
+export const MILESTONE_HOURS: Record<PracticeMilestoneType, number> = {
   HOURS_100: 100,
   HOURS_500: 500,
   HOURS_1000: 1000,
@@ -166,7 +166,7 @@ const MILESTONE_HOURS: Record<PracticeMilestoneType, number> = {
   HOURS_10000: 10000,
 };
 
-const MILESTONE_XP_REWARDS: Record<PracticeMilestoneType, number> = {
+export const MILESTONE_XP_REWARDS: Record<PracticeMilestoneType, number> = {
   HOURS_100: 100,
   HOURS_500: 250,
   HOURS_1000: 500,
@@ -176,7 +176,7 @@ const MILESTONE_XP_REWARDS: Record<PracticeMilestoneType, number> = {
   HOURS_10000: 10000,
 };
 
-const MILESTONE_BADGE_NAMES: Record<PracticeMilestoneType, string> = {
+export const MILESTONE_BADGE_NAMES: Record<PracticeMilestoneType, string> = {
   HOURS_100: 'Century Club',
   HOURS_500: 'Dedicated Learner',
   HOURS_1000: 'Thousand Hour Club',
@@ -543,6 +543,19 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       );
     }
 
+    // Compute rolling averages after session update
+    const rollingAverages = await this.computeRollingAverages(userId, skillId);
+    if (rollingAverages) {
+      mastery = await db.skillMastery10K.update({
+        where: { id: mastery.id },
+        data: {
+          avgWeeklyHours: rollingAverages.avgWeeklyHours,
+          avgMonthlyHours: rollingAverages.avgMonthlyHours,
+          estimatedDaysToGoal: rollingAverages.estimatedDaysToGoal,
+        },
+      });
+    }
+
     return mapPrismaMastery(mastery);
   }
 
@@ -637,6 +650,85 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
   // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
+
+  /**
+   * Compute rolling averages for a user's skill mastery.
+   * Calculates avgWeeklyHours (7-day rolling), avgMonthlyHours (30-day rolling),
+   * and estimatedDaysToGoal based on current pace.
+   */
+  private async computeRollingAverages(
+    userId: string,
+    skillId: string
+  ): Promise<{
+    avgWeeklyHours: number;
+    avgMonthlyHours: number;
+    estimatedDaysToGoal: number | null;
+  } | null> {
+    try {
+      // Get the mastery record to know the target
+      const mastery = await db.skillMastery10K.findUnique({
+        where: { userId_skillId: { userId, skillId } },
+      });
+
+      if (!mastery) return null;
+
+      // Calculate date boundaries
+      const now = new Date();
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      // Get sessions from the last 30 days for this skill
+      const recentSessions = await db.practiceSession.findMany({
+        where: {
+          userId,
+          skillId,
+          status: 'COMPLETED',
+          endedAt: { gte: monthAgo },
+        },
+        select: {
+          qualityHours: true,
+          endedAt: true,
+        },
+      });
+
+      // Calculate weekly hours (last 7 days)
+      const weeklyHours = recentSessions
+        .filter((s) => s.endedAt && s.endedAt >= weekAgo)
+        .reduce((sum, s) => sum + (s.qualityHours ?? 0), 0);
+
+      // Calculate monthly hours (last 30 days)
+      const monthlyHours = recentSessions.reduce(
+        (sum, s) => sum + (s.qualityHours ?? 0),
+        0
+      );
+
+      // Calculate averages (daily rate extrapolated)
+      const avgWeeklyHours = weeklyHours; // Total hours in last week
+      const avgMonthlyHours = monthlyHours; // Total hours in last month
+
+      // Calculate estimated days to goal
+      // Use weekly rate as the more recent indicator
+      const dailyRate = avgWeeklyHours / 7;
+      const remainingHours = mastery.targetHours - mastery.totalQualityHours;
+
+      let estimatedDaysToGoal: number | null = null;
+      if (dailyRate > 0 && remainingHours > 0) {
+        estimatedDaysToGoal = Math.ceil(remainingHours / dailyRate);
+      } else if (remainingHours <= 0) {
+        estimatedDaysToGoal = 0; // Already reached goal
+      }
+
+      return {
+        avgWeeklyHours,
+        avgMonthlyHours,
+        estimatedDaysToGoal,
+      };
+    } catch (error) {
+      // Log but don't fail the main operation
+      console.error('Error computing rolling averages:', error);
+      return null;
+    }
+  }
 
   private async checkAndCreateMilestones(
     masteryId: string,

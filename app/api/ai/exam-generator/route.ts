@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
+import { normalizeToUppercaseSafe, type BloomsLevelUppercase } from '@/lib/sam/utils/blooms-normalizer';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -132,7 +133,7 @@ function generateMockQuestions(request: ExamGenerationRequest): any[] {
       ? ['easy', 'medium', 'hard'][i % 3]
       : request.difficulty;
     
-    const bloomsLevel = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create'][i % 6];
+    const bloomsLevel: BloomsLevelUppercase = (['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'] as const)[i % 6];
     
     let question: any = {
       id: `q${i}`,
@@ -239,16 +240,24 @@ export async function POST(request: NextRequest) {
       if (!Array.isArray(aiQuestions)) {
         logger.warn('AI response validation failed, using mock response');
         const mockQuestions = generateMockQuestions(examRequest);
-        return NextResponse.json({ 
-          success: true, 
+        return NextResponse.json({
+          success: true,
           questions: mockQuestions,
           warning: 'AI response validation failed, using template response'
         });
       }
 
-      return NextResponse.json({ 
-        success: true, 
-        questions: aiQuestions,
+      // Normalize bloomsLevel to uppercase for Prisma compatibility
+      const normalizedQuestions = aiQuestions.map((q: Record<string, unknown>) => ({
+        ...q,
+        bloomsLevel: q.bloomsLevel
+          ? normalizeToUppercaseSafe(String(q.bloomsLevel))
+          : 'UNDERSTAND',
+      }));
+
+      return NextResponse.json({
+        success: true,
+        questions: normalizedQuestions,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,
           model: 'claude-sonnet-4-5-20250929',

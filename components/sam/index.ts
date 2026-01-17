@@ -437,3 +437,10 @@ export type {
   PersonalizedRecommendationsProps,
   ComparisonViewProps,
 } from './learning-gap';
+
+// ============================================================================
+// COURSE LEARNING INTEGRATION
+// ============================================================================
+
+export { SAMCourseLearningIntegration } from './course-learning';
+export { default as SAMCourseLearningIntegrationDefault } from './course-learning';

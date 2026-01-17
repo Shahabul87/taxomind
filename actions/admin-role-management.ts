@@ -5,7 +5,7 @@ import { adminAuth } from "@/auth.admin";
 import { currentUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { authAuditHelpers } from "@/lib/audit/auth-audit";
-import { AdminSession } from "@/types/admin-session";
+import { type AdminSession, isAdminSession } from "@/types/admin-session";
 
 /**
  * NOTE: Users no longer have roles. This function is deprecated.
@@ -114,17 +114,13 @@ export const reviewInstructorRequest = async (
   reviewNotes?: string
 ) => {
   try {
-    const session = await adminAuth() as AdminSession | null;
+    const session = await adminAuth();
 
-    if (!session || !session.user || !session.user.id) {
+    if (!isAdminSession(session)) {
       return { error: "Unauthorized: Admin authentication required" };
     }
 
-    const reviewer = session.user;
-
-    if (reviewer.role !== "ADMIN" && reviewer.role !== "SUPERADMIN") {
-      return { error: "Unauthorized: Admin access required" };
-    }
+    const reviewer = session.user as AdminSession["user"];
 
     // Get the verification request
     const request = await db.instructorVerification.findUnique({
@@ -203,15 +199,11 @@ export const getPendingInstructorRequests = async () => {
   try {
     const session = await adminAuth();
 
-    if (!session || !session.user || !session.user.id) {
+    if (!isAdminSession(session)) {
       return { error: "Unauthorized: Admin authentication required" };
     }
 
-    const admin = session.user;
-
-    if (admin.role !== "ADMIN" && admin.role !== "SUPERADMIN") {
-      return { error: "Unauthorized: Admin access required" };
-    }
+    const admin = session.user as AdminSession["user"];
 
     const requests = await db.instructorVerification.findMany({
       where: { status: "PENDING" },

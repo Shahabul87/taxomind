@@ -89,6 +89,7 @@ export function PomodoroTimer({
   const [totalCompletedToday, setTotalCompletedToday] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pomodoroSessionId, setPomodoroSessionId] = useState<string | null>(null);
 
   // Refs for stable callbacks
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -130,9 +131,42 @@ export function PomodoroTimer({
     }
   }, [soundEnabled]);
 
+  // Start work session via API (creates a session and returns sessionId)
+  const startWorkSession = useCallback(async () => {
+    if (!skillId) return;
+
+    try {
+      const response = await fetch('/api/sam/practice/pomodoro/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          skillId,
+          focusLevel: 'HIGH',
+          pomodoroNumber: completedSessions + 1,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.data?.session?.id) {
+        setPomodoroSessionId(result.data.session.id);
+      } else if (result.error === 'Active session exists' && result.activeSession?.id) {
+        // Use existing active session
+        setPomodoroSessionId(result.activeSession.id);
+      }
+    } catch (error) {
+      console.error('Failed to start pomodoro session:', error);
+    }
+  }, [skillId, completedSessions]);
+
   // Complete work session via API
   const completeWorkSession = useCallback(async () => {
-    if (!skillId) return;
+    // Must have a session ID to complete
+    if (!pomodoroSessionId) {
+      // Fallback: if no session was created (e.g., skillId wasn't set at start)
+      // Just log locally without API call
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -140,8 +174,9 @@ export function PomodoroTimer({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          skillId,
-          duration: settings.workDuration,
+          sessionId: pomodoroSessionId,
+          pomodoroNumber: completedSessions + 1,
+          wasInterrupted: false,
         }),
       });
 
@@ -150,15 +185,17 @@ export function PomodoroTimer({
       if (result.success) {
         toast.success('Pomodoro session logged!', {
           icon: '🍅',
-          description: `+${result.data.qualityHours.toFixed(2)} quality hours`,
+          description: `+${result.data?.summary?.qualityMinutes ?? 0} quality minutes`,
         });
+        // Clear session ID after completion
+        setPomodoroSessionId(null);
       }
     } catch (error) {
       console.error('Failed to log pomodoro session:', error);
     } finally {
       setIsSubmitting(false);
     }
-  }, [skillId, settings.workDuration]);
+  }, [pomodoroSessionId, completedSessions]);
 
   // Handle phase completion
   const handlePhaseComplete = useCallback(() => {
@@ -236,6 +273,8 @@ export function PomodoroTimer({
   const handleStart = () => {
     if (phase === 'WORK' && timerState === 'IDLE') {
       onWorkSessionStart?.();
+      // Start the API session when beginning a work phase
+      startWorkSession();
     }
     setTimerState('RUNNING');
   };

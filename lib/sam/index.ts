@@ -1328,3 +1328,12 @@ export type {
   IntegrityDatabaseAdapter,
   IIntegrityEngine,
 } from '@sam-ai/educational';
+
+// Progress Recorder - Assessment completion to Bloom's progress updates
+export {
+  recordBloomsProgress,
+  recordBloomsProgressBatch,
+  recordExamProgress,
+  type BloomsProgressEntry,
+  type BatchProgressResult,
+} from './progress-recorder';

@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { createUnifiedBloomsEngine } from '@sam-ai/educational';
-import type { UnifiedCourseInput, UnifiedCourseOptions } from '@sam-ai/educational';
+import type {
+  UnifiedCourseInput,
+  UnifiedCourseOptions,
+  UnifiedCourseResult,
+  ChapterAnalysis,
+} from '@sam-ai/educational';
 import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { normalizeToUppercaseSafe } from '@/lib/sam/utils/blooms-normalizer';
+import { BloomsLevel } from '@prisma/client';
+import crypto from 'crypto';
 
 // Create Unified Blooms engine singleton (Priority 1: Unified Bloom's Engine)
 let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
@@ -42,17 +50,40 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch full course data for portable engine
+    // Enriched query includes learning objectives, outcomes, and assessment questions
     const course = await db.course.findUnique({
       where: { id: courseId },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        courseGoals: true, // Course-level learning goals
+        userId: true,
+        organizationId: true,
         chapters: {
           orderBy: { position: 'asc' },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            position: true,
+            learningOutcomes: true, // Chapter-level learning outcomes
+            courseGoals: true, // Chapter-level goals
             sections: {
               orderBy: { position: 'asc' },
-              include: {
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                learningObjectives: true, // Section-level objectives (string)
+                learningObjectiveItems: {
+                  select: {
+                    id: true,
+                    objective: true,
+                  },
+                },
                 exams: {
-                  include: {
+                  select: {
+                    id: true,
                     enhancedQuestions: {
                       select: {
                         id: true,
@@ -62,7 +93,6 @@ export async function POST(request: NextRequest) {
                     },
                   },
                 },
-                learningObjectiveItems: true,
               },
             },
           },
@@ -83,20 +113,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Build UnifiedCourseInput for unified Blooms engine
+    // Enriched with learning objectives, outcomes, and assessment question data
     const courseData: UnifiedCourseInput = {
       id: course.id,
       title: course.title || 'Untitled Course',
       description: course.description || undefined,
+      // Course-level learning goals parsed into objectives array
+      objectives: parseLearningGoals(course.courseGoals),
       chapters: course.chapters.map((chapter) => ({
         id: chapter.id,
         title: chapter.title,
         position: chapter.position,
+        // Chapter-level learning data
+        learningOutcomes: chapter.learningOutcomes || undefined,
+        courseGoals: chapter.courseGoals || undefined,
         sections: chapter.sections.map((section) => ({
           id: section.id,
           title: section.title,
           content: section.description || undefined,
           description: section.description || undefined,
-          learningObjectives: section.learningObjectiveItems?.map((obj) => obj.objective) || [],
+          // Combine string-based objectives with item-based objectives
+          learningObjectives: combineLearningObjectives(
+            section.learningObjectives,
+            section.learningObjectiveItems
+          ),
+          // Include assessment questions with their Bloom's levels
+          questions: extractQuestionsFromExams(section.exams),
         })),
       })),
     };
@@ -112,11 +154,29 @@ export async function POST(request: NextRequest) {
     const engine = getUnifiedBloomsEngine();
     const analysis = await engine.analyzeCourse(courseData, options);
 
+    // Generate content hash for change detection
+    const contentHash = generateContentHash(courseData);
+
+    // Persist the analysis to database
+    const persistedAnalysis = await persistBloomsAnalysis(
+      courseId,
+      analysis,
+      contentHash
+    );
+
+    // Persist section-level mappings
+    await persistSectionMappings(analysis.chapters);
+
+    // Persist chapter-level analysis (Task 6)
+    await persistChapterAnalysis(analysis.chapters);
+
     // Record the analysis as a SAM interaction
     await recordSAMInteraction(user.id, courseId, 'BLOOMS_ANALYSIS', {
       depth,
       cognitiveDepth: analysis.courseLevel.cognitiveDepth,
       balance: analysis.courseLevel.balance,
+      persisted: true,
+      analysisId: persistedAnalysis.id,
     });
 
     return NextResponse.json({
@@ -137,6 +197,9 @@ export async function POST(request: NextRequest) {
         engine: '@sam-ai/educational (unified)',
         processingTimeMs: analysis.metadata.processingTimeMs,
         fromCache: analysis.metadata.fromCache,
+        persisted: true,
+        analysisId: persistedAnalysis.id,
+        contentHash,
       },
     });
 
@@ -187,7 +250,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (!analysis) {
-      return NextResponse.json({ error: 'No analysis found for this course' }, { status: 404 });
+      return NextResponse.json({
+        success: false,
+        error: 'No analysis found for this course',
+        hint: 'Run a POST request to /api/sam/blooms-analysis with { courseId } to generate and persist an analysis',
+      }, { status: 404 });
     }
 
     // Get section mappings
@@ -210,6 +277,31 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Get chapter-level analysis (Task 6)
+    const chapterAnalyses = await db.chapterBloomsAnalysis.findMany({
+      where: {
+        chapter: {
+          courseId,
+        },
+      },
+      include: {
+        chapter: {
+          select: {
+            id: true,
+            title: true,
+            position: true,
+            targetBloomsLevel: true,
+            actualBloomsLevel: true,
+          },
+        },
+      },
+      orderBy: {
+        chapter: {
+          position: 'asc',
+        },
+      },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -220,9 +312,24 @@ export async function GET(request: NextRequest) {
         gapAnalysis: analysis.gapAnalysis,
         recommendations: analysis.recommendations,
         analyzedAt: analysis.analyzedAt,
+        // Chapter-level analysis (Task 6)
+        chapterAnalyses: chapterAnalyses.map(chapterAnalysis => ({
+          chapterId: chapterAnalysis.chapterId,
+          chapterTitle: chapterAnalysis.chapter.title,
+          position: chapterAnalysis.chapter.position,
+          targetBloomsLevel: chapterAnalysis.chapter.targetBloomsLevel,
+          actualBloomsLevel: chapterAnalysis.chapter.actualBloomsLevel,
+          primaryLevel: chapterAnalysis.primaryLevel,
+          distribution: chapterAnalysis.distribution,
+          confidence: chapterAnalysis.confidence,
+          sectionCount: chapterAnalysis.sectionCount,
+          recommendations: chapterAnalysis.recommendations,
+          analyzedAt: chapterAnalysis.analyzedAt,
+        })),
         sectionMappings: sectionMappings.map(mapping => ({
           sectionId: mapping.sectionId,
           sectionTitle: mapping.section.title,
+          chapterId: mapping.section.chapterId,
           bloomsLevel: mapping.bloomsLevel,
           primaryLevel: mapping.primaryLevel,
           activities: mapping.activities,
@@ -256,7 +363,7 @@ async function recordSAMInteraction(
   userId: string,
   courseId: string,
   interactionType: string,
-  result: any
+  result: Record<string, unknown>
 ): Promise<void> {
   try {
     await db.sAMInteraction.create({
@@ -270,4 +377,382 @@ async function recordSAMInteraction(
   } catch (error) {
     logger.error('Error recording SAM interaction:', error);
   }
+}
+
+// ============================================================================
+// PERSISTENCE FUNCTIONS
+// ============================================================================
+
+/**
+ * Generate a content hash for change detection
+ * Used to determine if course content has changed since last analysis
+ */
+function generateContentHash(courseData: UnifiedCourseInput): string {
+  const contentString = JSON.stringify({
+    title: courseData.title,
+    description: courseData.description,
+    chapters: courseData.chapters.map((ch) => ({
+      title: ch.title,
+      sections: ch.sections.map((s) => ({
+        title: s.title,
+        content: s.content,
+        description: s.description,
+        learningObjectives: s.learningObjectives,
+      })),
+    })),
+  });
+
+  return crypto.createHash('sha256').update(contentString).digest('hex').slice(0, 16);
+}
+
+/**
+ * Persist course-level Bloom's analysis to database
+ */
+async function persistBloomsAnalysis(
+  courseId: string,
+  analysis: UnifiedCourseResult,
+  contentHash: string
+): Promise<{ id: string }> {
+  try {
+    // Build skills matrix from chapter analysis
+    const skillsMatrix = buildSkillsMatrix(analysis.chapters);
+
+    // Build gap analysis from recommendations
+    const gapAnalysis = buildGapAnalysis(analysis);
+
+    // Upsert the course analysis
+    const result = await db.courseBloomsAnalysis.upsert({
+      where: { courseId },
+      create: {
+        courseId,
+        bloomsDistribution: analysis.courseLevel.distribution,
+        cognitiveDepth: analysis.courseLevel.cognitiveDepth,
+        learningPathway: analysis.learningPathway ?? {},
+        skillsMatrix,
+        gapAnalysis,
+        recommendations: analysis.recommendations,
+        contentHash,
+        analyzedAt: new Date(analysis.analyzedAt),
+      },
+      update: {
+        bloomsDistribution: analysis.courseLevel.distribution,
+        cognitiveDepth: analysis.courseLevel.cognitiveDepth,
+        learningPathway: analysis.learningPathway ?? {},
+        skillsMatrix,
+        gapAnalysis,
+        recommendations: analysis.recommendations,
+        contentHash,
+        analyzedAt: new Date(analysis.analyzedAt),
+      },
+      select: { id: true },
+    });
+
+    logger.info(`Persisted Bloom's analysis for course ${courseId}`, {
+      analysisId: result.id,
+      contentHash,
+    });
+
+    return result;
+  } catch (error) {
+    logger.error(`Failed to persist Bloom's analysis for course ${courseId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Build skills matrix from chapter analysis
+ * Aggregates Bloom's distribution by chapter
+ */
+function buildSkillsMatrix(chapters: ChapterAnalysis[]): Record<string, unknown> {
+  return {
+    byChapter: chapters.map((ch) => ({
+      chapterId: ch.chapterId,
+      chapterTitle: ch.chapterTitle,
+      distribution: ch.distribution,
+      primaryLevel: ch.primaryLevel,
+      cognitiveDepth: ch.cognitiveDepth,
+      sectionCount: ch.sections.length,
+    })),
+    summary: {
+      totalChapters: chapters.length,
+      totalSections: chapters.reduce((sum, ch) => sum + ch.sections.length, 0),
+      averageCognitiveDepth:
+        chapters.length > 0
+          ? chapters.reduce((sum, ch) => sum + ch.cognitiveDepth, 0) / chapters.length
+          : 0,
+    },
+  };
+}
+
+/**
+ * Build gap analysis from course analysis
+ */
+function buildGapAnalysis(analysis: UnifiedCourseResult): Record<string, unknown> {
+  // Identify underrepresented levels (<10%)
+  const distribution = analysis.courseLevel.distribution;
+  const gaps: string[] = [];
+  const lowCoverage: Array<{ level: string; percentage: number }> = [];
+
+  for (const [level, percentage] of Object.entries(distribution)) {
+    if (typeof percentage === 'number' && percentage < 10) {
+      gaps.push(level);
+      lowCoverage.push({ level, percentage });
+    }
+  }
+
+  // Extract gap-related recommendations
+  const gapRecommendations = analysis.recommendations.filter(
+    (rec) => rec.priority === 'high' || gaps.includes(rec.targetLevel)
+  );
+
+  return {
+    identifiedGaps: gaps,
+    lowCoverage,
+    balance: analysis.courseLevel.balance,
+    recommendations: gapRecommendations.map((rec) => ({
+      targetLevel: rec.targetLevel,
+      priority: rec.priority,
+      description: rec.description,
+      expectedImpact: rec.expectedImpact,
+    })),
+    analyzedAt: analysis.analyzedAt,
+  };
+}
+
+/**
+ * Persist section-level Bloom's mappings to database
+ */
+async function persistSectionMappings(chapters: ChapterAnalysis[]): Promise<void> {
+  try {
+    // Collect all section mappings
+    const sectionMappings: Array<{
+      sectionId: string;
+      bloomsLevel: BloomsLevel;
+      primaryLevel: BloomsLevel;
+      confidence: number;
+      learningObjectives: string[];
+    }> = [];
+
+    for (const chapter of chapters) {
+      for (const section of chapter.sections) {
+        if (section.id) {
+          const normalizedLevel = normalizeToUppercaseSafe(section.level) as BloomsLevel;
+          sectionMappings.push({
+            sectionId: section.id,
+            bloomsLevel: normalizedLevel,
+            primaryLevel: normalizedLevel,
+            confidence: section.confidence,
+            learningObjectives: [],
+          });
+        }
+      }
+    }
+
+    // Batch upsert section mappings
+    // Using a transaction for atomicity
+    await db.$transaction(
+      sectionMappings.map((mapping) =>
+        db.sectionBloomsMapping.upsert({
+          where: { sectionId: mapping.sectionId },
+          create: {
+            sectionId: mapping.sectionId,
+            bloomsLevel: mapping.bloomsLevel,
+            primaryLevel: mapping.primaryLevel,
+            secondaryLevels: [],
+            activities: [],
+            assessments: [],
+            learningObjectives: mapping.learningObjectives,
+          },
+          update: {
+            bloomsLevel: mapping.bloomsLevel,
+            primaryLevel: mapping.primaryLevel,
+            // Don't overwrite existing secondary levels, activities, etc.
+          },
+        })
+      )
+    );
+
+    logger.info(`Persisted ${sectionMappings.length} section Bloom's mappings`);
+  } catch (error) {
+    logger.error('Failed to persist section Bloom\'s mappings:', error);
+    // Don't throw - section mappings are non-critical
+    // The course-level analysis is the primary data
+  }
+}
+
+/**
+ * Persist chapter-level Bloom's analysis to database
+ * Task 6: Add bloomsLevel field to Chapter model
+ */
+async function persistChapterAnalysis(chapters: ChapterAnalysis[]): Promise<void> {
+  try {
+    // Prepare chapter analysis data
+    const chapterAnalysisData = chapters.map((chapter) => {
+      const normalizedLevel = normalizeToUppercaseSafe(chapter.primaryLevel) as BloomsLevel;
+
+      return {
+        chapterId: chapter.chapterId,
+        primaryLevel: normalizedLevel,
+        distribution: chapter.distribution,
+        cognitiveDepth: chapter.cognitiveDepth,
+        sectionCount: chapter.sections.length,
+        recommendations: chapter.recommendations ?? [],
+      };
+    });
+
+    // Batch upsert chapter analysis records and update Chapter.actualBloomsLevel
+    await db.$transaction(async (tx) => {
+      for (const data of chapterAnalysisData) {
+        // Upsert ChapterBloomsAnalysis
+        await tx.chapterBloomsAnalysis.upsert({
+          where: { chapterId: data.chapterId },
+          create: {
+            chapterId: data.chapterId,
+            primaryLevel: data.primaryLevel,
+            distribution: data.distribution,
+            confidence: data.cognitiveDepth, // Use cognitive depth as confidence
+            sectionCount: data.sectionCount,
+            recommendations: data.recommendations,
+          },
+          update: {
+            primaryLevel: data.primaryLevel,
+            distribution: data.distribution,
+            confidence: data.cognitiveDepth,
+            sectionCount: data.sectionCount,
+            recommendations: data.recommendations,
+            analyzedAt: new Date(),
+          },
+        });
+
+        // Update Chapter.actualBloomsLevel
+        await tx.chapter.update({
+          where: { id: data.chapterId },
+          data: {
+            actualBloomsLevel: data.primaryLevel,
+          },
+        });
+      }
+    });
+
+    logger.info(`Persisted ${chapterAnalysisData.length} chapter Bloom's analyses`);
+  } catch (error) {
+    logger.error('Failed to persist chapter Bloom\'s analyses:', error);
+    // Don't throw - chapter analysis is non-critical
+  }
+}
+
+// ============================================================================
+// DATA ENRICHMENT HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Parse course goals string into an array of objectives
+ * Handles multiple formats: newline-separated, semicolon-separated, numbered lists
+ */
+function parseLearningGoals(goalsString: string | null | undefined): string[] {
+  if (!goalsString || goalsString.trim() === '') {
+    return [];
+  }
+
+  // Try to split by common delimiters
+  let goals: string[] = [];
+
+  // Check for numbered list format (1. Goal, 2. Goal, etc.)
+  if (/^\d+\.\s/.test(goalsString.trim())) {
+    goals = goalsString
+      .split(/\d+\.\s+/)
+      .map((g) => g.trim())
+      .filter((g) => g !== '');
+  }
+  // Check for bullet points (- or •)
+  else if (/^[-•]\s/.test(goalsString.trim())) {
+    goals = goalsString
+      .split(/[-•]\s+/)
+      .map((g) => g.trim())
+      .filter((g) => g !== '');
+  }
+  // Check for newlines
+  else if (goalsString.includes('\n')) {
+    goals = goalsString
+      .split('\n')
+      .map((g) => g.trim())
+      .filter((g) => g !== '');
+  }
+  // Check for semicolons
+  else if (goalsString.includes(';')) {
+    goals = goalsString
+      .split(';')
+      .map((g) => g.trim())
+      .filter((g) => g !== '');
+  }
+  // Single goal
+  else {
+    goals = [goalsString.trim()];
+  }
+
+  return goals;
+}
+
+/**
+ * Combine string-based objectives with structured objective items
+ * Removes duplicates and handles null/undefined values
+ */
+function combineLearningObjectives(
+  objectivesString: string | null | undefined,
+  objectiveItems: Array<{ id: string; objective: string }> | null | undefined
+): string[] {
+  const combined = new Set<string>();
+
+  // Add objectives from items
+  if (objectiveItems && objectiveItems.length > 0) {
+    for (const item of objectiveItems) {
+      if (item.objective && item.objective.trim() !== '') {
+        combined.add(item.objective.trim());
+      }
+    }
+  }
+
+  // Parse and add string-based objectives
+  const parsedObjectives = parseLearningGoals(objectivesString);
+  for (const objective of parsedObjectives) {
+    combined.add(objective);
+  }
+
+  return Array.from(combined);
+}
+
+/**
+ * Extract questions with Bloom's levels from exam data
+ * Normalizes Bloom's levels to uppercase format
+ */
+function extractQuestionsFromExams(
+  exams: Array<{
+    id: string;
+    enhancedQuestions: Array<{
+      id: string;
+      question: string;
+      bloomsLevel: BloomsLevel | null;
+    }>;
+  }> | null | undefined
+): Array<{ id: string; text: string; bloomsLevel?: BloomsLevel }> {
+  if (!exams || exams.length === 0) {
+    return [];
+  }
+
+  const questions: Array<{ id: string; text: string; bloomsLevel?: BloomsLevel }> = [];
+
+  for (const exam of exams) {
+    if (exam.enhancedQuestions && exam.enhancedQuestions.length > 0) {
+      for (const q of exam.enhancedQuestions) {
+        questions.push({
+          id: q.id,
+          text: q.question,
+          // Bloom's level is already uppercase from Prisma enum
+          bloomsLevel: q.bloomsLevel || undefined,
+        });
+      }
+    }
+  }
+
+  return questions;
 }

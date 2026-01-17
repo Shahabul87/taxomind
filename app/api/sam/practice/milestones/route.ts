@@ -70,13 +70,37 @@ export async function GET(req: NextRequest) {
       db.practiceMilestone.count({ where: whereClause }),
     ]);
 
-    // Enrich with badge names and XP rewards
+    // Fetch skill details for all unique skillIds
+    const skillIds = [...new Set(milestones.map((m) => m.skillId))];
+    const skills = skillIds.length > 0
+      ? await db.skillBuildDefinition.findMany({
+          where: { id: { in: skillIds } },
+          select: { id: true, name: true, category: true },
+        })
+      : [];
+    const skillMap = new Map(skills.map((s) => [s.id, s]));
+
+    // Enrich with badge names, XP rewards, and skill details
+    // Also map field names to match UI expectations:
+    // - unlockedAt -> achievedAt
+    // - claimed -> rewardClaimed
+    // - claimedAt -> rewardClaimedAt
     const enrichedMilestones = milestones.map((m) => {
       const milestoneType = m.milestoneType as PracticeMilestoneType;
+      const skillData = skillMap.get(m.skillId);
       return {
-        ...m,
+        id: m.id,
+        milestoneType: m.milestoneType,
+        achievedAt: m.unlockedAt.toISOString(), // Map unlockedAt -> achievedAt
+        qualityHoursAtAchievement: m.hoursAtUnlock,
+        rewardClaimed: m.claimed, // Map claimed -> rewardClaimed
+        rewardClaimedAt: m.claimedAt?.toISOString() ?? null, // Map claimedAt -> rewardClaimedAt
+        skillId: m.skillId,
         badgeName: MILESTONE_BADGE_NAMES[milestoneType] ?? m.milestoneType,
         xpReward: MILESTONE_XP_REWARDS[milestoneType] ?? 0,
+        skill: skillData
+          ? { id: skillData.id, name: skillData.name, category: skillData.category }
+          : { id: m.skillId, name: m.skillName || 'Unknown Skill', category: null },
       };
     });
 

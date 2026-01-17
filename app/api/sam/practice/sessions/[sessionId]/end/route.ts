@@ -8,6 +8,7 @@ import {
   FOCUS_LEVEL_MULTIPLIERS,
   BLOOMS_MULTIPLIERS,
 } from '@/lib/sam/stores';
+import { syncSessionToSkillBuildTrack } from '@/lib/practice/sync-skill-build';
 
 // Get practice stores from TaxomindContext singleton
 const {
@@ -229,6 +230,7 @@ export async function POST(
 
     // Only update skill mastery if skillId is provided
     let updatedMastery = null;
+    let skillBuildSyncResult = null;
     if (existingSession.skillId) {
       // Update skill mastery with the completed session
       updatedMastery = await masteryStore.recordSessionToMastery(
@@ -240,6 +242,21 @@ export async function POST(
         sessionDurationMinutes,
         completedSession.qualityMultiplier
       );
+
+      // Sync to SkillBuildTrack for multi-dimensional tracking and decay reset
+      skillBuildSyncResult = await syncSessionToSkillBuildTrack({
+        userId: session.user.id,
+        skillId: existingSession.skillId,
+        skillName: existingSession.skillName ?? 'Unknown Skill',
+        durationMinutes: sessionDurationMinutes,
+        qualityMultiplier: completedSession.qualityMultiplier,
+        sessionType: completedSession.sessionType,
+        focusLevel: completedSession.focusLevel,
+        bloomsLevel: completedSession.bloomsLevel,
+        courseId: existingSession.courseId,
+        rawHours: completedSession.rawHours,
+        qualityHours: completedSession.qualityHours,
+      });
     }
 
     // Update daily practice log for heatmap
@@ -364,6 +381,14 @@ export async function POST(
           goalsUpdated: goalUpdates.length,
           goalsCompleted: completedGoals.length,
         },
+        skillBuildSync: skillBuildSyncResult
+          ? {
+              synced: skillBuildSyncResult.synced,
+              levelChanged: skillBuildSyncResult.levelChanged,
+              newLevel: skillBuildSyncResult.newLevel,
+              compositeScore: skillBuildSyncResult.compositeScore,
+            }
+          : null,
         multiplierBreakdown,
         improvementTips: tips.length > 0 ? tips : undefined,
       },

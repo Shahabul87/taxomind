@@ -81,6 +81,8 @@ import {
   createPrismaPracticeGoalStore,
   // Spaced Repetition Store Factory
   createPrismaSpacedRepetitionStore,
+  // Memory Lifecycle: Reindex Job Store Factory
+  createPrismaReindexJobStore,
 } from './stores';
 
 // Import adapter-prisma stores for observability, presence, student profile, review schedule, push queue
@@ -153,6 +155,8 @@ import type {
   PrismaPracticeGoalStore,
   // Spaced Repetition Store Type
   PrismaSpacedRepetitionStore,
+  // Memory Lifecycle: Reindex Job Store Type
+  PrismaReindexJobStore,
 } from './stores';
 
 // ============================================================================
@@ -261,6 +265,9 @@ export interface TaxomindAgenticStores {
 
   // Spaced Repetition Store (SM-2 Algorithm)
   spacedRepetition: PrismaSpacedRepetitionStore;
+
+  // Memory Lifecycle: Reindex Job Store
+  reindexJob: PrismaReindexJobStore;
 }
 
 /**
@@ -394,6 +401,9 @@ function initializeStores(): TaxomindAgenticStores {
 
     // Spaced Repetition Store (SM-2 Algorithm)
     spacedRepetition: createPrismaSpacedRepetitionStore(),
+
+    // Memory Lifecycle: Reindex Job Store
+    reindexJob: createPrismaReindexJobStore(),
   };
 
   logger.info('[TaxomindContext] All stores initialized', {
@@ -711,6 +721,13 @@ export function getSpacedRepetitionStore(): PrismaSpacedRepetitionStore {
   return getTaxomindContext().stores.spacedRepetition;
 }
 
+/**
+ * Get reindex job store for memory lifecycle management
+ */
+export function getReindexJobStore(): PrismaReindexJobStore {
+  return getTaxomindContext().stores.reindexJob;
+}
+
 // Re-export store types for external use
 export type {
   // From @sam-ai/agentic (interface types)
@@ -767,4 +784,6 @@ export type {
   PrismaPracticeGoalStore,
   // Spaced Repetition Store Type
   PrismaSpacedRepetitionStore,
+  // Memory Lifecycle: Reindex Job Store Type
+  PrismaReindexJobStore,
 };

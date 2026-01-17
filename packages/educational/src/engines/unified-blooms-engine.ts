@@ -37,6 +37,8 @@ import type {
   UnifiedCourseOptions,
   UnifiedCourseResult,
   ChapterAnalysis,
+  CourseChapter,
+  CourseSection,
   CourseRecommendation,
   UnifiedLearningPath,
   PathwayStage,
@@ -270,13 +272,54 @@ export class UnifiedBloomsEngine {
       });
 
       const sectionAnalyses: SectionAnalysis[] = chapter.sections.map((section) => {
-        const sectionText = `${section.title} ${section.content ?? ''} ${section.description ?? ''}`;
-        const level = this.quickClassify(sectionText);
+        // Build enriched text including learning objectives
+        const sectionTextParts = [
+          section.title,
+          section.content ?? '',
+          section.description ?? '',
+        ];
+
+        // Add learning objectives - excellent source of Bloom's action verbs
+        if (section.learningObjectives && section.learningObjectives.length > 0) {
+          sectionTextParts.push(...section.learningObjectives);
+        }
+
+        // Add question text for additional context
+        if (section.questions && section.questions.length > 0) {
+          sectionTextParts.push(...section.questions.map((q) => q.text));
+        }
+
+        const sectionText = sectionTextParts.join(' ');
+
+        // Determine level - consider existing question Bloom's levels if available
+        let level = this.quickClassify(sectionText);
+        let confidence = this.calculateKeywordConfidence(sectionText.toLowerCase(), level);
+
+        // If section has questions with Bloom's levels, use weighted combination
+        if (section.questions && section.questions.length > 0) {
+          const questionLevels = section.questions
+            .filter((q) => q.bloomsLevel)
+            .map((q) => q.bloomsLevel as BloomsLevel);
+
+          if (questionLevels.length > 0) {
+            // Calculate dominant level from questions
+            const questionDominant = this.getDominantLevel(questionLevels);
+            // Boost confidence if questions agree with keyword analysis
+            if (questionDominant === level) {
+              confidence = Math.min(1.0, confidence + 0.15);
+            } else {
+              // Use question-based level if it differs (assessment data is authoritative)
+              level = questionDominant;
+              confidence = Math.min(1.0, confidence + 0.1);
+            }
+          }
+        }
+
         return {
           id: section.id,
           title: section.title,
           level,
-          confidence: this.calculateKeywordConfidence(sectionText.toLowerCase(), level),
+          confidence,
         };
       });
 
@@ -459,6 +502,13 @@ export class UnifiedBloomsEngine {
 
   /**
    * Get cognitive profile for a user
+   *
+   * Fetches student's Bloom's progress from the database and transforms it
+   * into a cognitive profile for adaptive learning and personalization.
+   *
+   * @param userId - User ID to fetch profile for
+   * @param courseId - Optional course ID to scope the profile
+   * @returns Cognitive profile with level mastery and learning insights
    */
   async getCognitiveProfile(userId: string, courseId?: string): Promise<CognitiveProfile> {
     // Default profile structure
@@ -481,9 +531,92 @@ export class UnifiedBloomsEngine {
       return defaultProfile;
     }
 
-    // In a real implementation, fetch from database
-    // For now, return default profile
-    return defaultProfile;
+    // Fetch Bloom's progress from database
+    // Note: courseId is required for the database query
+    if (!courseId) {
+      // Without a courseId, we return the default profile
+      // Future enhancement: aggregate across all courses
+      return defaultProfile;
+    }
+
+    try {
+      const progress = await this.database.findBloomsProgress(userId, courseId);
+
+      if (!progress) {
+        return defaultProfile;
+      }
+
+      // Transform SAMBloomsProgress scores (0-100) to normalized mastery (0-1)
+      const levelMastery: CognitiveProfile['levelMastery'] = {
+        REMEMBER: progress.rememberScore / 100,
+        UNDERSTAND: progress.understandScore / 100,
+        APPLY: progress.applyScore / 100,
+        ANALYZE: progress.analyzeScore / 100,
+        EVALUATE: progress.evaluateScore / 100,
+        CREATE: progress.createScore / 100,
+      };
+
+      // Calculate overall mastery (weighted by cognitive complexity)
+      // Higher-order skills carry more weight in overall mastery
+      const weights = {
+        REMEMBER: 0.10,
+        UNDERSTAND: 0.15,
+        APPLY: 0.20,
+        ANALYZE: 0.20,
+        EVALUATE: 0.17,
+        CREATE: 0.18,
+      };
+
+      const overallMastery = Object.entries(levelMastery).reduce(
+        (sum, [level, score]) => sum + score * weights[level as keyof typeof weights],
+        0
+      );
+
+      // Identify preferred levels (mastery >= 0.7)
+      const preferredLevels = (Object.entries(levelMastery) as [BloomsLevel, number][])
+        .filter(([, score]) => score >= 0.7)
+        .sort((a, b) => b[1] - a[1])
+        .map(([level]) => level);
+
+      // Identify challenge areas (mastery < 0.4)
+      const challengeAreas = (Object.entries(levelMastery) as [BloomsLevel, number][])
+        .filter(([, score]) => score < 0.4)
+        .sort((a, b) => a[1] - b[1])
+        .map(([level]) => level);
+
+      // Calculate learning velocity based on assessment count and recency
+      // More assessments + recent activity = higher velocity
+      let learningVelocity = 1.0;
+      if (progress.assessmentCount > 0) {
+        // Base velocity on assessment frequency
+        const frequencyBonus = Math.min(progress.assessmentCount / 10, 0.5);
+        learningVelocity = 1.0 + frequencyBonus;
+
+        // Adjust for recency (decay if last assessment was long ago)
+        if (progress.lastAssessedAt) {
+          const daysSinceLastAssessment = Math.floor(
+            (Date.now() - new Date(progress.lastAssessedAt).getTime()) / (1000 * 60 * 60 * 24)
+          );
+          if (daysSinceLastAssessment > 30) {
+            learningVelocity *= 0.8; // Decay for inactivity
+          } else if (daysSinceLastAssessment <= 7) {
+            learningVelocity *= 1.1; // Boost for recent activity
+          }
+        }
+      }
+
+      return {
+        overallMastery: Math.round(overallMastery * 100) / 100, // Round to 2 decimals
+        levelMastery,
+        learningVelocity: Math.round(learningVelocity * 100) / 100,
+        preferredLevels,
+        challengeAreas,
+      };
+    } catch (error) {
+      // Log error but return default profile to not break the flow
+      console.error('[UnifiedBloomsEngine] Error fetching cognitive profile:', error);
+      return defaultProfile;
+    }
   }
 
   // ============================================================================
@@ -1303,16 +1436,77 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
   // PRIVATE - HELPERS
   // ============================================================================
 
-  private extractChapterText(chapter: { title: string; sections: Array<{ title: string; content?: string; description?: string }> }): string {
+  /**
+   * Extract text from chapter for Bloom's analysis
+   * Enriched to include learning outcomes, objectives, and question text
+   */
+  private extractChapterText(chapter: CourseChapter): string {
     const parts: string[] = [chapter.title];
+
+    // Add chapter-level learning data
+    if (chapter.learningOutcomes) {
+      parts.push(chapter.learningOutcomes);
+    }
+    if (chapter.courseGoals) {
+      parts.push(chapter.courseGoals);
+    }
 
     for (const section of chapter.sections) {
       parts.push(section.title);
       if (section.content) parts.push(section.content);
       if (section.description) parts.push(section.description);
+
+      // Add learning objectives - rich source of Bloom's indicators
+      if (section.learningObjectives && section.learningObjectives.length > 0) {
+        parts.push(...section.learningObjectives);
+      }
+
+      // Add question text - assessment questions often contain clear Bloom's verbs
+      if (section.questions && section.questions.length > 0) {
+        for (const q of section.questions) {
+          parts.push(q.text);
+        }
+      }
     }
 
     return parts.join(' ');
+  }
+
+  /**
+   * Get the dominant Bloom's level from an array of levels
+   * Used to determine section-level classification from assessment questions
+   */
+  private getDominantLevel(levels: BloomsLevel[]): BloomsLevel {
+    if (levels.length === 0) {
+      return 'UNDERSTAND'; // Default fallback
+    }
+
+    // Count occurrences of each level
+    const counts: Record<BloomsLevel, number> = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0,
+    };
+
+    for (const level of levels) {
+      counts[level]++;
+    }
+
+    // Find the level with the highest count
+    let maxCount = 0;
+    let dominantLevel: BloomsLevel = 'UNDERSTAND';
+
+    for (const level of BLOOMS_LEVELS) {
+      if (counts[level] > maxCount) {
+        maxCount = counts[level];
+        dominantLevel = level;
+      }
+    }
+
+    return dominantLevel;
   }
 
   private aggregateDistributions(distributions: BloomsDistribution[]): BloomsDistribution {

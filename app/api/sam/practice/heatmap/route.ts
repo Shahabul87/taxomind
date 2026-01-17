@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       const dayDate = new Date(day.date);
       dayDate.setHours(0, 0, 0, 0);
 
-      if (day.hours > 0) {
+      if (day.totalQualityHours > 0) {
         if (!lastActiveDate) {
           lastActiveDate = dayDate;
           tempStreak = 1;
@@ -106,11 +106,11 @@ export async function GET(req: NextRequest) {
     longestStreak = Math.max(longestStreak, tempStreak);
 
     // Calculate intensity levels for the heatmap
-    const maxHours = Math.max(...heatmapData.map((d) => d.hours), 1);
+    const maxHours = Math.max(...heatmapData.map((d) => d.totalQualityHours), 1);
     const enrichedHeatmapData = heatmapData.map((day) => ({
       ...day,
-      intensity: getIntensityLevel(day.hours, maxHours),
-      color: getIntensityColor(day.hours, maxHours),
+      intensity: getIntensityLevel(day.totalQualityHours, maxHours),
+      color: getIntensityColor(day.totalQualityHours, maxHours),
     }));
 
     return NextResponse.json({
@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
         metadata: {
           year: currentYear,
           totalDays: heatmapData.length,
-          activeDays: heatmapData.filter((d) => d.hours > 0).length,
+          activeDays: heatmapData.filter((d) => d.totalQualityHours > 0).length,
           maxHoursInDay: maxHours,
         },
       },

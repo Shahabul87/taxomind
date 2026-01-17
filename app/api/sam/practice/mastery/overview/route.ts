@@ -140,9 +140,17 @@ export async function GET(req: NextRequest) {
         },
         yearlyStats,
         streaks: {
-          currentBest: masteries.length > 0 ? Math.max(...masteries.map((m) => m.currentStreak)) : 0,
-          longestEver: masteries.length > 0 ? Math.max(...masteries.map((m) => m.longestStreak)) : 0,
+          current: masteries.length > 0 ? Math.max(...masteries.map((m) => m.currentStreak)) : 0,
+          longest: masteries.length > 0 ? Math.max(...masteries.map((m) => m.longestStreak)) : 0,
         },
+        lastPracticeAt: masteries.length > 0
+          ? masteries.reduce((latest: Date | null, m) =>
+              m.lastPracticedAt && (!latest || new Date(m.lastPracticedAt) > latest)
+                ? new Date(m.lastPracticedAt)
+                : latest,
+              null
+            )?.toISOString() ?? null
+          : null,
         journeyStartDate: masteries.length > 0
           ? masteries.reduce((oldest, m) =>
               new Date(m.createdAt) < new Date(oldest.createdAt) ? m : oldest

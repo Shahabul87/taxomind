@@ -6,6 +6,7 @@ import { currentUser } from "@/lib/auth";
 import { QueryPerformanceMonitor } from "@/lib/database/query-optimizer";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { recordExamProgress } from '@/lib/sam/progress-recorder';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -49,7 +50,7 @@ export async function POST(
 
     const { answers, timeSpent } = parseResult.data;
 
-    // Optimized: Fetch the attempt with exam and questions in one query
+    // Optimized: Fetch the attempt with exam, questions, and section (for courseId) in one query
     const attempt = await db.userExamAttempt.findUnique({
       where: {
         id: params.attemptId,
@@ -62,6 +63,17 @@ export async function POST(
             ExamQuestion: {
               orderBy: {
                 order: 'asc'
+              }
+            },
+            Section: {
+              select: {
+                id: true,
+                chapterId: true,
+                Chapter: {
+                  select: {
+                    courseId: true,
+                  }
+                }
               }
             }
           }
@@ -136,6 +148,35 @@ export async function POST(
         }
       });
     });
+
+    // Record Bloom's Taxonomy progress from exam questions
+    // This is done outside the transaction to not block the main submission flow
+    const courseId = attempt.Exam.Section?.Chapter?.courseId;
+    const sectionId = attempt.Exam.Section?.id ?? params.sectionId;
+
+    if (courseId) {
+      // Prepare question data with Bloom's levels for progress tracking
+      const questionsWithBlooms = attempt.Exam.ExamQuestion.map((question) => {
+        const answerResult = answerData.find(a => a.questionId === question.id);
+        return {
+          questionId: question.id,
+          bloomsLevel: question.bloomsLevel,
+          isCorrect: answerResult?.isCorrect ?? false,
+          responseTimeMs: undefined, // Could be calculated per question if tracked
+        };
+      });
+
+      // Record progress asynchronously (don't block response)
+      recordExamProgress({
+        userId: user.id,
+        courseId,
+        sectionId,
+        questions: questionsWithBlooms,
+      }).catch((err) => {
+        // Log error but don't fail the submission
+        logger.error('[Exam Submit] Failed to record Bloom\'s progress:', err);
+      });
+    }
 
     return NextResponse.json({
       success: true,

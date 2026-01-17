@@ -299,6 +299,16 @@ export function BloomsTaxonomySelector({
 // Helper Functions
 // ============================================================================
 
+// Re-export normalizer utilities for convenience
+export {
+  normalizeToUppercase,
+  normalizeToUppercaseSafe,
+  normalizeRecordToUppercase,
+  getSelectedLevels as getSelectedBloomsLevels,
+  type BloomsLevelUppercase,
+  type BloomsLevelLowercase,
+} from '@/lib/sam/utils/blooms-normalizer';
+
 /**
  * Get action verbs for selected Bloom's levels
  */

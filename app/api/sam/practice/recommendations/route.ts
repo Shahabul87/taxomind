@@ -22,20 +22,33 @@ const GetRecommendationsQuerySchema = z.object({
 });
 
 // ============================================================================
-// Types
+// Types (aligned with UI expectations)
 // ============================================================================
+
+// UI-compatible recommendation types
+type RecommendationType = 'SKILL_FOCUS' | 'STREAK_RISK' | 'MILESTONE_NEAR' | 'QUALITY_BOOST' | 'REST' | 'BALANCE';
+type RecommendationPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 
 interface PracticeRecommendation {
   id: string;
-  type: 'skill_focus' | 'streak_recovery' | 'milestone_push' | 'variety' | 'session_type' | 'time_of_day';
-  priority: 'high' | 'medium' | 'low';
+  type: RecommendationType;
+  priority: RecommendationPriority;
   title: string;
   description: string;
   skillId?: string;
   skillName?: string;
+  skillIcon?: string;
   actionLabel: string;
   reason: string;
-  metrics?: Record<string, number | string>;
+  metadata?: {
+    hoursToMilestone?: number;
+    streakDays?: number;
+    qualityGap?: number;
+    suggestedDuration?: number;
+    previousStreak?: number;
+    daysSincePractice?: number;
+    totalHours?: number;
+  };
 }
 
 // ============================================================================
@@ -85,17 +98,17 @@ export async function GET(req: NextRequest) {
       const skill = skillsById.get(topStreakyMastery.skillId);
       recommendations.push({
         id: `streak_recovery_${topStreakyMastery.skillId}`,
-        type: 'streak_recovery',
-        priority: 'high',
+        type: 'STREAK_RISK',
+        priority: 'HIGH',
         title: 'Rebuild Your Streak! 🔥',
         description: `You had a ${topStreakyMastery.longestStreak}-day streak in ${skill?.name ?? 'this skill'}. Start practicing today to begin a new streak!`,
         skillId: topStreakyMastery.skillId,
         skillName: skill?.name,
         actionLabel: 'Start Practice',
         reason: 'Based on your previous streak achievement',
-        metrics: {
+        metadata: {
           previousStreak: topStreakyMastery.longestStreak,
-          daysSinceLastPractice: getDaysSince(topStreakyMastery.lastPracticedAt),
+          streakDays: getDaysSince(topStreakyMastery.lastPracticedAt),
         },
       });
     }
@@ -112,18 +125,17 @@ export async function GET(req: NextRequest) {
           const skill = skillsById.get(mastery.skillId);
           recommendations.push({
             id: `milestone_push_${mastery.skillId}_${nextMilestone}`,
-            type: 'milestone_push',
-            priority: hoursToMilestone <= 5 ? 'high' : 'medium',
+            type: 'MILESTONE_NEAR',
+            priority: hoursToMilestone <= 5 ? 'HIGH' : 'MEDIUM',
             title: `Almost There! ${nextMilestone}h Milestone 🎯`,
             description: `You're only ${hoursToMilestone.toFixed(1)} quality hours away from the ${nextMilestone}-hour milestone in ${skill?.name ?? 'this skill'}!`,
             skillId: mastery.skillId,
             skillName: skill?.name,
             actionLabel: 'Push to Milestone',
             reason: 'You are close to achieving a new milestone',
-            metrics: {
-              currentHours: mastery.totalQualityHours,
-              targetHours: nextMilestone,
-              hoursRemaining: hoursToMilestone,
+            metadata: {
+              hoursToMilestone,
+              totalHours: mastery.totalQualityHours,
             },
           });
         }
@@ -146,16 +158,16 @@ export async function GET(req: NextRequest) {
           const skill = skillsById.get(suggestedMastery.skillId);
           recommendations.push({
             id: `variety_${suggestedMastery.skillId}`,
-            type: 'variety',
-            priority: 'medium',
+            type: 'BALANCE',
+            priority: 'MEDIUM',
             title: 'Mix It Up! 🎨',
             description: `You've been focused on one skill lately. Consider practicing ${skill?.name ?? 'another skill'} for better learning variety.`,
             skillId: suggestedMastery.skillId,
             skillName: skill?.name,
             actionLabel: 'Try This Skill',
             reason: 'Variety improves long-term retention and prevents burnout',
-            metrics: {
-              daysSincePracticed: getDaysSince(suggestedMastery.lastPracticedAt),
+            metadata: {
+              daysSincePractice: getDaysSince(suggestedMastery.lastPracticedAt),
             },
           });
         }
@@ -173,16 +185,15 @@ export async function GET(req: NextRequest) {
     if (recentSessions.length >= 5 && casualCount > deliberateCount * 2) {
       recommendations.push({
         id: 'session_type_deliberate',
-        type: 'session_type',
-        priority: 'medium',
+        type: 'QUALITY_BOOST',
+        priority: 'MEDIUM',
         title: 'Try Deliberate Practice 💪',
         description: 'Deliberate practice sessions earn 1.5x quality hours. Focus intensely on challenging aspects to maximize your progress.',
         actionLabel: 'Start Deliberate Session',
         reason: 'Most of your recent sessions have been casual',
-        metrics: {
-          casualSessions: casualCount,
-          deliberateSessions: deliberateCount,
-          multiplierBonus: '1.5x',
+        metadata: {
+          qualityGap: Math.round((1.5 - 1.0) * 100), // Show 50% quality improvement potential
+          suggestedDuration: 45, // Suggest 45 min deliberate session
         },
       });
     }
@@ -197,15 +208,15 @@ export async function GET(req: NextRequest) {
       const skill = skillsById.get(neglected.skillId);
       recommendations.push({
         id: `skill_focus_${neglected.skillId}`,
-        type: 'skill_focus',
-        priority: 'low',
+        type: 'SKILL_FOCUS',
+        priority: 'LOW',
         title: 'Return to Practice 📚',
         description: `It&apos;s been ${getDaysSince(neglected.lastPracticedAt)} days since you practiced ${skill?.name ?? 'this skill'}. Keep the momentum going!`,
         skillId: neglected.skillId,
         skillName: skill?.name,
         actionLabel: 'Resume Practice',
         reason: 'Consistent practice is key to mastery',
-        metrics: {
+        metadata: {
           daysSincePractice: getDaysSince(neglected.lastPracticedAt),
           totalHours: neglected.totalQualityHours,
         },
@@ -213,7 +224,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Sort by priority and limit results
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    const priorityOrder: Record<RecommendationPriority, number> = { HIGH: 0, MEDIUM: 1, LOW: 2 };
     const sortedRecommendations = recommendations
       .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
       .slice(0, query.limit);

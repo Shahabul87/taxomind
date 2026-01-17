@@ -50,9 +50,11 @@ export interface DailyPracticeLogUpdate {
 
 export interface HeatmapData {
   date: string; // YYYY-MM-DD format
-  count: number; // Number of sessions
-  level: number; // 0-4 intensity
-  hours: number; // Quality hours
+  sessionsCount: number; // Number of sessions
+  totalRawHours: number; // Raw hours practiced
+  totalQualityHours: number; // Quality-adjusted hours
+  avgQualityMultiplier: number; // Average quality multiplier
+  level: number; // 0-4 intensity (deprecated, use intensity from API)
 }
 
 export interface YearlyStats {
@@ -320,9 +322,11 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
       const dateStr = formatDateString(log.date);
       dataMap.set(dateStr, {
         date: dateStr,
-        count: log.sessionsCount,
+        sessionsCount: log.sessionsCount,
+        totalRawHours: log.totalHours,
+        totalQualityHours: log.qualityHours,
+        avgQualityMultiplier: log.avgQualityMultiplier,
         level: log.intensityLevel,
-        hours: log.qualityHours,
       });
     }
 
@@ -336,9 +340,11 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
       result.push(
         dataMap.get(dateStr) || {
           date: dateStr,
-          count: 0,
+          sessionsCount: 0,
+          totalRawHours: 0,
+          totalQualityHours: 0,
+          avgQualityMultiplier: 0,
           level: 0,
-          hours: 0,
         }
       );
       currentDate.setDate(currentDate.getDate() + 1);
