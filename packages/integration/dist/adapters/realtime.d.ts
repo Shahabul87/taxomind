@@ -320,15 +320,15 @@ export declare const RealtimeRoomSchema: z.ZodObject<{
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
-    type: "public" | "private" | "presence";
     name: string;
+    type: "public" | "private" | "presence";
     createdAt: Date;
     memberCount: number;
     metadata?: Record<string, unknown> | undefined;
 }, {
     id: string;
-    type: "public" | "private" | "presence";
     name: string;
+    type: "public" | "private" | "presence";
     createdAt: Date;
     memberCount: number;
     metadata?: Record<string, unknown> | undefined;
@@ -370,12 +370,12 @@ export declare const SAMStreamChunkSchema: z.ZodObject<{
         status: z.ZodString;
     }, "strip", z.ZodTypeAny, {
         id: string;
-        status: string;
         name: string;
+        status: string;
     }, {
         id: string;
-        status: string;
         name: string;
+        status: string;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     id: string;
@@ -384,8 +384,8 @@ export declare const SAMStreamChunkSchema: z.ZodObject<{
     isComplete: boolean;
     toolCalls?: {
         id: string;
-        status: string;
         name: string;
+        status: string;
     }[] | undefined;
     confidence?: number | undefined;
 }, {
@@ -395,8 +395,8 @@ export declare const SAMStreamChunkSchema: z.ZodObject<{
     isComplete: boolean;
     toolCalls?: {
         id: string;
-        status: string;
         name: string;
+        status: string;
     }[] | undefined;
     confidence?: number | undefined;
 }>;

@@ -31,3 +31,8 @@ export { useTutoringOrchestration, useCurrentStep, useStepProgress, useStepCeleb
 export { useNotifications } from './useNotifications';
 export { useBehaviorPatterns } from './useBehaviorPatterns';
 export { useRecommendations } from './useRecommendations';
+// Phase 6 Hooks - Educational Engines
+export { useExamEngine } from './useExamEngine';
+export { useQuestionBank } from './useQuestionBank';
+export { useInnovationFeatures } from './useInnovationFeatures';
+export { useMultimodal } from './useMultimodal';

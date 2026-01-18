@@ -223,17 +223,17 @@ export declare const SAMUserSchema: z.ZodObject<{
     metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
 }, "strip", z.ZodTypeAny, {
     id: string;
+    metadata: Record<string, unknown>;
     roles: string[];
     permissions: string[];
-    metadata: Record<string, unknown>;
     email?: string | undefined;
     name?: string | undefined;
     image?: string | undefined;
 }, {
     id: string;
+    metadata: Record<string, unknown>;
     roles: string[];
     permissions: string[];
-    metadata: Record<string, unknown>;
     email?: string | undefined;
     name?: string | undefined;
     image?: string | undefined;
@@ -251,17 +251,17 @@ export declare const SAMAuthSessionSchema: z.ZodObject<{
         metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
     }, "strip", z.ZodTypeAny, {
         id: string;
+        metadata: Record<string, unknown>;
         roles: string[];
         permissions: string[];
-        metadata: Record<string, unknown>;
         email?: string | undefined;
         name?: string | undefined;
         image?: string | undefined;
     }, {
         id: string;
+        metadata: Record<string, unknown>;
         roles: string[];
         permissions: string[];
-        metadata: Record<string, unknown>;
         email?: string | undefined;
         name?: string | undefined;
         image?: string | undefined;
@@ -272,16 +272,16 @@ export declare const SAMAuthSessionSchema: z.ZodObject<{
     accessToken: z.ZodOptional<z.ZodString>;
     refreshToken: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    id: string;
     user: {
         id: string;
+        metadata: Record<string, unknown>;
         roles: string[];
         permissions: string[];
-        metadata: Record<string, unknown>;
         email?: string | undefined;
         name?: string | undefined;
         image?: string | undefined;
     };
-    id: string;
     userId: string;
     expiresAt: Date;
     createdAt: Date;
@@ -289,16 +289,16 @@ export declare const SAMAuthSessionSchema: z.ZodObject<{
     accessToken?: string | undefined;
     refreshToken?: string | undefined;
 }, {
+    id: string;
     user: {
         id: string;
+        metadata: Record<string, unknown>;
         roles: string[];
         permissions: string[];
-        metadata: Record<string, unknown>;
         email?: string | undefined;
         name?: string | undefined;
         image?: string | undefined;
     };
-    id: string;
     userId: string;
     expiresAt: Date;
     createdAt: Date;

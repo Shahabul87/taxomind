@@ -103,7 +103,7 @@ export function AdminPrismaAdapter(): Adapter {
 
       const adminSession = await db.adminActiveSession.create({
         data: {
-          adminId: session.userId,
+          adminAccountId: session.userId, // Links to AdminAccount, not User
           sessionToken: session.sessionToken,
           expiresAt: session.expires,
           ipAddress: 'unknown', // Will be updated by middleware
@@ -115,7 +115,7 @@ export function AdminPrismaAdapter(): Adapter {
 
       return {
         sessionToken: adminSession.sessionToken,
-        userId: adminSession.adminId,
+        userId: adminSession.adminAccountId,
         expires: adminSession.expiresAt,
       } as AdapterSession;
     },
@@ -126,10 +126,10 @@ export function AdminPrismaAdapter(): Adapter {
 
       const adminSession = await db.adminActiveSession.findUnique({
         where: { sessionToken },
-        include: { admin: true },
+        include: { adminAccount: true }, // Links to AdminAccount, not User
       });
 
-      if (!adminSession || !adminSession.admin) {
+      if (!adminSession || !adminSession.adminAccount) {
         console.log('[admin-adapter] Admin session not found');
         return null;
       }
@@ -141,20 +141,20 @@ export function AdminPrismaAdapter(): Adapter {
       }
 
       // Verify admin role (ADMIN or SUPERADMIN)
-      if (adminSession.admin.role !== AdminRole.ADMIN && adminSession.admin.role !== AdminRole.SUPERADMIN) {
+      if (adminSession.adminAccount.role !== AdminRole.ADMIN && adminSession.adminAccount.role !== AdminRole.SUPERADMIN) {
         console.error('[admin-adapter] SECURITY ALERT - Non-admin in admin session');
         return null;
       }
 
-      console.log('[admin-adapter] Admin session valid:', adminSession.adminId);
+      console.log('[admin-adapter] Admin session valid:', adminSession.adminAccountId);
 
       return {
         session: {
           sessionToken: adminSession.sessionToken,
-          userId: adminSession.adminId,
+          userId: adminSession.adminAccountId,
           expires: adminSession.expiresAt,
         } as AdapterSession,
-        user: adminSession.admin as AdapterUser,
+        user: adminSession.adminAccount as AdapterUser,
       };
     },
 
@@ -174,7 +174,7 @@ export function AdminPrismaAdapter(): Adapter {
 
       return {
         sessionToken: adminSession.sessionToken,
-        userId: adminSession.adminId,
+        userId: adminSession.adminAccountId,
         expires: adminSession.expiresAt,
       } as AdapterSession;
     },
@@ -191,7 +191,7 @@ export function AdminPrismaAdapter(): Adapter {
 
       return {
         sessionToken: adminSession.sessionToken,
-        userId: adminSession.adminId,
+        userId: adminSession.adminAccountId,
         expires: adminSession.expiresAt,
       } as AdapterSession;
     },

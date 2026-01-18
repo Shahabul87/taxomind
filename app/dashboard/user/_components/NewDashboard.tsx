@@ -5,7 +5,7 @@ import type { User as NextAuthUser } from "next-auth";
 import { ActivityStream } from "./ActivityStream";
 import { EmptyState } from "./EmptyState";
 import { useActivities } from "@/hooks/use-activities";
-import { Loader2, LayoutDashboard, Trophy, Target, Timer, AlertTriangle } from "lucide-react";
+import { Loader2, LayoutDashboard, Trophy, Target, Timer, AlertTriangle, Lightbulb, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Enhanced Gamification Components
@@ -54,6 +54,13 @@ import { CognitiveLoadMonitor } from "@/components/sam/CognitiveLoadMonitor";
 import { QualityScoreDashboard } from "@/components/sam/QualityScoreDashboard";
 import { KnowledgeGraphBrowser } from "@/components/sam/KnowledgeGraphBrowser";
 import { PeerLearningHub } from "@/components/sam/PeerLearningHub";
+
+// GAP-10: Enhanced Knowledge Graph Components
+import {
+  EnhancedKnowledgeGraphExplorer,
+  LearningPathBuilder,
+  PrerequisiteAnalyzer,
+} from "@/components/sam/knowledge-graph";
 
 // Gap 1 Hidden Capabilities - Now Exposed
 import { BiasDetectionReport } from "@/components/sam/BiasDetectionReport";
@@ -104,6 +111,21 @@ import { UserInterventionsWidget } from "@/components/sam/UserInterventionsWidge
 import { NotificationsWidget } from "@/components/sam/NotificationsWidget";
 import { LearningRecommendationsWidget } from "@/components/sam/LearningRecommendationsWidget";
 
+// GAP-9: Comprehensive Notification Center with Preferences Panel
+import { NotificationCenterTrigger } from "@/components/sam/notification-center";
+
+// Phase 4: Study Buddy Chat - Real-time collaborative study sessions
+import { StudyBuddyChat } from "@/components/sam/study-buddy-chat";
+
+// Phase 4: Course Insights - AI-powered per-course analytics
+import { CourseInsights } from "@/components/sam/course-insights";
+
+// Phase 4: Portfolio Export - Export and share learning portfolios
+import { PortfolioExport } from "@/components/sam/portfolio-export";
+
+// Phase 4: Course Marketplace - Browse and discover courses
+import { CourseMarketplace } from "@/components/sam/course-marketplace";
+
 // Learning Gap Analysis Dashboard
 import { LearningGapDashboard } from "@/components/sam/learning-gap";
 
@@ -125,12 +147,22 @@ import { PracticeGoalSetter } from "@/components/practice/PracticeGoalSetter";
 // Phase 5: Market Integration - Career Progress Widget
 import { CareerProgressWidget } from "@/components/sam/CareerProgressWidget";
 
+// GAP-6: Certification Tracking Components
+import {
+  CertificationTracker,
+  SkillToCertificationMap,
+  CertificationProgressWidget,
+} from "@/components/sam/certification";
+
+// Innovation Dashboard - Hidden InnovationEngine Features Now Exposed
+import { InnovationDashboard } from "@/components/sam/innovation";
+
 interface NewDashboardProps {
   user: NextAuthUser;
   viewMode: "grid" | "list";
 }
 
-type DashboardView = "learning" | "gamification" | "skills" | "practice" | "gaps";
+type DashboardView = "learning" | "gamification" | "skills" | "practice" | "gaps" | "innovation" | "discover";
 
 export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   const [dashboardView, setDashboardView] = useState<DashboardView>("learning");
@@ -209,7 +241,13 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
 
   // View Toggle Component (shared across views)
   const ViewToggle = () => (
-    <div className="absolute right-4 top-4 z-10 flex items-center gap-1 rounded-lg border border-slate-200/50 bg-white/80 p-1 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/80">
+    <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+      {/* GAP-9: Notification Center Trigger */}
+      <NotificationCenterTrigger
+        variant="outline"
+        className="h-9 w-9 rounded-lg border-slate-200/50 bg-white/80 backdrop-blur-sm hover:bg-slate-100/80 dark:border-slate-700/50 dark:bg-slate-800/80 dark:hover:bg-slate-700/80"
+      />
+      <div className="flex items-center gap-1 rounded-lg border border-slate-200/50 bg-white/80 p-1 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/80">
       <Button
         variant={dashboardView === "learning" ? "default" : "ghost"}
         size="sm"
@@ -255,6 +293,25 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <AlertTriangle className="h-4 w-4" />
         <span className="hidden sm:inline">Gaps</span>
       </Button>
+      <Button
+        variant={dashboardView === "innovation" ? "default" : "ghost"}
+        size="sm"
+        onClick={() => setDashboardView("innovation")}
+        className="gap-2"
+      >
+        <Lightbulb className="h-4 w-4" />
+        <span className="hidden sm:inline">Innovation</span>
+      </Button>
+      <Button
+        variant={dashboardView === "discover" ? "default" : "ghost"}
+        size="sm"
+        onClick={() => setDashboardView("discover")}
+        className="gap-2"
+      >
+        <Compass className="h-4 w-4" />
+        <span className="hidden sm:inline">Discover</span>
+      </Button>
+      </div>
     </div>
   );
 
@@ -441,8 +498,25 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
               onAddProject={() => console.log("Add project")}
             />
 
-            {/* Placeholder for additional market features */}
-            <div className="hidden lg:block" />
+            {/* CertificationProgressWidget - Quick certification tracking overview */}
+            <CertificationProgressWidget
+              compact={false}
+              maxItems={3}
+              onViewAll={() => setDashboardView("skills")}
+              onStartNew={() => setDashboardView("skills")}
+            />
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 4: Portfolio Export - Export & Share Learning Portfolio */}
+          {/* ============================================================= */}
+
+          {/* Portfolio Export - Export portfolios in multiple formats */}
+          <div className="mt-6">
+            <PortfolioExport
+              compact={false}
+              defaultTab="preview"
+            />
           </div>
 
           {/* ============================================================= */}
@@ -486,6 +560,32 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
               onCreateResource={(type) =>
                 console.log("Creating resource:", type)
               }
+            />
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 4: Study Buddy Chat - Real-time Collaborative Sessions */}
+          {/* ============================================================= */}
+
+          {/* Study Buddy Chat - Full Width Real-time Chat & Sessions */}
+          <div className="mt-8">
+            <StudyBuddyChat
+              className="h-[600px] w-full"
+              showBuddyFinder={true}
+            />
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 4: Course Insights - AI-Powered Per-Course Analytics */}
+          {/* ============================================================= */}
+
+          {/* Course Insights - Detailed per-course learning analytics */}
+          <div className="mt-8">
+            <CourseInsights
+              showHeader={true}
+              showFilters={true}
+              showOverview={true}
+              maxCourses={6}
             />
           </div>
 
@@ -667,9 +767,38 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* Main Skill Tracker */}
           <SkillBuildTrackerConnected />
 
+          {/* ============================================================= */}
+          {/* GAP-10: Enhanced Knowledge Graph - Full Width Feature */}
+          {/* ============================================================= */}
+
+          {/* Enhanced Knowledge Graph Explorer - Full interactive experience */}
+          <div className="mt-8">
+            <EnhancedKnowledgeGraphExplorer
+              height="700px"
+              onConceptSelect={(conceptId) => console.log("Selected concept:", conceptId)}
+              onStartLearning={(conceptIds) => console.log("Start learning:", conceptIds)}
+            />
+          </div>
+
+          {/* Learning Path Builder & Prerequisite Analyzer - Side by Side */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Learning Path Builder - Interactive path generation */}
+            <LearningPathBuilder
+              courseId=""
+              onConceptClick={(conceptId) => console.log("Concept clicked:", conceptId)}
+              onStartLearning={(path) => console.log("Start path:", path)}
+            />
+
+            {/* Prerequisite Analyzer - Gap analysis visualization */}
+            <PrerequisiteAnalyzer
+              courseId=""
+              onConceptClick={(conceptId) => console.log("Prerequisite clicked:", conceptId)}
+            />
+          </div>
+
           {/* SAM AI Engine Widgets Section */}
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Knowledge Graph Browser - Visual skill relationships */}
+            {/* Knowledge Graph Browser - Basic view for quick reference */}
             <KnowledgeGraphBrowser />
 
             {/* Quality Score Dashboard - Content quality metrics */}
@@ -679,6 +808,27 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* Gap 1: Bias Detection Report - Fairness Analysis (Full Width) */}
           <div className="mt-8">
             <BiasDetectionReport className="w-full" />
+          </div>
+
+          {/* ============================================================= */}
+          {/* GAP-6: Certification Tracking & Skill Mapping */}
+          {/* ============================================================= */}
+
+          {/* Certification Tracker - Full certification pathway management */}
+          <div className="mt-8">
+            <CertificationTracker
+              onCertificationStart={(certId) => console.log("Started tracking:", certId)}
+              onCertificationComplete={(certId) => console.log("Completed:", certId)}
+            />
+          </div>
+
+          {/* Skill to Certification Map - Visual skill-to-cert relationships */}
+          <div className="mt-8">
+            <SkillToCertificationMap
+              userId={user.id ?? ""}
+              onCertificationSelect={(certId) => console.log("Selected cert:", certId)}
+              compact={false}
+            />
           </div>
 
           {/* ============================================================= */}
@@ -728,6 +878,82 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
           {/* Learning Gap Dashboard */}
           <LearningGapDashboard />
+        </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
+  // Innovation view with InnovationEngine features (Cognitive Fitness, Learning DNA, Study Buddy AI, Quantum Paths)
+  if (dashboardView === "innovation") {
+    return (
+      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-yellow-50/30 to-orange-50/30 dark:from-slate-900 dark:via-yellow-900/10 dark:to-orange-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+        <ViewToggle />
+
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+          {/* Innovation Dashboard - All 4 InnovationEngine features */}
+          <InnovationDashboard userId={user.id} />
+        </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
+  // Discover view with Course Marketplace
+  if (dashboardView === "discover") {
+    return (
+      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-cyan-50/30 to-blue-50/30 dark:from-slate-900 dark:via-cyan-900/10 dark:to-blue-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+        <ViewToggle />
+
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+          {/* Course Marketplace - Browse and discover courses */}
+          <CourseMarketplace
+            showHeader={true}
+            showFilters={true}
+            onEnroll={(courseId) => {
+              window.location.href = `/courses/${courseId}`;
+            }}
+          />
         </div>
 
         {/* SAM AI Assistant - Always available conversational mentor */}

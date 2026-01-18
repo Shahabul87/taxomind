@@ -99,80 +99,59 @@ export function ResearchAssistant({ userId, topicId, className }: ResearchAssist
     setError(null);
 
     try {
-      // Simulated search results - replace with actual API call
-      const mockResults: Source[] = [
-        {
-          id: '1',
-          title: 'Deep Learning for Natural Language Processing: A Comprehensive Survey',
-          authors: ['Zhang, Y.', 'Chen, L.', 'Wang, M.'],
-          year: 2023,
-          type: 'journal',
-          journal: 'Journal of Artificial Intelligence Research',
-          doi: '10.1234/jair.2023.001',
-          abstract: 'This paper provides a comprehensive survey of deep learning techniques applied to natural language processing tasks...',
-          citations: 1245,
-          relevanceScore: 98,
-          isSaved: false,
-        },
-        {
-          id: '2',
-          title: 'Transformer Models in Education: Applications and Future Directions',
-          authors: ['Smith, J.', 'Johnson, A.'],
-          year: 2024,
-          type: 'conference',
-          journal: 'International Conference on AI in Education',
-          doi: '10.5678/aied.2024.015',
-          abstract: 'We explore the applications of transformer-based models in educational technology...',
-          citations: 342,
-          relevanceScore: 95,
-          isSaved: true,
-        },
-        {
-          id: '3',
-          title: 'Machine Learning: A Modern Approach',
-          authors: ['Russell, S.', 'Norvig, P.'],
-          year: 2022,
-          type: 'book',
-          abstract: 'The definitive textbook on artificial intelligence and machine learning...',
-          citations: 15678,
-          relevanceScore: 92,
-          isSaved: false,
-        },
-        {
-          id: '4',
-          title: 'Attention Is All You Need',
-          authors: ['Vaswani, A.', 'Shazeer, N.', 'Parmar, N.', 'et al.'],
-          year: 2017,
-          type: 'conference',
-          journal: 'NeurIPS',
-          doi: '10.48550/arXiv.1706.03762',
-          url: 'https://arxiv.org/abs/1706.03762',
-          abstract: 'We propose a new simple network architecture, the Transformer, based solely on attention mechanisms...',
-          citations: 89234,
-          relevanceScore: 90,
-          isSaved: true,
-        },
-        {
-          id: '5',
-          title: 'Educational Data Mining: A Review of Techniques',
-          authors: ['Garcia, M.', 'Lopez, R.'],
-          year: 2023,
-          type: 'thesis',
-          abstract: 'This thesis reviews various data mining techniques applied to educational contexts...',
-          citations: 56,
-          relevanceScore: 85,
-          isSaved: false,
-        },
-      ];
+      // Call the AI Research API
+      const params = new URLSearchParams({
+        action: 'search',
+        query: searchQuery,
+      });
 
-      setSources(mockResults);
+      const response = await fetch(`/api/sam/ai-research?${params}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to search academic sources');
+      }
+
+      const data = await response.json();
+
+      // Transform API response to Source format
+      const papers = data.papers || [];
+      const transformedResults: Source[] = papers.map((paper: any) => ({
+        id: paper.paperId || paper.id || crypto.randomUUID(),
+        title: paper.title || 'Untitled',
+        authors: paper.authors?.map((a: any) => a.name || a) || ['Unknown Author'],
+        year: paper.publishDate ? new Date(paper.publishDate).getFullYear() : new Date().getFullYear(),
+        type: mapPublicationType(paper.publication?.type || 'journal'),
+        journal: paper.publication?.venue || paper.journal || undefined,
+        doi: paper.publication?.doi || paper.doi || undefined,
+        url: paper.publication?.url || paper.url || undefined,
+        abstract: paper.abstract || undefined,
+        citations: paper.citationCount || paper.citations || 0,
+        relevanceScore: paper.relevanceScore || 80,
+        isSaved: savedSources.some((s) => s.id === (paper.paperId || paper.id)),
+      }));
+
+      setSources(transformedResults);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search sources');
     } finally {
       setIsLoading(false);
       isLoadingRef.current = false;
     }
-  }, [searchQuery]);
+  }, [searchQuery, savedSources]);
+
+  // Helper function to map publication types
+  const mapPublicationType = (type: string): Source['type'] => {
+    const typeMap: Record<string, Source['type']> = {
+      journal: 'journal',
+      conference: 'conference',
+      book: 'book',
+      thesis: 'thesis',
+      website: 'website',
+      preprint: 'journal',
+      article: 'journal',
+    };
+    return typeMap[type.toLowerCase()] || 'journal';
+  };
 
   const generateCitation = useCallback((source: Source, format: Citation['format']): string => {
     const authorsStr = source.authors.length > 2

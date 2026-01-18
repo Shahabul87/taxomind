@@ -208,7 +208,7 @@ export const login = async (
         await db.adminTwoFactorConfirmation.delete({ where: { id: existingConfirmation.id } });
       }
 
-      await db.adminTwoFactorConfirmation.create({ data: { adminId: existingAdmin.id } });
+      await db.adminTwoFactorConfirmation.create({ data: { adminAccountId: existingAdmin.id } });
       console.log(`[admin-login] Admin 2FA validated via ${verificationMethod}`);
 
       await authAuditHelpers.logTwoFactorVerified(existingAdmin.id, existingAdmin.email);

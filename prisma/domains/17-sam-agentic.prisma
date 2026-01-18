@@ -2247,3 +2247,159 @@ model SAMPortfolioProject {
   @@index([userId, isPublic])
   @@map("sam_portfolio_projects")
 }
+
+// ==========================================
+// SOCIAL ENGINE ANALYTICS MODELS
+// ==========================================
+
+model SAMSocialAnalytics {
+  id                   String    @id @default(cuid())
+
+  // Context
+  groupId              String?
+  communityId          String?
+
+  // Type of analysis
+  type                 String    // effectiveness, engagement, sharing_impact, mentor_match, dynamics
+
+  // Analysis data
+  data                 Json      // Stored analysis results
+  overallScore         Float?    // Overall score for quick queries
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([groupId, type])
+  @@index([communityId, type])
+  @@index([type, createdAt])
+  @@map("sam_social_analytics")
+}
+
+// ==========================================
+// KNOWLEDGE GRAPH ENGINE MODELS
+// ==========================================
+
+model SAMKnowledgeConcept {
+  id               String    @id @default(cuid())
+
+  // Identity
+  courseId         String
+  chapterId        String?
+  sectionId        String?
+
+  // Concept data
+  name             String
+  description      String
+  type             String    // FOUNDATIONAL, PROCEDURAL, CONCEPTUAL, METACOGNITIVE
+  bloomsLevel      String    // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
+  keywords         String[]  @default([])
+  confidence       Float     @default(0.7)
+
+  // Metadata
+  metadata         Json?
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  course           Course    @relation("SAMKnowledgeConcepts", fields: [courseId], references: [id], onDelete: Cascade)
+  sourceRelations  SAMConceptRelation[] @relation("SourceConcept")
+  targetRelations  SAMConceptRelation[] @relation("TargetConcept")
+  masteries        SAMConceptMastery[]
+
+  @@index([courseId])
+  @@index([courseId, chapterId])
+  @@index([type])
+  @@index([bloomsLevel])
+  @@map("sam_knowledge_concepts")
+}
+
+model SAMConceptRelation {
+  id               String    @id @default(cuid())
+
+  // Concept references
+  sourceConceptId  String
+  targetConceptId  String
+
+  // Relation data
+  relationType     String    // PREREQUISITE, SUPPORTS, EXTENDS, RELATED, CONTRASTS
+  strength         Float     @default(0.5)
+  confidence       Float     @default(0.7)
+  description      String?
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+
+  // Relations
+  sourceConcept    SAMKnowledgeConcept @relation("SourceConcept", fields: [sourceConceptId], references: [id], onDelete: Cascade)
+  targetConcept    SAMKnowledgeConcept @relation("TargetConcept", fields: [targetConceptId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceConceptId, targetConceptId, relationType])
+  @@index([sourceConceptId])
+  @@index([targetConceptId])
+  @@index([relationType])
+  @@map("sam_concept_relations")
+}
+
+model SAMKnowledgeGraph {
+  id               String    @id @default(cuid())
+
+  // Context
+  courseId         String    @unique
+
+  // Graph stats
+  totalConcepts    Int       @default(0)
+  totalRelations   Int       @default(0)
+  maxDepth         Int       @default(0)
+  averageConnections Float   @default(0)
+
+  // Cached analysis
+  rootConcepts     String[]  @default([])
+  terminalConcepts String[]  @default([])
+  stats            Json?
+
+  // Quality assessment
+  structureQuality Json?
+  recommendations  Json?
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  course           Course    @relation("SAMKnowledgeGraph", fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("sam_knowledge_graphs")
+}
+
+model SAMConceptMastery {
+  id               String    @id @default(cuid())
+
+  // User and concept
+  userId           String
+  conceptId        String
+
+  // Mastery data
+  masteryLevel     String    @default("NOT_STARTED")  // NOT_STARTED, INTRODUCED, PRACTICING, PROFICIENT, MASTERED
+  score            Int       @default(0)
+  practiceCount    Int       @default(0)
+  evidence         Json?     // Array of evidence records
+
+  // Timestamps
+  lastPracticedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  user             User      @relation("SAMConceptMasteries", fields: [userId], references: [id], onDelete: Cascade)
+  concept          SAMKnowledgeConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conceptId])
+  @@index([userId])
+  @@index([conceptId])
+  @@index([userId, masteryLevel])
+  @@map("sam_concept_masteries")
+}

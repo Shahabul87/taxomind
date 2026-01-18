@@ -119,3 +119,71 @@ export type {
   RecommendationPriority,
   RecommendationContext,
 } from './useRecommendations';
+
+// Phase 6 Hooks - Educational Engines
+export { useExamEngine } from './useExamEngine';
+export type {
+  UseExamEngineOptions,
+  UseExamEngineReturn,
+  BloomsDistribution,
+  DifficultyDistribution,
+  ExamGenerationConfig,
+  GeneratedQuestion,
+  BloomsAnalysisResult,
+  GeneratedExamResponse,
+  ExamWithProfile,
+} from './useExamEngine';
+
+export { useQuestionBank } from './useQuestionBank';
+export type {
+  UseQuestionBankOptions,
+  UseQuestionBankReturn,
+  QuestionOption,
+  QuestionInput,
+  BankQuestion,
+  QuestionBankStats,
+  Pagination,
+  QuestionBankQuery,
+} from './useQuestionBank';
+
+export { useInnovationFeatures } from './useInnovationFeatures';
+export type {
+  UseInnovationFeaturesOptions,
+  UseInnovationFeaturesReturn,
+  FeaturesStatus,
+  CognitiveDimension,
+  CognitiveFitnessAssessment,
+  FitnessExercise,
+  FitnessSession,
+  FitnessRecommendation,
+  LearningTrait,
+  PhenotypeCapability,
+  LearningDNA,
+  DNAVisualization,
+  BuddyPersonality,
+  StudyBuddyAI,
+  BuddyInteractionType,
+  BuddyInteraction,
+  BuddyEffectiveness,
+  QuantumState,
+  QuantumLearningPath,
+  PathObservationType,
+  ObservationResult,
+  PathCollapseResult,
+} from './useInnovationFeatures';
+
+export { useMultimodal } from './useMultimodal';
+export type {
+  UseMultimodalOptions,
+  UseMultimodalReturn,
+  MultimodalInputType,
+  MultimodalFile,
+  ProcessingOptions,
+  ProcessingStatus,
+  QualityAssessment,
+  TextExtractionResult,
+  AccessibilityData,
+  ProcessedInput,
+  BatchProcessingResult,
+  StorageQuota,
+} from './useMultimodal';

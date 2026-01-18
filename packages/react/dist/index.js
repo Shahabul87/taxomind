@@ -31,7 +31,9 @@ useRealtime,
 // Interventions Hook
 useInterventions, 
 // Tutoring Orchestration Hook & Provider
-useTutoringOrchestration, useCurrentStep, useStepProgress, useStepCelebration, TutoringOrchestrationProvider, useTutoringOrchestrationContext, } from './hooks';
+useTutoringOrchestration, useCurrentStep, useStepProgress, useStepCelebration, TutoringOrchestrationProvider, useTutoringOrchestrationContext, 
+// Phase 6 Hooks - Educational Engines
+useExamEngine, useQuestionBank, useInnovationFeatures, useMultimodal, } from './hooks';
 // ============================================================================
 // UTILITIES
 // ============================================================================

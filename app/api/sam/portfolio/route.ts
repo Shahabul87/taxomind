@@ -204,72 +204,96 @@ export async function GET(request: NextRequest) {
 
     const skillBuildTrackStore = getStore('skillBuildTrack');
 
-    // Get or create portfolio settings
-    let portfolioSettings = await db.sAMPortfolioSettings.findUnique({
-      where: { userId: user.id },
-    });
+    // Get or create portfolio settings with fallback
+    let portfolioSettings: {
+      id?: string;
+      userId: string;
+      isPublic: boolean;
+      title: string;
+      bio?: string | null;
+      headline?: string | null;
+      socialLinks?: unknown;
+      theme: string;
+      featuredProjectIds: string[];
+      featuredSkillIds: string[];
+    };
 
-    if (!portfolioSettings) {
-      portfolioSettings = await db.sAMPortfolioSettings.create({
-        data: {
-          userId: user.id,
-          isPublic: false,
-          title: `${user.name || 'User'}&apos;s Portfolio`,
-          theme: 'professional',
-          featuredProjectIds: [],
-          featuredSkillIds: [],
-        },
+    try {
+      const existingSettings = await db.sAMPortfolioSettings.findUnique({
+        where: { userId: user.id },
       });
+
+      if (!existingSettings) {
+        portfolioSettings = await db.sAMPortfolioSettings.create({
+          data: {
+            userId: user.id,
+            isPublic: false,
+            title: `${user.name || 'User'}&apos;s Portfolio`,
+            theme: 'professional',
+            featuredProjectIds: [],
+            featuredSkillIds: [],
+          },
+        });
+      } else {
+        portfolioSettings = existingSettings;
+      }
+    } catch (settingsError) {
+      logger.warn('[PORTFOLIO] Failed to get/create portfolio settings, using defaults:', settingsError);
+      // Use default settings if database fails
+      portfolioSettings = {
+        userId: user.id,
+        isPublic: false,
+        title: `${user.name || 'User'}&apos;s Portfolio`,
+        theme: 'professional',
+        featuredProjectIds: [],
+        featuredSkillIds: [],
+      };
     }
 
-    // Get projects
+    // Get projects with fallback
     let projects: PortfolioProject[] = [];
     if (validatedParams.includeProjects) {
-      const projectRecords = await db.sAMPortfolioProject.findMany({
-        where: {
-          userId: user.id,
-          ...(validatedParams.publicOnly ? { isPublic: true } : {}),
-        },
-        include: {
-          course: { select: { title: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      try {
+        const projectRecords = await db.sAMPortfolioProject.findMany({
+          where: {
+            userId: user.id,
+            ...(validatedParams.publicOnly ? { isPublic: true } : {}),
+          },
+          include: {
+            course: { select: { title: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
 
-      projects = projectRecords.map((p) => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        type: p.type,
-        skills: (p.skills as string[]) || [],
-        technologies: (p.technologies as string[]) || [],
-        url: p.url ?? undefined,
-        repositoryUrl: p.repositoryUrl ?? undefined,
-        imageUrl: p.imageUrl ?? undefined,
-        startDate: p.startDate ?? undefined,
-        endDate: p.endDate ?? undefined,
-        highlights: (p.highlights as string[]) || [],
-        isPublic: p.isPublic,
-        courseId: p.courseId ?? undefined,
-        courseName: p.course?.title ?? undefined,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-      }));
+        projects = projectRecords.map((p) => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          type: p.type,
+          skills: (p.skills as string[]) || [],
+          technologies: (p.technologies as string[]) || [],
+          url: p.url ?? undefined,
+          repositoryUrl: p.repositoryUrl ?? undefined,
+          imageUrl: p.imageUrl ?? undefined,
+          startDate: p.startDate ?? undefined,
+          endDate: p.endDate ?? undefined,
+          highlights: (p.highlights as string[]) || [],
+          isPublic: p.isPublic,
+          courseId: p.courseId ?? undefined,
+          courseName: p.course?.title ?? undefined,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        }));
+      } catch (projectsError) {
+        logger.warn('[PORTFOLIO] Failed to get projects, using empty array:', projectsError);
+        // Projects will remain as empty array
+      }
     }
 
     // Get skills
     let skills: PortfolioSkill[] = [];
     if (validatedParams.includeSkills) {
-      const skillProfiles = await skillBuildTrackStore.getUserSkillProfiles(user.id);
-
-      // Get certification counts per skill
-      const certRecords = await db.sAMCertificationProgress.findMany({
-        where: { userId: user.id, status: 'COMPLETED' },
-        select: { certificationId: true },
-      });
-      const certSkillCounts = new Map<string, number>();
-
-      // Get project counts per skill
+      // Get project counts per skill (do this first, doesn't depend on skillBuildTrack)
       const projectSkillCounts = new Map<string, number>();
       for (const project of projects) {
         for (const skill of project.skills) {
@@ -277,90 +301,133 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      skills = skillProfiles.map((profile) => {
-        const skillNameLower = (profile.skill?.name ?? profile.skillId).toLowerCase();
-        return {
-          skillId: profile.skillId,
-          skillName: profile.skill?.name ?? profile.skillId,
-          proficiencyLevel: profile.proficiencyLevel,
-          compositeScore: profile.compositeScore,
-          category: profile.skill?.category ?? 'TECHNICAL',
-          lastPracticedAt: profile.lastPracticedAt ?? undefined,
-          projectCount: projectSkillCounts.get(skillNameLower) || 0,
-          certificationCount: certSkillCounts.get(skillNameLower) || 0,
-          verificationStatus: determineVerificationStatus(
-            (certSkillCounts.get(skillNameLower) || 0) > 0,
-            profile.practiceHistory.totalSessions > 10,
-            false
-          ),
-        };
-      });
+      // Get certification counts per skill
+      const certSkillCounts = new Map<string, number>();
+      try {
+        const certRecords = await db.sAMCertificationProgress.findMany({
+          where: { userId: user.id, status: 'COMPLETED' },
+          select: { certificationId: true },
+        });
+        // Note: certSkillCounts would need skill mapping from certifications
+        // For now, keeping it empty as the original code doesn't populate it
+      } catch (certError) {
+        logger.warn('[PORTFOLIO] Failed to get certification records:', certError);
+      }
 
-      // Sort by composite score
-      skills.sort((a, b) => b.compositeScore - a.compositeScore);
+      // Safely get skill profiles with fallback
+      try {
+        const skillProfiles = await skillBuildTrackStore.getUserSkillProfiles(user.id);
+
+        skills = skillProfiles.map((profile) => {
+          const skillNameLower = (profile.skill?.name ?? profile.skillId).toLowerCase();
+          return {
+            skillId: profile.skillId,
+            skillName: profile.skill?.name ?? profile.skillId,
+            proficiencyLevel: profile.proficiencyLevel,
+            compositeScore: profile.compositeScore,
+            category: profile.skill?.category ?? 'TECHNICAL',
+            lastPracticedAt: profile.lastPracticedAt ?? undefined,
+            projectCount: projectSkillCounts.get(skillNameLower) || 0,
+            certificationCount: certSkillCounts.get(skillNameLower) || 0,
+            verificationStatus: determineVerificationStatus(
+              (certSkillCounts.get(skillNameLower) || 0) > 0,
+              profile.practiceHistory.totalSessions > 10,
+              false
+            ),
+          };
+        });
+
+        // Sort by composite score
+        skills.sort((a, b) => b.compositeScore - a.compositeScore);
+      } catch (skillError) {
+        logger.warn('[PORTFOLIO] Failed to get skill profiles, using empty array:', skillError);
+        // Skills will remain as empty array - this is acceptable for the portfolio
+      }
     }
 
-    // Get certifications
+    // Get certifications with fallback
     let certifications: PortfolioCertification[] = [];
     if (validatedParams.includeCertifications) {
-      const certRecords = await db.sAMCertificationProgress.findMany({
-        where: {
-          userId: user.id,
-          status: { in: ['COMPLETED', 'IN_PROGRESS'] },
-        },
-        orderBy: { completedDate: 'desc' },
-      });
+      try {
+        const certRecords = await db.sAMCertificationProgress.findMany({
+          where: {
+            userId: user.id,
+            status: { in: ['COMPLETED', 'IN_PROGRESS'] },
+          },
+          orderBy: { completedDate: 'desc' },
+        });
 
-      certifications = certRecords.map((c) => ({
-        certificationId: c.certificationId,
-        certificationName: c.certificationName,
-        provider: c.provider,
-        status: c.status,
-        completedDate: c.completedDate ?? undefined,
-        expiryDate: c.expiryDate ?? undefined,
-        credentialUrl: c.credentialUrl ?? undefined,
-        credentialId: c.credentialId ?? undefined,
-      }));
+        certifications = certRecords.map((c) => ({
+          certificationId: c.certificationId,
+          certificationName: c.certificationName,
+          provider: c.provider,
+          status: c.status,
+          completedDate: c.completedDate ?? undefined,
+          expiryDate: c.expiryDate ?? undefined,
+          credentialUrl: c.credentialUrl ?? undefined,
+          credentialId: c.credentialId ?? undefined,
+        }));
+      } catch (certError) {
+        logger.warn('[PORTFOLIO] Failed to get certifications, using empty array:', certError);
+        // Certifications will remain as empty array
+      }
     }
 
-    // Get achievements
+    // Get achievements with fallback
     let achievements: PortfolioAchievement[] = [];
     if (validatedParams.includeAchievements) {
-      const achievementRecords = await db.achievement.findMany({
-        where: { userId: user.id },
-        orderBy: { earnedAt: 'desc' },
-      });
+      try {
+        const achievementRecords = await db.achievement.findMany({
+          where: { userId: user.id },
+          orderBy: { earnedAt: 'desc' },
+        });
 
-      achievements = achievementRecords.map((a) => ({
-        id: a.id,
-        type: a.type,
-        title: a.title,
-        description: a.description ?? '',
-        earnedAt: a.earnedAt,
-        badgeUrl: a.badgeUrl ?? undefined,
-        metadata: (a.metadata as Record<string, unknown>) ?? undefined,
-      }));
+        achievements = achievementRecords.map((a) => ({
+          id: a.id,
+          type: a.type,
+          title: a.title,
+          description: a.description ?? '',
+          earnedAt: a.earnedAt,
+          badgeUrl: a.badgeUrl ?? undefined,
+          metadata: (a.metadata as Record<string, unknown>) ?? undefined,
+        }));
+      } catch (achievementError) {
+        logger.warn('[PORTFOLIO] Failed to get achievements, using empty array:', achievementError);
+        // Achievements will remain as empty array
+      }
     }
 
-    // Calculate stats
-    const completedCourses = await db.enrollment.count({
-      where: {
-        userId: user.id,
-        status: 'COMPLETED',
-      },
-    });
+    // Calculate stats with fallbacks
+    let completedCourses = 0;
+    let totalStudyHours = 0;
 
-    const totalStudyMinutes = await db.learningSession.aggregate({
-      where: { userId: user.id },
-      _sum: { duration: true },
-    });
+    try {
+      completedCourses = await db.enrollment.count({
+        where: {
+          userId: user.id,
+          status: 'COMPLETED',
+        },
+      });
+    } catch (enrollmentError) {
+      logger.warn('[PORTFOLIO] Failed to get completed courses count:', enrollmentError);
+    }
+
+    try {
+      const totalStudyMinutes = await db.learningSession.aggregate({
+        where: { userId: user.id },
+        _sum: { duration: true },
+      });
+      totalStudyHours = Math.round((totalStudyMinutes._sum.duration || 0) / 60);
+    } catch (sessionError) {
+      logger.warn('[PORTFOLIO] Failed to get study hours:', sessionError);
+    }
 
     const stats = {
       totalProjects: projects.length,
       totalSkills: skills.length,
       totalCertifications: certifications.filter((c) => c.status === 'COMPLETED').length,
       totalAchievements: achievements.length,
-      totalStudyHours: Math.round((totalStudyMinutes._sum.duration || 0) / 60),
+      totalStudyHours,
       coursesCompleted: completedCourses,
       avgSkillScore:
         skills.length > 0 ? Math.round(skills.reduce((sum, s) => sum + s.compositeScore, 0) / skills.length) : 0,

@@ -57,6 +57,11 @@ export {
   useStepCelebration,
   TutoringOrchestrationProvider,
   useTutoringOrchestrationContext,
+  // Phase 6 Hooks - Educational Engines
+  useExamEngine,
+  useQuestionBank,
+  useInnovationFeatures,
+  useMultimodal,
 } from './hooks';
 
 // ============================================================================
@@ -209,6 +214,70 @@ export type {
   PendingConfirmation,
   OrchestrationMetadata,
   TutoringOrchestrationState,
+} from './hooks';
+
+// Phase 6 Hook types - Educational Engines
+export type {
+  UseExamEngineOptions,
+  UseExamEngineReturn,
+  BloomsDistribution,
+  DifficultyDistribution,
+  ExamGenerationConfig,
+  GeneratedQuestion,
+  BloomsAnalysisResult,
+  GeneratedExamResponse,
+  ExamWithProfile,
+} from './hooks';
+
+export type {
+  UseQuestionBankOptions,
+  UseQuestionBankReturn,
+  QuestionOption,
+  QuestionInput,
+  BankQuestion,
+  QuestionBankStats,
+  Pagination,
+  QuestionBankQuery,
+} from './hooks';
+
+export type {
+  UseInnovationFeaturesOptions,
+  UseInnovationFeaturesReturn,
+  FeaturesStatus,
+  CognitiveDimension,
+  CognitiveFitnessAssessment,
+  FitnessExercise,
+  FitnessSession,
+  FitnessRecommendation,
+  LearningTrait,
+  PhenotypeCapability,
+  LearningDNA,
+  DNAVisualization,
+  BuddyPersonality,
+  StudyBuddyAI,
+  BuddyInteractionType,
+  BuddyInteraction,
+  BuddyEffectiveness,
+  QuantumState,
+  QuantumLearningPath,
+  PathObservationType,
+  ObservationResult,
+  PathCollapseResult,
+} from './hooks';
+
+export type {
+  UseMultimodalOptions,
+  UseMultimodalReturn,
+  MultimodalInputType,
+  MultimodalFile,
+  ProcessingOptions,
+  ProcessingStatus,
+  QualityAssessment,
+  TextExtractionResult,
+  AccessibilityData,
+  ProcessedInput,
+  BatchProcessingResult,
+  StorageQuota,
 } from './hooks';
 
 // ============================================================================

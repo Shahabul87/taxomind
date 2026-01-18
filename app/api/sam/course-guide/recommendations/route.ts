@@ -389,42 +389,7 @@ async function generateMarketingRecommendations(
 }
 
 async function generateAssessmentExamples(course: any): Promise<any[]> {
-  const systemPrompt = `You are SAM. Return ONLY valid JSON with 3 assessment examples for the course.
-
-Schema:
-[
-  {
-    "type": "multiple_choice|true_false|short_answer",
-    "question": "string",
-    "options": ["string", "..."] (only for multiple_choice),
-    "correctAnswer": "string|boolean",
-    "sampleAnswer": "string" (only for short_answer)
-  }
-]`;
-
-  const prompt = `Course title: "${course.title}"
-Course description: "${course.description || 'No description provided'}"
-Generate 3 varied assessment examples.`;
-
-  const responseText = await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
-    maxTokens: 1000,
-    temperature: 0.7,
-    systemPrompt,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const cleaned = responseText.replace(/```json/i, '').replace(/```/g, '').trim();
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch {
-    // Fall through to fallback examples.
-  }
-
-  return [
+  const fallbackExamples = [
     {
       type: 'multiple_choice',
       question: `Which statement best captures a core concept from "${course.title}"?`,
@@ -442,39 +407,80 @@ Generate 3 varied assessment examples.`;
       sampleAnswer: 'A concise explanation that references the main concept.',
     },
   ];
+
+  try {
+    const systemPrompt = `You are SAM. Return ONLY valid JSON with 3 assessment examples for the course.
+
+Schema:
+[
+  {
+    "type": "multiple_choice|true_false|short_answer",
+    "question": "string",
+    "options": ["string", "..."] (only for multiple_choice),
+    "correctAnswer": "string|boolean",
+    "sampleAnswer": "string" (only for short_answer)
+  }
+]`;
+
+    const prompt = `Course title: "${course.title}"
+Course description: "${course.description || 'No description provided'}"
+Generate 3 varied assessment examples.`;
+
+    const responseText = await runSAMChat({
+      model: 'claude-sonnet-4-5-20250929',
+      maxTokens: 1000,
+      temperature: 0.7,
+      systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const cleaned = responseText.replace(/```json/i, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch (error) {
+    // AI unavailable or parsing failed - use fallback examples
+    logger.warn('AI assessment generation failed, using fallback examples:', error);
+  }
+
+  return fallbackExamples;
 }
 
 async function suggestAdditionalTopics(course: any): Promise<string[]> {
-  const systemPrompt = `Return ONLY valid JSON: an array of 5 topic strings that would improve the course coverage.`;
-  const prompt = `Course title: "${course.title}"
-Course description: "${course.description || 'No description provided'}"
-Suggest 5 additional topics or sections to fill gaps.`;
-
-  const responseText = await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
-    maxTokens: 600,
-    temperature: 0.6,
-    systemPrompt,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const cleaned = responseText.replace(/```json/i, '').replace(/```/g, '').trim();
-  try {
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed)) {
-      return parsed.filter((item) => typeof item === 'string').slice(0, 5);
-    }
-  } catch {
-    // Fall through to fallback.
-  }
-
-  return [
+  const fallbackTopics = [
     'Advanced techniques and best practices',
     'Industry case studies and examples',
     'Common mistakes and how to avoid them',
     'Future trends and developments',
     'Practical project walkthroughs',
   ];
+
+  try {
+    const systemPrompt = `Return ONLY valid JSON: an array of 5 topic strings that would improve the course coverage.`;
+    const prompt = `Course title: "${course.title}"
+Course description: "${course.description || 'No description provided'}"
+Suggest 5 additional topics or sections to fill gaps.`;
+
+    const responseText = await runSAMChat({
+      model: 'claude-sonnet-4-5-20250929',
+      maxTokens: 600,
+      temperature: 0.6,
+      systemPrompt,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const cleaned = responseText.replace(/```json/i, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item) => typeof item === 'string').slice(0, 5);
+    }
+  } catch (error) {
+    // AI unavailable or parsing failed - use fallback topics
+    logger.warn('AI topic suggestion failed, using fallback topics:', error);
+  }
+
+  return fallbackTopics;
 }
 
 function generateImplementationRoadmap(recommendations: any): any[] {

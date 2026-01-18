@@ -331,6 +331,8 @@ export declare const QueryOptionsSchema: z.ZodObject<{
     include: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     select: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
+    limit?: number | undefined;
+    offset?: number | undefined;
     where?: {
         field: string;
         operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "in" | "notIn" | "contains" | "startsWith" | "endsWith" | "isNull" | "isNotNull";
@@ -340,11 +342,11 @@ export declare const QueryOptionsSchema: z.ZodObject<{
         field: string;
         direction: "asc" | "desc";
     }[] | undefined;
-    limit?: number | undefined;
-    offset?: number | undefined;
     include?: string[] | undefined;
     select?: string[] | undefined;
 }, {
+    limit?: number | undefined;
+    offset?: number | undefined;
     where?: {
         field: string;
         operator: "eq" | "neq" | "gt" | "gte" | "lt" | "lte" | "in" | "notIn" | "contains" | "startsWith" | "endsWith" | "isNull" | "isNotNull";
@@ -354,8 +356,6 @@ export declare const QueryOptionsSchema: z.ZodObject<{
         field: string;
         direction: "asc" | "desc";
     }[] | undefined;
-    limit?: number | undefined;
-    offset?: number | undefined;
     include?: string[] | undefined;
     select?: string[] | undefined;
 }>;
@@ -390,17 +390,17 @@ export declare const UpdateSAMGoalInputSchema: z.ZodObject<{
     context: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, "strip", z.ZodTypeAny, {
-    status?: "draft" | "active" | "paused" | "completed" | "abandoned" | undefined;
-    description?: string | undefined;
     metadata?: Record<string, unknown> | undefined;
+    description?: string | undefined;
+    status?: "draft" | "active" | "paused" | "completed" | "abandoned" | undefined;
     title?: string | undefined;
     priority?: "low" | "medium" | "high" | "critical" | undefined;
     targetDate?: Date | undefined;
     context?: Record<string, unknown> | undefined;
 }, {
-    status?: "draft" | "active" | "paused" | "completed" | "abandoned" | undefined;
-    description?: string | undefined;
     metadata?: Record<string, unknown> | undefined;
+    description?: string | undefined;
+    status?: "draft" | "active" | "paused" | "completed" | "abandoned" | undefined;
     title?: string | undefined;
     priority?: "low" | "medium" | "high" | "critical" | undefined;
     targetDate?: Date | undefined;

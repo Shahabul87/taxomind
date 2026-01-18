@@ -95,6 +95,10 @@ model Course {
   samSessionContexts           SAMSessionContext[]
   samVectorEmbeddings          SAMVectorEmbedding[]
 
+  // SAM Knowledge Graph Engine Relations (added January 2026)
+  samKnowledgeConcepts         SAMKnowledgeConcept[]          @relation("SAMKnowledgeConcepts")
+  samKnowledgeGraph            SAMKnowledgeGraph?             @relation("SAMKnowledgeGraph")
+
   study_streaks                study_streaks[]
   user_achievements            user_achievements[]
   user_progress                user_progress[]

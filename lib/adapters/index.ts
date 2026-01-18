@@ -28,3 +28,24 @@ export {
 } from './specialized-adapters';
 
 export { PrismaCourseDepthAnalysisStore } from './course-depth-analysis-store';
+
+// Adaptive Content Engine adapter
+export {
+  PrismaAdaptiveContentDatabaseAdapter,
+  getAdaptiveContentAdapter,
+  resetAdaptiveContentAdapter,
+} from './adaptive-content-adapter';
+
+// Social Engine adapter
+export {
+  PrismaSocialDatabaseAdapter,
+  getSocialEngineAdapter,
+  resetSocialEngineAdapter,
+} from './social-engine-adapter';
+
+// Knowledge Graph Engine adapter
+export {
+  PrismaKnowledgeGraphDatabaseAdapter,
+  getKnowledgeGraphEngineAdapter,
+  resetKnowledgeGraphEngineAdapter,
+} from './knowledge-graph-engine-adapter';

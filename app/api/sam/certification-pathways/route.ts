@@ -414,24 +414,36 @@ export async function GET(request: NextRequest) {
 
     const skillBuildTrackStore = getStore('skillBuildTrack');
 
-    // Get user skill profiles
-    const skillProfiles = await skillBuildTrackStore.getUserSkillProfiles(user.id);
-    const userSkills = new Map<string, number>(
-      skillProfiles.map((p) => [p.skill?.name ?? p.skillId, p.compositeScore])
-    );
+    // Get user skill profiles with fallback
+    let userSkills = new Map<string, number>();
+    try {
+      const skillProfiles = await skillBuildTrackStore.getUserSkillProfiles(user.id);
+      userSkills = new Map<string, number>(
+        skillProfiles.map((p) => [p.skill?.name ?? p.skillId, p.compositeScore])
+      );
+    } catch (skillError) {
+      logger.warn('[CERTIFICATION PATHWAYS] Failed to get skill profiles, using empty map:', skillError);
+      // Continue with empty userSkills - recommendations will still work based on other factors
+    }
 
     // Get user career goals (would come from goal store in production)
     const careerGoals: string[] = ['cloud', 'development', 'data'];
 
-    // Get completed certifications from database
-    const completedCertRecords = await db.sAMCertificationProgress.findMany({
-      where: {
-        userId: user.id,
-        status: 'COMPLETED',
-      },
-      select: { certificationId: true },
-    });
-    const completedCerts = completedCertRecords.map((c) => c.certificationId);
+    // Get completed certifications from database with fallback
+    let completedCerts: string[] = [];
+    try {
+      const completedCertRecords = await db.sAMCertificationProgress.findMany({
+        where: {
+          userId: user.id,
+          status: 'COMPLETED',
+        },
+        select: { certificationId: true },
+      });
+      completedCerts = completedCertRecords.map((c) => c.certificationId);
+    } catch (certError) {
+      logger.warn('[CERTIFICATION PATHWAYS] Failed to get completed certifications:', certError);
+      // Continue with empty completedCerts - recommendations will still work
+    }
 
     // Filter and score certifications
     let recommendations = CERTIFICATION_DATABASE.map((cert) => ({
@@ -457,31 +469,36 @@ export async function GET(request: NextRequest) {
     // Get in-progress certifications
     let inProgress: CertificationProgress[] = [];
     if (validatedParams.includeInProgress) {
-      const progressRecords = await db.sAMCertificationProgress.findMany({
-        where: {
-          userId: user.id,
-          status: { in: ['IN_PROGRESS', 'SCHEDULED'] },
-        },
-      });
+      try {
+        const progressRecords = await db.sAMCertificationProgress.findMany({
+          where: {
+            userId: user.id,
+            status: { in: ['IN_PROGRESS', 'SCHEDULED'] },
+          },
+        });
 
-      inProgress = progressRecords.map((record) => ({
-        certificationId: record.certificationId,
-        certificationName: record.certificationName,
-        provider: record.provider,
-        status: record.status as CertificationProgress['status'],
-        startDate: record.startDate ?? undefined,
-        targetDate: record.targetDate ?? undefined,
-        completedDate: record.completedDate ?? undefined,
-        studyProgress: record.studyProgress,
-        practiceExamScores: (record.practiceExamScores as number[]) ?? [],
-        studyHoursLogged: record.studyHoursLogged,
-        nextMilestone: record.nextMilestone
-          ? {
-              title: (record.nextMilestone as { title: string; dueDate: string }).title,
-              dueDate: new Date((record.nextMilestone as { title: string; dueDate: string }).dueDate),
-            }
-          : undefined,
-      }));
+        inProgress = progressRecords.map((record) => ({
+          certificationId: record.certificationId,
+          certificationName: record.certificationName,
+          provider: record.provider,
+          status: record.status as CertificationProgress['status'],
+          startDate: record.startDate ?? undefined,
+          targetDate: record.targetDate ?? undefined,
+          completedDate: record.completedDate ?? undefined,
+          studyProgress: record.studyProgress,
+          practiceExamScores: (record.practiceExamScores as number[]) ?? [],
+          studyHoursLogged: record.studyHoursLogged,
+          nextMilestone: record.nextMilestone
+            ? {
+                title: (record.nextMilestone as { title: string; dueDate: string }).title,
+                dueDate: new Date((record.nextMilestone as { title: string; dueDate: string }).dueDate),
+              }
+            : undefined,
+        }));
+      } catch (progressError) {
+        logger.warn('[CERTIFICATION PATHWAYS] Failed to get in-progress certifications:', progressError);
+        // Continue with empty inProgress array
+      }
     }
 
     // Calculate summary stats

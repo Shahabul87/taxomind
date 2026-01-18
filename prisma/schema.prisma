@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-17T04:25:23.878Z
+// Generated: 2026-01-18T06:29:58.207Z
 // Source: 24 domain files
 // ==========================================
 
@@ -50,12 +50,17 @@ datasource db {
 // ==========================================
 
 enum UserRole {
-  ADMIN
-  SUPERADMIN
   USER
+  // DEPRECATED: ADMIN and SUPERADMIN kept for backward compatibility only
+  // DO NOT use these for new code - Admin auth is COMPLETELY SEPARATE via AdminAccount
+  // Use AdminRole enum for admin-specific roles
+  ADMIN      // @deprecated - Use AdminAccount.role instead
+  SUPERADMIN // @deprecated - Use AdminAccount.role instead
 }
 
 // Admin-specific roles (for separate admin auth system)
+// NOTE: Admin authentication uses AdminAccount model, NOT User model
+// These roles should be used for AdminAccount.role, NOT User.role
 enum AdminRole {
   ADMIN
   SUPERADMIN
@@ -1516,6 +1521,9 @@ model User {
   samConversationMemories                 SAMConversationMemory[]              @relation("SAMConversationMemories")
   samVectorEmbeddings                     SAMVectorEmbedding[]
 
+  // SAM Knowledge Graph Engine Relations (added January 2026)
+  samConceptMasteries                     SAMConceptMastery[]                  @relation("SAMConceptMasteries")
+
   // Agent Tooling Relations
   agentToolInvocations                    AgentToolInvocation[]
   agentAuditLogs                          AgentAuditLog[]
@@ -1594,10 +1602,10 @@ model User {
   adminAuditLogs      AdminAuditLog[]       @relation("AdminAuditLogUser")
   adminSessionMetrics AdminSessionMetrics[] @relation("AdminSessionMetricsUser")
 
-  // Phase 4: Enterprise Auth Separation - Admin-only auth tables (added January 11, 2025)
-  adminAccounts               AdminAccount[]              @relation("AdminAccounts")
-  adminActiveSessions         AdminActiveSession[]        @relation("AdminActiveSessions")
-  adminTwoFactorConfirmation  AdminTwoFactorConfirmation? @relation("AdminTwoFactorConfirmation")
+  // Phase 4: Enterprise Auth Separation - REMOVED
+  // Admin auth is COMPLETELY SEPARATE from User auth
+  // AdminAccount, AdminActiveSession, AdminTwoFactorConfirmation have NO relation to User
+  // See AdminAccount model for admin-only authentication
 
   // User Preferences & Settings (added January 16, 2025)
   notificationPreferences UserNotificationPreferences?
@@ -1725,6 +1733,19 @@ model User {
   practiceLeaderboards       PracticeLeaderboard[]         @relation("UserPracticeLeaderboards")
   dailyPracticeLogs          DailyPracticeLog[]            @relation("UserDailyPracticeLogs")
   practiceGoals              PracticeGoal[]                @relation("UserPracticeGoals")
+
+  // Prediction Tracking System (added January 2026)
+  samPredictions             SAMPrediction[]               @relation("SAMPredictions")
+  samPredictionAccuracy      SAMPredictionAccuracy[]       @relation("SAMPredictionAccuracy")
+
+  // Recommendation Tracking (added January 2026)
+  samRecommendationTrackings SAMRecommendationTracking[]   @relation("SAMRecommendationTrackings")
+  samRecommendationStats     SAMRecommendationStats[]      @relation("SAMRecommendationStats")
+
+  // Phase 5: Market Integration - Certification & Portfolio (added January 2026)
+  samCertificationProgress   SAMCertificationProgress[]    @relation("SAMCertificationProgress")
+  samPortfolioSettings       SAMPortfolioSettings?         @relation("SAMPortfolioSettings")
+  samPortfolioProjects       SAMPortfolioProject[]         @relation("SAMPortfolioProjects")
 }
 
 model Account {
@@ -2025,7 +2046,7 @@ model AdminAccount {
   recoveryCodes     String[]     @default([])
 
   // OAuth Fields (for admin SSO if needed)
-  adminId           String?
+  // NOTE: adminId REMOVED - Admin auth is COMPLETELY SEPARATE from User auth
   type              String?
   provider          String?
   providerAccountId String?
@@ -2037,8 +2058,7 @@ model AdminAccount {
   id_token          String?      @db.Text
   session_state     String?
 
-  // Relation to User (optional, for linking to existing user if needed)
-  admin             User?        @relation("AdminAccounts", fields: [adminId], references: [id], onDelete: Cascade)
+  // REMOVED: admin User? relation - Admin auth is separate from User auth
 
   // Audit logs relation
   auditLogs         AdminAuditLog[]
@@ -2046,11 +2066,14 @@ model AdminAccount {
   // Active sessions relation
   activeSessions    AdminActiveSession[] @relation("AdminAccountSessions")
 
+  // Two-factor confirmation relation
+  twoFactorConfirmation AdminTwoFactorConfirmation?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([provider, providerAccountId])
-  @@index([adminId])
+  // REMOVED: @@index([adminId]) - adminId field removed
   @@index([provider])
   @@index([email])
   @@index([role])
@@ -2058,8 +2081,8 @@ model AdminAccount {
 
 model AdminActiveSession {
   id              String   @id @default(cuid())
-  adminId         String
-  adminAccountId  String?
+  // REMOVED: adminId String - was incorrectly linking to User table
+  adminAccountId  String   // Required - links to AdminAccount (admin auth is separate)
   sessionToken    String   @unique
   ipAddress       String
   userAgent       String?
@@ -2072,13 +2095,13 @@ model AdminActiveSession {
   isActive        Boolean  @default(true)
   lastActiveAt    DateTime @default(now())
 
-  admin           User          @relation("AdminActiveSessions", fields: [adminId], references: [id], onDelete: Cascade)
-  adminAccount    AdminAccount? @relation("AdminAccountSessions", fields: [adminAccountId], references: [id], onDelete: Cascade)
+  // REMOVED: admin User relation - Admin auth is COMPLETELY SEPARATE from User auth
+  adminAccount    AdminAccount @relation("AdminAccountSessions", fields: [adminAccountId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([adminId])
+  // REMOVED: @@index([adminId]) - field removed
   @@index([adminAccountId])
   @@index([sessionToken])
   @@index([expiresAt])
@@ -2086,9 +2109,10 @@ model AdminActiveSession {
 }
 
 model AdminTwoFactorConfirmation {
-  id      String @id @default(cuid())
-  adminId String @unique
-  admin   User   @relation("AdminTwoFactorConfirmation", fields: [adminId], references: [id], onDelete: Cascade)
+  id             String @id @default(cuid())
+  adminAccountId String @unique
+  // Links to AdminAccount - Admin auth is COMPLETELY SEPARATE from User auth
+  adminAccount   AdminAccount @relation(fields: [adminAccountId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -2255,6 +2279,10 @@ model Course {
   samSessionContexts           SAMSessionContext[]
   samVectorEmbeddings          SAMVectorEmbedding[]
 
+  // SAM Knowledge Graph Engine Relations (added January 2026)
+  samKnowledgeConcepts         SAMKnowledgeConcept[]          @relation("SAMKnowledgeConcepts")
+  samKnowledgeGraph            SAMKnowledgeGraph?             @relation("SAMKnowledgeGraph")
+
   study_streaks                study_streaks[]
   user_achievements            user_achievements[]
   user_progress                user_progress[]
@@ -2301,6 +2329,9 @@ model Course {
   // SAM Meta-Learning & Journey Relations (added January 2026)
   samLearningEvents        SAMLearningEvent[]      @relation("SAMLearningEventCourses")
   samJourneyTimelines      SAMJourneyTimeline[]    @relation("SAMJourneyTimelineCourses")
+
+  // Phase 5: Market Integration - Portfolio Projects (added January 2026)
+  samPortfolioProjects     SAMPortfolioProject[]   @relation("SAMPortfolioProjectCourses")
 
   // Phase 7: 10,000 Hour Practice Tracking Relations
   practiceSessions         PracticeSession[]       @relation("CoursePracticeSessions")
@@ -5549,13 +5580,6 @@ model UserAIPreferences {
   preferredCourseProvider   String?  @default("anthropic")  // Provider for course creation
   preferredAnalysisProvider String?  @default("anthropic")  // Provider for analysis tasks
   preferredCodeProvider     String?  @default("anthropic")  // Provider for code-related tasks
-
-  // Per-Provider Model Selection (added January 2026)
-  anthropicModel            String?  @default("claude-sonnet-4-5-20250929")   // claude-sonnet-4-20250514, claude-sonnet-4-5-20250929
-  deepseekModel             String?  @default("deepseek-chat")                // deepseek-chat, deepseek-reasoner
-  openaiModel               String?  @default("gpt-4o")                       // gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4, o1, o1-mini
-  geminiModel               String?  @default("gemini-pro")                   // gemini-pro, gemini-ultra
-  mistralModel              String?  @default("mistral-large")                // mistral-large, codestral, mistral-small
 }
 
 model AIModelPerformance {
@@ -8077,11 +8101,20 @@ model SAMRecommendation {
   isCompleted     Boolean                   @default(false)
   userRating      Int?
 
+  // Feedback tracking
+  feedbackType    SAMRecommendationFeedback?
+  feedbackComment String?                   @db.Text
+  feedbackAt      DateTime?
+  isDismissed     Boolean                   @default(false)
+  dismissedAt     DateTime?
+  dismissReason   String?
+
   // Relations
   user            User                      @relation("SAMRecommendations", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isViewed, isCompleted])
   @@index([priority])
+  @@index([feedbackType])
   @@map("sam_recommendations")
 }
 
@@ -8720,6 +8753,17 @@ model SAMPresenceHistory {
 enum SAMFeedbackRating {
   HELPFUL
   NOT_HELPFUL
+}
+
+enum SAMRecommendationFeedback {
+  HELPFUL
+  NOT_HELPFUL
+  TOO_EASY
+  TOO_HARD
+  NOT_RELEVANT
+  ALREADY_KNOW
+  WRONG_TIMING
+  COMPLETED_ELSEWHERE
 }
 
 model SAMFeedback {
@@ -9549,6 +9593,443 @@ model UserDeviceToken {
   @@index([userId, isActive])
   @@index([token])
   @@map("user_device_tokens")
+}
+
+// ==========================================
+// PREDICTION TRACKING MODELS
+// ==========================================
+
+enum SAMPredictionType {
+  GRADE
+  COMPLETION
+  MASTERY
+  ENGAGEMENT
+  RISK
+}
+
+enum SAMPredictionStatus {
+  ACTIVE
+  EXPIRED
+  VERIFIED_ACCURATE
+  VERIFIED_INACCURATE
+}
+
+model SAMPrediction {
+  id               String              @id @default(cuid())
+  userId           String
+  type             SAMPredictionType
+  title            String
+
+  // Prediction values
+  predictedValue   Float
+  confidence       Float               @default(0.5)
+  targetDate       DateTime?
+
+  // Context
+  courseId         String?
+  skillId          String?
+  contextData      Json?               // Additional context for the prediction
+
+  // Status tracking
+  status           SAMPredictionStatus @default(ACTIVE)
+
+  // Outcome tracking (filled in when verified)
+  actualValue      Float?
+  accuracyScore    Float?              // 0-1, how close was the prediction
+  verifiedAt       DateTime?
+  verificationMethod String?           // 'manual', 'automatic', 'system'
+
+  // Metadata
+  factors          Json?               // Contributing factors
+  notes            String?             @db.Text
+
+  // Timestamps
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  expiresAt        DateTime?
+
+  // Relations
+  user             User                @relation("SAMPredictions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, status])
+  @@index([userId, createdAt])
+  @@index([status, expiresAt])
+  @@map("sam_predictions")
+}
+
+// Aggregated prediction accuracy metrics
+model SAMPredictionAccuracy {
+  id               String              @id @default(cuid())
+  userId           String?             // null for system-wide metrics
+  type             SAMPredictionType?  // null for overall accuracy
+
+  // Accuracy metrics
+  totalPredictions Int                 @default(0)
+  verifiedCount    Int                 @default(0)
+  accurateCount    Int                 @default(0)
+
+  // Calculated metrics
+  accuracyRate     Float               @default(0)  // accurateCount / verifiedCount
+  avgConfidence    Float               @default(0)
+  avgError         Float               @default(0)  // Average prediction error
+
+  // Calibration data
+  calibrationData  Json?               // Confidence vs accuracy buckets
+
+  // Period
+  periodStart      DateTime
+  periodEnd        DateTime
+
+  // Timestamps
+  calculatedAt     DateTime            @default(now())
+
+  // Relations
+  user             User?               @relation("SAMPredictionAccuracy", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, periodStart])
+  @@index([userId, calculatedAt])
+  @@map("sam_prediction_accuracy")
+}
+
+// ==========================================
+// RECOMMENDATION TRACKING MODELS
+// ==========================================
+
+enum SAMRecommendationAction {
+  VIEWED
+  FOLLOWED
+  DISMISSED
+  DEFERRED
+}
+
+model SAMRecommendationTracking {
+  id                   String                  @id @default(cuid())
+  userId               String
+  recommendationId     String
+  recommendationType   String                  // content, practice, review, course, skill, etc.
+  action               SAMRecommendationAction @default(VIEWED)
+  wasFollowed          Boolean                 @default(false)
+
+  // Outcome tracking
+  outcomeScore         Float?                  // 0-100 measuring effectiveness
+  timeToAction         Int?                    // milliseconds from recommendation to action
+  outcomeRecordedAt    DateTime?
+
+  // Context
+  context              Json?                   // Additional context data
+  actionTimestamp      DateTime                @default(now())
+
+  // Timestamps
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  // Relations
+  user                 User                    @relation("SAMRecommendationTrackings", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recommendationType])
+  @@index([userId, createdAt])
+  @@index([recommendationType, wasFollowed])
+  @@map("sam_recommendation_trackings")
+}
+
+model SAMRecommendationStats {
+  id                   String   @id @default(cuid())
+  userId               String
+  recommendationType   String
+
+  // Counts
+  totalRecommendations Int      @default(0)
+  totalFollowed        Int      @default(0)
+
+  // Rates
+  followRate30d        Float    @default(0)    // Follow rate in last 30 days
+
+  // Timestamps
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relations
+  user                 User     @relation("SAMRecommendationStats", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recommendationType])
+  @@index([userId])
+  @@map("sam_recommendation_stats")
+}
+
+// ==========================================
+// CERTIFICATION PATHWAY MODELS
+// ==========================================
+
+model SAMCertificationProgress {
+  id                   String    @id @default(cuid())
+  userId               String
+  certificationId      String
+  certificationName    String
+  provider             String
+
+  // Status
+  status               String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, SCHEDULED, COMPLETED, EXPIRED
+
+  // Dates
+  startDate            DateTime?
+  targetDate           DateTime?
+  completedDate        DateTime?
+  expiryDate           DateTime?
+
+  // Progress tracking
+  studyProgress        Int       @default(0) // 0-100
+  studyHoursLogged     Int       @default(0)
+  practiceExamScores   Json      @default("[]") // Array of scores
+
+  // Study plan
+  studyPlanId          String?
+  nextMilestone        Json?     // { title: string, dueDate: string }
+
+  // Credential details (after completion)
+  credentialUrl        String?
+  credentialId         String?
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  user                 User      @relation("SAMCertificationProgress", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, certificationId])
+  @@index([userId, status])
+  @@index([certificationId])
+  @@map("sam_certification_progress")
+}
+
+// ==========================================
+// PORTFOLIO MODELS
+// ==========================================
+
+model SAMPortfolioSettings {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+
+  // Visibility
+  isPublic             Boolean   @default(false)
+
+  // Profile
+  title                String
+  bio                  String?   @db.Text
+  headline             String?
+
+  // Social links
+  socialLinks          Json?     // { linkedin?, github?, twitter?, website? }
+
+  // Customization
+  theme                String    @default("professional") // professional, creative, minimal, dark
+  featuredProjectIds   Json      @default("[]") // Array of project IDs
+  featuredSkillIds     Json      @default("[]") // Array of skill IDs
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  user                 User      @relation("SAMPortfolioSettings", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sam_portfolio_settings")
+}
+
+model SAMPortfolioProject {
+  id                   String    @id @default(cuid())
+  userId               String
+  courseId             String?
+
+  // Project details
+  title                String
+  description          String    @db.Text
+  type                 String    // personal, course, open_source, professional, hackathon, research
+
+  // Skills and technologies
+  skills               Json      @default("[]") // Array of skill names
+  technologies         Json      @default("[]") // Array of technology names
+
+  // Links
+  url                  String?
+  repositoryUrl        String?
+  imageUrl             String?
+
+  // Dates
+  startDate            DateTime?
+  endDate              DateTime?
+
+  // Details
+  highlights           Json      @default("[]") // Array of highlight strings
+  isPublic             Boolean   @default(true)
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  user                 User      @relation("SAMPortfolioProjects", fields: [userId], references: [id], onDelete: Cascade)
+  course               Course?   @relation("SAMPortfolioProjectCourses", fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([userId, isPublic])
+  @@map("sam_portfolio_projects")
+}
+
+// ==========================================
+// SOCIAL ENGINE ANALYTICS MODELS
+// ==========================================
+
+model SAMSocialAnalytics {
+  id                   String    @id @default(cuid())
+
+  // Context
+  groupId              String?
+  communityId          String?
+
+  // Type of analysis
+  type                 String    // effectiveness, engagement, sharing_impact, mentor_match, dynamics
+
+  // Analysis data
+  data                 Json      // Stored analysis results
+  overallScore         Float?    // Overall score for quick queries
+
+  // Timestamps
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([groupId, type])
+  @@index([communityId, type])
+  @@index([type, createdAt])
+  @@map("sam_social_analytics")
+}
+
+// ==========================================
+// KNOWLEDGE GRAPH ENGINE MODELS
+// ==========================================
+
+model SAMKnowledgeConcept {
+  id               String    @id @default(cuid())
+
+  // Identity
+  courseId         String
+  chapterId        String?
+  sectionId        String?
+
+  // Concept data
+  name             String
+  description      String
+  type             String    // FOUNDATIONAL, PROCEDURAL, CONCEPTUAL, METACOGNITIVE
+  bloomsLevel      String    // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
+  keywords         String[]  @default([])
+  confidence       Float     @default(0.7)
+
+  // Metadata
+  metadata         Json?
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  course           Course    @relation("SAMKnowledgeConcepts", fields: [courseId], references: [id], onDelete: Cascade)
+  sourceRelations  SAMConceptRelation[] @relation("SourceConcept")
+  targetRelations  SAMConceptRelation[] @relation("TargetConcept")
+  masteries        SAMConceptMastery[]
+
+  @@index([courseId])
+  @@index([courseId, chapterId])
+  @@index([type])
+  @@index([bloomsLevel])
+  @@map("sam_knowledge_concepts")
+}
+
+model SAMConceptRelation {
+  id               String    @id @default(cuid())
+
+  // Concept references
+  sourceConceptId  String
+  targetConceptId  String
+
+  // Relation data
+  relationType     String    // PREREQUISITE, SUPPORTS, EXTENDS, RELATED, CONTRASTS
+  strength         Float     @default(0.5)
+  confidence       Float     @default(0.7)
+  description      String?
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+
+  // Relations
+  sourceConcept    SAMKnowledgeConcept @relation("SourceConcept", fields: [sourceConceptId], references: [id], onDelete: Cascade)
+  targetConcept    SAMKnowledgeConcept @relation("TargetConcept", fields: [targetConceptId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceConceptId, targetConceptId, relationType])
+  @@index([sourceConceptId])
+  @@index([targetConceptId])
+  @@index([relationType])
+  @@map("sam_concept_relations")
+}
+
+model SAMKnowledgeGraph {
+  id               String    @id @default(cuid())
+
+  // Context
+  courseId         String    @unique
+
+  // Graph stats
+  totalConcepts    Int       @default(0)
+  totalRelations   Int       @default(0)
+  maxDepth         Int       @default(0)
+  averageConnections Float   @default(0)
+
+  // Cached analysis
+  rootConcepts     String[]  @default([])
+  terminalConcepts String[]  @default([])
+  stats            Json?
+
+  // Quality assessment
+  structureQuality Json?
+  recommendations  Json?
+
+  // Timestamps
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  course           Course    @relation("SAMKnowledgeGraph", fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("sam_knowledge_graphs")
+}
+
+model SAMConceptMastery {
+  id               String    @id @default(cuid())
+
+  // User and concept
+  userId           String
+  conceptId        String
+
+  // Mastery data
+  masteryLevel     String    @default("NOT_STARTED")  // NOT_STARTED, INTRODUCED, PRACTICING, PROFICIENT, MASTERED
+  score            Int       @default(0)
+  practiceCount    Int       @default(0)
+  evidence         Json?     // Array of evidence records
+
+  // Timestamps
+  lastPracticedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  user             User      @relation("SAMConceptMasteries", fields: [userId], references: [id], onDelete: Cascade)
+  concept          SAMKnowledgeConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conceptId])
+  @@index([userId])
+  @@index([conceptId])
+  @@index([userId, masteryLevel])
+  @@map("sam_concept_masteries")
 }
 
 // ==========================================
@@ -12494,6 +12975,10 @@ model PracticeChallengeParticipant {
   challengeId           String
   userId                String
 
+  // Linked Goal (auto-created when joining challenge)
+  linkedGoalId          String?               // Optional: auto-created practice goal for this challenge
+  linkedGoal            PracticeGoal?         @relation("ChallengeLinkedGoals", fields: [linkedGoalId], references: [id], onDelete: SetNull)
+
   // Progress
   hoursCompleted        Float                 @default(0)
   qualityHoursCompleted Float                 @default(0)
@@ -12521,6 +13006,7 @@ model PracticeChallengeParticipant {
   @@index([challengeId])
   @@index([userId])
   @@index([rank])
+  @@index([linkedGoalId])
   @@map("practice_challenge_participants")
 }
 
@@ -12673,6 +13159,7 @@ model PracticeGoal {
 
   // Relations
   user                  User                  @relation("UserPracticeGoals", fields: [userId], references: [id], onDelete: Cascade)
+  linkedChallenges      PracticeChallengeParticipant[] @relation("ChallengeLinkedGoals")
 
   @@index([userId])
   @@index([isCompleted])

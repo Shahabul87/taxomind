@@ -194,6 +194,9 @@ model User {
   samConversationMemories                 SAMConversationMemory[]              @relation("SAMConversationMemories")
   samVectorEmbeddings                     SAMVectorEmbedding[]
 
+  // SAM Knowledge Graph Engine Relations (added January 2026)
+  samConceptMasteries                     SAMConceptMastery[]                  @relation("SAMConceptMasteries")
+
   // Agent Tooling Relations
   agentToolInvocations                    AgentToolInvocation[]
   agentAuditLogs                          AgentAuditLog[]
@@ -272,10 +275,10 @@ model User {
   adminAuditLogs      AdminAuditLog[]       @relation("AdminAuditLogUser")
   adminSessionMetrics AdminSessionMetrics[] @relation("AdminSessionMetricsUser")
 
-  // Phase 4: Enterprise Auth Separation - Admin-only auth tables (added January 11, 2025)
-  adminAccounts               AdminAccount[]              @relation("AdminAccounts")
-  adminActiveSessions         AdminActiveSession[]        @relation("AdminActiveSessions")
-  adminTwoFactorConfirmation  AdminTwoFactorConfirmation? @relation("AdminTwoFactorConfirmation")
+  // Phase 4: Enterprise Auth Separation - REMOVED
+  // Admin auth is COMPLETELY SEPARATE from User auth
+  // AdminAccount, AdminActiveSession, AdminTwoFactorConfirmation have NO relation to User
+  // See AdminAccount model for admin-only authentication
 
   // User Preferences & Settings (added January 16, 2025)
   notificationPreferences UserNotificationPreferences?
@@ -716,7 +719,7 @@ model AdminAccount {
   recoveryCodes     String[]     @default([])
 
   // OAuth Fields (for admin SSO if needed)
-  adminId           String?
+  // NOTE: adminId REMOVED - Admin auth is COMPLETELY SEPARATE from User auth
   type              String?
   provider          String?
   providerAccountId String?
@@ -728,8 +731,7 @@ model AdminAccount {
   id_token          String?      @db.Text
   session_state     String?
 
-  // Relation to User (optional, for linking to existing user if needed)
-  admin             User?        @relation("AdminAccounts", fields: [adminId], references: [id], onDelete: Cascade)
+  // REMOVED: admin User? relation - Admin auth is separate from User auth
 
   // Audit logs relation
   auditLogs         AdminAuditLog[]
@@ -737,11 +739,14 @@ model AdminAccount {
   // Active sessions relation
   activeSessions    AdminActiveSession[] @relation("AdminAccountSessions")
 
+  // Two-factor confirmation relation
+  twoFactorConfirmation AdminTwoFactorConfirmation?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([provider, providerAccountId])
-  @@index([adminId])
+  // REMOVED: @@index([adminId]) - adminId field removed
   @@index([provider])
   @@index([email])
   @@index([role])
@@ -749,8 +754,8 @@ model AdminAccount {
 
 model AdminActiveSession {
   id              String   @id @default(cuid())
-  adminId         String
-  adminAccountId  String?
+  // REMOVED: adminId String - was incorrectly linking to User table
+  adminAccountId  String   // Required - links to AdminAccount (admin auth is separate)
   sessionToken    String   @unique
   ipAddress       String
   userAgent       String?
@@ -763,13 +768,13 @@ model AdminActiveSession {
   isActive        Boolean  @default(true)
   lastActiveAt    DateTime @default(now())
 
-  admin           User          @relation("AdminActiveSessions", fields: [adminId], references: [id], onDelete: Cascade)
-  adminAccount    AdminAccount? @relation("AdminAccountSessions", fields: [adminAccountId], references: [id], onDelete: Cascade)
+  // REMOVED: admin User relation - Admin auth is COMPLETELY SEPARATE from User auth
+  adminAccount    AdminAccount @relation("AdminAccountSessions", fields: [adminAccountId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([adminId])
+  // REMOVED: @@index([adminId]) - field removed
   @@index([adminAccountId])
   @@index([sessionToken])
   @@index([expiresAt])
@@ -777,9 +782,10 @@ model AdminActiveSession {
 }
 
 model AdminTwoFactorConfirmation {
-  id      String @id @default(cuid())
-  adminId String @unique
-  admin   User   @relation("AdminTwoFactorConfirmation", fields: [adminId], references: [id], onDelete: Cascade)
+  id             String @id @default(cuid())
+  adminAccountId String @unique
+  // Links to AdminAccount - Admin auth is COMPLETELY SEPARATE from User auth
+  adminAccount   AdminAccount @relation(fields: [adminAccountId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }

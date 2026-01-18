@@ -296,22 +296,22 @@ export declare const VectorMetadataSchema: z.ZodObject<{
     tags: string[];
     custom?: Record<string, unknown> | undefined;
     userId?: string | undefined;
+    contentHash?: string | undefined;
     courseId?: string | undefined;
     chapterId?: string | undefined;
     sectionId?: string | undefined;
     language?: string | undefined;
-    contentHash?: string | undefined;
 }, {
     sourceType: string;
     sourceId: string;
     custom?: Record<string, unknown> | undefined;
     userId?: string | undefined;
+    contentHash?: string | undefined;
     courseId?: string | undefined;
     chapterId?: string | undefined;
     sectionId?: string | undefined;
     tags?: string[] | undefined;
     language?: string | undefined;
-    contentHash?: string | undefined;
 }>;
 export declare const VectorSearchFilterSchema: z.ZodObject<{
     sourceTypes: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;

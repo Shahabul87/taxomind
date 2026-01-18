@@ -44,6 +44,8 @@ import { useSAMPageContext } from "@sam-ai/react";
 
 // SAM AI Course Learning Integration - Full AI mentor support during learning
 import { SAMCourseLearningIntegration } from "@/components/sam/course-learning";
+// Study Guide Generator - AI-powered personalized study plans
+import { StudyGuideGenerator } from "@/components/sam/study-guide";
 import type {
   UserWithRelations,
   CourseWithChapters,
@@ -456,6 +458,17 @@ export function EnterpriseSectionLearning({
                   </Button>
 
                   <div className="flex items-center gap-3">
+                    {/* Study Guide Generator Button */}
+                    {canTrackProgress && (
+                      <StudyGuideGenerator
+                        courseId={courseId}
+                        courseTitle={course.title}
+                        sectionId={sectionId}
+                        userId={user?.id}
+                        variant="compact"
+                      />
+                    )}
+
                     {canTrackProgress && !sectionCompleted && (
                       <Button
                         variant="outline"

@@ -7,12 +7,17 @@
 // ==========================================
 
 enum UserRole {
-  ADMIN
-  SUPERADMIN
   USER
+  // DEPRECATED: ADMIN and SUPERADMIN kept for backward compatibility only
+  // DO NOT use these for new code - Admin auth is COMPLETELY SEPARATE via AdminAccount
+  // Use AdminRole enum for admin-specific roles
+  ADMIN      // @deprecated - Use AdminAccount.role instead
+  SUPERADMIN // @deprecated - Use AdminAccount.role instead
 }
 
 // Admin-specific roles (for separate admin auth system)
+// NOTE: Admin authentication uses AdminAccount model, NOT User model
+// These roles should be used for AdminAccount.role, NOT User.role
 enum AdminRole {
   ADMIN
   SUPERADMIN

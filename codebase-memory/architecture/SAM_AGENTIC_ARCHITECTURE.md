@@ -189,7 +189,7 @@
 - `SocialEngine` - Social learning
 - `InnovationEngine` - Innovation lab
 
-### 3. `@sam-ai/react` - React Integration (22 Hooks)
+### 3. `@sam-ai/react` - React Integration (26 Hooks)
 **Location**: `packages/react/src/`
 
 | Hook | Purpose | Dashboard Widget |
@@ -216,6 +216,109 @@
 | `useCheckIn` | Check-in system | CheckInModal |
 | `useSkillBuildTrack` | Skill tracking | SkillBuildTracker |
 | `usePractice` | Practice sessions | PracticeTimer |
+| `useExamEngine` | Exam generation with Bloom's | EnhancedExamCreator |
+| `useQuestionBank` | Question bank management | QuestionBankBrowser |
+| `useInnovationFeatures` | Innovation features (DNA, Fitness, Buddy) | InnovationDashboard |
+| `useMultimodal` | Multimodal input processing | MultimodalUploader |
+
+#### Phase 6 Hooks - Educational Engines (New)
+
+**`useExamEngine`** - Exam generation with Bloom's Taxonomy alignment
+```typescript
+const {
+  isGenerating,
+  generatedExam,
+  error,
+  generateExam,
+  getExam,
+  getDefaultBloomsDistribution,
+} = useExamEngine({
+  courseId: 'course-id',
+  sectionIds: ['section-1', 'section-2'],
+  onExamGenerated: (exam) => console.log('Generated:', exam),
+});
+
+// Generate exam with Bloom's distribution
+await generateExam({
+  totalQuestions: 20,
+  timeLimit: 60,
+  bloomsDistribution: { REMEMBER: 15, UNDERSTAND: 20, APPLY: 25, ANALYZE: 20, EVALUATE: 15, CREATE: 5 },
+  adaptiveMode: true,
+});
+```
+
+**`useQuestionBank`** - Question bank CRUD operations
+```typescript
+const {
+  questions,
+  stats,
+  pagination,
+  isLoading,
+  getQuestions,
+  addQuestions,
+  deleteQuestion,
+  loadMore,
+} = useQuestionBank({
+  courseId: 'course-id',
+  pageSize: 20,
+});
+
+// Fetch questions by Bloom's level
+await getQuestions({ bloomsLevel: 'APPLY', difficulty: 'MEDIUM' });
+
+// Add questions to bank
+await addQuestions([{ text: 'Question text', type: 'MULTIPLE_CHOICE', bloomsLevel: 'UNDERSTAND', difficulty: 'MEDIUM' }]);
+```
+
+**`useInnovationFeatures`** - Cognitive Fitness, Learning DNA, Study Buddy AI, Quantum Paths
+```typescript
+const {
+  cognitiveFitness,
+  learningDNA,
+  studyBuddy,
+  quantumPaths,
+  assessCognitiveFitness,
+  generateLearningDNA,
+  createStudyBuddy,
+  createQuantumPath,
+} = useInnovationFeatures({ autoLoadStatus: true });
+
+// Assess cognitive fitness
+const fitness = await assessCognitiveFitness();
+
+// Generate learning DNA
+const dna = await generateLearningDNA();
+
+// Create AI study buddy
+const buddy = await createStudyBuddy({ type: 'motivator' });
+
+// Create quantum learning path
+const path = await createQuantumPath('Master TypeScript');
+```
+
+**`useMultimodal`** - Voice, image, handwriting, document processing
+```typescript
+const {
+  isProcessing,
+  processedInput,
+  error,
+  processInput,
+  validateInput,
+  fileToBase64,
+  extractText,
+  assessQuality,
+} = useMultimodal({
+  courseId: 'course-id',
+  onProcessingComplete: (result) => console.log('Processed:', result),
+});
+
+// Process file
+const file = await fileToBase64(inputFile);
+const validation = await validateInput(file);
+if (validation.isValid) {
+  await processInput(file, { enableOCR: true, generateAccessibilityData: true });
+}
+```
 
 ---
 
@@ -789,6 +892,9 @@ export function useExample() {
 | `lib/sam/memory-lifecycle-service.ts` | Memory reindexing | 28KB |
 | `lib/sam/progress-recorder.ts` | Blooms progress recording | 13KB |
 | `lib/sam/utils/blooms-normalizer.ts` | Blooms level normalization | 10KB |
+| `lib/adapters/adaptive-content-adapter.ts` | AdaptiveContentEngine database adapter | 6KB |
+| `lib/adapters/social-engine-adapter.ts` | SocialEngine database adapter | 7KB |
+| `lib/adapters/knowledge-graph-engine-adapter.ts` | KnowledgeGraphEngine database adapter | 10KB |
 
 ### Store Files (33 Total)
 
@@ -908,6 +1014,216 @@ NEWS_API_KEY=your-newsapi-key  # Optional, enables real news
 
 ---
 
+## Educational Engine API Integration
+
+### Research & Trends APIs
+
+| Route | Method | Component | Purpose |
+|-------|--------|-----------|---------|
+| `/api/sam/ai-research` | GET | `ResearchAssistant.tsx` | Academic paper search via ResearchEngine |
+| `/api/sam/agentic/analytics/trends` | GET | `TrendsExplorer.tsx` | Industry trends and skill demand |
+
+### Course Analysis APIs (Teacher Dashboard)
+
+| Route | Method | Component | Purpose |
+|-------|--------|-----------|---------|
+| `/api/sam/course-guide/recommendations` | POST | SAM Analysis Page | Detailed AI recommendations for course improvement |
+| `/api/sam/course-market-analysis/competitors` | GET/POST/DELETE | SAM Analysis Page | Competitor course tracking and analysis |
+| `/api/sam/course-guide` | GET/POST | SAM Analysis Page | Course guide generation and export |
+| `/api/sam/course-market-analysis` | POST | SAM Analysis Page | Market positioning analysis |
+| `/api/sam/blooms-analysis` | POST | SAM Analysis Page | Bloom&apos;s Taxonomy cognitive analysis |
+| `/api/sam/integrated-analysis` | GET/POST | SAM Analysis Page | Comprehensive integrated analysis |
+
+### Exam System APIs
+
+| Route | Method | Purpose | Notes |
+|-------|--------|---------|-------|
+| `/api/exams/evaluate` | POST | AI-powered exam evaluation | For enhanced exam system with essay/subjective questions |
+| `/api/exams/sam-assist` | POST | SAM AI grading assistance | Teacher grading support |
+| `/api/exams/grading-queue` | GET/POST/PATCH | Grading queue management | Manual grading workflow |
+| `/api/exams/results/[attemptId]` | GET | Exam results retrieval | Student exam results |
+| `/api/exams/generate-questions` | POST | AI question generation | Bloom&apos;s-aligned question generation |
+
+### Adaptive Content Engine API Integration
+
+The `AdaptiveContentEngine` from `@sam-ai/educational` is now fully integrated with a portable adapter pattern:
+
+**Adapter**: `lib/adapters/adaptive-content-adapter.ts`
+- Implements `AdaptiveContentDatabaseAdapter` interface from `@sam-ai/educational`
+- Uses Prisma for database operations
+- Singleton pattern via `getAdaptiveContentAdapter()`
+
+**API Routes**:
+
+| Route | Method | Purpose | Hook |
+|-------|--------|---------|------|
+| `/api/sam/adaptive-content` | GET/POST | Main endpoint (status, actions) | `useSAMAdaptiveContent` |
+| `/api/sam/adaptive-content/profile` | GET/POST | Get/create learner profile | `useSAMAdaptiveContent` |
+| `/api/sam/adaptive-content/profile/update` | POST | Update learner profile preferences | `useSAMAdaptiveContent` |
+| `/api/sam/adaptive-content/detect-style` | POST | Detect learning style from interactions | `useSAMAdaptiveContent` |
+| `/api/sam/adaptive-content/adapt` | POST | Adapt content for learner&apos;s style | `useSAMAdaptiveContent` |
+| `/api/sam/adaptive-content/interaction` | POST | Record content interactions | `useSAMAdaptiveContent` |
+| `/api/sam/adaptive-content/recommendations` | POST | Get content recommendations | `useSAMAdaptiveContent` |
+
+**Integration Pattern**:
+```typescript
+// API Route Pattern - Engine singleton with adapter
+import { createAdaptiveContentEngine } from '@sam-ai/educational';
+import { getAdaptiveContentAdapter, getSAMConfig } from '@/lib/adapters';
+
+let engineInstance: AdaptiveContentEngine | null = null;
+
+function getEngine(): AdaptiveContentEngine {
+  if (!engineInstance) {
+    const samConfig = getSAMConfig();
+    engineInstance = createAdaptiveContentEngine({
+      database: getAdaptiveContentAdapter(),
+      aiAdapter: samConfig.ai,
+      enableCaching: true,
+      minInteractionsForAdaptation: 5,
+    });
+  }
+  return engineInstance;
+}
+```
+
+**Features**:
+- VARK Learning Style Detection (visual, auditory, reading, kinesthetic, multimodal)
+- Content adaptation based on learner profile
+- Style-based recommendations
+- Interaction tracking for profile building
+- Content caching for performance
+
+### Social Engine API Integration
+
+The `SocialEngine` from `@sam-ai/educational` is now fully integrated with a portable adapter pattern:
+
+**Adapter**: `lib/adapters/social-engine-adapter.ts`
+- Implements `SocialDatabaseAdapter` interface from `@sam-ai/educational`
+- Uses Prisma for database operations with `SAMSocialAnalytics` model
+- Singleton pattern via `getSocialEngineAdapter()`
+
+**API Routes**:
+
+| Route | Method | Purpose | Description |
+|-------|--------|---------|-------------|
+| `/api/sam/social-engine` | GET/POST | Main endpoint | Engine status, execute actions |
+| `/api/sam/social-engine/effectiveness` | POST | Group effectiveness | Measure collaboration effectiveness |
+| `/api/sam/social-engine/engagement` | POST | Community engagement | Analyze engagement metrics |
+| `/api/sam/social-engine/knowledge-sharing` | POST | Knowledge sharing | Evaluate knowledge sharing impact |
+| `/api/sam/social-engine/mentor-matching` | POST | Mentor matching | Match mentors with mentees |
+| `/api/sam/social-engine/dynamics` | POST | Group dynamics | Assess group dynamics |
+
+**Integration Pattern**:
+```typescript
+// API Route Pattern - Engine singleton with adapter
+import { createSocialEngine } from '@sam-ai/educational';
+import type { SocialEngine } from '@sam-ai/educational';
+import { getSocialEngineAdapter } from '@/lib/adapters';
+
+let engineInstance: SocialEngine | null = null;
+
+function getEngine(): SocialEngine {
+  if (!engineInstance) {
+    engineInstance = createSocialEngine({
+      databaseAdapter: getSocialEngineAdapter(),
+    });
+  }
+  return engineInstance;
+}
+```
+
+**Features**:
+- Collaboration effectiveness measurement with knowledgeSharing, peerSupport, collaborativeLearning, communityBuilding metrics
+- Community engagement analysis with participation rate, interaction frequency, content contribution tracking
+- Knowledge sharing impact evaluation with learning outcomes and network effects
+- Mentor-mentee matching using database adapter for learning profiles
+- Group dynamics assessment with leadership, communication, conflict analysis
+- Automatic sentiment analysis for interactions
+
+**Database Model**: `SAMSocialAnalytics` stores analysis results by type (effectiveness, engagement, sharing_impact, mentor_match, dynamics).
+
+### Knowledge Graph Engine API Integration
+
+The `KnowledgeGraphEngine` from `@sam-ai/educational` is now fully integrated with a portable adapter pattern:
+
+**Adapter**: `lib/adapters/knowledge-graph-engine-adapter.ts`
+- Implements `KnowledgeGraphDatabaseAdapter` interface for concept, relation, graph, and mastery storage
+- Uses Prisma for database operations with 4 new models
+- Singleton pattern via `getKnowledgeGraphEngineAdapter()`
+
+**Database Models**:
+- `SAMKnowledgeConcept` - Stores extracted concepts with type, Bloom&apos;s level, keywords
+- `SAMConceptRelation` - Stores concept relationships (prerequisite, supports, extends, etc.)
+- `SAMKnowledgeGraph` - Stores graph metadata, stats, and quality assessments
+- `SAMConceptMastery` - Tracks user mastery progress for each concept
+
+**API Routes**:
+
+| Route | Method | Purpose | Description |
+|-------|--------|---------|-------------|
+| `/api/sam/knowledge-graph-engine` | GET/POST | Main endpoint | Engine status, actions |
+| `/api/sam/knowledge-graph-engine/extract-concepts` | POST | Concept extraction | Extract concepts from content |
+| `/api/sam/knowledge-graph-engine/analyze-course` | POST | Course analysis | Build knowledge graph for course |
+| `/api/sam/knowledge-graph-engine/prerequisites` | POST | Prerequisites | Analyze prerequisites for concept |
+| `/api/sam/knowledge-graph-engine/learning-path` | POST | Learning path | Generate optimal learning path |
+| `/api/sam/knowledge-graph-engine/mastery` | GET/POST | Mastery tracking | Get/update concept mastery |
+| `/api/sam/knowledge-graph-engine/graph` | GET/DELETE | Graph management | Retrieve or delete graph |
+
+**Integration Pattern**:
+```typescript
+// API Route Pattern - Engine singleton with SAMConfig
+import { createKnowledgeGraphEngine } from '@sam-ai/educational';
+import type { KnowledgeGraphEngine } from '@sam-ai/educational';
+import { getSAMConfig, getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
+
+let engineInstance: KnowledgeGraphEngine | null = null;
+
+function getEngine(): KnowledgeGraphEngine {
+  if (!engineInstance) {
+    const samConfig = getSAMConfig();
+    engineInstance = createKnowledgeGraphEngine({
+      samConfig,
+      enableAIExtraction: true,
+      confidenceThreshold: 0.7,
+      maxPrerequisiteDepth: 10,
+    });
+  }
+  return engineInstance;
+}
+```
+
+**Features**:
+- AI-powered concept extraction from educational content
+- Automatic relationship detection (prerequisite, supports, extends, related, contrasts)
+- Course structure quality analysis with scoring and recommendations
+- Prerequisite chain analysis with gap detection
+- Personalized learning path generation with multiple strategies (fastest, thorough, balanced)
+- Concept mastery tracking with evidence-based level progression
+- Bloom&apos;s Taxonomy and concept type classification
+
+**Note**: This is separate from `/api/sam/knowledge-graph/` which uses the agentic knowledge graph manager from `@sam-ai/agentic` for entity-based graph traversal.
+
+### Teacher SAM Analysis Page Integration
+
+The teacher SAM analysis page (`app/(protected)/teacher/courses/[courseId]/sam-analysis/page.tsx`) integrates:
+
+1. **Dashboard Tab**: SAMAnalyticsDashboard component
+2. **Market Analysis Tab**:
+   - Market insights (value, growth rate, optimal price, position)
+   - Competitor management (add, view, delete competitors)
+3. **Bloom&apos;s Analysis Tab**: Cognitive balance and depth analysis
+4. **Course Guide Tab**: Content depth, engagement, market acceptance metrics
+5. **Recommendations Tab**:
+   - Integrated recommendations from analysis engines
+   - AI-powered detailed recommendations with priority levels:
+     - 🚨 Immediate Actions (critical)
+     - ⚡ High Priority
+     - 📋 Medium Priority
+     - 🎯 Long Term Goals
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
@@ -916,6 +1232,10 @@ NEWS_API_KEY=your-newsapi-key  # Optional, enables real news
 | 1.1.0 | 2025-01-10 | Added observability, presence, student profile stores |
 | 1.2.0 | 2026-01-10 | Added realtime infrastructure and external knowledge |
 | 2.0.0 | 2026-01-17 | Comprehensive analysis update with full utilization status, 42+ stores, 232 routes, 122 components, all gaps resolved |
+| 2.1.0 | 2026-01-17 | Added Educational Engine API Integration section, documented previously unconnected APIs (ResearchAssistant, competitor management, course recommendations, exam evaluation) |
+| 2.2.0 | 2026-01-17 | Added AdaptiveContentEngine full integration with portable adapter pattern, 7 new API routes, VARK learning style detection |
+| 2.3.0 | 2026-01-17 | Added SocialEngine full integration with portable adapter pattern, 6 new API routes (effectiveness, engagement, knowledge-sharing, mentor-matching, dynamics) |
+| 2.4.0 | 2026-01-17 | Added KnowledgeGraphEngine full integration with portable adapter pattern, 7 new API routes (extract-concepts, analyze-course, prerequisites, learning-path, mastery, graph), 4 new Prisma models |
 
 ---
 

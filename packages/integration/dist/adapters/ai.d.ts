@@ -347,8 +347,8 @@ export declare const CompletionOptionsSchema: z.ZodObject<{
     seed: z.ZodOptional<z.ZodNumber>;
     user: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    user?: string | undefined;
     maxTokens?: number | undefined;
+    user?: string | undefined;
     topK?: number | undefined;
     model?: string | undefined;
     temperature?: number | undefined;
@@ -361,8 +361,8 @@ export declare const CompletionOptionsSchema: z.ZodObject<{
     } | undefined;
     seed?: number | undefined;
 }, {
-    user?: string | undefined;
     maxTokens?: number | undefined;
+    user?: string | undefined;
     topK?: number | undefined;
     model?: string | undefined;
     temperature?: number | undefined;
@@ -431,8 +431,8 @@ export declare const AIServiceConfigSchema: z.ZodObject<{
         seed: z.ZodOptional<z.ZodNumber>;
         user: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        user?: string | undefined;
         maxTokens?: number | undefined;
+        user?: string | undefined;
         topK?: number | undefined;
         model?: string | undefined;
         temperature?: number | undefined;
@@ -445,8 +445,8 @@ export declare const AIServiceConfigSchema: z.ZodObject<{
         } | undefined;
         seed?: number | undefined;
     }, {
-        user?: string | undefined;
         maxTokens?: number | undefined;
+        user?: string | undefined;
         topK?: number | undefined;
         model?: string | undefined;
         temperature?: number | undefined;
@@ -467,8 +467,8 @@ export declare const AIServiceConfigSchema: z.ZodObject<{
     timeout?: number | undefined;
     maxRetries?: number | undefined;
     defaultOptions?: {
-        user?: string | undefined;
         maxTokens?: number | undefined;
+        user?: string | undefined;
         topK?: number | undefined;
         model?: string | undefined;
         temperature?: number | undefined;
@@ -489,8 +489,8 @@ export declare const AIServiceConfigSchema: z.ZodObject<{
     timeout?: number | undefined;
     maxRetries?: number | undefined;
     defaultOptions?: {
-        user?: string | undefined;
         maxTokens?: number | undefined;
+        user?: string | undefined;
         topK?: number | undefined;
         model?: string | undefined;
         temperature?: number | undefined;

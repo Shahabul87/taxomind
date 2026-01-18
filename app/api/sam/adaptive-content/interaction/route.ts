@@ -1,0 +1,95 @@
+/**
+ * SAM Adaptive Content - Interaction Route
+ * POST /api/sam/adaptive-content/interaction
+ *
+ * Record content interactions for style detection.
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { z } from 'zod';
+import { createAdaptiveContentEngine } from '@sam-ai/educational';
+import type { AdaptiveContentEngine, ContentFormat } from '@sam-ai/educational';
+import { getAdaptiveContentAdapter, getSAMConfig } from '@/lib/adapters';
+import { logger } from '@/lib/logger';
+
+// Engine singleton
+let engineInstance: AdaptiveContentEngine | null = null;
+
+function getEngine(): AdaptiveContentEngine {
+  if (!engineInstance) {
+    const samConfig = getSAMConfig();
+    engineInstance = createAdaptiveContentEngine({
+      database: getAdaptiveContentAdapter(),
+      aiAdapter: samConfig.ai,
+      enableCaching: true,
+      minInteractionsForAdaptation: 5,
+    });
+  }
+  return engineInstance;
+}
+
+const InteractionSchema = z.object({
+  contentId: z.string(),
+  format: z.enum([
+    'text', 'video', 'audio', 'diagram', 'infographic',
+    'interactive', 'simulation', 'quiz', 'code_example', 'case_study'
+  ]),
+  timeSpent: z.number(),
+  scrollDepth: z.number().min(0).max(100),
+  replayCount: z.number().optional(),
+  pauseCount: z.number().optional(),
+  notesTaken: z.boolean().optional(),
+  completed: z.boolean(),
+  checkPerformance: z.number().min(0).max(100).optional(),
+  userId: z.string().optional(),
+  timestamp: z.string().optional(),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const parsed = InteractionSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: { message: 'Invalid request', details: parsed.error.errors } },
+        { status: 400 }
+      );
+    }
+
+    const userId = parsed.data.userId || session.user.id;
+    const engine = getEngine();
+
+    // Record the interaction
+    await engine.recordInteraction({
+      userId,
+      contentId: parsed.data.contentId,
+      format: parsed.data.format as ContentFormat,
+      timeSpent: parsed.data.timeSpent,
+      scrollDepth: parsed.data.scrollDepth,
+      replayCount: parsed.data.replayCount,
+      pauseCount: parsed.data.pauseCount,
+      notesTaken: parsed.data.notesTaken,
+      completed: parsed.data.completed,
+      checkPerformance: parsed.data.checkPerformance,
+      timestamp: parsed.data.timestamp ? new Date(parsed.data.timestamp) : new Date(),
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Interaction recorded',
+    });
+  } catch (error) {
+    logger.error('[AdaptiveContent Interaction] POST error:', error);
+    return NextResponse.json(
+      { success: false, error: { message: 'Failed to record interaction' } },
+      { status: 500 }
+    );
+  }
+}
