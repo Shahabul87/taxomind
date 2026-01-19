@@ -148,14 +148,19 @@ export function ResourceIntelligenceContent({
     setIsLoading(true);
     try {
       const response = await axios.post("/api/sam/resource-intelligence", {
-        action: "discover-resources",
+        action: "discover",
         data: {
-          topics: [sectionTitle, courseTitle, chapterTitle].filter(Boolean),
-          courseId,
-          sectionId,
-          qualityThreshold: 0.7,
-          maxResults: 20,
-          includeAIInsights: true,
+          topic: {
+            name: sectionTitle,
+            category: courseTitle || "general",
+            keywords: [sectionTitle, courseTitle, chapterTitle].filter(Boolean),
+            difficulty: "medium",
+            courseId,
+          },
+          config: {
+            qualityThreshold: 0.7,
+            maxResults: 20,
+          },
         },
       });
 
