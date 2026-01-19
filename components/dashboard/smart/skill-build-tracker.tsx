@@ -1355,7 +1355,7 @@ function getProgressToNextLevel(score: number, currentLevel: ProficiencyLevel): 
   const range = nextThreshold - currentThreshold;
   const progress = score - currentThreshold;
 
-  return Math.min(100, Math.max(0, (progress / range) * 100));
+  return Math.round(Math.min(100, Math.max(0, (progress / range) * 100)));
 }
 
 // ============================================================================
