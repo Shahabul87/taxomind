@@ -414,7 +414,7 @@ export function ProactiveInterventions({
       <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <Bell className="h-5 w-5 text-purple-500" />
               SAM Check-ins
             </CardTitle>
@@ -458,7 +458,7 @@ export function ProactiveInterventions({
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
             <Bell className="h-5 w-5 text-purple-500" />
             Proactive Interventions
           </CardTitle>

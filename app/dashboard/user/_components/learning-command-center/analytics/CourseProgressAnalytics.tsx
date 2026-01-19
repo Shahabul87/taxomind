@@ -272,7 +272,7 @@ export function CourseProgressAnalytics({
       <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <BarChart3 className="h-5 w-5 text-blue-500" />
               Course Progress
             </CardTitle>
@@ -326,7 +326,7 @@ export function CourseProgressAnalytics({
           </div>
 
           {courses.length > 3 && (
-            <Button variant="ghost" size="sm" className="w-full text-slate-500">
+            <Button variant="outline" size="sm" className="w-full hover:bg-blue-50 dark:hover:bg-blue-950/30">
               View all {courses.length} courses
             </Button>
           )}
@@ -340,7 +340,7 @@ export function CourseProgressAnalytics({
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
             <BarChart3 className="h-5 w-5 text-blue-500" />
             Course Progress Overview
           </CardTitle>

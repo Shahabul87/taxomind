@@ -272,38 +272,46 @@ export function StudyHeatmap({
 
   if (compact) {
     return (
-      <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Calendar className="h-4 w-4 text-emerald-500" />
+      <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
+            <Calendar className="h-5 w-5 text-emerald-500" />
             Study Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
             </div>
           ) : (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Flame className="h-4 w-4 text-orange-500" />
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {data.stats.currentStreak}
-                  </span>
-                  <span className="text-xs text-slate-500">day streak</span>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 dark:from-emerald-950/30 dark:to-teal-950/30">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                    <Flame className="h-5 w-5 text-orange-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {data.stats.currentStreak}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">day streak</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4 text-blue-500" />
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {data.stats.totalStudyHours}
-                  </span>
-                  <span className="text-xs text-slate-500">hours</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                    <Clock className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {data.stats.totalStudyHours}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">hours</p>
+                  </div>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="text-xs">
-                View Full
+              <Button variant="outline" size="sm" className="w-full text-sm hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                View Full Activity
               </Button>
             </div>
           )}
@@ -316,7 +324,7 @@ export function StudyHeatmap({
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
             <Calendar className="h-5 w-5 text-emerald-500" />
             Study Activity - {year}
           </CardTitle>

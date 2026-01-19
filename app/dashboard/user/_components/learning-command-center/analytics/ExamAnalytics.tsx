@@ -390,9 +390,9 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
   // Compact view for overview tab
   if (compact) {
     return (
-      <Card className={cn('border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70', className)}>
+      <Card className={cn('border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full', className)}>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
             <ClipboardCheck className="h-5 w-5 text-indigo-500" />
             Exam Performance
           </CardTitle>
@@ -491,7 +491,7 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
                 <Brain className="h-5 w-5 text-purple-500" />
                 Cognitive Level Performance
               </CardTitle>
@@ -526,7 +526,7 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
                 <Lightbulb className="h-5 w-5 text-amber-500" />
                 SAM AI Recommendations
               </CardTitle>
@@ -585,7 +585,7 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
         <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <ClipboardCheck className="h-5 w-5 text-slate-500" />
               Recent Exam Attempts
             </CardTitle>

@@ -313,7 +313,7 @@ export function GoalsProgress({
       <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg">
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
               <Target className="h-5 w-5 text-emerald-500" />
               Goals Progress
             </CardTitle>
@@ -347,7 +347,7 @@ export function GoalsProgress({
 
           {/* View All Button */}
           <Link href="/dashboard/user/goals" className="block">
-            <Button variant="outline" size="sm" className="w-full">
+            <Button variant="outline" size="sm" className="w-full hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
               View All Goals
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
