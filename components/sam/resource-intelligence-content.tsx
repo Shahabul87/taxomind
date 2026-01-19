@@ -177,7 +177,7 @@ export function ResourceIntelligenceContent({
     } finally {
       setIsLoading(false);
     }
-  }, [courseId, sectionId, sectionTitle, courseTitle, chapterTitle]);
+  }, [courseId, sectionTitle, courseTitle, chapterTitle]);
 
   // Initial fetch
   useEffect(() => {
