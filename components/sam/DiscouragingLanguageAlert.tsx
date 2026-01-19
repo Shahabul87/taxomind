@@ -361,7 +361,7 @@ export function DiscouragingLanguageAlert({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldAlert className={cn('w-5 h-5', hasCritical ? 'text-red-500' : 'text-yellow-500')} />
-              <CardTitle className="text-lg">Language Safety Alert</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Language Safety Alert</CardTitle>
             </div>
             <div className="flex items-center gap-2">
               <Badge

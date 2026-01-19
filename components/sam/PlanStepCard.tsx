@@ -199,7 +199,7 @@ export function PlanStepCard({
               </span>
             </div>
             <div>
-              <CardTitle className="text-lg">{step.title}</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">{step.title}</CardTitle>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline" className={typeConfig.color}>
                   <TypeIcon className="h-3 w-3 mr-1" />

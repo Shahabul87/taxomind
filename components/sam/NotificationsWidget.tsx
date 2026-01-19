@@ -292,7 +292,7 @@ export function NotificationsWidget({
               )}
             </div>
             <div>
-              <CardTitle className="text-lg">Notifications</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Notifications</CardTitle>
               <p className="text-xs text-muted-foreground">
                 {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
               </p>

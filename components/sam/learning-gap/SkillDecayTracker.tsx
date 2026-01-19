@@ -222,7 +222,7 @@ export function SkillDecayTracker({
               <TrendingDown className="h-5 w-5 text-orange-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Skill Decay Tracker</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Skill Decay Tracker</CardTitle>
               <CardDescription>Skills at risk of knowledge decay</CardDescription>
             </div>
           </div>

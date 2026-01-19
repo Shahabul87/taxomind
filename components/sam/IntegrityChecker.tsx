@@ -457,7 +457,7 @@ export function IntegrityChecker({
               <Shield className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Integrity Checker</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Integrity Checker</CardTitle>
               <CardDescription>Verify academic integrity of submissions</CardDescription>
             </div>
           </div>

@@ -448,7 +448,7 @@ export function CollaborationSpace({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle className="text-lg">{session.name}</CardTitle>
+                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">{session.name}</CardTitle>
                 {session.isLive && (
                   <Badge className="bg-red-500/10 text-red-600 text-xs">
                     <span className="w-2 h-2 rounded-full bg-red-500 mr-1 animate-pulse" />

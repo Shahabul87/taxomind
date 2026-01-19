@@ -539,7 +539,7 @@ export function MetacognitionPanel({
               <Brain className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Metacognition</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Metacognition</CardTitle>
               <CardDescription>Reflect on your learning process</CardDescription>
             </div>
           </div>

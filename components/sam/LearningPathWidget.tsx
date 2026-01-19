@@ -418,7 +418,7 @@ export function LearningPathWidget({
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Route className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Learning Path</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Learning Path</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center py-8 gap-4">
@@ -466,7 +466,7 @@ export function LearningPathWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Route className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Learning Path</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Learning Path</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={fetchData}>

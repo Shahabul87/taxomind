@@ -345,7 +345,31 @@ export function CheckInHistory({
       }
 
       const response = await fetch(`/api/sam/agentic/checkins/history?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch check-in history');
+
+      if (!response.ok) {
+        // Parse the error response to get more details
+        let errorMessage = 'Failed to fetch check-in history';
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+          if (response.status === 401) {
+            errorMessage = 'Please sign in to view check-in history';
+          }
+          console.error('[CheckInHistory] API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData,
+          });
+        } catch {
+          console.error('[CheckInHistory] API error:', {
+            status: response.status,
+            statusText: response.statusText,
+          });
+        }
+        throw new Error(errorMessage);
+      }
 
       const data = await response.json();
       if (data.success && data.data?.history) {
@@ -354,8 +378,9 @@ export function CheckInHistory({
         setItems([]);
       }
     } catch (err) {
-      console.error('[CheckInHistory] Fetch error:', err);
-      setError('Failed to load check-in history');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load check-in history';
+      console.error('[CheckInHistory] Fetch error:', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -407,7 +407,7 @@ export function MetaLearningInsightsWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Meta-Learning Insights</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Meta-Learning Insights</CardTitle>
           </div>
           <Button variant="ghost" size="icon" onClick={fetchData}>
             <RefreshCw className="w-4 h-4" />

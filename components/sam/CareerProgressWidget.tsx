@@ -455,7 +455,7 @@ export function CareerProgressWidget({
               <TrendingUp className="w-5 h-5 text-purple-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Career Progress</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Career Progress</CardTitle>
               <CardDescription>Certifications, portfolio &amp; readiness</CardDescription>
             </div>
           </div>

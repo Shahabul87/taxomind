@@ -248,7 +248,7 @@ export function LearningRecommendationsWidget({
               <Sparkles className="h-5 w-5 text-purple-500" />
             </div>
             <div>
-              <CardTitle className="text-lg">Learning Recommendations</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Learning Recommendations</CardTitle>
               <p className="text-xs text-muted-foreground">
                 {recommendations.length > 0
                   ? `${recommendations.length} recommendations - ${totalEstimatedTime} min total`

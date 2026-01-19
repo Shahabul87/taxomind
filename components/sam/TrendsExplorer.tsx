@@ -410,7 +410,7 @@ export function TrendsExplorer({
               <TrendingUp className="w-5 h-5 text-orange-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Trends Explorer</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Trends Explorer</CardTitle>
               <CardDescription>Industry trends &amp; skill demand insights</CardDescription>
             </div>
           </div>

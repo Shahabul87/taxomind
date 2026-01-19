@@ -291,7 +291,7 @@ function ConceptDetailsPanel({
             &times;
           </Button>
         </div>
-        <CardTitle className="text-lg">{details.entity.name}</CardTitle>
+        <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">{details.entity.name}</CardTitle>
         {details.entity.description && (
           <CardDescription>{details.entity.description}</CardDescription>
         )}

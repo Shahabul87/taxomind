@@ -548,7 +548,7 @@ export function CompetencyDashboard({
               <Award className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Competency Dashboard</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Competency Dashboard</CardTitle>
               <CardDescription>Skills framework &amp; career path analysis</CardDescription>
             </div>
           </div>

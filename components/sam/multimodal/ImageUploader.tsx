@@ -10,7 +10,7 @@ import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
-  ImageIcon,
+  Image as ImageIcon,
   Upload,
   X,
   ZoomIn,
@@ -198,7 +198,7 @@ export function ImageUploader({
               "relative rounded-2xl border-2 border-dashed transition-all duration-200",
               isDragging
                 ? "border-violet-500 bg-violet-500/10"
-                : "border-slate-700 bg-slate-900/50 hover:border-slate-600 hover:bg-slate-800/50"
+                : "border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/50 dark:hover:border-slate-600 dark:hover:bg-slate-800/50"
             )}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
@@ -214,21 +214,21 @@ export function ImageUploader({
                   "h-16 w-16 rounded-2xl flex items-center justify-center mb-4",
                   isDragging
                     ? "bg-violet-500/20"
-                    : "bg-gradient-to-br from-slate-800 to-slate-700"
+                    : "bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-700"
                 )}
               >
                 <ImageIcon
                   className={cn(
                     "h-8 w-8",
-                    isDragging ? "text-violet-400" : "text-slate-400"
+                    isDragging ? "text-violet-400" : "text-slate-500 dark:text-slate-400"
                   )}
                 />
               </motion.div>
 
-              <h3 className="text-lg font-medium text-white mb-1">
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">
                 {isDragging ? "Drop your image here" : "Upload an image"}
               </h3>
-              <p className="text-sm text-slate-400 mb-4 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 text-center">
                 Drag and drop or click to browse
               </p>
 
@@ -236,7 +236,7 @@ export function ImageUploader({
                 <Button
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-slate-600 hover:bg-slate-700"
+                  className="border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Browse Files
@@ -250,7 +250,7 @@ export function ImageUploader({
                           variant="outline"
                           size="icon"
                           onClick={() => cameraInputRef.current?.click()}
-                          className="border-slate-600 hover:bg-slate-700"
+                          className="border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700"
                         >
                           <Camera className="h-4 w-4" />
                         </Button>

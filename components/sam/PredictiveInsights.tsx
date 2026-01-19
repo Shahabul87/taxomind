@@ -447,7 +447,7 @@ export function PredictiveInsights({
               <LineChart className="w-5 h-5 text-cyan-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Predictive Insights</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Predictive Insights</CardTitle>
               <CardDescription>AI-powered learning outcome predictions</CardDescription>
             </div>
           </div>

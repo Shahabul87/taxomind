@@ -195,7 +195,7 @@ export function TrendAnalysisChart({
               <BarChart3 className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Trend Analysis</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Trend Analysis</CardTitle>
               <CardDescription>
                 Learning velocity and progress trends
               </CardDescription>

@@ -513,7 +513,7 @@ export function SocialLearningFeed({
               <MessageCircle className="w-5 h-5 text-pink-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Learning Community</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Learning Community</CardTitle>
               <CardDescription>Share, discuss, and grow together</CardDescription>
             </div>
           </div>

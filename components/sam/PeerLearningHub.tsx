@@ -509,7 +509,7 @@ export function PeerLearningHub({
               <Users className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Peer Learning Hub</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Peer Learning Hub</CardTitle>
               <CardDescription>Connect, collaborate, and grow together</CardDescription>
             </div>
           </div>

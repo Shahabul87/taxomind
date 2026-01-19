@@ -215,7 +215,7 @@ export function PersonalizedRecommendations({
               <Sparkles className="h-5 w-5 text-purple-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">AI Recommendations</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">AI Recommendations</CardTitle>
               <CardDescription>
                 Personalized actions to close your gaps
               </CardDescription>

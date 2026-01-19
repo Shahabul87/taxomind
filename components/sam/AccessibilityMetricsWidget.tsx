@@ -359,7 +359,7 @@ export function AccessibilityMetricsWidget({
         <CardHeader>
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Accessibility Metrics</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Accessibility Metrics</CardTitle>
           </div>
           <CardDescription>
             Analyze text for readability and accessibility
@@ -381,7 +381,7 @@ export function AccessibilityMetricsWidget({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Eye className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Accessibility Metrics</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Accessibility Metrics</CardTitle>
           </div>
           <div className="flex items-center gap-2">
             {result.passed ? (

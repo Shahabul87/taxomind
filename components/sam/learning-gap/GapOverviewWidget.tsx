@@ -281,7 +281,7 @@ export function GapOverviewWidget({
             <Target className="h-5 w-5 text-red-600" />
           </div>
           <div>
-            <CardTitle className="text-lg">Gap Overview</CardTitle>
+            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Gap Overview</CardTitle>
             <CardDescription>
               Knowledge gaps requiring attention
             </CardDescription>

@@ -193,7 +193,7 @@ function formatTimeAgo(dateString: string): string {
 // ============================================================================
 
 function OverallStatus({ status }: { status: HealthStatus['overall'] }) {
-  const config = STATUS_CONFIG[status];
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.unknown;
   const Icon = config.icon;
 
   return (
@@ -219,7 +219,7 @@ function OverallStatus({ status }: { status: HealthStatus['overall'] }) {
 }
 
 function ServiceCard({ service }: { service: ServiceHealth }) {
-  const config = STATUS_CONFIG[service.status];
+  const config = STATUS_CONFIG[service.status] || STATUS_CONFIG.unknown;
   const Icon = SERVICE_ICONS[service.name] || SERVICE_ICONS.default;
   const StatusIcon = config.icon;
 
@@ -449,7 +449,7 @@ export function SAMHealthDashboard({
 
   // Compact mode
   if (compact) {
-    const config = STATUS_CONFIG[health.overall];
+    const config = STATUS_CONFIG[health.overall] || STATUS_CONFIG.unknown;
     const StatusIcon = config.icon;
 
     return (
@@ -465,7 +465,7 @@ export function SAMHealthDashboard({
             SAM: {config.label}
           </div>
           <div className="text-xs text-gray-500">
-            {health.metrics.requestsPerMinute} req/min
+            {health.metrics?.requestsPerMinute ?? 0} req/min
           </div>
         </div>
         {unackedAlerts > 0 && (

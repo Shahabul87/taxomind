@@ -539,7 +539,7 @@ export function MicrolearningWidget({
               <Zap className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">Quick Learning</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Quick Learning</CardTitle>
               <CardDescription>Bite-sized lessons for busy schedules</CardDescription>
             </div>
           </div>
