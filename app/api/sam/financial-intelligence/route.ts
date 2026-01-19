@@ -5,6 +5,7 @@ import { createFinancialEngine } from "@sam-ai/educational";
 import type { DateRange } from "@sam-ai/educational";
 import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
+import type { SAMInteractionType } from '@prisma/client';
 
 // Create financial engine singleton with portable package
 let financialEngine: ReturnType<typeof createFinancialEngine> | null = null;
@@ -19,21 +20,31 @@ function getFinancialEngine() {
   return financialEngine;
 }
 
+async function recordSAMInteraction(
+  userId: string,
+  courseId: string | undefined,
+  interactionType: SAMInteractionType,
+  context: Record<string, unknown>
+) {
+  try {
+    await db.sAMInteraction.create({
+      data: {
+        userId,
+        courseId,
+        interactionType,
+        context,
+      },
+    });
+  } catch (error) {
+    logger.warn('Failed to record SAM interaction for financial intelligence', error);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Check if user has admin privileges
-    const isAdmin = session.user.role === "ADMIN";
-
-    if (!isAdmin) {
-      return NextResponse.json(
-        { error: "Admin privileges required" },
-        { status: 403 }
-      );
     }
 
     const body = await req.json();
@@ -46,32 +57,83 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if user has admin privileges
+    const isAdmin = session.user.role === "ADMIN";
+    let organizationId = data.organizationId as string | undefined;
+
+    if (!isAdmin) {
+      if (action !== "profitability-analysis") {
+        return NextResponse.json(
+          { error: "Admin privileges required" },
+          { status: 403 }
+        );
+      }
+
+      if (!data.courseId) {
+        return NextResponse.json(
+          { error: "Course ID is required for profitability analysis" },
+          { status: 400 }
+        );
+      }
+
+      const course = await db.course.findUnique({
+        where: { id: data.courseId },
+        select: { userId: true, organizationId: true },
+      });
+
+      if (!course) {
+        return NextResponse.json({ error: "Course not found" }, { status: 404 });
+      }
+
+      if (course.userId !== session.user.id) {
+        return NextResponse.json(
+          { error: "Access denied to this course" },
+          { status: 403 }
+        );
+      }
+
+      organizationId = course.organizationId ?? session.user.id;
+    } else if (!organizationId && data.courseId) {
+      const course = await db.course.findUnique({
+        where: { id: data.courseId },
+        select: { organizationId: true },
+      });
+      organizationId = course?.organizationId ?? organizationId;
+    }
+
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: "Organization ID is required" },
+        { status: 400 }
+      );
+    }
+
     let result;
     switch (action) {
       case "analyze-financials":
         result = await handleAnalyzeFinancials(
-          data.organizationId,
+          organizationId,
           data.dateRange
         );
         break;
 
       case "revenue-analysis":
         result = await handleRevenueAnalysis(
-          data.organizationId,
+          organizationId,
           data.dateRange
         );
         break;
 
       case "cost-analysis":
         result = await handleCostAnalysis(
-          data.organizationId,
+          organizationId,
           data.dateRange
         );
         break;
 
       case "profitability-analysis":
         result = await handleProfitabilityAnalysis(
-          data.organizationId,
+          organizationId,
           data.dateRange,
           data.courseId
         );
@@ -79,21 +141,21 @@ export async function POST(req: NextRequest) {
 
       case "pricing-optimization":
         result = await handlePricingOptimization(
-          data.organizationId,
+          organizationId,
           data.courseIds
         );
         break;
 
       case "subscription-metrics":
         result = await handleSubscriptionMetrics(
-          data.organizationId,
+          organizationId,
           data.dateRange
         );
         break;
 
       case "financial-forecast":
         result = await handleFinancialForecast(
-          data.organizationId,
+          organizationId,
           data.forecastPeriod
         );
         break;
@@ -104,6 +166,12 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
     }
+
+    await recordSAMInteraction(session.user.id, data.courseId, 'ANALYTICS_VIEW', {
+      action,
+      organizationId,
+      courseId: data.courseId,
+    });
 
     return NextResponse.json({
       success: true,

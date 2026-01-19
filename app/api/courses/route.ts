@@ -16,6 +16,7 @@ import {
   createErrorResponse as createApiError,
 } from '@/lib/api/api-responses';
 import { logCourseCreation } from '@/lib/audit/course-audit';
+import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -192,6 +193,13 @@ export async function POST(req: Request): Promise<Response> {
       userId: user.id,
       responseTime,
     });
+
+    // 9.1 Track achievement progress asynchronously
+    getAchievementEngine()
+      .trackProgress(user.id, 'content_created', { courseId: course.id }, { courseId: course.id })
+      .catch((err) => {
+        logger.warn('[COURSES] Achievement tracking failed', { error: err });
+      });
 
     // 10. Return standardized success response
     return createApiSuccess(course, 201, undefined, {

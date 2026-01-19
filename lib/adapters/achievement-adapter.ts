@@ -152,6 +152,19 @@ export function createAchievementDatabaseAdapter(): AchievementDatabaseAdapter {
       };
       const mappedStreakType = streakTypeMap[data.streakType] ?? 'DAILY_INTERACTION';
 
+      const existing = await db.sAMStreak.findUnique({
+        where: { userId },
+        select: { lastActivityDate: true },
+      });
+
+      if (existing?.lastActivityDate) {
+        const last = new Date(existing.lastActivityDate);
+        const now = new Date();
+        if (last.toDateString() === now.toDateString()) {
+          return;
+        }
+      }
+
       // SAMStreak has userId as unique - one streak per user
       await db.sAMStreak.upsert({
         where: {
@@ -186,12 +199,24 @@ export function createAchievementDatabaseAdapter(): AchievementDatabaseAdapter {
     }): Promise<void> {
       type SAMInteractionType = 'NAVIGATION' | 'FORM_POPULATE' | 'FORM_SUBMIT' | 'FORM_VALIDATE' | 'CONTENT_GENERATE' | 'CHAT_MESSAGE' | 'QUICK_ACTION' | 'ANALYTICS_VIEW' | 'GAMIFICATION_ACTION' | 'LEARNING_ASSISTANCE';
       const validType: SAMInteractionType = 'GAMIFICATION_ACTION';
+      const actionAliases: Record<string, string> = {
+        content_created: 'create_content',
+        form_completed: 'form_completion',
+        ai_assistance_used: 'use_ai',
+        collaboration: 'collaboration',
+      };
+      const mappedAction = actionAliases[data.interactionType] ?? data.interactionType;
 
       await db.sAMInteraction.create({
         data: {
           userId: data.userId,
           interactionType: validType,
-          context: { action: data.interactionType, data: data.context, result: data.result },
+          context: {
+            action: mappedAction,
+            rawAction: data.interactionType,
+            data: data.context,
+            result: data.result,
+          },
           actionTaken: data.result,
           courseId: data.courseId,
           chapterId: data.chapterId,
@@ -268,14 +293,107 @@ export function createAchievementDatabaseAdapter(): AchievementDatabaseAdapter {
       achievementId: string,
       userId: string
     ): Promise<AchievementProgress> {
-      const badges = await db.sAMBadge.findMany({
-        where: { userId, description: achievementId },
-      });
+      const targetMap: Record<string, number> = {
+        first_course_created: 1,
+        first_chapter_completed: 1,
+        ai_assistant_used: 1,
+        streak_7_days: 7,
+        streak_30_days: 30,
+        collaboration_first: 1,
+        content_creator_10: 10,
+        mastery_quiz_perfect: 1,
+      };
+
+      const target = targetMap[achievementId] ?? 1;
+      let current = 0;
+
+      switch (achievementId) {
+        case 'first_course_created': {
+          current = await db.course.count({ where: { userId } });
+          break;
+        }
+        case 'first_chapter_completed': {
+          current = await db.userChapterCompletion.count({
+            where: { userId, completedAt: { not: null } },
+          });
+          break;
+        }
+        case 'ai_assistant_used': {
+          current = await db.sAMInteraction.count({
+            where: {
+              userId,
+              OR: [
+                {
+                  context: {
+                    path: ['action'],
+                    equals: 'use_ai',
+                  },
+                },
+                {
+                  context: {
+                    path: ['action'],
+                    equals: 'ai_assistance_used',
+                  },
+                },
+              ],
+            },
+          });
+          break;
+        }
+        case 'streak_7_days':
+        case 'streak_30_days': {
+          const streak = await db.sAMStreak.findUnique({ where: { userId } });
+          current = Math.max(streak?.currentStreak ?? 0, streak?.longestStreak ?? 0);
+          break;
+        }
+        case 'collaboration_first': {
+          const [discussions, comments] = await Promise.all([
+            db.groupDiscussion.count({ where: { authorId: userId } }),
+            db.groupDiscussionComment.count({ where: { authorId: userId } }),
+          ]);
+          current = discussions + comments;
+          break;
+        }
+        case 'content_creator_10': {
+          const [courses, chapters, sections] = await Promise.all([
+            db.course.count({ where: { userId } }),
+            db.chapter.count({ where: { course: { userId } } }),
+            db.section.count({ where: { chapter: { course: { userId } } } }),
+          ]);
+          current = courses + chapters + sections;
+          break;
+        }
+        case 'mastery_quiz_perfect': {
+          const [examAttempts, selfAssessmentAttempts] = await Promise.all([
+            db.userExamAttempt.findMany({
+              where: { userId, totalQuestions: { gt: 0 } },
+              select: { scorePercentage: true, correctAnswers: true, totalQuestions: true },
+            }),
+            db.selfAssessmentAttempt.findMany({
+              where: { userId, totalQuestions: { gt: 0 } },
+              select: { scorePercentage: true, correctAnswers: true, totalQuestions: true },
+            }),
+          ]);
+
+          const isPerfect = (attempt: { scorePercentage: number | null; correctAnswers: number; totalQuestions: number }) =>
+            attempt.scorePercentage === 100 || attempt.correctAnswers === attempt.totalQuestions;
+
+          current =
+            examAttempts.filter(isPerfect).length +
+            selfAssessmentAttempts.filter(isPerfect).length;
+          break;
+        }
+        default: {
+          current = await db.sAMBadge.count({
+            where: { userId, description: achievementId },
+          });
+        }
+      }
 
       return {
-        completed: badges.length > 0,
-        progress: badges.length > 0 ? 100 : 0,
-        total: 100,
+        completed: current >= target,
+        progress: Math.min(current, target),
+        total: target,
       };
     },
   };

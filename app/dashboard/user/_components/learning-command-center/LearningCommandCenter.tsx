@@ -364,7 +364,7 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
   return (
     <div className="min-h-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-950/20 dark:to-indigo-950/20">
       <motion.div
-        className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8"
+        className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -379,11 +379,11 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
         </motion.div>
 
         {/* Main Grid Layout */}
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Today&apos;s Schedule (2/3 width) */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-2 space-y-6"
+            className="md:col-span-2 space-y-4 sm:space-y-6"
           >
             <TodaySchedule
               activities={effectiveActivities}
@@ -413,7 +413,7 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
           {/* Right Column - Tasks, Goals, Insights (1/3 width) */}
           <motion.div
             variants={itemVariants}
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6"
           >
             {/* Study Status Badge - Shows current study status */}
             <div className="flex items-center justify-between">
@@ -468,8 +468,8 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
             />
 
             {/* Create Learning Plan Button */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200/50 dark:border-purple-800/50">
-              <div className="flex items-center justify-between">
+            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border border-purple-200/50 dark:border-purple-800/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
                 <div>
                   <h4 className="text-sm font-medium text-slate-900 dark:text-white">
                     Personalized Learning Plan
@@ -482,14 +482,15 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
                   onClick={handleOpenWizard}
                   disabled={isLoadingCourses}
                   size="sm"
-                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                  className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white w-full sm:w-auto"
                 >
                   {isLoadingCourses ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4 mr-1.5" />
-                      Create Plan
+                      <span className="hidden sm:inline">Create Plan</span>
+                      <span className="sm:hidden">Create</span>
                     </>
                   )}
                 </Button>

@@ -22,13 +22,13 @@ export async function GET() {
     const enrollments = await db.enrollment.findMany({
       where: { userId: user.id },
       include: {
-        course: {
+        Course: {
           include: {
             chapters: {
               include: {
                 sections: {
                   include: {
-                    userProgress: {
+                    user_progress: {
                       where: { userId: user.id },
                     },
                   },
@@ -39,37 +39,55 @@ export async function GET() {
             category: true,
           },
         },
-        UserProgress: true,
       },
     });
 
-    // Get user's quiz results for mastery calculation
-    const quizResults = await db.quizResult.findMany({
+    // Get user's exam attempts for mastery calculation
+    // Note: Exam -> section -> chapter -> Course (no direct courseId on Exam)
+    const quizResults = await db.userExamAttempt.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
+      include: {
+        Exam: {
+          select: {
+            title: true,
+            section: {
+              select: {
+                chapter: {
+                  select: {
+                    courseId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     // Get user's study sessions for engagement metrics
-    const studySessions = await db.studySession.findMany({
+    const studySessions = await db.learning_sessions.findMany({
       where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { startTime: 'desc' },
       take: 100, // Last 100 sessions for analysis
     });
 
     // Get user's achievements
-    const achievements = await db.achievement.findMany({
+    const achievements = await db.user_achievements.findMany({
       where: { userId: user.id },
     });
 
-    // Get user's learning goals
+    // Get user's learning goals (Milestone relation, not subGoals)
     const goals = await db.goal.findMany({
       where: { userId: user.id },
-      include: { subGoals: true },
+      include: { Milestone: true },
     });
 
-    // Calculate insights for each course
-    const courseInsights: CourseInsightData[] = enrollments.map((enrollment) => {
-      const course = enrollment.course;
+    // Calculate insights for each course (filter out enrollments without courses)
+    const courseInsights: CourseInsightData[] = enrollments
+      .filter((enrollment) => enrollment.Course !== null)
+      .map((enrollment) => {
+      const course = enrollment.Course!;
 
       // Calculate total sections and completed sections
       let totalSections = 0;
@@ -78,7 +96,7 @@ export async function GET() {
       course.chapters.forEach((chapter) => {
         chapter.sections.forEach((section) => {
           totalSections++;
-          if (section.userProgress.some((p) => p.isCompleted)) {
+          if (section.user_progress.some((p) => p.isCompleted)) {
             completedSections++;
           }
         });
@@ -96,16 +114,17 @@ export async function GET() {
       );
 
       // Get most recent study session
-      const lastStudied = courseStudySessions[0]?.createdAt;
+      const lastStudied = courseStudySessions[0]?.startTime;
 
       // Calculate quiz scores for this course
+      // Traverse: Exam -> section -> chapter -> courseId
       const courseQuizResults = quizResults.filter(
-        (r) => r.courseId === course.id
+        (r) => r.Exam?.section?.chapter?.courseId === course.id
       );
       const averageQuizScore =
         courseQuizResults.length > 0
           ? Math.round(
-              courseQuizResults.reduce((sum, r) => sum + (r.score || 0), 0) /
+              courseQuizResults.reduce((sum, r) => sum + (r.scorePercentage || 0), 0) /
                 courseQuizResults.length
             )
           : undefined;
@@ -209,12 +228,14 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[SAM Course Insights] Error:', error);
+    console.error('[SAM Course Insights] Stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
       {
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
           message: 'Failed to generate course insights',
+          details: error instanceof Error ? error.message : String(error),
         },
       },
       { status: 500 }
@@ -249,7 +270,7 @@ function determineBloomsLevel(
   return 'remember';
 }
 
-function calculateStreak(sessions: { createdAt: Date }[]): number {
+function calculateStreak(sessions: { startTime: Date }[]): number {
   if (sessions.length === 0) return 0;
 
   const today = new Date();
@@ -265,7 +286,7 @@ function calculateStreak(sessions: { createdAt: Date }[]): number {
     dayEnd.setHours(23, 59, 59, 999);
 
     const hasSession = sessions.some((s) => {
-      const sessionDate = new Date(s.createdAt);
+      const sessionDate = new Date(s.startTime);
       return sessionDate >= dayStart && sessionDate <= dayEnd;
     });
 
@@ -284,13 +305,13 @@ function calculateStreak(sessions: { createdAt: Date }[]): number {
 }
 
 function calculateEngagementScore(
-  sessions: { createdAt: Date; duration?: number | null }[],
+  sessions: { startTime: Date; duration?: number | null }[],
   progress: number,
   streak: number
 ): number {
   // Factors: study frequency, session length, consistency, progress rate
   const recentSessions = sessions.filter((s) => {
-    const diff = Date.now() - new Date(s.createdAt).getTime();
+    const diff = Date.now() - new Date(s.startTime).getTime();
     return diff < 14 * 24 * 60 * 60 * 1000; // Last 14 days
   });
 
@@ -478,20 +499,21 @@ function generateMetrics(
 }
 
 function analyzePerformance(
-  quizResults: { score?: number | null; topic?: string | null }[],
+  quizResults: { scorePercentage?: number | null; Exam?: { title?: string | null } | null }[],
   progress: number,
   engagement: number
 ): { strengths: string[]; areasToImprove: string[] } {
   const strengths: string[] = [];
   const areasToImprove: string[] = [];
 
-  // Analyze quiz results by topic
+  // Analyze quiz results by exam/topic
   const topicScores = new Map<string, number[]>();
   quizResults.forEach((r) => {
-    if (r.topic && r.score !== null && r.score !== undefined) {
-      const scores = topicScores.get(r.topic) || [];
-      scores.push(r.score);
-      topicScores.set(r.topic, scores);
+    const topic = r.Exam?.title;
+    if (topic && r.scorePercentage !== null && r.scorePercentage !== undefined) {
+      const scores = topicScores.get(topic) || [];
+      scores.push(r.scorePercentage);
+      topicScores.set(topic, scores);
     }
   });
 
@@ -525,7 +547,7 @@ function analyzePerformance(
 interface ChapterWithSections {
   id: string;
   title: string;
-  sections: { id: string; title: string; userProgress: { isCompleted: boolean }[] }[];
+  sections: { id: string; title: string; user_progress: { isCompleted: boolean }[] }[];
 }
 
 function getNextMilestone(
@@ -537,7 +559,7 @@ function getNextMilestone(
   for (const chapter of chapters) {
     const chapterSectionCount = chapter.sections.length;
     const completedInChapter = chapter.sections.filter((s) =>
-      s.userProgress.some((p) => p.isCompleted)
+      s.user_progress.some((p) => p.isCompleted)
     ).length;
 
     if (completedInChapter < chapterSectionCount) {

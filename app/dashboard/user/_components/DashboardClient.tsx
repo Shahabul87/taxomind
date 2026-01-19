@@ -314,7 +314,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
         />
 
         {/* Main Content */}
-        <main className="pt-16 pb-20 lg:pb-0 lg:pl-[72px]">
+        <main className="pt-16 pb-20 md:pb-20 lg:pb-0 md:pl-0 lg:pl-[72px]">
           <NewDashboard user={user} viewMode={viewMode} />
         </main>
 

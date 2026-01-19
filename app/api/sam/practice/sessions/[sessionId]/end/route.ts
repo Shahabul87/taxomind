@@ -9,6 +9,7 @@ import {
   BLOOMS_MULTIPLIERS,
 } from '@/lib/sam/stores';
 import { syncSessionToSkillBuildTrack } from '@/lib/practice/sync-skill-build';
+import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 
 // Get practice stores from TaxomindContext singleton
 const {
@@ -345,6 +346,21 @@ export async function POST(
     if (multiplierBreakdown.sessionType.multiplier < 1.25) {
       tips.push('Consider deliberate or pomodoro sessions for higher quality multipliers');
     }
+
+    getAchievementEngine()
+      .trackProgress(
+        session.user.id,
+        'form_completed',
+        { sessionId, qualityHours: completedSession.qualityHours },
+        {
+          courseId: completedSession.courseId ?? undefined,
+          chapterId: completedSession.chapterId ?? undefined,
+          sectionId: completedSession.sectionId ?? undefined,
+        }
+      )
+      .catch((err) => {
+        logger.warn('[Practice Session] Achievement tracking failed', { error: err });
+      });
 
     return NextResponse.json({
       success: true,

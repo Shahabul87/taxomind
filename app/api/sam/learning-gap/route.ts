@@ -3,6 +3,11 @@ import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import { getAnalyticsStores, getStore } from '@/lib/sam/taxomind-context';
 import { db } from '@/lib/db';
+import {
+  ContentType,
+  RecommendationPriority,
+  RecommendationReason,
+} from '@sam-ai/agentic';
 import type {
   LearningGapDashboardData,
   LearningGapData,
@@ -29,38 +34,82 @@ export async function GET() {
     }
 
     const userId = session.user.id;
+    logger.info('[LearningGap] Fetching data for user:', { userId });
 
     // Get stores from TaxomindContext
-    const analyticsStores = getAnalyticsStores();
-    const skillBuildTrackStore = getStore('skillBuildTrack');
+    let analyticsStores;
+    let skillBuildTrackStore;
+    try {
+      analyticsStores = getAnalyticsStores();
+      skillBuildTrackStore = getStore('skillBuildTrack');
+      logger.info('[LearningGap] Stores initialized successfully');
+    } catch (storeError) {
+      logger.error('[LearningGap] Failed to initialize stores:', storeError);
+      return NextResponse.json(
+        { error: 'Failed to initialize data stores' },
+        { status: 500 }
+      );
+    }
 
-    // Fetch data in parallel
-    const [
-      learningGaps,
-      skillBuildProfiles,
-      topicProgressData,
-      skillAssessments,
-      recommendations,
-    ] = await Promise.all([
-      analyticsStores.learningGap.getGapsForUser(userId),
-      skillBuildTrackStore.getProfilesForUser(userId),
-      analyticsStores.topicProgress.getProgressForUser(userId),
-      analyticsStores.skillAssessment.getAssessmentsForUser(userId),
-      analyticsStores.recommendation.getRecommendationsForUser(userId, { limit: 10 }),
-    ]);
+    // Fetch data in parallel with individual error handling
+    let learningGaps: Awaited<ReturnType<typeof analyticsStores.learningGap.getByUser>> = [];
+    let skillBuildProfiles: Awaited<ReturnType<typeof skillBuildTrackStore.getUserSkillProfiles>> = [];
+    let topicProgressData: Awaited<ReturnType<typeof analyticsStores.topicProgress.getByUser>> = [];
+    let skillAssessments: Awaited<ReturnType<typeof analyticsStores.skillAssessment.getByUser>> = [];
+    let recommendations: Awaited<ReturnType<typeof analyticsStores.recommendation.getByUser>> = [];
 
-    // Transform learning gaps
+    try {
+      // Fetch learning gaps
+      learningGaps = await analyticsStores.learningGap.getByUser(userId);
+      logger.info('[LearningGap] Fetched learning gaps:', { count: learningGaps.length });
+    } catch (gapError) {
+      logger.error('[LearningGap] Error fetching learning gaps:', gapError);
+    }
+
+    try {
+      // Fetch skill build profiles
+      skillBuildProfiles = await skillBuildTrackStore.getUserSkillProfiles(userId);
+      logger.info('[LearningGap] Fetched skill profiles:', { count: skillBuildProfiles.length });
+    } catch (profileError) {
+      logger.error('[LearningGap] Error fetching skill profiles:', profileError);
+    }
+
+    try {
+      // Fetch topic progress
+      topicProgressData = await analyticsStores.topicProgress.getByUser(userId);
+      logger.info('[LearningGap] Fetched topic progress:', { count: topicProgressData.length });
+    } catch (progressError) {
+      logger.error('[LearningGap] Error fetching topic progress:', progressError);
+    }
+
+    try {
+      // Fetch skill assessments
+      skillAssessments = await analyticsStores.skillAssessment.getByUser(userId);
+      logger.info('[LearningGap] Fetched skill assessments:', { count: skillAssessments.length });
+    } catch (assessmentError) {
+      logger.error('[LearningGap] Error fetching skill assessments:', assessmentError);
+    }
+
+    try {
+      // Fetch recommendations
+      recommendations = await analyticsStores.recommendation.getByUser(userId, 10);
+      logger.info('[LearningGap] Fetched recommendations:', { count: recommendations.length });
+    } catch (recError) {
+      logger.error('[LearningGap] Error fetching recommendations:', recError);
+    }
+
+    // Transform learning gaps - map from store format to dashboard format
     const gaps: LearningGapData[] = learningGaps.map((gap) => ({
       id: gap.id,
-      skillId: gap.skillId ?? '',
-      skillName: gap.skillName ?? 'Unknown Skill',
+      skillId: gap.conceptId ?? '',
+      skillName: gap.conceptName ?? 'Unknown Skill',
       topicId: gap.topicId ?? undefined,
-      topicName: gap.topicName ?? undefined,
-      severity: mapSeverity(gap.severity ?? 0),
-      status: gap.status === 'resolved' ? 'resolved' : gap.status === 'resolving' ? 'resolving' : 'active',
-      gapScore: gap.gapScore ?? 50,
-      masteryLevel: gap.currentMastery ?? 0,
-      targetMasteryLevel: gap.targetMastery ?? 80,
+      topicName: gap.conceptName ?? undefined,
+      severity: mapSeverity(gap.severity ?? 'moderate'),
+      status: gap.isResolved ? 'resolved' : 'active',
+      gapScore: 50, // Default gap score
+      masteryLevel: 0, // Will be enriched from assessments if available
+      targetMasteryLevel: 80,
       evidence: (gap.evidence ?? []).map((e: Record<string, unknown>) => ({
         type: (e.type as string) ?? 'assessment',
         score: (e.score as number) ?? 0,
@@ -68,17 +117,31 @@ export async function GET() {
         date: (e.date as string) ?? new Date().toISOString(),
         source: (e.source as string) ?? 'Unknown',
       })),
-      suggestedActions: (gap.suggestedActions ?? []).map((a: Record<string, unknown>) => ({
-        id: (a.id as string) ?? crypto.randomUUID(),
-        type: (a.type as string) ?? 'review',
-        title: (a.title as string) ?? 'Review Material',
-        description: (a.description as string) ?? '',
-        estimatedTime: (a.estimatedTime as number) ?? 30,
-        priority: (a.priority as string) ?? 'medium',
-        resourceUrl: a.resourceUrl as string | undefined,
-      })),
+      suggestedActions: (gap.suggestedActions ?? []).map((action: string | Record<string, unknown>) => {
+        // Handle both string and object formats
+        if (typeof action === 'string') {
+          return {
+            id: crypto.randomUUID(),
+            type: 'review' as const,
+            title: action,
+            description: '',
+            estimatedTime: 30,
+            priority: 'medium' as const,
+            resourceUrl: undefined,
+          };
+        }
+        return {
+          id: (action.id as string) ?? crypto.randomUUID(),
+          type: (action.type as string) ?? 'review',
+          title: (action.title as string) ?? 'Review Material',
+          description: (action.description as string) ?? '',
+          estimatedTime: (action.estimatedTime as number) ?? 30,
+          priority: (action.priority as string) ?? 'medium',
+          resourceUrl: action.resourceUrl as string | undefined,
+        };
+      }),
       detectedAt: gap.detectedAt?.toISOString() ?? new Date().toISOString(),
-      lastUpdated: gap.updatedAt?.toISOString() ?? new Date().toISOString(),
+      lastUpdated: gap.detectedAt?.toISOString() ?? new Date().toISOString(),
       resolvedAt: gap.resolvedAt?.toISOString(),
     }));
 
@@ -87,18 +150,20 @@ export async function GET() {
       .filter((profile) => profile.lastPracticedAt)
       .map((profile) => {
         const daysSince = getDaysSince(profile.lastPracticedAt);
-        const decayRate = calculateDecayRate(profile.currentMastery ?? 0);
+        // Use compositeScore or dimensions.mastery for mastery level
+        const masteryLevel = profile.compositeScore ?? profile.dimensions?.mastery ?? 0;
+        const decayRate = calculateDecayRate(masteryLevel);
         const riskLevel = calculateRiskLevel(daysSince, decayRate);
 
         return {
           skillId: profile.skillId,
-          skillName: profile.skillName ?? 'Unknown Skill',
-          currentMastery: profile.currentMastery ?? 0,
+          skillName: profile.skill?.name ?? 'Unknown Skill',
+          currentMastery: masteryLevel,
           riskLevel,
           daysSinceLastPractice: daysSince,
           decayRate,
-          predictedDecayDate: calculateDecayDate(profile.currentMastery ?? 0, decayRate),
-          predictions: generateDecayPredictions(profile.currentMastery ?? 0, decayRate),
+          predictedDecayDate: calculateDecayDate(masteryLevel, decayRate),
+          predictions: generateDecayPredictions(masteryLevel, decayRate),
           lastPracticedAt: profile.lastPracticedAt?.toISOString() ?? new Date().toISOString(),
           reviewDeadline: daysSince > 7 ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() : undefined,
         };
@@ -109,23 +174,32 @@ export async function GET() {
       })
       .slice(0, 10);
 
-    // Calculate trend analysis
-    const trends = calculateTrendAnalysis(topicProgressData, gaps, skillAssessments);
+    // Calculate trend analysis - transform data to expected format
+    const transformedTopicProgress = topicProgressData.map((p) => ({
+      mastery: p.masteryScore,
+      updatedAt: p.lastAccessedAt,
+      topicId: p.topicId,
+    }));
+    const transformedAssessments = skillAssessments.map((a) => ({
+      score: a.score,
+      createdAt: a.assessedAt,
+    }));
+    const trends = calculateTrendAnalysis(transformedTopicProgress, gaps, transformedAssessments);
 
-    // Transform recommendations
+    // Transform recommendations - map from store Recommendation type to GapRecommendation
     const gapRecommendations: GapRecommendation[] = recommendations.map((rec) => ({
       id: rec.id,
-      gapId: rec.contextId ?? '',
-      type: mapRecommendationType(rec.type ?? 'content'),
+      gapId: rec.targetConceptId ?? rec.targetSkillId ?? '',
+      type: mapRecommendationTypeFromEnum(rec.type),
       title: rec.title ?? 'Learning Recommendation',
       description: rec.description ?? '',
-      reason: rec.reason ?? 'Based on your learning patterns',
-      expectedImpact: rec.expectedImpact ?? 15,
-      difficulty: mapDifficulty(rec.difficulty),
-      estimatedTime: rec.estimatedTime ?? 30,
-      priority: mapPriority(rec.priority ?? 0.5),
+      reason: mapRecommendationReasonToString(rec.reason),
+      expectedImpact: 15, // Default value - not stored in Recommendation
+      difficulty: mapDifficultyFromEnum(rec.difficulty),
+      estimatedTime: rec.estimatedDuration ?? 30,
+      priority: mapPriorityFromEnum(rec.priority),
       resourceUrl: rec.resourceUrl ?? undefined,
-      resourceType: rec.resourceType ?? undefined,
+      resourceType: rec.resourceId ? 'resource' : undefined,
       prerequisites: rec.prerequisites ?? [],
     }));
 
@@ -184,6 +258,66 @@ function mapRecommendationType(type: string): GapRecommendation['type'] {
     tutor: 'tutor',
   };
   return typeMap[type] ?? 'content';
+}
+
+// Map ContentType enum to GapRecommendation type
+function mapRecommendationTypeFromEnum(type: ContentType): GapRecommendation['type'] {
+  switch (type) {
+    case ContentType.VIDEO:
+    case ContentType.ARTICLE:
+    case ContentType.TUTORIAL:
+    case ContentType.DOCUMENTATION:
+      return 'content';
+    case ContentType.EXERCISE:
+      return 'practice';
+    case ContentType.QUIZ:
+      return 'assessment';
+    case ContentType.PROJECT:
+      return 'practice';
+    default:
+      return 'content';
+  }
+}
+
+// Map RecommendationReason enum to human-readable string
+function mapRecommendationReasonToString(reason: RecommendationReason): string {
+  switch (reason) {
+    case RecommendationReason.KNOWLEDGE_GAP:
+      return 'Address knowledge gap';
+    case RecommendationReason.SKILL_DECAY:
+      return 'Prevent skill decay';
+    case RecommendationReason.PREREQUISITE:
+      return 'Required prerequisite';
+    case RecommendationReason.REINFORCEMENT:
+      return 'Reinforce learning';
+    case RecommendationReason.EXPLORATION:
+      return 'Explore new topics';
+    case RecommendationReason.CHALLENGE:
+      return 'Challenge yourself';
+    case RecommendationReason.REVIEW:
+      return 'Review previous material';
+    default:
+      return 'Based on your learning patterns';
+  }
+}
+
+// Map difficulty from string enum
+function mapDifficultyFromEnum(difficulty: 'easy' | 'medium' | 'hard'): 'easy' | 'medium' | 'hard' {
+  return difficulty;
+}
+
+// Map RecommendationPriority enum to UI priority
+function mapPriorityFromEnum(priority: RecommendationPriority): 'high' | 'medium' | 'low' {
+  switch (priority) {
+    case RecommendationPriority.CRITICAL:
+    case RecommendationPriority.HIGH:
+      return 'high';
+    case RecommendationPriority.MEDIUM:
+      return 'medium';
+    case RecommendationPriority.LOW:
+    default:
+      return 'low';
+  }
 }
 
 function mapDifficulty(difficulty: number | string | undefined): 'easy' | 'medium' | 'hard' {

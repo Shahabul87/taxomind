@@ -202,6 +202,7 @@ import {
   ContentGenerationStudio,
   CourseGuideBuilder,
   DepthAnalyzer,
+  CreatorBusinessSuite,
 } from "@/components/sam/creator-studio";
 
 // Resource Intelligence (already exists)
@@ -218,6 +219,7 @@ import { SocialLearningHub } from "@/components/sam/social-learning-hub";
 
 // Phase 4: Content & Adaptive Learning Hub - ContentGenerationEngine + AdaptiveContentEngine + SocraticTeachingEngine + MicrolearningEngine
 import { ContentAdaptiveHub } from "@/components/sam/content-adaptive-hub";
+import { PersonalizationControlPanel } from "@/components/sam/personalization/PersonalizationControlPanel";
 
 // Phase 9: Self-Assessment Hub - Standalone exam creation, taking, and results analysis
 import { SelfAssessmentHub } from "@/components/sam/self-assessment-hub";
@@ -511,6 +513,10 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
               onModuleStart={(moduleId) => console.log("Starting module:", moduleId)}
               onStyleDetected={(style) => console.log("Learning style detected:", style)}
             />
+          </div>
+
+          <div className="mb-6">
+            <PersonalizationControlPanel />
           </div>
 
           {/* Primary SAM Widgets Grid */}
@@ -1263,6 +1269,10 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
 
             {/* Content Depth Analyzer */}
             <DepthAnalyzer />
+          </div>
+
+          <div className="mb-8">
+            <CreatorBusinessSuite />
           </div>
 
           {/* ============================================================= */}

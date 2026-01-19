@@ -9,6 +9,7 @@ import type {
 } from "@sam-ai/educational";
 import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
+import type { SAMInteractionType } from '@prisma/client';
 
 // Create multimedia engine singleton with portable package
 let multimediaEngine: ReturnType<typeof createMultimediaEngine> | null = null;
@@ -21,6 +22,68 @@ function getMultimediaEngine() {
     });
   }
   return multimediaEngine;
+}
+
+function normalizeAnalysis(analysis: unknown) {
+  if (typeof analysis === "string") {
+    try {
+      return JSON.parse(analysis);
+    } catch {
+      return analysis;
+    }
+  }
+  return analysis;
+}
+
+function extractScores(
+  contentType: string,
+  analysis: any
+): { engagementScore?: number; accessibilityScore?: number; effectivenessScore?: number } {
+  if (!analysis) {
+    return {};
+  }
+
+  switch (contentType) {
+    case "video":
+      return {
+        engagementScore: analysis.engagementScore,
+        accessibilityScore: analysis.accessibilityScore,
+        effectivenessScore: analysis.engagementScore,
+      };
+    case "audio":
+      return {
+        engagementScore: analysis.engagement,
+        effectivenessScore: analysis.clarity,
+      };
+    case "interactive":
+      return {
+        engagementScore: analysis.userEngagement,
+        accessibilityScore: analysis.accessibilityCompliance?.score,
+        effectivenessScore: analysis.learningEffectiveness,
+      };
+    default:
+      return {};
+  }
+}
+
+async function recordSAMInteraction(
+  userId: string,
+  courseId: string,
+  interactionType: SAMInteractionType,
+  context: Record<string, unknown>
+) {
+  try {
+    await db.sAMInteraction.create({
+      data: {
+        userId,
+        courseId,
+        interactionType,
+        context,
+      },
+    });
+  } catch (error) {
+    logger.warn("Failed to record SAM interaction for multimedia:", error);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -102,10 +165,47 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    const normalizedAnalysis = normalizeAnalysis(analysis);
+    const { engagementScore, accessibilityScore, effectivenessScore } =
+      extractScores(contentType, normalizedAnalysis);
+
+    const metadata: Record<string, unknown> = {
+      format: contentData.format,
+      duration: contentData.duration,
+    };
+
+    if (contentType === "interactive") {
+      metadata.interactiveType = contentData.type;
+      metadata.elements = Array.isArray(contentData.elements)
+        ? contentData.elements.length
+        : undefined;
+    }
+
+    const storedAnalysis = await db.multiMediaAnalysis.create({
+      data: {
+        courseId,
+        chapterId: contentData.chapterId ?? null,
+        contentType,
+        contentUrl: contentData.url ?? null,
+        analysis: normalizedAnalysis,
+        engagementScore,
+        accessibilityScore,
+        effectivenessScore,
+        metadata,
+      },
+    });
+
+    await recordSAMInteraction(session.user.id, courseId, "ANALYTICS_VIEW", {
+      type: "MULTIMEDIA_ANALYSIS",
+      contentType,
+      analysisId: storedAnalysis.id,
+    });
+
     return NextResponse.json({
       success: true,
       analysis,
       contentType,
+      analysisId: storedAnalysis.id,
     });
   } catch (error) {
     logger.error("Multi-modal analysis error:", error);
@@ -185,13 +285,13 @@ export async function GET(req: NextRequest) {
         // Group by content type
         const videoAnalyses = analyses
           .filter((a) => a.contentType === "video")
-          .map((a) => JSON.parse(a.analysis as string));
+          .map((a) => normalizeAnalysis(a.analysis));
         const audioAnalyses = analyses
           .filter((a) => a.contentType === "audio")
-          .map((a) => JSON.parse(a.analysis as string));
+          .map((a) => normalizeAnalysis(a.analysis));
         const interactiveAnalyses = analyses
           .filter((a) => a.contentType === "interactive")
-          .map((a) => JSON.parse(a.analysis as string));
+          .map((a) => normalizeAnalysis(a.analysis));
 
         result = await engine.generateMultiModalInsights(
           courseId,
@@ -202,6 +302,13 @@ export async function GET(req: NextRequest) {
           }
         );
         break;
+      case "library":
+        result = await db.multiMediaAnalysis.findMany({
+          where: { courseId },
+          orderBy: { createdAt: "desc" },
+          take: 200,
+        });
+        break;
 
       default:
         return NextResponse.json(
@@ -210,10 +317,20 @@ export async function GET(req: NextRequest) {
         );
     }
 
+    await recordSAMInteraction(session.user.id, courseId, "ANALYTICS_VIEW", {
+      type: "MULTIMEDIA_REPORT",
+      reportType,
+    });
+
     return NextResponse.json({
       success: true,
       reportType,
-      data: result,
+      data: reportType === "library"
+        ? (result as Array<any>).map((item) => ({
+            ...item,
+            analysis: normalizeAnalysis(item.analysis),
+          }))
+        : result,
     });
   } catch (error) {
     logger.error("Multi-modal report error:", error);

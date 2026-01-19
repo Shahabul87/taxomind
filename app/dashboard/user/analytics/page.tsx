@@ -22,6 +22,10 @@ import {
   MicrolearningWidget,
   CompetencyDashboard,
 } from '@/components/sam';
+import { BloomsMasteryLoop } from '@/components/sam/BloomsMasteryLoop';
+
+// Phase 1: Assessment Studio - AI Exam Feedback Panel
+import { AIExamFeedbackPanel } from '@/components/sam/assessment-studio';
 import {
   RetentionCurveChart,
   WeeklyTrendsChart,
@@ -725,11 +729,30 @@ export default function UserAnalyticsPage() {
           {/* Detailed Analytics Tab (Enterprise) */}
           <TabsContent value="detailed">
             <AnalyticsErrorBoundary>
-              <EnterpriseUnifiedAnalytics
-                user={user}
-                variant="fullpage"
-                className="min-h-screen"
-              />
+              <div className="space-y-8">
+                {/* Phase 1: AI Exam Feedback Panel - EvaluationEngine Integration */}
+                <section>
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                    AI Exam Feedback
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    View AI-powered analysis and feedback from your completed exams
+                  </p>
+                  <AIExamFeedbackPanel
+                    userId={user.id}
+                    compact={false}
+                    maxAttempts={10}
+                    className="w-full"
+                  />
+                </section>
+
+                {/* Enterprise Unified Analytics */}
+                <EnterpriseUnifiedAnalytics
+                  user={user}
+                  variant="fullpage"
+                  className="min-h-screen"
+                />
+              </div>
             </AnalyticsErrorBoundary>
           </TabsContent>
 
@@ -798,6 +821,13 @@ export default function UserAnalyticsPage() {
                     compact={true}
                     className="w-full"
                   />
+                </div>
+
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+                    Bloom&apos;s Mastery Loop
+                  </h3>
+                  <BloomsMasteryLoop className="w-full" />
                 </div>
 
                 {/* Scaffolding Strategies - Personalized learning approach */}
