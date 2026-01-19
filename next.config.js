@@ -274,7 +274,8 @@ const nextConfig = {
   },
   
   // External packages for Next.js 15
-  serverExternalPackages: ['@noble/hashes', 'bcryptjs', '@grpc/grpc-js'],
+  // firebase-admin is optional - only used when FIREBASE_* env vars are set
+  serverExternalPackages: ['@noble/hashes', 'bcryptjs', '@grpc/grpc-js', 'firebase-admin'],
   
   // Essential image configuration
   images: {
