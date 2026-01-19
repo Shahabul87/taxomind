@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import type { User as NextAuthUser } from "next-auth";
 import { ActivityStream } from "./ActivityStream";
 import { EmptyState } from "./EmptyState";
 import { useActivities } from "@/hooks/use-activities";
-import { Loader2, LayoutDashboard, Trophy, Target, Timer, AlertTriangle, Lightbulb, Compass } from "lucide-react";
+import { Loader2, LayoutDashboard, Trophy, Target, Timer, AlertTriangle, Lightbulb, Compass, Wand2, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // Enhanced Gamification Components
@@ -78,6 +79,40 @@ import { LearningPathTimeline } from "@/components/sam/LearningPathTimeline";
 import { AccessibilityMetricsWidget } from "@/components/sam/AccessibilityMetricsWidget";
 import { DiscouragingLanguageAlert } from "@/components/sam/DiscouragingLanguageAlert";
 
+// Phase 6: Quality & Safety Hub - Unified Quality Assurance Experience
+import { QualitySafetyHub } from "@/components/sam/quality-safety-hub";
+
+// Phase 7: Analytics & Observability Hub - System Monitoring & Predictive Insights
+import { AnalyticsObservabilityHub } from "@/components/sam/analytics-observability-hub";
+
+// Phase 8: Study Planning & Memory Hub - Goals, Plans, Reviews, Memory
+import { StudyPlanningHub } from "@/components/sam/study-planning-hub";
+
+// Missing Engine Surfacing - Now Integrated
+// PredictiveEngine - SAM predictive analytics
+import { PredictiveAnalyticsEnhanced } from "./smart-dashboard/PredictiveAnalyticsEnhanced";
+
+// AnalyticsEngine - Comprehensive SAM analytics dashboard
+import { SAMAnalyticsDashboard } from "@/components/sam/sam-analytics-dashboard";
+
+// FinancialEngine - Financial literacy simulations
+import { FinancialSimulator } from "@/components/sam/FinancialSimulator";
+
+// MultimodalInputEngine - Voice, image, handwriting, PDF inputs
+// Using dynamic import with ssr: false to prevent hydration issues
+const MultimodalInputPanel = dynamic(
+  () => import("@/components/sam/multimodal/MultimodalInputPanel").then((mod) => mod.MultimodalInputPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center p-8 rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50">
+        <Loader2 className="h-6 w-6 animate-spin text-violet-500" />
+        <span className="ml-2 text-sm text-slate-500">Loading Multimodal Input...</span>
+      </div>
+    ),
+  }
+);
+
 // Phase 2: Social Learning - Active Learners
 import { ActiveLearnersWidget } from "@/components/sam/presence/ActiveLearnersWidget";
 
@@ -144,7 +179,8 @@ import {
 // Practice Goal Setting
 import { PracticeGoalSetter } from "@/components/practice/PracticeGoalSetter";
 
-// Phase 5: Market Integration - Career Progress Widget
+// Phase 5: Career & Professional Growth Hub - Unified Career Development Experience
+import { CareerGrowthHub } from "@/components/sam/career-growth-hub";
 import { CareerProgressWidget } from "@/components/sam/CareerProgressWidget";
 
 // GAP-6: Certification Tracking Components
@@ -157,12 +193,41 @@ import {
 // Innovation Dashboard - Hidden InnovationEngine Features Now Exposed
 import { InnovationDashboard } from "@/components/sam/innovation";
 
+// Phase 1: Assessment Studio - ExamEngine + EvaluationEngine Integration
+import { AssessmentStudio } from "@/components/sam/assessment-studio";
+import { StudyGuideGenerator } from "@/components/sam/study-guide/StudyGuideGenerator";
+
+// Phase 0: Creator Studio - Content Generation, Course Guide, Depth Analysis
+import {
+  ContentGenerationStudio,
+  CourseGuideBuilder,
+  DepthAnalyzer,
+} from "@/components/sam/creator-studio";
+
+// Resource Intelligence (already exists)
+import { ResourceIntelligenceContent } from "@/components/sam/resource-intelligence-content";
+
+// Multimedia Library (already exists)
+import { MultimediaLibrary } from "@/components/sam/MultimediaLibrary";
+
+// Phase 2: Cognitive Analysis Hub - CognitiveLoadEngine + KnowledgeGraphEngine + MetacognitionEngine
+import { CognitiveAnalysisHub } from "@/components/sam/cognitive-analysis-hub";
+
+// Phase 3: Social Learning Hub - SocialEngine + CollaborationEngine + PeerLearningEngine
+import { SocialLearningHub } from "@/components/sam/social-learning-hub";
+
+// Phase 4: Content & Adaptive Learning Hub - ContentGenerationEngine + AdaptiveContentEngine + SocraticTeachingEngine + MicrolearningEngine
+import { ContentAdaptiveHub } from "@/components/sam/content-adaptive-hub";
+
+// Phase 9: Self-Assessment Hub - Standalone exam creation, taking, and results analysis
+import { SelfAssessmentHub } from "@/components/sam/self-assessment-hub";
+
 interface NewDashboardProps {
   user: NextAuthUser;
   viewMode: "grid" | "list";
 }
 
-type DashboardView = "learning" | "gamification" | "skills" | "practice" | "gaps" | "innovation" | "discover";
+type DashboardView = "learning" | "gamification" | "skills" | "practice" | "gaps" | "innovation" | "discover" | "create" | "assess";
 
 export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   const [dashboardView, setDashboardView] = useState<DashboardView>("learning");
@@ -241,78 +306,98 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
 
   // View Toggle Component (shared across views)
   const ViewToggle = () => (
-    <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
-      {/* GAP-9: Notification Center Trigger */}
-      <NotificationCenterTrigger
-        variant="outline"
-        className="h-9 w-9 rounded-lg border-slate-200/50 bg-white/80 backdrop-blur-sm hover:bg-slate-100/80 dark:border-slate-700/50 dark:bg-slate-800/80 dark:hover:bg-slate-700/80"
-      />
-      <div className="flex items-center gap-1 rounded-lg border border-slate-200/50 bg-white/80 p-1 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/80">
+    <div className="fixed top-16 right-0 left-0 sm:left-auto sm:right-4 sm:top-4 z-10 px-2 sm:px-0 sm:static">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 sm:overflow-visible scrollbar-hide">
+        {/* GAP-9: Notification Center Trigger */}
+        <NotificationCenterTrigger
+          variant="outline"
+          className="h-9 w-9 flex-shrink-0 rounded-lg border-slate-200/50 bg-white/80 backdrop-blur-sm hover:bg-slate-100/80 dark:border-slate-700/50 dark:bg-slate-800/80 dark:hover:bg-slate-700/80"
+        />
+        <div className="flex items-center gap-1 rounded-lg border border-slate-200/50 bg-white/80 p-1 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/80 flex-shrink-0">
       <Button
         variant={dashboardView === "learning" ? "default" : "ghost"}
         size="sm"
         onClick={() => setDashboardView("learning")}
-        className="gap-2"
+        className="gap-1 sm:gap-2 flex-shrink-0"
       >
         <LayoutDashboard className="h-4 w-4" />
-        <span className="hidden sm:inline">Learning</span>
+        <span className="hidden md:inline">Learning</span>
       </Button>
       <Button
         variant={dashboardView === "skills" ? "default" : "ghost"}
         size="sm"
         onClick={() => setDashboardView("skills")}
-        className="gap-2"
+        className="gap-1 sm:gap-2 flex-shrink-0"
       >
         <Target className="h-4 w-4" />
-        <span className="hidden sm:inline">Skills</span>
+        <span className="hidden md:inline">Skills</span>
       </Button>
       <Button
         variant={dashboardView === "practice" ? "default" : "ghost"}
         size="sm"
         onClick={() => setDashboardView("practice")}
-        className="gap-2"
+        className="gap-1 sm:gap-2 flex-shrink-0"
       >
         <Timer className="h-4 w-4" />
-        <span className="hidden sm:inline">Practice</span>
+        <span className="hidden md:inline">Practice</span>
       </Button>
       <Button
         variant={dashboardView === "gamification" ? "default" : "ghost"}
         size="sm"
         onClick={() => setDashboardView("gamification")}
-        className="gap-2"
+        className="gap-1 sm:gap-2 flex-shrink-0"
       >
         <Trophy className="h-4 w-4" />
-        <span className="hidden sm:inline">Achievements</span>
+        <span className="hidden md:inline">Achievements</span>
       </Button>
       <Button
         variant={dashboardView === "gaps" ? "default" : "ghost"}
         size="sm"
         onClick={() => setDashboardView("gaps")}
-        className="gap-2"
+        className="gap-1 sm:gap-2 flex-shrink-0"
       >
         <AlertTriangle className="h-4 w-4" />
-        <span className="hidden sm:inline">Gaps</span>
+        <span className="hidden md:inline">Gaps</span>
       </Button>
       <Button
         variant={dashboardView === "innovation" ? "default" : "ghost"}
         size="sm"
         onClick={() => setDashboardView("innovation")}
-        className="gap-2"
+        className="gap-1 sm:gap-2 flex-shrink-0"
       >
         <Lightbulb className="h-4 w-4" />
-        <span className="hidden sm:inline">Innovation</span>
+        <span className="hidden md:inline">Innovation</span>
       </Button>
       <Button
         variant={dashboardView === "discover" ? "default" : "ghost"}
         size="sm"
         onClick={() => setDashboardView("discover")}
-        className="gap-2"
+        className="gap-1 sm:gap-2 flex-shrink-0"
       >
         <Compass className="h-4 w-4" />
-        <span className="hidden sm:inline">Discover</span>
+        <span className="hidden md:inline">Discover</span>
+      </Button>
+      <Button
+        variant={dashboardView === "create" ? "default" : "ghost"}
+        size="sm"
+        onClick={() => setDashboardView("create")}
+        className="gap-1 sm:gap-2 flex-shrink-0"
+      >
+        <Wand2 className="h-4 w-4" />
+        <span className="hidden md:inline">Create</span>
+      </Button>
+      <Button
+        variant={dashboardView === "assess" ? "default" : "ghost"}
+        size="sm"
+        onClick={() => setDashboardView("assess")}
+        className="gap-1 sm:gap-2 flex-shrink-0"
+      >
+        <ClipboardCheck className="h-4 w-4" />
+        <span className="hidden md:inline">Assess</span>
       </Button>
       </div>
     </div>
+  </div>
   );
 
   // Show Learning Command Center as the default view
@@ -327,21 +412,116 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <LearningCommandCenter user={user} />
 
         {/* SAM AI Learning Widgets Section */}
-        <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-4">
           {/* Quick Actions Bar */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <SAMQuickActionsSafe />
           </div>
 
+          {/* ============================================================= */}
+          {/* PHASE 1: Assessment Studio - ExamEngine + EvaluationEngine */}
+          {/* ============================================================= */}
+
+          {/* Assessment Studio - Create exams, generate study guides */}
+          <div className="mb-4 sm:mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* Assessment Studio Card - Full exam building capabilities */}
+            <AssessmentStudio
+              courseId=""
+              courseTitle="My Learning"
+              userId={user.id ?? ""}
+              compact={false}
+              onExamCreated={(examId) => console.log("Exam created:", examId)}
+            />
+
+            {/* Study Guide Quick Access Card */}
+            <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white text-lg">📚</span>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    Study Guides
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    AI-personalized study plans
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                Generate personalized study guides based on your learning progress,
+                Bloom&apos;s Taxonomy levels, and identified knowledge gaps.
+              </p>
+              <div className="flex items-center gap-2">
+                <StudyGuideGenerator
+                  courseId=""
+                  courseTitle="My Learning"
+                  userId={user.id ?? ""}
+                  variant="button"
+                />
+                <StudyGuideGenerator
+                  courseId=""
+                  courseTitle="Quick Review"
+                  userId={user.id ?? ""}
+                  variant="compact"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 2: Cognitive Analysis Hub - Unified Cognitive Intelligence */}
+          {/* ============================================================= */}
+
+          {/* Cognitive Analysis Hub - Combines load monitoring, metacognition, and knowledge graph */}
+          <div className="mb-6">
+            <CognitiveAnalysisHub
+              userId={user.id ?? ""}
+              sessionId={`dashboard-${user.id}`}
+              defaultTab="overview"
+            />
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 3: Social Learning Hub - Unified Social Learning */}
+          {/* ============================================================= */}
+
+          {/* Social Learning Hub - Combines community feed, collaboration, and peer learning */}
+          <div className="mb-6">
+            <SocialLearningHub
+              userId={user.id ?? ""}
+              defaultTab="overview"
+              onPostClick={(post) => console.log("Post clicked:", post)}
+              onChallengeJoin={(challengeId) => console.log("Joining challenge:", challengeId)}
+              onJoinSession={(sessionId) => console.log("Joining session:", sessionId)}
+              onCreateResource={(type) => console.log("Creating resource:", type)}
+            />
+          </div>
+
+          {/* ============================================================= */}
+          {/* PHASE 4: Content & Adaptive Learning Hub - Personalized Learning */}
+          {/* ============================================================= */}
+
+          {/* Content Adaptive Hub - Combines content generation, adaptive learning, Socratic dialogue, and microlearning */}
+          <div className="mb-6">
+            <ContentAdaptiveHub
+              userId={user.id ?? ""}
+              defaultTab="overview"
+              onContentGenerated={(content) => console.log("Content generated:", content)}
+              onModuleStart={(moduleId) => console.log("Starting module:", moduleId)}
+              onStyleDetected={(style) => console.log("Learning style detected:", style)}
+            />
+          </div>
+
           {/* Primary SAM Widgets Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Spaced Repetition Calendar - Review Scheduling */}
-            <div className="lg:col-span-2">
+            <div className="md:col-span-2 lg:col-span-2">
               <SpacedRepetitionCalendar />
             </div>
 
             {/* AI Recommendations - Personalized Learning */}
-            <div className="lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1">
               <RecommendationWidget />
             </div>
           </div>
@@ -351,7 +531,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* ============================================================= */}
 
           {/* Help & Recommendations Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Contextual Help Widget - Smart contextual assistance */}
             <ContextualHelpWidget
               context="learning"
@@ -359,15 +539,15 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
               showShortcuts={true}
               maxItems={5}
               compact={false}
-              className="lg:col-span-1"
+              className="md:col-span-1 lg:col-span-1"
             />
 
             {/* Placeholder for balance */}
-            <div className="hidden lg:col-span-2 lg:block" />
+            <div className="hidden md:col-span-1 lg:col-span-2 md:block" />
           </div>
 
           {/* Secondary Widgets Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Microlearning Widget - Bite-sized Lessons */}
             <MicrolearningWidget />
 
@@ -388,7 +568,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* ============================================================= */}
 
           {/* Prerequisites & Timeline Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* PrerequisiteTreeView - Shows what needs to be learned first */}
             <PrerequisiteTreeView
               userId={user.id ?? ""}
@@ -406,7 +586,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Cognitive Load & Check-in History Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Cognitive Load Monitor - Real-time mental workload tracking */}
             <CognitiveLoadMonitor
               sessionId={`dashboard-${user.id}`}
@@ -424,7 +604,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* ============================================================= */}
 
           {/* Social Learning Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Study Buddy Finder - Peer Learning */}
             <StudyBuddyFinder />
 
@@ -459,7 +639,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Metacognition & Behavior Analysis Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* MetacognitionPanel - Self-reflection and study habit analysis */}
             <MetacognitionPanel className="w-full" />
 
@@ -472,7 +652,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Memory Search & Trends Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* MemorySearchPanel - Search past learning memories */}
             <MemorySearchPanel
               showFilters={true}
@@ -485,55 +665,113 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* ============================================================= */}
-          {/* PHASE 5: Market Integration - Career Progress */}
+          {/* PHASE 5: Career & Professional Growth Hub - Unified Career Development */}
           {/* ============================================================= */}
 
-          {/* Career Progress & Portfolio Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* CareerProgressWidget - Certifications, portfolio & career readiness */}
-            <CareerProgressWidget
-              compact={false}
-              onViewCertifications={() => console.log("View certifications")}
+          {/* Career Growth Hub - Combines career tracking, certifications, portfolio, and skill mapping */}
+          <div className="mt-6">
+            <CareerGrowthHub
+              userId={user.id ?? ""}
+              defaultTab="overview"
+              onCertificationSelect={(certId) => console.log("Certification selected:", certId)}
+              onViewCertifications={() => setDashboardView("skills")}
               onViewPortfolio={() => console.log("View portfolio")}
               onAddProject={() => console.log("Add project")}
             />
-
-            {/* CertificationProgressWidget - Quick certification tracking overview */}
-            <CertificationProgressWidget
-              compact={false}
-              maxItems={3}
-              onViewAll={() => setDashboardView("skills")}
-              onStartNew={() => setDashboardView("skills")}
-            />
           </div>
 
+          {/* NOTE: PortfolioExport is now integrated into CareerGrowthHub above */}
+
           {/* ============================================================= */}
-          {/* PHASE 4: Portfolio Export - Export & Share Learning Portfolio */}
+          {/* PHASE 6: Quality & Safety Hub - Unified Quality Assurance */}
           {/* ============================================================= */}
 
-          {/* Portfolio Export - Export portfolios in multiple formats */}
+          {/* Quality & Safety Hub - Combines quality gates, bias detection, accessibility, and integrity */}
           <div className="mt-6">
-            <PortfolioExport
-              compact={false}
-              defaultTab="preview"
+            <QualitySafetyHub
+              defaultTab="overview"
+              onQualityValidated={(result) => console.log("Quality validated:", result)}
+              onBiasDetected={(result) => console.log("Bias audit:", result)}
+              onIntegrityChecked={(result) => console.log("Integrity checked:", result)}
             />
           </div>
 
           {/* ============================================================= */}
-          {/* PHASE 2: Safety & Accessibility Monitoring */}
+          {/* PHASE 7: Analytics & Observability Hub - Monitoring & Insights */}
           {/* ============================================================= */}
 
-          {/* Safety & Accessibility Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* AccessibilityMetricsWidget - Readability and accessibility insights */}
-            <AccessibilityMetricsWidget
-              className="min-h-[300px]"
+          {/* Analytics & Observability Hub - System health, behavior analysis, predictions, trends */}
+          <div className="mt-6">
+            <AnalyticsObservabilityHub
+              defaultTab="overview"
+              onPatternClick={(pattern) => console.log("Pattern clicked:", pattern)}
+              onTrendClick={(trend) => console.log("Trend clicked:", trend)}
+              onInterventionClick={(intervention) => console.log("Intervention clicked:", intervention)}
             />
+          </div>
 
-            {/* DiscouragingLanguageAlert - Content sentiment monitoring */}
-            <DiscouragingLanguageAlert
-              className="min-h-[300px]"
+          {/* ============================================================= */}
+          {/* PHASE 8: Study Planning & Memory Hub - Goals, Plans, Reviews */}
+          {/* ============================================================= */}
+
+          {/* Study Planning Hub - Goals, daily plans, spaced repetition, memory insights */}
+          <div className="mt-6">
+            <StudyPlanningHub
+              defaultTab="overview"
+              onGoalCreated={(goal) => console.log("Goal created:", goal)}
+              onGoalUpdated={(goal) => console.log("Goal updated:", goal)}
+              onReviewComplete={(conceptId, score) => console.log("Review completed:", conceptId, score)}
+              onInsightSelect={(insight) => console.log("Insight selected:", insight)}
             />
+          </div>
+
+          {/* ============================================================= */}
+          {/* MISSING ENGINES NOW SURFACED - Previously Unwired Capabilities */}
+          {/* ============================================================= */}
+
+          {/* Predictive Analytics & SAM Comprehensive Analytics Row */}
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* PredictiveEngine - SAM Predictive Learning Analytics */}
+            <div className="rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-800/50">
+              <PredictiveAnalyticsEnhanced user={user} />
+            </div>
+
+            {/* AnalyticsEngine - SAM Comprehensive Analytics Dashboard */}
+            <div className="rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-800/50">
+              <SAMAnalyticsDashboard />
+            </div>
+          </div>
+
+          {/* Financial Simulator Row */}
+          <div className="mt-6">
+            {/* FinancialEngine - Financial Literacy Simulations */}
+            <FinancialSimulator
+              userId={user.id ?? ""}
+              className="w-full"
+            />
+          </div>
+
+          {/* Multimodal Input Panel - Voice, Image, Handwriting, PDF */}
+          <div className="mt-6">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-violet-500" />
+                  Multimodal Input
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Upload images, record voice, draw handwriting, or submit PDFs for AI analysis
+                </p>
+              </div>
+              <MultimodalInputPanel
+                onInputProcessed={(result) => console.log("Multimodal input processed:", result)}
+                onError={(error) => console.error("Multimodal input error:", error)}
+                enabledModes={["voice", "image", "handwriting", "pdf"]}
+                defaultMode="image"
+                showSettings={true}
+                compact={false}
+              />
+            </div>
           </div>
 
           {/* ============================================================= */}
@@ -541,7 +779,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* ============================================================= */}
 
           {/* Social Learning & Collaboration Section */}
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* SocialLearningFeed - Community engagement and achievement sharing */}
             <SocialLearningFeed
               compact={false}
@@ -595,7 +833,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* ============================================================= */}
 
           {/* Socratic Dialogue & Adaptive Learning Row */}
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* SocraticDialogueWidget - Learn through guided questioning */}
             <SocraticDialogueWidget
               courseId=""
@@ -610,7 +848,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Practice Problems & Tutoring Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* PracticeProblemsWidget - AI-generated practice problems */}
             <PracticeProblemsWidget
               defaultTopic=""
@@ -622,7 +860,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Realtime & Interventions Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* RealtimeCollaborationWidget - WebSocket connection status */}
             <RealtimeCollaborationWidget
               showEvents={true}
@@ -637,7 +875,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Gap 2 Final: Notifications and Learning Recommendations (22/22 hooks complete) */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
             {/* NotificationsWidget - useNotifications hook */}
             <NotificationsWidget
               maxVisible={5}
@@ -700,7 +938,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Timer Section - Two Timers Side by Side */}
-          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mb-4 sm:mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Main Practice Timer */}
             <PracticeTimer />
 
@@ -724,7 +962,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Leaderboard and Milestones Row */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Practice Leaderboard */}
             <PracticeLeaderboard type="global" limit={5} showPodium />
 
@@ -763,7 +1001,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <SAMContextTracker />
         <ViewToggle />
 
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Main Skill Tracker */}
           <SkillBuildTrackerConnected />
 
@@ -772,7 +1010,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* ============================================================= */}
 
           {/* Enhanced Knowledge Graph Explorer - Full interactive experience */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <EnhancedKnowledgeGraphExplorer
               height="700px"
               onConceptSelect={(conceptId) => console.log("Selected concept:", conceptId)}
@@ -781,7 +1019,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* Learning Path Builder & Prerequisite Analyzer - Side by Side */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Learning Path Builder - Interactive path generation */}
             <LearningPathBuilder
               courseId=""
@@ -797,7 +1035,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* SAM AI Engine Widgets Section */}
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Knowledge Graph Browser - Basic view for quick reference */}
             <KnowledgeGraphBrowser />
 
@@ -836,7 +1074,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           {/* ============================================================= */}
 
           {/* Research & Academic Integrity Section */}
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* ResearchAssistant - Academic research and citation management */}
             <ResearchAssistant userId={user.id ?? ""} className="w-full" />
 
@@ -875,7 +1113,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <SAMContextTracker />
         <ViewToggle />
 
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Learning Gap Dashboard */}
           <LearningGapDashboard />
         </div>
@@ -910,7 +1148,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <SAMContextTracker />
         <ViewToggle />
 
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Innovation Dashboard - All 4 InnovationEngine features */}
           <InnovationDashboard userId={user.id} />
         </div>
@@ -945,7 +1183,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
         <SAMContextTracker />
         <ViewToggle />
 
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Course Marketplace - Browse and discover courses */}
           <CourseMarketplace
             showHeader={true}
@@ -978,6 +1216,163 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
     );
   }
 
+  // ============================================================================
+  // PHASE 0: Create View - Creator Studio with Content Generation, Course Guide, Depth Analysis
+  // Exposes creator tools to all Users (not just teachers)
+  // ============================================================================
+  if (dashboardView === "create") {
+    return (
+      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/30 dark:from-slate-900 dark:via-violet-900/10 dark:to-purple-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+        <ViewToggle />
+
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+          {/* Header Section */}
+          <div className="mb-8">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
+                <Wand2 className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Creator Studio
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400">
+                  AI-powered tools to create courses, assessments, and learning content
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ============================================================= */}
+          {/* Content Generation Studio - Full AI Content Creation */}
+          {/* ============================================================= */}
+
+          <div className="mb-8">
+            <ContentGenerationStudio />
+          </div>
+
+          {/* ============================================================= */}
+          {/* Course Guide & Depth Analysis - Side by Side */}
+          {/* ============================================================= */}
+
+          <div className="mb-6 sm:mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* Course Guide Builder */}
+            <CourseGuideBuilder />
+
+            {/* Content Depth Analyzer */}
+            <DepthAnalyzer />
+          </div>
+
+          {/* ============================================================= */}
+          {/* Resource Intelligence - Discover External Learning Resources */}
+          {/* ============================================================= */}
+
+          <div className="mb-8">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/50">
+              <ResourceIntelligenceContent
+                courseId=""
+                chapterId=""
+                sectionId=""
+                sectionTitle="Learning Resources"
+                courseTitle="My Learning Journey"
+              />
+            </div>
+          </div>
+
+          {/* ============================================================= */}
+          {/* Multimedia Library - AI-Generated Media Assets */}
+          {/* ============================================================= */}
+
+          <div className="mb-8">
+            <MultimediaLibrary
+              userId={user.id ?? ""}
+              className="w-full"
+            />
+          </div>
+        </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // PHASE 9: Assess View - Self-Assessment Hub for Personal Skill Testing
+  // Standalone exam system not tied to course sections
+  // ============================================================================
+  if (dashboardView === "assess") {
+    return (
+      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/30 dark:from-slate-900 dark:via-emerald-900/10 dark:to-teal-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+        <ViewToggle />
+
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+          {/* Header Section */}
+          <div className="mb-8">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
+                <ClipboardCheck className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Self-Assessment Center
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Create personalized exams, test your knowledge, and track your cognitive growth
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ============================================================= */}
+          {/* Self-Assessment Hub - Complete Exam Management */}
+          {/* ============================================================= */}
+
+          <SelfAssessmentHub userId={user.id ?? ""} />
+        </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
   // Gamification view
   return (
     <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20">
@@ -985,23 +1380,23 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
       <SAMContextTracker />
       <ViewToggle />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8">
         {/* Gamification Section */}
-        <section className="mb-8 pt-12">
+        <section className="mb-6 sm:mb-8 pt-20 sm:pt-12">
           {/* Level Progress Header */}
           <div className="mb-6">
             <LevelProgressBar />
           </div>
 
           {/* Gamification Widgets Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Streak Widget */}
-            <div className="lg:col-span-1">
+            <div className="md:col-span-1 lg:col-span-1">
               <StreakWidget />
             </div>
 
             {/* Achievements Widget */}
-            <div className="lg:col-span-2">
+            <div className="md:col-span-1 lg:col-span-2">
               <AchievementsWidget maxDisplay={6} />
             </div>
           </div>
@@ -1026,7 +1421,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* SAM AI Advanced Analytics Row */}
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Competency Dashboard - Skill Mastery Tracking */}
             <CompetencyDashboard />
 
