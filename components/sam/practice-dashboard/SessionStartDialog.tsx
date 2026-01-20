@@ -219,12 +219,12 @@ export function SessionStartDialog({
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Select value={bloomsLevel || ''} onValueChange={(v) => setBloomsLevel(v as BloomsLevel || undefined)}>
+            <Select value={bloomsLevel || 'NONE'} onValueChange={(v) => setBloomsLevel(v === 'NONE' ? undefined : v as BloomsLevel)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select cognitive level (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Not specified</SelectItem>
+                <SelectItem value="NONE">Not specified</SelectItem>
                 {bloomsLevelInfo.map((level) => (
                   <SelectItem key={level.level} value={level.level}>
                     <div className="flex items-center gap-2">

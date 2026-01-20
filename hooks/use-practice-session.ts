@@ -7,6 +7,8 @@ import type {
   CreateSessionData,
   SessionTypeInfo,
   BloomsLevelInfo,
+  EndSessionInputs,
+  EndSessionResult,
 } from '@/components/sam/practice-dashboard/types';
 
 // ============================================================================
@@ -28,6 +30,9 @@ interface UsePracticeSessionReturn {
   isEnding: boolean;
   error: string | null;
 
+  // Phase 3/4: Last session result with quality scoring and validation
+  lastSessionResult: EndSessionResult | null;
+
   // Session metadata
   sessionTypeInfo: SessionTypeInfo[];
   bloomsLevelInfo: BloomsLevelInfo[];
@@ -36,8 +41,9 @@ interface UsePracticeSessionReturn {
   startSession: (data: CreateSessionData) => Promise<PracticeSession | null>;
   pauseSession: () => Promise<boolean>;
   resumeSession: () => Promise<boolean>;
-  endSession: (rating?: number, notes?: string) => Promise<boolean>;
+  endSession: (inputs?: EndSessionInputs) => Promise<EndSessionResult | null>;
   refreshActiveSession: () => Promise<void>;
+  clearLastSessionResult: () => void;
 }
 
 // ============================================================================
@@ -58,6 +64,9 @@ export function usePracticeSession(
   const [isResuming, setIsResuming] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 3/4: Last session result with quality scoring and validation
+  const [lastSessionResult, setLastSessionResult] = useState<EndSessionResult | null>(null);
 
   // Session metadata from API
   const [sessionTypeInfo, setSessionTypeInfo] = useState<SessionTypeInfo[]>([]);
@@ -246,16 +255,22 @@ export function usePracticeSession(
   }, [activeSession, toast]);
 
   const endSession = useCallback(
-    async (rating?: number, notes?: string): Promise<boolean> => {
-      if (!activeSession) return false;
+    async (inputs?: EndSessionInputs): Promise<EndSessionResult | null> => {
+      if (!activeSession) return null;
 
       setIsEnding(true);
       setError(null);
       try {
+        // Automatically include user's timezone if not explicitly provided
+        const enrichedInputs = {
+          ...inputs,
+          timezone: inputs?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
+
         const response = await fetch(`/api/sam/practice/sessions/${activeSession.id}/end`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rating, notes }),
+          body: JSON.stringify(enrichedInputs),
         });
 
         if (!response.ok) {
@@ -265,14 +280,36 @@ export function usePracticeSession(
 
         const result = await response.json();
         if (result.success) {
-          const { session, masteryUpdate } = result.data;
+          const endResult: EndSessionResult = result.data;
+          const { session, masteryUpdate, qualityScoring, validation, warnings } = endResult;
+
+          // Store the full result for UI display
+          setLastSessionResult(endResult);
           setActiveSession(null);
+
+          // Build description with quality details
+          let description = `Logged ${session.qualityHours.toFixed(2)} quality hours`;
+          if (qualityScoring) {
+            description += ` (${qualityScoring.multiplier.toFixed(2)}x multiplier, ${qualityScoring.evidenceType.toLowerCase()} evidence)`;
+          } else {
+            description += ` (${session.qualityMultiplier.toFixed(2)}x multiplier)`;
+          }
+
           toast({
             title: 'Session Completed!',
-            description: `Logged ${session.qualityHours.toFixed(2)} quality hours (${session.qualityMultiplier.toFixed(
-              2
-            )}x multiplier)`,
+            description,
           });
+
+          // Show validation warnings if any
+          if (warnings && warnings.length > 0) {
+            setTimeout(() => {
+              toast({
+                title: 'Session Adjusted',
+                description: warnings[0],
+                variant: 'default',
+              });
+            }, 500);
+          }
 
           // Show mastery update if significant
           if (masteryUpdate && masteryUpdate.levelUp) {
@@ -284,10 +321,20 @@ export function usePracticeSession(
             }, 1000);
           }
 
-          return true;
+          // Show focus drift recommendation if concerning
+          if (endResult.focusDrift?.driftSeverity === 'SEVERE' || endResult.focusDrift?.driftSeverity === 'MODERATE') {
+            setTimeout(() => {
+              toast({
+                title: 'Focus Insight',
+                description: endResult.focusDrift?.recommendations[0] || 'Consider taking a break before your next session.',
+              });
+            }, 1500);
+          }
+
+          return endResult;
         }
 
-        return false;
+        return null;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to end session';
         setError(message);
@@ -296,13 +343,17 @@ export function usePracticeSession(
           description: message,
           variant: 'destructive',
         });
-        return false;
+        return null;
       } finally {
         setIsEnding(false);
       }
     },
     [activeSession, toast]
   );
+
+  const clearLastSessionResult = useCallback(() => {
+    setLastSessionResult(null);
+  }, []);
 
   // ============================================================================
   // EFFECTS
@@ -341,6 +392,9 @@ export function usePracticeSession(
     isEnding,
     error,
 
+    // Phase 3/4: Last session result with quality scoring and validation
+    lastSessionResult,
+
     // Session metadata
     sessionTypeInfo,
     bloomsLevelInfo,
@@ -351,6 +405,7 @@ export function usePracticeSession(
     resumeSession,
     endSession,
     refreshActiveSession: fetchActiveSession,
+    clearLastSessionResult,
   };
 }
 

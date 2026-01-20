@@ -3,6 +3,106 @@
  */
 
 // ============================================================================
+// PHASE 3/4: QUALITY SCORING & VALIDATION TYPES
+// ============================================================================
+
+export type EvidenceType = 'ASSESSMENT' | 'PROJECT' | 'PEER_REVIEW' | 'SELF_REPORT' | 'TIME_BASED';
+export type ProjectOutcome = 'SUCCESSFUL' | 'PARTIAL' | 'FAILED' | 'ABANDONED';
+export type QualityLevel = 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'BELOW_AVERAGE' | 'POOR';
+export type ValidationFlag =
+  | 'EXCESSIVE_DURATION'
+  | 'LOW_ACTIVITY'
+  | 'RAPID_SESSION_CREATION'
+  | 'IMPOSSIBLE_TIMING'
+  | 'FOCUS_MISMATCH'
+  | 'POMODORO_MISMATCH'
+  | 'DURATION_OUTLIER';
+export type DriftDirection = 'IMPROVING' | 'DECLINING' | 'STABLE' | 'OSCILLATING';
+export type DriftSeverity = 'NONE' | 'MILD' | 'MODERATE' | 'SEVERE';
+export type ReviewUrgency = 'OVERDUE' | 'DUE_SOON' | 'UPCOMING' | 'STABLE';
+
+export interface QualityBreakdown {
+  timeWeight: number;
+  focusWeight: number;
+  bloomsWeight: number;
+  sessionTypeWeight: number;
+  assessmentBonus: number;
+  projectBonus: number;
+  peerReviewBonus: number;
+  difficultyAdjustment: number;
+}
+
+export interface QualityScoreResult {
+  multiplier: number;
+  breakdown: QualityBreakdown;
+  confidenceLevel: number;
+  evidenceType: EvidenceType;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  adjustedDuration?: number;
+  flags: ValidationFlag[];
+  warnings: string[];
+  confidence: number;
+}
+
+export interface FatigueIndicator {
+  mentalFatigue: number;
+  focusDegradation: number;
+  suggestedBreakMinutes: number;
+  shouldTakeBreak: boolean;
+}
+
+export interface FocusDriftResult {
+  overallDrift: DriftDirection;
+  driftSeverity: DriftSeverity;
+  trendLine: { slope: number; intercept: number };
+  volatility: number;
+  fatigueIndicators: FatigueIndicator;
+  recommendations: string[];
+}
+
+export interface DecayResult {
+  retentionRate: number;
+  effectiveHours: number;
+  decayedHours: number;
+  daysUntilCritical: number;
+  reviewUrgency: ReviewUrgency;
+  recommendedReviewDate: Date;
+}
+
+export interface EndSessionInputs {
+  rating?: number;
+  notes?: string;
+  distractionCount?: number;
+  // Phase 3: Enhanced Quality Scoring Inputs
+  selfRatedDifficulty?: number;
+  assessmentScore?: number;
+  assessmentPassed?: boolean;
+  projectOutcome?: ProjectOutcome;
+  peerReviewScore?: number;
+  // Phase 4: Timezone and custom target support
+  timezone?: string;
+  targetHours?: number;
+}
+
+export interface EndSessionResult {
+  session: PracticeSession;
+  masteryUpdate?: {
+    skillName: string;
+    newLevel?: ProficiencyLevel;
+    levelUp: boolean;
+    qualityHoursGained: number;
+    totalQualityHours: number;
+  };
+  qualityScoring?: QualityScoreResult;
+  validation?: ValidationResult;
+  focusDrift?: FocusDriftResult;
+  warnings?: string[];
+}
+
+// ============================================================================
 // PROFICIENCY & MASTERY TYPES
 // ============================================================================
 
@@ -422,7 +522,7 @@ export interface ActiveSessionTrackerProps {
   session: PracticeSession | null;
   onPause: () => Promise<void>;
   onResume: () => Promise<void>;
-  onEnd: (rating?: number, notes?: string) => Promise<void>;
+  onEnd: (inputs?: EndSessionInputs) => Promise<EndSessionResult | null>;
   isLoading?: boolean;
   className?: string;
 }

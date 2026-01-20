@@ -3,14 +3,20 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getPracticeStores } from '@/lib/sam/taxomind-context';
-// Practice session store for types and methods
+import {
+  createTransactionalPracticeSessionOrchestrator,
+  type TransactionalEndSessionInput,
+} from '@/lib/sam/orchestrator/transactional-practice-session-orchestrator';
+import { syncSessionToSkillBuildTrack } from '@/lib/practice/sync-skill-build';
 
-// Get practice stores from TaxomindContext singleton
+// Get practice stores from TaxomindContext singleton (only for session lookup)
 const {
   practiceSession: practiceSessionStore,
   skillMastery10K: masteryStore,
-  dailyPracticeLog: dailyLogStore,
 } = getPracticeStores();
+
+// Create orchestrator for transactional session management
+const orchestrator = createTransactionalPracticeSessionOrchestrator();
 
 // ============================================================================
 // Constants
@@ -31,6 +37,11 @@ const CompletePomodoroSchema = z.object({
   notes: z.string().max(2000).optional(),
   wasInterrupted: z.boolean().optional().default(false),
   interruptionReason: z.string().max(500).optional(),
+  // Phase 4: Timezone support for accurate day boundaries
+  timezone: z.string().optional(),
+  // Phase 3: Enhanced quality scoring inputs
+  selfRatedDifficulty: z.number().min(1).max(5).optional(),
+  focusLevel: z.enum(['DEEP_FLOW', 'HIGH', 'MEDIUM', 'LOW', 'VERY_LOW']).optional(),
 });
 
 // ============================================================================
@@ -90,57 +101,47 @@ export async function POST(req: NextRequest) {
       finalNotes += `\n\n${validated.notes}`;
     }
 
-    // End the session
-    const completedSession = await practiceSessionStore.endSession(validated.sessionId, {
+    // Build orchestrator input with Phase 3/4 fields
+    const orchestratorInput: TransactionalEndSessionInput = {
       notes: finalNotes.trim() || undefined,
-    });
+      focusLevel: validated.focusLevel,
+      pomodoroCount: validated.pomodoroNumber,
+      timezone: validated.timezone,
+      selfRatedDifficulty: validated.selfRatedDifficulty,
+    };
+
+    // Use transactional orchestrator for atomic session end with Phase 3/4 features
+    const result = await orchestrator.endSessionTransactionally(validated.sessionId, orchestratorInput);
+
+    const {
+      session: completedSession,
+      mastery: updatedMastery,
+      newMilestones,
+      qualityScore,
+      validation,
+      focusDrift,
+    } = result;
 
     // Calculate session duration in minutes
     const sessionDurationMinutes = completedSession.rawHours * 60;
 
-    // Update skill mastery only if skillId is provided
-    let updatedMastery = null;
+    // Sync to SkillBuildTrack for multi-dimensional tracking (with Phase 3 evidence-based scoring)
     if (existingSession.skillId) {
-      updatedMastery = await masteryStore.recordSessionToMastery(
-        session.user.id,
-        existingSession.skillId,
-        existingSession.skillName ?? 'Unknown Skill',
-        completedSession.rawHours,
-        completedSession.qualityHours,
-        sessionDurationMinutes,
-        completedSession.qualityMultiplier
-      );
-    }
-
-    // Convert focus level to number for daily log
-    const focusLevelToNumber = (level: string): number => {
-      const mapping: Record<string, number> = {
-        VERY_LOW: 1, LOW: 2, MEDIUM: 3, HIGH: 4, DEEP_FLOW: 5,
-      };
-      return mapping[level] ?? 3;
-    };
-
-    // Update daily practice log
-    await dailyLogStore.recordActivity(
-      session.user.id,
-      new Date(),
-      {
-        totalMinutes: completedSession.rawHours * 60,
-        qualityHours: completedSession.qualityHours,
-        sessionsCount: 1,
-        sessionType: completedSession.sessionType,
-        qualityMultiplier: completedSession.qualityMultiplier,
-        focusLevel: focusLevelToNumber(completedSession.focusLevel),
+      await syncSessionToSkillBuildTrack({
+        userId: session.user.id,
         skillId: existingSession.skillId,
-      }
-    );
-
-    // Check for new milestones
-    const milestones = await masteryStore.getMilestones(session.user.id);
-    const newMilestones = milestones.filter(
-      (m) => m.unlockedAt &&
-        new Date(m.unlockedAt).getTime() > Date.now() - 60000
-    );
+        skillName: existingSession.skillName ?? 'Unknown Skill',
+        durationMinutes: sessionDurationMinutes,
+        qualityMultiplier: completedSession.qualityMultiplier,
+        sessionType: completedSession.sessionType,
+        focusLevel: completedSession.focusLevel,
+        bloomsLevel: completedSession.bloomsLevel,
+        courseId: existingSession.courseId,
+        rawHours: completedSession.rawHours,
+        qualityHours: completedSession.qualityHours,
+        selfRatedDifficulty: validated.selfRatedDifficulty,
+      });
+    }
 
     // Determine break info
     const isLongBreak = validated.pomodoroNumber % POMODOROS_BEFORE_LONG_BREAK === 0;
@@ -177,6 +178,32 @@ export async function POST(req: NextRequest) {
           qualityMultiplier: completedSession.qualityMultiplier,
           totalQualityHours: updatedMastery?.totalQualityHours ?? 0,
           bonusXp: validated.wasInterrupted ? 0 : POMODORO_XP_BONUS,
+        },
+        // Phase 3: Enhanced quality scoring breakdown (mapped to UI types)
+        qualityScoring: {
+          multiplier: qualityScore.finalMultiplier,
+          confidenceLevel: qualityScore.confidence,
+          evidenceType: qualityScore.evidenceType,
+          breakdown: {
+            timeWeight: qualityScore.breakdown.sessionType ?? 0,
+            focusWeight: qualityScore.breakdown.focus ?? 0,
+            bloomsWeight: qualityScore.breakdown.blooms ?? 0,
+            sessionTypeWeight: qualityScore.breakdown.sessionType ?? 0,
+          },
+        },
+        // Phase 4: Session validation results (mapped to UI types)
+        validation: {
+          isValid: validation.isValid,
+          flags: validation.flags,
+          warnings: validation.flags.map((f: string) => `Session flagged: ${f}`),
+          confidence: validation.confidence,
+          adjustedDuration: validation.wasAdjusted ? validation.suggestedDuration : undefined,
+        },
+        // Phase 4: Focus drift analysis (mapped to UI types)
+        focusDrift: {
+          overallDrift: focusDrift.driftDirection,
+          driftSeverity: focusDrift.driftSeverity,
+          recommendations: focusDrift.recommendations,
         },
       },
       message: validated.wasInterrupted

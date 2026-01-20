@@ -10,6 +10,10 @@ import {
 } from '@/lib/sam/stores';
 import { syncSessionToSkillBuildTrack } from '@/lib/practice/sync-skill-build';
 import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
+import {
+  createTransactionalPracticeSessionOrchestrator,
+  type TransactionalEndSessionInput,
+} from '@/lib/sam/orchestrator/transactional-practice-session-orchestrator';
 
 // Get practice stores from TaxomindContext singleton
 const {
@@ -18,6 +22,9 @@ const {
   dailyPracticeLog: dailyLogStore,
   practiceGoal: practiceGoalStore,
 } = getPracticeStores();
+
+// Create orchestrator for transactional session management
+const orchestrator = createTransactionalPracticeSessionOrchestrator();
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -166,12 +173,36 @@ function generateMultiplierBreakdown(
   };
 }
 
+const ProjectOutcomeEnum = z.enum(['SUCCESS', 'PARTIAL', 'FAILED']);
+const FocusLevelEnum = z.enum(['DEEP_FLOW', 'HIGH', 'MEDIUM', 'LOW', 'VERY_LOW']);
+
 const EndSessionSchema = z.object({
+  // Existing fields
   bloomsLevel: BloomsLevelEnum.optional(),
   difficultyRating: z.number().min(1).max(10).optional(),
   notes: z.string().max(2000).optional(),
   reflection: z.string().max(2000).optional(),
   accomplishments: z.array(z.string()).optional(),
+  focusLevel: FocusLevelEnum.optional(),
+  distractionCount: z.number().min(0).optional(),
+  pomodoroCount: z.number().min(0).optional(),
+  breaksTaken: z.number().min(0).optional(),
+
+  // Phase 3: Enhanced Quality Scoring Inputs
+  selfRatedDifficulty: z.number().min(1).max(5).optional(),
+  assessmentScore: z.number().min(0).max(100).optional(),
+  assessmentPassed: z.boolean().optional(),
+  projectOutcome: ProjectOutcomeEnum.optional(),
+  peerReviewScore: z.number().min(0).max(100).optional(),
+
+  // Phase 2: Timezone support
+  timezone: z.string().optional(),
+
+  // Custom target hours for skill mastery (defaults to 10000)
+  targetHours: z.number().min(1).max(100000).optional(),
+
+  // Feature flag: Use transactional orchestrator
+  useTransactional: z.boolean().optional().default(true),
 });
 
 // ============================================================================
@@ -219,32 +250,47 @@ export async function POST(
     const body = await req.json().catch(() => ({}));
     const validated = EndSessionSchema.parse(body);
 
-    // End the practice session
-    const completedSession = await practiceSessionStore.endSession(sessionId, {
+    // Build orchestrator input with Phase 3/4 fields
+    const orchestratorInput: TransactionalEndSessionInput = {
       notes: validated.notes
         ? (existingSession.notes ? `${existingSession.notes}\n\n${validated.notes}` : validated.notes)
         : undefined,
-    });
+      focusLevel: validated.focusLevel,
+      distractionCount: validated.distractionCount,
+      pomodoroCount: validated.pomodoroCount,
+      breaksTaken: validated.breaksTaken,
+      timezone: validated.timezone,
+      // Custom target hours for skill mastery
+      targetHours: validated.targetHours,
+      // Phase 3: Enhanced quality scoring inputs
+      selfRatedDifficulty: validated.selfRatedDifficulty,
+      assessmentScore: validated.assessmentScore,
+      assessmentPassed: validated.assessmentPassed,
+      projectOutcome: validated.projectOutcome,
+      peerReviewScore: validated.peerReviewScore,
+    };
+
+    // Use transactional orchestrator for atomic session end with Phase 3/4 features
+    const result = await orchestrator.endSessionTransactionally(sessionId, orchestratorInput);
+
+    const {
+      session: completedSession,
+      mastery: updatedMastery,
+      dailyLog,
+      newMilestones,
+      streakContinued,
+      firstPracticeToday,
+      qualityScore,
+      validation,
+      focusDrift,
+    } = result;
 
     // Calculate session duration in minutes
     const sessionDurationMinutes = completedSession.rawHours * 60;
 
-    // Only update skill mastery if skillId is provided
-    let updatedMastery = null;
+    // Sync to SkillBuildTrack for multi-dimensional tracking (with Phase 3 evidence-based scoring)
     let skillBuildSyncResult = null;
     if (existingSession.skillId) {
-      // Update skill mastery with the completed session
-      updatedMastery = await masteryStore.recordSessionToMastery(
-        session.user.id,
-        existingSession.skillId,
-        existingSession.skillName ?? 'Unknown Skill',
-        completedSession.rawHours,
-        completedSession.qualityHours,
-        sessionDurationMinutes,
-        completedSession.qualityMultiplier
-      );
-
-      // Sync to SkillBuildTrack for multi-dimensional tracking and decay reset
       skillBuildSyncResult = await syncSessionToSkillBuildTrack({
         userId: session.user.id,
         skillId: existingSession.skillId,
@@ -257,23 +303,17 @@ export async function POST(
         courseId: existingSession.courseId,
         rawHours: completedSession.rawHours,
         qualityHours: completedSession.qualityHours,
+        // Phase 3: Enhanced quality scoring inputs
+        distractionCount: completedSession.distractionCount,
+        breaksTaken: completedSession.breaksTaken,
+        pomodoroCount: completedSession.pomodoroCount,
+        assessmentScore: validated.assessmentScore,
+        assessmentPassed: validated.assessmentPassed,
+        projectOutcome: validated.projectOutcome,
+        peerReviewScore: validated.peerReviewScore,
+        selfRatedDifficulty: validated.selfRatedDifficulty,
       });
     }
-
-    // Update daily practice log for heatmap
-    await dailyLogStore.recordActivity(
-      session.user.id,
-      new Date(),
-      {
-        totalMinutes: completedSession.rawHours * 60,
-        qualityHours: completedSession.qualityHours,
-        sessionsCount: 1,
-        sessionType: completedSession.sessionType,
-        qualityMultiplier: completedSession.qualityMultiplier,
-        focusLevel: focusLevelToNumber(completedSession.focusLevel),
-        skillId: existingSession.skillId,
-      }
-    );
 
     // Auto-update practice goals based on session results
     const goalUpdates = await practiceGoalStore.updateGoalsOnSessionEnd(
@@ -295,14 +335,7 @@ export async function POST(
       );
     }
 
-    // Check for newly achieved milestones
-    const milestones = await masteryStore.getMilestones(session.user.id);
-    const newMilestones = milestones.filter(
-      (m) => m.unlockedAt &&
-        new Date(m.unlockedAt).getTime() > Date.now() - 60000 // Within last minute
-    );
-
-    // Generate detailed multiplier breakdown
+    // Generate detailed multiplier breakdown (using Phase 3 quality score)
     const multiplierBreakdown = generateMultiplierBreakdown(
       completedSession.sessionType,
       completedSession.focusLevel,
@@ -315,10 +348,9 @@ export async function POST(
       `Ended practice session: ${sessionId}, ` +
       `raw hours: ${completedSession.rawHours.toFixed(2)}, ` +
       `quality hours: ${completedSession.qualityHours.toFixed(2)}, ` +
-      `multiplier: ${completedSession.qualityMultiplier.toFixed(2)} ` +
-      `(session: ${multiplierBreakdown.sessionType.multiplier}x, ` +
-      `focus: ${multiplierBreakdown.focusLevel.multiplier}x, ` +
-      `blooms: ${multiplierBreakdown.bloomsLevel.multiplier}x)`
+      `multiplier: ${completedSession.qualityMultiplier.toFixed(2)}, ` +
+      `validation: ${validation.isValid ? 'VALID' : `FLAGGED (${validation.flags.join(', ')})`}, ` +
+      `focusDrift: ${focusDrift.driftDirection}`
     );
 
     // Build response message with multiplier insights
@@ -332,10 +364,18 @@ export async function POST(
     }
 
     if (completedGoals.length > 0) {
-      message += ` 🎯 You completed ${completedGoals.length} goal(s)!`;
+      message += ` You completed ${completedGoals.length} goal(s)!`;
     }
 
-    // Add tips for improving multiplier
+    if (firstPracticeToday) {
+      message += ' First practice today!';
+    }
+
+    if (streakContinued && updatedMastery) {
+      message += ` Streak: ${updatedMastery.currentStreak} days!`;
+    }
+
+    // Add tips for improving multiplier (combine with focus drift recommendations)
     const tips: string[] = [];
     if (multiplierBreakdown.focusLevel.multiplier < 1.0) {
       tips.push('Try minimizing distractions to boost your focus multiplier');
@@ -345,6 +385,17 @@ export async function POST(
     }
     if (multiplierBreakdown.sessionType.multiplier < 1.25) {
       tips.push('Consider deliberate or pomodoro sessions for higher quality multipliers');
+    }
+    // Add focus drift recommendations
+    tips.push(...focusDrift.recommendations.slice(0, 2));
+
+    // Add validation warnings if session was adjusted
+    const warnings: string[] = [];
+    if (validation.wasAdjusted) {
+      warnings.push(`Session duration was adjusted from ${validation.originalDuration} to ${completedSession.durationMinutes} minutes`);
+    }
+    if (!validation.isValid) {
+      warnings.push(`Session validation flags: ${validation.flags.join(', ')}`);
     }
 
     getAchievementEngine()
@@ -367,7 +418,14 @@ export async function POST(
       data: {
         session: completedSession,
         mastery: updatedMastery,
-        newMilestones,
+        newMilestones: newMilestones.map((m) => ({
+          milestoneType: m.milestoneType,
+          skillName: m.skillName,
+          hoursRequired: m.hoursRequired,
+          xpReward: m.xpReward,
+          badgeName: m.badgeName,
+        })),
+        dailyLog,
         goalUpdates: goalUpdates.map((g) => ({
           goalId: g.goal.id,
           title: g.goal.title,
@@ -396,6 +454,8 @@ export async function POST(
           milestonesEarned: newMilestones.length,
           goalsUpdated: goalUpdates.length,
           goalsCompleted: completedGoals.length,
+          firstPracticeToday,
+          streakContinued,
         },
         skillBuildSync: skillBuildSyncResult
           ? {
@@ -403,10 +463,60 @@ export async function POST(
               levelChanged: skillBuildSyncResult.levelChanged,
               newLevel: skillBuildSyncResult.newLevel,
               compositeScore: skillBuildSyncResult.compositeScore,
+              scoreUsed: skillBuildSyncResult.scoreUsed,
+              scoreConfidence: skillBuildSyncResult.scoreConfidence,
+              evidenceType: skillBuildSyncResult.evidenceType,
             }
           : null,
         multiplierBreakdown,
+        // Phase 3: Enhanced quality scoring breakdown (mapped to UI types)
+        qualityScoring: {
+          multiplier: qualityScore.finalMultiplier, // UI expects 'multiplier'
+          confidenceLevel: qualityScore.confidence, // UI expects 'confidenceLevel'
+          evidenceType: qualityScore.evidenceType,
+          breakdown: {
+            timeWeight: qualityScore.breakdown.sessionType ?? 0,
+            focusWeight: qualityScore.breakdown.focus ?? 0,
+            bloomsWeight: qualityScore.breakdown.blooms ?? 0,
+            sessionTypeWeight: qualityScore.breakdown.sessionType ?? 0,
+            assessmentBonus: qualityScore.breakdown.assessment ?? 0,
+            projectBonus: qualityScore.breakdown.project ?? 0,
+            peerReviewBonus: qualityScore.breakdown.peerReview ?? 0,
+            difficultyAdjustment: qualityScore.breakdown.difficulty ?? 0,
+          },
+          // Also include raw values for debugging/advanced use
+          baseMultiplier: qualityScore.baseMultiplier,
+          bloomsMultiplier: qualityScore.bloomsMultiplier,
+          outcomeMultiplier: qualityScore.outcomeMultiplier,
+          engagementBonus: qualityScore.engagementBonus,
+          difficultyBonus: qualityScore.difficultyBonus,
+        },
+        // Phase 4: Session validation results (mapped to UI types)
+        validation: {
+          isValid: validation.isValid,
+          flags: validation.flags,
+          warnings: validation.flags.map((f: string) => `Session flagged: ${f}`),
+          confidence: validation.confidence,
+          adjustedDuration: validation.wasAdjusted ? validation.suggestedDuration : undefined, // UI expects 'adjustedDuration'
+          // Also include raw values
+          wasAdjusted: validation.wasAdjusted,
+          originalDuration: validation.originalDuration,
+        },
+        // Phase 4: Focus drift analysis (mapped to UI types)
+        focusDrift: {
+          overallDrift: focusDrift.driftDirection, // UI expects 'overallDrift'
+          driftSeverity: focusDrift.driftSeverity,
+          trendLine: { slope: focusDrift.driftScore, intercept: 0 },
+          volatility: Math.abs(focusDrift.driftScore),
+          fatigueIndicators: focusDrift.fatigueIndicators,
+          recommendations: focusDrift.recommendations,
+          // Also include raw values
+          score: focusDrift.driftScore,
+          optimalSessionLength: focusDrift.optimalSessionLength,
+          breakRecommended: focusDrift.breakRecommended,
+        },
         improvementTips: tips.length > 0 ? tips : undefined,
+        warnings: warnings.length > 0 ? warnings : undefined,
       },
       message,
     });
