@@ -83,9 +83,9 @@ export function ChapterDepthAnalysis({ chapters, onImproveChapter }: ChapterDept
               <p className="text-sm text-gray-600 dark:text-gray-400">Average Score</p>
               <p className={cn(
                 "text-2xl font-bold",
-                getScoreColor(Math.round(chapters.reduce((acc, ch) => acc + ch.score, 0) / chapters.length))
+                getScoreColor(chapters.length > 0 ? Math.round(chapters.reduce((acc, ch) => acc + ch.score, 0) / chapters.length) : 0)
               )}>
-                {Math.round(chapters.reduce((acc, ch) => acc + ch.score, 0) / chapters.length)}
+                {chapters.length > 0 ? Math.round(chapters.reduce((acc, ch) => acc + ch.score, 0) / chapters.length) : 0}
               </p>
             </div>
             <Target className="h-8 w-8 text-gray-400" />

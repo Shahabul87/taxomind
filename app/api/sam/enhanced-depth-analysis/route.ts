@@ -22,6 +22,26 @@ import {
   type EnhancedDepthAnalysisResponse,
 } from '@sam-ai/educational/depth-analysis';
 import { PrismaCourseDepthAnalysisStore } from '@/lib/adapters';
+import {
+  // Multi-Framework Evaluator
+  createMultiFrameworkEvaluator,
+  type MultiFrameworkResult,
+  type FrameworkType,
+  type ContentForMultiFrameworkAnalysis,
+  // Alignment Engine
+  createAlignmentEngine,
+  type AlignmentAnalysisResult,
+  type CourseForAlignment,
+  // Evidence Service
+  createEvidenceService,
+  type EvidenceSummary,
+  // Content Ingestion
+  createContentIngestionPipeline,
+  type IngestionResult,
+  // LLM Adapter
+  createDepthAnalysisLLMAdapter,
+  type LLMProvider,
+} from '@sam-ai/educational';
 
 // ============================================================================
 // ENGINE SINGLETON
@@ -68,6 +88,38 @@ const GetCachedAnalysisSchema = z.object({
 
 const CompareCoursesByDepthSchema = z.object({
   courseIds: z.array(z.string().min(1)).min(2).max(10),
+});
+
+// New schemas for enhanced depth analysis features
+const MultiFrameworkAnalysisSchema = z.object({
+  courseId: z.string().min(1),
+  frameworks: z.array(z.enum(['blooms', 'dok', 'solo', 'fink', 'marzano'])).optional(),
+  forceReanalyze: z.boolean().optional().default(false),
+});
+
+const AlignmentMatrixSchema = z.object({
+  courseId: z.string().min(1),
+  includeAssessments: z.boolean().optional().default(true),
+  includeSections: z.boolean().optional().default(true),
+});
+
+const ContentIngestionSchema = z.object({
+  courseId: z.string().min(1),
+  attachmentIds: z.array(z.string()).optional(),
+  forceReextract: z.boolean().optional().default(false),
+});
+
+const EvidenceSummarySchema = z.object({
+  courseId: z.string().min(1),
+  confidenceThreshold: z.number().min(0).max(1).optional().default(0.5),
+  limit: z.number().int().min(1).max(100).optional().default(50),
+});
+
+const LLMAnalysisSchema = z.object({
+  courseId: z.string().min(1),
+  analysisType: z.enum(['blooms', 'dok', 'multi-framework', 'alignment', 'recommendations']),
+  provider: z.enum(['openai', 'anthropic', 'deepseek']).optional().default('openai'),
+  content: z.string().optional(),
 });
 
 // ============================================================================
@@ -516,6 +568,379 @@ export async function POST(req: NextRequest) {
         logger.info('[EnhancedDepthAnalysis] Cache invalidated', {
           userId: session.user.id,
           courseId: validated.courseId,
+        });
+        break;
+      }
+
+      // ============================================================================
+      // NEW ENHANCED DEPTH ANALYSIS ACTIONS (Phase 1-5 Integration)
+      // ============================================================================
+
+      case 'analyze-multi-framework': {
+        const validated = MultiFrameworkAnalysisSchema.parse(data);
+
+        // Check access
+        const courseData = await fetchCourseData(validated.courseId, session.user.id);
+        if (!courseData) {
+          return NextResponse.json(
+            { success: false, error: { code: 'NOT_FOUND', message: 'Course not found or access denied' } },
+            { status: 404 }
+          );
+        }
+
+        // Create multi-framework evaluator
+        const evaluator = createMultiFrameworkEvaluator({
+          frameworks: (validated.frameworks as FrameworkType[]) ?? ['blooms', 'dok', 'solo', 'fink', 'marzano'],
+          logger: {
+            info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
+            warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
+            error: (msg: string, ...args: unknown[]) => logger.error(msg, { data: args }),
+          },
+        });
+
+        // Prepare content for analysis
+        const contentForAnalysis: ContentForMultiFrameworkAnalysis = {
+          courseId: validated.courseId,
+          content: courseData.chapters.flatMap((chapter) =>
+            chapter.sections.flatMap((section) => [
+              // Objectives
+              ...(courseData.whatYouWillLearn?.map((obj, idx) => ({
+                id: `obj-${idx}`,
+                text: obj,
+                type: 'objective' as const,
+              })) ?? []),
+              // Section descriptions
+              {
+                id: section.id,
+                text: section.description ?? section.title,
+                type: 'section' as const,
+              },
+              // Assessment questions
+              ...section.exams.flatMap((exam) =>
+                exam.ExamQuestion.map((q) => ({
+                  id: q.id,
+                  text: q.question,
+                  type: 'assessment' as const,
+                  bloomsLevel: q.bloomsLevel ?? undefined,
+                }))
+              ),
+            ])
+          ),
+        };
+
+        const multiFrameworkResult: MultiFrameworkResult = await evaluator.evaluate(contentForAnalysis);
+
+        result = {
+          multiFramework: multiFrameworkResult,
+          courseId: validated.courseId,
+          frameworksAnalyzed: multiFrameworkResult.metadata.frameworksUsed,
+        };
+
+        logger.info('[EnhancedDepthAnalysis] Multi-framework analysis completed', {
+          userId: session.user.id,
+          courseId: validated.courseId,
+          compositeScore: multiFrameworkResult.compositeScore,
+        });
+        break;
+      }
+
+      case 'get-alignment-matrix': {
+        const validated = AlignmentMatrixSchema.parse(data);
+
+        // Check access
+        const courseData = await fetchCourseData(validated.courseId, session.user.id);
+        if (!courseData) {
+          return NextResponse.json(
+            { success: false, error: { code: 'NOT_FOUND', message: 'Course not found or access denied' } },
+            { status: 404 }
+          );
+        }
+
+        // Create alignment engine
+        const alignmentEngine = createAlignmentEngine({
+          logger: {
+            info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
+            warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
+            error: (msg: string, ...args: unknown[]) => logger.error(msg, { data: args }),
+          },
+        });
+
+        // Prepare course for alignment analysis
+        const courseForAlignment: CourseForAlignment = {
+          id: courseData.id,
+          title: courseData.title,
+          objectives: courseData.whatYouWillLearn?.map((obj, idx) => ({
+            id: `obj-${idx}`,
+            text: obj,
+            bloomsLevel: undefined, // Will be analyzed
+          })) ?? [],
+          sections: courseData.chapters.flatMap((chapter) =>
+            chapter.sections.map((section) => ({
+              id: section.id,
+              title: section.title,
+              description: section.description ?? '',
+              chapterId: chapter.id,
+              content: section.description ?? section.title,
+            }))
+          ),
+          assessments: validated.includeAssessments
+            ? courseData.chapters.flatMap((chapter) =>
+                chapter.sections.flatMap((section) =>
+                  section.exams.map((exam) => ({
+                    id: exam.id,
+                    title: exam.title,
+                    sectionId: section.id,
+                    questions: exam.ExamQuestion.map((q) => ({
+                      id: q.id,
+                      text: q.question,
+                      bloomsLevel: q.bloomsLevel ?? undefined,
+                    })),
+                  }))
+                )
+              )
+            : [],
+        };
+
+        const alignmentResult: AlignmentAnalysisResult = await alignmentEngine.analyze(courseForAlignment);
+
+        result = {
+          alignment: alignmentResult,
+          courseId: validated.courseId,
+          summary: {
+            totalObjectives: alignmentResult.summary.objectivesCovered,
+            alignedObjectives: alignmentResult.summary.objectivesCovered,
+            overallScore: alignmentResult.summary.overallAlignmentScore,
+            gaps: alignmentResult.gaps.length,
+          },
+        };
+
+        logger.info('[EnhancedDepthAnalysis] Alignment matrix generated', {
+          userId: session.user.id,
+          courseId: validated.courseId,
+          alignmentScore: alignmentResult.summary.overallAlignmentScore,
+        });
+        break;
+      }
+
+      case 'extract-content': {
+        const validated = ContentIngestionSchema.parse(data);
+
+        // Check access - only course owner can trigger extraction
+        const course = await db.course.findFirst({
+          where: {
+            id: validated.courseId,
+            userId: session.user.id,
+          },
+          include: {
+            attachments: true,
+          },
+        });
+
+        if (!course) {
+          return NextResponse.json(
+            { success: false, error: { code: 'FORBIDDEN', message: 'Only course owner can trigger content extraction' } },
+            { status: 403 }
+          );
+        }
+
+        // Create content ingestion pipeline
+        const pipeline = createContentIngestionPipeline({
+          logger: {
+            info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
+            warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
+            error: (msg: string, ...args: unknown[]) => logger.error(msg, { data: args }),
+          },
+        });
+
+        // Filter attachments if specific IDs provided
+        const attachmentsToProcess = validated.attachmentIds
+          ? course.attachments.filter((a) => validated.attachmentIds?.includes(a.id))
+          : course.attachments;
+
+        const ingestionResults: IngestionResult[] = [];
+
+        for (const attachment of attachmentsToProcess) {
+          try {
+            const ingestionResult = await pipeline.ingest({
+              id: attachment.id,
+              name: attachment.name,
+              url: attachment.url,
+              courseId: course.id,
+            });
+            ingestionResults.push(ingestionResult);
+          } catch (err) {
+            logger.warn('[EnhancedDepthAnalysis] Failed to ingest attachment', {
+              attachmentId: attachment.id,
+              error: err instanceof Error ? err.message : 'Unknown error',
+            });
+          }
+        }
+
+        result = {
+          courseId: validated.courseId,
+          totalAttachments: attachmentsToProcess.length,
+          successfulExtractions: ingestionResults.filter((r) => r.status === 'completed').length,
+          results: ingestionResults,
+        };
+
+        logger.info('[EnhancedDepthAnalysis] Content extraction completed', {
+          userId: session.user.id,
+          courseId: validated.courseId,
+          attachmentsProcessed: attachmentsToProcess.length,
+        });
+        break;
+      }
+
+      case 'get-evidence-summary': {
+        const validated = EvidenceSummarySchema.parse(data);
+
+        // Check access
+        const courseData = await fetchCourseData(validated.courseId, session.user.id);
+        if (!courseData) {
+          return NextResponse.json(
+            { success: false, error: { code: 'NOT_FOUND', message: 'Course not found or access denied' } },
+            { status: 404 }
+          );
+        }
+
+        // Create evidence service
+        const evidenceService = createEvidenceService({
+          logger: {
+            info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
+            warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
+            error: (msg: string, ...args: unknown[]) => logger.error(msg, { data: args }),
+          },
+        });
+
+        // Get evidence summary
+        const evidenceSummary: EvidenceSummary = await evidenceService.getSummary({
+          courseId: validated.courseId,
+          minConfidence: validated.confidenceThreshold,
+          limit: validated.limit,
+        });
+
+        result = {
+          evidence: evidenceSummary,
+          courseId: validated.courseId,
+          summary: {
+            totalEvidence: evidenceSummary.totalCount,
+            avgConfidence: evidenceSummary.averageConfidence,
+            highConfidenceCount: evidenceSummary.confidenceDistribution.high,
+            mediumConfidenceCount: evidenceSummary.confidenceDistribution.medium,
+            lowConfidenceCount: evidenceSummary.confidenceDistribution.low,
+          },
+        };
+
+        logger.info('[EnhancedDepthAnalysis] Evidence summary retrieved', {
+          userId: session.user.id,
+          courseId: validated.courseId,
+          totalEvidence: evidenceSummary.totalCount,
+        });
+        break;
+      }
+
+      case 'analyze-with-llm': {
+        const validated = LLMAnalysisSchema.parse(data);
+
+        // Check access
+        const courseData = await fetchCourseData(validated.courseId, session.user.id);
+        if (!courseData) {
+          return NextResponse.json(
+            { success: false, error: { code: 'NOT_FOUND', message: 'Course not found or access denied' } },
+            { status: 404 }
+          );
+        }
+
+        // Get API key based on provider
+        const providerKeyMap: Record<string, string | undefined> = {
+          openai: process.env.OPENAI_API_KEY,
+          anthropic: process.env.ANTHROPIC_API_KEY,
+          deepseek: process.env.DEEPSEEK_API_KEY,
+        };
+
+        const apiKey = providerKeyMap[validated.provider];
+        if (!apiKey) {
+          return NextResponse.json(
+            { success: false, error: { code: 'CONFIG_ERROR', message: `${validated.provider} API key not configured` } },
+            { status: 500 }
+          );
+        }
+
+        // Create LLM adapter
+        const llmAdapter = createDepthAnalysisLLMAdapter({
+          provider: validated.provider as LLMProvider,
+          apiKey,
+          logger: {
+            info: (msg: string, ...args: unknown[]) => logger.info(msg, { data: args }),
+            warn: (msg: string, ...args: unknown[]) => logger.warn(msg, { data: args }),
+            error: (msg: string, ...args: unknown[]) => logger.error(msg, { data: args }),
+          },
+        });
+
+        // Prepare content for analysis
+        const contentToAnalyze = validated.content ?? courseData.chapters
+          .flatMap((ch) => ch.sections.map((s) => s.description ?? s.title))
+          .join('\n');
+
+        let llmResult: unknown;
+
+        switch (validated.analysisType) {
+          case 'blooms':
+            llmResult = await llmAdapter.classifyBlooms({
+              text: contentToAnalyze,
+              context: 'course_content',
+            });
+            break;
+          case 'dok':
+            llmResult = await llmAdapter.classifyDOK({
+              text: contentToAnalyze,
+              context: 'course_content',
+            });
+            break;
+          case 'multi-framework':
+            llmResult = await llmAdapter.classifyMultiFramework({
+              text: contentToAnalyze,
+              frameworks: ['blooms', 'dok', 'solo', 'fink', 'marzano'],
+            });
+            break;
+          case 'alignment':
+            llmResult = await llmAdapter.analyzeAlignment({
+              objectives: courseData.whatYouWillLearn?.map((obj, idx) => ({
+                id: `obj-${idx}`,
+                text: obj,
+              })) ?? [],
+              sections: courseData.chapters.flatMap((ch) =>
+                ch.sections.map((s) => ({
+                  id: s.id,
+                  title: s.title,
+                  content: s.description ?? s.title,
+                }))
+              ),
+              assessments: [],
+            });
+            break;
+          case 'recommendations':
+            llmResult = await llmAdapter.generateRecommendations({
+              courseId: validated.courseId,
+              courseTitle: courseData.title,
+              currentDistribution: {}, // Would need existing analysis
+              focusAreas: ['content_gaps', 'cognitive_balance'],
+            });
+            break;
+        }
+
+        result = {
+          llmAnalysis: llmResult,
+          courseId: validated.courseId,
+          analysisType: validated.analysisType,
+          provider: validated.provider,
+        };
+
+        logger.info('[EnhancedDepthAnalysis] LLM analysis completed', {
+          userId: session.user.id,
+          courseId: validated.courseId,
+          analysisType: validated.analysisType,
+          provider: validated.provider,
         });
         break;
       }

@@ -1353,3 +1353,280 @@ export {
   type RetryConfig,
   type RetryOptions,
 } from './validation';
+
+// ============================================================================
+// CONTENT INGESTION PIPELINE EXPORTS (Enhanced Depth Analysis - January 2026)
+// ============================================================================
+
+export {
+  // Types
+  type ContentSourceType,
+  type ContentProcessingStatus,
+  type RawContentSource,
+  type ExtractedContent,
+  type ExtractedMetadata,
+  type ExtractedSection,
+  type ExtractionQuality,
+  type ExtractionIssue,
+  type ContentExtractor,
+  type ExtractionOptions,
+  type ContentSourceStore,
+  type ContentSourceData,
+  type ContentSourceCreateInput,
+  type ContentSourceUpdateInput,
+  type IngestionPipelineOptions,
+  type IngestionResult,
+  type IngestionError,
+  type IngestionStatus,
+  type IngestionLogger,
+  type CourseForIngestion,
+  type ChapterForIngestion,
+  type SectionForIngestion,
+
+  // Extractors
+  PDFExtractor,
+  pdfExtractor,
+  SlideExtractor,
+  slideExtractor,
+  TextExtractor,
+  textExtractor,
+  AttachmentRouter,
+  attachmentRouter,
+  contentTypeUtils,
+
+  // Pipeline
+  ContentIngestionPipeline,
+  createContentIngestionPipeline,
+  PIPELINE_VERSION,
+
+  // Store (for app-level usage)
+  PrismaContentSourceStore,
+  createPrismaContentSourceStore,
+} from './ingestion';
+
+// ============================================================================
+// ALIGNMENT ENGINE EXPORTS (Enhanced Depth Analysis - January 2026)
+// ============================================================================
+
+export {
+  // Engine
+  AlignmentEngine,
+  createAlignmentEngine,
+
+  // Store
+  PrismaAlignmentMatrixStore,
+  createPrismaAlignmentMatrixStore,
+
+  // Types
+  type AlignmentType,
+  type AssessmentType as AlignmentAssessmentType,
+  type GapType,
+  type GapSeverity,
+  type LinkedSection,
+  type LinkedAssessment,
+  type ObjectiveAlignment,
+  type SectionAlignment,
+  type QuestionAlignment,
+  type AssessmentAlignment,
+  type AlignmentGap,
+  type AlignmentEngineOptions,
+  type AlignmentLogger,
+  type AlignmentAnalysisResult,
+  type AlignmentSummary,
+  type CourseObjective,
+  type CourseSection,
+  type CourseAssessment,
+  type CourseQuestion,
+  type CourseForAlignment,
+  type AlignmentMatrixData,
+  type AlignmentMatrixCreateInput,
+  type AlignmentMatrixUpdateInput,
+  type AlignmentMatrixStore,
+  type TextMatchResult,
+  type KeywordExtraction,
+} from './alignment';
+
+// ============================================================================
+// EVIDENCE TRACKING EXPORTS (Enhanced Depth Analysis - January 2026)
+// ============================================================================
+
+export {
+  // Service
+  EvidenceService,
+  ConfidenceCalculator,
+  KeywordAnalyzer,
+  createEvidenceService,
+  createConfidenceCalculator,
+  createKeywordAnalyzer,
+  EVIDENCE_SERVICE_VERSION,
+
+  // Store
+  PrismaAnalysisEvidenceStore,
+  createPrismaAnalysisEvidenceStore,
+
+  // Types
+  type EvidenceSourceType,
+  type ContentContext,
+  type TextPosition,
+  type ConfidenceBreakdown,
+  type KeywordMatch,
+  type SentenceLevelEvidence,
+  type SentenceAnalysis,
+  type AnalysisEvidenceInput,
+  type AnalysisEvidenceData,
+  type EvidenceServiceOptions,
+  type EvidenceLogger,
+  type EvidenceQuery,
+  type EvidenceSummary,
+  type AnalysisEvidenceStore,
+  type ConfidenceCalculatorOptions,
+  type ConfidenceCalculationResult,
+  type KeywordWeight,
+  type KeywordAnalysisResult,
+  type AggregatedEvidence,
+  type EvidenceAggregationResult,
+  type EvidenceConflict,
+} from './evidence';
+
+// ============================================================================
+// MULTI-FRAMEWORK EVALUATOR EXPORTS (Enhanced Depth Analysis - January 2026)
+// ============================================================================
+
+export {
+  // Framework definitions
+  BLOOMS_FRAMEWORK,
+  DOK_FRAMEWORK,
+  SOLO_FRAMEWORK,
+  FINK_FRAMEWORK,
+  MARZANO_FRAMEWORK,
+  FRAMEWORKS,
+  COURSE_TYPE_FRAMEWORK_WEIGHTS,
+  getFramework,
+  getAllFrameworks,
+  getFrameworkWeights,
+  getIdealDistribution,
+  getFrameworkLevel,
+  getFrameworkMappings,
+
+  // Multi-framework evaluator
+  MultiFrameworkEvaluator,
+  createMultiFrameworkEvaluator,
+  EVALUATOR_VERSION,
+
+  // Types
+  type FrameworkType,
+  type SOLOLevel,
+  type FinkLevel,
+  type MarzanoLevel,
+  type TaxonomyLevel,
+  type TaxonomyFramework,
+  type FrameworkMapping as TaxonomyFrameworkMapping,
+  type CrossFrameworkMapping,
+  type SOLODistribution,
+  type FinkDistribution,
+  type MarzanoDistribution,
+  type FrameworkDistribution,
+  type FrameworkWeights,
+  type MultiFrameworkEvaluatorOptions,
+  type FrameworkLogger,
+  type FrameworkAnalysis,
+  type LevelAnalysisDetail,
+  type FrameworkRecommendation,
+  type MultiFrameworkResult,
+  type AnalyzableContent,
+  type ContentForMultiFrameworkAnalysis,
+} from './frameworks';
+
+// ============================================================================
+// PORTABLE LLM ADAPTER EXPORTS (Enhanced Depth Analysis - January 2026)
+// ============================================================================
+
+export {
+  // Adapter
+  PortableDepthAnalysisLLMAdapter,
+  createDepthAnalysisLLMAdapter,
+  createQuickAdapter,
+  ADAPTER_VERSION as LLM_ADAPTER_VERSION,
+
+  // Prompts (for customization)
+  BLOOMS_CLASSIFICATION_PROMPT,
+  DOK_CLASSIFICATION_PROMPT,
+  MULTI_FRAMEWORK_PROMPT,
+  KEYWORD_EXTRACTION_PROMPT,
+  ALIGNMENT_ANALYSIS_PROMPT,
+  RECOMMENDATION_PROMPT,
+
+  // Parsers (for custom implementations)
+  parseBloomsResult,
+  parseDOKResult,
+  parseMultiFrameworkResult,
+  parseKeywordResult,
+  parseAlignmentResult,
+  parseRecommendationResult,
+
+  // Model tier mapping
+  MODEL_TIER_MAPPING,
+
+  // Types
+  type LLMProvider,
+  type LLMModelTier,
+  type LLMProviderConfig,
+  type DepthAnalysisLLMAdapter,
+  type DepthAnalysisLLMAdapterOptions,
+  type LLMModelInfo,
+  type LLMAdapterLogger,
+  type RateLimitConfig as LLMRateLimitConfig,
+  type RetryConfig as LLMRetryConfig,
+  type SystemPromptOverrides,
+
+  // Bloom's classification types
+  type BloomsClassificationInput,
+  type BloomsClassificationResult,
+  type BloomsEvidence,
+  type BloomsAlternative,
+
+  // DOK classification types
+  type DOKClassificationInput,
+  type DOKClassificationResult,
+  type DOKEvidence,
+  type DOKAlternative,
+
+  // Multi-framework types
+  type MultiFrameworkClassificationInput,
+  type MultiFrameworkClassificationResult,
+  type FrameworkClassificationDetail,
+  type FrameworkEvidence,
+
+  // Keyword extraction types
+  type KeywordExtractionInput,
+  type KeywordExtractionResult,
+  type KeywordType,
+  type ExtractedKeywordGroup,
+  type ExtractedKeyword as LLMExtractedKeyword,
+
+  // Alignment analysis types
+  type AlignmentAnalysisInput as LLMAlignmentAnalysisInput,
+  type AlignmentAnalysisResult as LLMAlignmentAnalysisResult,
+  type ObjectiveForAnalysis,
+  type SectionForAnalysis,
+  type AssessmentForAnalysis,
+  type QuestionForAnalysis as LLMQuestionForAnalysis,
+  type ObjectiveAlignmentDetail,
+  type AssessmentAlignmentDetail,
+  type AlignedItemDetail,
+  type AlignmentGapDetail,
+  type AlignmentSummaryStats,
+
+  // Recommendation types
+  type RecommendationInput,
+  type RecommendationResult,
+  type RecommendationFocusArea,
+  type GeneratedRecommendation,
+  type RecommendationCategory,
+
+  // Other types
+  type StructuredOutputSchema,
+  type OpenAIModelConfig,
+  type AnthropicModelConfig,
+  type DeepSeekModelConfig,
+} from './llm-adapter';

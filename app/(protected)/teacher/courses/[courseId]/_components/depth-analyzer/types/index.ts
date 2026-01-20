@@ -363,3 +363,222 @@ export interface QuickStat {
   color: 'blue' | 'emerald' | 'violet' | 'amber';
   description: string;
 }
+
+// ============================================
+// Phase 5-7: Enhanced Depth Analysis Types
+// Multi-Framework, Alignment, Evidence Integration
+// ============================================
+
+// Framework Types
+export type FrameworkType = 'blooms' | 'dok' | 'solo' | 'fink' | 'marzano';
+
+export interface SOLODistribution {
+  prestructural: number;
+  unistructural: number;
+  multistructural: number;
+  relational: number;
+  extended_abstract: number;
+}
+
+export interface FinkDistribution {
+  foundational_knowledge: number;
+  application: number;
+  integration: number;
+  human_dimension: number;
+  caring: number;
+  learning_how_to_learn: number;
+}
+
+export interface MarzanoDistribution {
+  retrieval: number;
+  comprehension: number;
+  analysis: number;
+  knowledge_utilization: number;
+  metacognition: number;
+  self_system: number;
+}
+
+export interface FrameworkAnalysis {
+  framework: FrameworkType;
+  distribution: Record<string, number>;
+  dominantLevel: string;
+  balanceScore: number;
+  alignmentWithIdeal: number;
+  confidence: number;
+  levelAnalysis?: Array<{
+    level: string;
+    percentage: number;
+    deviation: number;
+    status: 'under' | 'on-target' | 'over';
+    recommendation?: string;
+  }>;
+}
+
+export interface FrameworkRecommendation {
+  framework: FrameworkType;
+  type: 'add_content' | 'reduce_content' | 'rebalance' | 'align_assessments';
+  priority: 'high' | 'medium' | 'low';
+  level?: string;
+  description: string;
+  actionItems?: string[];
+}
+
+export interface MultiFrameworkResult {
+  primary: FrameworkAnalysis;
+  secondary: FrameworkAnalysis[];
+  crossFrameworkAlignment: number;
+  recommendations: FrameworkRecommendation[];
+  compositeScore: number;
+  compositeMethod: 'weighted_average' | 'min_score' | 'custom';
+  courseType?: string;
+  metadata: {
+    analysisVersion: string;
+    analyzedAt: Date;
+    frameworksUsed: FrameworkType[];
+    totalContentAnalyzed: number;
+  };
+}
+
+// Alignment Matrix Types
+export interface LinkedSection {
+  sectionId: string;
+  sectionTitle: string;
+  alignmentScore: number;
+  matchedKeywords: string[];
+}
+
+export interface LinkedAssessment {
+  assessmentId: string;
+  assessmentTitle: string;
+  alignmentScore: number;
+  questionsAligned: number;
+  totalQuestions: number;
+}
+
+export interface ObjectiveAlignmentItem {
+  objectiveId: string;
+  objectiveText: string;
+  linkedSections: LinkedSection[];
+  linkedAssessments: LinkedAssessment[];
+  overallAlignment: number;
+  gaps: string[];
+}
+
+export interface AlignmentGapItem {
+  type: 'missing_content' | 'missing_assessment' | 'weak_alignment' | 'orphan_content';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  objectiveId?: string;
+  sectionId?: string;
+  assessmentId?: string;
+  description: string;
+  recommendation: string;
+}
+
+export interface AlignmentMatrixData {
+  courseId: string;
+  objectives: ObjectiveAlignmentItem[];
+  gaps: AlignmentGapItem[];
+  summary: {
+    totalObjectives: number;
+    objectivesCovered: number;
+    objectivesWithGaps: number;
+    overallAlignmentScore: number;
+    contentCoverage: number;
+    assessmentCoverage: number;
+  };
+  analyzedAt: Date;
+}
+
+// Evidence Tracker Types
+export interface EvidenceItem {
+  id: string;
+  sourceType: 'objective' | 'section' | 'assessment' | 'transcript' | 'attachment';
+  sourceId: string;
+  sourceTitle: string;
+  text: string;
+  level: string;
+  framework: FrameworkType;
+  confidence: number;
+  position?: {
+    start: number;
+    end: number;
+    lineNumber?: number;
+  };
+  keywords: string[];
+  context?: string;
+}
+
+export interface ConfidenceDistribution {
+  high: number;   // >= 0.8
+  medium: number; // >= 0.5 && < 0.8
+  low: number;    // < 0.5
+}
+
+export interface EvidenceByFramework {
+  framework: FrameworkType;
+  count: number;
+  avgConfidence: number;
+  topLevel: string;
+}
+
+export interface EvidenceData {
+  courseId: string;
+  totalEvidence: number;
+  avgConfidence: number;
+  confidenceDistribution: ConfidenceDistribution;
+  evidenceByFramework: EvidenceByFramework[];
+  evidenceBySource: Record<string, number>;
+  topEvidence: EvidenceItem[];
+  analyzedAt: Date;
+}
+
+// Content Ingestion Types
+export interface ContentExtractionResult {
+  attachmentId: string;
+  attachmentName: string;
+  contentType: string;
+  status: 'completed' | 'failed' | 'skipped';
+  extractedText?: string;
+  wordCount?: number;
+  pageCount?: number;
+  metadata?: Record<string, unknown>;
+  error?: string;
+}
+
+export interface ContentIngestionData {
+  courseId: string;
+  totalAttachments: number;
+  successfulExtractions: number;
+  failedExtractions: number;
+  results: ContentExtractionResult[];
+  totalWords: number;
+  ingestedAt: Date;
+}
+
+// LLM Analysis Types
+export interface LLMAnalysisResult {
+  analysisType: 'blooms' | 'dok' | 'multi-framework' | 'alignment' | 'recommendations';
+  provider: 'openai' | 'anthropic' | 'deepseek';
+  result: unknown;
+  confidence?: number;
+  processingTime?: number;
+  tokenUsage?: {
+    prompt: number;
+    completion: number;
+    total: number;
+  };
+}
+
+// Extended Analysis State
+export interface EnhancedAnalysisState extends AnalysisState {
+  multiFrameworkData: MultiFrameworkResult | null;
+  alignmentMatrix: AlignmentMatrixData | null;
+  evidenceData: EvidenceData | null;
+  contentIngestion: ContentIngestionData | null;
+  llmAnalysis: LLMAnalysisResult | null;
+  isLoadingMultiFramework: boolean;
+  isLoadingAlignment: boolean;
+  isLoadingEvidence: boolean;
+  isLoadingIngestion: boolean;
+  isLoadingLLM: boolean;
+}

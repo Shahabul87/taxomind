@@ -56,6 +56,16 @@ export function CourseDepthAnalyzer({
     loadSavedAnalysis,
     exportReport,
     askSam,
+    // Phase 5-7: Enhanced analysis data and functions
+    multiFrameworkData,
+    alignmentMatrix,
+    evidenceData,
+    isLoadingMultiFramework,
+    isLoadingAlignment,
+    isLoadingEvidence,
+    analyzeMultiFramework,
+    fetchAlignmentMatrix,
+    fetchEvidence,
   } = useDepthAnalysis({ courseId, courseData, autoLoadSaved, onAnalysisComplete });
 
   // Handle export with validation
@@ -156,6 +166,16 @@ export function CourseDepthAnalyzer({
                   deepContentAnalysis={deepContentAnalysis}
                   transcriptAnalysis={transcriptAnalysis}
                   onAnalyze={analyzeCourse}
+                  // Phase 5-7: Enhanced analysis props
+                  multiFrameworkData={multiFrameworkData}
+                  alignmentMatrix={alignmentMatrix}
+                  evidenceData={evidenceData}
+                  isLoadingMultiFramework={isLoadingMultiFramework}
+                  isLoadingAlignment={isLoadingAlignment}
+                  isLoadingEvidence={isLoadingEvidence}
+                  onAnalyzeMultiFramework={analyzeMultiFramework}
+                  onFetchAlignmentMatrix={fetchAlignmentMatrix}
+                  onFetchEvidence={fetchEvidence}
                 />
 
                 {/* Chapters Tab */}

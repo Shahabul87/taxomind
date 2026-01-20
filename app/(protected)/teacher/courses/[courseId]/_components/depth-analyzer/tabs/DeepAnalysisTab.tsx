@@ -7,29 +7,96 @@ import { TabsContent } from "@/components/ui/tabs";
 import { Layers, FileText, Video, AlertCircle, XCircle, ArrowRight, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getScoreColor, DOK_LABELS } from "../utils";
-import type { DeepContentAnalysisData, TranscriptAnalysisData } from "../types";
+import { MultiFrameworkRadar } from "../components/MultiFrameworkRadar";
+import { AlignmentMatrix } from "../components/AlignmentMatrix";
+import { EvidenceTracker } from "../components/EvidenceTracker";
+import type {
+  DeepContentAnalysisData,
+  TranscriptAnalysisData,
+  MultiFrameworkResult,
+  AlignmentMatrixData,
+  EvidenceData,
+  FrameworkType,
+} from "../types";
 
 interface DeepAnalysisTabProps {
   deepContentAnalysis: DeepContentAnalysisData | null;
   transcriptAnalysis: TranscriptAnalysisData | null;
   onAnalyze: (force: boolean) => void;
+  // New props for enhanced analysis
+  multiFrameworkData?: MultiFrameworkResult | null;
+  alignmentMatrix?: AlignmentMatrixData | null;
+  evidenceData?: EvidenceData | null;
+  isLoadingMultiFramework?: boolean;
+  isLoadingAlignment?: boolean;
+  isLoadingEvidence?: boolean;
+  onAnalyzeMultiFramework?: (frameworks?: FrameworkType[]) => void;
+  onFetchAlignmentMatrix?: () => void;
+  onFetchEvidence?: (confidenceThreshold?: number) => void;
 }
 
 export function DeepAnalysisTab({
   deepContentAnalysis,
   transcriptAnalysis,
   onAnalyze,
+  // New props
+  multiFrameworkData,
+  alignmentMatrix,
+  evidenceData,
+  isLoadingMultiFramework = false,
+  isLoadingAlignment = false,
+  isLoadingEvidence = false,
+  onAnalyzeMultiFramework,
+  onFetchAlignmentMatrix,
+  onFetchEvidence,
 }: DeepAnalysisTabProps) {
+  const hasAnyContent =
+    deepContentAnalysis ||
+    transcriptAnalysis ||
+    multiFrameworkData ||
+    alignmentMatrix ||
+    evidenceData ||
+    onAnalyzeMultiFramework ||
+    onFetchAlignmentMatrix ||
+    onFetchEvidence;
+
   return (
     <TabsContent value="deep-analysis" className="mt-3 sm:mt-4 md:mt-6 space-y-4 sm:space-y-6">
+      {/* Multi-Framework Analysis Section */}
+      {onAnalyzeMultiFramework && (
+        <MultiFrameworkRadar
+          data={multiFrameworkData ?? null}
+          isLoading={isLoadingMultiFramework}
+          onAnalyze={onAnalyzeMultiFramework}
+        />
+      )}
+
+      {/* Objective-Content Alignment Matrix */}
+      {onFetchAlignmentMatrix && (
+        <AlignmentMatrix
+          data={alignmentMatrix ?? null}
+          isLoading={isLoadingAlignment}
+          onFetch={onFetchAlignmentMatrix}
+        />
+      )}
+
+      {/* Evidence & Confidence Tracker */}
+      {onFetchEvidence && (
+        <EvidenceTracker
+          data={evidenceData ?? null}
+          isLoading={isLoadingEvidence}
+          onFetch={onFetchEvidence}
+        />
+      )}
+
       {/* Deep Content Analysis */}
       {deepContentAnalysis && <DeepContentCard deepContentAnalysis={deepContentAnalysis} />}
 
       {/* Transcript Analysis */}
       {transcriptAnalysis && <TranscriptCard transcriptAnalysis={transcriptAnalysis} />}
 
-      {/* Empty State */}
-      {!deepContentAnalysis && !transcriptAnalysis && (
+      {/* Empty State - Only show if nothing is available */}
+      {!hasAnyContent && (
         <EmptyDeepAnalysisState onAnalyze={() => onAnalyze(true)} />
       )}
     </TabsContent>
