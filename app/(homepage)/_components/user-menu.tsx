@@ -32,7 +32,7 @@ export const UserMenu = ({ user }: UserMenuProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const dashboardLink = user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard";
+  const dashboardLink = user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/user";
 
   // Hydration fix
   useEffect(() => {
