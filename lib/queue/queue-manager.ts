@@ -206,6 +206,46 @@ export class QueueManager {
         },
         priority: 'medium',
       },
+
+      // Webhook queue - CRITICAL for payment processing
+      {
+        name: 'webhook',
+        concurrency: 5,
+        rateLimiter: {
+          max: 100,
+          duration: 60000,
+        },
+        defaultJobOptions: {
+          attempts: 5,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+          removeOnComplete: 100,
+          removeOnFail: false, // Keep failed webhooks for debugging/retry
+        },
+        priority: 'high',
+      },
+
+      // Enrollment queue - for course enrollment processing
+      {
+        name: 'enrollment',
+        concurrency: 3,
+        rateLimiter: {
+          max: 50,
+          duration: 60000,
+        },
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 3000,
+          },
+          removeOnComplete: 50,
+          removeOnFail: 20,
+        },
+        priority: 'high',
+      },
     ];
 
     defaultQueues.forEach(config => {

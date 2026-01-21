@@ -1,12 +1,23 @@
 /**
- * Enrollment Worker
- * Processes enrollment jobs from the queue
+ * Enrollment Worker - Enterprise Implementation
+ *
+ * Processes enrollment jobs from the queue.
+ * Features:
+ * - Transaction timeout to prevent hanging
+ * - Progress record initialization
+ * - Email notification queueing
+ * - Comprehensive error handling
  */
 
 import { Job } from 'bullmq';
+import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { queueManager } from '../queue-manager';
+
+// Transaction timeout configuration
+const TRANSACTION_TIMEOUT_MS = 30000; // 30 seconds
+const TRANSACTION_MAX_WAIT_MS = 5000; // 5 seconds to acquire lock
 
 interface EnrollmentJobData {
   userId: string;
@@ -40,8 +51,9 @@ export async function processEnrollment(job: Job<EnrollmentJobData>): Promise<vo
       return;
     }
 
-    // Start transaction
-    const { newEnrollment, user, course, progressCount } = await db.$transaction(async (tx) => {
+    // Start transaction with timeout to prevent hanging
+    const { newEnrollment, user, course, progressCount } = await db.$transaction(
+      async (tx) => {
       // Create enrollment
       const newEnrollment = await tx.enrollment.create({
         data: {
@@ -128,8 +140,14 @@ export async function processEnrollment(job: Job<EnrollmentJobData>): Promise<vo
         },
       });
 
-      return { newEnrollment, user, course, progressCount };
-    });
+        return { newEnrollment, user, course, progressCount };
+      },
+      {
+        timeout: TRANSACTION_TIMEOUT_MS,
+        maxWait: TRANSACTION_MAX_WAIT_MS,
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+      }
+    );
 
     logger.info(`[ENROLLMENT_WORKER] Successfully enrolled user ${userId} in course ${courseId} with ${progressCount} progress records initialized`);
 

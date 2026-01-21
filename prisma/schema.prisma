@@ -10,8 +10,8 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-18T06:29:58.207Z
-// Source: 24 domain files
+// Generated: 2026-01-20T00:58:04.950Z
+// Source: 25 domain files
 // ==========================================
 
 
@@ -1746,6 +1746,10 @@ model User {
   samCertificationProgress   SAMCertificationProgress[]    @relation("SAMCertificationProgress")
   samPortfolioSettings       SAMPortfolioSettings?         @relation("SAMPortfolioSettings")
   samPortfolioProjects       SAMPortfolioProject[]         @relation("SAMPortfolioProjects")
+
+  // Phase 8: Self-Assessment Exam System (added January 2026)
+  selfAssessmentExams        SelfAssessmentExam[]          @relation("SelfAssessmentExamOwner")
+  selfAssessmentAttempts     SelfAssessmentAttempt[]       @relation("SelfAssessmentAttemptUser")
 }
 
 model Account {
@@ -5580,6 +5584,13 @@ model UserAIPreferences {
   preferredCourseProvider   String?  @default("anthropic")  // Provider for course creation
   preferredAnalysisProvider String?  @default("anthropic")  // Provider for analysis tasks
   preferredCodeProvider     String?  @default("anthropic")  // Provider for code-related tasks
+
+  // Per-provider model selections (preserved for backward compatibility)
+  anthropicModel            String?  @default("claude-sonnet-4-5-20250929")
+  deepseekModel             String?  @default("deepseek-chat")
+  geminiModel               String?  @default("gemini-pro")
+  mistralModel              String?  @default("mistral-large")
+  openaiModel               String?  @default("gpt-4o")
 }
 
 model AIModelPerformance {
@@ -12776,6 +12787,21 @@ model PracticeSession {
   pomodoroCount         Int                   @default(0) // Number of pomodoros completed
   breaksTaken           Int                   @default(0) // Number of breaks
 
+  // Enhanced Quality Scoring Inputs (Phase 3)
+  selfRatedDifficulty   Int?                  // 1-5 user-rated difficulty
+  assessmentScore       Float?                // Assessment score if applicable (0-100)
+  assessmentPassed      Boolean?              // Whether assessment was passed
+  projectOutcome        String?               // SUCCESS, PARTIAL, FAILED
+  peerReviewScore       Float?                // Peer review score if applicable (0-100)
+
+  // Quality Score Breakdown (Phase 3)
+  qualityBreakdown      Json?                 // Detailed multiplier breakdown
+
+  // Anti-Gaming Validation (Phase 4)
+  validationFlags       String[]              @default([]) // EXCESSIVE_DURATION, LOW_ACTIVITY, etc.
+  wasAdjusted           Boolean               @default(false) // Whether duration was adjusted
+  originalDuration      Int?                  // Pre-adjustment duration if adjusted
+
   // Metadata
   metadata              Json?                 // Additional session data
   createdAt             DateTime              @default(now())
@@ -12842,6 +12868,16 @@ model SkillMastery10K {
   bestSessionDuration   Int                   @default(0) // Minutes
   bestQualityMultiplier Float                 @default(1.0)
   bestSessionDate       DateTime?
+
+  // Decay-Aware Mastery (Phase 4)
+  effectiveHours        Float                 @default(0) // Quality hours after decay
+  lastDecayCalculation  DateTime?             // When decay was last calculated
+  retentionRate         Float                 @default(1.0) // Current retention (0-1)
+  nextReviewDate        DateTime?             // Suggested next review date
+  reviewUrgency         String                @default("NONE") // NONE, LOW, MEDIUM, HIGH, CRITICAL
+
+  // User Timezone (Phase 2)
+  userTimezone          String                @default("UTC") // IANA timezone for accurate tracking
 
   // Timestamps
   createdAt             DateTime              @default(now())
@@ -13099,6 +13135,11 @@ model DailyPracticeLog {
   // Streak Info
   contributesToStreak   Boolean               @default(false) // Met daily goal
   streakDayNumber       Int?                  // Which day of streak this is
+  currentStreak         Int                   @default(0) // Current consecutive days at this date
+  longestStreak         Int                   @default(0) // Longest streak up to this date
+
+  // Raw Hours (for consistency with session data)
+  rawHours              Float                 @default(0) // Non-quality-adjusted hours
 
   // Timestamps
   createdAt             DateTime              @default(now())
@@ -13165,4 +13206,237 @@ model PracticeGoal {
   @@index([isCompleted])
   @@index([deadline])
   @@map("practice_goals")
+}
+
+// ==========================================
+// Source: 24-self-assessment.prisma
+// ==========================================
+
+// ==========================================
+// Self-Assessment Exam System
+// ==========================================
+// User-owned exams for personal skill assessment
+// Not tied to course sections - fully standalone
+// Integrates with SAM AI for question generation
+// ==========================================
+
+// Status of self-assessment exam
+enum SelfAssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Status of self-assessment attempt
+enum SelfAssessmentAttemptStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+// ==========================================
+// Self-Assessment Exam Model
+// ==========================================
+// User-created personal assessment not tied to course sections
+
+model SelfAssessmentExam {
+  id              String                 @id @default(cuid())
+  userId          String                 // Owner of the exam
+
+  // Basic Info
+  title           String
+  description     String?                @db.Text
+  instructions    String?                @db.Text
+
+  // Topic for AI question generation (used when no courseId)
+  topic           String?                @db.Text
+  subtopics       String[]               @default([])
+
+  // Optional course association (for skill tracking)
+  courseId        String?
+
+  // Settings
+  timeLimit       Int?                   // Minutes (null = unlimited)
+  passingScore    Float                  @default(70)
+  shuffleQuestions Boolean               @default(false)
+  showResults     Boolean                @default(true)
+  allowRetakes    Boolean                @default(true)
+  maxAttempts     Int?                   // null = unlimited
+
+  // AI Generation metadata
+  generatedByAI   Boolean                @default(false)
+  aiConfig        Json?                  // Stores generation config
+
+  // Bloom's Taxonomy
+  targetBloomsDistribution Json?         // Target distribution
+  actualBloomsDistribution Json?         // Actual distribution after questions added
+
+  // Status
+  status          SelfAssessmentStatus   @default(DRAFT)
+
+  // Stats
+  totalQuestions  Int                    @default(0)
+  totalPoints     Float                  @default(0)
+  avgScore        Float?
+  totalAttempts   Int                    @default(0)
+
+  // Timestamps
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  publishedAt     DateTime?
+
+  // Relations
+  user            User                   @relation("SelfAssessmentExamOwner", fields: [userId], references: [id], onDelete: Cascade)
+  questions       SelfAssessmentQuestion[]
+  attempts        SelfAssessmentAttempt[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([courseId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// Self-Assessment Question Model
+// ==========================================
+
+model SelfAssessmentQuestion {
+  id              String                 @id @default(cuid())
+  examId          String
+
+  // Question content
+  question        String                 @db.Text
+  questionType    QuestionType           @default(MULTIPLE_CHOICE)
+
+  // Answer configuration
+  options         Json?                  // For MCQ: [{ id, text, isCorrect }]
+  correctAnswer   String                 @db.Text
+  acceptableVariations Json?             // Alternative correct answers
+
+  // Scoring
+  points          Float                  @default(1)
+
+  // Bloom's Taxonomy
+  bloomsLevel     BloomsLevel            @default(REMEMBER)
+  difficulty      QuestionDifficulty     @default(MEDIUM)
+
+  // Learning support
+  hint            String?                @db.Text
+  explanation     String?                @db.Text
+
+  // Metadata
+  order           Int                    @default(0)
+  tags            String[]               @default([])
+  estimatedTime   Int?                   // Seconds
+
+  // AI rubric for essay/short answer evaluation
+  rubric          Json?
+
+  // Stats
+  totalAttempts   Int                    @default(0)
+  correctAttempts Int                    @default(0)
+  avgTimeSpent    Float?
+
+  // Timestamps
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  // Relations
+  exam            SelfAssessmentExam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers         SelfAssessmentAnswer[]
+
+  @@index([examId])
+  @@index([bloomsLevel])
+  @@index([questionType])
+  @@index([order])
+}
+
+// ==========================================
+// Self-Assessment Attempt Model
+// ==========================================
+
+model SelfAssessmentAttempt {
+  id              String                       @id @default(cuid())
+  examId          String
+  userId          String
+
+  // Attempt info
+  attemptNumber   Int                          @default(1)
+  status          SelfAssessmentAttemptStatus  @default(NOT_STARTED)
+
+  // Timing
+  startedAt       DateTime?
+  submittedAt     DateTime?
+  timeSpent       Int?                         // Seconds
+
+  // Scoring
+  totalQuestions  Int                          @default(0)
+  correctAnswers  Int                          @default(0)
+  totalPoints     Float                        @default(0)
+  earnedPoints    Float                        @default(0)
+  scorePercentage Float?
+  isPassed        Boolean?
+
+  // Bloom's breakdown
+  bloomsBreakdown Json?                        // Performance per Bloom's level
+
+  // AI evaluation summary
+  aiEvaluationSummary Json?
+  cognitiveProfile    Json?
+  learningRecommendations Json?
+
+  // Timestamps
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  // Relations
+  exam            SelfAssessmentExam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user            User                         @relation("SelfAssessmentAttemptUser", fields: [userId], references: [id], onDelete: Cascade)
+  answers         SelfAssessmentAnswer[]
+
+  @@unique([examId, userId, attemptNumber])
+  @@index([examId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ==========================================
+// Self-Assessment Answer Model
+// ==========================================
+
+model SelfAssessmentAnswer {
+  id              String                       @id @default(cuid())
+  attemptId       String
+  questionId      String
+
+  // Answer content
+  answer          String?                      @db.Text
+
+  // Grading
+  isCorrect       Boolean?
+  pointsEarned    Float                        @default(0)
+
+  // Timing
+  timeSpent       Int?                         // Seconds
+
+  // AI Evaluation (for essay/short answer)
+  aiEvaluation    Json?                        // Full AI evaluation result
+  feedback        String?                      @db.Text
+
+  // Bloom's demonstration
+  demonstratedLevel BloomsLevel?
+
+  // Timestamps
+  answeredAt      DateTime                     @default(now())
+  evaluatedAt     DateTime?
+
+  // Relations
+  attempt         SelfAssessmentAttempt        @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        SelfAssessmentQuestion       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
 }

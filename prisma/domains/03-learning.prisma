@@ -132,6 +132,9 @@ model Course {
   // Course Analysis History (for SAM AI Depth Analyzer)
   analysisHistory          CourseAnalysisHistory[] @relation("CourseAnalysisSnapshots")
 
+  // Enhanced Depth Analysis - Alignment Matrix (January 2026)
+  alignmentMatrix          AlignmentMatrix?        @relation("CourseAlignmentMatrix")
+
   // SAM Real-Time Presence Tracking (Phase I)
   samUserPresence          SAMUserPresence[]       @relation("SAMPresenceCourses")
 
@@ -151,6 +154,9 @@ model Course {
 
   // Phase 7: 10,000 Hour Practice Tracking Relations
   practiceSessions         PracticeSession[]       @relation("CoursePracticeSessions")
+
+  // Phase 3: Enterprise Payment System - Payment Transaction Relations
+  paymentTransactions      PaymentTransaction[]    @relation("CoursePaymentTransactions")
 
   @@index([categoryId])
   @@index([organizationId])
@@ -303,6 +309,9 @@ model Section {
 
   // SAM Meta-Learning Relations (added January 2026)
   samLearningEvents      SAMLearningEvent[]      @relation("SAMLearningEventSections")
+
+  // Content Ingestion Pipeline (Enhanced Depth Analysis - January 2026)
+  contentSources         ContentSource[]         @relation("SectionContentSources")
 
   @@index([chapterId])
   @@index([chapterId, position]) // For ordered chapter queries
@@ -1255,4 +1264,137 @@ model ProgressIntervention {
   @@index([isRead])
   @@index([interventionType])
   @@index([createdAt])
+}
+
+// ==========================================
+// Enhanced Depth Analysis - Content Ingestion Pipeline
+// Added: January 2026
+// ==========================================
+
+enum ContentSourceType {
+  VIDEO_TRANSCRIPT
+  PDF_DOCUMENT
+  SLIDE_DECK
+  TEXT_BLOCK
+  ATTACHMENT
+  QUIZ_CONTENT
+  ASSIGNMENT_CONTENT
+}
+
+enum ContentProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+// Normalized content sources for depth analysis
+model ContentSource {
+  id            String                  @id @default(cuid())
+  sectionId     String
+  section       Section                 @relation("SectionContentSources", fields: [sectionId], references: [id], onDelete: Cascade)
+
+  sourceType    ContentSourceType
+  originalUrl   String?                 // For attachments/external content
+  fileName      String?                 // Original filename if applicable
+  mimeType      String?                 // MIME type of the source
+  fileSize      Int?                    // Size in bytes
+
+  // Extracted content
+  extractedText String?                 @db.Text
+  wordCount     Int                     @default(0)
+  pageCount     Int?                    // For PDFs
+  slideCount    Int?                    // For presentations
+  duration      Int?                    // For video/audio in seconds
+
+  // Structured metadata (type-specific)
+  metadata      Json?                   // { sections: [], headings: [], etc. }
+
+  // Processing status
+  status        ContentProcessingStatus @default(PENDING)
+  processedAt   DateTime?
+  errorMessage  String?
+  retryCount    Int                     @default(0)
+
+  // Analysis cache (populated after deep content analysis)
+  bloomsAnalysis    Json?               // Sentence-level analysis cache
+  dokAnalysis       Json?               // DOK analysis cache
+  analysisVersion   String?             // Version of analyzer used
+  analyzedAt        DateTime?
+
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@index([sectionId])
+  @@index([sourceType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Alignment Matrix - Maps objectives to sections to assessments
+model AlignmentMatrix {
+  id            String   @id @default(cuid())
+  courseId      String   @unique
+  course        Course   @relation("CourseAlignmentMatrix", fields: [courseId], references: [id], onDelete: Cascade)
+
+  // Matrix data (JSON for flexibility)
+  objectiveAlignments  Json    // ObjectiveAlignment[]
+  sectionAlignments    Json    // SectionAlignment[]
+  assessmentAlignments Json    // AssessmentAlignment[]
+
+  // Scores
+  coverageScore        Float   @default(0)  // % of objectives with assessment coverage
+  redundancyScore      Float   @default(0)  // Overlap/duplication indicator (lower is better)
+  alignmentScore       Float   @default(0)  // Overall alignment quality
+
+  // Gap tracking
+  gaps                 Json?   // AlignmentGap[]
+  gapCount             Int     @default(0)
+  criticalGapCount     Int     @default(0)
+
+  // Summary stats
+  totalObjectives          Int @default(0)
+  fullyCoveredObjectives   Int @default(0)
+  partialObjectives        Int @default(0)
+  uncoveredObjectives      Int @default(0)
+
+  // Metadata
+  analysisVersion      String
+  analyzedAt           DateTime @default(now())
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([alignmentScore])
+}
+
+// Analysis Evidence - Stores sentence-level triggers for classifications
+model AnalysisEvidence {
+  id            String   @id @default(cuid())
+  analysisId    String   // Links to CourseBloomsAnalysis.id
+
+  // Source identification
+  sourceType    String   // 'section_content' | 'objective' | 'assessment' | 'transcript'
+  sourceId      String   // The specific source (sectionId, questionId, etc.)
+
+  // Classification result
+  classification    String      // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
+  confidence        Float       // 0-1
+
+  // Evidence details
+  triggerPatterns   String[]    // Matched patterns/keywords
+  highlightedText   String?     @db.Text  // The sentence/phrase that triggered classification
+  textPosition      Json?       // { start: number, end: number, paragraph: number }
+
+  // Context
+  context           String?     // 'instructional' | 'assessment' | 'activity' | etc.
+
+  createdAt     DateTime @default(now())
+
+  @@index([analysisId])
+  @@index([sourceType, sourceId])
+  @@index([classification])
+  @@index([confidence])
 }

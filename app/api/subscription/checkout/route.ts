@@ -1,18 +1,29 @@
 /**
- * Premium Subscription Checkout API
+ * Premium Subscription Checkout API - Enterprise Implementation
  *
  * Creates a Stripe checkout session for premium subscription.
+ * Features:
+ * - Uses shared Stripe singleton
+ * - Rate limiting to prevent abuse
+ * - Fraud detection integration
+ * - Zod validation
+ * - Duplicate subscription prevention
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import Stripe from "stripe";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2023-10-16",
-});
+import { stripe, isStripeConfigured } from "@/lib/stripe";
+import { logger } from "@/lib/logger";
+import {
+  checkAndEnforceRateLimit,
+  paymentRateLimitPresets,
+  createRateLimitHeaders,
+  checkPaymentRateLimit,
+} from "@/lib/payment/rate-limit";
+import { checkSubscriptionFraud } from "@/lib/payment/fraud-detection";
 
 // Subscription plan pricing (in cents)
 const PLANS = {
@@ -42,6 +53,22 @@ const checkoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Verify Stripe is configured
+    if (!isStripeConfigured()) {
+      logger.error("[SUBSCRIPTION_CHECKOUT] Stripe not configured");
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "PAYMENT_UNAVAILABLE",
+            message: "Payment system is temporarily unavailable",
+          },
+        },
+        { status: 503 }
+      );
+    }
+
+    // 2. Authenticate user
     const user = await currentUser();
 
     if (!user?.id || !user?.email) {
@@ -57,7 +84,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already premium
+    // 3. Apply rate limiting
+    const rateLimitResult = checkAndEnforceRateLimit(
+      request,
+      paymentRateLimitPresets.subscriptionCheckout,
+      user.id
+    );
+
+    if (rateLimitResult) {
+      return rateLimitResult;
+    }
+
+    // 4. Validate request body
+    const body = await request.json();
+    const { plan } = checkoutSchema.parse(body);
+    const planConfig = PLANS[plan];
+
+    // 5. Check if already has lifetime premium
     const dbUser = await db.user.findUnique({
       where: { id: user.id },
       select: {
@@ -83,11 +126,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const body = await request.json();
-    const { plan } = checkoutSchema.parse(body);
-    const planConfig = PLANS[plan];
+    // 6. Check for fraud indicators
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
 
-    // Get or create Stripe customer
+    const fraudCheck = await checkSubscriptionFraud(user.id, ip, plan);
+
+    if (!fraudCheck.allowed) {
+      logger.warn(
+        `[SUBSCRIPTION_CHECKOUT] Fraud check failed for user ${user.id}: ${fraudCheck.flags.join(", ")}`
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "CHECKOUT_BLOCKED",
+            message:
+              "Unable to process subscription at this time. Please contact support if this persists.",
+          },
+        },
+        { status: 403 }
+      );
+    }
+
+    // 7. Get or create Stripe customer
     let stripeCustomer = await db.stripeCustomer.findUnique({
       where: { userId: user.id },
     });
@@ -109,7 +173,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create checkout session
+    // 8. Create checkout session
     const successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${process.env.NEXT_PUBLIC_APP_URL}/pricing?canceled=1`;
 
@@ -140,6 +204,8 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           plan: plan,
           type: "premium_subscription",
+          clientIp: ip,
+          fraudRiskScore: fraudCheck.riskScore.toString(),
         },
       });
     } else {
@@ -170,19 +236,36 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           plan: plan,
           type: "premium_subscription",
+          clientIp: ip,
+          fraudRiskScore: fraudCheck.riskScore.toString(),
         },
       });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        url: session.url,
-        sessionId: session.id,
+    logger.info(
+      `[SUBSCRIPTION_CHECKOUT] Created session for user ${user.id}, plan ${plan}, risk: ${fraudCheck.riskScore}`
+    );
+
+    // 9. Add rate limit headers to response
+    const rateLimitStatus = checkPaymentRateLimit(
+      request,
+      paymentRateLimitPresets.subscriptionCheckout,
+      user.id
+    );
+    const headers = createRateLimitHeaders(rateLimitStatus);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          url: session.url,
+          sessionId: session.id,
+        },
       },
-    });
+      { headers }
+    );
   } catch (error) {
-    console.error("[SUBSCRIPTION_CHECKOUT]", error);
+    logger.error("[SUBSCRIPTION_CHECKOUT]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

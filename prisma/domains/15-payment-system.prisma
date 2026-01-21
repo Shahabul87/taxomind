@@ -62,7 +62,7 @@ enum PriceType {
 model PaymentTransaction {
   id                String          @id @default(uuid())
   userId            String
-  courseId          String
+  courseId          String?
   amount            Decimal         @db.Decimal(10, 2)
   currency          String          @default("USD")
   status            PaymentStatus   @default(PENDING)
@@ -78,7 +78,8 @@ model PaymentTransaction {
   updatedAt         DateTime        @updatedAt
 
   // Relations
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation("CoursePaymentTransactions", fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([courseId])
