@@ -26,7 +26,7 @@ export function ProgrammingHero({ course, techStack = [], isEnrolled = false, on
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Code Pattern Background */}
-      <div className="absolute inset-0 opacity-10">
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute inset-0" style={{
           backgroundImage: `repeating-linear-gradient(
             0deg,

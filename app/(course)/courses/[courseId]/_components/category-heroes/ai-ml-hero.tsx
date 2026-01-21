@@ -26,7 +26,7 @@ export function AIMLHero({ course, models = [], isEnrolled = false, onEnroll }: 
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-purple-900 via-indigo-900 to-pink-900">
       {/* Neural Network Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="neural-net" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">

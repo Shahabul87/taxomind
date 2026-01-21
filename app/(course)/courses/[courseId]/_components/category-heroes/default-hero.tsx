@@ -25,7 +25,7 @@ export function DefaultHero({ course, isEnrolled = false, onEnroll }: DefaultHer
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
       {/* Subtle Pattern Background */}
-      <div className="absolute inset-0 opacity-5">
+      <div className="absolute inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0" style={{
           backgroundImage: `linear-gradient(30deg, transparent 48%, rgba(255,255,255,0.1) 49%, rgba(255,255,255,0.1) 51%, transparent 52%)`,
           backgroundSize: '20px 20px',

@@ -26,7 +26,7 @@ export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }:
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-pink-900 via-rose-900 to-purple-900">
       {/* Creative Pattern Background */}
-      <div className="absolute inset-0 opacity-10">
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
         <div className="absolute inset-0" style={{
           backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
           backgroundSize: '40px 40px',
@@ -34,7 +34,7 @@ export function DesignHero({ course, tools = [], isEnrolled = false, onEnroll }:
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Left Content */}
           <div className="space-y-6">
             {/* Home Icon > Courses > Category Name */}
