@@ -47,35 +47,40 @@ export interface PaymentRateLimitConfig {
 
 /**
  * Default configurations for different payment endpoints
+ *
+ * Rate limits are set to balance security with usability:
+ * - Prevent abuse and DDoS attacks
+ * - Allow reasonable retry attempts for users
+ * - Consider page refreshes and navigation patterns
  */
 export const paymentRateLimitPresets = {
-  /** Course checkout: 5 attempts per minute */
+  /** Course checkout: 20 attempts per minute (allows retries and page refreshes) */
   courseCheckout: {
-    maxRequests: 5,
+    maxRequests: 20,
     windowMs: 60 * 1000,
     message: "Too many checkout attempts. Please wait before trying again.",
     includeHeaders: true,
   } as PaymentRateLimitConfig,
 
-  /** Subscription checkout: 3 attempts per minute (stricter) */
+  /** Subscription checkout: 15 attempts per minute */
   subscriptionCheckout: {
-    maxRequests: 3,
+    maxRequests: 15,
     windowMs: 60 * 1000,
     message: "Too many subscription attempts. Please wait a minute.",
     includeHeaders: true,
   } as PaymentRateLimitConfig,
 
-  /** Free enrollment: 10 per minute */
+  /** Free enrollment: 30 per minute (common action, should be more lenient) */
   freeEnrollment: {
-    maxRequests: 10,
+    maxRequests: 30,
     windowMs: 60 * 1000,
     message: "Too many enrollment attempts. Please slow down.",
     includeHeaders: true,
   } as PaymentRateLimitConfig,
 
-  /** Subscription management: 10 per minute */
+  /** Subscription management: 20 per minute */
   subscriptionManagement: {
-    maxRequests: 10,
+    maxRequests: 20,
     windowMs: 60 * 1000,
     message: "Too many requests. Please wait.",
     includeHeaders: true,
