@@ -71,14 +71,15 @@ export const MobileEnrollBar: React.FC<MobileEnrollBarProps> = ({ course, isEnro
           },
         });
 
-        const data = await response.json();
+        const result = await response.json();
+        const checkoutUrl = result.data?.url || result.url;
 
-        if (response.ok && data.url) {
+        if (response.ok && checkoutUrl) {
           toast.dismiss();
-          window.location.href = data.url;
+          window.location.href = checkoutUrl;
         } else {
           toast.dismiss();
-          toast.error('Failed to create checkout session. Please try again.');
+          toast.error(result.error?.message || 'Failed to create checkout session. Please try again.');
           setIsLoading(false);
         }
       } catch (error) {

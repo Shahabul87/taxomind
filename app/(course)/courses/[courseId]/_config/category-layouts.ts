@@ -11,6 +11,7 @@ export type CategoryLayoutVariant =
   | 'business'
   | 'data-science'
   | 'marketing'
+  | 'math'
   | 'default';
 
 export type CategoryLayoutConfig = {
@@ -79,6 +80,18 @@ const CATEGORY_PATTERNS: Record<string, CategoryLayoutVariant> = {
   'seo': 'marketing',
   'social media': 'marketing',
   'content marketing': 'marketing',
+
+  // Mathematics
+  'math': 'math',
+  'mathematics': 'math',
+  'algebra': 'math',
+  'calculus': 'math',
+  'geometry': 'math',
+  'trigonometry': 'math',
+  'linear algebra': 'math',
+  'discrete math': 'math',
+  'probability': 'math',
+  'number theory': 'math',
 };
 
 /**
@@ -145,6 +158,16 @@ export const CATEGORY_LAYOUTS: Record<CategoryLayoutVariant, CategoryLayoutConfi
     accentColor: 'from-orange-600 to-red-600',
     iconStyle: 'professional',
     customSections: ['marketing-tools', 'campaign-examples', 'metrics'],
+  },
+
+  math: {
+    variant: 'math',
+    heroStyle: 'data-driven',
+    showProjectGallery: true,
+    tabOrder: ['overview', 'curriculum', 'problems', 'formulas', 'reviews'],
+    accentColor: 'from-amber-600 to-orange-600',
+    iconStyle: 'technical',
+    customSections: ['formulas', 'problem-sets', 'theorems', 'proofs'],
   },
 
   default: {

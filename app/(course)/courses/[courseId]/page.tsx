@@ -62,6 +62,8 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
         return { models: ['CNN', 'RNN', 'Transformers', 'BERT'] };
       case 'design':
         return { tools: ['Figma', 'Adobe XD', 'Sketch', 'Framer'] };
+      case 'math':
+        return { topics: ['Calculus', 'Linear Algebra', 'Statistics', 'Proofs'] };
       default:
         return {};
     }

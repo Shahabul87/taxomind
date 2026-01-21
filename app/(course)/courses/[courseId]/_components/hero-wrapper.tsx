@@ -7,9 +7,10 @@ import { toast } from 'sonner';
 import { ProgrammingHero } from './category-heroes/programming-hero';
 import { AIMLHero } from './category-heroes/ai-ml-hero';
 import { DesignHero } from './category-heroes/design-hero';
+import { MathHero } from './category-heroes/math-hero';
 import { DefaultHero } from './category-heroes/default-hero';
 
-type CategoryLayoutVariant = 'programming' | 'ai-ml' | 'design' | 'business' | 'marketing' | 'data-science' | 'default';
+type CategoryLayoutVariant = 'programming' | 'ai-ml' | 'design' | 'business' | 'marketing' | 'data-science' | 'math' | 'default';
 
 interface HeroWrapperProps {
   variant: CategoryLayoutVariant;
@@ -20,6 +21,7 @@ interface HeroWrapperProps {
     techStack?: string[];
     models?: string[];
     tools?: string[];
+    topics?: string[];
   };
 }
 
@@ -135,6 +137,13 @@ export function HeroWrapper({
           <DesignHero
             {...commonProps}
             tools={categorySpecificProps.tools}
+          />
+        );
+      case 'math':
+        return (
+          <MathHero
+            {...commonProps}
+            topics={categorySpecificProps.topics}
           />
         );
       default:

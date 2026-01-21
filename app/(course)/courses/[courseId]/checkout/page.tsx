@@ -89,10 +89,11 @@ export default function CheckoutPage({ params }: CheckoutPageProps) {
           throw new Error(data.message || 'Failed to create checkout session');
         }
 
-        if (data.url) {
+        const checkoutUrl = data.data?.url || data.url;
+        if (checkoutUrl) {
           // Redirect to Stripe checkout
           setTimeout(() => {
-            window.location.href = data.url;
+            window.location.href = checkoutUrl;
           }, 500);
         } else {
           throw new Error('No checkout URL received');
