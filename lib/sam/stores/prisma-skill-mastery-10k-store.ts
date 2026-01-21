@@ -1,10 +1,23 @@
 /**
  * Prisma Store for 10,000 Hour Skill Mastery Tracking
  * Tracks progress toward mastery with quality-adjusted hours
+ *
+ * TIMEZONE SUPPORT: Streak calculations now use user timezone for accurate
+ * day boundary detection.
  */
 
 import { db } from '@/lib/db';
 import type { Prisma } from '@prisma/client';
+import {
+  getDateInTimezone,
+  getDaysDifference,
+  getTodayInTimezone,
+  getWeekStartInTimezone,
+  getMonthStartInTimezone,
+} from '@/lib/utils/timezone';
+
+/** Default timezone when none is specified */
+const DEFAULT_TIMEZONE = 'UTC';
 
 // ============================================================================
 // TYPES
@@ -127,7 +140,9 @@ export interface SkillMastery10KStore {
     rawHours: number,
     qualityHours: number,
     sessionDuration: number,
-    qualityMultiplier: number
+    qualityMultiplier: number,
+    targetHours?: number, // Optional custom target (defaults to 10000)
+    timezone?: string // Optional user timezone for accurate streak tracking
   ): Promise<SkillMastery10K>;
 
   // Milestones
@@ -137,8 +152,8 @@ export interface SkillMastery10KStore {
   markCelebrationShown(milestoneId: string): Promise<void>;
 
   // Streak Management
-  updateStreak(userId: string, skillId: string): Promise<{ current: number; longest: number }>;
-  resetBrokenStreaks(userId: string): Promise<void>;
+  updateStreak(userId: string, skillId: string, timezone?: string): Promise<{ current: number; longest: number }>;
+  resetBrokenStreaks(userId: string, timezone?: string): Promise<void>;
 }
 
 export interface MasteryOverview {
@@ -426,7 +441,9 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
     rawHours: number,
     qualityHours: number,
     sessionDuration: number,
-    qualityMultiplier: number
+    qualityMultiplier: number,
+    targetHours: number = 10000, // Default to 10K hours
+    timezone: string = DEFAULT_TIMEZONE // User timezone for accurate streak tracking
   ): Promise<SkillMastery10K> {
     // Get or create mastery record
     let mastery = await db.skillMastery10K.findUnique({
@@ -434,15 +451,18 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
     });
 
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Use timezone-aware "today" for streak calculations
+    const today = getTodayInTimezone(timezone);
+    const todayStr = getDateInTimezone(now, timezone);
 
     if (!mastery) {
-      // Create new mastery record
+      // Create new mastery record with correct targetHours
       mastery = await db.skillMastery10K.create({
         data: {
           userId,
           skillId,
           skillName,
+          targetHours, // Use the provided targetHours (or default 10K)
           totalRawHours: rawHours,
           totalQualityHours: qualityHours,
           sessionsCount: 1,
@@ -456,12 +476,23 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
           hoursThisWeek: qualityHours,
           hoursThisMonth: qualityHours,
           proficiencyLevel: getProficiencyLevel(qualityHours),
-          progressPercentage: (qualityHours / 10000) * 100,
+          progressPercentage: (qualityHours / targetHours) * 100, // Use targetHours, not hardcoded 10000
           bestSessionDuration: sessionDuration,
           bestQualityMultiplier: qualityMultiplier,
           bestSessionDate: now,
         },
       });
+
+      // FIX: Check for milestones on first creation too
+      // A large first session could unlock milestones immediately
+      await this.checkAndCreateMilestones(
+        mastery.id,
+        userId,
+        skillId,
+        skillName,
+        0, // Previous hours was 0
+        qualityHours
+      );
     } else {
       // Update existing mastery record
       const newTotalRawHours = mastery.totalRawHours + rawHours;
@@ -480,23 +511,23 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       let newStreakStartDate = mastery.streakStartDate;
 
       if (mastery.lastStreakDate) {
-        const lastStreakDate = new Date(mastery.lastStreakDate);
-        const daysDiff = Math.floor(
-          (today.getTime() - lastStreakDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        // Use timezone-aware day difference calculation
+        // This correctly handles DST transitions and user's local day boundaries
+        const daysDiff = getDaysDifference(mastery.lastStreakDate, now, timezone);
 
         if (daysDiff === 1) {
-          // Continue streak
+          // Continue streak - practiced on consecutive day
           newCurrentStreak++;
           if (newCurrentStreak > newLongestStreak) {
             newLongestStreak = newCurrentStreak;
           }
         } else if (daysDiff > 1) {
-          // Streak broken
+          // Streak broken - missed one or more days
           newCurrentStreak = 1;
           newStreakStartDate = today;
         }
         // daysDiff === 0: same day, no streak change
+        // daysDiff < 0: would be a time travel bug, ignore
       } else {
         // First practice, start streak
         newCurrentStreak = 1;
@@ -508,6 +539,11 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       const newBestMultiplier = Math.max(mastery.bestQualityMultiplier, qualityMultiplier);
       const bestSessionDate =
         sessionDuration > mastery.bestSessionDuration ? now : mastery.bestSessionDate;
+
+      // FIX: Compute actual weekly/monthly hours from sessions instead of incrementing
+      // This prevents drift over time when weeks/months roll over
+      // Use timezone-aware period boundaries for accurate user-local calculations
+      const periodHours = await this.computeCurrentPeriodHours(userId, skillId, timezone);
 
       mastery = await db.skillMastery10K.update({
         where: { id: mastery.id },
@@ -522,8 +558,8 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
           longestStreak: newLongestStreak,
           streakStartDate: newStreakStartDate,
           lastStreakDate: today,
-          hoursThisWeek: mastery.hoursThisWeek + qualityHours,
-          hoursThisMonth: mastery.hoursThisMonth + qualityHours,
+          hoursThisWeek: periodHours.hoursThisWeek + qualityHours, // Use computed + current session
+          hoursThisMonth: periodHours.hoursThisMonth + qualityHours, // Use computed + current session
           proficiencyLevel: getProficiencyLevel(newTotalQualityHours),
           progressPercentage: (newTotalQualityHours / mastery.targetHours) * 100,
           bestSessionDuration: newBestDuration,
@@ -606,7 +642,8 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
 
   async updateStreak(
     userId: string,
-    skillId: string
+    skillId: string,
+    timezone: string = DEFAULT_TIMEZONE
   ): Promise<{ current: number; longest: number }> {
     const mastery = await db.skillMastery10K.findUnique({
       where: { userId_skillId: { userId, skillId } },
@@ -616,40 +653,132 @@ export class PrismaSkillMastery10KStore implements SkillMastery10KStore {
       return { current: 0, longest: 0 };
     }
 
+    // Check if streak needs to be reset based on timezone-aware day boundaries
+    if (mastery.lastStreakDate) {
+      const now = new Date();
+      const daysSinceLastPractice = getDaysDifference(mastery.lastStreakDate, now, timezone);
+
+      // If more than 1 day has passed, streak is broken
+      if (daysSinceLastPractice > 1 && mastery.currentStreak > 0) {
+        await db.skillMastery10K.update({
+          where: { id: mastery.id },
+          data: {
+            currentStreak: 0,
+            streakStartDate: null,
+          },
+        });
+        return { current: 0, longest: mastery.longestStreak };
+      }
+    }
+
     return {
       current: mastery.currentStreak,
       longest: mastery.longestStreak,
     };
   }
 
-  async resetBrokenStreaks(userId: string): Promise<void> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const twoDaysAgo = new Date(today);
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-
-    // Reset streaks for skills not practiced in the last 2 days
-    await db.skillMastery10K.updateMany({
+  async resetBrokenStreaks(
+    userId: string,
+    timezone: string = DEFAULT_TIMEZONE
+  ): Promise<void> {
+    // Get all masteries with active streaks for this user
+    const masteriesWithStreaks = await db.skillMastery10K.findMany({
       where: {
         userId,
-        lastStreakDate: {
-          lt: twoDaysAgo,
-        },
-        currentStreak: {
-          gt: 0,
-        },
+        currentStreak: { gt: 0 },
       },
-      data: {
-        currentStreak: 0,
-        streakStartDate: null,
+      select: {
+        id: true,
+        lastStreakDate: true,
       },
     });
+
+    if (masteriesWithStreaks.length === 0) return;
+
+    const now = new Date();
+    const idsToReset: string[] = [];
+
+    // Check each mastery using timezone-aware day calculations
+    for (const mastery of masteriesWithStreaks) {
+      if (mastery.lastStreakDate) {
+        const daysSinceLastPractice = getDaysDifference(
+          mastery.lastStreakDate,
+          now,
+          timezone
+        );
+
+        // Streak is broken if more than 1 day has passed
+        // (day 0 = same day, day 1 = yesterday, day 2+ = streak broken)
+        if (daysSinceLastPractice > 1) {
+          idsToReset.push(mastery.id);
+        }
+      }
+    }
+
+    // Reset all broken streaks in a single batch update
+    if (idsToReset.length > 0) {
+      await db.skillMastery10K.updateMany({
+        where: {
+          id: { in: idsToReset },
+        },
+        data: {
+          currentStreak: 0,
+          streakStartDate: null,
+        },
+      });
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Private Helpers
   // ---------------------------------------------------------------------------
+
+  /**
+   * Compute actual hours for current calendar week and month from sessions.
+   * This prevents drift that occurs when only incrementing hoursThisWeek/hoursThisMonth.
+   *
+   * Uses timezone-aware boundaries so hours are computed based on user's local time.
+   */
+  private async computeCurrentPeriodHours(
+    userId: string,
+    skillId: string,
+    timezone: string = DEFAULT_TIMEZONE
+  ): Promise<{ hoursThisWeek: number; hoursThisMonth: number }> {
+    const now = new Date();
+
+    // Use timezone-aware week start (Sunday at midnight in user's timezone)
+    const weekStart = getWeekStartInTimezone(now, timezone);
+
+    // Use timezone-aware month start (1st of month at midnight in user's timezone)
+    const monthStart = getMonthStartInTimezone(now, timezone);
+
+    // Get all completed sessions for this skill since month start
+    const sessions = await db.practiceSession.findMany({
+      where: {
+        userId,
+        skillId,
+        status: 'COMPLETED',
+        endedAt: { gte: monthStart },
+      },
+      select: {
+        qualityHours: true,
+        endedAt: true,
+      },
+    });
+
+    // Calculate hours this week (sessions that ended within current calendar week)
+    const hoursThisWeek = sessions
+      .filter((s) => s.endedAt && s.endedAt >= weekStart)
+      .reduce((sum, s) => sum + (s.qualityHours ?? 0), 0);
+
+    // Calculate hours this month (all sessions since month start)
+    const hoursThisMonth = sessions.reduce(
+      (sum, s) => sum + (s.qualityHours ?? 0),
+      0
+    );
+
+    return { hoursThisWeek, hoursThisMonth };
+  }
 
   /**
    * Compute rolling averages for a user's skill mastery.

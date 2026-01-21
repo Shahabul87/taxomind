@@ -86,17 +86,37 @@ export async function GET(req: NextRequest) {
     const monthsAgo = new Date(now);
     monthsAgo.setMonth(monthsAgo.getMonth() - query.months);
 
-    // Get daily practice logs for the time period
-    const dailyLogs = await db.dailyPracticeLog.findMany({
-      where: {
-        userId,
-        date: { gte: weeksAgo },
-        ...(query.skillId && {
-          skillsPracticed: { has: query.skillId },
-        }),
-      },
-      orderBy: { date: 'asc' },
-    });
+    // Get practice data for the time period
+    // FIX: When filtering by skillId, use session-based aggregation to get accurate
+    // per-skill hours instead of daily logs (which show total hours for all skills)
+    let dailyLogs: {
+      date: Date;
+      totalHours: number;
+      qualityHours: number;
+      sessionsCount: number;
+      avgQualityMultiplier: number;
+    }[];
+
+    if (query.skillId) {
+      // Skill-specific: aggregate from sessions for accurate per-skill data
+      dailyLogs = await getSkillSpecificDailyData(userId, query.skillId, weeksAgo);
+    } else {
+      // Overall: use pre-aggregated daily logs
+      const logs = await db.dailyPracticeLog.findMany({
+        where: {
+          userId,
+          date: { gte: weeksAgo },
+        },
+        orderBy: { date: 'asc' },
+      });
+      dailyLogs = logs.map((log) => ({
+        date: log.date,
+        totalHours: log.totalHours,
+        qualityHours: log.qualityHours,
+        sessionsCount: log.sessionsCount,
+        avgQualityMultiplier: log.avgQualityMultiplier,
+      }));
+    }
 
     // Calculate weekly trends
     const weeklyTrends = calculateWeeklyTrends(dailyLogs, query.weeks);
@@ -398,4 +418,75 @@ function formatMonthLabel(date: Date): string {
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
   return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+/**
+ * Get skill-specific daily data by aggregating from practice sessions.
+ * This provides accurate per-skill hours instead of using daily logs
+ * which aggregate all skills together.
+ */
+async function getSkillSpecificDailyData(
+  userId: string,
+  skillId: string,
+  sinceDate: Date
+): Promise<{
+  date: Date;
+  totalHours: number;
+  qualityHours: number;
+  sessionsCount: number;
+  avgQualityMultiplier: number;
+}[]> {
+  // Get sessions for this specific skill
+  const sessions = await db.practiceSession.findMany({
+    where: {
+      userId,
+      skillId,
+      status: 'COMPLETED',
+      endedAt: { gte: sinceDate },
+    },
+    select: {
+      startedAt: true,
+      rawHours: true,
+      qualityHours: true,
+      qualityMultiplier: true,
+    },
+  });
+
+  // Group by date
+  const dailyMap = new Map<string, {
+    totalHours: number;
+    qualityHours: number;
+    sessionsCount: number;
+    multiplierSum: number;
+  }>();
+
+  for (const session of sessions) {
+    const dateKey = session.startedAt.toISOString().split('T')[0];
+    const existing = dailyMap.get(dateKey) || {
+      totalHours: 0,
+      qualityHours: 0,
+      sessionsCount: 0,
+      multiplierSum: 0,
+    };
+
+    existing.totalHours += session.rawHours;
+    existing.qualityHours += session.qualityHours;
+    existing.sessionsCount += 1;
+    existing.multiplierSum += session.qualityMultiplier;
+
+    dailyMap.set(dateKey, existing);
+  }
+
+  // Convert to array with proper date objects
+  return Array.from(dailyMap.entries())
+    .map(([dateStr, data]) => ({
+      date: new Date(dateStr),
+      totalHours: data.totalHours,
+      qualityHours: data.qualityHours,
+      sessionsCount: data.sessionsCount,
+      avgQualityMultiplier: data.sessionsCount > 0
+        ? data.multiplierSum / data.sessionsCount
+        : 1,
+    }))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 }

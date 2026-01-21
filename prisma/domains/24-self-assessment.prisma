@@ -1,0 +1,228 @@
+// ==========================================
+// Self-Assessment Exam System
+// ==========================================
+// User-owned exams for personal skill assessment
+// Not tied to course sections - fully standalone
+// Integrates with SAM AI for question generation
+// ==========================================
+
+// Status of self-assessment exam
+enum SelfAssessmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Status of self-assessment attempt
+enum SelfAssessmentAttemptStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+// ==========================================
+// Self-Assessment Exam Model
+// ==========================================
+// User-created personal assessment not tied to course sections
+
+model SelfAssessmentExam {
+  id              String                 @id @default(cuid())
+  userId          String                 // Owner of the exam
+
+  // Basic Info
+  title           String
+  description     String?                @db.Text
+  instructions    String?                @db.Text
+
+  // Topic for AI question generation (used when no courseId)
+  topic           String?                @db.Text
+  subtopics       String[]               @default([])
+
+  // Optional course association (for skill tracking)
+  courseId        String?
+
+  // Settings
+  timeLimit       Int?                   // Minutes (null = unlimited)
+  passingScore    Float                  @default(70)
+  shuffleQuestions Boolean               @default(false)
+  showResults     Boolean                @default(true)
+  allowRetakes    Boolean                @default(true)
+  maxAttempts     Int?                   // null = unlimited
+
+  // AI Generation metadata
+  generatedByAI   Boolean                @default(false)
+  aiConfig        Json?                  // Stores generation config
+
+  // Bloom's Taxonomy
+  targetBloomsDistribution Json?         // Target distribution
+  actualBloomsDistribution Json?         // Actual distribution after questions added
+
+  // Status
+  status          SelfAssessmentStatus   @default(DRAFT)
+
+  // Stats
+  totalQuestions  Int                    @default(0)
+  totalPoints     Float                  @default(0)
+  avgScore        Float?
+  totalAttempts   Int                    @default(0)
+
+  // Timestamps
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  publishedAt     DateTime?
+
+  // Relations
+  user            User                   @relation("SelfAssessmentExamOwner", fields: [userId], references: [id], onDelete: Cascade)
+  questions       SelfAssessmentQuestion[]
+  attempts        SelfAssessmentAttempt[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([courseId])
+  @@index([createdAt])
+}
+
+// ==========================================
+// Self-Assessment Question Model
+// ==========================================
+
+model SelfAssessmentQuestion {
+  id              String                 @id @default(cuid())
+  examId          String
+
+  // Question content
+  question        String                 @db.Text
+  questionType    QuestionType           @default(MULTIPLE_CHOICE)
+
+  // Answer configuration
+  options         Json?                  // For MCQ: [{ id, text, isCorrect }]
+  correctAnswer   String                 @db.Text
+  acceptableVariations Json?             // Alternative correct answers
+
+  // Scoring
+  points          Float                  @default(1)
+
+  // Bloom's Taxonomy
+  bloomsLevel     BloomsLevel            @default(REMEMBER)
+  difficulty      QuestionDifficulty     @default(MEDIUM)
+
+  // Learning support
+  hint            String?                @db.Text
+  explanation     String?                @db.Text
+
+  // Metadata
+  order           Int                    @default(0)
+  tags            String[]               @default([])
+  estimatedTime   Int?                   // Seconds
+
+  // AI rubric for essay/short answer evaluation
+  rubric          Json?
+
+  // Stats
+  totalAttempts   Int                    @default(0)
+  correctAttempts Int                    @default(0)
+  avgTimeSpent    Float?
+
+  // Timestamps
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  // Relations
+  exam            SelfAssessmentExam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers         SelfAssessmentAnswer[]
+
+  @@index([examId])
+  @@index([bloomsLevel])
+  @@index([questionType])
+  @@index([order])
+}
+
+// ==========================================
+// Self-Assessment Attempt Model
+// ==========================================
+
+model SelfAssessmentAttempt {
+  id              String                       @id @default(cuid())
+  examId          String
+  userId          String
+
+  // Attempt info
+  attemptNumber   Int                          @default(1)
+  status          SelfAssessmentAttemptStatus  @default(NOT_STARTED)
+
+  // Timing
+  startedAt       DateTime?
+  submittedAt     DateTime?
+  timeSpent       Int?                         // Seconds
+
+  // Scoring
+  totalQuestions  Int                          @default(0)
+  correctAnswers  Int                          @default(0)
+  totalPoints     Float                        @default(0)
+  earnedPoints    Float                        @default(0)
+  scorePercentage Float?
+  isPassed        Boolean?
+
+  // Bloom's breakdown
+  bloomsBreakdown Json?                        // Performance per Bloom's level
+
+  // AI evaluation summary
+  aiEvaluationSummary Json?
+  cognitiveProfile    Json?
+  learningRecommendations Json?
+
+  // Timestamps
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+
+  // Relations
+  exam            SelfAssessmentExam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  user            User                         @relation("SelfAssessmentAttemptUser", fields: [userId], references: [id], onDelete: Cascade)
+  answers         SelfAssessmentAnswer[]
+
+  @@unique([examId, userId, attemptNumber])
+  @@index([examId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ==========================================
+// Self-Assessment Answer Model
+// ==========================================
+
+model SelfAssessmentAnswer {
+  id              String                       @id @default(cuid())
+  attemptId       String
+  questionId      String
+
+  // Answer content
+  answer          String?                      @db.Text
+
+  // Grading
+  isCorrect       Boolean?
+  pointsEarned    Float                        @default(0)
+
+  // Timing
+  timeSpent       Int?                         // Seconds
+
+  // AI Evaluation (for essay/short answer)
+  aiEvaluation    Json?                        // Full AI evaluation result
+  feedback        String?                      @db.Text
+
+  // Bloom's demonstration
+  demonstratedLevel BloomsLevel?
+
+  // Timestamps
+  answeredAt      DateTime                     @default(now())
+  evaluatedAt     DateTime?
+
+  // Relations
+  attempt         SelfAssessmentAttempt        @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        SelfAssessmentQuestion       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}

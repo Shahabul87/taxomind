@@ -1,11 +1,21 @@
 /**
  * Prisma Store for Daily Practice Log (Heatmap Data)
  * Tracks daily practice statistics for GitHub-style activity visualization
+ *
+ * TIMEZONE SUPPORT: All date operations now support user timezone for accurate
+ * daily logs, streaks, and heatmaps based on the user's local day boundaries.
  */
 
 import { db } from '@/lib/db';
 import type { Prisma } from '@prisma/client';
 import type { PracticeSessionType } from './prisma-practice-session-store';
+import {
+  getStartOfDayInTimezone,
+  getDateInTimezone,
+  getDaysDifference,
+  isToday,
+  isYesterday,
+} from '@/lib/utils/timezone';
 
 // ============================================================================
 // TYPES
@@ -70,26 +80,29 @@ export interface YearlyStats {
 }
 
 export interface DailyPracticeLogStore {
-  // CRUD
-  getByDate(userId: string, date: Date): Promise<DailyPracticeLog | null>;
-  getByDateRange(userId: string, startDate: Date, endDate: Date): Promise<DailyPracticeLog[]>;
+  // CRUD - All methods now support optional timezone parameter
+  getByDate(userId: string, date: Date, timezone?: string): Promise<DailyPracticeLog | null>;
+  getByDateRange(userId: string, startDate: Date, endDate: Date, timezone?: string): Promise<DailyPracticeLog[]>;
 
   // Updates
-  recordActivity(userId: string, date: Date, update: DailyPracticeLogUpdate): Promise<DailyPracticeLog>;
-  updateStreakContribution(userId: string, date: Date, contributes: boolean, dayNumber?: number): Promise<void>;
+  recordActivity(userId: string, date: Date, update: DailyPracticeLogUpdate, timezone?: string): Promise<DailyPracticeLog>;
+  updateStreakContribution(userId: string, date: Date, contributes: boolean, dayNumber?: number, timezone?: string): Promise<void>;
 
   // Heatmap
-  getHeatmapData(userId: string, year: number): Promise<HeatmapData[]>;
-  getYearlyStats(userId: string, year: number): Promise<YearlyStats>;
+  getHeatmapData(userId: string, year: number, timezone?: string): Promise<HeatmapData[]>;
+  getYearlyStats(userId: string, year: number, timezone?: string): Promise<YearlyStats>;
 
   // Analytics
-  getWeeklyTrend(userId: string, weeks?: number): Promise<{ week: string; hours: number }[]>;
-  getMonthlyTrend(userId: string, months?: number): Promise<{ month: string; hours: number }[]>;
+  getWeeklyTrend(userId: string, weeks?: number, timezone?: string): Promise<{ week: string; hours: number }[]>;
+  getMonthlyTrend(userId: string, months?: number, timezone?: string): Promise<{ month: string; hours: number }[]>;
 }
 
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/** Default timezone when none is specified */
+const DEFAULT_TIMEZONE = 'UTC';
 
 function mapPrismaLog(log: Prisma.DailyPracticeLogGetPayload<object>): DailyPracticeLog {
   return {
@@ -119,12 +132,19 @@ function mapPrismaLog(log: Prisma.DailyPracticeLogGetPayload<object>): DailyPrac
   };
 }
 
-function getDateOnly(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+/**
+ * Get the start of day for a date in a specific timezone.
+ * This ensures daily logs are grouped by the user's local day, not server time.
+ */
+function getDateOnly(date: Date, timezone: string = DEFAULT_TIMEZONE): Date {
+  return getStartOfDayInTimezone(date, timezone);
 }
 
-function formatDateString(date: Date): string {
-  return date.toISOString().split('T')[0];
+/**
+ * Format date to YYYY-MM-DD string in a specific timezone
+ */
+function formatDateString(date: Date, timezone: string = DEFAULT_TIMEZONE): string {
+  return getDateInTimezone(date, timezone);
 }
 
 function calculateIntensityLevel(totalMinutes: number): number {
@@ -149,8 +169,12 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
   // CRUD
   // ---------------------------------------------------------------------------
 
-  async getByDate(userId: string, date: Date): Promise<DailyPracticeLog | null> {
-    const dateOnly = getDateOnly(date);
+  async getByDate(
+    userId: string,
+    date: Date,
+    timezone: string = DEFAULT_TIMEZONE
+  ): Promise<DailyPracticeLog | null> {
+    const dateOnly = getDateOnly(date, timezone);
 
     const log = await db.dailyPracticeLog.findUnique({
       where: {
@@ -168,14 +192,15 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
   async getByDateRange(
     userId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    timezone: string = DEFAULT_TIMEZONE
   ): Promise<DailyPracticeLog[]> {
     const logs = await db.dailyPracticeLog.findMany({
       where: {
         userId,
         date: {
-          gte: getDateOnly(startDate),
-          lte: getDateOnly(endDate),
+          gte: getDateOnly(startDate, timezone),
+          lte: getDateOnly(endDate, timezone),
         },
       },
       orderBy: { date: 'asc' },
@@ -191,9 +216,10 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
   async recordActivity(
     userId: string,
     date: Date,
-    update: DailyPracticeLogUpdate
+    update: DailyPracticeLogUpdate,
+    timezone: string = DEFAULT_TIMEZONE
   ): Promise<DailyPracticeLog> {
-    const dateOnly = getDateOnly(date);
+    const dateOnly = getDateOnly(date, timezone);
 
     // Get existing log or create new
     let log = await db.dailyPracticeLog.findUnique({
@@ -281,9 +307,10 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     userId: string,
     date: Date,
     contributes: boolean,
-    dayNumber?: number
+    dayNumber?: number,
+    timezone: string = DEFAULT_TIMEZONE
   ): Promise<void> {
-    const dateOnly = getDateOnly(date);
+    const dateOnly = getDateOnly(date, timezone);
 
     await db.dailyPracticeLog.updateMany({
       where: {
@@ -301,7 +328,11 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
   // Heatmap
   // ---------------------------------------------------------------------------
 
-  async getHeatmapData(userId: string, year: number): Promise<HeatmapData[]> {
+  async getHeatmapData(
+    userId: string,
+    year: number,
+    timezone: string = DEFAULT_TIMEZONE
+  ): Promise<HeatmapData[]> {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);
 
@@ -319,7 +350,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     // Create a map of existing data
     const dataMap = new Map<string, HeatmapData>();
     for (const log of logs) {
-      const dateStr = formatDateString(log.date);
+      const dateStr = formatDateString(log.date, timezone);
       dataMap.set(dateStr, {
         date: dateStr,
         sessionsCount: log.sessionsCount,
@@ -336,7 +367,7 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     const today = new Date();
 
     while (currentDate <= endDate && currentDate <= today) {
-      const dateStr = formatDateString(currentDate);
+      const dateStr = formatDateString(currentDate, timezone);
       result.push(
         dataMap.get(dateStr) || {
           date: dateStr,
@@ -353,7 +384,11 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     return result;
   }
 
-  async getYearlyStats(userId: string, year: number): Promise<YearlyStats> {
+  async getYearlyStats(
+    userId: string,
+    year: number,
+    timezone: string = DEFAULT_TIMEZONE
+  ): Promise<YearlyStats> {
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);
     const today = new Date();
@@ -388,13 +423,13 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
         log.qualityHours > max.qualityHours ? log : max
       );
       mostActiveDay = {
-        date: formatDateString(maxLog.date),
+        date: formatDateString(maxLog.date, timezone),
         hours: maxLog.qualityHours,
       };
     }
 
-    // Calculate streaks
-    const { current, longest } = this.calculateStreaks(logs);
+    // Calculate streaks with timezone awareness
+    const { current, longest } = this.calculateStreaks(logs, timezone);
 
     return {
       totalDays,
@@ -415,30 +450,31 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
 
   async getWeeklyTrend(
     userId: string,
-    weeks = 12
+    weeks = 12,
+    timezone: string = DEFAULT_TIMEZONE
   ): Promise<{ week: string; hours: number }[]> {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - weeks * 7);
 
-    const logs = await this.getByDateRange(userId, startDate, endDate);
+    const logs = await this.getByDateRange(userId, startDate, endDate, timezone);
 
     // Group by week
     const weeklyHours = new Map<string, number>();
 
     for (const log of logs) {
-      const weekStart = this.getWeekStart(log.date);
-      const weekKey = formatDateString(weekStart);
+      const weekStart = this.getWeekStart(log.date, timezone);
+      const weekKey = formatDateString(weekStart, timezone);
       const current = weeklyHours.get(weekKey) || 0;
       weeklyHours.set(weekKey, current + log.qualityHours);
     }
 
     // Generate all weeks
     const result: { week: string; hours: number }[] = [];
-    const currentWeek = this.getWeekStart(startDate);
+    const currentWeek = this.getWeekStart(startDate, timezone);
 
     while (currentWeek <= endDate) {
-      const weekKey = formatDateString(currentWeek);
+      const weekKey = formatDateString(currentWeek, timezone);
       result.push({
         week: weekKey,
         hours: weeklyHours.get(weekKey) || 0,
@@ -451,13 +487,14 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
 
   async getMonthlyTrend(
     userId: string,
-    months = 12
+    months = 12,
+    timezone: string = DEFAULT_TIMEZONE
   ): Promise<{ month: string; hours: number }[]> {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - months);
 
-    const logs = await this.getByDateRange(userId, startDate, endDate);
+    const logs = await this.getByDateRange(userId, startDate, endDate, timezone);
 
     // Group by month
     const monthlyHours = new Map<string, number>();
@@ -506,16 +543,23 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
     }
   }
 
-  private getWeekStart(date: Date): Date {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day;
-    d.setDate(diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
+  private getWeekStart(date: Date, timezone: string = DEFAULT_TIMEZONE): Date {
+    // Get the date string in user's timezone to determine day of week
+    const dateStr = getDateInTimezone(date, timezone);
+    const [year, month, day] = dateStr.split('-').map(Number);
+
+    // Create date and find Sunday
+    const d = new Date(year, month - 1, day);
+    const dayOfWeek = d.getDay();
+    d.setDate(d.getDate() - dayOfWeek);
+
+    return getStartOfDayInTimezone(d, timezone);
   }
 
-  private calculateStreaks(logs: { date: Date; contributesToStreak: boolean }[]): {
+  private calculateStreaks(
+    logs: { date: Date; contributesToStreak: boolean }[],
+    timezone: string = DEFAULT_TIMEZONE
+  ): {
     current: number;
     longest: number;
   } {
@@ -526,16 +570,21 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
 
     let currentStreak = 0;
     let longestStreak = 0;
-    let lastDate: Date | null = null;
+    let lastDateStr: string | null = null;
 
     for (const log of sortedLogs) {
       if (!log.contributesToStreak) continue;
 
-      if (lastDate === null) {
+      const logDateStr = getDateInTimezone(log.date, timezone);
+
+      if (lastDateStr === null) {
         currentStreak = 1;
       } else {
+        // Use timezone-aware day difference
+        const lastDate = new Date(lastDateStr);
+        const currentDate = new Date(logDateStr);
         const daysDiff = Math.floor(
-          (log.date.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
+          (currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
         );
 
         if (daysDiff === 1) {
@@ -550,14 +599,16 @@ export class PrismaDailyPracticeLogStore implements DailyPracticeLogStore {
         longestStreak = currentStreak;
       }
 
-      lastDate = log.date;
+      lastDateStr = logDateStr;
     }
 
     // Check if current streak is still active (last activity was today or yesterday)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayStr = getDateInTimezone(new Date(), timezone);
 
-    if (lastDate) {
+    if (lastDateStr) {
+      // Use timezone utility for accurate day comparison
+      const lastDate = new Date(lastDateStr);
+      const today = new Date(todayStr);
       const daysSinceLastActivity = Math.floor(
         (today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
       );

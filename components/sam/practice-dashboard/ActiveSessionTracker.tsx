@@ -12,10 +12,29 @@ import {
   Loader2,
   Star,
   MessageSquare,
+  Award,
+  FileCheck,
+  Users,
+  Gauge,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Dialog,
   DialogContent,
@@ -26,8 +45,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { usePracticeTimer } from '@/hooks/use-practice-timer';
-import { ProficiencyBadge } from './ProficiencyBadge';
-import type { ActiveSessionTrackerProps, ProficiencyLevel } from './types';
+import type { ActiveSessionTrackerProps, EndSessionInputs, ProjectOutcome } from './types';
 
 // ============================================================================
 // END SESSION DIALOG
@@ -36,8 +54,9 @@ import type { ActiveSessionTrackerProps, ProficiencyLevel } from './types';
 interface EndSessionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onEnd: (rating?: number, notes?: string) => Promise<void>;
+  onEnd: (inputs: EndSessionInputs) => Promise<void>;
   estimatedQualityHours: number;
+  sessionType: string;
   isLoading?: boolean;
 }
 
@@ -46,24 +65,68 @@ function EndSessionDialog({
   onOpenChange,
   onEnd,
   estimatedQualityHours,
+  sessionType,
   isLoading,
 }: EndSessionDialogProps) {
   const [rating, setRating] = useState<number | undefined>(undefined);
   const [notes, setNotes] = useState('');
+  const [distractionCount, setDistractionCount] = useState<number>(0);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Phase 3: Enhanced Quality Scoring Inputs
+  const [selfRatedDifficulty, setSelfRatedDifficulty] = useState<number>(3);
+  const [assessmentScore, setAssessmentScore] = useState<string>('');
+  const [assessmentPassed, setAssessmentPassed] = useState<boolean | undefined>(undefined);
+  const [projectOutcome, setProjectOutcome] = useState<ProjectOutcome | undefined>(undefined);
+  const [peerReviewScore, setPeerReviewScore] = useState<string>('');
 
   const handleEnd = async () => {
-    await onEnd(rating, notes || undefined);
+    const inputs: EndSessionInputs = {
+      rating,
+      notes: notes || undefined,
+      distractionCount,
+      selfRatedDifficulty,
+    };
+
+    // Only include assessment data if session type is ASSESSMENT
+    if (sessionType === 'ASSESSMENT' && assessmentScore) {
+      inputs.assessmentScore = parseInt(assessmentScore, 10);
+      inputs.assessmentPassed = assessmentPassed;
+    }
+
+    // Include project outcome if provided
+    if (projectOutcome) {
+      inputs.projectOutcome = projectOutcome;
+    }
+
+    // Include peer review if provided
+    if (peerReviewScore) {
+      inputs.peerReviewScore = parseInt(peerReviewScore, 10);
+    }
+
+    await onEnd(inputs);
+
+    // Reset state
     setRating(undefined);
     setNotes('');
+    setDistractionCount(0);
+    setSelfRatedDifficulty(3);
+    setAssessmentScore('');
+    setAssessmentPassed(undefined);
+    setProjectOutcome(undefined);
+    setPeerReviewScore('');
+    setShowAdvanced(false);
   };
+
+  const difficultyLabels = ['Very Easy', 'Easy', 'Moderate', 'Challenging', 'Very Hard'];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>End Practice Session</DialogTitle>
           <DialogDescription>
-            Rate your session and add any final notes.
+            Rate your session quality. Add optional details for better tracking.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,9 +166,151 @@ function EndSessionDialog({
             </div>
           </div>
 
+          {/* Difficulty Slider */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Gauge className="h-4 w-4 text-purple-500" />
+                Perceived Difficulty
+              </Label>
+              <span className="text-sm text-slate-500">{difficultyLabels[selfRatedDifficulty - 1]}</span>
+            </div>
+            <Slider
+              value={[selfRatedDifficulty]}
+              onValueChange={(value) => setSelfRatedDifficulty(value[0])}
+              min={1}
+              max={5}
+              step={1}
+              className="cursor-pointer"
+            />
+          </div>
+
+          {/* Distraction Count */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Distractions During Session</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDistractionCount(Math.max(0, distractionCount - 1))}
+                disabled={distractionCount === 0}
+              >
+                -
+              </Button>
+              <span className="w-8 text-center font-medium">{distractionCount}</span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setDistractionCount(distractionCount + 1)}
+              >
+                +
+              </Button>
+              <span className="text-xs text-slate-500 ml-2">
+                (phone checks, interruptions, etc.)
+              </span>
+            </div>
+          </div>
+
+          {/* Advanced Quality Inputs */}
+          <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between">
+                <span className="flex items-center gap-2">
+                  <Award className="h-4 w-4" />
+                  Advanced Quality Evidence
+                </span>
+                <span className="text-xs text-slate-500">
+                  {showAdvanced ? '▲ Hide' : '▼ Show'}
+                </span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-4">
+              {/* Assessment Score (for ASSESSMENT sessions) */}
+              {sessionType === 'ASSESSMENT' && (
+                <div className="space-y-2 rounded-lg border p-3">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <FileCheck className="h-4 w-4 text-blue-500" />
+                    Assessment Results
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-slate-500">Score (0-100)</Label>
+                      <Input
+                        type="number"
+                        placeholder="85"
+                        min={0}
+                        max={100}
+                        value={assessmentScore}
+                        onChange={(e) => setAssessmentScore(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-slate-500">Passed?</Label>
+                      <Select
+                        value={assessmentPassed === undefined ? '' : assessmentPassed.toString()}
+                        onValueChange={(v) => setAssessmentPassed(v === '' ? undefined : v === 'true')}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Project Outcome */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Target className="h-4 w-4 text-green-500" />
+                  Project Outcome (if applicable)
+                </Label>
+                <Select
+                  value={projectOutcome || ''}
+                  onValueChange={(v) => setProjectOutcome(v === '' ? undefined : v as ProjectOutcome)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select outcome..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SUCCESSFUL">Successful - Completed goals</SelectItem>
+                    <SelectItem value="PARTIAL">Partial - Some progress made</SelectItem>
+                    <SelectItem value="FAILED">Failed - Did not achieve goals</SelectItem>
+                    <SelectItem value="ABANDONED">Abandoned - Stopped early</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Peer Review Score */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Users className="h-4 w-4 text-indigo-500" />
+                  Peer Review Score (if received)
+                </Label>
+                <Input
+                  type="number"
+                  placeholder="0-100"
+                  min={0}
+                  max={100}
+                  value={peerReviewScore}
+                  onChange={(e) => setPeerReviewScore(e.target.value)}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Notes */}
           <div className="space-y-2">
-            <p className="text-sm font-medium">Session Notes (Optional)</p>
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Session Notes (Optional)
+            </Label>
             <Textarea
               placeholder="What did you learn? Any reflections?"
               value={notes}
@@ -168,8 +373,8 @@ export function ActiveSessionTracker({
     setIsPausingOrResuming(false);
   };
 
-  const handleEnd = async (rating?: number, notes?: string) => {
-    await onEnd(rating, notes);
+  const handleEnd = async (inputs: EndSessionInputs) => {
+    await onEnd(inputs);
     setShowEndDialog(false);
   };
 
@@ -333,6 +538,7 @@ export function ActiveSessionTracker({
         onOpenChange={setShowEndDialog}
         onEnd={handleEnd}
         estimatedQualityHours={timer.estimatedQualityHours}
+        sessionType={session.sessionType}
         isLoading={isLoading}
       />
     </>

@@ -123,6 +123,21 @@ model PracticeSession {
   pomodoroCount         Int                   @default(0) // Number of pomodoros completed
   breaksTaken           Int                   @default(0) // Number of breaks
 
+  // Enhanced Quality Scoring Inputs (Phase 3)
+  selfRatedDifficulty   Int?                  // 1-5 user-rated difficulty
+  assessmentScore       Float?                // Assessment score if applicable (0-100)
+  assessmentPassed      Boolean?              // Whether assessment was passed
+  projectOutcome        String?               // SUCCESS, PARTIAL, FAILED
+  peerReviewScore       Float?                // Peer review score if applicable (0-100)
+
+  // Quality Score Breakdown (Phase 3)
+  qualityBreakdown      Json?                 // Detailed multiplier breakdown
+
+  // Anti-Gaming Validation (Phase 4)
+  validationFlags       String[]              @default([]) // EXCESSIVE_DURATION, LOW_ACTIVITY, etc.
+  wasAdjusted           Boolean               @default(false) // Whether duration was adjusted
+  originalDuration      Int?                  // Pre-adjustment duration if adjusted
+
   // Metadata
   metadata              Json?                 // Additional session data
   createdAt             DateTime              @default(now())
@@ -189,6 +204,16 @@ model SkillMastery10K {
   bestSessionDuration   Int                   @default(0) // Minutes
   bestQualityMultiplier Float                 @default(1.0)
   bestSessionDate       DateTime?
+
+  // Decay-Aware Mastery (Phase 4)
+  effectiveHours        Float                 @default(0) // Quality hours after decay
+  lastDecayCalculation  DateTime?             // When decay was last calculated
+  retentionRate         Float                 @default(1.0) // Current retention (0-1)
+  nextReviewDate        DateTime?             // Suggested next review date
+  reviewUrgency         String                @default("NONE") // NONE, LOW, MEDIUM, HIGH, CRITICAL
+
+  // User Timezone (Phase 2)
+  userTimezone          String                @default("UTC") // IANA timezone for accurate tracking
 
   // Timestamps
   createdAt             DateTime              @default(now())
@@ -446,6 +471,11 @@ model DailyPracticeLog {
   // Streak Info
   contributesToStreak   Boolean               @default(false) // Met daily goal
   streakDayNumber       Int?                  // Which day of streak this is
+  currentStreak         Int                   @default(0) // Current consecutive days at this date
+  longestStreak         Int                   @default(0) // Longest streak up to this date
+
+  // Raw Hours (for consistency with session data)
+  rawHours              Float                 @default(0) // Non-quality-adjusted hours
 
   // Timestamps
   createdAt             DateTime              @default(now())

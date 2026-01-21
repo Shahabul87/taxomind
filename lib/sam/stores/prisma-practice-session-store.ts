@@ -344,11 +344,20 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
 
     const now = new Date();
 
+    // Calculate total paused time, including final pause interval if currently paused
+    let totalPausedSeconds = existing.totalPausedSeconds;
+    if (existing.status === 'PAUSED' && existing.pausedAt) {
+      const finalPauseSeconds = Math.floor(
+        (now.getTime() - existing.pausedAt.getTime()) / 1000
+      );
+      totalPausedSeconds += finalPauseSeconds;
+    }
+
     // Calculate total duration
     const totalSeconds = Math.floor(
       (now.getTime() - existing.startedAt.getTime()) / 1000
     );
-    const activeSeconds = totalSeconds - existing.totalPausedSeconds;
+    const activeSeconds = Math.max(totalSeconds - totalPausedSeconds, 0);
     const durationMinutes = Math.max(Math.floor(activeSeconds / 60), 1);
     const rawHours = durationMinutes / 60;
 
@@ -370,6 +379,7 @@ export class PrismaPracticeSessionStore implements PracticeSessionStore {
         status: 'COMPLETED',
         endedAt: now,
         pausedAt: null,
+        totalPausedSeconds, // Store the corrected total including final pause
         durationMinutes,
         rawHours,
         qualityMultiplier,

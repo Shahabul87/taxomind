@@ -43,3 +43,13 @@ export {
   createSimpleOrchestrator,
   createStrictOrchestrator,
 } from './enhanced-orchestrator';
+
+// Transactional Practice Session Orchestrator
+export {
+  TransactionalPracticeSessionOrchestrator,
+  createTransactionalPracticeSessionOrchestrator,
+  type TransactionalEndSessionInput,
+  type TransactionalEndSessionResult,
+  type DailyPracticeLogSummary,
+  type MilestoneUnlocked,
+} from './transactional-practice-session-orchestrator';

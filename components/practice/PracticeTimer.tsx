@@ -12,6 +12,22 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import {
   Play,
@@ -22,6 +38,14 @@ import {
   Zap,
   Brain,
   Loader2,
+  Star,
+  MessageSquare,
+  Award,
+  FileCheck,
+  Users,
+  Gauge,
+  ChevronDown,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -56,6 +80,20 @@ interface SessionSummary {
   proficiencyLevel: string;
   currentStreak: number;
   milestonesEarned: number;
+}
+
+// Phase 3/4 Types for End Session Dialog
+type ProjectOutcome = 'SUCCESS' | 'PARTIAL' | 'FAILED';
+
+interface EndSessionInputs {
+  rating?: number;
+  notes?: string;
+  distractionCount?: number;
+  selfRatedDifficulty?: number;
+  assessmentScore?: number;
+  assessmentPassed?: boolean;
+  projectOutcome?: ProjectOutcome;
+  peerReviewScore?: number;
 }
 
 interface PracticeTimerProps {
@@ -108,6 +146,18 @@ export function PracticeTimer({
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isCheckingActive, setIsCheckingActive] = useState<boolean>(true);
+
+  // Phase 3/4: End Session Dialog State
+  const [showEndDialog, setShowEndDialog] = useState<boolean>(false);
+  const [endSessionRating, setEndSessionRating] = useState<number | undefined>(undefined);
+  const [endSessionNotes, setEndSessionNotes] = useState<string>('');
+  const [distractionCount, setDistractionCount] = useState<number>(0);
+  const [selfRatedDifficulty, setSelfRatedDifficulty] = useState<number>(3);
+  const [assessmentScore, setAssessmentScore] = useState<string>('');
+  const [assessmentPassed, setAssessmentPassed] = useState<boolean | undefined>(undefined);
+  const [projectOutcome, setProjectOutcome] = useState<ProjectOutcome | undefined>(undefined);
+  const [peerReviewScore, setPeerReviewScore] = useState<string>('');
+  const [showAdvancedEvidence, setShowAdvancedEvidence] = useState<boolean>(false);
 
   // Refs
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -304,20 +354,41 @@ export function PracticeTimer({
     }
   };
 
-  // End session
-  const handleEnd = async () => {
+  // End session with Phase 3/4 inputs
+  const handleEnd = async (inputs?: EndSessionInputs) => {
     if (!activeSession) return;
 
     setIsLoading(true);
     try {
+      // Build request body with Phase 3/4 fields
+      const requestBody: Record<string, unknown> = {
+        notes: inputs?.notes || notes || undefined,
+        distractionCount: inputs?.distractionCount,
+        selfRatedDifficulty: inputs?.selfRatedDifficulty,
+      };
+
+      // Add assessment fields if session type is ASSESSMENT
+      if (activeSession.sessionType === 'ASSESSMENT' && inputs?.assessmentScore !== undefined) {
+        requestBody.assessmentScore = inputs.assessmentScore;
+        requestBody.assessmentPassed = inputs.assessmentPassed;
+      }
+
+      // Add project outcome if provided
+      if (inputs?.projectOutcome) {
+        requestBody.projectOutcome = inputs.projectOutcome;
+      }
+
+      // Add peer review score if provided
+      if (inputs?.peerReviewScore !== undefined) {
+        requestBody.peerReviewScore = inputs.peerReviewScore;
+      }
+
       const response = await fetch(
         `/api/sam/practice/sessions/${activeSession.id}/end`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            notes: notes || undefined,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -328,17 +399,55 @@ export function PracticeTimer({
         setElapsedSeconds(0);
         setNotes('');
 
+        // Reset dialog state
+        setShowEndDialog(false);
+        setEndSessionRating(undefined);
+        setEndSessionNotes('');
+        setDistractionCount(0);
+        setSelfRatedDifficulty(3);
+        setAssessmentScore('');
+        setAssessmentPassed(undefined);
+        setProjectOutcome(undefined);
+        setPeerReviewScore('');
+        setShowAdvancedEvidence(false);
+
         const summary = data.data.summary;
-        toast.success(
-          `Session complete! ${summary.qualityHours.toFixed(2)} quality hours logged`,
-          { duration: 5000 }
-        );
+        const qualityScoring = data.data.qualityScoring;
+
+        // Enhanced toast message with Phase 3/4 quality scoring info
+        let toastMessage = `Session complete! ${summary.qualityHours.toFixed(2)} quality hours logged`;
+        if (qualityScoring) {
+          const multiplier = qualityScoring.multiplier ?? summary.qualityMultiplier;
+          toastMessage += ` (${multiplier.toFixed(2)}x multiplier)`;
+        }
+        toast.success(toastMessage, { duration: 5000 });
 
         if (summary.milestonesEarned > 0) {
           toast.success(
             `You earned ${summary.milestonesEarned} new milestone(s)!`,
             { icon: '🏆', duration: 5000 }
           );
+        }
+
+        // Show focus drift recommendations if concerning
+        const focusDrift = data.data.focusDrift;
+        if (
+          focusDrift &&
+          (focusDrift.driftSeverity === 'SEVERE' || focusDrift.driftSeverity === 'MODERATE')
+        ) {
+          setTimeout(() => {
+            toast.info('Focus Insight: Consider taking a break before your next session.', {
+              duration: 4000,
+            });
+          }, 1500);
+        }
+
+        // Show validation warnings
+        const warnings = data.data.warnings;
+        if (warnings && warnings.length > 0) {
+          setTimeout(() => {
+            toast.warning(warnings[0], { duration: 4000 });
+          }, 500);
         }
 
         onSessionComplete?.(summary);
@@ -351,6 +460,34 @@ export function PracticeTimer({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handler for dialog submission
+  const handleEndWithDialog = async () => {
+    const inputs: EndSessionInputs = {
+      rating: endSessionRating,
+      notes: endSessionNotes || undefined,
+      distractionCount,
+      selfRatedDifficulty,
+    };
+
+    // Add assessment fields if session type is ASSESSMENT
+    if (activeSession?.sessionType === 'ASSESSMENT' && assessmentScore) {
+      inputs.assessmentScore = parseInt(assessmentScore, 10);
+      inputs.assessmentPassed = assessmentPassed;
+    }
+
+    // Add project outcome if provided
+    if (projectOutcome) {
+      inputs.projectOutcome = projectOutcome;
+    }
+
+    // Add peer review score if provided
+    if (peerReviewScore) {
+      inputs.peerReviewScore = parseInt(peerReviewScore, 10);
+    }
+
+    await handleEnd(inputs);
   };
 
   // Abandon session
@@ -608,7 +745,7 @@ export function PracticeTimer({
               <Button
                 variant="default"
                 className="flex-1"
-                onClick={handleEnd}
+                onClick={() => setShowEndDialog(true)}
                 disabled={isLoading}
               >
                 <Square className="h-4 w-4 mr-2" />
@@ -627,6 +764,261 @@ export function PracticeTimer({
           )}
         </div>
       </CardContent>
+
+      {/* Phase 3/4: End Session Dialog with Enhanced Quality Scoring Inputs */}
+      <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+        <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>End Practice Session</DialogTitle>
+            <DialogDescription>
+              Rate your session quality. Add optional details for better tracking.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Estimated Quality Hours */}
+            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-3 text-center">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Estimated Quality Hours
+              </p>
+              <p className="text-2xl font-bold text-emerald-600">
+                {((elapsedSeconds / 3600) * parseFloat(getMultiplier())).toFixed(3)}
+              </p>
+            </div>
+
+            {/* Rating Stars */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">How productive was this session?</p>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setEndSessionRating(star)}
+                    className={cn(
+                      'p-1 rounded-full transition-colors',
+                      endSessionRating && star <= endSessionRating
+                        ? 'text-yellow-500'
+                        : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
+                    )}
+                  >
+                    <Star
+                      className={cn(
+                        'h-8 w-8',
+                        endSessionRating && star <= endSessionRating && 'fill-current'
+                      )}
+                    />
+                  </button>
+                ))}
+              </div>
+              {endSessionRating && (
+                <p className="text-xs text-center text-slate-500">
+                  {['Poor', 'Fair', 'Good', 'Great', 'Excellent'][endSessionRating - 1]}
+                </p>
+              )}
+            </div>
+
+            {/* Perceived Difficulty Slider */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Gauge className="h-4 w-4" />
+                Perceived Difficulty
+              </Label>
+              <Slider
+                value={[selfRatedDifficulty]}
+                onValueChange={(value) => setSelfRatedDifficulty(value[0])}
+                min={1}
+                max={5}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>Very Easy</span>
+                <span className="font-medium">
+                  {['Very Easy', 'Easy', 'Moderate', 'Challenging', 'Very Hard'][selfRatedDifficulty - 1]}
+                </span>
+                <span>Very Hard</span>
+              </div>
+            </div>
+
+            {/* Distraction Count */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Distractions
+              </Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDistractionCount(Math.max(0, distractionCount - 1))}
+                  disabled={distractionCount === 0}
+                >
+                  -
+                </Button>
+                <span className="min-w-[3rem] text-center font-medium">
+                  {distractionCount}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDistractionCount(distractionCount + 1)}
+                >
+                  +
+                </Button>
+                <span className="text-xs text-slate-500">times distracted</span>
+              </div>
+            </div>
+
+            {/* Advanced Quality Evidence (Collapsible) */}
+            <Collapsible
+              open={showAdvancedEvidence}
+              onOpenChange={setShowAdvancedEvidence}
+              className="border rounded-lg"
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between p-3 h-auto"
+                  type="button"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <Award className="h-4 w-4" />
+                    Advanced Quality Evidence
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      'h-4 w-4 transition-transform',
+                      showAdvancedEvidence && 'rotate-180'
+                    )}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="p-3 pt-0 space-y-3">
+                {/* Assessment Score (for ASSESSMENT sessions) */}
+                {activeSession?.sessionType === 'ASSESSMENT' && (
+                  <div className="space-y-2">
+                    <Label className="text-sm flex items-center gap-2">
+                      <FileCheck className="h-4 w-4" />
+                      Assessment Score (0-100)
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Score"
+                        min={0}
+                        max={100}
+                        value={assessmentScore}
+                        onChange={(e) => setAssessmentScore(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Select
+                        value={assessmentPassed === undefined ? '' : assessmentPassed ? 'passed' : 'failed'}
+                        onValueChange={(v) => setAssessmentPassed(v === '' ? undefined : v === 'passed')}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue placeholder="Result" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Not specified</SelectItem>
+                          <SelectItem value="passed">Passed</SelectItem>
+                          <SelectItem value="failed">Failed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Project Outcome */}
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Project/Task Outcome
+                  </Label>
+                  <Select
+                    value={projectOutcome ?? ''}
+                    onValueChange={(v) => setProjectOutcome(v as ProjectOutcome || undefined)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select outcome (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Not specified</SelectItem>
+                      <SelectItem value="SUCCESS">
+                        <span className="flex items-center gap-2">
+                          <span className="text-green-500">✓</span> Successful
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="PARTIAL">
+                        <span className="flex items-center gap-2">
+                          <span className="text-amber-500">◐</span> Partial Success
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="FAILED">
+                        <span className="flex items-center gap-2">
+                          <span className="text-red-500">✗</span> Did Not Complete
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Peer Review Score */}
+                <div className="space-y-2">
+                  <Label className="text-sm flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Peer Review Score (0-100)
+                  </Label>
+                  <Input
+                    type="number"
+                    placeholder="Score from peer review (optional)"
+                    min={0}
+                    max={100}
+                    value={peerReviewScore}
+                    onChange={(e) => setPeerReviewScore(e.target.value)}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Session Notes */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Session Notes (Optional)
+              </Label>
+              <Textarea
+                placeholder="What did you learn? Any reflections?"
+                value={endSessionNotes}
+                onChange={(e) => setEndSessionNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEndDialog(false)}
+              disabled={isLoading}
+            >
+              Keep Practicing
+            </Button>
+            <Button onClick={handleEndWithDialog} disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Ending...
+                </>
+              ) : (
+                'End Session'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

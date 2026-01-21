@@ -3,11 +3,21 @@
  *
  * Syncs practice session data to the SkillBuildTrack engine when sessions complete.
  * This bridges the 10K practice system with the multi-dimensional SkillBuildTrack profiles.
+ *
+ * Phase 3 Enhancement: Uses evidence-based scoring that prioritizes actual outcomes
+ * (assessments, projects, peer reviews) over self-reported metrics.
  */
 
 import { getStore } from '@/lib/sam/taxomind-context';
 import { createSkillBuildTrackEngine } from '@sam-ai/educational';
 import { logger } from '@/lib/logger';
+import {
+  calculateEvidenceBasedScore,
+  type QualityScoringInputs,
+  type EvidenceType,
+  type ProjectOutcome,
+} from '@/lib/sam/quality/multi-signal-scorer';
+import type { PracticeSessionType, PracticeFocusLevel } from '@/lib/sam/stores/prisma-practice-session-store';
 
 // ============================================================================
 // TYPES
@@ -25,6 +35,16 @@ export interface SessionSyncData {
   courseId?: string | null;
   rawHours: number;
   qualityHours: number;
+
+  // Enhanced quality scoring inputs (Phase 3)
+  distractionCount?: number;
+  breaksTaken?: number;
+  pomodoroCount?: number;
+  assessmentScore?: number;
+  assessmentPassed?: boolean;
+  projectOutcome?: ProjectOutcome;
+  peerReviewScore?: number;
+  selfRatedDifficulty?: number;
 }
 
 export interface SyncResult {
@@ -35,6 +55,11 @@ export interface SyncResult {
   compositeScore?: number;
   decayDaysReset?: number;
   error?: string;
+
+  // Evidence-based scoring metadata (Phase 3)
+  scoreUsed?: number;
+  scoreConfidence?: number;
+  evidenceType?: EvidenceType;
 }
 
 // ============================================================================
@@ -65,6 +90,9 @@ const BLOOMS_TO_SCORE_BOOST: Record<string, number> = {
 /**
  * Syncs a completed practice session to SkillBuildTrack.
  * This updates the multi-dimensional skill profile, resets decay, and recalculates velocity.
+ *
+ * Phase 3 Enhancement: Uses evidence-based scoring that prioritizes actual outcomes
+ * (assessments, projects, peer reviews) over self-reported proxy metrics.
  */
 export async function syncSessionToSkillBuildTrack(
   data: SessionSyncData
@@ -81,20 +109,31 @@ export async function syncSessionToSkillBuildTrack(
     // Create the engine with the store
     const engine = createSkillBuildTrackEngine({ store });
 
-    // Calculate a normalized score based on quality multiplier and focus level
-    // Base score: quality multiplier normalized to 0-100 scale (multiplier of 1.0 = 50, 2.5 = 100)
-    const baseScore = Math.min((data.qualityMultiplier / 2.5) * 100, 100);
+    // Build quality scoring inputs from session data
+    const qualityInputs: QualityScoringInputs = {
+      sessionType: data.sessionType as PracticeSessionType,
+      focusLevel: data.focusLevel as PracticeFocusLevel,
+      bloomsLevel: data.bloomsLevel ?? undefined,
+      durationMinutes: data.durationMinutes,
+      distractionCount: data.distractionCount ?? 0,
+      breaksTaken: data.breaksTaken ?? 0,
+      pomodoroCount: data.pomodoroCount ?? 0,
+      assessmentScore: data.assessmentScore,
+      assessmentPassed: data.assessmentPassed,
+      projectOutcome: data.projectOutcome,
+      peerReviewScore: data.peerReviewScore,
+      selfRatedDifficulty: data.selfRatedDifficulty,
+    };
 
-    // Apply focus level boost
-    const focusBoost = FOCUS_TO_SCORE_BOOST[data.focusLevel] ?? 0;
+    // Calculate evidence-based score
+    // This prioritizes actual outcomes over proxy metrics
+    const evidenceScore = calculateEvidenceBasedScore(qualityInputs);
 
-    // Apply Bloom's level boost if provided
-    const bloomsBoost = data.bloomsLevel
-      ? BLOOMS_TO_SCORE_BOOST[data.bloomsLevel.toUpperCase()] ?? 0
-      : 0;
-
-    // Final score capped at 100
-    const finalScore = Math.min(Math.max(baseScore + focusBoost + bloomsBoost, 0), 100);
+    // Log scoring decision for transparency
+    logger.debug(
+      `Evidence-based scoring: type=${evidenceScore.evidenceType}, ` +
+        `score=${evidenceScore.score}, confidence=${evidenceScore.confidence.toFixed(2)}`
+    );
 
     // Determine source type based on session context
     let sourceType: 'COURSE' | 'PROJECT' | 'EXERCISE' | 'ASSESSMENT' | 'REAL_WORLD' = 'EXERCISE';
@@ -104,6 +143,8 @@ export async function syncSessionToSkillBuildTrack(
       sourceType = 'ASSESSMENT';
     } else if (data.sessionType === 'DELIBERATE') {
       sourceType = 'PROJECT'; // Deliberate practice is more like project work
+    } else if (data.projectOutcome) {
+      sourceType = 'PROJECT';
     }
 
     // Record the practice in SkillBuildTrack
@@ -111,7 +152,7 @@ export async function syncSessionToSkillBuildTrack(
       userId: data.userId,
       skillId: data.skillId,
       durationMinutes: data.durationMinutes,
-      score: finalScore,
+      score: evidenceScore.score,
       maxScore: 100,
       isAssessment: data.sessionType === 'ASSESSMENT',
       completed: true,
@@ -121,7 +162,8 @@ export async function syncSessionToSkillBuildTrack(
 
     logger.info(
       `Synced practice to SkillBuildTrack: user=${data.userId}, skill=${data.skillId}, ` +
-        `duration=${data.durationMinutes}min, score=${finalScore.toFixed(1)}, ` +
+        `duration=${data.durationMinutes}min, score=${evidenceScore.score} (${evidenceScore.evidenceType}, ` +
+        `confidence=${evidenceScore.confidence.toFixed(2)}), ` +
         `previousLevel=${result.previousLevel}, newLevel=${result.newLevel}, ` +
         `levelChanged=${result.levelChanged}`
     );
@@ -133,6 +175,9 @@ export async function syncSessionToSkillBuildTrack(
       levelChanged: result.levelChanged,
       compositeScore: result.profile.compositeScore,
       decayDaysReset: result.profile.decay?.daysSinceLastPractice ?? 0,
+      scoreUsed: evidenceScore.score,
+      scoreConfidence: evidenceScore.confidence,
+      evidenceType: evidenceScore.evidenceType,
     };
   } catch (error) {
     logger.error('Failed to sync session to SkillBuildTrack:', error);
