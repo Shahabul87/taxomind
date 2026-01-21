@@ -419,6 +419,10 @@ model User {
   samCertificationProgress   SAMCertificationProgress[]    @relation("SAMCertificationProgress")
   samPortfolioSettings       SAMPortfolioSettings?         @relation("SAMPortfolioSettings")
   samPortfolioProjects       SAMPortfolioProject[]         @relation("SAMPortfolioProjects")
+
+  // Phase 8: Self-Assessment Exam System (added January 2026)
+  selfAssessmentExams        SelfAssessmentExam[]          @relation("SelfAssessmentExamOwner")
+  selfAssessmentAttempts     SelfAssessmentAttempt[]       @relation("SelfAssessmentAttemptUser")
 }
 
 model Account {

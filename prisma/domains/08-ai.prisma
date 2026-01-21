@@ -147,6 +147,13 @@ model UserAIPreferences {
   preferredCourseProvider   String?  @default("anthropic")  // Provider for course creation
   preferredAnalysisProvider String?  @default("anthropic")  // Provider for analysis tasks
   preferredCodeProvider     String?  @default("anthropic")  // Provider for code-related tasks
+
+  // Per-provider model selections (preserved for backward compatibility)
+  anthropicModel            String?  @default("claude-sonnet-4-5-20250929")
+  deepseekModel             String?  @default("deepseek-chat")
+  geminiModel               String?  @default("gemini-pro")
+  mistralModel              String?  @default("mistral-large")
+  openaiModel               String?  @default("gpt-4o")
 }
 
 model AIModelPerformance {

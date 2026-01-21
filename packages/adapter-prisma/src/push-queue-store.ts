@@ -23,6 +23,7 @@ export interface PrismaPushQueueStoreConfig {
 }
 
 // Prisma client type (using minimal interface for portability)
+// Uses camelCase model names matching Prisma client convention (SAMPushQueue → sAMPushQueue)
 type PrismaClient = {
   sAMPushQueue: {
     create: (args: Record<string, unknown>) => Promise<PrismaPushQueueRecord>;
