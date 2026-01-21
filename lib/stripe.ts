@@ -3,7 +3,8 @@
  *
  * Provides a single, validated Stripe instance for all payment operations.
  * Features:
- * - Safe environment validation
+ * - Lazy initialization (avoids build-time errors)
+ * - Safe environment validation at runtime
  * - Automatic retry configuration
  * - TypeScript strict typing
  */
@@ -11,29 +12,49 @@
 import Stripe from "stripe";
 import { logger } from "@/lib/logger";
 
-// Validate Stripe secret key at module load
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+// Lazy-loaded Stripe instance (created on first access, not at build time)
+let _stripeInstance: Stripe | null = null;
 
-if (!STRIPE_SECRET_KEY) {
-  const errorMessage = "[FATAL] STRIPE_SECRET_KEY is not configured. Payment system cannot start.";
-  logger.error(errorMessage);
+/**
+ * Get the Stripe SDK instance (lazy initialization)
+ * This prevents build-time errors when env vars aren't available
+ */
+function getStripeInstance(): Stripe {
+  if (_stripeInstance) {
+    return _stripeInstance;
+  }
 
-  // In production, throw to prevent silent failures
-  if (process.env.NODE_ENV === "production") {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!secretKey) {
+    const errorMessage = "[STRIPE] STRIPE_SECRET_KEY is not configured";
+    logger.error(errorMessage);
     throw new Error(errorMessage);
   }
+
+  _stripeInstance = new Stripe(secretKey, {
+    apiVersion: "2023-10-16",
+    typescript: true,
+    maxNetworkRetries: 3,
+    telemetry: false,
+  });
+
+  return _stripeInstance;
 }
 
 /**
  * Stripe SDK instance configured for enterprise use
- * - maxNetworkRetries: Automatic retries for transient failures
- * - telemetry: Disabled for privacy
+ * Uses a Proxy to enable lazy initialization while maintaining the same API
  */
-export const stripe = new Stripe(STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2023-10-16",
-  typescript: true,
-  maxNetworkRetries: 3,
-  telemetry: false,
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const instance = getStripeInstance();
+    const value = instance[prop as keyof Stripe];
+    if (typeof value === "function") {
+      return value.bind(instance);
+    }
+    return value;
+  },
 });
 
 /**
@@ -41,7 +62,7 @@ export const stripe = new Stripe(STRIPE_SECRET_KEY ?? "", {
  * Call this during app startup to verify Stripe is properly configured
  */
 export async function validateStripeConfiguration(): Promise<boolean> {
-  if (!STRIPE_SECRET_KEY) {
+  if (!process.env.STRIPE_SECRET_KEY) {
     logger.error("[STRIPE] Secret key not configured");
     return false;
   }
@@ -61,5 +82,5 @@ export async function validateStripeConfiguration(): Promise<boolean> {
  * Check if Stripe is configured (for conditional logic)
  */
 export function isStripeConfigured(): boolean {
-  return Boolean(STRIPE_SECRET_KEY);
+  return Boolean(process.env.STRIPE_SECRET_KEY);
 }
