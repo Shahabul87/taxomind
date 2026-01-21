@@ -236,26 +236,28 @@ CREATE UNIQUE INDEX "sam_aggregated_metrics_unique_idx" ON "sam_aggregated_metri
 
 -- Metrics foreign keys
 ALTER TABLE "sam_metrics" ADD CONSTRAINT "sam_metrics_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- Tool executions foreign keys
 ALTER TABLE "sam_tool_executions" ADD CONSTRAINT "sam_tool_executions_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "sam_tool_executions" ADD CONSTRAINT "sam_tool_executions_toolId_fkey"
-  FOREIGN KEY ("toolId") REFERENCES "agent_tools"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "sam_tool_executions" ADD CONSTRAINT "sam_tool_executions_planId_fkey"
-  FOREIGN KEY ("planId") REFERENCES "sam_execution_plans"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- NOTE: These foreign keys are commented out as the referenced tables may not exist yet
+-- ALTER TABLE "sam_tool_executions" ADD CONSTRAINT "sam_tool_executions_toolId_fkey"
+--   FOREIGN KEY ("toolId") REFERENCES "agent_tools"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- ALTER TABLE "sam_tool_executions" ADD CONSTRAINT "sam_tool_executions_planId_fkey"
+--   FOREIGN KEY ("planId") REFERENCES "sam_execution_plans"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- Confidence scores foreign keys
 ALTER TABLE "sam_confidence_scores" ADD CONSTRAINT "sam_confidence_scores_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Memory retrievals foreign keys
 ALTER TABLE "sam_memory_retrievals" ADD CONSTRAINT "sam_memory_retrievals_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Plan lifecycle events foreign keys
 ALTER TABLE "sam_plan_lifecycle_events" ADD CONSTRAINT "sam_plan_lifecycle_events_userId_fkey"
-  FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "sam_plan_lifecycle_events" ADD CONSTRAINT "sam_plan_lifecycle_events_planId_fkey"
-  FOREIGN KEY ("planId") REFERENCES "sam_execution_plans"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- NOTE: This foreign key is commented out as the referenced table may not exist yet
+-- ALTER TABLE "sam_plan_lifecycle_events" ADD CONSTRAINT "sam_plan_lifecycle_events_planId_fkey"
+--   FOREIGN KEY ("planId") REFERENCES "sam_execution_plans"("id") ON DELETE CASCADE ON UPDATE CASCADE;
