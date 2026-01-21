@@ -62,7 +62,7 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   if (!hasValidData) {
     return (
       <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
-        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
+        <p className="text-blog-text-muted dark:text-slate-400 font-blog-body">No chapters available</p>
       </div>
     );
   }
@@ -80,7 +80,7 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div className="w-full h-[calc(100vh-12rem)] flex items-center justify-center bg-gradient-to-br from-blog-bg to-blog-surface dark:from-slate-900 dark:to-slate-800 rounded-3xl">
-        <div className="text-xl text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">
+        <div className="text-xl text-blog-text-muted dark:text-slate-400 font-blog-body">
           No content available
         </div>
       </div>
@@ -95,7 +95,7 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
           const element = domNode as Element;
           switch (element.name) {
             case 'p':
-              return <p className="mb-4 text-blog-text dark:text-slate-300 font-[family-name:var(--font-body)] leading-[1.8]">{element.children?.map((child) => (child as { data?: string }).data || '')}</p>;
+              return <p className="mb-4 text-blog-text dark:text-slate-300 font-blog-body leading-[1.8]">{element.children?.map((child) => (child as { data?: string }).data || '')}</p>;
             case 'strong':
               return <span className="font-bold text-blog-text dark:text-white">{element.children?.map((child) => (child as { data?: string }).data || '')}</span>;
             case 'em':
@@ -228,14 +228,14 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
               scrollbarWidth: 'thin',
               scrollbarColor: 'hsl(var(--blog-border)) transparent'
             }}>
-              <div className="absolute top-4 right-4 text-sm font-medium text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-ui)]">
+              <div className="absolute top-4 right-4 text-sm font-medium text-blog-text-muted dark:text-slate-400 font-blog-ui">
                 Page {currentSpread * 2 + 1}
               </div>
               <div className="space-y-6">
                 <h2 className={cn(
                   "text-3xl font-bold",
                   "text-blog-text dark:text-white",
-                  "font-[family-name:var(--font-display)]"
+                  "font-blog-display"
                 )}>
                   {data[currentSpread * 2]?.title || 'Untitled'}
                 </h2>
@@ -251,14 +251,14 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
                         className="object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-[family-name:var(--font-ui)]">
+                      <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-blog-ui">
                         Click to enlarge
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="prose prose-sm dark:prose-invert max-w-none font-[family-name:var(--font-body)] prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
+                <div className="prose prose-sm dark:prose-invert max-w-none font-blog-body prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
                   {parseHtmlContent(data[currentSpread * 2]?.description ?? '')}
                 </div>
               </div>
@@ -280,14 +280,14 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
                 scrollbarWidth: 'thin',
                 scrollbarColor: 'hsl(var(--blog-border)) transparent'
               }}>
-                <div className="absolute top-4 right-4 text-sm font-medium text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-ui)]">
+                <div className="absolute top-4 right-4 text-sm font-medium text-blog-text-muted dark:text-slate-400 font-blog-ui">
                   Page {currentSpread * 2 + 2}
                 </div>
                 <div className="space-y-6">
                   <h2 className={cn(
                     "text-3xl font-bold",
                     "text-blog-text dark:text-white",
-                    "font-[family-name:var(--font-display)]"
+                    "font-blog-display"
                   )}>
                     {data[currentSpread * 2 + 1]?.title || 'Untitled'}
                   </h2>
@@ -303,14 +303,14 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
                           className="object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-[family-name:var(--font-ui)]">
+                        <div className="absolute bottom-2 left-2 text-white text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-blog-ui">
                           Click to enlarge
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div className="prose prose-sm dark:prose-invert max-w-none font-[family-name:var(--font-body)] prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
+                  <div className="prose prose-sm dark:prose-invert max-w-none font-blog-body prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
                     {parseHtmlContent(data[currentSpread * 2 + 1]?.description ?? '')}
                   </div>
                 </div>

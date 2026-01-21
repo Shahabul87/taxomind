@@ -105,7 +105,7 @@ export const ReadingProgressBar = ({ containerRef }: ReadingProgressBarProps) =>
 
           {/* Percentage Text */}
           <motion.span
-            className="absolute text-[10px] font-bold text-blog-text dark:text-white font-[family-name:var(--font-ui)]"
+            className="absolute text-[10px] font-bold text-blog-text dark:text-white font-blog-ui"
           >
             <ProgressPercentage progress={scrollYProgress} />
           </motion.span>

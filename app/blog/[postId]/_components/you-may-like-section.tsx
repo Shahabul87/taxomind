@@ -277,7 +277,7 @@ export const YouMayLikeSection = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-800 dark:text-white font-[family-name:var(--font-display)] tracking-tight px-2"
+          className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-800 dark:text-white font-blog-display tracking-tight px-2"
         >
           You May Also Like
         </motion.h2>
@@ -285,7 +285,7 @@ export const YouMayLikeSection = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-[family-name:var(--font-body)] max-w-md mx-auto"
+          className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-blog-body max-w-md mx-auto"
         >
           Discover more stories that match your interests
         </motion.p>
@@ -300,7 +300,7 @@ export const YouMayLikeSection = ({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center gap-1.5 sm:gap-2 flex-shrink-0 font-[family-name:var(--font-ui)]",
+                "relative px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center gap-1.5 sm:gap-2 flex-shrink-0 font-blog-ui",
                 activeTab === tab.id
                   ? "text-white"
                   : "text-slate-600 dark:text-slate-400 hover:text-[#C65D3B] dark:hover:text-white hover:bg-[#C65D3B]/5 dark:hover:bg-slate-700/50"
@@ -366,7 +366,7 @@ const SimilarPostsLayout = ({ posts, formatDate }: { posts: RecommendedPost[], f
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 {post.category && (
-                  <div className="absolute bottom-2 left-2 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[#C65D3B] text-white text-[10px] sm:text-xs font-medium rounded-full font-[family-name:var(--font-ui)] shadow-lg">
+                  <div className="absolute bottom-2 left-2 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[#C65D3B] text-white text-[10px] sm:text-xs font-medium rounded-full font-blog-ui shadow-lg">
                     {post.category}
                   </div>
                 )}
@@ -375,15 +375,15 @@ const SimilarPostsLayout = ({ posts, formatDate }: { posts: RecommendedPost[], f
               {/* Details - Bottom on Mobile, Right on Desktop */}
               <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
                 <div className="min-w-0">
-                  <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white line-clamp-2 group-hover:text-[#C65D3B] dark:group-hover:text-[#D97F5F] transition-colors mb-1.5 sm:mb-2 font-[family-name:var(--font-display)]">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white line-clamp-2 group-hover:text-[#C65D3B] dark:group-hover:text-[#D97F5F] transition-colors mb-1.5 sm:mb-2 font-blog-display">
                     {post.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-2 sm:mb-3 font-[family-name:var(--font-body)] leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-2 sm:mb-3 font-blog-body leading-relaxed">
                     {post.description}
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 flex-wrap font-[family-name:var(--font-ui)]">
+                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 flex-wrap font-blog-ui">
                   <div className="flex items-center gap-0.5 sm:gap-1">
                     <User className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0 text-[#87A878]" />
                     <span className="truncate">{post.User?.name || 'Anonymous'}</span>
@@ -431,7 +431,7 @@ const RecentPostsLayout = ({ posts, formatDate }: { posts: RecommendedPost[], fo
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 py-0.5 sm:px-3 sm:py-1 bg-[#87A878] text-white text-[10px] sm:text-xs font-medium rounded-full font-[family-name:var(--font-ui)] shadow-lg">
+                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 px-2 py-0.5 sm:px-3 sm:py-1 bg-[#87A878] text-white text-[10px] sm:text-xs font-medium rounded-full font-blog-ui shadow-lg">
                   New
                 </div>
               </div>
@@ -439,20 +439,20 @@ const RecentPostsLayout = ({ posts, formatDate }: { posts: RecommendedPost[], fo
               {/* Details - Bottom */}
               <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 flex-1 flex flex-col">
                 {post.category && (
-                  <span className="inline-block px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[#87A878]/10 dark:bg-[#87A878]/20 text-[#87A878] text-[10px] sm:text-xs font-medium rounded-full w-fit font-[family-name:var(--font-ui)] border border-[#87A878]/30">
+                  <span className="inline-block px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[#87A878]/10 dark:bg-[#87A878]/20 text-[#87A878] text-[10px] sm:text-xs font-medium rounded-full w-fit font-blog-ui border border-[#87A878]/30">
                     {post.category}
                   </span>
                 )}
 
-                <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white line-clamp-2 group-hover:text-[#87A878] dark:group-hover:text-[#A8C49A] transition-colors font-[family-name:var(--font-display)]">
+                <h3 className="font-bold text-sm sm:text-base text-slate-800 dark:text-white line-clamp-2 group-hover:text-[#87A878] dark:group-hover:text-[#A8C49A] transition-colors font-blog-display">
                   {post.title}
                 </h3>
 
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 flex-1 font-[family-name:var(--font-body)] leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 line-clamp-2 flex-1 font-blog-body leading-relaxed">
                   {post.description}
                 </p>
 
-                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-800 gap-2 font-[family-name:var(--font-ui)]">
+                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-800 gap-2 font-blog-ui">
                   <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-slate-500 min-w-0">
                     <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 flex-shrink-0 text-[#C4A35A]" />
                     <span className="truncate">{formatDate(post.createdAt)}</span>
@@ -491,7 +491,7 @@ const TrendingPostsLayout = ({ posts, formatDate }: { posts: RecommendedPost[], 
           <Link href={`/blog/${post.id}`}>
             <div className="group flex items-center gap-2 sm:gap-3 md:gap-4 p-3 sm:p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-[#C4A35A]/50 dark:hover:border-[#C4A35A]/50 transition-all duration-300 hover:shadow-lg hover:shadow-[#C4A35A]/10">
               {/* Rank Badge - Gold accent */}
-              <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-gradient-to-br from-[#C4A35A] to-[#A88B3D] text-white font-bold rounded-lg sm:rounded-xl text-sm sm:text-lg shadow-lg shadow-[#C4A35A]/20 font-[family-name:var(--font-display)]">
+              <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-gradient-to-br from-[#C4A35A] to-[#A88B3D] text-white font-bold rounded-lg sm:rounded-xl text-sm sm:text-lg shadow-lg shadow-[#C4A35A]/20 font-blog-display">
                 {index + 1}
               </div>
 
@@ -510,11 +510,11 @@ const TrendingPostsLayout = ({ posts, formatDate }: { posts: RecommendedPost[], 
 
               {/* Details */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-xs sm:text-sm md:text-base text-slate-800 dark:text-white line-clamp-2 group-hover:text-[#C4A35A] dark:group-hover:text-[#D4B86A] transition-colors mb-1.5 sm:mb-2 font-[family-name:var(--font-display)]">
+                <h3 className="font-semibold text-xs sm:text-sm md:text-base text-slate-800 dark:text-white line-clamp-2 group-hover:text-[#C4A35A] dark:group-hover:text-[#D4B86A] transition-colors mb-1.5 sm:mb-2 font-blog-display">
                   {post.title}
                 </h3>
 
-                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 flex-wrap font-[family-name:var(--font-ui)]">
+                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 flex-wrap font-blog-ui">
                   <div className="flex items-center gap-0.5 sm:gap-1">
                     <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#C4A35A] flex-shrink-0" />
                     <span className="font-medium text-[#C4A35A] dark:text-[#D4B86A] truncate">{post.views} views</span>

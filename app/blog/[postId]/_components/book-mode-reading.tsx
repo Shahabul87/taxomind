@@ -102,7 +102,7 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
   if (!hasValidChapters) {
     return (
       <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
-        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
+        <p className="text-blog-text-muted dark:text-slate-400 font-blog-body">No chapters available</p>
       </div>
     );
   }
@@ -124,7 +124,7 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
       <div className="fixed top-4 left-4 z-40 bg-blog-surface/95 dark:bg-slate-800/95 backdrop-blur-sm px-4 py-2 rounded-full border border-blog-border dark:border-slate-700 shadow-lg">
         <div className="flex items-center gap-2">
           <BookOpen className="w-4 h-4 text-blog-primary dark:text-blog-primary-light" />
-          <span className="text-sm font-medium text-blog-text dark:text-white font-[family-name:var(--font-ui)]">
+          <span className="text-sm font-medium text-blog-text dark:text-white font-blog-ui">
             Chapter {activeChapterIndex + 1} of {chapters.length}
           </span>
         </div>
@@ -156,13 +156,13 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-blog-primary to-transparent" />
-                    <span className="text-xs font-semibold text-blog-primary dark:text-blog-primary-light tracking-wider uppercase font-[family-name:var(--font-ui)]">
+                    <span className="text-xs font-semibold text-blog-primary dark:text-blog-primary-light tracking-wider uppercase font-blog-ui">
                       Chapter {index + 1}
                     </span>
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-blog-primary to-transparent" />
                   </div>
 
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-blog-text dark:text-white leading-tight mb-6 font-[family-name:var(--font-display)]">
+                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-blog-text dark:text-white leading-tight mb-6 font-blog-display">
                     {chapter.title}
                   </h2>
                 </motion.div>
@@ -175,9 +175,9 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
                   transition={{ duration: 0.6, delay: 0.2 }}
                   className={cn(
                     "prose prose-lg dark:prose-invert max-w-none",
-                    "font-[family-name:var(--font-body)]",
+                    "font-blog-body",
                     "prose-headings:text-blog-text dark:prose-headings:text-white",
-                    "prose-headings:font-[family-name:var(--font-display)]",
+                    "prose-headings:font-blog-display",
                     "prose-p:text-blog-text dark:prose-p:text-slate-300",
                     "prose-p:leading-[1.8] prose-p:text-justify",
                     "prose-strong:text-blog-text dark:prose-strong:text-white",
@@ -225,10 +225,10 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blog-primary to-blog-accent mb-4">
                   <BookOpen className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-blog-text dark:text-white mb-2 font-[family-name:var(--font-display)]">
+                <h3 className="text-2xl font-bold text-blog-text dark:text-white mb-2 font-blog-display">
                   End of Chapter
                 </h3>
-                <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">
+                <p className="text-blog-text-muted dark:text-slate-400 font-blog-body">
                   You&apos;ve completed all chapters
                 </p>
               </div>
@@ -265,10 +265,10 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
                   {/* Image Overlay with Chapter Info - Warm Earth */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <p className="text-sm font-medium opacity-80 mb-1 font-[family-name:var(--font-ui)]">
+                    <p className="text-sm font-medium opacity-80 mb-1 font-blog-ui">
                       Chapter {activeChapterIndex + 1}
                     </p>
-                    <h3 className="text-xl md:text-2xl font-bold line-clamp-2 font-[family-name:var(--font-display)]">
+                    <h3 className="text-xl md:text-2xl font-bold line-clamp-2 font-blog-display">
                       {activeChapter.title}
                     </h3>
                   </div>
@@ -283,10 +283,10 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
                   className="flex flex-col items-center justify-center w-full h-full max-h-[80vh] rounded-2xl bg-gradient-to-br from-blog-primary/10 to-blog-accent/10 border-2 border-dashed border-blog-primary/30 dark:border-blog-primary/20 p-8"
                 >
                   <BookOpen className="w-16 h-16 text-blog-primary/50 dark:text-blog-primary-light/50 mb-4" />
-                  <p className="text-blog-text-muted dark:text-slate-400 text-center font-[family-name:var(--font-body)]">
+                  <p className="text-blog-text-muted dark:text-slate-400 text-center font-blog-body">
                     No image for this chapter
                   </p>
-                  <p className="text-sm text-blog-text-muted dark:text-slate-500 mt-2 text-center font-[family-name:var(--font-ui)]">
+                  <p className="text-sm text-blog-text-muted dark:text-slate-500 mt-2 text-center font-blog-ui">
                     Chapter {activeChapterIndex + 1}: {activeChapter.title}
                   </p>
                 </motion.div>

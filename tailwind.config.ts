@@ -235,10 +235,76 @@ const config = {
         'blog-dropcap': 'blog-dropcap-fade 0.5s cubic-bezier(0.22, 1, 0.36, 1) both',
         'blog-fade': 'blog-fade-in 0.4s ease-out both',
         'blog-share': 'blog-share-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) both'
-  		}
+  		},
+      // Typography plugin configuration for consistent blog fonts
+      typography: {
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': 'hsl(var(--blog-text))',
+            '--tw-prose-headings': 'hsl(var(--blog-text))',
+            '--tw-prose-links': 'hsl(var(--blog-primary))',
+            '--tw-prose-bold': 'hsl(var(--blog-text))',
+            '--tw-prose-quotes': 'hsl(var(--blog-text-muted))',
+            '--tw-prose-quote-borders': 'hsl(var(--blog-primary))',
+            fontFamily: 'var(--font-body, "Source Serif 4", Charter, Georgia, serif)',
+            h1: {
+              fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)',
+              fontWeight: '700',
+            },
+            h2: {
+              fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)',
+              fontWeight: '700',
+            },
+            h3: {
+              fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)',
+              fontWeight: '600',
+            },
+            h4: {
+              fontFamily: 'var(--font-display, "Playfair Display", Georgia, serif)',
+              fontWeight: '600',
+            },
+            p: {
+              fontFamily: 'var(--font-body, "Source Serif 4", Charter, Georgia, serif)',
+            },
+            li: {
+              fontFamily: 'var(--font-body, "Source Serif 4", Charter, Georgia, serif)',
+            },
+            blockquote: {
+              fontFamily: 'var(--font-body, "Source Serif 4", Charter, Georgia, serif)',
+              fontStyle: 'italic',
+            },
+            strong: {
+              fontFamily: 'var(--font-body, "Source Serif 4", Charter, Georgia, serif)',
+              fontWeight: '600',
+            },
+            a: {
+              fontFamily: 'var(--font-body, "Source Serif 4", Charter, Georgia, serif)',
+              textDecoration: 'none',
+              borderBottom: '1px solid hsla(var(--blog-primary), 0.3)',
+              '&:hover': {
+                borderBottomColor: 'hsl(var(--blog-primary))',
+              },
+            },
+          },
+        },
+        // Dark mode prose styles
+        invert: {
+          css: {
+            '--tw-prose-body': 'hsl(var(--blog-text) / 0.9)',
+            '--tw-prose-headings': '#ffffff',
+            '--tw-prose-links': 'hsl(var(--blog-primary-light))',
+            '--tw-prose-bold': '#ffffff',
+            '--tw-prose-quotes': 'hsl(var(--blog-text-muted))',
+          },
+        },
+      },
   	}
   },
-  plugins: [require("tailwindcss-animate"), addVariablesForColors,],
+  plugins: [
+    require("tailwindcss-animate"),
+    addVariablesForColors,
+    require("@tailwindcss/typography"),
+  ],
 } satisfies Config
 
 function addVariablesForColors({ addBase, theme }: any) {

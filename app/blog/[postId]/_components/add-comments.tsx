@@ -116,7 +116,7 @@ export const PostComment = ({
                       {...field}
                       disabled={isSubmitting}
                       placeholder="Write your comment here..."
-                      className="resize-none min-h-[150px] bg-[#FAF6F1] dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-[#C65D3B]/50 focus:ring-1 focus:ring-[#C65D3B]/30 rounded-xl transition-all duration-300 font-[family-name:var(--font-body)] placeholder:text-slate-400"
+                      className="resize-none min-h-[150px] bg-[#FAF6F1] dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-[#C65D3B]/50 focus:ring-1 focus:ring-[#C65D3B]/30 rounded-xl transition-all duration-300 font-blog-body placeholder:text-slate-400"
                     />
                   </FormControl>
                   <FormMessage className="text-[#C65D3B]" />
@@ -145,7 +145,7 @@ export const PostComment = ({
                       <Smile className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-slate-800 text-white font-[family-name:var(--font-ui)]">
+                  <TooltipContent className="bg-slate-800 text-white font-blog-ui">
                     <p>Add emoji</p>
                   </TooltipContent>
                 </Tooltip>
@@ -174,7 +174,7 @@ export const PostComment = ({
                           </span>
                         </div>
                         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-hover:-translate-y-4 transition-all duration-200">
-                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-slate-800 text-white whitespace-nowrap font-[family-name:var(--font-ui)]">
+                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-slate-800 text-white whitespace-nowrap font-blog-ui">
                             {label}
                           </span>
                         </div>
@@ -206,7 +206,7 @@ export const PostComment = ({
                           </span>
                         </div>
                         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 group-hover:-translate-y-4 transition-all duration-200">
-                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-slate-800 text-white whitespace-nowrap font-[family-name:var(--font-ui)]">
+                          <span className="text-xs font-medium px-2 py-1 rounded-md bg-slate-800 text-white whitespace-nowrap font-blog-ui">
                             {label}
                           </span>
                         </div>
@@ -223,7 +223,7 @@ export const PostComment = ({
                 variant="outline"
                 onClick={handleClose}
                 className={cn(
-                  "h-10 px-5 font-medium font-[family-name:var(--font-ui)]",
+                  "h-10 px-5 font-medium font-blog-ui",
                   "bg-white dark:bg-slate-800",
                   "border-slate-200 dark:border-slate-700",
                   "text-slate-700 dark:text-slate-200",
@@ -245,7 +245,7 @@ export const PostComment = ({
                 type="submit"
                 disabled={!isValid || isSubmitting}
                 className={cn(
-                  "h-10 px-6 font-medium font-[family-name:var(--font-ui)]",
+                  "h-10 px-6 font-medium font-blog-ui",
                   "bg-[#C65D3B]",
                   "text-white",
                   "hover:bg-[#A84D32]",

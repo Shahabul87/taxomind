@@ -30,7 +30,7 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
   if (!chapters || !Array.isArray(chapters) || chapters.length === 0) {
     return (
       <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
-        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
+        <p className="text-blog-text-muted dark:text-slate-400 font-blog-body">No chapters available</p>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
         }
       });
     } catch {
-      return <p className="font-[family-name:var(--font-body)]">{htmlString}</p>;
+      return <p className="font-blog-body">{htmlString}</p>;
     }
   };
 
@@ -75,9 +75,9 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
           <div
             className={cn(
               "prose prose-slate dark:prose-invert max-w-none",
-              "font-[family-name:var(--font-body)]",
+              "font-blog-body",
               "prose-headings:font-bold prose-headings:tracking-tight",
-              "prose-headings:font-[family-name:var(--font-display)]",
+              "prose-headings:font-blog-display",
               "prose-p:text-blog-text dark:prose-p:text-slate-300",
               "prose-p:leading-[1.8] prose-p:text-base md:prose-p:text-2xl",
               "prose-a:text-blog-primary dark:prose-a:text-blog-primary-light",
@@ -91,8 +91,8 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
             {parseHtmlContent(chapter.description)}
           </div>
         ) : (
-          <p className="text-blog-text dark:text-slate-300 text-base md:text-2xl font-[family-name:var(--font-body)] max-w-3xl mx-auto">
-            <span className="font-bold text-blog-text dark:text-white font-[family-name:var(--font-display)]">
+          <p className="text-blog-text dark:text-slate-300 text-base md:text-2xl font-blog-body max-w-3xl mx-auto">
+            <span className="font-bold text-blog-text dark:text-white font-blog-display">
               Chapter {chapter.position || 1}: {chapter.title}
             </span>{" "}
             Explore this chapter to discover amazing insights and knowledge.
@@ -125,10 +125,10 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
 
   return (
     <div className="w-full h-full py-10 md:py-20 bg-blog-bg dark:bg-slate-900/50">
-      <h2 className="max-w-7xl pl-4 mx-auto text-2xl md:text-5xl font-bold text-blog-text dark:text-white font-[family-name:var(--font-display)] mb-4">
+      <h2 className="max-w-7xl pl-4 mx-auto text-2xl md:text-5xl font-bold text-blog-text dark:text-white font-blog-display mb-4">
         Explore Your Learning Journey
       </h2>
-      <p className="max-w-7xl pl-4 mx-auto text-base md:text-xl text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)] mb-8">
+      <p className="max-w-7xl pl-4 mx-auto text-base md:text-xl text-blog-text-muted dark:text-slate-400 font-blog-body mb-8">
         Swipe through the chapters and click to dive deep into each topic.
       </p>
       <Carousel items={cards} />

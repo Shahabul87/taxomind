@@ -1367,6 +1367,55 @@ body.dragging *::selection {
   color: hsl(var(--blog-text-muted));
 }
 
+/* Tailwind Typography (prose) Font Overrides - Ensures consistent blog fonts */
+.prose,
+.prose-sm,
+.prose-base,
+.prose-lg,
+.prose-xl,
+.prose-2xl {
+  font-family: var(--font-body, 'Source Serif 4', Charter, Georgia, serif) !important;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose-sm h1,
+.prose-sm h2,
+.prose-sm h3,
+.prose-sm h4,
+.prose-base h1,
+.prose-base h2,
+.prose-base h3,
+.prose-base h4,
+.prose-lg h1,
+.prose-lg h2,
+.prose-lg h3,
+.prose-lg h4,
+.prose-xl h1,
+.prose-xl h2,
+.prose-xl h3,
+.prose-xl h4 {
+  font-family: var(--font-display, 'Playfair Display', Georgia, serif) !important;
+}
+
+.prose p,
+.prose li,
+.prose blockquote,
+.prose strong,
+.prose a,
+.prose-sm p,
+.prose-sm li,
+.prose-base p,
+.prose-base li,
+.prose-lg p,
+.prose-lg li,
+.prose-xl p,
+.prose-xl li {
+  font-family: var(--font-body, 'Source Serif 4', Charter, Georgia, serif) !important;
+}
+
 /* Blog Grain Overlay */
 .blog-grain::after {
   content: '';

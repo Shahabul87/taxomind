@@ -23,7 +23,7 @@ export const FeaturedImage = ({ imageUrl, title, caption, photographer }: Featur
     <div className="space-y-3 sm:space-y-4 blog-content-reveal blog-delay-4">
       {/* Controls Bar */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2 text-blog-text-muted font-[family-name:var(--font-ui)]">
+        <div className="flex items-center gap-2 text-blog-text-muted font-blog-ui">
           {photographer && (
             <div className="flex items-center gap-1.5 text-xs">
               <Camera className="w-3.5 h-3.5" />
@@ -36,7 +36,7 @@ export const FeaturedImage = ({ imageUrl, title, caption, photographer }: Featur
             variant="ghost"
             size="sm"
             onClick={() => setIsFullscreen(true)}
-            className="flex items-center gap-1.5 text-blog-text-muted hover:text-blog-primary text-xs font-[family-name:var(--font-ui)] transition-colors"
+            className="flex items-center gap-1.5 text-blog-text-muted hover:text-blog-primary text-xs font-blog-ui transition-colors"
             aria-label="View fullscreen"
           >
             <Maximize2 className="w-3.5 h-3.5" />
@@ -45,7 +45,7 @@ export const FeaturedImage = ({ imageUrl, title, caption, photographer }: Featur
           <Button
             variant="ghost"
             size="sm"
-            className="flex items-center gap-1.5 text-blog-text-muted hover:text-blog-primary text-xs font-[family-name:var(--font-ui)] transition-colors"
+            className="flex items-center gap-1.5 text-blog-text-muted hover:text-blog-primary text-xs font-blog-ui transition-colors"
             onClick={() => setShowImage(!showImage)}
             aria-label={showImage ? "Hide image" : "Show image"}
           >
@@ -113,7 +113,7 @@ export const FeaturedImage = ({ imageUrl, title, caption, photographer }: Featur
                   transition={{ delay: 0.4, duration: 0.5 }}
                   className="absolute bottom-0 left-0 right-0 z-20 p-3 sm:p-4 bg-gradient-to-t from-black/80 via-black/60 to-transparent"
                 >
-                  <p className="text-white/90 text-xs sm:text-sm font-[family-name:var(--font-body)] italic">
+                  <p className="text-white/90 text-xs sm:text-sm font-blog-body italic">
                     {caption}
                   </p>
                 </motion.div>
@@ -167,7 +167,7 @@ export const FeaturedImage = ({ imageUrl, title, caption, photographer }: Featur
               </Button>
               {caption && (
                 <div className="absolute bottom-4 left-4 right-4 text-center">
-                  <p className="text-white/80 text-sm font-[family-name:var(--font-body)] italic">
+                  <p className="text-white/80 text-sm font-blog-body italic">
                     {caption}
                   </p>
                 </div>

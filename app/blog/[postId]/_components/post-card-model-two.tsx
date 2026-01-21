@@ -61,7 +61,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
-        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
+        <p className="text-blog-text-muted dark:text-slate-400 font-blog-body">No chapters available</p>
       </div>
     );
   }
@@ -97,7 +97,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
                 "transform-gpu transition-transform duration-300",
                 "group-hover:scale-105"
               )}>
-                <span className="text-white text-[10px] sm:text-xs md:text-sm font-medium tracking-wider whitespace-nowrap font-[family-name:var(--font-ui)]">
+                <span className="text-white text-[10px] sm:text-xs md:text-sm font-medium tracking-wider whitespace-nowrap font-blog-ui">
                   Chapter {index + 1}
                 </span>
               </div>
@@ -108,7 +108,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
             <h2 className={cn(
               "text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 lg:mb-8 xl:mb-10",
               "text-blog-text dark:text-white",
-              "font-[family-name:var(--font-display)]",
+              "font-blog-display",
               "tracking-tight leading-[1.2] sm:leading-tight",
               "transform-gpu transition-transform duration-300",
               "group-hover:translate-x-1 sm:group-hover:translate-x-2"
@@ -140,15 +140,15 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
               <div className={cn(
                 "prose prose-sm sm:prose-base md:prose-lg lg:prose-xl max-w-none",
                 "dark:prose-invert",
-                "font-[family-name:var(--font-body)]",
+                "font-blog-body",
                 "prose-p:text-blog-text dark:prose-p:text-slate-300",
                 "prose-p:text-sm sm:prose-p:text-base md:prose-p:text-lg",
-                "prose-p:leading-relaxed sm:prose-p:leading-[1.8]",
+                "prose-p:leading-[1.75] sm:prose-p:leading-[1.8]",
                 "prose-p:mb-3 sm:prose-p:mb-4",
                 "prose-strong:text-blog-text dark:prose-strong:text-white",
                 "prose-strong:text-sm sm:prose-strong:text-base md:prose-strong:text-lg",
                 "prose-headings:text-blog-text dark:prose-headings:text-white",
-                "prose-headings:font-[family-name:var(--font-display)]",
+                "prose-headings:font-blog-display",
                 "prose-headings:text-base sm:prose-headings:text-lg md:prose-headings:text-xl lg:prose-headings:text-2xl",
                 "prose-headings:mt-4 sm:prose-headings:mt-6",
                 "prose-headings:mb-2 sm:prose-headings:mb-3",
@@ -161,7 +161,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
                 "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5",
                 "prose-blockquote:pl-4 prose-blockquote:py-2 prose-blockquote:italic",
                 "prose-code:text-xs sm:prose-code:text-sm prose-code:text-blog-accent",
-                "leading-relaxed"
+                "leading-[1.75] sm:leading-[1.8]"
               )}>
                 {parseHtmlContent(chapter.description)}
               </div>

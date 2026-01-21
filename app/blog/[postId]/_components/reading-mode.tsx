@@ -117,7 +117,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
           <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
             <div className="flex items-center gap-2 w-full sm:w-auto px-2 sm:px-1 py-1.5 sm:py-0">
               <Book className="w-4 h-4 sm:w-5 sm:h-5 text-[#C65D3B] dark:text-[#C65D3B] flex-shrink-0" />
-              <span className="text-xs sm:text-sm md:text-base font-semibold text-slate-800 dark:text-white font-[family-name:var(--font-display)]">
+              <span className="text-xs sm:text-sm md:text-base font-semibold text-slate-800 dark:text-white font-blog-display">
                 Reading Mode
               </span>
             </div>
@@ -134,7 +134,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={cn(
-                      "relative px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all duration-200 font-[family-name:var(--font-ui)]",
+                      "relative px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-all duration-200 font-blog-ui",
                       mode.desktopOnly ? "hidden lg:flex" : "flex",
                       activeMode === mode.id
                         ? "bg-[#C65D3B] text-white shadow-md"
@@ -193,7 +193,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                       onClick={() => setActiveMode(mode.id)}
                       whileTap={{ scale: 0.95 }}
                       className={cn(
-                        "relative px-3 py-2 rounded-md flex items-center gap-1.5 transition-all duration-200 flex-shrink-0 min-w-[100px] justify-center touch-manipulation font-[family-name:var(--font-ui)]",
+                        "relative px-3 py-2 rounded-md flex items-center gap-1.5 transition-all duration-200 flex-shrink-0 min-w-[100px] justify-center touch-manipulation font-blog-ui",
                         activeMode === mode.id
                           ? "bg-[#C65D3B] text-white shadow-md"
                           : "text-slate-600 dark:text-slate-300 bg-white/90 dark:bg-slate-700/70 border border-slate-200 dark:border-slate-600/60"

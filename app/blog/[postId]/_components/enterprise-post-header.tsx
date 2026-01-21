@@ -217,13 +217,13 @@ export const EnterprisePostHeader = ({
         {isFeatured && (
           <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 rounded-full bg-gradient-to-r from-blog-gold/20 to-blog-primary/10 border border-blog-gold/30">
             <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blog-gold" />
-            <span className="text-[10px] sm:text-xs font-semibold text-blog-gold font-[family-name:var(--font-ui)]">Featured</span>
+            <span className="text-[10px] sm:text-xs font-semibold text-blog-gold font-blog-ui">Featured</span>
           </div>
         )}
         {isPremium && (
           <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 md:px-3 md:py-1.5 rounded-full bg-gradient-to-r from-blog-primary/15 to-blog-accent/10 border border-blog-primary/25">
             <Award className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blog-primary" />
-            <span className="text-[10px] sm:text-xs font-semibold text-blog-primary font-[family-name:var(--font-ui)]">Premium</span>
+            <span className="text-[10px] sm:text-xs font-semibold text-blog-primary font-blog-ui">Premium</span>
           </div>
         )}
       </div>
@@ -243,27 +243,27 @@ export const EnterprisePostHeader = ({
           {category && (
             <Badge variant="secondary" className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-3 md:py-1 text-[10px] sm:text-xs flex-shrink-0 bg-blog-primary/10 text-blog-primary border-blog-primary/20 hover:bg-blog-primary/20 transition-colors">
               <Hash className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-              <span className="truncate max-w-[100px] sm:max-w-none font-[family-name:var(--font-ui)]">{category}</span>
+              <span className="truncate max-w-[100px] sm:max-w-none font-blog-ui">{category}</span>
             </Badge>
           )}
           {difficulty && (
-            <Badge className={cn("px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-3 md:py-1 text-[10px] sm:text-xs flex-shrink-0 font-[family-name:var(--font-ui)]", getDifficultyColor(difficulty))}>
+            <Badge className={cn("px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-3 md:py-1 text-[10px] sm:text-xs flex-shrink-0 font-blog-ui", getDifficultyColor(difficulty))}>
               <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
               <span className="hidden xs:inline">{difficulty}</span>
               <span className="xs:hidden">{difficulty.charAt(0)}</span>
             </Badge>
           )}
-          <div className="flex items-center gap-0.5 sm:gap-1 text-blog-text-muted flex-shrink-0 font-[family-name:var(--font-ui)]">
+          <div className="flex items-center gap-0.5 sm:gap-1 text-blog-text-muted flex-shrink-0 font-blog-ui">
             <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
             <span className="hidden sm:inline">{language}</span>
             <span className="sm:hidden text-[10px]">{language.substring(0, 2)}</span>
           </div>
-          <div className="flex items-center gap-0.5 sm:gap-1 text-blog-text-muted flex-shrink-0 font-[family-name:var(--font-ui)]">
+          <div className="flex items-center gap-0.5 sm:gap-1 text-blog-text-muted flex-shrink-0 font-blog-ui">
             <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
             <span className="text-[10px] sm:text-xs">{formatDate(createdAt)}</span>
           </div>
           {updatedAt && (
-            <div className="hidden lg:flex items-center gap-1 text-blog-text-muted font-[family-name:var(--font-ui)]">
+            <div className="hidden lg:flex items-center gap-1 text-blog-text-muted font-blog-ui">
               <Clock className="w-3.5 h-3.5" />
               <span className="text-xs">Updated {formatDate(updatedAt)}</span>
             </div>
@@ -272,11 +272,11 @@ export const EnterprisePostHeader = ({
 
         {/* Title - Editorial Typography */}
         <div className="space-y-2 sm:space-y-3 md:space-y-4 blog-content-reveal blog-delay-3">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-blog-text dark:text-white leading-[1.15] sm:leading-[1.1] tracking-tight font-[family-name:var(--font-display)]">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-blog-text dark:text-white leading-[1.15] sm:leading-[1.1] tracking-tight font-blog-display">
             {title}
           </h1>
           {description && (
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-blog-text-muted dark:text-gray-300 leading-relaxed font-[family-name:var(--font-body)]">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-blog-text-muted dark:text-gray-300 leading-[1.75] sm:leading-[1.8] font-blog-body">
               {description}
             </p>
           )}
@@ -289,20 +289,20 @@ export const EnterprisePostHeader = ({
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <Avatar className="w-9 h-9 sm:w-11 sm:h-11 md:w-12 md:h-12 lg:w-14 lg:h-14 border-2 border-blog-border dark:border-gray-700 flex-shrink-0 ring-2 ring-blog-primary/10">
                 <AvatarImage src={authorImage || undefined} alt={authorName || 'Author'} />
-                <AvatarFallback className="bg-gradient-to-br from-blog-primary to-blog-accent text-white text-xs sm:text-sm md:text-base font-[family-name:var(--font-display)]">
+                <AvatarFallback className="bg-gradient-to-br from-blog-primary to-blog-accent text-white text-xs sm:text-sm md:text-base font-blog-display">
                   {authorName?.charAt(0).toUpperCase() || 'A'}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <p className="text-sm sm:text-base md:text-lg font-semibold text-blog-text dark:text-white truncate font-[family-name:var(--font-display)]">
+                  <p className="text-sm sm:text-base md:text-lg font-semibold text-blog-text dark:text-white truncate font-blog-display">
                     {authorName || 'Anonymous'}
                   </p>
                   {isVerified && (
                     <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-blog-accent flex-shrink-0" />
                   )}
                 </div>
-                <p className="text-[10px] sm:text-xs md:text-sm text-blog-text-muted dark:text-gray-400 truncate font-[family-name:var(--font-ui)]">{authorRole}</p>
+                <p className="text-[10px] sm:text-xs md:text-sm text-blog-text-muted dark:text-gray-400 truncate font-blog-ui">{authorRole}</p>
               </div>
             </div>
             <Button
@@ -310,7 +310,7 @@ export const EnterprisePostHeader = ({
               size="sm"
               onClick={() => setIsFollowing(!isFollowing)}
               className={cn(
-                "flex-shrink-0 text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 h-7 sm:h-8 md:h-9 font-bold font-[family-name:var(--font-ui)]",
+                "flex-shrink-0 text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 h-7 sm:h-8 md:h-9 font-bold font-blog-ui",
                 !isFollowing && "bg-gradient-to-r from-blog-primary to-blog-primary-dark hover:from-blog-primary-dark hover:to-blog-primary text-white"
               )}
             >
@@ -320,7 +320,7 @@ export const EnterprisePostHeader = ({
           </div>
 
           {/* Engagement Stats - Editorial */}
-          <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-4 md:gap-6 text-[10px] sm:text-xs md:text-sm font-[family-name:var(--font-ui)]">
+          <div className="flex items-center justify-between sm:justify-start gap-3 sm:gap-4 md:gap-6 text-[10px] sm:text-xs md:text-sm font-blog-ui">
             <div className="flex items-center gap-1 sm:gap-1.5 text-blog-text-muted dark:text-gray-400">
               <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
               <span className="font-medium">{formatNumber(viewCount)}</span>
@@ -344,7 +344,7 @@ export const EnterprisePostHeader = ({
               size="sm"
               onClick={handleLike}
               className={cn(
-                "gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4 font-[family-name:var(--font-ui)] transition-all",
+                "gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4 font-blog-ui transition-all",
                 isLiked ? "bg-blog-primary hover:bg-blog-primary-dark text-white border-blog-primary" : "border-blog-border hover:border-blog-primary hover:text-blog-primary"
               )}
             >
@@ -355,7 +355,7 @@ export const EnterprisePostHeader = ({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4 font-[family-name:var(--font-ui)] border-blog-border hover:border-blog-accent hover:text-blog-accent transition-all"
+              className="gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4 font-blog-ui border-blog-border hover:border-blog-accent hover:text-blog-accent transition-all"
             >
               <MessageCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
               <span>{formatNumber(commentCount)}</span>
@@ -380,7 +380,7 @@ export const EnterprisePostHeader = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4 font-[family-name:var(--font-ui)] border-blog-border hover:border-blog-accent hover:text-blog-accent transition-all"
+                    className="gap-1 sm:gap-1.5 md:gap-2 flex-shrink-0 text-[10px] sm:text-xs md:text-sm h-8 sm:h-9 md:h-10 px-2 sm:px-3 md:px-4 font-blog-ui border-blog-border hover:border-blog-accent hover:text-blog-accent transition-all"
                     aria-label="Share this article"
                   >
                     <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4" />
@@ -459,7 +459,7 @@ export const EnterprisePostHeader = ({
               <Badge
                 key={index}
                 variant="outline"
-                className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-3 md:py-1 text-[10px] sm:text-xs border-blog-border text-blog-text-muted hover:bg-blog-primary/10 hover:border-blog-primary hover:text-blog-primary dark:hover:bg-blog-primary/20 cursor-pointer transition-all font-[family-name:var(--font-ui)]"
+                className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 md:px-3 md:py-1 text-[10px] sm:text-xs border-blog-border text-blog-text-muted hover:bg-blog-primary/10 hover:border-blog-primary hover:text-blog-primary dark:hover:bg-blog-primary/20 cursor-pointer transition-all font-blog-ui"
               >
                 #{tag}
               </Badge>

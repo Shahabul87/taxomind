@@ -37,7 +37,7 @@ export const AnimatedReadingMode: React.FC<AnimatedReadingModeProps> = ({
   if (!postchapter || !Array.isArray(postchapter) || postchapter.length === 0) {
     return (
       <div className="flex items-center justify-center p-10 bg-blog-bg dark:bg-slate-900">
-        <p className="text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">No chapters available</p>
+        <p className="text-blog-text-muted dark:text-slate-400 font-blog-body">No chapters available</p>
       </div>
     );
   }
@@ -50,13 +50,13 @@ export const AnimatedReadingMode: React.FC<AnimatedReadingModeProps> = ({
           className={cn(
             "text-2xl md:text-3xl lg:text-4xl font-bold",
             "text-blog-text dark:text-white",
-            "font-[family-name:var(--font-display)]",
+            "font-blog-display",
             "tracking-tight"
           )}
         >
           Immersive Reading Experience
         </h2>
-        <p className="text-sm md:text-base text-blog-text-muted dark:text-slate-400 font-[family-name:var(--font-body)]">
+        <p className="text-sm md:text-base text-blog-text-muted dark:text-slate-400 font-blog-body">
           Click any chapter card to dive into an immersive reading experience
         </p>
       </div>
@@ -114,7 +114,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
                     "px-3 py-1.5 rounded-full text-xs font-semibold",
                     "bg-gradient-to-r from-blog-primary to-blog-primary-dark",
                     "text-white shadow-lg",
-                    "font-[family-name:var(--font-ui)]"
+                    "font-blog-ui"
                   )}
                 >
                   <BookOpen className="w-3 h-3" />
@@ -125,7 +125,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
               {/* Status Badge */}
               {chapter.isFree && (
                 <div className="absolute top-3 right-3">
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-blog-accent text-white font-[family-name:var(--font-ui)]">
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-blog-accent text-white font-blog-ui">
                     Free
                   </span>
                 </div>
@@ -134,13 +134,13 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
 
             {/* Content Section */}
             <div className="p-4 flex-1 flex flex-col">
-              <h3 className="text-lg font-bold text-blog-text dark:text-white mb-2 line-clamp-2 group-hover:text-blog-primary dark:group-hover:text-blog-primary-light transition-colors font-[family-name:var(--font-display)]">
+              <h3 className="text-lg font-bold text-blog-text dark:text-white mb-2 line-clamp-2 group-hover:text-blog-primary dark:group-hover:text-blog-primary-light transition-colors font-blog-display">
                 {chapter.title}
               </h3>
 
               {chapter.description && (
                 <div
-                  className="text-sm text-blog-text-muted dark:text-slate-400 line-clamp-2 mb-3 font-[family-name:var(--font-body)]"
+                  className="text-sm text-blog-text-muted dark:text-slate-400 line-clamp-2 mb-3 font-blog-body"
                   dangerouslySetInnerHTML={{
                     __html: chapter.description.substring(0, 120) + "...",
                   }}
@@ -149,7 +149,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
 
               {/* Footer */}
               <div className="mt-auto pt-3 border-t border-blog-border dark:border-slate-800">
-                <div className="flex items-center justify-between text-xs text-blog-text-muted dark:text-slate-500 font-[family-name:var(--font-ui)]">
+                <div className="flex items-center justify-between text-xs text-blog-text-muted dark:text-slate-500 font-blog-ui">
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     <span>5 min read</span>
@@ -179,20 +179,20 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
                   "bg-gradient-to-r from-blog-primary/10 to-blog-accent/10",
                   "text-blog-primary dark:text-blog-primary-light",
                   "border border-blog-primary/30 dark:border-blog-primary/40",
-                  "font-[family-name:var(--font-ui)]"
+                  "font-blog-ui"
                 )}
               >
                 <BookOpen className="w-3 h-3" />
                 Chapter {chapter.position || index + 1}
               </span>
               {chapter.isFree && (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blog-accent/10 text-blog-accent dark:bg-blog-accent/20 dark:text-blog-accent font-[family-name:var(--font-ui)]">
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blog-accent/10 text-blog-accent dark:bg-blog-accent/20 dark:text-blog-accent font-blog-ui">
                   Free Chapter
                 </span>
               )}
             </div>
 
-            <h4 className="text-2xl md:text-3xl font-bold text-blog-text dark:text-white mb-4 font-[family-name:var(--font-display)]">
+            <h4 className="text-2xl md:text-3xl font-bold text-blog-text dark:text-white mb-4 font-blog-display">
               {chapter.title}
             </h4>
 
@@ -215,9 +215,9 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
           <div
             className={cn(
               "prose prose-slate dark:prose-invert max-w-none",
-              "font-[family-name:var(--font-body)]",
+              "font-blog-body",
               "prose-headings:font-bold prose-headings:tracking-tight",
-              "prose-headings:font-[family-name:var(--font-display)]",
+              "prose-headings:font-blog-display",
               "prose-p:text-blog-text dark:prose-p:text-slate-300",
               "prose-p:leading-[1.8]",
               "prose-a:text-blog-primary dark:prose-a:text-blog-primary-light",
@@ -236,10 +236,10 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
         </ModalContent>
 
         <ModalFooter className="gap-4 justify-between">
-          <button className="px-4 py-2 bg-blog-bg text-blog-text dark:bg-slate-800 dark:text-white border border-blog-border dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-blog-border dark:hover:bg-slate-700 transition-colors font-[family-name:var(--font-ui)]">
+          <button className="px-4 py-2 bg-blog-bg text-blog-text dark:bg-slate-800 dark:text-white border border-blog-border dark:border-slate-700 rounded-lg text-sm font-medium hover:bg-blog-border dark:hover:bg-slate-700 transition-colors font-blog-ui">
             Close
           </button>
-          <button className="px-4 py-2 bg-gradient-to-r from-blog-primary to-blog-primary-dark text-white rounded-lg text-sm font-medium hover:from-blog-primary-dark hover:to-blog-primary transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-[family-name:var(--font-ui)]">
+          <button className="px-4 py-2 bg-gradient-to-r from-blog-primary to-blog-primary-dark text-white rounded-lg text-sm font-medium hover:from-blog-primary-dark hover:to-blog-primary transition-all shadow-lg hover:shadow-xl flex items-center gap-2 font-blog-ui">
             <CheckCircle2 className="w-4 h-4" />
             Mark as Complete
           </button>
