@@ -18,10 +18,15 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, useReducedMotion, useInView } from '@/components/lazy-motion';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { UserMenu } from '@/app/(homepage)/_components/user-menu';
+
+interface PlatformStats {
+  activeLearnerDisplay: string;
+  successRate: number;
+}
 
 /**
  * Redesigned Home Hero Section
@@ -34,6 +39,33 @@ export default function HomeHeroSectionRedesigned() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: '-50px' });
   const user = useCurrentUser();
+  const [stats, setStats] = useState<PlatformStats>({
+    activeLearnerDisplay: '0+',
+    successRate: 0,
+  });
+
+  // Fetch platform stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/platform/stats');
+        const data = await response.json();
+        if (data.success && data.data) {
+          setStats({
+            activeLearnerDisplay: data.data.activeLearnerDisplay,
+            successRate: data.data.successRate,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch platform stats:', error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  // Determine CTA button destination based on auth state
+  const ctaLink = user ? '/dashboard/user' : '/auth/register';
+  const ctaText = user ? 'Go to Dashboard' : 'Start Learning Free';
 
   // Simplified animation variants for better performance
   const fadeInUp = {
@@ -333,12 +365,12 @@ export default function HomeHeroSectionRedesigned() {
               transition={{ delay: 0.4 }}
               style={{ willChange: 'transform, opacity' }}
             >
-              <Link href="/auth/register" className="w-full sm:w-auto">
+              <Link href={ctaLink} className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   className="w-full group bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-5 sm:px-8 sm:py-6 text-sm sm:text-base font-semibold rounded-xl"
                 >
-                  Start Learning Free
+                  {ctaText}
                   <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -368,11 +400,11 @@ export default function HomeHeroSectionRedesigned() {
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-500" />
-                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">10K+ Active Learners</span>
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">{stats.activeLearnerDisplay} Active Learners</span>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-500" />
-                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">98% Success Rate</span>
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">{stats.successRate}% Success Rate</span>
               </div>
             </motion.div>
           </div>
