@@ -10,8 +10,8 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-20T00:58:04.950Z
-// Source: 25 domain files
+// Generated: 2026-01-21T17:25:31.087Z
+// Source: 26 domain files
 // ==========================================
 
 
@@ -1390,9 +1390,14 @@ model User {
   premiumExpiresAt                        DateTime?
   premiumStripeSubscriptionId             String?                              @unique
 
-  // SAM AI Usage Tracking (for free tier limits)
+  // Subscription Tier (for AI access control)
+  subscriptionTier                        SubscriptionTier                     @default(FREE)
+
+  // SAM AI Usage Tracking (for subscription tier limits)
   dailyAiUsageCount                       Int                                  @default(0)
   dailyAiUsageResetAt                     DateTime?
+  monthlyAiUsageCount                     Int                                  @default(0)
+  monthlyAiUsageResetAt                   DateTime?
   AIContentGeneration                     AIContentGeneration[]
   AIContentTemplate                       AIContentTemplate[]
   AIGeneratedContent                      AIGeneratedContent[]
@@ -1750,6 +1755,10 @@ model User {
   // Phase 8: Self-Assessment Exam System (added January 2026)
   selfAssessmentExams        SelfAssessmentExam[]          @relation("SelfAssessmentExamOwner")
   selfAssessmentAttempts     SelfAssessmentAttempt[]       @relation("SelfAssessmentAttemptUser")
+
+  // Marketing & Communications (added January 2026)
+  newsletterSubscriptions    NewsletterSubscriber[]
+  assignedContactSubmissions ContactSubmission[]           @relation("AssignedContacts")
 }
 
 model Account {
@@ -2320,6 +2329,9 @@ model Course {
   // Course Analysis History (for SAM AI Depth Analyzer)
   analysisHistory          CourseAnalysisHistory[] @relation("CourseAnalysisSnapshots")
 
+  // Enhanced Depth Analysis - Alignment Matrix (January 2026)
+  alignmentMatrix          AlignmentMatrix?        @relation("CourseAlignmentMatrix")
+
   // SAM Real-Time Presence Tracking (Phase I)
   samUserPresence          SAMUserPresence[]       @relation("SAMPresenceCourses")
 
@@ -2339,6 +2351,9 @@ model Course {
 
   // Phase 7: 10,000 Hour Practice Tracking Relations
   practiceSessions         PracticeSession[]       @relation("CoursePracticeSessions")
+
+  // Phase 3: Enterprise Payment System - Payment Transaction Relations
+  paymentTransactions      PaymentTransaction[]    @relation("CoursePaymentTransactions")
 
   @@index([categoryId])
   @@index([organizationId])
@@ -2491,6 +2506,9 @@ model Section {
 
   // SAM Meta-Learning Relations (added January 2026)
   samLearningEvents      SAMLearningEvent[]      @relation("SAMLearningEventSections")
+
+  // Content Ingestion Pipeline (Enhanced Depth Analysis - January 2026)
+  contentSources         ContentSource[]         @relation("SectionContentSources")
 
   @@index([chapterId])
   @@index([chapterId, position]) // For ordered chapter queries
@@ -3443,6 +3461,139 @@ model ProgressIntervention {
   @@index([isRead])
   @@index([interventionType])
   @@index([createdAt])
+}
+
+// ==========================================
+// Enhanced Depth Analysis - Content Ingestion Pipeline
+// Added: January 2026
+// ==========================================
+
+enum ContentSourceType {
+  VIDEO_TRANSCRIPT
+  PDF_DOCUMENT
+  SLIDE_DECK
+  TEXT_BLOCK
+  ATTACHMENT
+  QUIZ_CONTENT
+  ASSIGNMENT_CONTENT
+}
+
+enum ContentProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+// Normalized content sources for depth analysis
+model ContentSource {
+  id            String                  @id @default(cuid())
+  sectionId     String
+  section       Section                 @relation("SectionContentSources", fields: [sectionId], references: [id], onDelete: Cascade)
+
+  sourceType    ContentSourceType
+  originalUrl   String?                 // For attachments/external content
+  fileName      String?                 // Original filename if applicable
+  mimeType      String?                 // MIME type of the source
+  fileSize      Int?                    // Size in bytes
+
+  // Extracted content
+  extractedText String?                 @db.Text
+  wordCount     Int                     @default(0)
+  pageCount     Int?                    // For PDFs
+  slideCount    Int?                    // For presentations
+  duration      Int?                    // For video/audio in seconds
+
+  // Structured metadata (type-specific)
+  metadata      Json?                   // { sections: [], headings: [], etc. }
+
+  // Processing status
+  status        ContentProcessingStatus @default(PENDING)
+  processedAt   DateTime?
+  errorMessage  String?
+  retryCount    Int                     @default(0)
+
+  // Analysis cache (populated after deep content analysis)
+  bloomsAnalysis    Json?               // Sentence-level analysis cache
+  dokAnalysis       Json?               // DOK analysis cache
+  analysisVersion   String?             // Version of analyzer used
+  analyzedAt        DateTime?
+
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  @@index([sectionId])
+  @@index([sourceType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Alignment Matrix - Maps objectives to sections to assessments
+model AlignmentMatrix {
+  id            String   @id @default(cuid())
+  courseId      String   @unique
+  course        Course   @relation("CourseAlignmentMatrix", fields: [courseId], references: [id], onDelete: Cascade)
+
+  // Matrix data (JSON for flexibility)
+  objectiveAlignments  Json    // ObjectiveAlignment[]
+  sectionAlignments    Json    // SectionAlignment[]
+  assessmentAlignments Json    // AssessmentAlignment[]
+
+  // Scores
+  coverageScore        Float   @default(0)  // % of objectives with assessment coverage
+  redundancyScore      Float   @default(0)  // Overlap/duplication indicator (lower is better)
+  alignmentScore       Float   @default(0)  // Overall alignment quality
+
+  // Gap tracking
+  gaps                 Json?   // AlignmentGap[]
+  gapCount             Int     @default(0)
+  criticalGapCount     Int     @default(0)
+
+  // Summary stats
+  totalObjectives          Int @default(0)
+  fullyCoveredObjectives   Int @default(0)
+  partialObjectives        Int @default(0)
+  uncoveredObjectives      Int @default(0)
+
+  // Metadata
+  analysisVersion      String
+  analyzedAt           DateTime @default(now())
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([courseId])
+  @@index([alignmentScore])
+}
+
+// Analysis Evidence - Stores sentence-level triggers for classifications
+model AnalysisEvidence {
+  id            String   @id @default(cuid())
+  analysisId    String   // Links to CourseBloomsAnalysis.id
+
+  // Source identification
+  sourceType    String   // 'section_content' | 'objective' | 'assessment' | 'transcript'
+  sourceId      String   // The specific source (sectionId, questionId, etc.)
+
+  // Classification result
+  classification    String      // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
+  confidence        Float       // 0-1
+
+  // Evidence details
+  triggerPatterns   String[]    // Matched patterns/keywords
+  highlightedText   String?     @db.Text  // The sentence/phrase that triggered classification
+  textPosition      Json?       // { start: number, end: number, paragraph: number }
+
+  // Context
+  context           String?     // 'instructional' | 'assessment' | 'activity' | etc.
+
+  createdAt     DateTime @default(now())
+
+  @@index([analysisId])
+  @@index([sourceType, sourceId])
+  @@index([classification])
+  @@index([confidence])
 }
 
 // ==========================================
@@ -5841,6 +5992,112 @@ model CognitiveFitnessAssessment {
   @@index([userId, createdAt])
 }
 
+// ============================================
+// Platform AI Settings (Admin Controls)
+// Added January 2026 - Enterprise AI Management
+// ============================================
+
+model PlatformAISettings {
+  id                       String   @id @default("default")
+
+  // Default Provider Configuration
+  defaultProvider          String   @default("deepseek")  // anthropic, deepseek, openai, gemini, mistral
+  fallbackProvider         String?  @default("anthropic") // Used when primary fails
+
+  // Provider Enable/Disable Toggles
+  anthropicEnabled         Boolean  @default(true)
+  deepseekEnabled          Boolean  @default(true)
+  openaiEnabled            Boolean  @default(true)
+  geminiEnabled            Boolean  @default(false)  // Coming soon
+  mistralEnabled           Boolean  @default(false)  // Coming soon
+
+  // Rate Limits by Subscription Tier (Monthly Generations)
+  freeMonthlyLimit         Int      @default(50)
+  starterMonthlyLimit      Int      @default(500)
+  proMonthlyLimit          Int      @default(2000)
+  enterpriseMonthlyLimit   Int      @default(10000)
+
+  // Daily Limits for SAM AI Chat
+  freeDailyChatLimit       Int      @default(10)
+  starterDailyChatLimit    Int      @default(100)
+  proDailyChatLimit        Int      @default(1000)
+  enterpriseDailyChatLimit Int      @default(10000)  // Effectively unlimited
+
+  // Cost Management
+  monthlyBudget            Float?              // Optional monthly budget cap in USD
+  alertThreshold           Float    @default(0.8)  // Alert at 80% of budget
+  costAlertEmail           String?             // Email for cost alerts
+
+  // Feature Toggles
+  allowUserProviderSelection Boolean @default(true)   // Can users choose their own provider?
+  allowUserModelSelection    Boolean @default(true)   // Can users choose specific models?
+  requireApprovalForCourses  Boolean @default(false)  // Require admin approval for AI courses?
+
+  // Default Model per Provider (for new users)
+  defaultAnthropicModel    String   @default("claude-sonnet-4-5-20250929")
+  defaultDeepseekModel     String   @default("deepseek-chat")
+  defaultOpenaiModel       String   @default("gpt-4o")
+  defaultGeminiModel       String   @default("gemini-pro")
+  defaultMistralModel      String   @default("mistral-large")
+
+  // System Status
+  maintenanceMode          Boolean  @default(false)   // Disable all AI features
+  maintenanceMessage       String?                    // Message to show users
+
+  // Audit
+  lastUpdatedBy            String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@map("platform_ai_settings")
+}
+
+// Platform-wide AI Usage Summary (for admin dashboard)
+model PlatformAIUsageSummary {
+  id                    String        @id @default(cuid())
+  date                  DateTime      @db.Date
+  period                MetricsPeriod @default(DAILY)
+
+  // Total Usage
+  totalGenerations      Int           @default(0)
+  totalTokensInput      Int           @default(0)
+  totalTokensOutput     Int           @default(0)
+  totalCost             Float         @default(0)
+
+  // Usage by Provider
+  anthropicGenerations  Int           @default(0)
+  anthropicCost         Float         @default(0)
+  deepseekGenerations   Int           @default(0)
+  deepseekCost          Float         @default(0)
+  openaiGenerations     Int           @default(0)
+  openaiCost            Float         @default(0)
+  geminiGenerations     Int           @default(0)
+  geminiCost            Float         @default(0)
+  mistralGenerations    Int           @default(0)
+  mistralCost           Float         @default(0)
+
+  // Usage by Type
+  courseGenerations     Int           @default(0)
+  chatGenerations       Int           @default(0)
+  analysisGenerations   Int           @default(0)
+  codeGenerations       Int           @default(0)
+
+  // User Metrics
+  activeUsers           Int           @default(0)
+  newUsers              Int           @default(0)
+
+  // Error Metrics
+  totalErrors           Int           @default(0)
+  errorRate             Float         @default(0)
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([date, period])
+  @@index([date])
+  @@map("platform_ai_usage_summary")
+}
+
 
 // ==========================================
 // Source: 09-admin.prisma
@@ -7516,7 +7773,7 @@ enum PriceType {
 model PaymentTransaction {
   id                String          @id @default(uuid())
   userId            String
-  courseId          String
+  courseId          String?
   amount            Decimal         @db.Decimal(10, 2)
   currency          String          @default("USD")
   status            PaymentStatus   @default(PENDING)
@@ -7532,7 +7789,8 @@ model PaymentTransaction {
   updatedAt         DateTime        @updatedAt
 
   // Relations
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation("CoursePaymentTransactions", fields: [courseId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([courseId])
@@ -13439,4 +13697,79 @@ model SelfAssessmentAnswer {
   @@unique([attemptId, questionId])
   @@index([attemptId])
   @@index([questionId])
+}
+
+// ==========================================
+// Source: 25-marketing.prisma
+// ==========================================
+
+// ============================================
+// Domain 25: Marketing & Communications
+// ============================================
+// Newsletter subscriptions, marketing preferences, and communication tracking
+
+// Newsletter Subscriber
+// Stores newsletter subscription information
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  subscribedAt DateTime @default(now())
+  unsubscribedAt DateTime?
+  source       String   @default("footer") // footer, popup, landing, etc.
+  isActive     Boolean  @default(true)
+
+  // Optional user link (for logged-in subscribers)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  ipAddress    String?
+  userAgent    String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([userId])
+  @@index([isActive])
+  @@index([source])
+}
+
+// Contact Form Submission
+// Stores contact form submissions from the website
+model ContactSubmission {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  subject     String?
+  message     String   @db.Text
+
+  // Status tracking
+  status      ContactStatus @default(NEW)
+  assignedTo  String?
+  assignedUser User?   @relation("AssignedContacts", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  // Response tracking
+  respondedAt DateTime?
+  response    String?  @db.Text
+
+  // Metadata
+  ipAddress   String?
+  userAgent   String?
+  source      String   @default("contact_page") // contact_page, support, enterprise
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([assignedTo])
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  RESPONDED
+  CLOSED
+  SPAM
 }

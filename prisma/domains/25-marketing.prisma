@@ -1,0 +1,70 @@
+// ============================================
+// Domain 25: Marketing & Communications
+// ============================================
+// Newsletter subscriptions, marketing preferences, and communication tracking
+
+// Newsletter Subscriber
+// Stores newsletter subscription information
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  subscribedAt DateTime @default(now())
+  unsubscribedAt DateTime?
+  source       String   @default("footer") // footer, popup, landing, etc.
+  isActive     Boolean  @default(true)
+
+  // Optional user link (for logged-in subscribers)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Metadata
+  ipAddress    String?
+  userAgent    String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@index([userId])
+  @@index([isActive])
+  @@index([source])
+}
+
+// Contact Form Submission
+// Stores contact form submissions from the website
+model ContactSubmission {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  subject     String?
+  message     String   @db.Text
+
+  // Status tracking
+  status      ContactStatus @default(NEW)
+  assignedTo  String?
+  assignedUser User?   @relation("AssignedContacts", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  // Response tracking
+  respondedAt DateTime?
+  response    String?  @db.Text
+
+  // Metadata
+  ipAddress   String?
+  userAgent   String?
+  source      String   @default("contact_page") // contact_page, support, enterprise
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([assignedTo])
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  RESPONDED
+  CLOSED
+  SPAM
+}

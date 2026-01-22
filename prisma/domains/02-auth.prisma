@@ -63,9 +63,14 @@ model User {
   premiumExpiresAt                        DateTime?
   premiumStripeSubscriptionId             String?                              @unique
 
-  // SAM AI Usage Tracking (for free tier limits)
+  // Subscription Tier (for AI access control)
+  subscriptionTier                        SubscriptionTier                     @default(FREE)
+
+  // SAM AI Usage Tracking (for subscription tier limits)
   dailyAiUsageCount                       Int                                  @default(0)
   dailyAiUsageResetAt                     DateTime?
+  monthlyAiUsageCount                     Int                                  @default(0)
+  monthlyAiUsageResetAt                   DateTime?
   AIContentGeneration                     AIContentGeneration[]
   AIContentTemplate                       AIContentTemplate[]
   AIGeneratedContent                      AIGeneratedContent[]
@@ -423,6 +428,10 @@ model User {
   // Phase 8: Self-Assessment Exam System (added January 2026)
   selfAssessmentExams        SelfAssessmentExam[]          @relation("SelfAssessmentExamOwner")
   selfAssessmentAttempts     SelfAssessmentAttempt[]       @relation("SelfAssessmentAttemptUser")
+
+  // Marketing & Communications (added January 2026)
+  newsletterSubscriptions    NewsletterSubscriber[]
+  assignedContactSubmissions ContactSubmission[]           @relation("AssignedContacts")
 }
 
 model Account {
