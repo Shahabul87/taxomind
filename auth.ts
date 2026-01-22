@@ -1,9 +1,16 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import { PrismaClient } from "@prisma/client";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
 
-import { db, getBasePrismaClient } from "@/lib/db";
+import { db } from "@/lib/db";
+
+// Create a separate PrismaClient specifically for NextAuth adapter
+// This avoids issues with Proxy-wrapped or $extends() enhanced clients
+const authPrismaClient = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+});
 import authConfig from "@/auth.config";
 import { getUserById } from "@/data/user";
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
@@ -225,8 +232,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     }
   },
-  // Use base PrismaClient for adapter - extended client ($extends) may not be compatible
-  adapter: PrismaAdapter(getBasePrismaClient()),
+  // Use dedicated PrismaClient for adapter - avoids compatibility issues with enhanced clients
+  adapter: PrismaAdapter(authPrismaClient),
   // Debug enabled temporarily to troubleshoot Configuration error
   debug: process.env.NODE_ENV === 'production',
   // Additional security configuration
