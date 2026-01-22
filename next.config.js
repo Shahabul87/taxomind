@@ -96,7 +96,7 @@ const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '512kb',  // Reduced from 2mb for better performance
-      allowedOrigins: ['localhost:3000', 'localhost:3001', 'www.bdgenai.com', 'bdgenai.com']
+      allowedOrigins: ['localhost:3000', 'localhost:3001', 'taxomind.com', 'www.taxomind.com']
     },
     // Optimize package imports for tree-shaking
     optimizePackageImports: optimizeImports,
