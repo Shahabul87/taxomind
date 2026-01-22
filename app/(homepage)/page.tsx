@@ -1,10 +1,82 @@
 import dynamic from 'next/dynamic';
+import { Metadata } from 'next';
 import { getHomepageFeaturedCourses, getHomepageFeaturedPosts } from "@/actions/get-homepage-content";
 import HomeHeroSectionRedesigned from "./components/HomeHeroSectionRedesigned";
 import RemoveHashOnLoad from "./components/RemoveHashOnLoad";
 import { HomeFooter } from "./HomeFooter";
 import { FeaturedCoursesSection } from './featured-courses-section';
 import { HomeNavbar } from './components/HomeNavbar';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
+
+/**
+ * Homepage Metadata - Optimized for Google Search Rankings
+ * Target keywords: AI learning platform, online courses, adaptive education
+ */
+export const metadata: Metadata = {
+  title: 'Taxomind - AI-Powered Intelligent Learning Platform | Online Courses',
+  description: 'Transform your learning journey with Taxomind, the AI-powered education platform. Discover adaptive courses, personalized learning paths, and SAM AI tutor. Join thousands of learners mastering new skills today.',
+  keywords: [
+    'AI learning platform',
+    'online courses',
+    'adaptive learning',
+    'personalized education',
+    'AI tutor',
+    'e-learning platform',
+    'online education',
+    'skill development',
+    'professional courses',
+    'Taxomind',
+    'intelligent tutoring system',
+    'online certification',
+  ],
+  authors: [{ name: 'Taxomind', url: baseUrl }],
+  creator: 'Taxomind',
+  publisher: 'Taxomind',
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'Taxomind - Where Minds Are Forged Through Intelligence',
+    description: 'Experience the future of education with AI-powered adaptive learning. Personalized courses, intelligent tutoring, and industry-recognized certificates.',
+    url: baseUrl,
+    siteName: 'Taxomind',
+    type: 'website',
+    locale: 'en_US',
+    images: [
+      {
+        url: `${baseUrl}/og-default.svg`,
+        width: 1200,
+        height: 630,
+        alt: 'Taxomind - AI-Powered Intelligent Learning Platform',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Taxomind - AI-Powered Learning Platform',
+    description: 'Transform your learning with AI-powered adaptive education. Start your journey today.',
+    images: [`${baseUrl}/og-default.svg`],
+    creator: '@taxomind',
+    site: '@taxomind',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-snippet': -1,
+      'max-image-preview': 'large',
+      'max-video-preview': -1,
+    },
+  },
+  verification: {
+    // Add your Google Search Console verification code here
+    // google: 'your-google-verification-code',
+  },
+  category: 'Education',
+};
 
 // Code split the blog posts section (below the fold)
 // This reduces initial bundle size and improves LCP

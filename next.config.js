@@ -408,7 +408,29 @@ const nextConfig = {
                          process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
                          'http://localhost:3000';
 
+    // Security headers for SEO and user trust (Google considers site security for rankings)
+    const securityHeaders = [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      { key: 'X-XSS-Protection', value: '1; mode=block' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()' },
+    ];
+
+    // Add HSTS for production only (HTTPS enforcement)
+    if (process.env.NODE_ENV === 'production') {
+      securityHeaders.push({
+        key: 'Strict-Transport-Security',
+        value: 'max-age=31536000; includeSubDomains; preload',
+      });
+    }
+
     return [
+      // Apply security headers to all routes
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
       // Health check endpoints - no CORS restrictions (Railway healthcheck needs this)
       {
         source: '/api/healthz',

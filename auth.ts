@@ -226,8 +226,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }
   },
   adapter: PrismaAdapter(db),
-  // Debug disabled - enable temporarily when troubleshooting auth issues
-  debug: false,
+  // Debug enabled temporarily to troubleshoot Configuration error
+  debug: process.env.NODE_ENV === 'production',
   // Additional security configuration
   experimental: {
     // Enable WebAuthn for future use

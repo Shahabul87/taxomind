@@ -16,11 +16,11 @@ const organizationSchema = {
   url: baseUrl,
   logo: {
     '@type': 'ImageObject',
-    url: `${baseUrl}/logo.png`,
+    url: `${baseUrl}/taxomind-logo.png`,
     width: 512,
     height: 512,
   },
-  image: `${baseUrl}/og-default.png`,
+  image: `${baseUrl}/og-default.svg`,
   description: 'AI-powered intelligent learning platform for adaptive education and personalized learning paths.',
   slogan: 'Where Minds Are Forged Through Intelligence',
   foundingDate: '2024',
@@ -43,10 +43,11 @@ const organizationSchema = {
     },
   ],
   sameAs: [
-    // Add social media URLs when available
-    // 'https://twitter.com/taxomind',
-    // 'https://linkedin.com/company/taxomind',
-    // 'https://github.com/taxomind',
+    'https://twitter.com/taxomind',
+    'https://linkedin.com/company/taxomind',
+    'https://github.com/taxomind',
+    'https://facebook.com/taxomind',
+    'https://youtube.com/@taxomind',
   ],
   offers: {
     '@type': 'AggregateOffer',
