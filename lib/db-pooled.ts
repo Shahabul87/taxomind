@@ -249,6 +249,59 @@ export const db = new Proxy({} as ReturnType<typeof prismaClientSingleton>, {
 // Export metrics for monitoring
 export const getDbMetrics = () => DatabaseMetrics.getMetrics();
 
+/**
+ * Get the base PrismaClient without extensions
+ * IMPORTANT: Use this for NextAuth's PrismaAdapter which may not be compatible with $extends()
+ * The extended client adds middleware that can interfere with adapter operations
+ */
+let baseClientInstance: PrismaClient | null = null;
+
+export const getBasePrismaClient = (): PrismaClient => {
+  if (baseClientInstance) {
+    return baseClientInstance;
+  }
+
+  // CRITICAL: Prevent client-side execution
+  if (typeof window !== 'undefined') {
+    throw new Error('Prisma Client cannot be used in browser environment.');
+  }
+
+  const databaseUrl = process.env.DATABASE_URL;
+  const isBuildTime = process.env.SKIP_ENV_VALIDATION === 'true';
+
+  if (!databaseUrl && !isBuildTime) {
+    throw new Error('DATABASE_URL environment variable is not set.');
+  }
+
+  const effectiveDatabaseUrl = databaseUrl || 'postgresql://placeholder:placeholder@localhost:5432/placeholder';
+
+  let datasourceUrl: URL;
+  try {
+    datasourceUrl = new URL(effectiveDatabaseUrl);
+  } catch {
+    if (!isBuildTime) {
+      throw new Error(`Invalid DATABASE_URL format: ${effectiveDatabaseUrl}`);
+    }
+    datasourceUrl = new URL('postgresql://placeholder:placeholder@localhost:5432/placeholder');
+  }
+
+  // Add connection pool parameters
+  datasourceUrl.searchParams.set('connection_limit', CONNECTION_POOL_CONFIG.connection_limit.toString());
+  datasourceUrl.searchParams.set('pool_timeout', CONNECTION_POOL_CONFIG.pool_timeout.toString());
+
+  baseClientInstance = new PrismaClient({
+    datasources: {
+      db: {
+        url: datasourceUrl.toString(),
+      },
+    },
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    errorFormat: 'minimal',
+  });
+
+  return baseClientInstance;
+};
+
 // Health check function
 export async function checkDatabaseHealth(): Promise<{
   healthy: boolean;

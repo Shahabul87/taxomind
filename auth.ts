@@ -3,7 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
 
-import { db } from "@/lib/db";
+import { db, getBasePrismaClient } from "@/lib/db";
 import authConfig from "@/auth.config";
 import { getUserById } from "@/data/user";
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
@@ -225,12 +225,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     }
   },
-  adapter: PrismaAdapter(db),
+  // Use base PrismaClient for adapter - extended client ($extends) may not be compatible
+  adapter: PrismaAdapter(getBasePrismaClient()),
   // Debug enabled temporarily to troubleshoot Configuration error
   debug: process.env.NODE_ENV === 'production',
   // Additional security configuration
-  experimental: {
-    // Enable WebAuthn for future use
-    enableWebAuthn: true,
-  },
+  // NOTE: experimental.enableWebAuthn disabled - can cause Configuration errors if not fully configured
+  // experimental: {
+  //   enableWebAuthn: true,
+  // },
 });

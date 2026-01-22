@@ -9,7 +9,7 @@
  */
 
 // Re-export the enhanced database client
-export { db, getDb, getDbMetrics, checkDatabaseHealth } from './db-pooled';
+export { db, getDb, getDbMetrics, checkDatabaseHealth, getBasePrismaClient } from './db-pooled';
 
 // For backward compatibility, also export as default
 export { db as default } from './db-pooled'; 
