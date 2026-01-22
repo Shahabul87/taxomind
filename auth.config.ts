@@ -1,4 +1,4 @@
-import type { NextAuthConfig } from "next-auth";
+import type { NextAuthConfig, Provider } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Github from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
@@ -8,8 +8,13 @@ import { LoginSchema } from "@/schemas";
 import { getUserByEmail } from "@/data/user";
 // import { DefaultCookieConfig } from "@/lib/security/cookie-config";
 
-export default {
-  providers: [
+// Build providers array conditionally to avoid Configuration errors
+// when OAuth credentials are not set
+const providers: Provider[] = [];
+
+// Only add Google provider if credentials are configured
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.push(
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -21,41 +26,59 @@ export default {
         }
       },
       allowDangerousEmailAccountLinking: false,
-    }),
+    })
+  );
+} else {
+  console.warn("[Auth] Google OAuth disabled: GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET not configured");
+}
+
+// Only add GitHub provider if credentials are configured
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  providers.push(
     Github({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      allowDangerousEmailAccountLinking: false, // SECURITY: Disabled to prevent account takeover via email compromise
-    }),
-    Credentials({
-      async authorize(credentials) {
-        const validatedFields = LoginSchema.safeParse(credentials);
-
-        if (validatedFields.success) {
-          const { email, password } = validatedFields.data;
-          
-          const user = await getUserByEmail(email);
-          if (!user || !user.password) return null;
-
-          // Use dynamic import to avoid Edge Runtime issues
-          try {
-            const { verifyPassword } = await import("@/lib/passwordUtils");
-            const passwordsMatch = await verifyPassword(
-              password,
-              user.password,
-            );
-
-            if (passwordsMatch) return user;
-          } catch (error) {
-            console.error("Password verification failed:", error);
-            return null;
-          }
-        }
-
-        return null;
-      }
+      allowDangerousEmailAccountLinking: false,
     })
-  ],
+  );
+} else {
+  console.warn("[Auth] GitHub OAuth disabled: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET not configured");
+}
+
+// Always add Credentials provider
+providers.push(
+  Credentials({
+    async authorize(credentials) {
+      const validatedFields = LoginSchema.safeParse(credentials);
+
+      if (validatedFields.success) {
+        const { email, password } = validatedFields.data;
+
+        const user = await getUserByEmail(email);
+        if (!user || !user.password) return null;
+
+        // Use dynamic import to avoid Edge Runtime issues
+        try {
+          const { verifyPassword } = await import("@/lib/passwordUtils");
+          const passwordsMatch = await verifyPassword(
+            password,
+            user.password,
+          );
+
+          if (passwordsMatch) return user;
+        } catch (error) {
+          console.error("Password verification failed:", error);
+          return null;
+        }
+      }
+
+      return null;
+    }
+  })
+);
+
+export default {
+  providers,
   // Session configuration to match across auth.ts and edge config
   session: {
     strategy: "jwt",
