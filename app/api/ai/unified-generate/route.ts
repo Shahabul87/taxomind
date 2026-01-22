@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import * as z from "zod";
 import { logger } from "@/lib/logger";
+import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
 
 // Force Node.js runtime
 export const runtime = "nodejs";
@@ -543,6 +544,28 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
+
+    // Determine AI feature type from content request
+    const featureType: AIFeatureType = body.contentType === "chapters" ? "chapter" :
+                                       body.contentType === "sections" ? "lesson" :
+                                       body.entityLevel === "course" ? "course" : "other";
+
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, featureType);
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingDaily: accessCheck.remainingDaily,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+          maintenanceMessage: accessCheck.maintenanceMessage,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
     const parseResult = UnifiedGenerateRequestSchema.safeParse(body);
 
     if (!parseResult.success) {
@@ -664,14 +687,28 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Record successful AI usage
+      const tokensUsed = (completion.usage?.input_tokens || 0) + (completion.usage?.output_tokens || 0);
+      await recordAIUsage(user.id, featureType, 1, {
+        provider: "anthropic",
+        model: "claude-sonnet-4-5-20250929",
+        tokensUsed,
+        cost: tokensUsed * 0.000009, // Approximate cost per token
+        requestType: contentRequest.contentType,
+      });
+
       return NextResponse.json({
         success: true,
         content: cleanedResponse.trim(),
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
+          tokensUsed,
           model: "claude-sonnet-4-5-20250929",
           generatedAt: new Date().toISOString(),
           bloomsLevels: contentRequest.bloomsEnabled ? contentRequest.bloomsLevels : undefined,
+        },
+        usage: {
+          remainingDaily: accessCheck.remainingDaily,
+          remainingMonthly: accessCheck.remainingMonthly,
         },
       });
     } catch (apiError) {

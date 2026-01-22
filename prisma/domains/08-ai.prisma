@@ -404,3 +404,109 @@ model CognitiveFitnessAssessment {
   @@index([userId, createdAt])
 }
 
+// ============================================
+// Platform AI Settings (Admin Controls)
+// Added January 2026 - Enterprise AI Management
+// ============================================
+
+model PlatformAISettings {
+  id                       String   @id @default("default")
+
+  // Default Provider Configuration
+  defaultProvider          String   @default("deepseek")  // anthropic, deepseek, openai, gemini, mistral
+  fallbackProvider         String?  @default("anthropic") // Used when primary fails
+
+  // Provider Enable/Disable Toggles
+  anthropicEnabled         Boolean  @default(true)
+  deepseekEnabled          Boolean  @default(true)
+  openaiEnabled            Boolean  @default(true)
+  geminiEnabled            Boolean  @default(false)  // Coming soon
+  mistralEnabled           Boolean  @default(false)  // Coming soon
+
+  // Rate Limits by Subscription Tier (Monthly Generations)
+  freeMonthlyLimit         Int      @default(50)
+  starterMonthlyLimit      Int      @default(500)
+  proMonthlyLimit          Int      @default(2000)
+  enterpriseMonthlyLimit   Int      @default(10000)
+
+  // Daily Limits for SAM AI Chat
+  freeDailyChatLimit       Int      @default(10)
+  starterDailyChatLimit    Int      @default(100)
+  proDailyChatLimit        Int      @default(1000)
+  enterpriseDailyChatLimit Int      @default(10000)  // Effectively unlimited
+
+  // Cost Management
+  monthlyBudget            Float?              // Optional monthly budget cap in USD
+  alertThreshold           Float    @default(0.8)  // Alert at 80% of budget
+  costAlertEmail           String?             // Email for cost alerts
+
+  // Feature Toggles
+  allowUserProviderSelection Boolean @default(true)   // Can users choose their own provider?
+  allowUserModelSelection    Boolean @default(true)   // Can users choose specific models?
+  requireApprovalForCourses  Boolean @default(false)  // Require admin approval for AI courses?
+
+  // Default Model per Provider (for new users)
+  defaultAnthropicModel    String   @default("claude-sonnet-4-5-20250929")
+  defaultDeepseekModel     String   @default("deepseek-chat")
+  defaultOpenaiModel       String   @default("gpt-4o")
+  defaultGeminiModel       String   @default("gemini-pro")
+  defaultMistralModel      String   @default("mistral-large")
+
+  // System Status
+  maintenanceMode          Boolean  @default(false)   // Disable all AI features
+  maintenanceMessage       String?                    // Message to show users
+
+  // Audit
+  lastUpdatedBy            String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@map("platform_ai_settings")
+}
+
+// Platform-wide AI Usage Summary (for admin dashboard)
+model PlatformAIUsageSummary {
+  id                    String        @id @default(cuid())
+  date                  DateTime      @db.Date
+  period                MetricsPeriod @default(DAILY)
+
+  // Total Usage
+  totalGenerations      Int           @default(0)
+  totalTokensInput      Int           @default(0)
+  totalTokensOutput     Int           @default(0)
+  totalCost             Float         @default(0)
+
+  // Usage by Provider
+  anthropicGenerations  Int           @default(0)
+  anthropicCost         Float         @default(0)
+  deepseekGenerations   Int           @default(0)
+  deepseekCost          Float         @default(0)
+  openaiGenerations     Int           @default(0)
+  openaiCost            Float         @default(0)
+  geminiGenerations     Int           @default(0)
+  geminiCost            Float         @default(0)
+  mistralGenerations    Int           @default(0)
+  mistralCost           Float         @default(0)
+
+  // Usage by Type
+  courseGenerations     Int           @default(0)
+  chatGenerations       Int           @default(0)
+  analysisGenerations   Int           @default(0)
+  codeGenerations       Int           @default(0)
+
+  // User Metrics
+  activeUsers           Int           @default(0)
+  newUsers              Int           @default(0)
+
+  // Error Metrics
+  totalErrors           Int           @default(0)
+  errorRate             Float         @default(0)
+
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@unique([date, period])
+  @@index([date])
+  @@map("platform_ai_usage_summary")
+}
+

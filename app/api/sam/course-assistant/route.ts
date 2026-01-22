@@ -2,10 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { SAMGuards } from '@/lib/premium';
+import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 
 // Course Assistant is a premium-only feature
 export const POST = SAMGuards.courseCreation(async (request, context) => {
   try {
+    // Check subscription tier and usage limits for chat
+    const accessCheck = await checkAIAccess(context.userId, "chat");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingDaily: accessCheck.remainingDaily,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     const {
       message,
       courseContext,
@@ -25,6 +42,9 @@ export const POST = SAMGuards.courseCreation(async (request, context) => {
       selectedContext,
       userId: context.userId
     });
+
+    // Record chat usage
+    await recordAIUsage(context.userId, "chat", 1);
 
     return NextResponse.json({
       response: response.content,

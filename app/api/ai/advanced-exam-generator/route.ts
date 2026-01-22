@@ -8,6 +8,7 @@ import {
   ENHANCED_BLOOMS_FRAMEWORK
 } from '@/lib/ai-question-generator';
 import { BloomsLevel, QuestionType } from '@prisma/client';
+import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
 
 // SAM Exam Generation Service
 import { generateExamWithSAM } from '@/lib/sam/exam-generation/exam-generator-service';
@@ -278,6 +279,21 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "exam");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const parseResult = AdvancedExamGenerationRequestSchema.safeParse(body);
@@ -349,6 +365,9 @@ export async function POST(request: NextRequest) {
           hints: q.hints,
         }));
 
+        // Record AI usage after successful SAM generation
+        await recordAIUsage(user.id, "exam", 1);
+
         return NextResponse.json({
           success: samResult.success,
           questions: enhancedQuestions,
@@ -389,6 +408,9 @@ export async function POST(request: NextRequest) {
 
     // Use mock questions for legacy fallback
     const mockQuestions = generateAdvancedMockQuestions(examRequest);
+
+    // Record AI usage after successful legacy generation
+    await recordAIUsage(user.id, "exam", 1);
 
     return NextResponse.json({
       success: true,

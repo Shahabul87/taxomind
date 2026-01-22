@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
+import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 import { normalizeToUppercaseSafe, type BloomsLevelUppercase } from '@/lib/sam/utils/blooms-normalizer';
 
 // Force Node.js runtime for better compatibility
@@ -175,6 +176,21 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "exam");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const parseResult = ExamGenerationRequestSchema.safeParse(body);
@@ -254,6 +270,12 @@ export async function POST(request: NextRequest) {
           ? normalizeToUppercaseSafe(String(q.bloomsLevel))
           : 'UNDERSTAND',
       }));
+
+      // Record AI usage
+      await recordAIUsage(user.id, "exam", 1, {
+        provider: "anthropic",
+        requestType: "exam_generation",
+      });
 
       return NextResponse.json({
         success: true,

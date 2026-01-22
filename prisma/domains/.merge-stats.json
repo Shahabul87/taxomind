@@ -1,7 +1,7 @@
 {
-  "filesProcessed": 24,
-  "totalLines": 13068,
-  "timestamp": "2026-01-18T06:29:58.214Z",
+  "filesProcessed": 26,
+  "totalLines": 13667,
+  "timestamp": "2026-01-21T17:25:31.094Z",
   "domains": [
     "base",
     "enums",
@@ -26,6 +26,8 @@
     "enhanced-gamification",
     "learning-command-center",
     "skill-build-track",
-    "practice-tracking"
+    "practice-tracking",
+    "self-assessment",
+    "marketing"
   ]
 }

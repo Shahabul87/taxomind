@@ -22,6 +22,7 @@ import { PrivacyTab } from "./privacy-tab";
 import { ProfileTab } from "./profile-tab";
 import { NotificationsTab } from "./notifications-tab";
 import { FinancialTab } from "./financial-tab";
+import { BillingTab } from "./billing-tab";
 import { CalendarTab } from "./calendar-tab";
 import { AIProvidersTab } from "./ai-providers-tab";
 import { SettingsTab, SettingsUser } from "@/types/settings";
@@ -41,7 +42,7 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
 
   // Handle URL tab parameter changes
   useEffect(() => {
-    if (tabParam && ['account', 'security', 'privacy', 'profile', 'notifications', 'financial', 'calendar', 'ai-providers'].includes(tabParam)) {
+    if (tabParam && ['account', 'security', 'privacy', 'profile', 'notifications', 'financial', 'billing', 'calendar', 'ai-providers'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -221,6 +222,9 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
                     isAffiliate={user.isAffiliate}
                   />
                 )}
+                {activeTab === "billing" && (
+                  <BillingTab />
+                )}
                 {activeTab === "calendar" && (
                   <CalendarTab />
                 )}
@@ -229,8 +233,8 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
                 )}
               </AnimatePresence>
 
-              {/* Submit Button - Hide for Financial, Calendar, and AI Providers tabs */}
-              {activeTab !== "financial" && activeTab !== "calendar" && activeTab !== "ai-providers" && (
+              {/* Submit Button - Hide for Financial, Billing, Calendar, and AI Providers tabs */}
+              {activeTab !== "financial" && activeTab !== "billing" && activeTab !== "calendar" && activeTab !== "ai-providers" && (
                 <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200 dark:border-slate-700">
                   <Button
                     type="button"

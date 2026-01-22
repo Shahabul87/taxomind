@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runSAMChat } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { auth } from '@/auth';
+import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 
 interface RequestBody {
   message: string;
@@ -158,8 +160,30 @@ const detectAction = (message: string): string => {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check subscription tier and usage limits for chat
+    const accessCheck = await checkAIAccess(session.user.id, "chat");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingDaily: accessCheck.remainingDaily,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     const body: RequestBody = await request.json();
-    
+
     // Validate required fields
     if (!body.message || !body.context) {
       return NextResponse.json(
@@ -209,6 +233,9 @@ export async function POST(request: NextRequest) {
 
     // Generate suggestions
     const suggestions = generateSuggestions(action, body.context);
+
+    // Record chat usage
+    await recordAIUsage(session.user.id, "chat", 1);
 
     const response: SamResponse = {
       response: responseText,

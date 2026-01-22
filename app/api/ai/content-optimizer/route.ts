@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
 import { aiCacheManager } from "@/lib/ai-cache-manager";
 import { logger } from '@/lib/logger';
+import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -65,21 +66,39 @@ interface OptimizationResult {
 export async function POST(req: Request) {
   try {
     const user = await currentUser();
-    
+
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "analysis");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     const body: ContentOptimizationRequest = await req.json();
-    
+
     // Use optimized request with caching and deduplication
     const optimization = await optimizeContentOptimization(
       { ...body, userId: user.id },
       () => optimizeContent(body)
     );
-    
+
+    // Record AI usage after successful response
+    await recordAIUsage(user.id, "analysis", 1);
+
     return NextResponse.json(optimization);
-    
+
   } catch (error) {
     logger.error("[CONTENT-OPTIMIZER] Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });

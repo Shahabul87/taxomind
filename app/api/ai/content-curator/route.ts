@@ -2,14 +2,15 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { 
-  ContentCurationRequestSchema, 
+import {
+  ContentCurationRequestSchema,
   ContentCurationResponseSchema,
   type ContentCurationRequest,
   type ContentCurationResponse,
   ContentType,
   CourseDifficulty
 } from '@/lib/ai-course-types';
+import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -317,6 +318,21 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "analysis");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     // Rate limiting disabled for now
 
     // Parse and validate request body
@@ -394,8 +410,11 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      // Record AI usage after successful response
+      await recordAIUsage(user.id, "analysis", 1);
+
+      return NextResponse.json({
+        success: true,
         data: validationResult.data,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
+import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -183,6 +184,21 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "chapter");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const parseResult = ChapterContentRequestSchema.safeParse(body);
@@ -240,8 +256,11 @@ export async function POST(request: NextRequest) {
         throw new Error('Generated content too short');
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      // Record AI usage after successful response
+      await recordAIUsage(user.id, "chapter", 1);
+
+      return NextResponse.json({
+        success: true,
         content: cleanedContent,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,

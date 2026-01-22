@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
+import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -240,6 +241,21 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "lesson");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const parseResult = LessonGeneratorRequestSchema.safeParse(body);
@@ -289,8 +305,14 @@ export async function POST(request: NextRequest) {
         throw new Error('Empty response from AI model');
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      // Record AI usage
+      await recordAIUsage(user.id, "lesson", 1, {
+        provider: "anthropic",
+        requestType: "lesson_generation",
+      });
+
+      return NextResponse.json({
+        success: true,
         content: responseText.trim(),
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,

@@ -121,6 +121,7 @@ export type SettingsTab =
   | 'profile'
   | 'notifications'
   | 'financial'
+  | 'billing'
   | 'calendar'
   | 'ai-providers';
 

@@ -11,6 +11,7 @@ import {
   processChatWithMemory,
   type MemoryContext,
 } from '@/lib/sam/services/chat-memory-integration';
+import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 
 let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
 
@@ -134,6 +135,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check subscription tier and usage limits for chat
+    const accessCheck = await checkAIAccess(user.id, "chat");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingDaily: accessCheck.remainingDaily,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     const {
       message,
       context,
@@ -235,6 +252,9 @@ export async function POST(request: NextRequest) {
           })),
         }
       : null;
+
+    // Record chat usage
+    await recordAIUsage(user.id, "chat", 1);
 
     return NextResponse.json({
       response: parsedResponse.content,

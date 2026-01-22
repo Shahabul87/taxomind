@@ -9,7 +9,8 @@ import {
   DollarSign,
   Eye,
   Calendar,
-  Bot
+  Bot,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsTab } from "@/types/settings";
@@ -58,6 +59,12 @@ const tabs = [
     icon: DollarSign,
     description: "Wallet and earnings",
     requiresRole: true
+  },
+  {
+    id: "billing" as SettingsTab,
+    label: "Billing",
+    icon: CreditCard,
+    description: "Subscription and AI usage"
   },
   {
     id: "calendar" as SettingsTab,

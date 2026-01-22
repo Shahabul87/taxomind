@@ -4,6 +4,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
+import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -268,6 +269,21 @@ export async function POST(request: NextRequest) {
 
     logger.info('[SECTION_CONTENT] User authenticated:', user.id);
 
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "lesson");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     // Parse and validate request body
     const body = await request.json();
     logger.info('[SECTION_CONTENT] Request body received:', {
@@ -413,6 +429,9 @@ export async function POST(request: NextRequest) {
           warning: 'AI response validation failed, using template response'
         });
       }
+
+      // Record AI usage after successful response
+      await recordAIUsage(user.id, "lesson", 1);
 
       return NextResponse.json({
         success: true,

@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 import { 
   CourseGenerationRequestSchema, 
   CourseGenerationResponseSchema,
@@ -265,7 +266,20 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Skip rate limiting for now to avoid Redis issues
+    // Check subscription tier and usage limits
+    const accessCheck = await checkAIAccess(user.id, "course");
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || "AI access denied",
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
 
     // Parse and validate request body
     const body = await request.json();
@@ -342,8 +356,14 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      // Record AI usage
+      await recordAIUsage(user.id, "course", 1, {
+        provider: "anthropic",
+        requestType: "course_generation",
+      });
+
+      return NextResponse.json({
+        success: true,
         data: validationResult.data,
         metadata: {
           tokensUsed: completion.usage?.input_tokens || 0,
