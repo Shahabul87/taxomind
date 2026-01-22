@@ -22,3 +22,4 @@ export default {
   trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 } satisfies NextAuthConfig
+// Force rebuild: 1769058945
