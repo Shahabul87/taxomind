@@ -157,8 +157,8 @@ export function NotificationPreferences({ onClose, className }: NotificationPref
   }
 
   return (
-    <Card className={cn('w-full max-w-2xl', className)}>
-      <CardHeader className="border-b border-slate-200 dark:border-slate-700">
+    <Card className={cn('w-full max-w-2xl flex flex-col max-h-[80vh]', className)}>
+      <CardHeader className="border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
@@ -179,7 +179,7 @@ export function NotificationPreferences({ onClose, className }: NotificationPref
         </div>
       </CardHeader>
 
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="p-6 space-y-6 overflow-y-auto flex-1">
         {/* Master Toggle */}
         <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4 dark:border-slate-700">
           <div className="flex items-center gap-3">
@@ -383,26 +383,29 @@ export function NotificationPreferences({ onClose, className }: NotificationPref
                 open={expandedSections.breaks}
                 onOpenChange={() => toggleSection('breaks')}
               >
-                <CollapsibleTrigger asChild>
-                  <button className="flex w-full items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
-                    <div className="flex items-center gap-3">
+                <div className="flex w-full items-center justify-between rounded-lg border border-slate-200 p-4 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50">
+                  <CollapsibleTrigger asChild>
+                    <button className="flex flex-1 items-center gap-3 text-left">
                       <Coffee className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                       <span className="font-medium">Break Reminders</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        checked={localPrefs.breakReminders ?? true}
-                        onCheckedChange={(checked) => handleChange('breakReminders', checked)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      {expandedSections.breaks ? (
-                        <ChevronUp className="h-5 w-5 text-slate-400" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-slate-400" />
-                      )}
-                    </div>
-                  </button>
-                </CollapsibleTrigger>
+                    </button>
+                  </CollapsibleTrigger>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={localPrefs.breakReminders ?? true}
+                      onCheckedChange={(checked) => handleChange('breakReminders', checked)}
+                    />
+                    <CollapsibleTrigger asChild>
+                      <button className="p-1 hover:bg-slate-100 rounded dark:hover:bg-slate-700">
+                        {expandedSections.breaks ? (
+                          <ChevronUp className="h-5 w-5 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-slate-400" />
+                        )}
+                      </button>
+                    </CollapsibleTrigger>
+                  </div>
+                </div>
                 <CollapsibleContent>
                   <div className="mt-2 space-y-4 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
                     <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -555,7 +558,7 @@ export function NotificationPreferences({ onClose, className }: NotificationPref
         </AnimatePresence>
 
         {/* Actions */}
-        <div className="flex items-center justify-between border-t border-slate-200 pt-4 dark:border-slate-700">
+        <div className="flex items-center justify-between border-t border-slate-200 pt-4 dark:border-slate-700 flex-shrink-0 bg-white dark:bg-slate-900 sticky bottom-0">
           <Button
             variant="ghost"
             onClick={handleReset}

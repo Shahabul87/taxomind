@@ -15,22 +15,24 @@ export function checkEnvironmentVariables() {
   }
 
   const requiredVars = {
-    // Auth
+    // Auth - Critical for production
     AUTH_SECRET: process.env.AUTH_SECRET,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    
+    AUTH_URL: process.env.AUTH_URL, // Auth.js v5 uses this
+    AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST, // Required for Railway/Docker deployments
+
     // Database
     DATABASE_URL: process.env.DATABASE_URL,
-    
+
     // OAuth
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
-    
+
     // Email
     RESEND_API_KEY: process.env.RESEND_API_KEY,
-    
+
     // App URL
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   };
@@ -66,6 +68,14 @@ export function checkEnvironmentVariables() {
       
       if (missing.includes('AUTH_SECRET')) {
         logger.error('AUTH_SECRET is required for NextAuth to work properly');
+      }
+
+      if (missing.includes('AUTH_TRUST_HOST')) {
+        logger.warn('AUTH_TRUST_HOST=true is required for Railway/Docker deployments. OAuth may fail without it.');
+      }
+
+      if (missing.includes('AUTH_URL') && missing.includes('NEXTAUTH_URL')) {
+        logger.error('Either AUTH_URL or NEXTAUTH_URL must be set for OAuth callbacks to work');
       }
     } else {
 }

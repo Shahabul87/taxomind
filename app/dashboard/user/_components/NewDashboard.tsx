@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import dynamic from "next/dynamic";
 import type { User as NextAuthUser } from "next-auth";
 import { ActivityStream } from "./ActivityStream";
 import { EmptyState } from "./EmptyState";
 import { useActivities } from "@/hooks/use-activities";
-import { Loader2, LayoutDashboard, Trophy, Target, Timer, AlertTriangle, Lightbulb, Compass, Wand2, ClipboardCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, Wand2 } from "lucide-react";
 
 // Enhanced Gamification Components
 import {
@@ -142,12 +141,11 @@ import { TutoringOrchestrationWidget } from "@/components/sam/TutoringOrchestrat
 import { RealtimeCollaborationWidget } from "@/components/sam/RealtimeCollaborationWidget";
 import { UserInterventionsWidget } from "@/components/sam/UserInterventionsWidget";
 
-// Gap 2 Final: Last 2 hooks now connected (22/22 complete)
-import { NotificationsWidget } from "@/components/sam/NotificationsWidget";
+// Gap 2 Final: Learning recommendations hook now connected
+// NOTE: NotificationsWidget removed - notifications unified in header bell
 import { LearningRecommendationsWidget } from "@/components/sam/LearningRecommendationsWidget";
 
-// GAP-9: Comprehensive Notification Center with Preferences Panel
-import { NotificationCenterTrigger } from "@/components/sam/notification-center";
+// NOTE: NotificationCenterTrigger removed - now unified in header
 
 // Phase 4: Study Buddy Chat - Real-time collaborative study sessions
 import { StudyBuddyChat } from "@/components/sam/study-buddy-chat";
@@ -224,15 +222,24 @@ import { PersonalizationControlPanel } from "@/components/sam/personalization/Pe
 // Phase 9: Self-Assessment Hub - Standalone exam creation, taking, and results analysis
 import { SelfAssessmentHub } from "@/components/sam/self-assessment-hub";
 
+// Phase 10: Unified Analytics Dashboard - Merged from /analytics page
+import { LearningAnalyticsDashboard } from "./learning-command-center/analytics";
+
+// Phase 10: Unified Goals Tab - Merged from /goals page
+import { GoalPlanner } from "@/components/sam/goal-planner";
+import { GoalsProgress } from "./learning-command-center/analytics/GoalsProgress";
+
+// DashboardView type - now controlled by parent via UnifiedDashboardHeader
+type DashboardView = "learning" | "analytics" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "discover" | "create";
+
 interface NewDashboardProps {
   user: NextAuthUser;
   viewMode: "grid" | "list";
+  activeTab: DashboardView;
 }
 
-type DashboardView = "learning" | "gamification" | "skills" | "practice" | "gaps" | "innovation" | "discover" | "create" | "assess";
-
-export function NewDashboard({ user, viewMode }: NewDashboardProps) {
-  const [dashboardView, setDashboardView] = useState<DashboardView>("learning");
+export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
+  // activeTab is now controlled by parent - no local state needed
 
   const {
     activities,
@@ -306,109 +313,14 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
     // TODO: Implement favorite functionality (add to schema if needed)
   };
 
-  // View Toggle Component (shared across views)
-  const ViewToggle = () => (
-    <div className="fixed top-16 right-0 left-0 sm:left-auto sm:right-4 sm:top-4 z-10 px-2 sm:px-0 sm:static">
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 sm:overflow-visible scrollbar-hide">
-        {/* GAP-9: Notification Center Trigger */}
-        <NotificationCenterTrigger
-          variant="outline"
-          className="h-9 w-9 flex-shrink-0 rounded-lg border-slate-200/50 bg-white/80 backdrop-blur-sm hover:bg-slate-100/80 dark:border-slate-700/50 dark:bg-slate-800/80 dark:hover:bg-slate-700/80"
-        />
-        <div className="flex items-center gap-1 rounded-lg border border-slate-200/50 bg-white/80 p-1 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/80 flex-shrink-0">
-      <Button
-        variant={dashboardView === "learning" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("learning")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <LayoutDashboard className="h-4 w-4" />
-        <span className="hidden md:inline">Learning</span>
-      </Button>
-      <Button
-        variant={dashboardView === "skills" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("skills")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <Target className="h-4 w-4" />
-        <span className="hidden md:inline">Skills</span>
-      </Button>
-      <Button
-        variant={dashboardView === "practice" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("practice")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <Timer className="h-4 w-4" />
-        <span className="hidden md:inline">Practice</span>
-      </Button>
-      <Button
-        variant={dashboardView === "gamification" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("gamification")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <Trophy className="h-4 w-4" />
-        <span className="hidden md:inline">Achievements</span>
-      </Button>
-      <Button
-        variant={dashboardView === "gaps" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("gaps")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <AlertTriangle className="h-4 w-4" />
-        <span className="hidden md:inline">Gaps</span>
-      </Button>
-      <Button
-        variant={dashboardView === "innovation" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("innovation")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <Lightbulb className="h-4 w-4" />
-        <span className="hidden md:inline">Innovation</span>
-      </Button>
-      <Button
-        variant={dashboardView === "discover" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("discover")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <Compass className="h-4 w-4" />
-        <span className="hidden md:inline">Discover</span>
-      </Button>
-      <Button
-        variant={dashboardView === "create" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("create")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <Wand2 className="h-4 w-4" />
-        <span className="hidden md:inline">Create</span>
-      </Button>
-      <Button
-        variant={dashboardView === "assess" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => setDashboardView("assess")}
-        className="gap-1 sm:gap-2 flex-shrink-0"
-      >
-        <ClipboardCheck className="h-4 w-4" />
-        <span className="hidden md:inline">Assess</span>
-      </Button>
-      </div>
-    </div>
-  </div>
-  );
+  // NOTE: ViewToggle removed - navigation now handled by UnifiedDashboardHeader in parent
 
   // Show Learning Command Center as the default view
-  if (dashboardView === "learning") {
+  if (activeTab === "learning") {
     return (
       <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-900/10 dark:to-indigo-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
-        <ViewToggle />
 
         {/* Learning Command Center - Main Learning Hub */}
         <LearningCommandCenter user={user} />
@@ -716,20 +628,7 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             />
           </div>
 
-          {/* ============================================================= */}
-          {/* PHASE 8: Study Planning & Memory Hub - Goals, Plans, Reviews */}
-          {/* ============================================================= */}
-
-          {/* Study Planning Hub - Goals, daily plans, spaced repetition, memory insights */}
-          <div className="mt-6">
-            <StudyPlanningHub
-              defaultTab="overview"
-              onGoalCreated={(goal) => console.log("Goal created:", goal)}
-              onGoalUpdated={(goal) => console.log("Goal updated:", goal)}
-              onReviewComplete={(conceptId, score) => console.log("Review completed:", conceptId, score)}
-              onInsightSelect={(insight) => console.log("Insight selected:", insight)}
-            />
-          </div>
+          {/* NOTE: StudyPlanningHub moved to Goals tab for unified goal management */}
 
           {/* ============================================================= */}
           {/* MISSING ENGINES NOW SURFACED - Previously Unwired Capabilities */}
@@ -880,15 +779,8 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
             />
           </div>
 
-          {/* Gap 2 Final: Notifications and Learning Recommendations (22/22 hooks complete) */}
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-            {/* NotificationsWidget - useNotifications hook */}
-            <NotificationsWidget
-              maxVisible={5}
-              refreshInterval={60000}
-            />
-
-            {/* LearningRecommendationsWidget - useRecommendations hook */}
+          {/* Learning Recommendations - AI-powered personalized suggestions */}
+          <div className="mt-6">
             <LearningRecommendationsWidget
               maxRecommendations={5}
               defaultAvailableTime={60}
@@ -919,13 +811,141 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
     );
   }
 
+  // ============================================================================
+  // ANALYTICS TAB - Unified Learning Analytics (Merged from /dashboard/user/analytics)
+  // ============================================================================
+  if (activeTab === "analytics") {
+    return (
+      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 dark:from-slate-900 dark:via-indigo-900/10 dark:to-purple-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+          {/* Learning Analytics Dashboard - Full analytics experience */}
+          <LearningAnalyticsDashboard
+            defaultTab="overview"
+            onExport={() => console.log("Export analytics")}
+            onRefresh={() => console.log("Refresh analytics")}
+          />
+
+          {/* Self-Assessment Hub - Merged from assess tab */}
+          <div className="mt-8">
+            <SelfAssessmentHub userId={user.id ?? ""} />
+          </div>
+
+          {/* Quality & Calibration Metrics - Consolidated from Skills and Gamification tabs */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            {/* Quality Score Dashboard - Content quality metrics */}
+            <QualityScoreDashboard />
+
+            {/* Confidence Calibration - AI Quality Metrics */}
+            <ConfidenceCalibrationWidget />
+          </div>
+        </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // GOALS TAB - Unified Goals Management (Merged from /dashboard/user/goals)
+  // ============================================================================
+  if (activeTab === "goals") {
+    return (
+      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-rose-50/30 to-pink-50/30 dark:from-slate-900 dark:via-rose-900/10 dark:to-pink-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+          {/* Header Section */}
+          <div className="mb-8">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-lg">
+                <span className="text-2xl">🎯</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Goals & Milestones
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400">
+                  Set, track, and achieve your learning objectives with AI-powered guidance
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Goals Progress Overview */}
+          <div className="mb-6">
+            <GoalsProgress compact={false} />
+          </div>
+
+          {/* Goal Planner - AI-Powered Goal Management */}
+          <div className="mb-6">
+            <GoalPlanner
+              compact={false}
+              maxGoals={10}
+              showCreateButton={true}
+            />
+          </div>
+
+          {/* Study Planning Hub - Additional planning tools */}
+          <div className="mt-6">
+            <StudyPlanningHub
+              defaultTab="goals"
+              onGoalCreated={(goal) => console.log("Goal created:", goal)}
+              onGoalUpdated={(goal) => console.log("Goal updated:", goal)}
+              onReviewComplete={(conceptId, score) => console.log("Review completed:", conceptId, score)}
+              onInsightSelect={(insight) => console.log("Insight selected:", insight)}
+            />
+          </div>
+        </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
   // Practice view with 10,000 Hour Practice Tracking System
-  if (dashboardView === "practice") {
+  if (activeTab === "practice") {
     return (
       <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-orange-50/30 to-red-50/30 dark:from-slate-900 dark:via-orange-900/10 dark:to-red-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
-        <ViewToggle />
 
         <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
           {/* Header Section */}
@@ -1000,12 +1020,11 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   }
 
   // Skills view with SkillBuildTracker (connected to real API)
-  if (dashboardView === "skills") {
+  if (activeTab === "skills") {
     return (
       <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/30 dark:from-slate-900 dark:via-emerald-900/10 dark:to-teal-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
-        <ViewToggle />
 
         <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Main Skill Tracker */}
@@ -1041,12 +1060,10 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* SAM AI Engine Widgets Section */}
-          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="mt-6 sm:mt-8">
             {/* Knowledge Graph Browser - Basic view for quick reference */}
             <KnowledgeGraphBrowser />
-
-            {/* Quality Score Dashboard - Content quality metrics */}
-            <QualityScoreDashboard />
+            {/* NOTE: QualityScoreDashboard moved to Analytics tab */}
           </div>
 
           {/* Gap 1: Bias Detection Report - Fairness Analysis (Full Width) */}
@@ -1112,12 +1129,11 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   }
 
   // Gaps view with Learning Gap Analysis Dashboard
-  if (dashboardView === "gaps") {
+  if (activeTab === "gaps") {
     return (
       <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/30 dark:from-slate-900 dark:via-red-900/10 dark:to-orange-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
-        <ViewToggle />
 
         <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Learning Gap Dashboard */}
@@ -1147,12 +1163,11 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   }
 
   // Innovation view with InnovationEngine features (Cognitive Fitness, Learning DNA, Study Buddy AI, Quantum Paths)
-  if (dashboardView === "innovation") {
+  if (activeTab === "innovation") {
     return (
       <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-yellow-50/30 to-orange-50/30 dark:from-slate-900 dark:via-yellow-900/10 dark:to-orange-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
-        <ViewToggle />
 
         <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Innovation Dashboard - All 4 InnovationEngine features */}
@@ -1182,12 +1197,11 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   }
 
   // Discover view with Course Marketplace
-  if (dashboardView === "discover") {
+  if (activeTab === "discover") {
     return (
       <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-cyan-50/30 to-blue-50/30 dark:from-slate-900 dark:via-cyan-900/10 dark:to-blue-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
-        <ViewToggle />
 
         <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Course Marketplace - Browse and discover courses */}
@@ -1226,12 +1240,11 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
   // PHASE 0: Create View - Creator Studio with Content Generation, Course Guide, Depth Analysis
   // Exposes creator tools to all Users (not just teachers)
   // ============================================================================
-  if (dashboardView === "create") {
+  if (activeTab === "create") {
     return (
       <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/30 dark:from-slate-900 dark:via-violet-900/10 dark:to-purple-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
-        <ViewToggle />
 
         <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
           {/* Header Section */}
@@ -1325,74 +1338,15 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
     );
   }
 
-  // ============================================================================
-  // PHASE 9: Assess View - Self-Assessment Hub for Personal Skill Testing
-  // Standalone exam system not tied to course sections
-  // ============================================================================
-  if (dashboardView === "assess") {
-    return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/30 dark:from-slate-900 dark:via-emerald-900/10 dark:to-teal-900/10">
-        {/* SAM Context Tracker - Invisible, syncs page context */}
-        <SAMContextTracker />
-        <ViewToggle />
-
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
-          {/* Header Section */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                <ClipboardCheck className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Self-Assessment Center
-                </h1>
-                <p className="text-slate-600 dark:text-slate-400">
-                  Create personalized exams, test your knowledge, and track your cognitive growth
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* ============================================================= */}
-          {/* Self-Assessment Hub - Complete Exam Management */}
-          {/* ============================================================= */}
-
-          <SelfAssessmentHub userId={user.id ?? ""} />
-        </div>
-
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
-
-        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
-        <ToolApprovalDialog
-          request={pendingRequest}
-          open={isToolApprovalOpen}
-          onOpenChange={setToolApprovalOpen}
-          onApprove={handleToolApprove}
-          onDeny={handleToolDeny}
-          isProcessing={isToolApprovalProcessing}
-        />
-
-        {/* Gap 3: Celebration Overlay for achievements */}
-        <CelebrationOverlay
-          celebration={celebration}
-          onDismiss={dismissCelebration}
-        />
-      </div>
-    );
-  }
-
-  // Gamification view
+  // Gamification view (default for 'gamification' tab)
   return (
     <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-blue-900/20 dark:to-indigo-900/20">
       {/* SAM Context Tracker - Invisible, syncs page context */}
       <SAMContextTracker />
-      <ViewToggle />
 
       <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8">
         {/* Gamification Section */}
-        <section className="mb-6 sm:mb-8 pt-20 sm:pt-12">
+        <section className="mb-6 sm:mb-8">
           {/* Level Progress Header */}
           <div className="mb-6">
             <LevelProgressBar />
@@ -1431,12 +1385,10 @@ export function NewDashboard({ user, viewMode }: NewDashboardProps) {
           </div>
 
           {/* SAM AI Advanced Analytics Row */}
-          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="mt-4 sm:mt-6">
             {/* Competency Dashboard - Skill Mastery Tracking */}
             <CompetencyDashboard />
-
-            {/* Confidence Calibration - AI Quality Metrics */}
-            <ConfidenceCalibrationWidget />
+            {/* NOTE: ConfidenceCalibrationWidget moved to Analytics tab */}
           </div>
         </section>
 

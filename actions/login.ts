@@ -231,14 +231,42 @@ export const login = async (
     console.log('[login] invalid credentials - wrong password');
     // Log failed login due to wrong password
     await authAuditHelpers.logSignInFailed(email, 'Invalid password');
+
+    // Brute Force Protection: Increment failed attempts and check for lockout
+    try {
+      const { incrementFailedAttempts, recordLoginAttempt } = await import('@/lib/auth/brute-force-protection');
+      await recordLoginAttempt(email, ip, false);
+      const { locked, attempts } = await incrementFailedAttempts(existingUser.id);
+
+      if (locked) {
+        return { error: "Account locked due to too many failed attempts. Try again in 15 minutes." };
+      }
+
+      const remainingAttempts = 5 - attempts;
+      if (remainingAttempts > 0) {
+        return { error: `Invalid credentials! ${remainingAttempts} attempt${remainingAttempts === 1 ? '' : 's'} remaining.` };
+      }
+    } catch (bruteForceError) {
+      console.error('[login] Brute force tracking error:', bruteForceError);
+    }
+
     return { error: "Invalid credentials!" };
   }
 
   // Credentials are valid, return success
   console.log('[login] credentials validated, returning success');
-  
+
   // Log successful login
   await authAuditHelpers.logSignInSuccess(existingUser.id, existingUser.email, 'credentials');
+
+  // Brute Force Protection: Reset failed attempts on successful login
+  try {
+    const { resetFailedAttempts, recordLoginAttempt } = await import('@/lib/auth/brute-force-protection');
+    await resetFailedAttempts(existingUser.id);
+    await recordLoginAttempt(email, ip, true);
+  } catch (bruteForceError) {
+    console.error('[login] Brute force reset error:', bruteForceError);
+  }
   
   // Return success - client will handle the actual sign in
   return { 

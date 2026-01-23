@@ -330,4 +330,192 @@ export function getRateLimitMessage(
   const resetMinutes = Math.ceil(resetInSeconds / 60);
 
   return `You've reached the ${action} limit (${config.requests} ${action}s per ${config.duration}). Please try again in ${resetMinutes} minute${resetMinutes > 1 ? 's' : ''}.`;
+}
+
+// ============================================
+// AI ENDPOINT RATE LIMITING CONFIGURATIONS
+// ============================================
+// These protect expensive AI operations from abuse
+
+export const AI_RATE_LIMITS = {
+  // Course content generation (expensive - Anthropic/OpenAI calls)
+  'ai-content-generation': {
+    requests: 20,
+    window: '1 h',
+    description: 'Course content, descriptions, objectives generation'
+  },
+  // Chapter/Section generation (very expensive - multiple API calls)
+  'ai-chapter-generation': {
+    requests: 10,
+    window: '1 h',
+    description: 'Chapter and section content generation'
+  },
+  // Bulk operations (extremely expensive)
+  'ai-bulk-generation': {
+    requests: 5,
+    window: '1 h',
+    description: 'Bulk chapter/section generation'
+  },
+  // Exam/Quiz generation
+  'ai-exam-generation': {
+    requests: 15,
+    window: '1 h',
+    description: 'Exam and quiz question generation'
+  },
+  // SAM AI Mentor chat (moderate - streaming)
+  'sam-chat': {
+    requests: 100,
+    window: '1 h',
+    description: 'SAM AI mentor conversations'
+  },
+  // SAM analysis operations
+  'sam-analysis': {
+    requests: 30,
+    window: '1 h',
+    description: 'SAM analysis and insights'
+  },
+  // General API rate limit (for all other endpoints)
+  'general-api': {
+    requests: 100,
+    window: '1 m',
+    description: 'General API requests'
+  },
+  // Unauthenticated API rate limit
+  'general-api-unauthenticated': {
+    requests: 20,
+    window: '1 m',
+    description: 'Unauthenticated API requests'
+  },
+} as const;
+
+export type AIEndpoint = keyof typeof AI_RATE_LIMITS;
+
+/**
+ * Rate limit AI endpoints with predefined configurations
+ * @param endpoint - The AI endpoint type
+ * @param identifier - A unique identifier for the user/client
+ */
+export async function rateLimitAI(
+  endpoint: AIEndpoint,
+  identifier: string
+): Promise<RateLimitResult> {
+  const config = AI_RATE_LIMITS[endpoint];
+  const windowMs = parseTimeWindow(config.window);
+
+  logger.debug(`Rate limiting AI endpoint ${endpoint} for identifier: ${identifier}`);
+
+  return rateLimit(
+    `ai:${endpoint}:${identifier}`,
+    config.requests,
+    windowMs
+  );
+}
+
+/**
+ * Determine which AI rate limit category an endpoint belongs to
+ * @param pathname - The API route pathname
+ */
+export function getAIRateLimitCategory(pathname: string): AIEndpoint | null {
+  // AI content generation endpoints
+  if (
+    pathname.includes('/api/ai/course-content') ||
+    pathname.includes('/api/ai/course-planner') ||
+    pathname.includes('/api/ai/content-optimizer') ||
+    pathname.includes('/api/ai/content-curator') ||
+    pathname.includes('/api/ai/unified-generate')
+  ) {
+    return 'ai-content-generation';
+  }
+
+  // Chapter/Section generation
+  if (
+    pathname.includes('/api/ai/chapter-generator') ||
+    pathname.includes('/api/ai/chapter-content') ||
+    pathname.includes('/api/ai/chapter-sections') ||
+    pathname.includes('/api/ai/section-content') ||
+    pathname.includes('/api/ai/lesson-generator')
+  ) {
+    return 'ai-chapter-generation';
+  }
+
+  // Bulk generation
+  if (
+    pathname.includes('/api/ai/bulk-chapters') ||
+    pathname.includes('/api/ai/blueprint-refinement')
+  ) {
+    return 'ai-bulk-generation';
+  }
+
+  // Exam/Quiz generation
+  if (
+    pathname.includes('/api/ai/exam-generator') ||
+    pathname.includes('/api/ai/advanced-exam-generator') ||
+    pathname.includes('/api/ai/exercise-generator') ||
+    pathname.includes('/api/sam/exam-engine')
+  ) {
+    return 'ai-exam-generation';
+  }
+
+  // SAM chat endpoints
+  if (
+    pathname.includes('/api/sam/chat') ||
+    pathname.includes('/api/sam/unified') ||
+    pathname.includes('/api/sam/context-aware') ||
+    pathname.includes('/api/sam/course-assistant') ||
+    pathname.includes('/api/sam/ai-tutor/socratic') ||
+    pathname.includes('/api/sam/socratic')
+  ) {
+    return 'sam-chat';
+  }
+
+  // SAM analysis endpoints
+  if (
+    pathname.includes('/api/sam/blooms') ||
+    pathname.includes('/api/sam/analytics') ||
+    pathname.includes('/api/sam/integrated-analysis') ||
+    pathname.includes('/api/sam/content-scoring') ||
+    pathname.includes('/api/sam/ai-trends') ||
+    pathname.includes('/api/sam/predictive')
+  ) {
+    return 'sam-analysis';
+  }
+
+  // Not an AI endpoint
+  return null;
+}
+
+/**
+ * Check if a pathname is an AI endpoint that requires rate limiting
+ */
+export function isAIEndpoint(pathname: string): boolean {
+  return pathname.startsWith('/api/ai/') ||
+         pathname.startsWith('/api/sam/');
+}
+
+/**
+ * Create rate limit error response with proper headers
+ */
+export function createRateLimitResponse(
+  result: RateLimitResult,
+  message?: string
+): Response {
+  const headers = getRateLimitHeaders(result);
+
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: message || 'Too many requests. Please try again later.',
+        retryAfter: result.retryAfter,
+      },
+    }),
+    {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    }
+  );
 } 

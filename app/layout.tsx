@@ -135,6 +135,7 @@ import { InterventionProvider } from '@/components/sam/interventions/Interventio
 import { CSSErrorMonitorClient } from '@/components/dev/css-error-monitor-client';
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration';
 import { ServiceWorkerManager } from '@/components/service-worker-manager';
+import { ErrorHandlerProvider } from '@/components/providers/error-handler-provider';
 
 // Use auto dynamic rendering (Next.js will determine optimal rendering)
 // export const dynamic = 'force-dynamic'; // Commented out to fix SSR bailout issue
@@ -263,14 +264,16 @@ export default async function RootLayout({
         "bg-background text-foreground font-sans"
       )}>
         <Providers session={session}>
-          {/* Skip link for keyboard users */}
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-md focus:bg-blue-600 focus:text-white"
-          >
-            Skip to main content
-          </a>
-          <ConfettiProvider />
+          {/* Global Error Handler - Captures unhandled errors on client */}
+          <ErrorHandlerProvider>
+            {/* Skip link for keyboard users */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:rounded-md focus:bg-blue-600 focus:text-white"
+            >
+              Skip to main content
+            </a>
+            <ConfettiProvider />
           <ClientToaster />
           {/* SAM AI Intervention Provider - Enables proactive interventions globally */}
           <InterventionProvider
@@ -300,6 +303,7 @@ export default async function RootLayout({
             showOfflineIndicator={true}
             enableNotifications={true}
           />
+          </ErrorHandlerProvider>
         </Providers>
       </body>
     </html>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -55,6 +55,8 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab');
 
   // Prevent hydration mismatch by only rendering after mount
   useEffect(() => {
@@ -113,7 +115,7 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
     },
     {
       label: 'My Goals',
-      href: '/dashboard/user/goals',
+      href: '/dashboard/user?tab=goals',
       icon: Target,
       roles: ['all'],
     },
@@ -145,7 +147,7 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
     },
     {
       label: 'Analytics',
-      href: '/dashboard/user/analytics',
+      href: '/dashboard/user?tab=analytics',
       icon: BarChart3,
       roles: ['all'],
     },
@@ -211,9 +213,15 @@ export function SmartSidebar({ user, isMobileOpen = false, onMobileClose }: Smar
   const filteredBottomItems = filterByRole(bottomNavigationItems);
 
   const isActiveLink = (href: string) => {
+    // Handle tab-based navigation (e.g., /dashboard/user?tab=goals)
+    if (href.includes('?tab=')) {
+      const [basePath, queryString] = href.split('?');
+      const tabParam = new URLSearchParams(queryString).get('tab');
+      return pathname === basePath && currentTab === tabParam;
+    }
     // Dashboard links should only be active on exact match
     if (href === '/dashboard/user' || href === '/dashboard/admin' || href === '/dashboard') {
-      return pathname === href;
+      return pathname === href && !currentTab;
     }
     return pathname.startsWith(href);
   };

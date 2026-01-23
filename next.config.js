@@ -461,6 +461,22 @@ const nextConfig = {
     ]
   },
 
+  // Dashboard unification redirects - old pages to new tab-based URLs
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/user/analytics',
+        destination: '/dashboard/user?tab=analytics',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/user/goals',
+        destination: '/dashboard/user?tab=goals',
+        permanent: true,
+      },
+    ];
+  },
+
   // Essential rewrites
   async rewrites() {
     return [

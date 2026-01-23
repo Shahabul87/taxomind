@@ -115,31 +115,83 @@ async function generateThumbnail(publicId: string): Promise<string> {
   });
 }
 
-// For local development fallback
+/**
+ * Local file upload fallback
+ *
+ * SECURITY WARNING: This function should ONLY be used in development.
+ * In production, all file uploads must go through Cloudinary or another
+ * cloud storage service to support horizontal scaling.
+ *
+ * This function creates instance-specific state (files on local disk)
+ * which breaks horizontal scaling - different instances would have different files.
+ *
+ * @deprecated Use uploadFile() with Cloudinary configuration instead
+ */
 async function uploadFileLocal(
   buffer: Buffer,
   fileName: string,
-  mimeType: string
+  _mimeType: string
 ): Promise<string> {
+  // CRITICAL: Block local uploads in production
+  if (process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT || process.env.VERCEL) {
+    logger.error('Local file upload attempted in production environment');
+    throw new Error(
+      'Local file upload is disabled in production. Please configure Cloudinary credentials: ' +
+      'CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET'
+    );
+  }
+
+  // Development-only: warn about usage
+  logger.warn(
+    '[DEPRECATED] uploadFileLocal is deprecated and only works in development. ' +
+    'Configure Cloudinary for production deployments.'
+  );
+
   const fs = require('fs');
   const path = require('path');
-  
+
   const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'certificates');
-  
+
   // Create directory if it doesn't exist
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
-  
+
   const filePath = path.join(uploadDir, fileName);
-  
+
   try {
     fs.writeFileSync(filePath, buffer);
     return `/uploads/certificates/${fileName}`;
-  } catch (error: any) {
-    logger.error('Local upload error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Local upload error:', errorMessage);
     throw new Error('Failed to upload file locally');
   }
+}
+
+/**
+ * Check if Cloudinary is properly configured
+ */
+function isCloudinaryConfigured(): boolean {
+  return !!(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET
+  );
+}
+
+/**
+ * Get the appropriate upload function based on environment
+ * In production, throws if Cloudinary is not configured
+ */
+function getUploadFunction(): typeof uploadFile {
+  if (process.env.NODE_ENV === 'production' && !isCloudinaryConfigured()) {
+    throw new Error(
+      'Cloudinary is not configured. File uploads require Cloudinary in production. ' +
+      'Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.'
+    );
+  }
+  return uploadFile;
 }
 
 export {
@@ -148,7 +200,9 @@ export {
   deleteFile,
   getFileUrl,
   generateThumbnail,
-  uploadFileLocal
+  uploadFileLocal,
+  isCloudinaryConfigured,
+  getUploadFunction,
 };
 
 export default uploadFile;

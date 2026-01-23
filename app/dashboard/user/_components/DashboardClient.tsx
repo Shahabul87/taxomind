@@ -1,19 +1,37 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { User as NextAuthUser } from 'next-auth';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
-import { ChevronRight, ChevronDown } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+
+// Import unified header type
+import type { DashboardView } from '@/components/dashboard/unified-header';
+
+// Unified Dashboard Hooks
+import { useUnifiedDashboard } from '@/hooks/dashboard';
 
 // Dynamic imports to prevent hydration mismatch with Framer Motion components
-const SmartHeader = dynamic(
-  () => import('@/components/dashboard/smart-header').then((mod) => mod.SmartHeader),
+const UnifiedDashboardHeader = dynamic(
+  () => import('@/components/dashboard/unified-header').then((mod) => mod.UnifiedDashboardHeader),
   {
     ssr: false,
     loading: () => (
-      <header className="fixed top-0 left-0 right-0 z-40 h-16 border-b border-slate-200/50 dark:border-slate-700/50 backdrop-blur-md bg-white/95 dark:bg-slate-800/95">
-        <div className="h-full pl-4 lg:pl-[88px] pr-4 sm:pr-6 lg:pr-8" />
+      <header className="fixed top-0 left-0 right-0 z-40 border-b border-slate-200/50 dark:border-slate-700/50 backdrop-blur-md bg-white/95 dark:bg-slate-800/95">
+        <div className="lg:pl-[88px] px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-10 border-b border-slate-100 dark:border-slate-700/50">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            </div>
+          </div>
+          <div className="flex items-center h-8 py-1">
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-6 w-16 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
       </header>
     ),
   }
@@ -50,11 +68,53 @@ interface DashboardClientProps {
   };
 }
 
+// Valid tab values for URL param validation
+const validTabs: DashboardView[] = ['learning', 'analytics', 'skills', 'practice', 'gamification', 'goals', 'gaps', 'innovation', 'discover', 'create'];
+
 export function DashboardClient({ user }: DashboardClientProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const urlTab = searchParams.get('tab') as DashboardView | null;
+
+  // Use unified dashboard hook for centralized state management
+  const { activeTab, setActiveTab: setContextTab } = useUnifiedDashboard();
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isMobileHeaderOpen, setIsMobileHeaderOpen] = useState(true);
   const { isMobile } = useViewportHeight();
+
+  // Track initialization to avoid re-running on mount
+  const initializedRef = useRef(false);
+
+  // Initialize tab from URL on mount
+  useEffect(() => {
+    if (!initializedRef.current && urlTab && validTabs.includes(urlTab)) {
+      initializedRef.current = true;
+      setContextTab(urlTab);
+    }
+  }, [urlTab, setContextTab]);
+
+  // Sync URL params when tab changes (for header tab clicks)
+  const handleTabChange = (tab: DashboardView) => {
+    setContextTab(tab);
+    // Update URL without full page reload
+    const url = new URL(window.location.href);
+    if (tab === 'learning') {
+      url.searchParams.delete('tab');
+    } else {
+      url.searchParams.set('tab', tab);
+    }
+    router.push(url.pathname + url.search, { scroll: false });
+  };
+
+  // Sync context state when URL param changes (for sidebar link clicks)
+  useEffect(() => {
+    if (initializedRef.current && urlTab && validTabs.includes(urlTab) && urlTab !== activeTab) {
+      setContextTab(urlTab);
+    } else if (initializedRef.current && !urlTab && activeTab !== 'learning') {
+      setContextTab('learning');
+    }
+  }, [urlTab, activeTab, setContextTab]);
 
   // Modal states
   const [isStudyPlanModalOpen, setIsStudyPlanModalOpen] = useState(false);
@@ -304,18 +364,18 @@ export function DashboardClient({ user }: DashboardClientProps) {
           onMobileClose={() => setIsMobileSidebarOpen(false)}
         />
 
-        {/* Header with auto-hide on mobile */}
-        <SmartHeader
+        {/* Unified Header with integrated tabs */}
+        <UnifiedDashboardHeader
           user={user}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
           quickActionHandlers={quickActionHandlers}
-          isMobileVisible={true}
+          onMobileSidebarOpen={() => setIsMobileSidebarOpen(true)}
         />
 
-        {/* Main Content */}
-        <main className="pt-16 pb-20 md:pb-20 lg:pb-0 md:pl-0 lg:pl-[72px]">
-          <NewDashboard user={user} viewMode={viewMode} />
+        {/* Main Content - pt-14 for unified header height (56px) */}
+        <main className="pt-14 pb-20 md:pb-20 lg:pb-0 md:pl-0 lg:pl-[72px]">
+          <NewDashboard user={user} viewMode={viewMode} activeTab={activeTab} />
         </main>
 
         {/* Modals */}

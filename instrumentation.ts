@@ -1,4 +1,20 @@
 export async function register() {
+  // ========================================
+  // PART 1: Global Error Handlers
+  // ========================================
+  // Set up global error handlers first to catch any errors during initialization
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    try {
+      const { setupServerErrorHandlers } = await import('./lib/error-handling/global-error-handlers');
+      await setupServerErrorHandlers();
+    } catch (error) {
+      console.warn('[Instrumentation] Failed to setup global error handlers:', error);
+    }
+  }
+
+  // ========================================
+  // PART 2: Sentry Initialization
+  // ========================================
   // Initialize Sentry only if enabled and configs exist
   if (process.env.SKIP_SENTRY !== 'true') {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
