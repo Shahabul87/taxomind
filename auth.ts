@@ -286,9 +286,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(getBasePrismaClient()),
   // DEBUG MODE ENABLED - Investigating Configuration error
   debug: process.env.NODE_ENV === 'production',
-  // Additional security configuration
-  experimental: {
-    // Enable WebAuthn for future use
-    enableWebAuthn: true,
-  },
 });
