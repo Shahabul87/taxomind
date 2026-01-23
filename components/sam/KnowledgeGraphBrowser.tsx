@@ -345,8 +345,8 @@ function ConceptDetailsPanel({
           <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
             <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <h4 className="text-sm font-medium flex items-center gap-2">
-                <Layers className="h-4 w-4 text-primary" />
-                Connected Concepts ({details.neighbors.length})
+                <Layers className="h-4 w-4 text-primary flex-shrink-0" />
+                <span>Connected Concepts ({details.neighbors.length})</span>
               </h4>
             </div>
             {details.neighbors.length > 0 ? (
@@ -354,14 +354,11 @@ function ConceptDetailsPanel({
                 {details.neighbors.map((neighbor) => (
                   <button
                     key={neighbor.id}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors overflow-hidden"
                     onClick={() => onNavigate(neighbor.id)}
                   >
                     <ArrowRight className="h-3 w-3 text-primary flex-shrink-0" />
-                    <span className="text-sm truncate flex-1">{neighbor.name}</span>
-                    <Badge variant="outline" className="text-xs capitalize flex-shrink-0">
-                      {neighbor.type}
-                    </Badge>
+                    <span className="text-sm truncate flex-1 min-w-0">{neighbor.name}</span>
                   </button>
                 ))}
               </div>
@@ -377,21 +374,21 @@ function ConceptDetailsPanel({
             <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
               <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                 <h4 className="text-sm font-medium flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-amber-500" />
-                  Recommended Next
+                  <Sparkles className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                  <span>Recommended Next</span>
                 </h4>
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-700">
                 {details.recommendations.slice(0, 3).map((rec) => (
                   <button
                     key={rec.id}
-                    className="w-full p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="w-full p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors overflow-hidden"
                     onClick={() => onNavigate(rec.id)}
                   >
-                    <div className="font-medium text-sm text-slate-900 dark:text-white">
+                    <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
                       {rec.title}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                       {rec.reason}
                     </div>
                   </button>
@@ -1097,15 +1094,15 @@ export function KnowledgeGraphBrowser({
 
       <CardContent className="flex-1 flex gap-4 overflow-hidden pb-4">
         {/* Left Panel - Graph or List */}
-        <div className="flex-1 flex flex-col gap-3 min-w-0">
+        <div className="flex-1 flex flex-col gap-3 min-w-0 overflow-hidden">
           {showSearch && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative flex-shrink-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 placeholder="Search concepts..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-9"
+                className="pl-9 w-full"
               />
             </div>
           )}
@@ -1166,7 +1163,7 @@ export function KnowledgeGraphBrowser({
 
         {/* Right Panel - Concept Details */}
         {selectedNodeId && (
-          <div className="w-80 shrink-0">
+          <div className="w-80 shrink-0 overflow-hidden">
             {isLoadingDetails ? (
               <Card className="h-full">
                 <CardContent className="p-4 space-y-4">
