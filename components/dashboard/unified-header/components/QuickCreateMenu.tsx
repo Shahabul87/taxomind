@@ -119,7 +119,7 @@ export function QuickCreateMenu({ handlers, className }: QuickCreateMenuProps) {
         aria-expanded={isOpen}
         aria-haspopup="menu"
       >
-        <Plus className="h-5 w-5" />
+        <Plus className="h-4 w-4" />
       </motion.button>
 
       <AnimatePresence>

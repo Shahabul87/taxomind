@@ -54,7 +54,6 @@ const tabs: TabConfig[] = [
     icon: BarChart3,
     gradient: 'from-indigo-500 to-purple-500',
     description: 'Learning analytics & insights',
-    isPrimary: true,
   },
   {
     id: 'skills',
