@@ -816,34 +816,63 @@ export function KnowledgeGraphBrowser({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center flex-1">
-          <div className="text-center max-w-md">
-            <Brain className="h-16 w-16 text-primary/30 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Select a Course</h3>
-            <p className="text-muted-foreground mb-6">
+          <div className="text-center max-w-xl w-full px-4">
+            {/* Animated Brain Icon */}
+            <div className="relative mx-auto mb-6 w-20 h-20">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-full animate-pulse" />
+              <div className="absolute inset-2 bg-gradient-to-br from-primary/10 to-purple-500/10 rounded-full" />
+              <Brain className="absolute inset-0 m-auto h-10 w-10 text-primary" />
+            </div>
+
+            <h3 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">
+              Select a Course
+            </h3>
+            <p className="text-muted-foreground mb-8 text-sm">
               Choose a course to explore its knowledge graph and see how concepts connect to each other.
             </p>
+
             {availableCourses.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {availableCourses.slice(0, 5).map((course) => (
-                  <Button
+                  <button
                     key={course.id}
-                    variant="outline"
-                    className="w-full justify-start"
                     onClick={() => {
                       setSelectedCourseId(course.id);
                       setIsLoading(true);
                     }}
+                    className="group w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-primary/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-200 text-left shadow-sm hover:shadow-md"
                   >
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    {course.title}
-                  </Button>
+                    <div className="flex items-center gap-3">
+                      {/* Course Icon */}
+                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-purple-500/10 flex items-center justify-center group-hover:from-primary/20 group-hover:to-purple-500/20 transition-colors">
+                        <BookOpen className="h-5 w-5 text-primary" />
+                      </div>
+
+                      {/* Course Info */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors">
+                          {course.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Click to explore knowledge graph
+                        </p>
+                      </div>
+
+                      {/* Arrow Icon */}
+                      <ChevronRight className="flex-shrink-0 h-5 w-5 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </button>
                 ))}
               </div>
             ) : (
-              <div className="text-muted-foreground">
-                <p className="mb-4">No courses available yet.</p>
-                <Button variant="default" asChild>
-                  <Link href="/courses">Browse Courses</Link>
+              <div className="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
+                <BookOpen className="h-10 w-10 text-slate-400 mx-auto mb-3" />
+                <p className="text-muted-foreground mb-4">No enrolled courses found.</p>
+                <Button variant="default" asChild className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90">
+                  <Link href="/courses">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Browse Courses
+                  </Link>
                 </Button>
               </div>
             )}
