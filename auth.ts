@@ -3,7 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { JWT } from "next-auth/jwt";
 import type { Session, User } from "next-auth";
 
-import { db } from "@/lib/db";
+import { db, getBasePrismaClient } from "@/lib/db";
 import authConfig from "@/auth.config";
 import { getUserById } from "@/data/user";
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
@@ -16,7 +16,18 @@ import { shouldEnforceMFAOnSignIn, logMFAEnforcementAction } from "@/lib/auth/mf
 import { SessionManager } from "@/lib/security/session-manager";
 
 // Check environment variables on startup
-checkEnvironmentVariables();
+const envCheck = checkEnvironmentVariables();
+
+// Log critical auth configuration on startup (production debugging)
+if (process.env.NODE_ENV === 'production') {
+  console.log('[Auth] Production configuration check:', {
+    AUTH_SECRET: !!process.env.AUTH_SECRET ? 'SET' : 'MISSING',
+    AUTH_URL: process.env.AUTH_URL ? 'SET' : 'NOT SET',
+    AUTH_TRUST_HOST: process.env.AUTH_TRUST_HOST || 'NOT SET',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL ? 'SET' : 'NOT SET',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL ? 'SET' : 'NOT SET',
+  });
+}
 
 // Validate cookie configuration on startup
 if (!validateCookieConfig(DefaultCookieConfig)) {
@@ -109,11 +120,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       
       // For OAuth providers, always allow
       if (account?.provider && account.provider !== "credentials") {
-        console.log("OAuth login, allowing sign in");
+        console.log("[Auth] OAuth login successful:", {
+          provider: account.provider,
+          userId: user.id,
+          email: user.email,
+          authUrl: process.env.AUTH_URL || process.env.NEXTAUTH_URL || 'NOT SET',
+        });
         return true;
       }
-      
+
       try {
+        // Brute Force Protection: Check if account is locked BEFORE any processing
+        try {
+          const { checkAccountLocked } = await import('@/lib/auth/brute-force-protection');
+          const lockStatus = await checkAccountLocked(user.id);
+          if (lockStatus.locked) {
+            const remainingMinutes = Math.ceil(lockStatus.remainingMs / 60000);
+            console.log(`[signIn] Account locked: ${lockStatus.reason}, ${remainingMinutes} min remaining`);
+            return false;
+          }
+        } catch (lockError) {
+          // Log but don't fail auth if lock check fails
+          console.error('[signIn] Brute force check error:', lockError);
+        }
+
         const existingUser = await getUserById(user.id);
         
         // Handle case where user might not be found
@@ -155,6 +185,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             console.error("Error during 2FA check:", twoFactorError);
             return false;
           }
+        }
+
+        // Session Limit Enforcement: Terminate oldest session if limit exceeded
+        try {
+          const { enforceSessionLimit } = await import('@/lib/auth/session-limiter');
+          const sessionResult = await enforceSessionLimit(user.id);
+          if (sessionResult.enforced) {
+            console.log(`[signIn] Terminated ${sessionResult.terminatedCount} old session(s) to enforce limit`);
+          }
+        } catch (sessionError) {
+          // Log but don't fail auth if session limit check fails
+          console.error('[signIn] Session limit check error:', sessionError);
         }
 
         console.log("Authentication successful, allowing sign in");
@@ -225,7 +267,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     }
   },
-  adapter: PrismaAdapter(db),
+  adapter: PrismaAdapter(getBasePrismaClient()),
   // Debug disabled - enable temporarily when troubleshooting auth issues
   debug: false,
   // Additional security configuration
