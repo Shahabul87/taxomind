@@ -45,8 +45,9 @@ export async function DELETE(
       );
     }
 
-    // Check if this is the current session
-    const currentSessionToken = req.cookies.get('next-auth.session-token')?.value;
+    // Check if this is the current session (Auth.js v5 uses 'authjs' prefix)
+    const currentSessionToken = req.cookies.get('authjs.session-token')?.value ||
+                                req.cookies.get('__Secure-authjs.session-token')?.value;
     const isDeletingCurrentSession = session.sessionToken === currentSessionToken;
 
     if (isDeletingCurrentSession) {

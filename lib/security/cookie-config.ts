@@ -106,24 +106,22 @@ export function getSecureCookieConfig(options: CookieSecurityOptions = {}): Cook
   };
 
   return {
+    // Auth.js v5 uses 'authjs' prefix by default (not 'next-auth')
     sessionToken: {
-      name: `${isProduction ? '__Secure-' : ''}next-auth.session-token`,
+      name: `${isProduction ? '__Secure-' : ''}authjs.session-token`,
       options: {
         ...baseConfig,
-        // Session tokens should always be secure in non-dev environments
         secure: isDevelopment ? false : true,
         httpOnly: true,
         sameSite: baseConfig.sameSite,
         path: '/',
-        // Longer max-age for session token (browser will respect session maxAge)
         maxAge: isDevelopment ? undefined : 30 * 24 * 60 * 60, // 30 days
       },
     },
     callbackUrl: {
-      name: `${isProduction ? '__Host-' : ''}next-auth.callback-url`,
+      name: `${isProduction ? '__Secure-' : ''}authjs.callback-url`,
       options: {
         ...baseConfig,
-        // Callback URL needs to be lax for OAuth flows
         sameSite: 'lax',
         httpOnly: true,
         secure: isDevelopment ? false : true,
@@ -132,22 +130,21 @@ export function getSecureCookieConfig(options: CookieSecurityOptions = {}): Cook
       },
     },
     csrfToken: {
-      name: `${isProduction ? '__Host-' : ''}next-auth.csrf-token`,
+      name: `${isProduction ? '__Host-' : ''}authjs.csrf-token`,
       options: {
         ...baseConfig,
         httpOnly: false, // CSRF token needs to be accessible to client
         secure: isDevelopment ? false : true,
-        sameSite: 'lax', // CRITICAL: 'lax' required for OAuth (changed from 'strict')
+        sameSite: 'lax', // CRITICAL: 'lax' required for OAuth
         path: '/',
         maxAge: isDevelopment ? undefined : 60 * 60, // 1 hour
       },
     },
     pkceCodeVerifier: {
-      name: `${isProduction ? '__Secure-' : ''}next-auth.pkce.code_verifier`,
+      name: `${isProduction ? '__Secure-' : ''}authjs.pkce.code_verifier`,
       options: {
         ...baseConfig,
         httpOnly: true,
-        // PKCE needs lax for OAuth flows
         sameSite: 'lax',
         secure: isDevelopment ? false : true,
         path: '/',
@@ -155,11 +152,10 @@ export function getSecureCookieConfig(options: CookieSecurityOptions = {}): Cook
       },
     },
     state: {
-      name: `${isProduction ? '__Secure-' : ''}next-auth.state`,
+      name: `${isProduction ? '__Secure-' : ''}authjs.state`,
       options: {
         ...baseConfig,
         httpOnly: true,
-        // OAuth state parameter needs lax
         sameSite: 'lax',
         secure: isDevelopment ? false : true,
         path: '/',
@@ -167,7 +163,7 @@ export function getSecureCookieConfig(options: CookieSecurityOptions = {}): Cook
       },
     },
     nonce: {
-      name: `${isProduction ? '__Secure-' : ''}next-auth.nonce`,
+      name: `${isProduction ? '__Secure-' : ''}authjs.nonce`,
       options: {
         ...baseConfig,
         httpOnly: true,
@@ -178,7 +174,7 @@ export function getSecureCookieConfig(options: CookieSecurityOptions = {}): Cook
       },
     },
     webauthnChallenge: {
-      name: `${isProduction ? '__Secure-' : ''}next-auth.challenge`,
+      name: `${isProduction ? '__Secure-' : ''}authjs.challenge`,
       options: {
         ...baseConfig,
         httpOnly: true,

@@ -24,7 +24,11 @@ export async function POST(req: NextRequest) {
     // Get the session token from the request
     // This is a simplified approach - in a real implementation you might need to
     // extract the session token from the JWT or session store
-    const sessionToken = req.cookies.get('next-auth.session-token')?.value || req.cookies.get('__Secure-next-auth.session-token')?.value;
+    // Auth.js v5 uses 'authjs' prefix (with fallback for legacy)
+    const sessionToken = req.cookies.get('authjs.session-token')?.value ||
+                         req.cookies.get('__Secure-authjs.session-token')?.value ||
+                         req.cookies.get('next-auth.session-token')?.value ||
+                         req.cookies.get('__Secure-next-auth.session-token')?.value;
 
     if (!sessionToken) {
       return NextResponse.json(

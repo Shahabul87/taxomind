@@ -22,10 +22,11 @@ export async function authenticateApiRoute(request?: NextRequest): Promise<Authe
     const cookieStore = await cookies();
     
     // Use the actual cookie names found in production
+    // Auth.js v5 cookie names (prioritize these)
     const sessionTokenNames = [
       '__Secure-authjs.session-token',
-      '__Host-authjs.csrf-token',
       'authjs.session-token',
+      // Legacy v4 names for backward compatibility (will be removed)
       'next-auth.session-token',
       '__Secure-next-auth.session-token'
     ];

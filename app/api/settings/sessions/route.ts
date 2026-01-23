@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       location: session.location || 'Unknown Location',
       lastActive: session.lastActive,
       createdAt: session.createdAt,
-      isCurrent: session.sessionToken === req.cookies.get('next-auth.session-token')?.value,
+      isCurrent: session.sessionToken === req.cookies.get('authjs.session-token')?.value,
     }));
 
     return NextResponse.json({
@@ -75,7 +75,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Get current session token
-    const currentSessionToken = req.cookies.get('next-auth.session-token')?.value;
+    const currentSessionToken = req.cookies.get('authjs.session-token')?.value;
 
     if (!currentSessionToken) {
       return NextResponse.json(
