@@ -612,13 +612,16 @@ export function KnowledgeGraphBrowser({
   }, [graphData, relationshipFilter]);
 
   // Fetch available courses when no courseId is provided
+  // Uses enrolled courses API to show user's actual enrolled courses
   const fetchAvailableCourses = useCallback(async () => {
     try {
-      const response = await fetch('/api/courses?limit=20');
+      const response = await fetch('/api/enrollments/my-courses');
       if (response.ok) {
         const result = await response.json();
-        if (result.courses) {
-          setAvailableCourses(result.courses.map((c: { id: string; title: string }) => ({
+        // The API returns { success: true, data: [...courses] }
+        const courses = result.data || result.courses || [];
+        if (Array.isArray(courses) && courses.length > 0) {
+          setAvailableCourses(courses.map((c: { id: string; title: string }) => ({
             id: c.id,
             title: c.title
           })));
