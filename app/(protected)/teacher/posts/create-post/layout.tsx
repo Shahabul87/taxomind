@@ -1,6 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { SmartHeader } from "@/components/dashboard/smart-header";
+import { UnifiedHeaderClient } from "@/components/dashboard/unified-header-client";
 import { CreatePostClient } from "./_components/create-post-client";
 
 export default async function CreateBlogLayout({
@@ -16,9 +16,11 @@ export default async function CreateBlogLayout({
 
   return (
     <>
-      <SmartHeader user={user} />
+      <UnifiedHeaderClient user={user} />
       <CreatePostClient user={user}>
-        {children}
+        <div className="pt-14">
+          {children}
+        </div>
       </CreatePostClient>
     </>
   );

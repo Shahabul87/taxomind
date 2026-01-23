@@ -1,5 +1,5 @@
 import { SmartSidebarClient } from '@/components/dashboard/smart-sidebar-client';
-import { SmartHeaderClient } from '@/components/dashboard/smart-header-client';
+import { UnifiedHeaderClient } from '@/components/dashboard/unified-header-client';
 import { currentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
@@ -20,8 +20,8 @@ const TeacherLayout = async ({ children }: Props) => {
     <>
       <SmartSidebarClient user={user} />
       <div className="lg:ml-[72px]">
-        <SmartHeaderClient user={user} />
-        <div className="min-h-screen pt-16 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
+        <UnifiedHeaderClient user={user} />
+        <div className="min-h-screen pt-14 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
           {children}
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { SmartHeader } from "@/components/dashboard/smart-header";
+import { UnifiedHeaderClient } from "@/components/dashboard/unified-header-client";
 import { TeacherCreateClient } from "./_components/teacher-create-client";
 
 export default async function TeacherCreateLayout({
@@ -16,9 +16,11 @@ export default async function TeacherCreateLayout({
 
   return (
     <>
-      <SmartHeader user={user} />
+      <UnifiedHeaderClient user={user} />
       <TeacherCreateClient user={user}>
-        {children}
+        <div className="pt-14">
+          {children}
+        </div>
       </TeacherCreateClient>
     </>
   );

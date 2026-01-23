@@ -1,19 +1,32 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import dynamic from 'next/dynamic';
 import type { User as NextAuthUser } from "next-auth";
 import { MobileGestureController } from "@/components/mobile/MobileGestureController";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
+import type { DashboardView } from "@/components/dashboard/unified-header";
 
 // Dynamic imports to prevent hydration mismatch with Framer Motion
-const SmartHeader = dynamic(
-  () => import('@/components/dashboard/smart-header').then((mod) => mod.SmartHeader),
+const UnifiedDashboardHeader = dynamic(
+  () => import('@/components/dashboard/unified-header').then((mod) => mod.UnifiedDashboardHeader),
   {
     ssr: false,
     loading: () => (
-      <header className="fixed top-0 left-0 right-0 z-40 h-16 border-b border-slate-200/50 dark:border-slate-700/50 backdrop-blur-md bg-white/95 dark:bg-slate-800/95">
-        <div className="h-full pl-4 lg:pl-[88px] pr-4 sm:pr-6 lg:pr-8" />
+      <header className="fixed top-0 left-0 right-0 z-40 border-b border-slate-200/50 dark:border-slate-700/50 backdrop-blur-md bg-white/95 dark:bg-slate-800/95">
+        <div className="lg:pl-[88px] px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-14 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            </div>
+            <div className="flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-6 w-16 rounded-lg bg-slate-200 dark:bg-slate-700 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        </div>
       </header>
     ),
   }
@@ -42,12 +55,29 @@ interface PostsPageLayoutProps {
 }
 
 export function PostsPageLayout({ user, children }: PostsPageLayoutProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const { isMobile } = useViewportHeight();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<DashboardView>('learning');
+
+  // Handle tab change - navigate to dashboard with the selected tab
+  const handleTabChange = (tab: DashboardView) => {
+    if (tab === 'learning') {
+      router.push('/dashboard/user');
+    } else {
+      router.push(`/dashboard/user?tab=${tab}`);
+    }
+  };
 
   return (
     <>
-      <SmartHeader user={user} />
+      <UnifiedDashboardHeader
+        user={user}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onMobileSidebarOpen={() => setIsMobileSidebarOpen(true)}
+      />
       <MobileGestureController
         onSidebarOpen={() => setIsMobileSidebarOpen(true)}
         enableEdgeSwipe={isMobile}
@@ -63,7 +93,7 @@ export function PostsPageLayout({ user, children }: PostsPageLayoutProps) {
 
         <div className="lg:ml-[72px]">
           <div className="flex flex-col h-screen overflow-hidden">
-            <div className="flex-1 overflow-y-auto pt-16 pb-20 lg:pb-16">
+            <div className="flex-1 overflow-y-auto pt-14 pb-20 lg:pb-16">
               {children}
             </div>
           </div>
