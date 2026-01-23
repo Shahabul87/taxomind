@@ -42,18 +42,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     async linkAccount({ user, account }) {
-      await db.user.update({
-        where: { id: user.id },
-        data: { emailVerified: new Date() }
-      });
-      
-      // Log OAuth account linking
-      if (user.id && user.email && account?.provider) {
-        await authAuditHelpers.logOAuthSuccess(
-          user.id, 
-          user.email, 
-          account.provider
-        ).catch(console.error); // Don't fail auth if logging fails
+      // CRITICAL: Wrap in try-catch to prevent Configuration error
+      try {
+        await db.user.update({
+          where: { id: user.id },
+          data: { emailVerified: new Date() }
+        });
+
+        // Log OAuth account linking
+        if (user.id && user.email && account?.provider) {
+          await authAuditHelpers.logOAuthSuccess(
+            user.id,
+            user.email,
+            account.provider
+          ).catch(console.error);
+        }
+      } catch (error) {
+        // Log but don't fail - user is already authenticated at this point
+        console.error('[Auth] linkAccount event error (non-fatal):', error);
       }
     },
     async signIn({ user, account }) {
@@ -80,30 +86,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      // PRODUCTION FIX: Improved OAuth redirect handling
-      // Handle callback URLs from OAuth providers
-      // These come back as absolute URLs with the callback path
-      if (url.includes('/api/auth/callback')) {
+      try {
+        console.log('[Auth] redirect callback:', { url, baseUrl });
+
+        // Handle callback URLs from OAuth providers
+        if (url.includes('/api/auth/callback')) {
+          const redirectTo = `${baseUrl}/dashboard/user`;
+          console.log('[Auth] OAuth callback redirect to:', redirectTo);
+          return redirectTo;
+        }
+
+        // Handle role-based redirects after login
+        if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/dashboard`) {
+          return `${baseUrl}/dashboard/user`;
+        }
+
+        // If the URL is already an absolute URL (contains the baseUrl), use it
+        if (url.startsWith(baseUrl)) {
+          return url;
+        }
+
+        // If it's a relative URL, combine it with the baseUrl
+        if (url.startsWith("/")) {
+          return `${baseUrl}${url}`;
+        }
+
+        // Default fallback to dashboard
+        return `${baseUrl}/dashboard/user`;
+      } catch (error) {
+        console.error('[Auth] redirect callback error:', error);
+        // Fallback to base dashboard on any error
         return `${baseUrl}/dashboard/user`;
       }
-
-      // Handle role-based redirects after login
-      if (url === baseUrl || url === `${baseUrl}/` || url === `${baseUrl}/dashboard`) {
-        return `${baseUrl}/dashboard/user`;
-      }
-
-      // If the URL is already an absolute URL (contains the baseUrl), use it
-      if (url.startsWith(baseUrl)) {
-        return url;
-      }
-
-      // If it's a relative URL, combine it with the baseUrl
-      if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
-      }
-
-      // Default fallback to dashboard (safer than baseUrl for authenticated users)
-      return `${baseUrl}/dashboard/user`;
     },
     async signIn({ user, account }) {
       // Ensure we return early if missing critical data
@@ -207,26 +221,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
     async session({ token, session }) {
-      if (!token || !session) {
-        console.error("Missing token or session in session callback");
+      try {
+        if (!token || !session) {
+          console.error("[Auth] Missing token or session in session callback");
+          return session;
+        }
+
+        if (token.sub && session.user) {
+          session.user.id = token.sub;
+        }
+
+        if (session.user) {
+          session.user.isTwoFactorEnabled = !!token.isTwoFactorEnabled;
+          session.user.name = token.name || "";
+          session.user.email = token.email || "";
+          session.user.isOAuth = !!token.isOAuth;
+        }
+
+        return session;
+      } catch (error) {
+        console.error("[Auth] session callback error:", error);
         return session;
       }
-      
-      if (token.sub && session.user) {
-        session.user.id = token.sub;
-
-        // Skip session fingerprint validation for now (req parameter not available)
-        // This can be re-enabled when NextAuth provides request context
-      }
-
-      if (session.user) {
-        session.user.isTwoFactorEnabled = !!token.isTwoFactorEnabled;
-        session.user.name = token.name || "";
-        session.user.email = token.email || "";
-        session.user.isOAuth = !!token.isOAuth;
-      }
-      
-      return session;
     },
     async jwt({ token, trigger, session }) {
       if (!token || !token.sub) return token;
