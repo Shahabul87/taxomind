@@ -218,53 +218,65 @@ function NodeCard({
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const StatusIcon = STATUS_ICONS[node.status ?? 'not_started'];
-  const statusColor = STATUS_COLORS[node.status ?? 'not_started'];
+  const status = node.status ?? 'not_started';
+  const StatusIcon = STATUS_ICONS[status];
+  const statusColor = STATUS_COLORS[status];
   const typeColor = NODE_TYPE_COLORS[node.type] ?? 'bg-gray-500';
+  const masteryLevel = node.masteryLevel ?? 0;
 
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md',
-        isSelected && 'ring-2 ring-primary'
+        'cursor-pointer transition-all hover:shadow-md border-slate-200 dark:border-slate-700',
+        isSelected && 'ring-2 ring-primary border-primary'
       )}
       onClick={onClick}
     >
-      <CardContent className="p-3">
+      <CardContent className="p-4">
         <div className="flex items-start gap-3">
+          {/* Icon */}
           <div
             className={cn(
-              'w-10 h-10 rounded-lg flex items-center justify-center text-white',
+              'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-white',
               typeColor
             )}
           >
             <BookOpen className="h-5 w-5" />
           </div>
+
+          {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h4 className="font-medium truncate">{node.name}</h4>
-              <Badge variant="outline" className="text-xs shrink-0">
+            {/* Title Row */}
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="font-medium text-slate-900 dark:text-white truncate">
+                {node.name}
+              </h4>
+              <Badge variant="outline" className="text-xs shrink-0 capitalize">
                 {node.type}
               </Badge>
             </div>
-            {node.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                {node.description}
-              </p>
-            )}
-            <div className="flex items-center gap-2 mt-2">
-              <div className={cn('w-2 h-2 rounded-full', statusColor)} />
-              <span className="text-xs text-muted-foreground capitalize">
-                {node.status?.replace('_', ' ') ?? 'Not Started'}
-              </span>
-              {node.masteryLevel !== undefined && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {node.masteryLevel}% mastery
+
+            {/* Description */}
+            <p className="text-xs text-muted-foreground line-clamp-2 mb-2 min-h-[2rem]">
+              {node.description || 'No description available'}
+            </p>
+
+            {/* Status Row - Always visible */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <div className={cn('w-2 h-2 rounded-full flex-shrink-0', statusColor)} />
+                <span className="text-xs text-muted-foreground capitalize">
+                  {status.replace('_', ' ')}
                 </span>
-              )}
+              </div>
+              <span className="text-xs font-medium text-muted-foreground">
+                {masteryLevel}% mastery
+              </span>
             </div>
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+
+          {/* Arrow */}
+          <ChevronRight className="h-5 w-5 text-slate-400 flex-shrink-0 mt-2" />
         </div>
       </CardContent>
     </Card>
@@ -280,98 +292,115 @@ function ConceptDetailsPanel({
   onClose: () => void;
   onNavigate: (conceptId: string) => void;
 }) {
-  const StatusIcon = STATUS_ICONS[(details.userProgress?.status as keyof typeof STATUS_ICONS) ?? 'not_started'];
+  const status = (details.userProgress?.status as keyof typeof STATUS_ICONS) ?? 'not_started';
+  const StatusIcon = STATUS_ICONS[status];
+  const masteryLevel = details.userProgress?.masteryLevel ?? 0;
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col overflow-hidden">
+      {/* Header - Fixed */}
+      <CardHeader className="pb-3 flex-shrink-0 border-b border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <Badge variant="outline">{details.entity.type}</Badge>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            &times;
+          <Badge variant="outline" className="capitalize">{details.entity.type}</Badge>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <span className="text-lg">&times;</span>
           </Button>
         </div>
-        <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">{details.entity.name}</CardTitle>
+        <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white leading-tight">
+          {details.entity.name}
+        </CardTitle>
         {details.entity.description && (
-          <CardDescription>{details.entity.description}</CardDescription>
+          <CardDescription className="line-clamp-3">
+            {details.entity.description}
+          </CardDescription>
         )}
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* User Progress */}
-        {details.userProgress && (
+
+      {/* Scrollable Content */}
+      <ScrollArea className="flex-1">
+        <CardContent className="space-y-4 p-4">
+          {/* User Progress - Always show */}
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <StatusIcon className="h-4 w-4" />
+              <StatusIcon className="h-4 w-4 flex-shrink-0" />
               <span className="text-sm font-medium capitalize">
-                {details.userProgress.status.replace('_', ' ')}
+                {status.replace('_', ' ')}
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
                 className={cn(
                   'h-2 rounded-full transition-all',
-                  STATUS_COLORS[(details.userProgress.status as keyof typeof STATUS_COLORS) ?? 'not_started']
+                  STATUS_COLORS[status]
                 )}
-                style={{ width: `${details.userProgress.masteryLevel}%` }}
+                style={{ width: `${masteryLevel}%` }}
               />
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              {details.userProgress.masteryLevel}% mastery
+              {masteryLevel}% mastery
             </div>
           </div>
-        )}
 
-        {/* Connected Concepts */}
-        {details.neighbors.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Layers className="h-4 w-4" />
-              Connected Concepts ({details.neighbors.length})
-            </h4>
-            <ScrollArea className="h-32">
-              <div className="space-y-1">
+          {/* Connected Concepts */}
+          <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+            <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Layers className="h-4 w-4 text-primary" />
+                Connected Concepts ({details.neighbors.length})
+              </h4>
+            </div>
+            {details.neighbors.length > 0 ? (
+              <div className="divide-y divide-slate-100 dark:divide-slate-700 max-h-48 overflow-y-auto">
                 {details.neighbors.map((neighbor) => (
-                  <Button
+                  <button
                     key={neighbor.id}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-left h-auto py-2"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                     onClick={() => onNavigate(neighbor.id)}
                   >
-                    <ArrowRight className="h-3 w-3 mr-2 shrink-0" />
-                    <span className="truncate">{neighbor.name}</span>
-                    <Badge variant="outline" className="ml-auto text-xs">
+                    <ArrowRight className="h-3 w-3 text-primary flex-shrink-0" />
+                    <span className="text-sm truncate flex-1">{neighbor.name}</span>
+                    <Badge variant="outline" className="text-xs capitalize flex-shrink-0">
                       {neighbor.type}
                     </Badge>
-                  </Button>
+                  </button>
                 ))}
               </div>
-            </ScrollArea>
+            ) : (
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                No connected concepts
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Recommendations */}
-        {details.recommendations && details.recommendations.length > 0 && (
-          <div>
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Recommended Next
-            </h4>
-            <div className="space-y-2">
-              {details.recommendations.slice(0, 3).map((rec) => (
-                <div
-                  key={rec.id}
-                  className="p-2 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50"
-                  onClick={() => onNavigate(rec.id)}
-                >
-                  <div className="font-medium text-sm">{rec.title}</div>
-                  <div className="text-xs text-muted-foreground">{rec.reason}</div>
-                </div>
-              ))}
+          {/* Recommendations */}
+          {details.recommendations && details.recommendations.length > 0 && (
+            <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+              <div className="px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  Recommended Next
+                </h4>
+              </div>
+              <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                {details.recommendations.slice(0, 3).map((rec) => (
+                  <button
+                    key={rec.id}
+                    className="w-full p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    onClick={() => onNavigate(rec.id)}
+                  >
+                    <div className="font-medium text-sm text-slate-900 dark:text-white">
+                      {rec.title}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {rec.reason}
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </CardContent>
+          )}
+        </CardContent>
+      </ScrollArea>
     </Card>
   );
 }
