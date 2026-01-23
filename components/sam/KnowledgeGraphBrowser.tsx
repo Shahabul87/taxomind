@@ -139,17 +139,17 @@ interface KnowledgeGraphBrowserProps {
   className?: string;
 }
 
-// Relationship type definitions
+// Relationship type definitions - values must match API response types
 const RELATIONSHIP_TYPES = [
   { value: 'all', label: 'All Relationships', description: 'Show all connections' },
-  { value: 'prerequisite', label: 'Prerequisites', description: 'Required prior knowledge' },
-  { value: 'related_to', label: 'Related Concepts', description: 'Connected topics' },
-  { value: 'part_of', label: 'Part Of', description: 'Hierarchical structure' },
-  { value: 'follows', label: 'Sequence', description: 'Learning order' },
-  { value: 'applies_to', label: 'Applications', description: 'Practical uses' },
+  { value: 'PREREQUISITE_OF', label: 'Prerequisites', description: 'Required prior knowledge' },
+  { value: 'RELATED_TO', label: 'Related Concepts', description: 'Connected topics' },
+  { value: 'PART_OF', label: 'Part Of', description: 'Hierarchical structure' },
+  { value: 'FOLLOWS', label: 'Sequence', description: 'Learning order' },
+  { value: 'TEACHES', label: 'Teaches', description: 'Concepts taught' },
 ] as const;
 
-type RelationshipType = typeof RELATIONSHIP_TYPES[number]['value'];
+type RelationshipFilterType = typeof RELATIONSHIP_TYPES[number]['value'];
 
 // ============================================================================
 // CONSTANTS
@@ -420,80 +420,163 @@ function GraphCanvas({
 }) {
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // Calculate canvas dimensions based on node positions
-  const bounds = useMemo(() => {
-    if (nodes.length === 0) return { minX: 0, minY: 0, maxX: 800, maxY: 600 };
+  // Calculate node positions - use API positions or generate grid layout
+  const nodePositions = useMemo(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    const nodeCount = nodes.length;
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const node of nodes) {
-      const x = node.position?.x ?? 400;
-      const y = node.position?.y ?? 300;
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x);
-      maxY = Math.max(maxY, y);
+    if (nodeCount === 0) return map;
+
+    // Check if any node has valid position from API
+    const hasValidPositions = nodes.some(
+      (n) => n.position && n.position.x !== 400 && n.position.y !== 300
+    );
+
+    if (hasValidPositions) {
+      // Use API-provided positions
+      for (const node of nodes) {
+        map.set(node.id, {
+          x: node.position?.x ?? 400,
+          y: node.position?.y ?? 300,
+        });
+      }
+    } else {
+      // Generate hierarchical grid layout
+      const cols = Math.ceil(Math.sqrt(nodeCount));
+      const horizontalSpacing = 180;
+      const verticalSpacing = 140;
+      const startX = 100;
+      const startY = 80;
+
+      // Build adjacency for better ordering
+      const nodeConnections = new Map<string, number>();
+      for (const edge of edges) {
+        nodeConnections.set(edge.source, (nodeConnections.get(edge.source) ?? 0) + 1);
+        nodeConnections.set(edge.target, (nodeConnections.get(edge.target) ?? 0) + 1);
+      }
+
+      // Sort nodes: more connected nodes first (they'll be at top)
+      const sortedNodes = [...nodes].sort((a, b) => {
+        const aConns = nodeConnections.get(a.id) ?? 0;
+        const bConns = nodeConnections.get(b.id) ?? 0;
+        return bConns - aConns;
+      });
+
+      sortedNodes.forEach((node, index) => {
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        // Add slight offset for visual variety
+        const offsetX = (row % 2) * (horizontalSpacing / 4);
+        map.set(node.id, {
+          x: startX + col * horizontalSpacing + offsetX,
+          y: startY + row * verticalSpacing,
+        });
+      });
+    }
+
+    return map;
+  }, [nodes, edges]);
+
+  // Calculate canvas bounds
+  const bounds = useMemo(() => {
+    if (nodes.length === 0) return { width: 800, height: 500 };
+
+    let maxX = 0, maxY = 0;
+    for (const pos of nodePositions.values()) {
+      maxX = Math.max(maxX, pos.x);
+      maxY = Math.max(maxY, pos.y);
     }
 
     return {
-      minX: minX - 100,
-      minY: minY - 50,
-      maxX: maxX + 100,
-      maxY: maxY + 50,
+      width: Math.max(800, maxX + 150),
+      height: Math.max(500, maxY + 120),
     };
-  }, [nodes]);
-
-  const width = bounds.maxX - bounds.minX;
-  const height = bounds.maxY - bounds.minY;
-
-  // Create node position map for edge rendering
-  const nodePositions = useMemo(() => {
-    const map = new Map<string, { x: number; y: number }>();
-    for (const node of nodes) {
-      map.set(node.id, {
-        x: (node.position?.x ?? 400) - bounds.minX,
-        y: (node.position?.y ?? 300) - bounds.minY,
-      });
-    }
-    return map;
-  }, [nodes, bounds]);
+  }, [nodes.length, nodePositions]);
 
   return (
     <div
       ref={canvasRef}
-      className="relative overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-lg"
+      className="relative overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
       style={{ height: '100%' }}
     >
       <svg
-        width={width * zoom}
-        height={height * zoom}
-        viewBox={`0 0 ${width} ${height}`}
-        className="absolute inset-0"
+        width={bounds.width * zoom}
+        height={bounds.height * zoom}
+        viewBox={`0 0 ${bounds.width} ${bounds.height}`}
+        style={{ minWidth: '100%', minHeight: '100%' }}
       >
-        {/* Render edges */}
+        {/* Arrow marker definition */}
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 10 3.5, 0 7"
+              fill="#94a3b8"
+            />
+          </marker>
+          <marker
+            id="arrowhead-selected"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon
+              points="0 0, 10 3.5, 0 7"
+              fill="#6366f1"
+            />
+          </marker>
+        </defs>
+
+        {/* Render edges with arrows */}
         <g className="edges">
           {edges.map((edge) => {
             const source = nodePositions.get(edge.source);
             const target = nodePositions.get(edge.target);
             if (!source || !target) return null;
 
+            const isConnectedToSelected =
+              selectedNodeId === edge.source || selectedNodeId === edge.target;
+
+            // Calculate line to stop at node edge (radius 30)
+            const dx = target.x - source.x;
+            const dy = target.y - source.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const nodeRadius = 30;
+
+            // Adjust start and end points to node edges
+            const startX = source.x + (dx / length) * nodeRadius;
+            const startY = source.y + (dy / length) * nodeRadius;
+            const endX = target.x - (dx / length) * (nodeRadius + 5);
+            const endY = target.y - (dy / length) * (nodeRadius + 5);
+
             return (
               <g key={edge.id}>
                 <line
-                  x1={source.x}
-                  y1={source.y}
-                  x2={target.x}
-                  y2={target.y}
-                  stroke="currentColor"
-                  strokeWidth={edge.weight * 2}
-                  className="text-slate-300 dark:text-slate-600"
-                  strokeOpacity={0.6}
+                  x1={startX}
+                  y1={startY}
+                  x2={endX}
+                  y2={endY}
+                  stroke={isConnectedToSelected ? '#6366f1' : '#cbd5e1'}
+                  strokeWidth={isConnectedToSelected ? 3 : 2}
+                  strokeOpacity={isConnectedToSelected ? 1 : 0.6}
+                  markerEnd={isConnectedToSelected ? 'url(#arrowhead-selected)' : 'url(#arrowhead)'}
+                  className="transition-all duration-200"
                 />
+                {/* Edge label */}
                 {edge.label && (
                   <text
-                    x={(source.x + target.x) / 2}
-                    y={(source.y + target.y) / 2 - 5}
+                    x={(startX + endX) / 2}
+                    y={(startY + endY) / 2 - 8}
                     textAnchor="middle"
-                    className="text-[10px] fill-muted-foreground"
+                    className="text-[9px] fill-slate-500 dark:fill-slate-400 pointer-events-none"
                   >
                     {edge.label}
                   </text>
@@ -510,8 +593,8 @@ function GraphCanvas({
             if (!pos) return null;
 
             const isSelected = node.id === selectedNodeId;
+            const isFiltered = (node as GraphNode & { isFiltered?: boolean }).isFiltered;
             const statusColor = STATUS_COLORS[node.status ?? 'not_started'];
-            const typeColor = NODE_TYPE_COLORS[node.type] ?? 'bg-gray-500';
 
             return (
               <g
@@ -519,38 +602,45 @@ function GraphCanvas({
                 transform={`translate(${pos.x}, ${pos.y})`}
                 className="cursor-pointer"
                 onClick={() => onNodeClick(node.id)}
+                style={{ opacity: isFiltered ? 0.3 : 1 }}
               >
-                {/* Node circle */}
+                {/* Node shadow */}
                 <circle
-                  r={isSelected ? 28 : 24}
-                  className={cn(
-                    'transition-all',
-                    isSelected
-                      ? 'fill-primary stroke-primary stroke-2'
-                      : 'fill-white dark:fill-slate-800 stroke-slate-300 dark:stroke-slate-600'
-                  )}
+                  r={32}
+                  fill="rgba(0,0,0,0.1)"
+                  cx={2}
+                  cy={2}
                 />
-                {/* Status indicator */}
+                {/* Node background */}
+                <circle
+                  r={isSelected ? 32 : 28}
+                  fill={isSelected ? '#6366f1' : '#ffffff'}
+                  stroke={isSelected ? '#4f46e5' : '#e2e8f0'}
+                  strokeWidth={isSelected ? 3 : 2}
+                  className="transition-all duration-200"
+                />
+                {/* Status indicator dot */}
                 <circle
                   r={8}
-                  cx={18}
-                  cy={-18}
+                  cx={20}
+                  cy={-20}
                   className={cn('transition-all', statusColor.replace('bg-', 'fill-'))}
+                  stroke="#ffffff"
+                  strokeWidth={2}
                 />
                 {/* Mastery progress ring */}
                 {node.masteryLevel !== undefined && node.masteryLevel > 0 && (
                   <circle
                     r={26}
                     fill="none"
-                    stroke="currentColor"
-                    strokeWidth={3}
+                    stroke={statusColor.replace('bg-', '').includes('emerald') ? '#10b981' :
+                            statusColor.replace('bg-', '').includes('blue') ? '#3b82f6' :
+                            statusColor.replace('bg-', '').includes('amber') ? '#f59e0b' : '#9ca3af'}
+                    strokeWidth={4}
                     strokeDasharray={`${(node.masteryLevel / 100) * 163} 163`}
                     strokeLinecap="round"
                     transform="rotate(-90)"
-                    className={cn(
-                      'transition-all',
-                      statusColor.replace('bg-', 'text-')
-                    )}
+                    opacity={0.8}
                   />
                 )}
                 {/* Node icon */}
@@ -566,11 +656,12 @@ function GraphCanvas({
                 </text>
                 {/* Node label */}
                 <text
-                  y={40}
+                  y={48}
                   textAnchor="middle"
-                  className="text-xs font-medium fill-foreground"
+                  fill={isSelected ? '#4f46e5' : '#475569'}
+                  className="text-[11px] font-medium pointer-events-none"
                 >
-                  {node.name.length > 20 ? `${node.name.slice(0, 20)}...` : node.name}
+                  {node.name.length > 18 ? `${node.name.slice(0, 18)}...` : node.name}
                 </text>
               </g>
             );
@@ -607,7 +698,7 @@ export function KnowledgeGraphBrowser({
   const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
   const [availableCourses, setAvailableCourses] = useState<Array<{id: string; title: string}>>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(courseId);
-  const [relationshipFilter, setRelationshipFilter] = useState<RelationshipType>('all');
+  const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilterType>('all');
 
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -616,8 +707,9 @@ export function KnowledgeGraphBrowser({
     if (!graphData) return null;
     if (relationshipFilter === 'all') return graphData;
 
+    // Match edge type exactly (API returns uppercase like PREREQUISITE_OF)
     const filteredEdges = graphData.edges.filter(
-      (edge) => edge.type.toLowerCase() === relationshipFilter.toLowerCase()
+      (edge) => edge.type === relationshipFilter
     );
 
     // Get nodes that are still connected after filtering
@@ -627,7 +719,7 @@ export function KnowledgeGraphBrowser({
       connectedNodeIds.add(edge.target);
     }
 
-    // Keep all nodes but mark unconnected ones
+    // Keep all nodes but mark unconnected ones (dim opacity if not connected)
     const filteredNodes = graphData.nodes.map((node) => ({
       ...node,
       isFiltered: filteredEdges.length > 0 && !connectedNodeIds.has(node.id),
@@ -637,6 +729,11 @@ export function KnowledgeGraphBrowser({
       ...graphData,
       nodes: filteredNodes,
       edges: filteredEdges,
+      stats: {
+        ...graphData.stats,
+        // Update connection count for filtered view
+        totalEdges: filteredEdges.length,
+      },
     };
   }, [graphData, relationshipFilter]);
 
@@ -972,7 +1069,7 @@ export function KnowledgeGraphBrowser({
             </div>
             <Select
               value={relationshipFilter}
-              onValueChange={(value) => setRelationshipFilter(value as RelationshipType)}
+              onValueChange={(value) => setRelationshipFilter(value as RelationshipFilterType)}
             >
               <SelectTrigger className="w-48">
                 <SelectValue />
