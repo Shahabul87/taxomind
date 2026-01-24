@@ -252,7 +252,7 @@ export function CreateCoursePlanModal({
                         {startDate ? format(startDate, "PPP") : "Pick start date"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 z-[10000]" align="start">
                       <CalendarComponent
                         mode="single"
                         selected={startDate}
@@ -278,7 +278,7 @@ export function CreateCoursePlanModal({
                         {targetCompletionDate ? format(targetCompletionDate, "PPP") : "Pick target date"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 z-[10000]" align="start">
                       <CalendarComponent
                         mode="single"
                         selected={targetCompletionDate}

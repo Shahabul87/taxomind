@@ -84,6 +84,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const { isMobile } = useViewportHeight();
   const [studyPlanRefreshKey, setStudyPlanRefreshKey] = useState(0);
   const [coursePlanRefreshKey, setCoursePlanRefreshKey] = useState(0);
+  const [blogPlanRefreshKey, setBlogPlanRefreshKey] = useState(0);
 
   // Track initialization to avoid re-running on mount
   const initializedRef = useRef(false);
@@ -233,6 +234,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
       if (result.success) {
         toast.success('Blog plan created successfully!');
         setIsBlogPlanModalOpen(false);
+        // Increment refresh key to trigger BlogPlansList refetch
+        setBlogPlanRefreshKey((prev) => prev + 1);
+        // Navigate to goals tab to show the new blog plan
+        handleTabChange('goals');
       } else {
         toast.error(result.error?.message || 'Failed to create blog plan');
       }
@@ -361,6 +366,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
             studyPlanRefreshKey={studyPlanRefreshKey}
             onCreateCoursePlan={() => setIsCoursePlanModalOpen(true)}
             coursePlanRefreshKey={coursePlanRefreshKey}
+            onCreateBlogPlan={() => setIsBlogPlanModalOpen(true)}
+            blogPlanRefreshKey={blogPlanRefreshKey}
           />
         </main>
 

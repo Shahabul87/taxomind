@@ -231,6 +231,9 @@ import { StudyPlansList } from "@/components/sam/study-plan";
 // Course Creation Plans - Display course building plans
 import { CoursePlansList } from "@/components/sam/course-plan";
 
+// Blog Content Plans - Display blog publishing plans
+import { BlogPlansList } from "@/components/sam/blog-plan";
+
 // DashboardView type - now controlled by parent via UnifiedDashboardHeader
 type DashboardView = "learning" | "analytics" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "create";
 
@@ -246,9 +249,13 @@ interface NewDashboardProps {
   onCreateCoursePlan?: () => void;
   /** Key to trigger CoursePlansList refresh after creating a new plan */
   coursePlanRefreshKey?: number;
+  /** Callback to open the blog plan modal */
+  onCreateBlogPlan?: () => void;
+  /** Key to trigger BlogPlansList refresh after creating a new plan */
+  blogPlanRefreshKey?: number;
 }
 
-export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, studyPlanRefreshKey, onCreateCoursePlan, coursePlanRefreshKey }: NewDashboardProps) {
+export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, studyPlanRefreshKey, onCreateCoursePlan, coursePlanRefreshKey, onCreateBlogPlan, blogPlanRefreshKey }: NewDashboardProps) {
   // activeTab is now controlled by parent - no local state needed
 
   const {
@@ -933,6 +940,14 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
             <CoursePlansList
               refreshKey={coursePlanRefreshKey}
               onCreatePlan={onCreateCoursePlan}
+            />
+          </div>
+
+          {/* Blog Content Plans - For content creators planning their blog journey */}
+          <div className="mt-8">
+            <BlogPlansList
+              refreshKey={blogPlanRefreshKey}
+              onCreatePlan={onCreateBlogPlan}
             />
           </div>
         </div>
