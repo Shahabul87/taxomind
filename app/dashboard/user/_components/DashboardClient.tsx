@@ -83,6 +83,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { isMobile } = useViewportHeight();
   const [studyPlanRefreshKey, setStudyPlanRefreshKey] = useState(0);
+  const [coursePlanRefreshKey, setCoursePlanRefreshKey] = useState(0);
 
   // Track initialization to avoid re-running on mount
   const initializedRef = useRef(false);
@@ -193,6 +194,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
       if (result.success) {
         toast.success('Course plan created successfully!');
         setIsCoursePlanModalOpen(false);
+        // Increment refresh key to trigger CoursePlansList refetch
+        setCoursePlanRefreshKey((prev) => prev + 1);
+        // Navigate to goals tab to show the new course plan
+        handleTabChange('goals');
       } else {
         toast.error(result.error?.message || 'Failed to create course plan');
       }
@@ -354,6 +359,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
             activeTab={activeTab}
             onCreateStudyPlan={() => setIsStudyPlanModalOpen(true)}
             studyPlanRefreshKey={studyPlanRefreshKey}
+            onCreateCoursePlan={() => setIsCoursePlanModalOpen(true)}
+            coursePlanRefreshKey={coursePlanRefreshKey}
           />
         </main>
 

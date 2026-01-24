@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { format, addWeeks } from "date-fns";
 import { Calendar, Clock, CalendarDays, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,33 +46,46 @@ export function StepScheduleConfig({
   isValid,
   onValidChange,
 }: StepScheduleConfigProps) {
-  // Initialize with defaults if not set
+  // Track if defaults have been set to avoid multiple updates
+  const defaultsSetRef = useRef(false);
+
+  // Initialize with defaults if not set (only on mount)
   useEffect(() => {
+    if (defaultsSetRef.current) return;
+    defaultsSetRef.current = true;
+
+    const updates: Partial<typeof data> = {};
+
     if (!data.startDate) {
-      onUpdate({ startDate: new Date() });
+      updates.startDate = new Date();
     }
     if (!data.targetEndDate) {
-      onUpdate({ targetEndDate: addWeeks(new Date(), 8) });
+      updates.targetEndDate = addWeeks(new Date(), 8);
     }
     if (!data.preferredTimeSlot) {
-      onUpdate({ preferredTimeSlot: "flexible" });
+      updates.preferredTimeSlot = "flexible";
     }
     if (!data.dailyStudyHours) {
-      onUpdate({ dailyStudyHours: 2 });
+      updates.dailyStudyHours = 2;
     }
     if (!data.studyDays || data.studyDays.length === 0) {
-      onUpdate({ studyDays: ["monday", "tuesday", "wednesday", "thursday", "friday"] });
+      updates.studyDays = ["monday", "tuesday", "wednesday", "thursday", "friday"];
     }
     if (data.includePractice === undefined) {
-      onUpdate({ includePractice: true });
+      updates.includePractice = true;
     }
     if (data.includeAssessments === undefined) {
-      onUpdate({ includeAssessments: true });
+      updates.includeAssessments = true;
     }
     if (data.includeProjects === undefined) {
-      onUpdate({ includeProjects: false });
+      updates.includeProjects = false;
     }
-  }, []);
+
+    // Apply all defaults in a single update
+    if (Object.keys(updates).length > 0) {
+      onUpdate(updates);
+    }
+  }, [data, onUpdate]);
 
   // Validate form
   useEffect(() => {

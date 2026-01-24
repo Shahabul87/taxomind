@@ -228,6 +228,9 @@ import { GoalsProgress } from "./learning-command-center/analytics/GoalsProgress
 // AI Study Plans - Display saved study plans with daily task tracking
 import { StudyPlansList } from "@/components/sam/study-plan";
 
+// Course Creation Plans - Display course building plans
+import { CoursePlansList } from "@/components/sam/course-plan";
+
 // DashboardView type - now controlled by parent via UnifiedDashboardHeader
 type DashboardView = "learning" | "analytics" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "create";
 
@@ -239,9 +242,13 @@ interface NewDashboardProps {
   onCreateStudyPlan?: () => void;
   /** Key to trigger StudyPlansList refresh after creating a new plan */
   studyPlanRefreshKey?: number;
+  /** Callback to open the course plan modal */
+  onCreateCoursePlan?: () => void;
+  /** Key to trigger CoursePlansList refresh after creating a new plan */
+  coursePlanRefreshKey?: number;
 }
 
-export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, studyPlanRefreshKey }: NewDashboardProps) {
+export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, studyPlanRefreshKey, onCreateCoursePlan, coursePlanRefreshKey }: NewDashboardProps) {
   // activeTab is now controlled by parent - no local state needed
 
   const {
@@ -904,6 +911,14 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
                 // Dispatch custom event to notify GoalsProgress to refresh
                 window.dispatchEvent(new CustomEvent('study-plan-task-updated', { detail: { taskId } }));
               }}
+            />
+          </div>
+
+          {/* Course Creation Plans - For instructors planning to build courses */}
+          <div className="mb-8">
+            <CoursePlansList
+              refreshKey={coursePlanRefreshKey}
+              onCreatePlan={onCreateCoursePlan}
             />
           </div>
 
