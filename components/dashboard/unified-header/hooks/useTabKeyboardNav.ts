@@ -10,7 +10,6 @@ const TAB_ORDER: DashboardView[] = [
   'gamification',
   'gaps',
   'innovation',
-  'discover',
   'create',
   'assess',
 ];

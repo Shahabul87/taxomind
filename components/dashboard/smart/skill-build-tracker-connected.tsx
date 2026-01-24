@@ -307,9 +307,11 @@ function transformApiRoadmap(apiRoadmap: ApiRoadmap): ComponentRoadmap {
 
 interface EmptyStateProps {
   onCreateRoadmap: () => void;
+  isGenerating: boolean;
+  error?: string | null;
 }
 
-function EmptyState({ onCreateRoadmap }: EmptyStateProps) {
+function EmptyState({ onCreateRoadmap, isGenerating, error }: EmptyStateProps) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6">
       <div className="max-w-2xl mx-auto pt-20">
@@ -318,7 +320,7 @@ function EmptyState({ onCreateRoadmap }: EmptyStateProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/50 shadow-lg">
+          <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
             <CardHeader className="text-center pb-2">
               <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-100 to-emerald-100 dark:from-cyan-500/20 dark:to-emerald-500/20 flex items-center justify-center mb-4">
                 <Rocket className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
@@ -333,21 +335,21 @@ function EmptyState({ onCreateRoadmap }: EmptyStateProps) {
             <CardContent className="text-center pt-4">
               <div className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left mb-6">
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <div className="text-2xl mb-2">📊</div>
                     <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Track Progress</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Monitor your skill development with multi-dimensional scoring
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <div className="text-2xl mb-2">⏰</div>
                     <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Prevent Decay</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Get alerts when skills need review to maintain mastery
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <div className="text-2xl mb-2">🎯</div>
                     <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Reach Goals</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -355,13 +357,28 @@ function EmptyState({ onCreateRoadmap }: EmptyStateProps) {
                     </p>
                   </div>
                 </div>
+                {error && (
+                  <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm mb-4">
+                    {error}
+                  </div>
+                )}
                 <Button
                   onClick={onCreateRoadmap}
-                  className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 shadow-md"
+                  disabled={isGenerating}
+                  className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 shadow-md disabled:opacity-70"
                   size="lg"
                 >
-                  <Plus className="w-5 h-5 mr-2" />
-                  Create Your First Roadmap
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creating Roadmap...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5 mr-2" />
+                      Create Your First Roadmap
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -586,9 +603,13 @@ export default function SkillBuildTrackerConnected({
     }
   }, [recordPractice, refetchProfiles]);
 
+  // Track roadmap generation error for display
+  const [roadmapError, setRoadmapError] = useState<string | null>(null);
+
   // Handle creating a roadmap
   const handleCreateRoadmap = useCallback(async () => {
     try {
+      setRoadmapError(null);
       await generateRoadmap({
         targetType: 'SKILL_SET',
         hoursPerWeek: 10,
@@ -600,6 +621,8 @@ export default function SkillBuildTrackerConnected({
       });
       setShowRoadmapWizard(false);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate roadmap';
+      setRoadmapError(message);
       console.error('Failed to generate roadmap:', error);
     }
   }, [generateRoadmap]);
@@ -617,9 +640,15 @@ export default function SkillBuildTrackerConnected({
     return <LoadingState />;
   }
 
-  // Show empty state if no profiles
-  if (profiles.length === 0) {
-    return <EmptyState onCreateRoadmap={handleCreateRoadmap} />;
+  // Show empty state if no profiles AND no roadmap
+  if (profiles.length === 0 && !roadmap) {
+    return (
+      <EmptyState
+        onCreateRoadmap={handleCreateRoadmap}
+        isGenerating={isGenerating}
+        error={roadmapError}
+      />
+    );
   }
 
   // Render the skill tracker with real data

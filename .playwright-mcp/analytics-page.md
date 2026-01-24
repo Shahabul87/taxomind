@@ -1,0 +1,515 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e8]:
+        - navigation [ref=e9]:
+          - generic [ref=e10]:
+            - link "Dashboard" [ref=e12] [cursor=pointer]:
+              - /url: /dashboard/user
+              - generic [ref=e13]:
+                - img [ref=e15]
+                - generic: Dashboard
+            - link "My Goals" [ref=e21] [cursor=pointer]:
+              - /url: /dashboard/user?tab=goals
+              - generic [ref=e22]:
+                - img [ref=e24]
+                - generic: My Goals
+            - link "Profile Manager" [ref=e29] [cursor=pointer]:
+              - /url: /dashboard/user/profile
+              - generic [ref=e30]:
+                - img [ref=e32]
+                - generic: Profile Manager
+            - generic [ref=e36] [cursor=pointer]:
+              - img [ref=e38]
+              - generic: Courses
+            - generic [ref=e42] [cursor=pointer]:
+              - img [ref=e44]
+              - generic: Posts & Blog
+            - link "Analytics" [ref=e48] [cursor=pointer]:
+              - /url: /dashboard/user?tab=analytics
+              - generic [ref=e49]:
+                - img [ref=e51]
+                - generic: Analytics
+            - link "Depth Analyzer" [ref=e55] [cursor=pointer]:
+              - /url: /teacher/depth-analyzer
+              - generic [ref=e56]:
+                - img [ref=e58]
+                - generic: Depth Analyzer
+            - link "Study Groups" [ref=e63] [cursor=pointer]:
+              - /url: /dashboard/user/groups
+              - generic [ref=e64]:
+                - img [ref=e66]
+                - generic: Study Groups
+            - link "Messages" [ref=e72] [cursor=pointer]:
+              - /url: /dashboard/user/messages
+              - generic [ref=e73]:
+                - img [ref=e75]
+                - generic: Messages
+            - link "Certificates" [ref=e78] [cursor=pointer]:
+              - /url: /dashboard/user/certificates
+              - generic [ref=e79]:
+                - img [ref=e81]
+                - generic: Certificates
+            - link "Favorites" [ref=e85] [cursor=pointer]:
+              - /url: /dashboard/user/favorites
+              - generic [ref=e86]:
+                - img [ref=e88]
+                - generic: Favorites
+        - generic [ref=e90]:
+          - link "Settings" [ref=e91] [cursor=pointer]:
+            - /url: /settings
+            - generic [ref=e92]:
+              - img [ref=e94]
+              - generic: Settings
+          - link "Help & Support" [ref=e97] [cursor=pointer]:
+            - /url: /support
+            - generic [ref=e98]:
+              - img [ref=e100]
+              - generic: Help & Support
+        - img [ref=e106]
+    - banner [ref=e108]:
+      - generic [ref=e110]:
+        - link "Taxomind Logo TaxoMind" [ref=e112] [cursor=pointer]:
+          - /url: /
+          - img "Taxomind Logo" [ref=e114]
+          - generic [ref=e115]: TaxoMind
+        - tablist "Dashboard sections" [ref=e117]:
+          - generic [ref=e118]:
+            - tab "Learning" [ref=e119] [cursor=pointer]:
+              - generic [ref=e120]:
+                - img [ref=e121]
+                - generic [ref=e126]: Learning
+            - tab "Analytics" [selected] [ref=e127] [cursor=pointer]:
+              - generic [ref=e129]:
+                - img [ref=e130]
+                - generic [ref=e132]: Analytics
+            - tab "Skills" [ref=e133] [cursor=pointer]:
+              - generic [ref=e134]:
+                - img [ref=e135]
+                - generic [ref=e139]: Skills
+            - tab "Practice" [ref=e140] [cursor=pointer]:
+              - generic [ref=e141]:
+                - img [ref=e142]
+                - generic [ref=e145]: Practice
+            - tab "Achievements" [ref=e146] [cursor=pointer]:
+              - generic [ref=e147]:
+                - img [ref=e148]
+                - generic [ref=e154]: Achievements
+            - tab "Goals" [ref=e155] [cursor=pointer]:
+              - generic [ref=e156]:
+                - img [ref=e157]
+                - generic [ref=e161]: Goals
+            - tab "Gaps" [ref=e162] [cursor=pointer]:
+              - generic [ref=e163]:
+                - img [ref=e164]
+                - generic [ref=e166]: Gaps
+            - tab "Innovation" [ref=e167] [cursor=pointer]:
+              - generic [ref=e168]:
+                - img [ref=e169]
+                - generic [ref=e171]: Innovation
+            - tab "Discover" [ref=e172] [cursor=pointer]:
+              - generic [ref=e173]:
+                - img [ref=e174]
+                - generic [ref=e177]: Discover
+            - tab "Create" [ref=e178] [cursor=pointer]:
+              - generic [ref=e179]:
+                - img [ref=e180]
+                - generic [ref=e183]: Create
+        - generic [ref=e184]:
+          - button "Search" [ref=e185] [cursor=pointer]:
+            - img [ref=e186]
+          - button "Quick Create" [ref=e190] [cursor=pointer]:
+            - img [ref=e191]
+          - generic [ref=e193]:
+            - img [ref=e194]
+            - text: Not studying
+          - button "Notifications" [ref=e197] [cursor=pointer]:
+            - img [ref=e198]
+          - generic [ref=e203]: Online
+          - button "User Menu" [ref=e206] [cursor=pointer]:
+            - img "Charlie User" [ref=e207]
+    - main [ref=e208]:
+      - generic [ref=e209]:
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - generic [ref=e212]:
+              - generic [ref=e213]:
+                - heading "Learning Analytics" [level=2] [ref=e214]:
+                  - img [ref=e215]
+                  - text: Learning Analytics
+                - paragraph [ref=e217]: Track your progress and gain insights into your learning journey
+              - generic [ref=e218]:
+                - button "This Month" [ref=e219] [cursor=pointer]:
+                  - img [ref=e220]
+                  - text: This Month
+                  - img [ref=e222]
+                - button [ref=e224] [cursor=pointer]:
+                  - img [ref=e225]
+                - button "Export" [ref=e230] [cursor=pointer]:
+                  - img [ref=e231]
+                  - text: Export
+            - generic [ref=e234]:
+              - generic [ref=e235]:
+                - img [ref=e237]
+                - generic [ref=e239]:
+                  - paragraph [ref=e240]: Study Hours
+                  - generic [ref=e241]:
+                    - paragraph [ref=e242]: 0h
+                    - generic [ref=e243]: "-"
+              - generic [ref=e244]:
+                - img [ref=e246]
+                - generic [ref=e249]:
+                  - paragraph [ref=e250]: Active Courses
+                  - generic [ref=e251]:
+                    - paragraph [ref=e252]: "0"
+                    - generic [ref=e253]: 0 done
+              - generic [ref=e254]:
+                - img [ref=e256]
+                - generic [ref=e258]:
+                  - paragraph [ref=e259]: Day Streak
+                  - generic [ref=e260]:
+                    - paragraph [ref=e261]: "0"
+                    - generic [ref=e262]: "-"
+              - generic [ref=e263]:
+                - img [ref=e265]
+                - generic [ref=e269]:
+                  - paragraph [ref=e270]: Avg Quiz Score
+                  - generic [ref=e271]:
+                    - paragraph [ref=e272]: 55%
+                    - generic [ref=e273]: "-"
+            - generic [ref=e274]:
+              - tablist [ref=e276]:
+                - tab "Overview" [selected] [ref=e277] [cursor=pointer]:
+                  - img [ref=e278]
+                  - generic [ref=e280]: Overview
+                - tab "Exams" [ref=e281] [cursor=pointer]:
+                  - img [ref=e282]
+                  - generic [ref=e286]: Exams
+                - tab "Progress" [ref=e287] [cursor=pointer]:
+                  - img [ref=e288]
+                  - generic [ref=e291]: Progress
+                - tab "Insights" [ref=e292] [cursor=pointer]:
+                  - img [ref=e293]
+                  - generic [ref=e296]: Insights
+                - tab "Quality" [ref=e297] [cursor=pointer]:
+                  - img [ref=e298]
+                  - generic [ref=e300]: Quality
+                - tab "History" [ref=e301] [cursor=pointer]:
+                  - img [ref=e302]
+                  - generic [ref=e304]: History
+                - tab "Knowledge" [ref=e305] [cursor=pointer]:
+                  - img [ref=e306]
+                  - generic [ref=e311]: Knowledge
+                - tab "Activity" [ref=e312] [cursor=pointer]:
+                  - img [ref=e313]
+                  - generic [ref=e315]: Activity
+              - tabpanel "Overview" [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e319]:
+                    - generic [ref=e321]:
+                      - heading "SAM Learning Insights" [level=3] [ref=e322]:
+                        - img [ref=e323]
+                        - text: SAM Learning Insights
+                      - generic [ref=e325]: Needs attention
+                    - generic [ref=e326]:
+                      - generic [ref=e327]:
+                        - generic [ref=e328]:
+                          - generic [ref=e329]:
+                            - img [ref=e330]
+                            - generic [ref=e333]: "45"
+                          - paragraph [ref=e334]: Learning Score
+                        - generic [ref=e335]:
+                          - generic [ref=e336]:
+                            - img [ref=e337]
+                            - generic [ref=e340]: 0 min studied
+                          - generic [ref=e341]:
+                            - img [ref=e342]
+                            - generic [ref=e346]: 0 active courses
+                          - generic [ref=e347]:
+                            - img [ref=e348]
+                            - generic [ref=e354]: 0 day streak
+                      - generic [ref=e356]:
+                        - img [ref=e358]
+                        - generic [ref=e360]:
+                          - generic [ref=e361]:
+                            - 'heading "Explore: Free Web Development Basics" [level=4] [ref=e362]'
+                            - button [ref=e363] [cursor=pointer]:
+                              - img [ref=e364]
+                          - paragraph [ref=e367]: Get started with HTML, CSS, and JavaScript fundamentals
+                          - button "Learn More" [ref=e368] [cursor=pointer]:
+                            - text: Learn More
+                            - img [ref=e369]
+                      - button "Ask SAM for guidance" [ref=e371] [cursor=pointer]:
+                        - img [ref=e372]
+                        - text: Ask SAM for guidance
+                  - generic [ref=e376]:
+                    - generic [ref=e378]:
+                      - heading "Learning Health Monitor" [level=3] [ref=e379]:
+                        - img [ref=e380]
+                        - text: Learning Health Monitor
+                      - generic [ref=e382]: Needs attention
+                    - generic [ref=e383]:
+                      - generic [ref=e384]:
+                        - generic [ref=e385]:
+                          - generic [ref=e386]:
+                            - img [ref=e387]
+                            - generic [ref=e390]: 55%
+                          - paragraph [ref=e391]: Churn Risk
+                          - generic [ref=e392]: Elevated
+                        - generic [ref=e394]:
+                          - generic [ref=e395]:
+                            - img [ref=e396]
+                            - generic [ref=e399]: 0%
+                          - paragraph [ref=e400]: Struggle Risk
+                          - generic [ref=e401]: Low
+                      - generic [ref=e402]:
+                        - paragraph [ref=e403]: Top Concern
+                        - generic [ref=e404]:
+                          - generic [ref=e405]: Decreased engagement trend
+                          - generic [ref=e406]: high
+                - generic [ref=e407]:
+                  - generic [ref=e410]:
+                    - img [ref=e411]
+                    - heading "No Courses Yet" [level=3] [ref=e414]
+                    - paragraph [ref=e415]: Enroll in courses to track your learning progress.
+                    - link "Browse Courses" [ref=e416] [cursor=pointer]:
+                      - /url: /courses
+                      - button "Browse Courses" [ref=e417]
+                  - generic [ref=e419]:
+                    - img [ref=e421]
+                    - heading "No Exam Data Yet" [level=3] [ref=e425]
+                    - paragraph [ref=e426]: Complete some exams to see your analytics here. Your performance data, trends, and recommendations will appear once you start taking exams.
+                    - link "Browse Courses" [ref=e427] [cursor=pointer]:
+                      - /url: /courses
+                      - button "Browse Courses" [ref=e428]:
+                        - img [ref=e429]
+                        - text: Browse Courses
+                - generic [ref=e431]:
+                  - generic [ref=e434]:
+                    - img [ref=e435]
+                    - heading "No Active Goals" [level=3] [ref=e439]
+                    - paragraph [ref=e440]: Create a learning goal to track your progress and stay motivated.
+                    - link "Create a Goal" [ref=e441] [cursor=pointer]:
+                      - /url: /dashboard/user/goals
+                      - button "Create a Goal" [ref=e442]:
+                        - img [ref=e443]
+                        - text: Create a Goal
+                  - generic [ref=e448]:
+                    - heading "SAM Check-ins" [level=3] [ref=e451]:
+                      - img [ref=e452]
+                      - text: SAM Check-ins
+                    - generic [ref=e456]:
+                      - generic [ref=e457]:
+                        - img [ref=e459]
+                        - generic [ref=e461]:
+                          - heading "Quick Check-in" [level=4] [ref=e462]
+                          - paragraph [ref=e463]: How's your learning going today?
+                      - generic [ref=e464]:
+                        - button "Great!" [ref=e465] [cursor=pointer]:
+                          - img [ref=e466]
+                          - text: Great!
+                        - button "Struggling" [ref=e469] [cursor=pointer]:
+                          - img [ref=e470]
+                          - text: Struggling
+                        - button "Need Tips" [ref=e472] [cursor=pointer]:
+                          - img [ref=e473]
+                          - text: Need Tips
+                - generic [ref=e476]:
+                  - heading "Study Activity" [level=3] [ref=e478]:
+                    - img [ref=e479]
+                    - text: Study Activity
+                  - generic [ref=e482]:
+                    - generic [ref=e483]:
+                      - generic [ref=e484]:
+                        - img [ref=e486]
+                        - generic [ref=e488]:
+                          - paragraph [ref=e489]: "0"
+                          - paragraph [ref=e490]: day streak
+                      - generic [ref=e491]:
+                        - img [ref=e493]
+                        - generic [ref=e496]:
+                          - paragraph [ref=e497]: "0"
+                          - paragraph [ref=e498]: hours
+                    - button "View Full Activity" [ref=e499] [cursor=pointer]
+                - generic [ref=e501]:
+                  - heading "Recent Achievements" [level=3] [ref=e503]:
+                    - img [ref=e504]
+                    - text: Recent Achievements
+                  - generic [ref=e511]:
+                    - img [ref=e512]
+                    - paragraph [ref=e518]: Complete lessons and exams to earn achievements!
+                - generic [ref=e522]:
+                  - generic [ref=e523]:
+                    - img [ref=e525]
+                    - generic [ref=e528]:
+                      - generic [ref=e529]: Calibration Quality
+                      - generic [ref=e530]: good
+                  - generic [ref=e531]:
+                    - generic [ref=e532]: 0.0%
+                    - generic [ref=e533]: error rate
+          - generic [ref=e535]:
+            - generic [ref=e537]:
+              - generic [ref=e538]:
+                - img [ref=e540]
+                - generic [ref=e543]:
+                  - heading "Self-Assessment Hub" [level=3] [ref=e544]
+                  - paragraph [ref=e545]: Create and take personal skill assessments
+              - generic [ref=e546]:
+                - generic [ref=e547]:
+                  - img [ref=e548]
+                  - text: AI-Powered
+                - button "Create Exam" [ref=e550] [cursor=pointer]:
+                  - img [ref=e551]
+                  - text: Create Exam
+            - generic [ref=e553]:
+              - tablist [ref=e554]:
+                - tab "Overview" [selected] [ref=e555] [cursor=pointer]:
+                  - img [ref=e556]
+                  - text: Overview
+                - tab "My Exams" [ref=e558] [cursor=pointer]:
+                  - img [ref=e559]
+                  - text: My Exams
+                - tab "History" [ref=e562] [cursor=pointer]:
+                  - img [ref=e563]
+                  - text: History
+              - tabpanel "Overview" [ref=e566]:
+                - generic [ref=e567]:
+                  - generic [ref=e568]:
+                    - img [ref=e569]
+                    - paragraph [ref=e572]: "0"
+                    - paragraph [ref=e573]: Total Exams
+                  - generic [ref=e574]:
+                    - img [ref=e575]
+                    - paragraph [ref=e577]: "0"
+                    - paragraph [ref=e578]: Total Attempts
+                  - generic [ref=e579]:
+                    - img [ref=e580]
+                    - paragraph [ref=e586]: "0"
+                    - paragraph [ref=e587]: Passed
+                  - generic [ref=e588]:
+                    - img [ref=e589]
+                    - paragraph [ref=e592]: 0%
+                    - paragraph [ref=e593]: Avg Score
+                - generic [ref=e594]:
+                  - heading "Recent Exams" [level=4] [ref=e595]
+                  - generic [ref=e596]:
+                    - img [ref=e597]
+                    - paragraph [ref=e600]: No exams yet
+                    - button "Create Your First Exam" [ref=e601] [cursor=pointer]:
+                      - img [ref=e602]
+                      - text: Create Your First Exam
+          - generic [ref=e603]:
+            - generic [ref=e604]:
+              - generic [ref=e608]:
+                - heading "Content Quality Dashboard" [level=3] [ref=e609]:
+                  - img [ref=e610]
+                  - text: Content Quality Dashboard
+                - paragraph [ref=e612]: Validate AI-generated educational content through multiple quality gates
+              - generic [ref=e614]:
+                - generic [ref=e615]:
+                  - generic [ref=e616]: Content to Validate
+                  - textbox "Paste your educational content here..." [ref=e617]
+                  - paragraph [ref=e618]: 0 characters • Minimum 10 required
+                - generic [ref=e619]:
+                  - generic [ref=e620]:
+                    - generic [ref=e621]: Content Type
+                    - combobox [ref=e622] [cursor=pointer]:
+                      - generic: Lesson
+                      - img [ref=e623]
+                  - generic [ref=e625]:
+                    - generic [ref=e626]: Target Difficulty
+                    - combobox [ref=e627] [cursor=pointer]:
+                      - generic: Intermediate
+                      - img [ref=e628]
+                  - generic [ref=e630]:
+                    - generic [ref=e631]: Target Bloom's Level
+                    - combobox [ref=e632] [cursor=pointer]:
+                      - generic:
+                        - generic:
+                          - generic: Understand
+                          - generic: Explain ideas or concepts
+                      - img [ref=e633]
+                - generic [ref=e635]:
+                  - checkbox "Quick validation (essential gates only)" [ref=e636]
+                  - generic [ref=e637]: Quick validation (essential gates only)
+                - button "Validate Content" [disabled]:
+                  - img
+                  - text: Validate Content
+            - generic [ref=e638]:
+              - generic [ref=e641]:
+                - generic [ref=e642]:
+                  - heading "Confidence Calibration" [level=3] [ref=e643]:
+                    - img [ref=e644]
+                    - text: Confidence Calibration
+                  - paragraph [ref=e647]: Prediction accuracy and threshold recommendations
+                - button "Refresh" [ref=e648] [cursor=pointer]:
+                  - img [ref=e649]
+                  - text: Refresh
+              - generic [ref=e654]:
+                - generic [ref=e656]:
+                  - generic [ref=e657]:
+                    - img [ref=e658]
+                    - generic [ref=e661]:
+                      - generic [ref=e662]: 0.0%
+                      - generic [ref=e663]: error
+                  - generic [ref=e665]: good calibration
+                - generic [ref=e667]:
+                  - generic [ref=e668]:
+                    - generic [ref=e669]:
+                      - img [ref=e671]
+                      - generic [ref=e675]: 0.0%
+                      - generic [ref=e676]: Avg Predicted
+                    - generic [ref=e677]:
+                      - img [ref=e679]
+                      - generic [ref=e682]: 0.0%
+                      - generic [ref=e683]: Avg Actual
+                    - generic [ref=e684]:
+                      - img [ref=e686]
+                      - generic [ref=e688]: "0.0000"
+                      - generic [ref=e689]: Brier Score
+                    - generic [ref=e690]:
+                      - img [ref=e692]
+                      - generic [ref=e694]: 0.0%
+                      - generic [ref=e695]: Override Rate
+                  - generic [ref=e696]:
+                    - generic [ref=e697]: 0 total predictions
+                    - generic [ref=e698]: 0 outcomes recorded
+              - generic [ref=e699]:
+                - tablist [ref=e700]:
+                  - tab "Calibration Buckets" [selected] [ref=e701] [cursor=pointer]
+                  - tab "By Response Type" [ref=e702] [cursor=pointer]
+                  - tab "Recommendations (1)" [ref=e703] [cursor=pointer]
+                - tabpanel "Calibration Buckets" [ref=e704]:
+                  - generic [ref=e705]:
+                    - generic [ref=e706]:
+                      - heading "Predicted vs Actual by Confidence Level" [level=3] [ref=e707]
+                      - paragraph [ref=e708]: Comparing predicted confidence with actual accuracy across ranges
+                    - generic [ref=e710]:
+                      - generic [ref=e712]:
+                        - generic [ref=e713]: 0-20%
+                        - generic [ref=e716]: n=0
+                      - generic [ref=e718]:
+                        - generic [ref=e719]: 20-40%
+                        - generic [ref=e722]: n=0
+                      - generic [ref=e724]:
+                        - generic [ref=e725]: 40-60%
+                        - generic [ref=e728]: n=0
+                      - generic [ref=e730]:
+                        - generic [ref=e731]: 60-80%
+                        - generic [ref=e734]: n=0
+                      - generic [ref=e736]:
+                        - generic [ref=e737]: 80-100%
+                        - generic [ref=e740]: n=0
+                      - generic [ref=e741]:
+                        - generic [ref=e744]: Predicted
+                        - generic [ref=e747]: Actual
+              - generic [ref=e748]: "Report period: 1/9/2026 - 1/23/2026 • Generated: 1/23/2026, 4:44:19 PM"
+        - button "Open SAM AI Assistant" [ref=e750] [cursor=pointer]:
+          - img [ref=e751]
+  - button "Open SAM AI Assistant" [ref=e754] [cursor=pointer]:
+    - img [ref=e755]
+  - alert [ref=e3]

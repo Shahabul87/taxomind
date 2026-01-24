@@ -5,6 +5,15 @@
  *
  * Interactive visualization component for exploring the knowledge graph.
  * Displays course concepts, their relationships, and user progress.
+ *
+ * Features:
+ * - Pan & zoom with mouse gestures and touch support
+ * - Node dragging for manual repositioning
+ * - Focus mode to highlight connected nodes
+ * - Mini-map for navigation in large graphs
+ * - Keyboard navigation for accessibility
+ * - Start Learning action button
+ * - Unified controls toolbar
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -51,11 +60,18 @@ import {
   CircleDot,
   ArrowRight,
   Layers,
-  Target,
   Brain,
   Sparkles,
   Filter,
   GitBranch,
+  Move,
+  Focus,
+  Map as MapIcon,
+  Play,
+  Hand,
+  MousePointer,
+  RotateCcw,
+  Keyboard,
 } from 'lucide-react';
 
 // ============================================================================
@@ -71,6 +87,7 @@ interface GraphNode {
   masteryLevel?: number;
   status?: 'mastered' | 'in_progress' | 'not_started' | 'struggling';
   position?: { x: number; y: number };
+  isFiltered?: boolean;
 }
 
 interface GraphEdge {
@@ -132,6 +149,7 @@ interface KnowledgeGraphBrowserProps {
   courseId?: string;
   initialConceptId?: string;
   onConceptSelect?: (conceptId: string) => void;
+  onStartLearning?: (conceptId: string) => void;
   showSearch?: boolean;
   showStats?: boolean;
   showFilters?: boolean;
@@ -139,17 +157,27 @@ interface KnowledgeGraphBrowserProps {
   className?: string;
 }
 
-// Relationship type definitions - values must match API response types
+interface ViewTransform {
+  x: number;
+  y: number;
+  scale: number;
+}
+
+type InteractionMode = 'select' | 'pan';
+
+// Relationship type definitions - values must match API response types (lowercase)
 const RELATIONSHIP_TYPES = [
   { value: 'all', label: 'All Relationships', description: 'Show all connections' },
-  { value: 'PREREQUISITE_OF', label: 'Prerequisites', description: 'Required prior knowledge' },
-  { value: 'RELATED_TO', label: 'Related Concepts', description: 'Connected topics' },
-  { value: 'PART_OF', label: 'Part Of', description: 'Hierarchical structure' },
-  { value: 'FOLLOWS', label: 'Sequence', description: 'Learning order' },
-  { value: 'TEACHES', label: 'Teaches', description: 'Concepts taught' },
+  { value: 'prerequisite_of', label: 'Prerequisites', description: 'Required prior knowledge' },
+  { value: 'related_to', label: 'Related Concepts', description: 'Connected topics' },
+  { value: 'part_of', label: 'Part Of', description: 'Hierarchical structure' },
+  { value: 'follows', label: 'Sequence', description: 'Learning order' },
+  { value: 'teaches', label: 'Teaches', description: 'Concepts taught' },
+  { value: 'requires', label: 'Requires', description: 'Required knowledge' },
+  { value: 'similar_to', label: 'Similar', description: 'Similar concepts' },
 ] as const;
 
-type RelationshipFilterType = typeof RELATIONSHIP_TYPES[number]['value'];
+type RelationshipFilterType = (typeof RELATIONSHIP_TYPES)[number]['value'];
 
 // ============================================================================
 // CONSTANTS
@@ -177,6 +205,11 @@ const NODE_TYPE_COLORS: Record<string, string> = {
   Topic: 'bg-teal-500',
   Skill: 'bg-emerald-500',
 };
+
+const MIN_ZOOM = 0.25;
+const MAX_ZOOM = 3;
+const ZOOM_SENSITIVITY = 0.001;
+const NODE_RADIUS = 28;
 
 // ============================================================================
 // SUB-COMPONENTS
@@ -248,9 +281,7 @@ function NodeCard({
           <div className="flex-1 min-w-0">
             {/* Title Row */}
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-slate-900 dark:text-white truncate">
-                {node.name}
-              </h4>
+              <h4 className="font-medium text-slate-900 dark:text-white truncate">{node.name}</h4>
               <Badge variant="outline" className="text-xs shrink-0 capitalize">
                 {node.type}
               </Badge>
@@ -269,9 +300,7 @@ function NodeCard({
                   {status.replace('_', ' ')}
                 </span>
               </div>
-              <span className="text-xs font-medium text-muted-foreground">
-                {masteryLevel}% mastery
-              </span>
+              <span className="text-xs font-medium text-muted-foreground">{masteryLevel}% mastery</span>
             </div>
           </div>
 
@@ -287,10 +316,12 @@ function ConceptDetailsPanel({
   details,
   onClose,
   onNavigate,
+  onStartLearning,
 }: {
   details: ConceptDetails;
   onClose: () => void;
   onNavigate: (conceptId: string) => void;
+  onStartLearning?: (conceptId: string) => void;
 }) {
   const status = (details.userProgress?.status as keyof typeof STATUS_ICONS) ?? 'not_started';
   const StatusIcon = STATUS_ICONS[status];
@@ -301,7 +332,9 @@ function ConceptDetailsPanel({
       {/* Header - Fixed */}
       <CardHeader className="pb-3 flex-shrink-0 border-b border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <Badge variant="outline" className="capitalize">{details.entity.type}</Badge>
+          <Badge variant="outline" className="capitalize">
+            {details.entity.type}
+          </Badge>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
             <span className="text-lg">&times;</span>
           </Button>
@@ -310,35 +343,37 @@ function ConceptDetailsPanel({
           {details.entity.name}
         </CardTitle>
         {details.entity.description && (
-          <CardDescription className="line-clamp-3">
-            {details.entity.description}
-          </CardDescription>
+          <CardDescription className="line-clamp-3">{details.entity.description}</CardDescription>
         )}
       </CardHeader>
 
       {/* Scrollable Content */}
       <ScrollArea className="flex-1">
         <CardContent className="space-y-4 p-4">
+          {/* Start Learning Button */}
+          {onStartLearning && (
+            <Button
+              className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+              onClick={() => onStartLearning(details.entity.id)}
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Start Learning
+            </Button>
+          )}
+
           {/* User Progress - Always show */}
           <div className="p-3 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <StatusIcon className="h-4 w-4 flex-shrink-0" />
-              <span className="text-sm font-medium capitalize">
-                {status.replace('_', ' ')}
-              </span>
+              <span className="text-sm font-medium capitalize">{status.replace('_', ' ')}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
-                className={cn(
-                  'h-2 rounded-full transition-all',
-                  STATUS_COLORS[status]
-                )}
+                className={cn('h-2 rounded-full transition-all', STATUS_COLORS[status])}
                 style={{ width: `${masteryLevel}%` }}
               />
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {masteryLevel}% mastery
-            </div>
+            <div className="text-xs text-muted-foreground mt-1">{masteryLevel}% mastery</div>
           </div>
 
           {/* Connected Concepts */}
@@ -388,9 +423,7 @@ function ConceptDetailsPanel({
                     <div className="font-medium text-sm text-slate-900 dark:text-white truncate">
                       {rec.title}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {rec.reason}
-                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{rec.reason}</div>
                   </button>
                 ))}
               </div>
@@ -402,157 +435,672 @@ function ConceptDetailsPanel({
   );
 }
 
+// ============================================================================
+// MINI-MAP COMPONENT
+// ============================================================================
+
+function MiniMap({
+  nodes,
+  edges,
+  nodePositions,
+  viewTransform,
+  bounds,
+  containerSize,
+  selectedNodeId,
+  connectedNodeIds,
+  focusMode,
+  onViewportClick,
+}: {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  nodePositions: Map<string, { x: number; y: number }>;
+  viewTransform: ViewTransform;
+  bounds: { width: number; height: number };
+  containerSize: { width: number; height: number };
+  selectedNodeId: string | null;
+  connectedNodeIds: Set<string>;
+  focusMode: boolean;
+  onViewportClick: (x: number, y: number) => void;
+}) {
+  const miniMapRef = useRef<SVGSVGElement>(null);
+  const MINI_MAP_WIDTH = 150;
+  const MINI_MAP_HEIGHT = 100;
+
+  const scale = Math.min(MINI_MAP_WIDTH / bounds.width, MINI_MAP_HEIGHT / bounds.height);
+
+  // Calculate viewport rectangle in mini-map coordinates
+  const viewportWidth = (containerSize.width / viewTransform.scale) * scale;
+  const viewportHeight = (containerSize.height / viewTransform.scale) * scale;
+  const viewportX = (-viewTransform.x / viewTransform.scale) * scale;
+  const viewportY = (-viewTransform.y / viewTransform.scale) * scale;
+
+  const handleClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!miniMapRef.current) return;
+    const rect = miniMapRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / scale) * viewTransform.scale - containerSize.width / 2;
+    const y = ((e.clientY - rect.top) / scale) * viewTransform.scale - containerSize.height / 2;
+    onViewportClick(-x, -y);
+  };
+
+  return (
+    <div className="absolute bottom-3 right-3 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 p-1 z-10">
+      <svg
+        ref={miniMapRef}
+        width={MINI_MAP_WIDTH}
+        height={MINI_MAP_HEIGHT}
+        className="cursor-pointer"
+        onClick={handleClick}
+      >
+        {/* Background */}
+        <rect width={MINI_MAP_WIDTH} height={MINI_MAP_HEIGHT} fill="transparent" />
+
+        {/* Edges */}
+        <g>
+          {edges.map((edge) => {
+            const source = nodePositions.get(edge.source);
+            const target = nodePositions.get(edge.target);
+            if (!source || !target) return null;
+
+            return (
+              <line
+                key={edge.id}
+                x1={source.x * scale}
+                y1={source.y * scale}
+                x2={target.x * scale}
+                y2={target.y * scale}
+                stroke="#cbd5e1"
+                strokeWidth={0.5}
+                strokeOpacity={0.5}
+              />
+            );
+          })}
+        </g>
+
+        {/* Nodes */}
+        <g>
+          {nodes.map((node) => {
+            const pos = nodePositions.get(node.id);
+            if (!pos) return null;
+
+            const isSelected = node.id === selectedNodeId;
+            const isConnected = connectedNodeIds.has(node.id);
+            const isDimmed = focusMode && selectedNodeId && !isSelected && !isConnected;
+
+            return (
+              <circle
+                key={node.id}
+                cx={pos.x * scale}
+                cy={pos.y * scale}
+                r={3}
+                fill={isSelected ? '#6366f1' : isConnected ? '#818cf8' : '#94a3b8'}
+                opacity={isDimmed ? 0.3 : 1}
+              />
+            );
+          })}
+        </g>
+
+        {/* Viewport indicator */}
+        <rect
+          x={Math.max(0, viewportX)}
+          y={Math.max(0, viewportY)}
+          width={Math.min(viewportWidth, MINI_MAP_WIDTH - viewportX)}
+          height={Math.min(viewportHeight, MINI_MAP_HEIGHT - viewportY)}
+          fill="rgba(99, 102, 241, 0.1)"
+          stroke="#6366f1"
+          strokeWidth={1}
+          strokeDasharray="2,2"
+        />
+      </svg>
+    </div>
+  );
+}
+
+// ============================================================================
+// GRAPH CONTROLS TOOLBAR
+// ============================================================================
+
+function GraphControls({
+  zoom,
+  onZoomIn,
+  onZoomOut,
+  onFitToView,
+  onResetView,
+  interactionMode,
+  onInteractionModeChange,
+  focusMode,
+  onFocusModeToggle,
+  showMiniMap,
+  onMiniMapToggle,
+  onRefresh,
+}: {
+  zoom: number;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onFitToView: () => void;
+  onResetView: () => void;
+  interactionMode: InteractionMode;
+  onInteractionModeChange: (mode: InteractionMode) => void;
+  focusMode: boolean;
+  onFocusModeToggle: () => void;
+  showMiniMap: boolean;
+  onMiniMapToggle: () => void;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1 p-1 bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+      {/* Interaction Mode Toggle */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={interactionMode === 'select' ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onInteractionModeChange('select')}
+            >
+              <MousePointer className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Select Mode (V)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={interactionMode === 'pan' ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => onInteractionModeChange('pan')}
+            >
+              <Hand className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Pan Mode (H)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+      {/* Zoom Controls */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onZoomOut}>
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Zoom Out (-)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <span className="text-xs text-muted-foreground w-12 text-center font-medium">
+        {Math.round(zoom * 100)}%
+      </span>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onZoomIn}>
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Zoom In (+)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+      {/* View Controls */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onFitToView}>
+              <Maximize2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Fit to View (F)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onResetView}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Reset View (R)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+      {/* Feature Toggles */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={focusMode ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={onFocusModeToggle}
+            >
+              <Focus className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Focus Mode (G)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={showMiniMap ? 'default' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={onMiniMapToggle}
+            >
+              <MapIcon className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Mini-map (M)</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRefresh}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Refresh Graph</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
+}
+
+// ============================================================================
+// ENHANCED GRAPH CANVAS
+// ============================================================================
+
 function GraphCanvas({
   nodes,
   edges,
   selectedNodeId,
   onNodeClick,
-  zoom,
+  onNodeDoubleClick,
+  focusMode,
+  showMiniMap,
+  interactionMode,
+  viewTransform,
+  onViewTransformChange,
+  customPositions,
+  onNodeDrag,
+  focusedNodeIndex,
+  onStartLearning,
 }: {
   nodes: GraphNode[];
   edges: GraphEdge[];
   selectedNodeId: string | null;
   onNodeClick: (nodeId: string) => void;
-  zoom: number;
+  onNodeDoubleClick?: (nodeId: string) => void;
+  focusMode: boolean;
+  showMiniMap: boolean;
+  interactionMode: InteractionMode;
+  viewTransform: ViewTransform;
+  onViewTransformChange: (transform: ViewTransform) => void;
+  customPositions: Map<string, { x: number; y: number }>;
+  onNodeDrag: (nodeId: string, x: number, y: number) => void;
+  focusedNodeIndex: number;
+  onStartLearning?: (conceptId: string) => void;
 }) {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 800, height: 500 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
 
-  // Calculate node positions - use API positions or generate grid layout
+  // Calculate node positions - use custom positions or generate layout
   const nodePositions = useMemo(() => {
     const map = new Map<string, { x: number; y: number }>();
     const nodeCount = nodes.length;
 
     if (nodeCount === 0) return map;
 
-    // Check if any node has valid position from API
-    const hasValidPositions = nodes.some(
-      (n) => n.position && n.position.x !== 400 && n.position.y !== 300
-    );
+    // Build adjacency for better ordering
+    const nodeConnections = new Map<string, number>();
+    for (const edge of edges) {
+      nodeConnections.set(edge.source, (nodeConnections.get(edge.source) ?? 0) + 1);
+      nodeConnections.set(edge.target, (nodeConnections.get(edge.target) ?? 0) + 1);
+    }
 
-    if (hasValidPositions) {
-      // Use API-provided positions
-      for (const node of nodes) {
-        map.set(node.id, {
-          x: node.position?.x ?? 400,
-          y: node.position?.y ?? 300,
-        });
-      }
-    } else {
-      // Generate hierarchical grid layout
-      const cols = Math.ceil(Math.sqrt(nodeCount));
-      const horizontalSpacing = 180;
-      const verticalSpacing = 140;
-      const startX = 100;
-      const startY = 80;
+    // Group nodes by type for hierarchical layout
+    const nodesByType = new Map<string, GraphNode[]>();
+    for (const node of nodes) {
+      const existing = nodesByType.get(node.type) ?? [];
+      existing.push(node);
+      nodesByType.set(node.type, existing);
+    }
 
-      // Build adjacency for better ordering
-      const nodeConnections = new Map<string, number>();
-      for (const edge of edges) {
-        nodeConnections.set(edge.source, (nodeConnections.get(edge.source) ?? 0) + 1);
-        nodeConnections.set(edge.target, (nodeConnections.get(edge.target) ?? 0) + 1);
-      }
+    // Layer order
+    const layerOrder = ['Course', 'Chapter', 'Section', 'Concept', 'Topic', 'Skill'];
+    const layerOrderSet = new Set(layerOrder);
 
-      // Sort nodes: more connected nodes first (they'll be at top)
-      const sortedNodes = [...nodes].sort((a, b) => {
+    let yOffset = 80;
+    const layerHeight = 140;
+    const horizontalSpacing = 160;
+
+    for (const layerType of layerOrder) {
+      const nodesInLayer = nodesByType.get(layerType) ?? [];
+      if (nodesInLayer.length === 0) continue;
+
+      // Sort nodes in layer by connections
+      nodesInLayer.sort((a, b) => {
         const aConns = nodeConnections.get(a.id) ?? 0;
         const bConns = nodeConnections.get(b.id) ?? 0;
         return bConns - aConns;
       });
 
-      sortedNodes.forEach((node, index) => {
-        const row = Math.floor(index / cols);
-        const col = index % cols;
-        // Add slight offset for visual variety
-        const offsetX = (row % 2) * (horizontalSpacing / 4);
-        map.set(node.id, {
-          x: startX + col * horizontalSpacing + offsetX,
-          y: startY + row * verticalSpacing,
-        });
-      });
+      const layerWidth = nodesInLayer.length * horizontalSpacing;
+      let xOffset = Math.max(100, 400 - layerWidth / 2);
+
+      for (const node of nodesInLayer) {
+        // Use custom position if available
+        if (customPositions.has(node.id)) {
+          map.set(node.id, customPositions.get(node.id)!);
+        } else {
+          map.set(node.id, {
+            x: xOffset + Math.random() * 20 - 10,
+            y: yOffset + Math.random() * 20 - 10,
+          });
+        }
+        xOffset += horizontalSpacing;
+      }
+
+      yOffset += layerHeight;
+    }
+
+    // Handle any remaining nodes not in standard layers
+    for (const [type, layerNodes] of nodesByType) {
+      if (layerOrderSet.has(type)) continue;
+
+      for (const node of layerNodes) {
+        if (!map.has(node.id)) {
+          if (customPositions.has(node.id)) {
+            map.set(node.id, customPositions.get(node.id)!);
+          } else {
+            map.set(node.id, {
+              x: 200 + Math.random() * 400,
+              y: yOffset + Math.random() * 100,
+            });
+          }
+        }
+      }
+      yOffset += layerHeight;
     }
 
     return map;
-  }, [nodes, edges]);
+  }, [nodes, edges, customPositions]);
 
   // Calculate canvas bounds
   const bounds = useMemo(() => {
     if (nodes.length === 0) return { width: 800, height: 500 };
 
-    let maxX = 0, maxY = 0;
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = 0,
+      maxY = 0;
     for (const pos of nodePositions.values()) {
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
       maxX = Math.max(maxX, pos.x);
       maxY = Math.max(maxY, pos.y);
     }
 
     return {
-      width: Math.max(800, maxX + 150),
-      height: Math.max(500, maxY + 120),
+      width: Math.max(800, maxX - minX + 200),
+      height: Math.max(500, maxY - minY + 200),
     };
   }, [nodes.length, nodePositions]);
 
+  // Get connected nodes for focus mode
+  const connectedNodeIds = useMemo(() => {
+    const connected = new Set<string>();
+    if (!selectedNodeId) return connected;
+
+    connected.add(selectedNodeId);
+    for (const edge of edges) {
+      if (edge.source === selectedNodeId) {
+        connected.add(edge.target);
+      }
+      if (edge.target === selectedNodeId) {
+        connected.add(edge.source);
+      }
+    }
+    return connected;
+  }, [selectedNodeId, edges]);
+
+  // Observe container size
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        });
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  // Handle wheel zoom
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault();
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const delta = -e.deltaY * ZOOM_SENSITIVITY;
+      const newScale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, viewTransform.scale * (1 + delta)));
+
+      // Zoom towards mouse position
+      const scaleRatio = newScale / viewTransform.scale;
+      const newX = mouseX - (mouseX - viewTransform.x) * scaleRatio;
+      const newY = mouseY - (mouseY - viewTransform.y) * scaleRatio;
+
+      onViewTransformChange({ x: newX, y: newY, scale: newScale });
+    },
+    [viewTransform, onViewTransformChange]
+  );
+
+  // Handle pan start
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Only start panning with middle mouse button or in pan mode
+      if (e.button === 1 || (e.button === 0 && interactionMode === 'pan')) {
+        e.preventDefault();
+        setIsPanning(true);
+        setPanStart({ x: e.clientX - viewTransform.x, y: e.clientY - viewTransform.y });
+      }
+    },
+    [interactionMode, viewTransform]
+  );
+
+  // Handle pan move
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (isPanning) {
+        onViewTransformChange({
+          ...viewTransform,
+          x: e.clientX - panStart.x,
+          y: e.clientY - panStart.y,
+        });
+      } else if (draggingNodeId) {
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const x = (e.clientX - rect.left - viewTransform.x) / viewTransform.scale - dragOffset.x;
+        const y = (e.clientY - rect.top - viewTransform.y) / viewTransform.scale - dragOffset.y;
+        onNodeDrag(draggingNodeId, x, y);
+      }
+    },
+    [isPanning, panStart, viewTransform, onViewTransformChange, draggingNodeId, dragOffset, onNodeDrag]
+  );
+
+  // Handle pan end
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+    setDraggingNodeId(null);
+  }, []);
+
+  // Handle node drag start
+  const handleNodeMouseDown = useCallback(
+    (e: React.MouseEvent, nodeId: string) => {
+      if (interactionMode === 'select') {
+        e.stopPropagation();
+        const pos = nodePositions.get(nodeId);
+        if (!pos) return;
+
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+
+        const mouseX = (e.clientX - rect.left - viewTransform.x) / viewTransform.scale;
+        const mouseY = (e.clientY - rect.top - viewTransform.y) / viewTransform.scale;
+
+        setDraggingNodeId(nodeId);
+        setDragOffset({ x: mouseX - pos.x, y: mouseY - pos.y });
+      }
+    },
+    [interactionMode, nodePositions, viewTransform]
+  );
+
+  // Handle touch events for mobile
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        setPanStart({ x: touch.clientX - viewTransform.x, y: touch.clientY - viewTransform.y });
+        setIsPanning(true);
+      }
+    },
+    [viewTransform]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (e.touches.length === 1 && isPanning) {
+        const touch = e.touches[0];
+        onViewTransformChange({
+          ...viewTransform,
+          x: touch.clientX - panStart.x,
+          y: touch.clientY - panStart.y,
+        });
+      } else if (e.touches.length === 2) {
+        // Pinch to zoom
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+        // Store initial distance and implement pinch zoom logic
+        // This is a simplified version
+      }
+    },
+    [isPanning, panStart, viewTransform, onViewTransformChange]
+  );
+
+  const handleTouchEnd = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  // Render cursor style based on mode
+  const cursorStyle = useMemo(() => {
+    if (draggingNodeId) return 'grabbing';
+    if (isPanning) return 'grabbing';
+    if (interactionMode === 'pan') return 'grab';
+    return 'default';
+  }, [draggingNodeId, isPanning, interactionMode]);
+
   return (
     <div
-      ref={canvasRef}
-      className="relative overflow-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
-      style={{ height: '100%' }}
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+      style={{ cursor: cursorStyle }}
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <svg
-        width={bounds.width * zoom}
-        height={bounds.height * zoom}
-        viewBox={`0 0 ${bounds.width} ${bounds.height}`}
-        style={{ minWidth: '100%', minHeight: '100%' }}
+        ref={svgRef}
+        width="100%"
+        height="100%"
+        style={{
+          transform: `translate(${viewTransform.x}px, ${viewTransform.y}px) scale(${viewTransform.scale})`,
+          transformOrigin: '0 0',
+        }}
       >
-        {/* Arrow marker definition */}
+        {/* Arrow marker definitions */}
         <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon
-              points="0 0, 10 3.5, 0 7"
-              fill="#94a3b8"
-            />
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
           </marker>
-          <marker
-            id="arrowhead-selected"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon
-              points="0 0, 10 3.5, 0 7"
-              fill="#6366f1"
-            />
+          <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#6366f1" />
           </marker>
+          <marker id="arrowhead-dimmed" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" opacity="0.3" />
+          </marker>
+          {/* Glow filter for hover/selected nodes */}
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        {/* Render edges with arrows */}
+        {/* Render edges */}
         <g className="edges">
           {edges.map((edge) => {
             const source = nodePositions.get(edge.source);
             const target = nodePositions.get(edge.target);
             if (!source || !target) return null;
 
-            const isConnectedToSelected =
-              selectedNodeId === edge.source || selectedNodeId === edge.target;
+            const isConnectedToSelected = selectedNodeId === edge.source || selectedNodeId === edge.target;
+            const isDimmed = focusMode && selectedNodeId && !isConnectedToSelected;
 
-            // Calculate line to stop at node edge (radius 30)
+            // Calculate line to stop at node edge
             const dx = target.x - source.x;
             const dy = target.y - source.y;
             const length = Math.sqrt(dx * dx + dy * dy);
-            const nodeRadius = 30;
+            if (length === 0) return null;
 
-            // Adjust start and end points to node edges
-            const startX = source.x + (dx / length) * nodeRadius;
-            const startY = source.y + (dy / length) * nodeRadius;
-            const endX = target.x - (dx / length) * (nodeRadius + 5);
-            const endY = target.y - (dy / length) * (nodeRadius + 5);
+            const startX = source.x + (dx / length) * NODE_RADIUS;
+            const startY = source.y + (dy / length) * NODE_RADIUS;
+            const endX = target.x - (dx / length) * (NODE_RADIUS + 5);
+            const endY = target.y - (dy / length) * (NODE_RADIUS + 5);
 
             return (
               <g key={edge.id}>
@@ -563,17 +1111,24 @@ function GraphCanvas({
                   y2={endY}
                   stroke={isConnectedToSelected ? '#6366f1' : '#cbd5e1'}
                   strokeWidth={isConnectedToSelected ? 3 : 2}
-                  strokeOpacity={isConnectedToSelected ? 1 : 0.6}
-                  markerEnd={isConnectedToSelected ? 'url(#arrowhead-selected)' : 'url(#arrowhead)'}
+                  strokeOpacity={isDimmed ? 0.15 : isConnectedToSelected ? 1 : 0.6}
+                  markerEnd={
+                    isDimmed
+                      ? 'url(#arrowhead-dimmed)'
+                      : isConnectedToSelected
+                        ? 'url(#arrowhead-selected)'
+                        : 'url(#arrowhead)'
+                  }
                   className="transition-all duration-200"
                 />
                 {/* Edge label */}
-                {edge.label && (
+                {edge.label && !isDimmed && (
                   <text
                     x={(startX + endX) / 2}
                     y={(startY + endY) / 2 - 8}
                     textAnchor="middle"
                     className="text-[9px] fill-slate-500 dark:fill-slate-400 pointer-events-none"
+                    opacity={isDimmed ? 0.3 : 1}
                   >
                     {edge.label}
                   </text>
@@ -585,37 +1140,57 @@ function GraphCanvas({
 
         {/* Render nodes */}
         <g className="nodes">
-          {nodes.map((node) => {
+          {nodes.map((node, index) => {
             const pos = nodePositions.get(node.id);
             if (!pos) return null;
 
             const isSelected = node.id === selectedNodeId;
-            const isFiltered = (node as GraphNode & { isFiltered?: boolean }).isFiltered;
+            const isConnected = connectedNodeIds.has(node.id);
+            const isDimmed = focusMode && selectedNodeId && !isSelected && !isConnected;
+            const isFiltered = node.isFiltered;
+            const isHovered = node.id === hoveredNodeId;
+            const isFocusedByKeyboard = index === focusedNodeIndex;
             const statusColor = STATUS_COLORS[node.status ?? 'not_started'];
 
             return (
               <g
                 key={node.id}
                 transform={`translate(${pos.x}, ${pos.y})`}
-                className="cursor-pointer"
-                onClick={() => onNodeClick(node.id)}
-                style={{ opacity: isFiltered ? 0.3 : 1 }}
+                className={cn('cursor-pointer transition-all duration-200')}
+                style={{ opacity: isDimmed || isFiltered ? 0.3 : 1 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNodeClick(node.id);
+                }}
+                onDoubleClick={() => onNodeDoubleClick?.(node.id)}
+                onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                onMouseEnter={() => setHoveredNodeId(node.id)}
+                onMouseLeave={() => setHoveredNodeId(null)}
+                tabIndex={0}
+                role="button"
+                aria-label={`${node.name} - ${node.status ?? 'not started'}`}
               >
                 {/* Node shadow */}
-                <circle
-                  r={32}
-                  fill="rgba(0,0,0,0.1)"
-                  cx={2}
-                  cy={2}
-                />
+                <circle r={32} fill="rgba(0,0,0,0.1)" cx={2} cy={2} />
+
                 {/* Node background */}
                 <circle
-                  r={isSelected ? 32 : 28}
+                  r={isSelected || isHovered ? 32 : NODE_RADIUS}
                   fill={isSelected ? '#6366f1' : '#ffffff'}
-                  stroke={isSelected ? '#4f46e5' : '#e2e8f0'}
-                  strokeWidth={isSelected ? 3 : 2}
+                  stroke={
+                    isFocusedByKeyboard
+                      ? '#f97316'
+                      : isSelected
+                        ? '#4f46e5'
+                        : isHovered
+                          ? '#6366f1'
+                          : '#e2e8f0'
+                  }
+                  strokeWidth={isFocusedByKeyboard ? 4 : isSelected ? 3 : 2}
+                  filter={isHovered || isSelected ? 'url(#glow)' : undefined}
                   className="transition-all duration-200"
                 />
+
                 {/* Status indicator dot */}
                 <circle
                   r={8}
@@ -625,14 +1200,21 @@ function GraphCanvas({
                   stroke="#ffffff"
                   strokeWidth={2}
                 />
+
                 {/* Mastery progress ring */}
                 {node.masteryLevel !== undefined && node.masteryLevel > 0 && (
                   <circle
                     r={26}
                     fill="none"
-                    stroke={statusColor.replace('bg-', '').includes('emerald') ? '#10b981' :
-                            statusColor.replace('bg-', '').includes('blue') ? '#3b82f6' :
-                            statusColor.replace('bg-', '').includes('amber') ? '#f59e0b' : '#9ca3af'}
+                    stroke={
+                      statusColor.replace('bg-', '').includes('emerald')
+                        ? '#10b981'
+                        : statusColor.replace('bg-', '').includes('blue')
+                          ? '#3b82f6'
+                          : statusColor.replace('bg-', '').includes('amber')
+                            ? '#f59e0b'
+                            : '#9ca3af'
+                    }
                     strokeWidth={4}
                     strokeDasharray={`${(node.masteryLevel / 100) * 163} 163`}
                     strokeLinecap="round"
@@ -640,31 +1222,78 @@ function GraphCanvas({
                     opacity={0.8}
                   />
                 )}
+
                 {/* Node icon */}
-                <text
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="text-lg"
-                >
-                  {node.type === 'Course' ? '📚' :
-                   node.type === 'Chapter' ? '📖' :
-                   node.type === 'Section' ? '📄' :
-                   node.type === 'Skill' ? '⭐' : '💡'}
+                <text textAnchor="middle" dominantBaseline="middle" className="text-lg select-none">
+                  {node.type === 'Course'
+                    ? '📚'
+                    : node.type === 'Chapter'
+                      ? '📖'
+                      : node.type === 'Section'
+                        ? '📄'
+                        : node.type === 'Skill'
+                          ? '⭐'
+                          : '💡'}
                 </text>
+
                 {/* Node label */}
                 <text
                   y={48}
                   textAnchor="middle"
                   fill={isSelected ? '#4f46e5' : '#475569'}
-                  className="text-[11px] font-medium pointer-events-none"
+                  className="text-[11px] font-medium pointer-events-none select-none"
                 >
                   {node.name.length > 18 ? `${node.name.slice(0, 18)}...` : node.name}
                 </text>
+
+                {/* Hover action button */}
+                {isHovered && onStartLearning && !isDimmed && (
+                  <g
+                    transform="translate(25, -25)"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onStartLearning(node.id);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <circle r={12} fill="#6366f1" stroke="#ffffff" strokeWidth={2} />
+                    <text
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#ffffff"
+                      className="text-xs font-bold"
+                    >
+                      ▶
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
         </g>
       </svg>
+
+      {/* Mini-map */}
+      {showMiniMap && (
+        <MiniMap
+          nodes={nodes}
+          edges={edges}
+          nodePositions={nodePositions}
+          viewTransform={viewTransform}
+          bounds={bounds}
+          containerSize={containerSize}
+          selectedNodeId={selectedNodeId}
+          connectedNodeIds={connectedNodeIds}
+          focusMode={focusMode}
+          onViewportClick={(x, y) => onViewTransformChange({ ...viewTransform, x, y })}
+        />
+      )}
+
+      {/* Keyboard shortcuts hint */}
+      <div className="absolute bottom-3 left-3 text-xs text-muted-foreground bg-white/80 dark:bg-slate-800/80 px-2 py-1 rounded flex items-center gap-1">
+        <Keyboard className="h-3 w-3" />
+        <span>Tab: Navigate • Enter: Select • Esc: Deselect</span>
+      </div>
     </div>
   );
 }
@@ -677,6 +1306,7 @@ export function KnowledgeGraphBrowser({
   courseId,
   initialConceptId,
   onConceptSelect,
+  onStartLearning,
   showSearch = true,
   showStats = true,
   showFilters = true,
@@ -688,35 +1318,40 @@ export function KnowledgeGraphBrowser({
   const [conceptDetails, setConceptDetails] = useState<ConceptDetails | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GraphNode[]>([]);
-  const [isLoading, setIsLoading] = useState(!!courseId); // Only loading if courseId is provided
+  const [isLoading, setIsLoading] = useState(!!courseId);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
   const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
-  const [availableCourses, setAvailableCourses] = useState<Array<{id: string; title: string}>>([]);
+  const [availableCourses, setAvailableCourses] = useState<Array<{ id: string; title: string }>>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | undefined>(courseId);
   const [relationshipFilter, setRelationshipFilter] = useState<RelationshipFilterType>('all');
 
+  // New state for enhanced features
+  const [viewTransform, setViewTransform] = useState<ViewTransform>({ x: 0, y: 0, scale: 1 });
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('select');
+  const [focusMode, setFocusMode] = useState(false);
+  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [customNodePositions, setCustomNodePositions] = useState<Map<string, { x: number; y: number }>>(
+    new Map()
+  );
+  const [focusedNodeIndex, setFocusedNodeIndex] = useState(-1);
+
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Filter edges based on relationship type
   const filteredGraphData = useMemo(() => {
     if (!graphData) return null;
     if (relationshipFilter === 'all') return graphData;
 
-    // Match edge type exactly (API returns uppercase like PREREQUISITE_OF)
-    const filteredEdges = graphData.edges.filter(
-      (edge) => edge.type === relationshipFilter
-    );
+    const filteredEdges = graphData.edges.filter((edge) => edge.type === relationshipFilter);
 
-    // Get nodes that are still connected after filtering
     const connectedNodeIds = new Set<string>();
     for (const edge of filteredEdges) {
       connectedNodeIds.add(edge.source);
       connectedNodeIds.add(edge.target);
     }
 
-    // Keep all nodes but mark unconnected ones (dim opacity if not connected)
     const filteredNodes = graphData.nodes.map((node) => ({
       ...node,
       isFiltered: filteredEdges.length > 0 && !connectedNodeIds.has(node.id),
@@ -728,26 +1363,25 @@ export function KnowledgeGraphBrowser({
       edges: filteredEdges,
       stats: {
         ...graphData.stats,
-        // Update connection count for filtered view
         totalEdges: filteredEdges.length,
       },
     };
   }, [graphData, relationshipFilter]);
 
   // Fetch available courses when no courseId is provided
-  // Uses enrolled courses API to show user's actual enrolled courses
   const fetchAvailableCourses = useCallback(async () => {
     try {
       const response = await fetch('/api/enrollments/my-courses');
       if (response.ok) {
         const result = await response.json();
-        // The API returns { success: true, data: [...courses] }
         const courses = result.data || result.courses || [];
         if (Array.isArray(courses) && courses.length > 0) {
-          setAvailableCourses(courses.map((c: { id: string; title: string }) => ({
-            id: c.id,
-            title: c.title
-          })));
+          setAvailableCourses(
+            courses.map((c: { id: string; title: string }) => ({
+              id: c.id,
+              title: c.title,
+            }))
+          );
         }
       }
     } catch {
@@ -778,6 +1412,9 @@ export function KnowledgeGraphBrowser({
       const result = await response.json();
       if (result.success) {
         setGraphData(result.data.graph);
+        // Reset view when loading new graph
+        setViewTransform({ x: 50, y: 50, scale: 1 });
+        setCustomNodePositions(new Map());
       } else {
         throw new Error(result.error ?? 'Unknown error');
       }
@@ -841,8 +1478,20 @@ export function KnowledgeGraphBrowser({
       setSelectedNodeId(nodeId);
       fetchConceptDetails(nodeId);
       onConceptSelect?.(nodeId);
+
+      // Update focused index
+      const index = filteredGraphData?.nodes.findIndex((n) => n.id === nodeId) ?? -1;
+      setFocusedNodeIndex(index);
     },
-    [fetchConceptDetails, onConceptSelect]
+    [fetchConceptDetails, onConceptSelect, filteredGraphData]
+  );
+
+  // Handle node double click (start learning)
+  const handleNodeDoubleClick = useCallback(
+    (nodeId: string) => {
+      onStartLearning?.(nodeId);
+    },
+    [onStartLearning]
   );
 
   // Handle search input change with debounce
@@ -860,6 +1509,117 @@ export function KnowledgeGraphBrowser({
     },
     [handleSearch]
   );
+
+  // Handle node drag
+  const handleNodeDrag = useCallback((nodeId: string, x: number, y: number) => {
+    setCustomNodePositions((prev) => {
+      const next = new Map(prev);
+      next.set(nodeId, { x, y });
+      return next;
+    });
+  }, []);
+
+  // Zoom controls
+  const handleZoomIn = useCallback(() => {
+    setViewTransform((prev) => ({
+      ...prev,
+      scale: Math.min(MAX_ZOOM, prev.scale * 1.2),
+    }));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setViewTransform((prev) => ({
+      ...prev,
+      scale: Math.max(MIN_ZOOM, prev.scale / 1.2),
+    }));
+  }, []);
+
+  const handleFitToView = useCallback(() => {
+    // Reset to default view that shows all nodes
+    setViewTransform({ x: 50, y: 50, scale: 0.8 });
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    setViewTransform({ x: 50, y: 50, scale: 1 });
+    setCustomNodePositions(new Map());
+  }, []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if graph view is active and not in an input
+      if (viewMode !== 'graph' || e.target instanceof HTMLInputElement) return;
+
+      const nodes = filteredGraphData?.nodes ?? [];
+      if (nodes.length === 0) return;
+
+      switch (e.key) {
+        case 'Tab':
+          e.preventDefault();
+          if (e.shiftKey) {
+            setFocusedNodeIndex((prev) => (prev <= 0 ? nodes.length - 1 : prev - 1));
+          } else {
+            setFocusedNodeIndex((prev) => (prev >= nodes.length - 1 ? 0 : prev + 1));
+          }
+          break;
+        case 'Enter':
+          if (focusedNodeIndex >= 0 && focusedNodeIndex < nodes.length) {
+            handleNodeClick(nodes[focusedNodeIndex].id);
+          }
+          break;
+        case 'Escape':
+          setSelectedNodeId(null);
+          setConceptDetails(null);
+          setFocusedNodeIndex(-1);
+          break;
+        case 'v':
+        case 'V':
+          setInteractionMode('select');
+          break;
+        case 'h':
+        case 'H':
+          setInteractionMode('pan');
+          break;
+        case 'g':
+        case 'G':
+          setFocusMode((prev) => !prev);
+          break;
+        case 'm':
+        case 'M':
+          setShowMiniMap((prev) => !prev);
+          break;
+        case 'f':
+        case 'F':
+          handleFitToView();
+          break;
+        case 'r':
+        case 'R':
+          if (!e.ctrlKey && !e.metaKey) {
+            handleResetView();
+          }
+          break;
+        case '+':
+        case '=':
+          handleZoomIn();
+          break;
+        case '-':
+          handleZoomOut();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    viewMode,
+    filteredGraphData,
+    focusedNodeIndex,
+    handleNodeClick,
+    handleFitToView,
+    handleResetView,
+    handleZoomIn,
+    handleZoomOut,
+  ]);
 
   // Initial load
   useEffect(() => {
@@ -934,9 +1694,7 @@ export function KnowledgeGraphBrowser({
             <Network className="h-5 w-5 text-primary" />
             <CardTitle>Knowledge Graph</CardTitle>
           </div>
-          <CardDescription>
-            Explore the connections between concepts in your courses
-          </CardDescription>
+          <CardDescription>Explore the connections between concepts in your courses</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center flex-1">
           <div className="text-center max-w-xl w-full px-4">
@@ -947,9 +1705,7 @@ export function KnowledgeGraphBrowser({
               <Brain className="absolute inset-0 m-auto h-10 w-10 text-primary" />
             </div>
 
-            <h3 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">
-              Select a Course
-            </h3>
+            <h3 className="text-xl font-semibold mb-2 text-slate-900 dark:text-white">Select a Course</h3>
             <p className="text-muted-foreground mb-8 text-sm">
               Choose a course to explore its knowledge graph and see how concepts connect to each other.
             </p>
@@ -966,12 +1722,9 @@ export function KnowledgeGraphBrowser({
                     className="group w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-primary/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-200 text-left shadow-sm hover:shadow-md"
                   >
                     <div className="flex items-center gap-3">
-                      {/* Course Icon */}
                       <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-primary/10 to-purple-500/10 flex items-center justify-center group-hover:from-primary/20 group-hover:to-purple-500/20 transition-colors">
                         <BookOpen className="h-5 w-5 text-primary" />
                       </div>
-
-                      {/* Course Info */}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-slate-900 dark:text-white truncate group-hover:text-primary transition-colors">
                           {course.title}
@@ -980,8 +1733,6 @@ export function KnowledgeGraphBrowser({
                           Click to explore knowledge graph
                         </p>
                       </div>
-
-                      {/* Arrow Icon */}
                       <ChevronRight className="flex-shrink-0 h-5 w-5 text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                     </div>
                   </button>
@@ -991,7 +1742,11 @@ export function KnowledgeGraphBrowser({
               <div className="p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30">
                 <BookOpen className="h-10 w-10 text-slate-400 mx-auto mb-3" />
                 <p className="text-muted-foreground mb-4">No enrolled courses found.</p>
-                <Button variant="default" asChild className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90">
+                <Button
+                  variant="default"
+                  asChild
+                  className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
+                >
                   <Link href="/courses">
                     <BookOpen className="h-4 w-4 mr-2" />
                     Browse Courses
@@ -1006,57 +1761,33 @@ export function KnowledgeGraphBrowser({
   }
 
   return (
-    <Card className={cn('flex flex-col', className)} style={{ height }}>
+    <Card className={cn('flex flex-col', className)} style={{ height }} ref={containerRef}>
       <CardHeader className="pb-3 shrink-0">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Network className="h-5 w-5 text-primary" />
             <CardTitle>Knowledge Graph</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setZoom((z) => Math.max(0.5, z - 0.1))}
-                  >
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Zoom Out</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <span className="text-sm text-muted-foreground w-12 text-center">
-              {Math.round(zoom * 100)}%
-            </span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setZoom((z) => Math.min(2, z + 0.1))}
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Zoom In</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="icon" onClick={fetchGraphData}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Refresh Graph</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+
+          {/* Graph Controls Toolbar */}
+          {viewMode === 'graph' && filteredGraphData && (
+            <GraphControls
+              zoom={viewTransform.scale}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onFitToView={handleFitToView}
+              onResetView={handleResetView}
+              interactionMode={interactionMode}
+              onInteractionModeChange={setInteractionMode}
+              focusMode={focusMode}
+              onFocusModeToggle={() => setFocusMode((prev) => !prev)}
+              showMiniMap={showMiniMap}
+              onMiniMapToggle={() => setShowMiniMap((prev) => !prev)}
+              onRefresh={fetchGraphData}
+            />
+          )}
         </div>
+
         {/* Relationship Filter */}
         {showFilters && graphData && (
           <div className="flex items-center gap-3 pt-2">
@@ -1121,7 +1852,11 @@ export function KnowledgeGraphBrowser({
               </div>
             </ScrollArea>
           ) : (
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'graph' | 'list')} className="flex-1 flex flex-col">
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as 'graph' | 'list')}
+              className="flex-1 flex flex-col"
+            >
               <TabsList className="shrink-0">
                 <TabsTrigger value="graph" className="gap-2">
                   <Network className="h-4 w-4" />
@@ -1139,7 +1874,16 @@ export function KnowledgeGraphBrowser({
                     edges={filteredGraphData.edges}
                     selectedNodeId={selectedNodeId}
                     onNodeClick={handleNodeClick}
-                    zoom={zoom}
+                    onNodeDoubleClick={handleNodeDoubleClick}
+                    focusMode={focusMode}
+                    showMiniMap={showMiniMap}
+                    interactionMode={interactionMode}
+                    viewTransform={viewTransform}
+                    onViewTransformChange={setViewTransform}
+                    customPositions={customNodePositions}
+                    onNodeDrag={handleNodeDrag}
+                    focusedNodeIndex={focusedNodeIndex}
+                    onStartLearning={onStartLearning}
                   />
                 )}
               </TabsContent>
@@ -1178,8 +1922,10 @@ export function KnowledgeGraphBrowser({
                 onClose={() => {
                   setSelectedNodeId(null);
                   setConceptDetails(null);
+                  setFocusedNodeIndex(-1);
                 }}
                 onNavigate={handleNodeClick}
+                onStartLearning={onStartLearning}
               />
             ) : null}
           </div>

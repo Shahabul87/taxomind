@@ -177,13 +177,13 @@ function GoalCard({
   const progress = totalSubGoals > 0 ? (completedSubGoals / totalSubGoals) * 100 : goal.progress;
 
   return (
-    <Card className="group hover:shadow-md transition-shadow">
-      <CardHeader className="pb-2">
+    <Card className="group hover:shadow-lg transition-all duration-200 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-md">
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base font-medium truncate">{goal.title}</CardTitle>
+            <CardTitle className="text-lg font-bold truncate text-slate-900 dark:text-white">{goal.title}</CardTitle>
             {goal.description && (
-              <CardDescription className="text-sm mt-1 line-clamp-2">
+              <CardDescription className="text-sm mt-2 line-clamp-2 text-slate-600 dark:text-slate-300">
                 {goal.description}
               </CardDescription>
             )}
@@ -525,18 +525,20 @@ export function GoalPlanner({
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Learning Goals
-          </h3>
-          <p className="text-sm text-gray-500">
-            {activeGoals.length} active, {completedGoals.length} completed
-          </p>
-        </div>
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-bold flex items-center gap-3 text-slate-900 dark:text-white">
+              <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900/30">
+                <Target className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+              </div>
+              Learning Goals
+            </CardTitle>
+            <CardDescription className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-2">
+              {activeGoals.length} active, {completedGoals.length} completed
+            </CardDescription>
+          </div>
 
         {showCreateButton && mounted && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -563,40 +565,43 @@ export function GoalPlanner({
             </DialogContent>
           </Dialog>
         )}
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="p-3 rounded-lg bg-red-50 text-red-700 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={clearError} className="text-red-500 hover:text-red-700">
-            <AlertCircle className="w-4 h-4" />
-          </button>
         </div>
-      )}
+      </CardHeader>
 
-      {/* Goals List */}
-      {isLoadingGoals ? (
-        <div className="flex items-center justify-center p-8">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-        </div>
-      ) : filteredGoals.length === 0 ? (
-        <Card className="p-8 text-center">
-          <Target className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500 mb-4">No learning goals yet</p>
-          {showCreateButton && (
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Goal
-            </Button>
-          )}
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {filteredGoals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
+      <CardContent className="pt-6">
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm flex items-center justify-between mb-4 border-2 border-red-200 dark:border-red-800">
+            <span className="font-medium">{error}</span>
+            <button onClick={clearError} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
+              <AlertCircle className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Goals List */}
+        {isLoadingGoals ? (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="w-8 h-8 animate-spin text-rose-600 dark:text-rose-400" />
+          </div>
+        ) : filteredGoals.length === 0 ? (
+          <div className="p-12 text-center">
+            <Target className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2">No learning goals yet</h3>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-6">Create your first goal to start tracking your progress</p>
+            {showCreateButton && (
+              <Button onClick={() => setIsCreateDialogOpen(true)} className="font-semibold">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Goal
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {filteredGoals.map((goal) => (
+              <GoalCard
+                key={goal.id}
+                goal={goal}
               onEdit={setEditingGoal}
               onDelete={handleDelete}
               onDecompose={handleDecompose}
@@ -605,6 +610,7 @@ export function GoalPlanner({
           ))}
         </div>
       )}
+      </CardContent>
 
       {/* Edit Dialog */}
       {mounted && (
@@ -627,7 +633,7 @@ export function GoalPlanner({
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </Card>
   );
 }
 

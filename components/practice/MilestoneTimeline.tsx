@@ -129,19 +129,21 @@ export function MilestoneTimeline({
 
   if (isLoading) {
     return (
-      <Card className={cn('', className)}>
+      <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-yellow-600 dark:text-yellow-400" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className={cn('', className)}>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
+        <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+          <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+            <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+          </div>
           Milestones
           {milestones.filter((m) => !m.rewardClaimed).length > 0 && (
             <Badge variant="destructive" className="ml-auto">

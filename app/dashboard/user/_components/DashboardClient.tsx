@@ -52,7 +52,7 @@ const SmartSidebar = dynamic(
 import { MobileGestureController } from '@/components/mobile/MobileGestureController';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
 import { NewDashboard } from './NewDashboard';
-import { CreateStudyPlanModal, type StudyPlanData } from './modals/CreateStudyPlanModal';
+import { CreateStudyPlanWizard } from './modals/CreateStudyPlanWizard';
 import { CreateCoursePlanModal, type CoursePlanData } from './modals/CreateCoursePlanModal';
 import { CreateBlogPlanModal, type BlogPlanData } from './modals/CreateBlogPlanModal';
 import { ScheduleSessionModal, type SessionData } from './modals/ScheduleSessionModal';
@@ -69,7 +69,7 @@ interface DashboardClientProps {
 }
 
 // Valid tab values for URL param validation
-const validTabs: DashboardView[] = ['learning', 'analytics', 'skills', 'practice', 'gamification', 'goals', 'gaps', 'innovation', 'discover', 'create'];
+const validTabs: DashboardView[] = ['learning', 'analytics', 'skills', 'practice', 'gamification', 'goals', 'gaps', 'innovation', 'create'];
 
 export function DashboardClient({ user }: DashboardClientProps) {
   const searchParams = useSearchParams();
@@ -82,6 +82,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { isMobile } = useViewportHeight();
+  const [studyPlanRefreshKey, setStudyPlanRefreshKey] = useState(0);
 
   // Track initialization to avoid re-running on mount
   const initializedRef = useRef(false);
@@ -157,43 +158,15 @@ export function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
-  // Form submission handlers
-  const handleStudyPlanSubmit = async (data: StudyPlanData) => {
-    try {
-      const response = await fetch('/api/dashboard/study-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planType: data.planType,
-          enrolledCourseId: data.enrolledCourseId,
-          newCourseTitle: data.newCourseTitle,
-          newCourseDescription: data.newCourseDescription,
-          newCourseUrl: data.newCourseUrl || undefined,
-          newCoursePlatform: data.newCoursePlatform,
-          title: data.title,
-          description: data.description,
-          startDate: data.startDate.toISOString(),
-          endDate: data.endDate.toISOString(),
-          weeklyHoursGoal: data.weeklyHoursGoal,
-          dailyStudyTime: data.dailyStudyTime,
-          studyDaysPerWeek: data.studyDaysPerWeek,
-          aiGenerated: data.aiGenerated || false,
-        }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        toast.success('Study plan created successfully!');
-        setIsStudyPlanModalOpen(false);
-      } else {
-        toast.error(result.error?.message || 'Failed to create study plan');
-      }
-    } catch (error) {
-      console.error('Error creating study plan:', error);
-      toast.error('Failed to create study plan');
-    }
+  // Study plan wizard success handler
+  const handleStudyPlanSuccess = () => {
+    // Increment refresh key to trigger StudyPlansList refetch
+    setStudyPlanRefreshKey((prev) => prev + 1);
+    // Navigate to goals tab to show the new study plan
+    handleTabChange('goals');
   };
 
+  // Form submission handlers
   const handleCoursePlanSubmit = async (data: CoursePlanData) => {
     try {
       const response = await fetch('/api/dashboard/course-plans', {
@@ -375,14 +348,20 @@ export function DashboardClient({ user }: DashboardClientProps) {
 
         {/* Main Content - pt-14 for unified header height (56px) */}
         <main className="pt-14 pb-20 md:pb-20 lg:pb-0 md:pl-0 lg:pl-[72px]">
-          <NewDashboard user={user} viewMode={viewMode} activeTab={activeTab} />
+          <NewDashboard
+            user={user}
+            viewMode={viewMode}
+            activeTab={activeTab}
+            onCreateStudyPlan={() => setIsStudyPlanModalOpen(true)}
+            studyPlanRefreshKey={studyPlanRefreshKey}
+          />
         </main>
 
         {/* Modals */}
-        <CreateStudyPlanModal
+        <CreateStudyPlanWizard
           isOpen={isStudyPlanModalOpen}
           onClose={() => setIsStudyPlanModalOpen(false)}
-          onSubmit={handleStudyPlanSubmit}
+          onSuccess={handleStudyPlanSuccess}
         />
         <CreateCoursePlanModal
           isOpen={isCoursePlanModalOpen}

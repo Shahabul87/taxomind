@@ -129,10 +129,10 @@ export function PracticeStreakDisplay({
 
   if (variant === 'large') {
     return (
-      <Card className={cn('', className)}>
+      <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
         <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Practice Streak</h3>
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Practice Streak</h3>
             {isNewRecord && (
               <Badge className="bg-yellow-500 text-black">
                 <Trophy className="h-3 w-3 mr-1" />
@@ -219,7 +219,7 @@ export function PracticeStreakDisplay({
 
   // Default variant
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <div

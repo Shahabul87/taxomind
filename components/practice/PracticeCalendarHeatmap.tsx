@@ -193,20 +193,22 @@ export function PracticeCalendarHeatmap({
 
   if (isLoading) {
     return (
-      <Card className={cn('', className)}>
+      <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600 dark:text-purple-400" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className={cn('', className)}>
-      <CardHeader className="pb-2">
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+              <Calendar className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
             Practice Activity
           </CardTitle>
           <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v, 10))}>

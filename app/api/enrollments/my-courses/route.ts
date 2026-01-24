@@ -6,6 +6,7 @@ import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/ap
 export async function GET(req: NextRequest) {
   try {
     const user = await currentUser();
+
     if (!user?.id) {
       return errorResponse(ErrorCodes.UNAUTHORIZED, "Authentication required", HttpStatus.UNAUTHORIZED);
     }
@@ -13,7 +14,6 @@ export async function GET(req: NextRequest) {
     const enrollments = await db.enrollment.findMany({
       where: {
         userId: user.id,
-        status: "ACTIVE",
       },
       include: {
         Course: {

@@ -60,8 +60,8 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
     return (
       <div className={cn('flex min-h-[400px] items-center justify-center', className)}>
         <div className="flex flex-col items-center gap-3 text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">
+          <Loader2 className="h-10 w-10 animate-spin text-red-600 dark:text-red-400" />
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
             Analyzing your learning gaps...
           </p>
         </div>
@@ -75,8 +75,8 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
       <div className={cn('flex min-h-[400px] items-center justify-center', className)}>
         <div className="flex flex-col items-center gap-3 text-center">
           <AlertCircle className="h-10 w-10 text-red-500" />
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <Button variant="outline" size="sm" onClick={refresh}>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">{error}</p>
+          <Button variant="outline" size="sm" onClick={refresh} className="border-2 font-semibold">
             <RefreshCw className="mr-2 h-4 w-4" />
             Retry
           </Button>
@@ -90,11 +90,11 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
     return (
       <div className={cn('flex min-h-[400px] items-center justify-center', className)}>
         <div className="flex flex-col items-center gap-3 text-center max-w-sm">
-          <div className="rounded-full bg-primary/10 p-4">
-            <AlertTriangle className="h-8 w-8 text-primary" />
+          <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-4">
+            <AlertTriangle className="h-8 w-8 text-red-600 dark:text-red-400" />
           </div>
-          <h3 className="font-semibold">No Learning Data Yet</h3>
-          <p className="text-sm text-muted-foreground">
+          <h3 className="font-bold text-lg text-slate-900 dark:text-white">No Learning Data Yet</h3>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
             Complete some learning activities to start tracking your progress
             and identifying knowledge gaps.
           </p>
@@ -186,16 +186,21 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
   };
 
   return (
-    <div className={cn('space-y-4 sm:space-y-6', className)}>
+    <div className={cn('space-y-6 sm:space-y-8', className)}>
       {/* Header - Responsive stacking on mobile */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-            Learning Gap Analysis
-          </h1>
-          <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-muted-foreground">
-            Identify and close knowledge gaps with AI-powered insights
-          </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 shadow-lg">
+            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              Learning Gap Analysis
+            </h1>
+            <p className="mt-2 text-base font-medium text-slate-600 dark:text-slate-300">
+              Identify and close knowledge gaps with AI-powered insights
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"

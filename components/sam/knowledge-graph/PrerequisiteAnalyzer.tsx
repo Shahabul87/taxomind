@@ -465,6 +465,12 @@ export function PrerequisiteAnalyzer({
 
   // Fetch available concepts
   const fetchConcepts = useCallback(async () => {
+    // Guard: Don't fetch if no courseId provided (handled by empty state)
+    if (!courseId) {
+      setIsLoadingConcepts(false);
+      return;
+    }
+
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
     setIsLoadingConcepts(true);
@@ -474,7 +480,10 @@ export function PrerequisiteAnalyzer({
         `/api/sam/knowledge-graph-engine/graph?courseId=${courseId}`
       );
 
-      if (!res.ok) throw new Error('Failed to fetch concepts');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || 'Failed to fetch concepts');
+      }
 
       const data = await res.json();
       if (data.success && data.data.concepts) {
@@ -486,6 +495,7 @@ export function PrerequisiteAnalyzer({
             bloomsLevel: c.bloomsLevel,
           }))
         );
+        setError(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load concepts');
@@ -554,6 +564,38 @@ export function PrerequisiteAnalyzer({
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
             <p className="text-xs text-muted-foreground">Loading concepts...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Empty state - No course selected (informational, not error)
+  if (!courseId) {
+    return (
+      <Card className={className}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-500/10">
+              <GitBranch className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <CardTitle className="text-sm">Prerequisite Analyzer</CardTitle>
+              <CardDescription className="text-xs">
+                Analyze prerequisites and readiness
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8 gap-3">
+          <div className="p-3 rounded-full bg-slate-100 dark:bg-slate-800">
+            <GitBranch className="w-6 h-6 text-slate-400" />
+          </div>
+          <div className="text-center">
+            <h3 className="font-medium text-slate-700 dark:text-slate-300">No Course Selected</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+              Select a course to analyze prerequisites and your readiness
+            </p>
           </div>
         </CardContent>
       </Card>

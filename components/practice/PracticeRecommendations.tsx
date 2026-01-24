@@ -160,20 +160,22 @@ export function PracticeRecommendations({
 
   if (isLoading) {
     return (
-      <Card className={cn('', className)}>
+      <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-yellow-600 dark:text-yellow-400" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className={cn('', className)}>
-      <CardHeader className="pb-2">
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-yellow-500" />
+          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+              <Lightbulb className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            </div>
             SAM Recommendations
           </CardTitle>
           {showRefresh && (
@@ -190,15 +192,15 @@ export function PracticeRecommendations({
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         {recommendations.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-20" />
-            <p>No recommendations yet.</p>
-            <p className="text-sm">Start practicing to get personalized tips!</p>
+          <div className="py-10 text-center">
+            <Sparkles className="h-12 w-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
+            <p className="font-medium text-slate-600 dark:text-slate-300">No recommendations yet.</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Start practicing to get personalized tips!</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {recommendations.map((rec) => (
               <RecommendationCard
                 key={rec.id}
@@ -229,21 +231,22 @@ function RecommendationCard({ recommendation, onAction }: RecommendationCardProp
   return (
     <div
       className={cn(
-        'p-3 rounded-lg border transition-colors',
+        'p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer',
         config.bgColor,
-        'hover:border-primary/30 cursor-pointer'
+        'hover:border-primary/50 hover:shadow-md',
+        'border-slate-200 dark:border-slate-700'
       )}
       onClick={onAction}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn('p-2 rounded-full bg-background', config.color)}>
+      <div className="flex items-start gap-4">
+        <div className={cn('p-2.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm', config.color)}>
           {config.icon}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm">{recommendation.title}</span>
-            <Badge variant={priorityBadge.variant} className="text-xs">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-semibold text-base text-slate-900 dark:text-white">{recommendation.title}</span>
+            <Badge variant={priorityBadge.variant} className="text-xs font-semibold">
               {priorityBadge.label}
             </Badge>
           </div>

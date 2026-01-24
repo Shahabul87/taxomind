@@ -212,41 +212,45 @@ function GapCard({
   return (
     <div
       className={cn(
-        'rounded-lg border p-3 transition-all hover:shadow-md cursor-pointer',
-        config.bgColor
+        'rounded-lg border-2 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer bg-white dark:bg-slate-800',
+        gap.severity === 'critical' && 'border-red-300 dark:border-red-700 hover:border-red-400 dark:hover:border-red-600',
+        gap.severity === 'moderate' && 'border-yellow-300 dark:border-yellow-700 hover:border-yellow-400 dark:hover:border-yellow-600',
+        gap.severity === 'minor' && 'border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600'
       )}
       onClick={onClick}
     >
       <div className="flex items-start gap-3">
-        <Icon className={cn('mt-0.5 h-4 w-4', config.color)} />
+        <div className={cn('mt-0.5 p-1.5 rounded-lg', config.bgColor)}>
+          <Icon className={cn('h-4 w-4', config.color)} />
+        </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-sm truncate">{gap.skillName}</span>
-            <Badge variant="outline" className="shrink-0 text-xs capitalize">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-semibold text-sm truncate text-slate-900 dark:text-white">{gap.skillName}</span>
+            <Badge variant="outline" className="shrink-0 text-xs capitalize font-semibold border-2">
               {config.label}
             </Badge>
           </div>
           {gap.topicName && (
-            <p className="text-xs text-muted-foreground truncate mb-2">
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate mb-3">
               {gap.topicName}
             </p>
           )}
-          <div className="space-y-1">
+          <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Current</span>
-              <span className="font-medium">{Math.round(gap.masteryLevel)}%</span>
+              <span className="font-medium text-slate-600 dark:text-slate-300">Current</span>
+              <span className="font-bold text-slate-900 dark:text-white">{Math.round(gap.masteryLevel)}%</span>
             </div>
             <Progress
               value={gap.masteryLevel}
-              className="h-1.5"
+              className="h-2 bg-slate-200 dark:bg-slate-700"
             />
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Target</span>
-              <span className="font-medium">{Math.round(gap.targetMasteryLevel)}%</span>
+              <span className="font-medium text-slate-600 dark:text-slate-300">Target</span>
+              <span className="font-bold text-slate-900 dark:text-white">{Math.round(gap.targetMasteryLevel)}%</span>
             </div>
           </div>
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-500 shrink-0 mt-1" />
       </div>
     </div>
   );
@@ -274,22 +278,22 @@ export function GapOverviewWidget({
   const hasGaps = summary.total > 0;
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-gradient-to-br from-red-500/20 to-orange-500/20 p-2">
-            <Target className="h-5 w-5 text-red-600" />
+          <div className="rounded-xl bg-red-100 dark:bg-red-900/30 p-2.5">
+            <Target className="h-5 w-5 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Gap Overview</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">Gap Overview</CardTitle>
+            <CardDescription className="text-slate-600 dark:text-slate-300 font-medium">
               Knowledge gaps requiring attention
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 sm:space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 pt-6">
         {/* Summary Section - Stack on mobile, side by side on larger screens */}
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:gap-6">
           <DonutChart

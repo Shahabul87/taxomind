@@ -94,27 +94,39 @@ export function CreateStudyPlanModal({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Fetch enrolled courses when modal opens
+  // Fetch enrolled courses when modal opens - using exact same pattern as KnowledgeGraphBrowser
   useEffect(() => {
-    if (isOpen && activeTab === "enrolled") {
-      fetchEnrolledCourses();
-    }
-  }, [isOpen, activeTab]);
+    if (!isOpen) return;
 
-  const fetchEnrolledCourses = async () => {
-    setIsLoadingCourses(true);
-    try {
-      const response = await fetch("/api/enrollments/my-courses");
-      if (response.ok) {
-        const data = await response.json();
-        setEnrolledCourses(data.courses || []);
+    const fetchCourses = async () => {
+      setIsLoadingCourses(true);
+      try {
+        const response = await fetch('/api/enrollments/my-courses');
+        if (response.ok) {
+          const result = await response.json();
+          const courses = result.data || result.courses || [];
+          if (Array.isArray(courses) && courses.length > 0) {
+            setEnrolledCourses(courses.map((course: { id: string; title: string; description?: string; imageUrl?: string }) => ({
+              id: course.id,
+              title: course.title,
+              description: course.description,
+              thumbnail: course.imageUrl,
+            })));
+          } else {
+            setEnrolledCourses([]);
+          }
+        } else {
+          setEnrolledCourses([]);
+        }
+      } catch {
+        setEnrolledCourses([]);
+      } finally {
+        setIsLoadingCourses(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch enrolled courses:", error);
-    } finally {
-      setIsLoadingCourses(false);
-    }
-  };
+    };
+
+    fetchCourses();
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,47 +326,86 @@ export function CreateStudyPlanModal({
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-6"
               >
-                {/* Course Selection */}
+                {/* Course Selection - Clickable cards like KnowledgeGraphBrowser */}
                 <div>
                   <Label>
                     Select Course <span className="text-red-500">*</span>
                   </Label>
                   {isLoadingCourses ? (
-                    <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-center">
-                      <p className="text-sm text-slate-500">Loading your courses...</p>
+                    <div className="mt-3 space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 animate-pulse">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-slate-200 dark:bg-slate-600" />
+                            <div className="flex-1 space-y-1">
+                              <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-600" />
+                              <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-600" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : enrolledCourses.length === 0 ? (
-                    <div className="mt-2 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg text-center">
-                      <p className="text-sm text-slate-500">No enrolled courses found</p>
+                    <div className="mt-3 p-6 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/30 text-center">
+                      <BookOpen className="h-10 w-10 text-slate-400 mx-auto mb-3" />
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">No enrolled courses found</p>
                       <button
                         type="button"
                         onClick={() => setActiveTab("new")}
-                        className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         Create plan for a new course instead
                       </button>
                     </div>
                   ) : (
-                    <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Choose a course..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {enrolledCourses.map((course) => (
-                          <SelectItem key={course.id} value={course.id}>
-                            <div className="flex items-center gap-2">
-                              <BookOpen className="h-4 w-4 text-slate-400" />
-                              <span>{course.title}</span>
-                              {course.progress !== undefined && (
-                                <span className="text-xs text-slate-500">
-                                  ({course.progress}% complete)
-                                </span>
+                    <div className="mt-3 space-y-2 max-h-[200px] overflow-y-auto">
+                      {enrolledCourses.map((course) => (
+                        <button
+                          key={course.id}
+                          type="button"
+                          onClick={() => setSelectedCourseId(course.id)}
+                          className={cn(
+                            "group w-full p-3 rounded-xl border text-left transition-all duration-200",
+                            selectedCourseId === course.id
+                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500"
+                              : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-blue-300 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+                              selectedCourseId === course.id
+                                ? "bg-blue-500 text-white"
+                                : "bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 text-blue-600 dark:text-blue-400"
+                            )}>
+                              <BookOpen className="h-4 w-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className={cn(
+                                "font-medium truncate transition-colors text-sm",
+                                selectedCourseId === course.id
+                                  ? "text-blue-700 dark:text-blue-300"
+                                  : "text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                              )}>
+                                {course.title}
+                              </h4>
+                              {course.description && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                  {course.description}
+                                </p>
                               )}
                             </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                            {selectedCourseId === course.id && (
+                              <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </motion.div>
@@ -468,7 +519,7 @@ export function CreateStudyPlanModal({
                       {startDate ? format(startDate, "PPP") : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[10000]" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={startDate}
@@ -496,7 +547,7 @@ export function CreateStudyPlanModal({
                       {endDate ? format(endDate, "PPP") : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[10000]" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={endDate}

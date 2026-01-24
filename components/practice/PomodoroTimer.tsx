@@ -314,7 +314,7 @@ export function PomodoroTimer({
   };
 
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
       {/* Hidden audio element for notifications */}
       <audio
         ref={audioRef}
@@ -322,10 +322,12 @@ export function PomodoroTimer({
         preload="auto"
       />
 
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Timer className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+              <Timer className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
             Pomodoro Timer
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -348,7 +350,7 @@ export function PomodoroTimer({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-6">
         {/* Phase indicator */}
         <div className="flex justify-center">
           <Badge

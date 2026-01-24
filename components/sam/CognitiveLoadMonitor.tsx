@@ -308,7 +308,7 @@ export function CognitiveLoadMonitor({
   compact = false,
   onLoadChange,
   onInterventionNeeded,
-  metrics = {},
+  metrics,
 }: CognitiveLoadMonitorProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -319,6 +319,17 @@ export function CognitiveLoadMonitor({
   const previousLoadRef = useRef<number | undefined>(undefined);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Store mutable values in refs to avoid infinite loops
+  // These don't need to trigger re-renders or callback recreation
+  const metricsRef = useRef(metrics);
+  const onLoadChangeRef = useRef(onLoadChange);
+  const onInterventionNeededRef = useRef(onInterventionNeeded);
+
+  // Keep refs up to date
+  metricsRef.current = metrics;
+  onLoadChangeRef.current = onLoadChange;
+  onInterventionNeededRef.current = onInterventionNeeded;
+
   const fetchCognitiveLoad = useCallback(async () => {
     if (!sessionId) return;
 
@@ -328,7 +339,7 @@ export function CognitiveLoadMonitor({
         courseId,
         sectionId,
         previousLoad: previousLoadRef.current,
-        ...metrics,
+        ...(metricsRef.current ?? {}),
       };
 
       const response = await fetch('/api/sam/cognitive-load/detect', {
@@ -356,20 +367,20 @@ export function CognitiveLoadMonitor({
       // Store for next request
       previousLoadRef.current = newData.instantaneousLoad;
 
-      // Callbacks
-      if (onLoadChange) {
-        onLoadChange(newData);
+      // Callbacks - use refs to get latest functions
+      if (onLoadChangeRef.current) {
+        onLoadChangeRef.current(newData);
       }
 
-      if (newData.interventionSuggested && onInterventionNeeded) {
-        onInterventionNeeded(newData);
+      if (newData.interventionSuggested && onInterventionNeededRef.current) {
+        onInterventionNeededRef.current(newData);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
-  }, [sessionId, courseId, sectionId, metrics, onLoadChange, onInterventionNeeded]);
+  }, [sessionId, courseId, sectionId]);
 
   useEffect(() => {
     fetchCognitiveLoad();

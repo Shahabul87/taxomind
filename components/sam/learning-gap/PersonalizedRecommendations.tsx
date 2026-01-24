@@ -116,71 +116,74 @@ function RecommendationCard({
   return (
     <div
       className={cn(
-        'rounded-lg border-l-4 bg-card border p-4 transition-all hover:shadow-md cursor-pointer',
-        priorityConfig.color
+        'rounded-lg border-l-4 bg-white dark:bg-slate-800 border-2 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer',
+        priorityConfig.color,
+        recommendation.priority === 'high' && 'border-l-red-500 border-slate-200 dark:border-slate-700',
+        recommendation.priority === 'medium' && 'border-l-yellow-500 border-slate-200 dark:border-slate-700',
+        recommendation.priority === 'low' && 'border-l-blue-500 border-slate-200 dark:border-slate-700'
       )}
       onClick={onClick}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-4">
         {/* Type Icon */}
-        <div className={cn('rounded-lg p-2 shrink-0', typeConfig.color)}>
+        <div className={cn('rounded-lg p-2.5 shrink-0 shadow-sm', typeConfig.color)}>
           <TypeIcon className="h-4 w-4" />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="font-medium text-sm">{recommendation.title}</span>
-            <Badge variant="outline" className={cn('text-xs', priorityConfig.badge)}>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className="font-semibold text-sm text-slate-900 dark:text-white">{recommendation.title}</span>
+            <Badge variant="outline" className={cn('text-xs font-semibold border-2', priorityConfig.badge)}>
               {recommendation.priority}
             </Badge>
           </div>
 
-          <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-3 line-clamp-2">
             {recommendation.description}
           </p>
 
           {/* Impact Indicator */}
-          <div className="space-y-1 mb-2">
+          <div className="space-y-2 mb-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Expected Impact</span>
-              <span className="font-medium text-green-600">
+              <span className="font-medium text-slate-600 dark:text-slate-300">Expected Impact</span>
+              <span className="font-bold text-green-600 dark:text-green-400">
                 +{recommendation.expectedImpact}%
               </span>
             </div>
             <Progress
               value={recommendation.expectedImpact}
-              className="h-1.5"
+              className="h-2 bg-slate-200 dark:bg-slate-700"
             />
           </div>
 
           {/* Meta Info */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+          <div className="flex items-center gap-3 text-xs font-medium text-slate-600 dark:text-slate-300 flex-wrap">
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
               {recommendation.estimatedTime} min
             </span>
-            <span className={cn('flex items-center gap-1', difficultyConfig.color)}>
-              <Zap className="h-3 w-3" />
+            <span className={cn('flex items-center gap-1.5', difficultyConfig.color)}>
+              <Zap className="h-3.5 w-3.5" />
               {difficultyConfig.label}
             </span>
             {ResourceIcon && (
-              <span className="flex items-center gap-1">
-                <ResourceIcon className="h-3 w-3" />
+              <span className="flex items-center gap-1.5">
+                <ResourceIcon className="h-3.5 w-3.5" />
                 {recommendation.resourceType}
               </span>
             )}
           </div>
 
           {/* Reason */}
-          <div className="mt-2 flex items-start gap-1 text-xs text-muted-foreground">
-            <Sparkles className="h-3 w-3 mt-0.5 shrink-0 text-primary" />
+          <div className="mt-3 flex items-start gap-2 text-xs font-medium text-slate-600 dark:text-slate-300 pt-3 border-t border-slate-200 dark:border-slate-700">
+            <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0 text-purple-600 dark:text-purple-400" />
             <span className="italic">{recommendation.reason}</span>
           </div>
         </div>
 
         {/* Action */}
-        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+        <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-500 shrink-0 mt-1" />
       </div>
     </div>
   );
@@ -207,27 +210,27 @@ export function PersonalizedRecommendations({
   );
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 p-2">
-              <Sparkles className="h-5 w-5 text-purple-600" />
+            <div className="rounded-xl bg-purple-100 dark:bg-purple-900/30 p-2.5">
+              <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">AI Recommendations</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">AI Recommendations</CardTitle>
+              <CardDescription className="text-slate-600 dark:text-slate-300 font-medium">
                 Personalized actions to close your gaps
               </CardDescription>
             </div>
           </div>
-          <Badge variant="secondary" className="shrink-0">
+          <Badge variant="secondary" className="shrink-0 font-semibold border-2">
             +{totalImpact}% potential
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         {/* Priority Summary */}
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-lg bg-red-500/10 p-2 text-center">

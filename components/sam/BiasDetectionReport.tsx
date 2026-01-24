@@ -413,6 +413,25 @@ export function BiasDetectionReport({
   }
 
   if (error) {
+    // Special case: No evaluation data - show informational message instead of error
+    if (error.includes('No evaluation data')) {
+      return (
+        <Card className={className}>
+          <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
+            <div className="p-3 rounded-full bg-slate-100 dark:bg-slate-800">
+              <Shield className="w-8 h-8 text-slate-400" />
+            </div>
+            <div className="text-center">
+              <h3 className="font-semibold text-slate-700 dark:text-slate-300">Bias Detection Report</h3>
+              <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                Fairness analysis will be available once you have completed assessments in your enrolled courses.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return (
       <Card className={className}>
         <CardContent className="flex flex-col items-center justify-center py-12 gap-4">

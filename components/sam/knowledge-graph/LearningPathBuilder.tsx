@@ -511,6 +511,12 @@ export function LearningPathBuilder({
 
   // Fetch available concepts
   const fetchConcepts = useCallback(async () => {
+    // Guard: Don't fetch if no courseId provided (handled by empty state)
+    if (!courseId) {
+      setIsLoadingConcepts(false);
+      return;
+    }
+
     if (isLoadingRef.current) return;
     isLoadingRef.current = true;
     setIsLoadingConcepts(true);
@@ -520,7 +526,10 @@ export function LearningPathBuilder({
         `/api/sam/knowledge-graph-engine/graph?courseId=${courseId}`
       );
 
-      if (!res.ok) throw new Error('Failed to fetch concepts');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || 'Failed to fetch concepts');
+      }
 
       const data = await res.json();
       if (data.success && data.data.concepts) {
@@ -532,6 +541,7 @@ export function LearningPathBuilder({
             bloomsLevel: c.bloomsLevel,
           }))
         );
+        setError(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load concepts');
@@ -596,13 +606,58 @@ export function LearningPathBuilder({
     );
   }
 
-  // Error state
+  // Empty state - No course selected (informational, not error)
+  if (!courseId) {
+    return (
+      <Card className={className}>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Route className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-sm">Learning Path Builder</CardTitle>
+              <CardDescription className="text-xs">
+                Generate personalized learning routes
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8 gap-3">
+          <div className="p-3 rounded-full bg-slate-100 dark:bg-slate-800">
+            <Route className="w-6 h-6 text-slate-400" />
+          </div>
+          <div className="text-center">
+            <h3 className="font-medium text-slate-700 dark:text-slate-300">No Course Selected</h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+              Select a course to build a personalized learning path
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state - actual errors (API failures, etc.)
   if (error && !generatedPath) {
     return (
       <Card className={className}>
-        <CardContent className="flex flex-col items-center justify-center py-12 gap-3">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <Route className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-sm">Learning Path Builder</CardTitle>
+              <CardDescription className="text-xs">
+                Generate personalized learning routes
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-8 gap-3">
           <AlertCircle className="w-8 h-8 text-red-500" />
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-sm text-muted-foreground text-center">{error}</p>
           <Button variant="ghost" size="sm" onClick={fetchConcepts}>
             <RefreshCw className="w-3 h-3 mr-1" />
             Retry

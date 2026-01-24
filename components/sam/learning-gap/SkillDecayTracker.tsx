@@ -79,41 +79,46 @@ function DecayCard({
   );
 
   return (
-    <div className={cn('rounded-lg border p-4 transition-all', config.bgColor)}>
+    <div className={cn('rounded-lg border-2 p-4 transition-all duration-200 hover:shadow-md bg-white dark:bg-slate-800', 
+      data.riskLevel === 'critical' && 'border-red-300 dark:border-red-700',
+      data.riskLevel === 'high' && 'border-orange-300 dark:border-orange-700',
+      data.riskLevel === 'medium' && 'border-yellow-300 dark:border-yellow-700',
+      data.riskLevel === 'low' && 'border-green-300 dark:border-green-700'
+    )}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-medium truncate">{data.skillName}</span>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="font-semibold text-sm truncate text-slate-900 dark:text-white">{data.skillName}</span>
             <Badge
               variant="outline"
-              className={cn('shrink-0 text-xs', config.textColor)}
+              className={cn('shrink-0 text-xs font-semibold border-2', config.textColor)}
             >
               {config.label} Risk
             </Badge>
           </div>
 
           {/* Mastery Progress */}
-          <div className="space-y-1 mb-3">
+          <div className="space-y-2 mb-4">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Current Mastery</span>
-              <span className={cn('font-medium', config.textColor)}>
+              <span className="font-medium text-slate-600 dark:text-slate-300">Current Mastery</span>
+              <span className={cn('font-bold', config.textColor)}>
                 {Math.round(data.currentMastery)}%
               </span>
             </div>
             <Progress
               value={data.currentMastery}
-              className="h-2"
+              className="h-2 bg-slate-200 dark:bg-slate-700"
             />
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-3 w-3" />
+          <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+            <div className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
+              <Clock className="h-3.5 w-3.5" />
               <span>{data.daysSinceLastPractice} days since practice</span>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
+              <TrendingDown className="h-3.5 w-3.5" />
               <span>{data.decayRate.toFixed(1)}%/day decay</span>
             </div>
           </div>
@@ -214,27 +219,27 @@ export function SkillDecayTracker({
   const highCount = decayData.filter((d) => d.riskLevel === 'high').length;
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 p-2">
-              <TrendingDown className="h-5 w-5 text-orange-600" />
+            <div className="rounded-xl bg-orange-100 dark:bg-orange-900/30 p-2.5">
+              <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Skill Decay Tracker</CardTitle>
-              <CardDescription>Skills at risk of knowledge decay</CardDescription>
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">Skill Decay Tracker</CardTitle>
+              <CardDescription className="text-slate-600 dark:text-slate-300 font-medium">Skills at risk of knowledge decay</CardDescription>
             </div>
           </div>
           {(criticalCount > 0 || highCount > 0) && (
-            <Badge variant="destructive" className="shrink-0">
+            <Badge variant="destructive" className="shrink-0 font-semibold border-2">
               {criticalCount + highCount} at risk
             </Badge>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         {/* Risk Summary */}
         {decayData.length > 0 && (
           <div className="grid grid-cols-4 gap-2">

@@ -187,30 +187,30 @@ export function TrendAnalysisChart({
   const OverallIcon = overallConfig.icon;
 
   return (
-    <Card className={className}>
-      <CardHeader className="pb-3">
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 p-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
+            <div className="rounded-xl bg-blue-100 dark:bg-blue-900/30 p-2.5">
+              <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Trend Analysis</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">Trend Analysis</CardTitle>
+              <CardDescription className="text-slate-600 dark:text-slate-300 font-medium">
                 Learning velocity and progress trends
               </CardDescription>
             </div>
           </div>
-          <div className={cn('flex items-center gap-1 px-2 py-1 rounded-full', overallConfig.bgColor)}>
+          <div className={cn('flex items-center gap-1 px-3 py-1.5 rounded-full border-2', overallConfig.bgColor)}>
             <OverallIcon className={cn('h-4 w-4', overallConfig.color)} />
-            <span className={cn('text-sm font-medium', overallConfig.color)}>
+            <span className={cn('text-sm font-semibold', overallConfig.color)}>
               {overallConfig.label}
             </span>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 sm:space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 pt-6">
         {/* Period Toggle */}
         <div className="flex items-center gap-2">
           <span className="text-xs sm:text-sm text-muted-foreground">Period:</span>

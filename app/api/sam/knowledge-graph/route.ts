@@ -351,30 +351,154 @@ export async function GET(req: NextRequest) {
           );
         }
 
-        // Build full graph from course data
-        const entities: GraphEntity[] = courseGraph.concepts.map((concept) => ({
-          id: concept.id,
-          type: EntityType.SECTION,
-          name: concept.name,
-          description: concept.description,
+        // Fetch full course structure to build all relationship types
+        const { db } = await import('@/lib/db');
+        const course = await db.course.findUnique({
+          where: { id: query.courseId },
+          include: {
+            chapters: {
+              include: {
+                sections: {
+                  orderBy: { position: 'asc' },
+                },
+              },
+              orderBy: { position: 'asc' },
+            },
+          },
+        });
+
+        if (!course) {
+          return NextResponse.json(
+            { error: 'Course not found' },
+            { status: 404 }
+          );
+        }
+
+        // Build entities from course structure
+        const entities: GraphEntity[] = [];
+        const relationships: GraphRelationship[] = [];
+        let relationshipIndex = 0;
+
+        // Add course entity
+        const courseEntityId = `course-${course.id}`;
+        entities.push({
+          id: courseEntityId,
+          type: EntityType.COURSE,
+          name: course.title,
+          description: course.description ?? undefined,
           properties: {
-            difficulty: concept.difficulty,
-            estimatedMinutes: concept.estimatedMinutes,
-            tags: concept.tags,
+            courseId: course.id,
+            difficulty: course.difficulty,
           },
           createdAt: new Date(),
           updatedAt: new Date(),
-        }));
+        });
 
-        const relationships: GraphRelationship[] = courseGraph.prerequisites.map((prereq, index) => ({
-          id: `prereq-${index}`,
-          type: RelationshipType.PREREQUISITE_OF,
-          sourceId: prereq.requiresConceptId,
-          targetId: prereq.conceptId,
-          weight: prereq.importance === 'required' ? 1.0 : prereq.importance === 'recommended' ? 0.7 : 0.3,
-          properties: { importance: prereq.importance },
-          createdAt: new Date(),
-        }));
+        let previousChapterId: string | null = null;
+
+        for (const chapter of course.chapters) {
+          const chapterEntityId = `chapter-${chapter.id}`;
+
+          // Add chapter entity
+          entities.push({
+            id: chapterEntityId,
+            type: EntityType.CHAPTER,
+            name: chapter.title,
+            description: chapter.description ?? undefined,
+            properties: {
+              chapterId: chapter.id,
+              position: chapter.position,
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+
+          // Chapter PART_OF Course
+          relationships.push({
+            id: `rel-${relationshipIndex++}`,
+            type: RelationshipType.PART_OF,
+            sourceId: chapterEntityId,
+            targetId: courseEntityId,
+            weight: 1.0,
+            properties: {},
+            createdAt: new Date(),
+          });
+
+          // Chapter FOLLOWS previous chapter
+          if (previousChapterId) {
+            relationships.push({
+              id: `rel-${relationshipIndex++}`,
+              type: RelationshipType.FOLLOWS,
+              sourceId: chapterEntityId,
+              targetId: previousChapterId,
+              weight: 1.0,
+              properties: {},
+              createdAt: new Date(),
+            });
+          }
+
+          let previousSectionId: string | null = null;
+
+          for (const section of chapter.sections) {
+            const sectionEntityId = `section-${section.id}`;
+
+            // Add section entity
+            entities.push({
+              id: sectionEntityId,
+              type: EntityType.SECTION,
+              name: section.title,
+              description: section.description ?? undefined,
+              properties: {
+                sectionId: section.id,
+                position: section.position,
+                type: section.type,
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+
+            // Section PART_OF Chapter
+            relationships.push({
+              id: `rel-${relationshipIndex++}`,
+              type: RelationshipType.PART_OF,
+              sourceId: sectionEntityId,
+              targetId: chapterEntityId,
+              weight: 1.0,
+              properties: {},
+              createdAt: new Date(),
+            });
+
+            // Section FOLLOWS previous section
+            if (previousSectionId) {
+              relationships.push({
+                id: `rel-${relationshipIndex++}`,
+                type: RelationshipType.FOLLOWS,
+                sourceId: sectionEntityId,
+                targetId: previousSectionId,
+                weight: 1.0,
+                properties: {},
+                createdAt: new Date(),
+              });
+            }
+
+            previousSectionId = sectionEntityId;
+          }
+
+          previousChapterId = chapterEntityId;
+        }
+
+        // Add prerequisite relationships from courseGraph
+        for (const prereq of courseGraph.prerequisites) {
+          relationships.push({
+            id: `rel-${relationshipIndex++}`,
+            type: RelationshipType.PREREQUISITE_OF,
+            sourceId: prereq.requiresConceptId,
+            targetId: prereq.conceptId,
+            weight: prereq.importance === 'required' ? 1.0 : prereq.importance === 'recommended' ? 0.7 : 0.3,
+            properties: { importance: prereq.importance },
+            createdAt: new Date(),
+          });
+        }
 
         const visualizationData = await buildVisualizationData(
           entities,

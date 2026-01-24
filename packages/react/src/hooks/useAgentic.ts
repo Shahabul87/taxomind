@@ -258,13 +258,13 @@ export function useAgentic(options: UseAgenticOptions = {}): UseAgenticReturn {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Loading states
-  const [isLoadingGoals, setIsLoadingGoals] = useState(false);
+  // Loading states - initialize to true when auto-fetch is enabled to prevent flash of empty content
+  const [isLoadingGoals, setIsLoadingGoals] = useState(autoFetchGoals);
   const [isLoadingPlans, setIsLoadingPlans] = useState(false);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(autoFetchRecommendations);
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [isLoadingSkills, setIsLoadingSkills] = useState(false);
-  const [isLoadingCheckIns, setIsLoadingCheckIns] = useState(false);
+  const [isLoadingCheckIns, setIsLoadingCheckIns] = useState(autoFetchCheckIns);
 
   const mountedRef = useRef(true);
 
@@ -274,16 +274,24 @@ export function useAgentic(options: UseAgenticOptions = {}): UseAgenticReturn {
 
   const apiCall = useCallback(async <T>(
     url: string,
-    options?: RequestInit
+    options?: RequestInit,
+    timeoutMs = 15000 // 15 second timeout
   ): Promise<{ success: boolean; data?: T; error?: string }> => {
     try {
+      // Create an AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,
         },
         ...options,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const result = await response.json();
 
@@ -293,6 +301,9 @@ export function useAgentic(options: UseAgenticOptions = {}): UseAgenticReturn {
 
       return { success: true, data: result.data };
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { success: false, error: 'Request timed out. Please try again.' };
+      }
       const message = err instanceof Error ? err.message : 'Network error';
       return { success: false, error: message };
     }

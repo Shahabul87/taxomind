@@ -9,7 +9,6 @@ import {
   Trophy,
   AlertTriangle,
   Lightbulb,
-  Compass,
   Wand2,
   BarChart3,
   Goal,
@@ -25,7 +24,6 @@ export type DashboardView =
   | 'goals'
   | 'gaps'
   | 'innovation'
-  | 'discover'
   | 'create';
 
 interface TabConfig {
@@ -102,14 +100,6 @@ const tabs: TabConfig[] = [
     icon: Lightbulb,
     gradient: 'from-yellow-500 to-orange-500',
     description: 'Experimental features',
-  },
-  {
-    id: 'discover',
-    label: 'Discover',
-    shortLabel: 'Find',
-    icon: Compass,
-    gradient: 'from-cyan-500 to-blue-500',
-    description: 'Course marketplace',
   },
   {
     id: 'create',

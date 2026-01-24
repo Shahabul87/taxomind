@@ -79,79 +79,86 @@ function PercentileGauge({ percentile }: { percentile: number }) {
 }
 
 function ComparisonBar({ metric }: { metric: ComparisonMetric }) {
-  const maxValue = Math.max(metric.userValue, metric.peerAverage, metric.targetValue) * 1.1;
+  const maxValue = Math.max(metric.userValue, metric.peerAverage, metric.targetValue) * 1.2 || 1;
 
-  const userPct = (metric.userValue / maxValue) * 100;
-  const peerPct = (metric.peerAverage / maxValue) * 100;
-  const targetPct = (metric.targetValue / maxValue) * 100;
+  const userPct = Math.max(0, Math.min(100, (metric.userValue / maxValue) * 100));
+  const peerPct = Math.max(0, Math.min(100, (metric.peerAverage / maxValue) * 100));
+  const targetPct = Math.max(0, Math.min(100, (metric.targetValue / maxValue) * 100));
 
   const isAboveAvg = metric.userValue >= metric.peerAverage;
   const isAboveTarget = metric.userValue >= metric.targetValue;
 
+  const barColor = isAboveTarget ? 'bg-green-500' : isAboveAvg ? 'bg-blue-500' : 'bg-amber-500';
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{metric.name}</span>
-        <Badge
-          variant="outline"
-          className={cn(
-            'text-xs',
-            isAboveAvg ? 'border-green-500/30 text-green-600' : 'border-red-500/30 text-red-600'
-          )}
-        >
-          {isAboveAvg ? 'Above Avg' : 'Below Avg'}
-        </Badge>
+    <div className="space-y-3">
+      {/* Header Row */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-slate-900 dark:text-white">{metric.name}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {metric.percentile}th percentile
+          </span>
+          <Badge
+            variant="outline"
+            className={cn(
+              'text-[10px] font-medium shrink-0',
+              isAboveAvg
+                ? 'border-green-500/50 bg-green-500/10 text-green-600'
+                : 'border-amber-500/50 bg-amber-500/10 text-amber-600'
+            )}
+          >
+            {isAboveAvg ? 'Above Avg' : 'Below Avg'}
+          </Badge>
+        </div>
       </div>
 
       {/* Bar Container */}
-      <div className="relative h-8 rounded-lg bg-muted/30">
+      <div className="relative">
+        {/* Background Track */}
+        <div className="h-6 rounded-md bg-slate-100 dark:bg-slate-700/50 overflow-hidden">
+          {/* User Value Bar */}
+          <div
+            className={cn(
+              'h-full rounded-md transition-all duration-500',
+              barColor
+            )}
+            style={{ width: `${Math.max(userPct, 2)}%` }}
+          />
+        </div>
+
         {/* Target Marker */}
         <div
-          className="absolute top-0 h-full w-0.5 bg-primary/50"
+          className="absolute top-0 h-6 w-0.5 bg-emerald-600 dark:bg-emerald-400"
           style={{ left: `${targetPct}%` }}
-        >
-          <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-xs text-muted-foreground whitespace-nowrap">
-            Target: {metric.targetValue}{metric.unit}
-          </div>
-        </div>
+        />
 
         {/* Peer Average Marker */}
         <div
-          className="absolute top-0 h-full w-0.5 bg-yellow-500/50"
+          className="absolute top-0 h-6 w-0.5 bg-yellow-500"
           style={{ left: `${peerPct}%` }}
         />
 
-        {/* User Value Bar */}
+        {/* User Value Label - Outside bar for visibility */}
         <div
-          className={cn(
-            'absolute top-1 bottom-1 left-0 rounded-md transition-all',
-            isAboveTarget ? 'bg-green-500' : isAboveAvg ? 'bg-blue-500' : 'bg-red-500'
-          )}
-          style={{ width: `${userPct}%` }}
-        />
-
-        {/* Value Labels */}
-        <div className="absolute inset-0 flex items-center justify-end pr-2">
-          <span className="text-xs font-medium text-white drop-shadow">
+          className="absolute top-0 h-6 flex items-center"
+          style={{ left: `${Math.max(userPct, 2) + 1}%` }}
+        >
+          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
             {metric.userValue}{metric.unit}
           </span>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <div className="h-2 w-2 rounded-full bg-yellow-500" />
-            Peer Avg: {metric.peerAverage}{metric.unit}
-          </span>
-          <span className="flex items-center gap-1">
-            <div className="h-2 w-2 rounded-full bg-primary" />
-            Target: {metric.targetValue}{metric.unit}
-          </span>
-        </div>
-        <span className="text-muted-foreground">
-          {metric.percentile}th percentile
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-yellow-500" />
+          Peer Avg: {metric.peerAverage}{metric.unit}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <div className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+          Target: {metric.targetValue}{metric.unit}
         </span>
       </div>
     </div>
@@ -206,17 +213,17 @@ export function ComparisonView({
   className,
 }: ComparisonViewProps) {
   return (
-    <Card className={className}>
-      <CardHeader className="pb-2 sm:pb-3">
+    <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         {/* Responsive header - stack on mobile */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 p-1.5 sm:p-2">
-              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" />
+            <div className="rounded-xl bg-indigo-100 dark:bg-indigo-900/30 p-2 sm:p-2.5">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <CardTitle className="text-base sm:text-lg">Peer Comparison</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
+              <CardTitle className="text-base sm:text-xl font-bold text-slate-900 dark:text-white">Peer Comparison</CardTitle>
+              <CardDescription className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300">
                 How you compare to {comparison.peerGroupSize.toLocaleString()} peers
               </CardDescription>
             </div>
@@ -227,7 +234,7 @@ export function ComparisonView({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 sm:space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 pt-6">
         {/* Peer Group Info */}
         <div className="rounded-lg bg-muted/30 p-2 sm:p-3">
           <p className="text-xs sm:text-sm text-muted-foreground">

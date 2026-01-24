@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User as NextAuthUser } from 'next-auth';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 // Components
 import { DailyHeroSection } from './DailyHeroSection';
@@ -19,7 +22,6 @@ import { Button } from '@/components/ui/button';
 
 // SAM Agentic Components - Unified Goals
 import { GoalPlanner } from '@/components/sam/goal-planner';
-import { LearningPlanWizard } from '@/components/sam/mentor-dashboard/learning-plan-wizard';
 import { SpacedRepetitionCalendar, SpacedRepetitionWidget } from '@/components/sam/SpacedRepetitionCalendar';
 import { ReviewQueueWidget } from './ReviewQueueWidget';
 
@@ -69,36 +71,20 @@ interface LearningCommandCenterProps {
     isTeacher?: boolean;
     isAffiliate?: boolean;
   };
+  /** Callback to open the study plan modal from parent */
+  onCreateStudyPlan?: () => void;
 }
 
-// Types for Learning Plan Wizard
-interface EnrolledCourse {
-  id: string;
-  title: string;
-  description?: string;
-  chapters?: Array<{ id: string; title: string }>;
-}
+export function LearningCommandCenter({ user, onCreateStudyPlan }: LearningCommandCenterProps) {
+  // Router for navigation
+  const router = useRouter();
 
-interface CreatedPlan {
-  id: string;
-  courseId: string;
-  goal: string;
-  targetDate: string;
-  timeBudgetMinutes: number;
-  weeklyPlan: unknown;
-}
-
-export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
   // State
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [localTasks, setLocalTasks] = useState<LearningTask[]>([]);
   const [useRealData, setUseRealData] = useState(true);
   const [hasMounted, setHasMounted] = useState(false);
 
-  // Learning Plan Wizard state
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([]);
-  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
 
   // Track when component has mounted to prevent hydration mismatch
   useEffect(() => {
@@ -201,15 +187,24 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
   }, []);
 
   const handleActivityClick = useCallback((activity: LearningActivity) => {
-    console.log('Activity clicked:', activity);
-    // TODO: Open activity detail modal or navigate to activity
-  }, []);
+    // Navigate to course or show activity details based on activity type
+    if (activity.courseId && activity.chapterId) {
+      router.push(`/courses/${activity.courseId}/learn/${activity.chapterId}`);
+    } else if (activity.courseId) {
+      router.push(`/courses/${activity.courseId}`);
+    } else {
+      // Show toast with activity details for activities without a course
+      toast.info(`${activity.title}`, {
+        description: activity.description || `${activity.type} - ${activity.status}`,
+      });
+    }
+  }, [router]);
 
   const handleAddActivity = useCallback(async () => {
-    // For now, just log - could open a modal to create activity
-    console.log('Add activity clicked');
-    // Example: await createActivity({ ... });
-  }, []);
+    // Navigate to planner tab where users can add activities
+    router.push('/dashboard/user?tab=planner');
+    toast.info('Open the planner to schedule new activities');
+  }, [router]);
 
   const handleToggleActivityComplete = useCallback(async (activityId: string) => {
     if (useRealData) {
@@ -219,7 +214,7 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
   }, [useRealData, toggleActivityComplete, refreshAgenda]);
 
   const handleToggleTaskComplete = useCallback(async (taskId: string) => {
-    // Update local state immediately for responsive UI
+    // Optimistic update - update local state immediately for responsive UI
     setLocalTasks((prev) => {
       const existing = prev.find((t) => t.id === taskId);
       if (existing) {
@@ -235,19 +230,54 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
       return prev;
     });
 
-    // TODO: API call to update task status
-    // await fetch(`/api/dashboard/todos/${taskId}/toggle`, { method: 'PATCH' });
-  }, [effectiveTasks]);
+    // API call to update task status
+    try {
+      const response = await fetch(`/api/dashboard/todos/${taskId}/toggle`, { method: 'PATCH' });
+      if (!response.ok) {
+        throw new Error('Failed to toggle task');
+      }
+      refreshAgenda();
+    } catch (error) {
+      console.error('Error toggling task:', error);
+      toast.error('Failed to update task');
+      // Revert optimistic update on error
+      setLocalTasks((prev) => prev.map((task) =>
+        task.id === taskId ? { ...task, completed: !task.completed } : task
+      ));
+    }
+  }, [effectiveTasks, refreshAgenda]);
 
   const handleDeleteTask = useCallback(async (taskId: string) => {
+    // Store task for potential rollback
+    const taskToDelete = localTasks.find((t) => t.id === taskId) ||
+                         effectiveTasks.find((t) => t.id === taskId);
+
+    // Optimistic update
     setLocalTasks((prev) => prev.filter((task) => task.id !== taskId));
-    // TODO: API call to delete task
-    // await fetch(`/api/dashboard/todos/${taskId}`, { method: 'DELETE' });
-  }, []);
+
+    // API call to delete task
+    try {
+      const response = await fetch(`/api/dashboard/todos/${taskId}`, { method: 'DELETE' });
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+      toast.success('Task deleted');
+      refreshAgenda();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
+      // Rollback on error
+      if (taskToDelete) {
+        setLocalTasks((prev) => [...prev, taskToDelete]);
+      }
+    }
+  }, [localTasks, effectiveTasks, refreshAgenda]);
 
   const handleAddTask = useCallback(async (title: string) => {
+    // Create temporary task for optimistic update
+    const tempId = `temp-${Date.now()}`;
     const newTask: LearningTask = {
-      id: `task-${Date.now()}`,
+      id: tempId,
       title,
       completed: false,
       priority: 'MEDIUM',
@@ -255,70 +285,56 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
     };
     setLocalTasks((prev) => [...prev, newTask]);
 
-    // TODO: API call to create task
-    // await fetch('/api/dashboard/todos', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ title, priority: 'MEDIUM' }),
-    // });
-  }, []);
+    // API call to create task
+    try {
+      const response = await fetch('/api/dashboard/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, priority: 'MEDIUM' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+
+      const data = await response.json();
+      // Replace temp task with real task from API
+      setLocalTasks((prev) => prev.map((task) =>
+        task.id === tempId ? { ...task, id: data.data?.id || task.id } : task
+      ));
+      toast.success('Task added');
+      refreshAgenda();
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Failed to add task');
+      // Remove temp task on error
+      setLocalTasks((prev) => prev.filter((task) => task.id !== tempId));
+    }
+  }, [refreshAgenda]);
 
   const handleViewTimelineDetails = useCallback(() => {
-    console.log('View timeline details clicked');
-    // TODO: Navigate to analytics page
-  }, []);
+    // Navigate to analytics page
+    router.push('/dashboard/user?tab=analytics');
+  }, [router]);
 
   const handleGanttItemClick = useCallback((item: LearningGanttItem) => {
-    console.log('Gantt item clicked:', item);
-    // TODO: Navigate to course/chapter detail or open modal
-  }, []);
+    // Navigate to course or chapter based on item type
+    if (item.chapterId && item.courseId) {
+      router.push(`/courses/${item.courseId}/learn/${item.chapterId}`);
+    } else if (item.courseId) {
+      router.push(`/courses/${item.courseId}`);
+    } else {
+      toast.info(`${item.title}`, {
+        description: `${item.status} - ${item.progress}% complete`,
+      });
+    }
+  }, [router]);
 
   const handleGanttViewDetails = useCallback(() => {
-    console.log('View full Gantt clicked');
-    // TODO: Navigate to full Gantt view page
-  }, []);
+    // Navigate to full calendar/planner view
+    router.push('/dashboard/user?tab=planner');
+  }, [router]);
 
-  // Learning Plan Wizard handlers
-  const fetchEnrolledCourses = useCallback(async () => {
-    setIsLoadingCourses(true);
-    try {
-      const response = await fetch('/api/enrollments/my-courses');
-      if (response.ok) {
-        const data = await response.json();
-        // Transform API response to match wizard's expected format
-        const courses: EnrolledCourse[] = (data.courses || []).map(
-          (course: { id: string; title: string; description?: string; chapters?: Array<{ id: string; title: string }> }) => ({
-            id: course.id,
-            title: course.title,
-            description: course.description,
-            chapters: course.chapters,
-          })
-        );
-        setEnrolledCourses(courses);
-      }
-    } catch (error) {
-      console.error('Failed to fetch enrolled courses:', error);
-    } finally {
-      setIsLoadingCourses(false);
-    }
-  }, []);
-
-  const handleOpenWizard = useCallback(async () => {
-    // Fetch courses before opening the wizard
-    await fetchEnrolledCourses();
-    setIsWizardOpen(true);
-  }, [fetchEnrolledCourses]);
-
-  const handleCloseWizard = useCallback(() => {
-    setIsWizardOpen(false);
-  }, []);
-
-  const handlePlanCreated = useCallback((plan: CreatedPlan) => {
-    console.log('Learning plan created:', plan);
-    setIsWizardOpen(false);
-    // Refresh dashboard data to show the new plan
-    refreshAgenda();
-  }, [refreshAgenda]);
 
   // Animation variants
   const containerVariants = {
@@ -343,17 +359,76 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
     },
   };
 
-  // Loading state - only show after component has mounted to prevent hydration mismatch
+  // Loading state - show skeleton placeholders that match the actual widget layout
   if (hasMounted && isAgendaLoading && useRealData) {
     return (
       <div className="min-h-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-950/20 dark:to-indigo-950/20">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex min-h-[400px] items-center justify-center">
-            <div className="text-center">
-              <Loader2 className="mx-auto h-12 w-12 animate-spin text-blue-500" />
-              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
-                Loading your learning dashboard...
-              </p>
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+          {/* Hero Section Skeleton */}
+          <div className="rounded-xl bg-white dark:bg-slate-800 p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-4 mb-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <Skeleton className="h-10 w-10 rounded-lg" />
+            </div>
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
+              <Skeleton className="h-20 rounded-lg" />
+            </div>
+          </div>
+
+          {/* Main Grid Skeleton */}
+          <div className="mt-4 sm:mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            {/* Left Column Skeleton */}
+            <div className="md:col-span-2 space-y-4 sm:space-y-6">
+              {/* Today Schedule Skeleton */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <Skeleton className="h-6 w-36" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Weekly Timeline Skeleton */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-6 w-40 mb-4" />
+                <div className="grid grid-cols-7 gap-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                    <Skeleton key={i} className="h-24 rounded-lg" />
+                  ))}
+                </div>
+              </div>
+
+              {/* Gantt Chart Skeleton */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-6 w-48 mb-4" />
+                <Skeleton className="h-40 w-full rounded-lg" />
+              </div>
+            </div>
+
+            {/* Right Column Skeleton */}
+            <div className="space-y-4 sm:space-y-6">
+              <div className="rounded-xl bg-white dark:bg-slate-800 p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-6 w-32 mb-3" />
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} className="h-10 w-full rounded-lg" />
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl bg-white dark:bg-slate-800 p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-6 w-28 mb-3" />
+                <Skeleton className="h-32 w-full rounded-lg" />
+              </div>
             </div>
           </div>
         </div>
@@ -479,20 +554,13 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
                   </p>
                 </div>
                 <Button
-                  onClick={handleOpenWizard}
-                  disabled={isLoadingCourses}
+                  onClick={onCreateStudyPlan}
                   size="sm"
                   className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white w-full sm:w-auto"
                 >
-                  {isLoadingCourses ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-1.5" />
-                      <span className="hidden sm:inline">Create Plan</span>
-                      <span className="sm:hidden">Create</span>
-                    </>
-                  )}
+                  <Sparkles className="w-4 h-4 mr-1.5" />
+                  <span className="hidden sm:inline">Create Plan</span>
+                  <span className="sm:hidden">Create</span>
                 </Button>
               </div>
             </div>
@@ -543,16 +611,6 @@ export function LearningCommandCenter({ user }: LearningCommandCenterProps) {
         </div>
       </motion.div>
 
-      {/* Learning Plan Wizard Modal */}
-      <AnimatePresence>
-        {isWizardOpen && (
-          <LearningPlanWizard
-            courses={enrolledCourses}
-            onPlanCreated={handlePlanCreated}
-            onClose={handleCloseWizard}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

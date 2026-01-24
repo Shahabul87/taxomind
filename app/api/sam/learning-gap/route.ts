@@ -662,7 +662,7 @@ async function calculateComparisonData(
       id: 'target-gap',
       type: 'opportunity' as const,
       title: 'Target Gap',
-      description: `You&apos;re ${Math.round(80 - userAvgScore)}% away from your target mastery level.`,
+      description: `You're ${Math.round(80 - userAvgScore)}% away from your target mastery level.`,
       metric: 'overall-progress',
       gap: 80 - userAvgScore,
     });

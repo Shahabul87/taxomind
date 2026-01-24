@@ -203,12 +203,8 @@ export function PracticeTimer({
         }
       } catch (error) {
         console.error('Error fetching skills:', error);
-        // Set some default skills as fallback
-        setSkills([
-          { id: 'default-1', name: 'General Practice', icon: '📚' },
-          { id: 'default-2', name: 'Coding', icon: '💻' },
-          { id: 'default-3', name: 'Reading', icon: '📖' },
-        ]);
+        // Keep skills empty - UI will show empty state prompting user to create skills
+        setSkills([]);
       }
     };
 
@@ -540,31 +536,33 @@ export function PracticeTimer({
 
   if (isCheckingActive) {
     return (
-      <Card className={cn('w-full', className)}>
+      <Card className={cn('w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600 dark:text-purple-400" />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className={cn('w-full', className)}>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
+    <Card className={cn('w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
+        <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+          <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+            <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          </div>
           Practice Timer
           {activeSession && (
             <Badge
               variant={activeSession.status === 'ACTIVE' ? 'default' : 'secondary'}
-              className="ml-auto"
+              className="ml-auto font-semibold"
             >
               {activeSession.status === 'ACTIVE' ? 'Running' : 'Paused'}
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6 pt-6">
         {/* Timer Display */}
         <div className="text-center py-4">
           <div
@@ -585,7 +583,23 @@ export function PracticeTimer({
         {/* Session Configuration */}
         {!activeSession && (
           <div className="space-y-3">
+            {/* Empty State - No Skills */}
+            {skills.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-6 text-center rounded-lg border border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50">
+                <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-3">
+                  <Target className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  No skills found
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[200px]">
+                  Create skills in your profile or skill tracker to start practicing
+                </p>
+              </div>
+            )}
+
             {/* Skill Selection */}
+            {skills.length > 0 && (
             <div>
               <label className="text-sm font-medium mb-1 block">Skill</label>
               <Select value={selectedSkill} onValueChange={setSelectedSkill}>
@@ -593,7 +607,7 @@ export function PracticeTimer({
                   <SelectValue placeholder="Select a skill to practice" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(skills ?? []).map((skill) => (
+                  {skills.map((skill) => (
                     <SelectItem key={skill.id} value={skill.id}>
                       {skill.icon && <span className="mr-2">{skill.icon}</span>}
                       {skill.name}
@@ -602,8 +616,11 @@ export function PracticeTimer({
                 </SelectContent>
               </Select>
             </div>
+            )}
 
-            {/* Session Type */}
+            {/* Session Type - only show when skills available */}
+            {skills.length > 0 && (
+            <>
             <div>
               <label className="text-sm font-medium mb-1 block">Session Type</label>
               <Select value={sessionType} onValueChange={setSessionType}>
@@ -687,6 +704,8 @@ export function PracticeTimer({
                 rows={2}
               />
             </div>
+            </>
+            )}
           </div>
         )}
 

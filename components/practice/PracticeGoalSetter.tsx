@@ -466,10 +466,13 @@ export function PracticeGoalSetter({ className, compact = false }: PracticeGoalS
   // Compact view for dashboard widget
   if (compact) {
     return (
-      <Card className={className}>
-        <CardHeader className="pb-2">
+      <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
+        <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-base">
+            <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
               <Target className="h-4 w-4 text-primary" />
               Goals
             </CardTitle>
