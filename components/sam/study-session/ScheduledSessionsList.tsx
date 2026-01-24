@@ -19,12 +19,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { format, isToday, isTomorrow, differenceInMinutes } from 'date-fns';
 import { toast } from 'sonner';
@@ -84,14 +78,20 @@ export function ScheduledSessionsList({
   // Toggle notification for a session
   const handleToggleNotify = useCallback(
     async (session: ScheduledSession) => {
+      console.log('[NotifyButton] Clicked for session:', session.id);
+
       // Prevent double-clicks
-      if (togglingRef.current.has(session.id)) return;
+      if (togglingRef.current.has(session.id)) {
+        console.log('[NotifyButton] Already toggling, skipping');
+        return;
+      }
       togglingRef.current.add(session.id);
 
       setLoadingNotify(session.id);
 
       try {
         const newEnabled = !session.notifyEnabled;
+        console.log('[NotifyButton] Setting enabled to:', newEnabled);
 
         const response = await fetch(
           `/api/dashboard/sessions/${session.id}/notify`,
@@ -106,6 +106,7 @@ export function ScheduledSessionsList({
         );
 
         const data = await response.json();
+        console.log('[NotifyButton] Response:', response.status, data);
 
         if (!response.ok) {
           throw new Error(data.error?.message || 'Failed to update notification');
@@ -245,37 +246,31 @@ export function ScheduledSessionsList({
                 <div className="flex items-center gap-1.5">
                   {/* Notify Me Button */}
                   {!isPastSession && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={isLoadingThis}
-                            onClick={() => handleToggleNotify(session)}
-                            className={cn(
-                              'h-8 w-8 transition-colors',
-                              session.notifyEnabled
-                                ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20'
-                                : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
-                            )}
-                          >
-                            {isLoadingThis ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : session.notifyEnabled ? (
-                              <Bell className="w-4 h-4" />
-                            ) : (
-                              <BellOff className="w-4 h-4" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          {session.notifyEnabled
-                            ? `Reminder on (${session.notifyMinutesBefore ?? 15} min before)`
-                            : 'Click to enable reminder'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      disabled={isLoadingThis}
+                      onClick={() => handleToggleNotify(session)}
+                      title={
+                        session.notifyEnabled
+                          ? `Reminder on (${session.notifyMinutesBefore ?? 15} min before)`
+                          : 'Click to enable reminder'
+                      }
+                      className={cn(
+                        'h-8 w-8 transition-colors',
+                        session.notifyEnabled
+                          ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+                          : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                      )}
+                    >
+                      {isLoadingThis ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : session.notifyEnabled ? (
+                        <Bell className="w-4 h-4" />
+                      ) : (
+                        <BellOff className="w-4 h-4" />
+                      )}
+                    </Button>
                   )}
 
                   {/* Start Button */}

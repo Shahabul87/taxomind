@@ -8,7 +8,6 @@ import {
   HttpStatus,
 } from '@/lib/api-utils';
 import { z } from 'zod';
-import { getUserDeviceCount } from '@/lib/sam/notifications';
 
 const notifySchema = z.object({
   enabled: z.boolean(),
@@ -51,25 +50,13 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     const body = await req.json();
     const { enabled, minutesBefore } = notifySchema.parse(body);
 
-    // Check if user has registered device tokens for push notifications
-    if (enabled) {
-      const deviceCount = await getUserDeviceCount(user.id);
-      if (deviceCount === 0) {
-        return errorResponse(
-          ErrorCodes.VALIDATION_ERROR,
-          'Please enable push notifications in your browser first',
-          HttpStatus.BAD_REQUEST
-        );
-      }
-
-      // Check if session is in the future
-      if (new Date(session.startTime) <= new Date()) {
-        return errorResponse(
-          ErrorCodes.VALIDATION_ERROR,
-          'Cannot enable notifications for past sessions',
-          HttpStatus.BAD_REQUEST
-        );
-      }
+    // Check if session is in the future when enabling
+    if (enabled && new Date(session.startTime) <= new Date()) {
+      return errorResponse(
+        ErrorCodes.VALIDATION_ERROR,
+        'Cannot enable notifications for past sessions',
+        HttpStatus.BAD_REQUEST
+      );
     }
 
     // Update session notification settings
