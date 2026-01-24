@@ -25,14 +25,12 @@ import {
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { useSAMGoals, type SAMGoal, type SAMSubGoal } from '@/hooks/use-sam-agentic-analytics';
-import Link from 'next/link';
 import { StudyPlanDashboard } from '@/components/sam/study-plan';
 import { isStudyPlan } from '@/lib/sam/study-plan-metrics';
 
 export interface GoalsProgressProps {
   compact?: boolean;
   maxGoals?: number;
-  onViewAllGoals?: () => void;
   onGoalClick?: (goal: SAMGoal) => void;
 }
 
@@ -265,14 +263,8 @@ function EmptyState({ compact }: { compact?: boolean }) {
         <Target className="h-12 w-12 text-slate-300 dark:text-slate-600 mb-4" />
         <h3 className="font-bold text-lg text-slate-900 dark:text-white">No Active Goals</h3>
         <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-2 max-w-xs">
-          Create a learning goal to track your progress and stay motivated.
+          Use the Goal Planner below to create learning goals and track your progress.
         </p>
-        <Link href="/dashboard/user/goals" className="mt-6">
-          <Button size="sm" className="font-semibold">
-            <Target className="h-4 w-4 mr-2" />
-            Create a Goal
-          </Button>
-        </Link>
       </CardContent>
     </Card>
   );
@@ -285,7 +277,6 @@ function EmptyState({ compact }: { compact?: boolean }) {
 export function GoalsProgress({
   compact = false,
   maxGoals = 3,
-  onViewAllGoals,
   onGoalClick,
 }: GoalsProgressProps) {
   const { goals, totalGoals, activeGoals, completedGoals, avgProgress, loading, refresh } = useSAMGoals();
@@ -405,13 +396,6 @@ export function GoalsProgress({
             })}
           </div>
 
-          {/* View All Button */}
-          <Link href="/dashboard/user/goals" className="block">
-            <Button variant="outline" size="sm" className="w-full hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
-              View All Goals
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </Link>
         </CardContent>
       </Card>
     );
@@ -500,13 +484,6 @@ export function GoalsProgress({
           </AnimatePresence>
         </div>
 
-        {/* View All Button */}
-        <Link href="/dashboard/user/goals" className="block">
-          <Button variant="outline" className="w-full">
-            View All {totalGoals} Goals
-            <ChevronRight className="ml-1 h-4 w-4" />
-          </Button>
-        </Link>
       </CardContent>
     </Card>
   );
