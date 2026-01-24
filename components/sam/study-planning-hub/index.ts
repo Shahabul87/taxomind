@@ -11,8 +11,6 @@ export { StudyPlanningHub } from "./StudyPlanningHub";
 export type { StudyPlanningHubProps } from "./StudyPlanningHub";
 
 // Re-export related components for convenience
-// @deprecated - Use StudyPlansList instead for goal/study plan management
-export { GoalPlanner } from "../_deprecated/goal-planner";
 export { DailyPlanWidget } from "../plans/DailyPlanWidget";
 export { PlanProgressTracker } from "../plans/PlanProgressTracker";
 export { SpacedRepetitionCalendar } from "../SpacedRepetitionCalendar";

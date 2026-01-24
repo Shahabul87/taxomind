@@ -915,9 +915,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* Study Planning Hub - Additional planning tools */}
           <div className="mt-6">
             <StudyPlanningHub
-              defaultTab="goals"
-              onGoalCreated={(goal) => console.log("Goal created:", goal)}
-              onGoalUpdated={(goal) => console.log("Goal updated:", goal)}
+              defaultTab="overview"
               onReviewComplete={(conceptId, score) => console.log("Review completed:", conceptId, score)}
               onInsightSelect={(insight) => console.log("Insight selected:", insight)}
             />

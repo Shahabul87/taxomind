@@ -64,8 +64,6 @@ import {
 } from 'lucide-react';
 
 // Import sub-components
-// @deprecated - GoalPlanner is deprecated, use StudyPlansList instead
-import { GoalPlanner } from '../_deprecated/goal-planner';
 import { DailyPlanWidget } from '../plans/DailyPlanWidget';
 import { SpacedRepetitionCalendar } from '../SpacedRepetitionCalendar';
 import { CheckInHistory } from '../CheckInHistory';
@@ -84,11 +82,7 @@ export interface StudyPlanningHubProps {
   /** Chapter ID for context */
   chapterId?: string;
   /** Default active tab */
-  defaultTab?: 'overview' | 'goals' | 'daily' | 'reviews' | 'memory';
-  /** Callback when a goal is created */
-  onGoalCreated?: (goal: unknown) => void;
-  /** Callback when a goal is updated */
-  onGoalUpdated?: (goal: unknown) => void;
+  defaultTab?: 'overview' | 'daily' | 'reviews' | 'memory';
   /** Callback when a review is completed */
   onReviewComplete?: (conceptId: string, score: number) => void;
   /** Callback when memory insight is selected */
@@ -105,12 +99,6 @@ const TAB_CONFIG = [
     label: 'Overview',
     icon: Sun,
     description: 'Daily focus & quick actions',
-  },
-  {
-    id: 'goals',
-    label: 'Goals',
-    icon: Target,
-    description: 'Learning goals & plans',
   },
   {
     id: 'daily',
@@ -343,8 +331,6 @@ export function StudyPlanningHub({
   courseId,
   chapterId,
   defaultTab = 'overview',
-  onGoalCreated,
-  onGoalUpdated,
   onReviewComplete,
   onInsightSelect,
 }: StudyPlanningHubProps) {
@@ -384,7 +370,7 @@ export function StudyPlanningHub({
 
       <CardContent className="pt-2">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-          <TabsList className="grid w-full grid-cols-5 mb-4">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
             {TAB_CONFIG.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -411,52 +397,6 @@ export function StudyPlanningHub({
               {/* Overview Tab */}
               <TabsContent value="overview" className="mt-0">
                 <OverviewTab onNavigate={handleNavigate} courseId={courseId} />
-              </TabsContent>
-
-              {/* Goals Tab */}
-              <TabsContent value="goals" className="mt-0">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">Learning Goals</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Create and track your learning objectives
-                      </p>
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Expand className="h-4 w-4 mr-1" />
-                          Expand
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Goal Planner</DialogTitle>
-                          <DialogDescription>
-                            Comprehensive goal management and planning
-                          </DialogDescription>
-                        </DialogHeader>
-                        <GoalPlanner
-                          courseId={courseId}
-                          chapterId={chapterId}
-                          showCreateButton
-                          onGoalCreated={onGoalCreated}
-                          onGoalUpdated={onGoalUpdated}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  <GoalPlanner
-                    compact={compact}
-                    courseId={courseId}
-                    chapterId={chapterId}
-                    maxGoals={5}
-                    showCreateButton
-                    onGoalCreated={onGoalCreated}
-                    onGoalUpdated={onGoalUpdated}
-                  />
-                </div>
               </TabsContent>
 
               {/* Daily Tab */}
