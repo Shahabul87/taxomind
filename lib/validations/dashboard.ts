@@ -195,7 +195,7 @@ export type StudySessionInput = z.infer<typeof studySessionSchema>;
 export type UpdateStudySessionInput = z.infer<typeof updateStudySessionSchema>;
 
 // ==========================================
-// Todo Validation
+// Todo Validation (Enhanced Learning Tasks)
 // ==========================================
 
 export const todoSchema = z.object({
@@ -206,6 +206,32 @@ export const todoSchema = z.object({
   tags: z.array(z.string()).default([]),
   courseId: z.string().optional(),
   estimatedMinutes: z.number().int().min(1).max(480).optional(),
+
+  // Learning-specific fields
+  taskType: z.enum([
+    "STUDY",
+    "PRACTICE",
+    "REVIEW",
+    "QUIZ_PREP",
+    "WATCH",
+    "READ",
+    "ASSIGNMENT",
+    "OTHER",
+  ]).default("STUDY"),
+  chapterId: z.string().optional(),
+
+  // Recurring tasks
+  isRecurring: z.boolean().default(false),
+  recurringPattern: z.string().max(50).optional(), // "daily", "weekly", "custom"
+  recurringDays: z.array(z.number().int().min(0).max(6)).default([]), // 0=Sun to 6=Sat
+
+  // Progress tracking
+  progressPercent: z.number().int().min(0).max(100).default(0),
+  timeSpentMinutes: z.number().int().min(0).default(0),
+
+  // AI/SAM integration
+  aiSuggested: z.boolean().default(false),
+  suggestedReason: z.string().max(500).optional(),
 });
 
 export const updateTodoSchema = todoSchema.partial().extend({

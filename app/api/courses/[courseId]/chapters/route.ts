@@ -3,9 +3,63 @@ import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { successResponse, errorResponse, ErrorCodes, HttpStatus } from "@/lib/api-utils";
 
 // Force Node.js runtime to avoid Edge Runtime issues with bcrypt
 export const runtime = 'nodejs';
+
+// GET - Fetch chapters for a course
+export async function GET(request: NextRequest, props: { params: Promise<{ courseId: string }> }) {
+  const params = await props.params;
+
+  try {
+    const user = await currentUser();
+
+    if (!user?.id) {
+      return errorResponse(ErrorCodes.UNAUTHORIZED, "Authentication required", HttpStatus.UNAUTHORIZED);
+    }
+
+    // Check if user is enrolled in the course or is the owner
+    const enrollment = await db.enrollment.findFirst({
+      where: {
+        userId: user.id,
+        courseId: params.courseId,
+      },
+    });
+
+    const courseOwner = await db.course.findFirst({
+      where: {
+        id: params.courseId,
+        userId: user.id,
+      },
+    });
+
+    if (!enrollment && !courseOwner) {
+      return errorResponse(ErrorCodes.FORBIDDEN, "You must be enrolled in this course to view chapters", HttpStatus.FORBIDDEN);
+    }
+
+    const chapters = await db.chapter.findMany({
+      where: {
+        courseId: params.courseId,
+        isPublished: true,
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        position: true,
+      },
+      orderBy: {
+        position: "asc",
+      },
+    });
+
+    return successResponse(chapters);
+  } catch (error) {
+    logger.error("[CHAPTERS_GET] Error:", error);
+    return errorResponse(ErrorCodes.INTERNAL_ERROR, "Failed to fetch chapters", HttpStatus.INTERNAL_ERROR);
+  }
+}
 
 export async function POST(request: NextRequest, props: { params: Promise<{ courseId: string }> }) {
   const params = await props.params;

@@ -244,6 +244,9 @@ model Chapter {
   // Learning Command Center Relations (added January 2026)
   learningActivities     LearningActivity[]      @relation("ChapterLearningActivities")
 
+  // Dashboard Learning Tasks
+  dashboardTodos         DashboardTodo[]         @relation("ChapterTodos")
+
   @@index([courseId])
 }
 

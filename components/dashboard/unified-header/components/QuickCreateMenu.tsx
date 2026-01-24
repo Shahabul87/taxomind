@@ -8,8 +8,7 @@ import {
   BookOpen,
   GraduationCap,
   FileText,
-  Clock,
-  CheckSquare,
+  ClipboardCheck,
   Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,8 +17,7 @@ export interface QuickActionHandlers {
   onCreateStudyPlan: () => void;
   onCreateCoursePlan: () => void;
   onCreateBlogPlan: () => void;
-  onScheduleSession: () => void;
-  onAddTodo: () => void;
+  onAddLearningTask: () => void;
   onSetGoal: () => void;
 }
 
@@ -71,23 +69,13 @@ export function QuickCreateMenu({ handlers, className }: QuickCreateMenuProps) {
       },
     },
     {
-      icon: Clock,
-      label: 'Schedule Session',
-      description: 'Sync with Google Calendar',
+      icon: ClipboardCheck,
+      label: 'Add Learning Task',
+      description: 'Course-linked task management',
       gradient: 'from-emerald-500 to-teal-500',
       onClick: () => {
         setIsOpen(false);
-        handlers?.onScheduleSession();
-      },
-    },
-    {
-      icon: CheckSquare,
-      label: 'Add Todo',
-      description: 'Quick task management',
-      gradient: 'from-purple-500 to-pink-500',
-      onClick: () => {
-        setIsOpen(false);
-        handlers?.onAddTodo();
+        handlers?.onAddLearningTask();
       },
     },
     {

@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-22T07:13:17.853Z
+// Generated: 2026-01-24T11:16:46.353Z
 // Source: 26 domain files
 // ==========================================
 
@@ -1322,6 +1322,18 @@ enum CourseSkillLevel {
   ADVANCED
 }
 
+// Learning task type (for enhanced todos)
+enum LearningTaskType {
+  STUDY       // Read/study course materials
+  PRACTICE    // Do exercises/problems
+  REVIEW      // Revisit past content
+  QUIZ_PREP   // Prepare for tests
+  WATCH       // Video lectures
+  READ        // Supplementary materials
+  ASSIGNMENT  // Homework/submissions
+  OTHER       // General tasks
+}
+
 // ==========================================
 // Source: 02-auth.prisma
 // ==========================================
@@ -2440,6 +2452,9 @@ model Chapter {
 
   // Learning Command Center Relations (added January 2026)
   learningActivities     LearningActivity[]      @relation("ChapterLearningActivities")
+
+  // Dashboard Learning Tasks
+  dashboardTodos         DashboardTodo[]         @relation("ChapterTodos")
 
   @@index([courseId])
 }
@@ -10551,11 +10566,17 @@ model DashboardStudySession {
   notes           String?
   productivity    Int?           @default(0) // 0-100 rating
 
+  // Push Notifications
+  notifyEnabled        Boolean   @default(false)
+  notifyMinutesBefore  Int       @default(15) // minutes before session to send notification
+  notificationSentAt   DateTime? // track when notification was sent
+
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   @@index([userId, startTime])
   @@index([courseId])
+  @@index([notifyEnabled, startTime]) // for cron job queries
   @@map("dashboard_study_sessions")
 }
 
@@ -10645,7 +10666,7 @@ model DashboardBlogPlan {
 }
 
 // ==========================================
-// Todos
+// Todos (Enhanced Learning Tasks)
 // ==========================================
 
 model DashboardTodo {
@@ -10673,11 +10694,40 @@ model DashboardTodo {
 
   position        Int            @default(0) // For ordering
 
+  // ==========================================
+  // Learning-Specific Fields (Enhanced Todo)
+  // ==========================================
+
+  // Learning task type (Study, Practice, Review, Quiz, Watch, Read, Assignment)
+  taskType        LearningTaskType  @default(STUDY)
+
+  // Link to specific chapter/lesson
+  chapterId       String?
+  chapter         Chapter?          @relation("ChapterTodos", fields: [chapterId], references: [id], onDelete: SetNull)
+
+  // Recurring tasks
+  isRecurring       Boolean         @default(false)
+  recurringPattern  String?         // "daily", "weekly", "custom"
+  recurringDays     Int[]           @default([]) // 0=Sun, 1=Mon, etc.
+  parentTodoId      String?         // For recurring instances
+  parentTodo        DashboardTodo?  @relation("RecurringTodos", fields: [parentTodoId], references: [id], onDelete: SetNull)
+  childTodos        DashboardTodo[] @relation("RecurringTodos")
+
+  // Progress tracking
+  progressPercent   Int             @default(0) // 0, 25, 50, 75, 100
+  timeSpentMinutes  Int             @default(0)
+
+  // AI/SAM integration
+  aiSuggested       Boolean         @default(false)
+  suggestedReason   String?
+
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   @@index([userId, completed])
   @@index([userId, dueDate])
+  @@index([userId, taskType])
+  @@index([chapterId])
   @@map("dashboard_todos")
 }
 

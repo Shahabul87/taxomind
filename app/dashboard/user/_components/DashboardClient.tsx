@@ -55,8 +55,7 @@ import { NewDashboard } from './NewDashboard';
 import { CreateStudyPlanWizard } from './modals/CreateStudyPlanWizard';
 import { CreateCoursePlanModal, type CoursePlanData } from './modals/CreateCoursePlanModal';
 import { CreateBlogPlanModal, type BlogPlanData } from './modals/CreateBlogPlanModal';
-import { ScheduleSessionModal, type SessionData } from './modals/ScheduleSessionModal';
-import { AddTodoModal, type TodoData } from './modals/AddTodoModal';
+import { AddLearningTodoModal, type LearningTodoData } from './modals/AddLearningTodoModal';
 import { SetGoalModal, type GoalData } from './modals/SetGoalModal';
 import { toast } from 'sonner';
 
@@ -123,17 +122,15 @@ export function DashboardClient({ user }: DashboardClientProps) {
   const [isStudyPlanModalOpen, setIsStudyPlanModalOpen] = useState(false);
   const [isCoursePlanModalOpen, setIsCoursePlanModalOpen] = useState(false);
   const [isBlogPlanModalOpen, setIsBlogPlanModalOpen] = useState(false);
-  const [isScheduleSessionModalOpen, setIsScheduleSessionModalOpen] = useState(false);
-  const [isAddTodoModalOpen, setIsAddTodoModalOpen] = useState(false);
+  const [isLearningTodoModalOpen, setIsLearningTodoModalOpen] = useState(false);
   const [isSetGoalModalOpen, setIsSetGoalModalOpen] = useState(false);
 
-  // Quick action handlers
+  // Quick action handlers (matches QuickActionHandlers interface)
   const quickActionHandlers = {
     onCreateStudyPlan: () => setIsStudyPlanModalOpen(true),
     onCreateCoursePlan: () => setIsCoursePlanModalOpen(true),
     onCreateBlogPlan: () => setIsBlogPlanModalOpen(true),
-    onScheduleSession: () => setIsScheduleSessionModalOpen(true),
-    onAddTodo: () => setIsAddTodoModalOpen(true),
+    onAddLearningTask: () => setIsLearningTodoModalOpen(true),
     onSetGoal: () => setIsSetGoalModalOpen(true),
   };
 
@@ -146,11 +143,9 @@ export function DashboardClient({ user }: DashboardClientProps) {
       case 'blog-plan':
         setIsBlogPlanModalOpen(true);
         break;
-      case 'session':
-        setIsScheduleSessionModalOpen(true);
-        break;
       case 'todo':
-        setIsAddTodoModalOpen(true);
+      case 'learning-task':
+        setIsLearningTodoModalOpen(true);
         break;
       case 'goal':
         setIsSetGoalModalOpen(true);
@@ -247,34 +242,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
     }
   };
 
-  const handleSessionSubmit = async (data: SessionData) => {
-    try {
-      const response = await fetch('/api/dashboard/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: data.title,
-          notes: data.notes,
-          startTime: data.startTime.toISOString(),
-          duration: data.duration,
-          syncToGoogleCalendar: data.syncToGoogleCalendar,
-        }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        toast.success('Session scheduled successfully!');
-        setIsScheduleSessionModalOpen(false);
-      } else {
-        toast.error(result.error?.message || 'Failed to schedule session');
-      }
-    } catch (error) {
-      console.error('Error scheduling session:', error);
-      toast.error('Failed to schedule session');
-    }
-  };
-
-  const handleTodoSubmit = async (data: TodoData) => {
+  const handleLearningTodoSubmit = async (data: LearningTodoData) => {
     try {
       const response = await fetch('/api/dashboard/todos', {
         method: 'POST',
@@ -284,20 +252,23 @@ export function DashboardClient({ user }: DashboardClientProps) {
           description: data.description,
           dueDate: data.dueDate?.toISOString(),
           priority: data.priority,
-          tags: data.tags || [],
+          taskType: data.taskType,
+          courseId: data.courseId,
+          chapterId: data.chapterId,
+          estimatedMinutes: data.estimatedMinutes,
         }),
       });
 
       const result = await response.json();
       if (result.success) {
-        toast.success('Todo created successfully!');
-        setIsAddTodoModalOpen(false);
+        toast.success('Learning task created!');
+        setIsLearningTodoModalOpen(false);
       } else {
-        toast.error(result.error?.message || 'Failed to create todo');
+        toast.error(result.error?.message || 'Failed to create learning task');
       }
     } catch (error) {
-      console.error('Error creating todo:', error);
-      toast.error('Failed to create todo');
+      console.error('Error creating learning task:', error);
+      toast.error('Failed to create learning task');
     }
   };
 
@@ -387,15 +358,10 @@ export function DashboardClient({ user }: DashboardClientProps) {
           onClose={() => setIsBlogPlanModalOpen(false)}
           onSubmit={handleBlogPlanSubmit}
         />
-        <ScheduleSessionModal
-          isOpen={isScheduleSessionModalOpen}
-          onClose={() => setIsScheduleSessionModalOpen(false)}
-          onSubmit={handleSessionSubmit}
-        />
-        <AddTodoModal
-          isOpen={isAddTodoModalOpen}
-          onClose={() => setIsAddTodoModalOpen(false)}
-          onSubmit={handleTodoSubmit}
+        <AddLearningTodoModal
+          isOpen={isLearningTodoModalOpen}
+          onClose={() => setIsLearningTodoModalOpen(false)}
+          onSubmit={handleLearningTodoSubmit}
         />
         <SetGoalModal
           isOpen={isSetGoalModalOpen}

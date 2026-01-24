@@ -344,7 +344,7 @@ model DashboardBlogPlan {
 }
 
 // ==========================================
-// Todos
+// Todos (Enhanced Learning Tasks)
 // ==========================================
 
 model DashboardTodo {
@@ -372,11 +372,40 @@ model DashboardTodo {
 
   position        Int            @default(0) // For ordering
 
+  // ==========================================
+  // Learning-Specific Fields (Enhanced Todo)
+  // ==========================================
+
+  // Learning task type (Study, Practice, Review, Quiz, Watch, Read, Assignment)
+  taskType        LearningTaskType  @default(STUDY)
+
+  // Link to specific chapter/lesson
+  chapterId       String?
+  chapter         Chapter?          @relation("ChapterTodos", fields: [chapterId], references: [id], onDelete: SetNull)
+
+  // Recurring tasks
+  isRecurring       Boolean         @default(false)
+  recurringPattern  String?         // "daily", "weekly", "custom"
+  recurringDays     Int[]           @default([]) // 0=Sun, 1=Mon, etc.
+  parentTodoId      String?         // For recurring instances
+  parentTodo        DashboardTodo?  @relation("RecurringTodos", fields: [parentTodoId], references: [id], onDelete: SetNull)
+  childTodos        DashboardTodo[] @relation("RecurringTodos")
+
+  // Progress tracking
+  progressPercent   Int             @default(0) // 0, 25, 50, 75, 100
+  timeSpentMinutes  Int             @default(0)
+
+  // AI/SAM integration
+  aiSuggested       Boolean         @default(false)
+  suggestedReason   String?
+
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   @@index([userId, completed])
   @@index([userId, dueDate])
+  @@index([userId, taskType])
+  @@index([chapterId])
   @@map("dashboard_todos")
 }
 

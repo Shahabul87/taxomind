@@ -1278,3 +1278,15 @@ enum CourseSkillLevel {
   INTERMEDIATE
   ADVANCED
 }
+
+// Learning task type (for enhanced todos)
+enum LearningTaskType {
+  STUDY       // Read/study course materials
+  PRACTICE    // Do exercises/problems
+  REVIEW      // Revisit past content
+  QUIZ_PREP   // Prepare for tests
+  WATCH       // Video lectures
+  READ        // Supplementary materials
+  ASSIGNMENT  // Homework/submissions
+  OTHER       // General tasks
+}

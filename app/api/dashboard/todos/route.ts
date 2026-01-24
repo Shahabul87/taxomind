@@ -18,7 +18,10 @@ export async function GET(req: NextRequest) {
 
     const todos = await db.dashboardTodo.findMany({
       where,
-      include: { course: { select: { id: true, title: true } } },
+      include: {
+        course: { select: { id: true, title: true } },
+        chapter: { select: { id: true, title: true, position: true } },
+      },
       orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { position: "asc" }],
       skip: (pagination.page - 1) * pagination.limit,
       take: pagination.limit,
@@ -41,7 +44,10 @@ export async function POST(req: NextRequest) {
 
     const todo = await db.dashboardTodo.create({
       data: { userId: user.id, ...validatedData },
-      include: { course: { select: { id: true, title: true } } },
+      include: {
+        course: { select: { id: true, title: true } },
+        chapter: { select: { id: true, title: true, position: true } },
+      },
     });
 
     return successResponse(todo);
