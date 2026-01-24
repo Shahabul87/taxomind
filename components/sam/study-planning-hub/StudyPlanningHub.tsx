@@ -64,7 +64,8 @@ import {
 } from 'lucide-react';
 
 // Import sub-components
-import { GoalPlanner } from '../goal-planner';
+// @deprecated - GoalPlanner is deprecated, use StudyPlansList instead
+import { GoalPlanner } from '../_deprecated/goal-planner';
 import { DailyPlanWidget } from '../plans/DailyPlanWidget';
 import { SpacedRepetitionCalendar } from '../SpacedRepetitionCalendar';
 import { CheckInHistory } from '../CheckInHistory';

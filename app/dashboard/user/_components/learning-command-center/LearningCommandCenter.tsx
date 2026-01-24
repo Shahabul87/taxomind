@@ -20,8 +20,7 @@ import { CalendarStatusWidget } from '@/components/calendar/CalendarStatusWidget
 import { LearningJourneyMap } from '../smart-dashboard/LearningJourneyMap';
 import { Button } from '@/components/ui/button';
 
-// SAM Agentic Components - Unified Goals
-import { GoalPlanner } from '@/components/sam/goal-planner';
+// SAM Agentic Components
 import { SpacedRepetitionCalendar, SpacedRepetitionWidget } from '@/components/sam/SpacedRepetitionCalendar';
 import { ReviewQueueWidget } from './ReviewQueueWidget';
 
@@ -533,13 +532,6 @@ export function LearningCommandCenter({ user, onCreateStudyPlan }: LearningComma
               onToggleComplete={handleToggleTaskComplete}
               onDeleteTask={handleDeleteTask}
               onAddTask={handleAddTask}
-            />
-
-            {/* SAM Agentic Goals - Unified with AI decomposition */}
-            <GoalPlanner
-              compact={false}
-              maxGoals={5}
-              showCreateButton={true}
             />
 
             {/* Create Learning Plan Button */}

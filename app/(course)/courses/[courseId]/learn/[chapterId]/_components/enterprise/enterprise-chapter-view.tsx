@@ -33,7 +33,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 // SAM AI Components
-import { GoalPlanner } from "@/components/sam/goal-planner";
+// @deprecated - GoalPlanner is deprecated, use StudyPlansList instead
+import { GoalPlanner } from "@/components/sam/_deprecated/goal-planner";
 import { ScaffoldingStrategyPanel } from "@/components/sam/ScaffoldingStrategyPanel";
 import { DailyPlanWidget } from "@/components/sam/plans/DailyPlanWidget";
 import { ConfidenceIndicator } from "@/components/sam/confidence/ConfidenceIndicator";

@@ -223,7 +223,6 @@ import { SelfAssessmentHub } from "@/components/sam/self-assessment-hub";
 import { LearningAnalyticsDashboard } from "./learning-command-center/analytics";
 
 // Phase 10: Unified Goals Tab - Merged from /goals page
-import { GoalPlanner } from "@/components/sam/goal-planner";
 import { GoalsProgress } from "./learning-command-center/analytics/GoalsProgress";
 
 // AI Study Plans - Display saved study plans with daily task tracking
@@ -911,15 +910,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* Goals Progress Overview */}
           <div className="mb-6">
             <GoalsProgress compact={false} />
-          </div>
-
-          {/* Goal Planner - AI-Powered Goal Management */}
-          <div className="mb-6">
-            <GoalPlanner
-              compact={false}
-              maxGoals={10}
-              showCreateButton={true}
-            />
           </div>
 
           {/* Study Planning Hub - Additional planning tools */}
