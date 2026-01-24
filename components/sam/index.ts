@@ -51,9 +51,9 @@ export { SAMAnalyticsDashboard } from './sam-analytics-dashboard';
 // PHASE 5: AGENTIC AI COMPONENTS
 // ============================================================================
 
-// @deprecated - Use StudyPlansList instead for goal/study plan management
-export { GoalPlanner } from './_deprecated/goal-planner';
-export { default as GoalPlannerDefault } from './_deprecated/goal-planner';
+// Note: GoalPlanner is kept for enterprise-chapter-view.tsx usage
+export { GoalPlanner } from './goal-planner';
+export { default as GoalPlannerDefault } from './goal-planner';
 
 export { RecommendationWidget } from './recommendation-widget';
 export { default as RecommendationWidgetDefault } from './recommendation-widget';
