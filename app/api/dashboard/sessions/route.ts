@@ -12,8 +12,21 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const pagination = paginationSchema.parse(Object.fromEntries(searchParams.entries()));
+    const upcoming = searchParams.get("upcoming") === "true";
 
-    const where = { userId: user.id };
+    // Build where clause
+    const where: {
+      userId: string;
+      startTime?: { gte: Date };
+      status?: string;
+    } = { userId: user.id };
+
+    // Filter for upcoming sessions (future sessions only)
+    if (upcoming) {
+      where.startTime = { gte: new Date() };
+      where.status = "ACTIVE";
+    }
+
     const total = await db.dashboardStudySession.count({ where });
 
     const sessions = await db.dashboardStudySession.findMany({
@@ -22,7 +35,7 @@ export async function GET(req: NextRequest) {
         course: { select: { id: true, title: true, imageUrl: true } },
         studyPlan: { select: { id: true, title: true } },
       },
-      orderBy: { startTime: "desc" },
+      orderBy: { startTime: upcoming ? "asc" : "desc" },
       skip: (pagination.page - 1) * pagination.limit,
       take: pagination.limit,
     });

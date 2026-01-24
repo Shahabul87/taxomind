@@ -244,11 +244,17 @@ model DashboardStudySession {
   notes           String?
   productivity    Int?           @default(0) // 0-100 rating
 
+  // Push Notifications
+  notifyEnabled        Boolean   @default(false)
+  notifyMinutesBefore  Int       @default(15) // minutes before session to send notification
+  notificationSentAt   DateTime? // track when notification was sent
+
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
   @@index([userId, startTime])
   @@index([courseId])
+  @@index([notifyEnabled, startTime]) // for cron job queries
   @@map("dashboard_study_sessions")
 }
 

@@ -78,6 +78,10 @@ export interface ScheduledSession {
   startTime: string;
   duration: number;
   subGoalId?: string;
+  // Push notification settings
+  notifyEnabled?: boolean;
+  notifyMinutesBefore?: number;
+  notificationSentAt?: string | null;
 }
 
 interface StudySessionSchedulerProps {
@@ -360,7 +364,14 @@ export function StudySessionScheduler({ className }: StudySessionSchedulerProps)
 
       {/* Scheduled Sessions */}
       {sessions.length > 0 && (
-        <ScheduledSessionsList sessions={sessions} />
+        <ScheduledSessionsList
+          sessions={sessions}
+          onSessionUpdate={(updatedSession) => {
+            setSessions((prev) =>
+              prev.map((s) => (s.id === updatedSession.id ? updatedSession : s))
+            );
+          }}
+        />
       )}
 
       {/* Schedule Modal */}
