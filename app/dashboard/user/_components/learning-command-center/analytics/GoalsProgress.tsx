@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target,
@@ -26,6 +26,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useSAMGoals, type SAMGoal, type SAMSubGoal } from '@/hooks/use-sam-agentic-analytics';
 import Link from 'next/link';
+import { StudyPlanDashboard } from '@/components/sam/study-plan';
+import { isStudyPlan } from '@/lib/sam/study-plan-metrics';
 
 export interface GoalsProgressProps {
   compact?: boolean;
@@ -146,9 +148,9 @@ function GoalProgressCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        'rounded-xl border p-4 transition-shadow hover:shadow-md',
+        'rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-lg',
         priority.borderColor,
-        'bg-white/50 dark:bg-slate-800/50'
+        'bg-white dark:bg-slate-800'
       )}
     >
       <div className="flex items-start gap-3">
@@ -245,11 +247,11 @@ function GoalProgressCard({
 
 function LoadingState({ compact }: { compact?: boolean }) {
   return (
-    <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+    <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg">
       <CardContent className={cn('flex items-center justify-center', compact ? 'p-6' : 'p-12')}>
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-          <p className="text-sm text-slate-500">Loading goals...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600 dark:text-emerald-400" />
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Loading goals...</p>
         </div>
       </CardContent>
     </Card>
@@ -258,15 +260,15 @@ function LoadingState({ compact }: { compact?: boolean }) {
 
 function EmptyState({ compact }: { compact?: boolean }) {
   return (
-    <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+    <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg">
       <CardContent className={cn('flex flex-col items-center justify-center text-center', compact ? 'p-6' : 'p-12')}>
-        <Target className="h-12 w-12 text-slate-300 dark:text-slate-600 mb-3" />
-        <h3 className="font-semibold text-slate-900 dark:text-white">No Active Goals</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
+        <Target className="h-12 w-12 text-slate-300 dark:text-slate-600 mb-4" />
+        <h3 className="font-bold text-lg text-slate-900 dark:text-white">No Active Goals</h3>
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-2 max-w-xs">
           Create a learning goal to track your progress and stay motivated.
         </p>
-        <Link href="/dashboard/user/goals" className="mt-4">
-          <Button size="sm">
+        <Link href="/dashboard/user/goals" className="mt-6">
+          <Button size="sm" className="font-semibold">
             <Target className="h-4 w-4 mr-2" />
             Create a Goal
           </Button>
@@ -286,7 +288,33 @@ export function GoalsProgress({
   onViewAllGoals,
   onGoalClick,
 }: GoalsProgressProps) {
-  const { goals, totalGoals, activeGoals, completedGoals, avgProgress, loading } = useSAMGoals();
+  const { goals, totalGoals, activeGoals, completedGoals, avgProgress, loading, refresh } = useSAMGoals();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Handler for refreshing goal data
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refresh]);
+
+  // Listen for task completion events from StudyPlansList
+  useEffect(() => {
+    const handleTaskUpdate = () => {
+      // Small delay to allow database update to complete
+      setTimeout(() => {
+        handleRefresh();
+      }, 500);
+    };
+
+    window.addEventListener('study-plan-task-updated', handleTaskUpdate);
+    return () => {
+      window.removeEventListener('study-plan-task-updated', handleTaskUpdate);
+    };
+  }, [handleRefresh]);
 
   if (loading) {
     return <LoadingState compact={compact} />;
@@ -310,14 +338,16 @@ export function GoalsProgress({
   // Compact view for overview grid
   if (compact) {
     return (
-      <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
-        <CardHeader className="pb-3">
+      <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg h-full">
+        <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <Target className="h-5 w-5 text-emerald-500" />
+            <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <Target className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
               Goals Progress
             </CardTitle>
-            <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <Badge variant="outline" className="text-xs font-semibold border-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
               {activeGoals} active
             </Badge>
           </div>
@@ -335,14 +365,44 @@ export function GoalsProgress({
 
           {/* Top Goals */}
           <div className="space-y-3">
-            {displayGoals.map((goal) => (
-              <GoalProgressCard
-                key={goal.id}
-                goal={goal}
-                onClick={onGoalClick}
-                showSubGoals={false}
-              />
-            ))}
+            {displayGoals.map((goal) => {
+              // Check if this goal is a study plan
+              const goalIsStudyPlan = isStudyPlan(goal.metadata);
+
+              return goalIsStudyPlan ? (
+                <StudyPlanDashboard
+                  key={goal.id}
+                  goalId={goal.id}
+                  goal={{
+                    id: goal.id,
+                    title: goal.title,
+                    description: goal.description,
+                    status: goal.status,
+                    progress: goal.progress,
+                    targetDate: goal.targetDate,
+                    createdAt: goal.createdAt,
+                    metadata: goal.metadata,
+                    subGoals: goal.subGoals.map((sg) => ({
+                      id: sg.id,
+                      title: sg.title,
+                      status: sg.status as 'pending' | 'in_progress' | 'completed' | 'skipped',
+                      estimatedMinutes: sg.estimatedMinutes,
+                      completedAt: sg.completedAt,
+                      metadata: sg.metadata,
+                    })),
+                  }}
+                  onRefresh={handleRefresh}
+                  isLoading={refreshing}
+                />
+              ) : (
+                <GoalProgressCard
+                  key={goal.id}
+                  goal={goal}
+                  onClick={onGoalClick}
+                  showSubGoals={false}
+                />
+              );
+            })}
           </div>
 
           {/* View All Button */}
@@ -359,25 +419,27 @@ export function GoalsProgress({
 
   // Full view
   return (
-    <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-      <CardHeader className="pb-3">
+    <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg">
+      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Target className="h-5 w-5 text-emerald-500" />
+          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <Target className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
             Goals Progress
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+            <Badge variant="outline" className="text-xs font-semibold border-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
               {activeGoals} active
             </Badge>
-            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+            <Badge variant="outline" className="text-xs font-semibold border-2 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
               {completedGoals} completed
             </Badge>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-6">
         {/* Stats Overview */}
         <div className="grid grid-cols-4 gap-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 dark:from-emerald-950/30 dark:to-teal-950/30">
           <QuickStat icon={Target} label="Total Goals" value={totalGoals} color="bg-slate-500" />
@@ -393,17 +455,48 @@ export function GoalsProgress({
             Active Goals ({activeGoals})
           </h4>
           <AnimatePresence mode="popLayout">
-            {displayGoals.map((goal, index) => (
-              <motion.div
-                key={goal.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <GoalProgressCard goal={goal} onClick={onGoalClick} showSubGoals />
-              </motion.div>
-            ))}
+            {displayGoals.map((goal, index) => {
+              // Check if this goal is a study plan
+              const goalIsStudyPlan = isStudyPlan(goal.metadata);
+
+              return (
+                <motion.div
+                  key={goal.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  {goalIsStudyPlan ? (
+                    <StudyPlanDashboard
+                      goalId={goal.id}
+                      goal={{
+                        id: goal.id,
+                        title: goal.title,
+                        description: goal.description,
+                        status: goal.status,
+                        progress: goal.progress,
+                        targetDate: goal.targetDate,
+                        createdAt: goal.createdAt,
+                        metadata: goal.metadata,
+                        subGoals: goal.subGoals.map((sg) => ({
+                          id: sg.id,
+                          title: sg.title,
+                          status: sg.status as 'pending' | 'in_progress' | 'completed' | 'skipped',
+                          estimatedMinutes: sg.estimatedMinutes,
+                          completedAt: sg.completedAt,
+                          metadata: sg.metadata,
+                        })),
+                      }}
+                      onRefresh={handleRefresh}
+                      isLoading={refreshing}
+                    />
+                  ) : (
+                    <GoalProgressCard goal={goal} onClick={onGoalClick} showSubGoals />
+                  )}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         </div>
 

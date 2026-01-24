@@ -156,9 +156,6 @@ import { CourseInsights } from "@/components/sam/course-insights";
 // Phase 4: Portfolio Export - Export and share learning portfolios
 import { PortfolioExport } from "@/components/sam/portfolio-export";
 
-// Phase 4: Course Marketplace - Browse and discover courses
-import { CourseMarketplace } from "@/components/sam/course-marketplace";
-
 // Learning Gap Analysis Dashboard
 import { LearningGapDashboard } from "@/components/sam/learning-gap";
 
@@ -229,16 +226,23 @@ import { LearningAnalyticsDashboard } from "./learning-command-center/analytics"
 import { GoalPlanner } from "@/components/sam/goal-planner";
 import { GoalsProgress } from "./learning-command-center/analytics/GoalsProgress";
 
+// AI Study Plans - Display saved study plans with daily task tracking
+import { StudyPlansList } from "@/components/sam/study-plan";
+
 // DashboardView type - now controlled by parent via UnifiedDashboardHeader
-type DashboardView = "learning" | "analytics" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "discover" | "create";
+type DashboardView = "learning" | "analytics" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "create";
 
 interface NewDashboardProps {
   user: NextAuthUser;
   viewMode: "grid" | "list";
   activeTab: DashboardView;
+  /** Callback to open the study plan modal */
+  onCreateStudyPlan?: () => void;
+  /** Key to trigger StudyPlansList refresh after creating a new plan */
+  studyPlanRefreshKey?: number;
 }
 
-export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
+export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, studyPlanRefreshKey }: NewDashboardProps) {
   // activeTab is now controlled by parent - no local state needed
 
   const {
@@ -323,7 +327,7 @@ export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
         <SAMContextTracker />
 
         {/* Learning Command Center - Main Learning Hub */}
-        <LearningCommandCenter user={user} />
+        <LearningCommandCenter user={user} onCreateStudyPlan={onCreateStudyPlan} />
 
         {/* SAM AI Learning Widgets Section */}
         <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-4">
@@ -870,7 +874,7 @@ export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
   // ============================================================================
   if (activeTab === "goals") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-rose-50/30 to-pink-50/30 dark:from-slate-900 dark:via-rose-900/10 dark:to-pink-900/10">
+      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -878,18 +882,30 @@ export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
           {/* Header Section */}
           <div className="mb-8">
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-lg">
-                <span className="text-2xl">🎯</span>
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30 shadow-lg">
+                <span className="text-3xl">🎯</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
                   Goals & Milestones
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="mt-2 text-base text-slate-600 dark:text-slate-300 font-medium">
                   Set, track, and achieve your learning objectives with AI-powered guidance
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* AI Study Plans - Personalized daily task tracking */}
+          <div className="mb-8">
+            <StudyPlansList
+              key={studyPlanRefreshKey}
+              onCreatePlan={onCreateStudyPlan}
+              onTaskComplete={(taskId) => {
+                // Dispatch custom event to notify GoalsProgress to refresh
+                window.dispatchEvent(new CustomEvent('study-plan-task-updated', { detail: { taskId } }));
+              }}
+            />
           </div>
 
           {/* Goals Progress Overview */}
@@ -943,19 +959,26 @@ export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
   // Practice view with 10,000 Hour Practice Tracking System
   if (activeTab === "practice") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-orange-50/30 to-red-50/30 dark:from-slate-900 dark:via-orange-900/10 dark:to-red-900/10">
+      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Header Section */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              🎯 10,000 Hour Practice Tracker
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Track your deliberate practice journey to mastery with quality-adjusted hours
-            </p>
+          <div className="mb-8">
+            <div className="flex items-center gap-4 mb-3">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30">
+                <span className="text-3xl">🎯</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                  10,000 Hour Practice Tracker
+                </h1>
+                <p className="mt-2 text-base text-slate-600 dark:text-slate-300 font-medium">
+                  Track your deliberate practice journey to mastery with quality-adjusted hours
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Streak Display */}
@@ -1022,7 +1045,7 @@ export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
   // Skills view with SkillBuildTracker (connected to real API)
   if (activeTab === "skills") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/30 dark:from-slate-900 dark:via-emerald-900/10 dark:to-teal-900/10">
+      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -1131,7 +1154,7 @@ export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
   // Gaps view with Learning Gap Analysis Dashboard
   if (activeTab === "gaps") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/30 dark:from-slate-900 dark:via-red-900/10 dark:to-orange-900/10">
+      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -1172,46 +1195,6 @@ export function NewDashboard({ user, viewMode, activeTab }: NewDashboardProps) {
         <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
           {/* Innovation Dashboard - All 4 InnovationEngine features */}
           <InnovationDashboard userId={user.id} />
-        </div>
-
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
-
-        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
-        <ToolApprovalDialog
-          request={pendingRequest}
-          open={isToolApprovalOpen}
-          onOpenChange={setToolApprovalOpen}
-          onApprove={handleToolApprove}
-          onDeny={handleToolDeny}
-          isProcessing={isToolApprovalProcessing}
-        />
-
-        {/* Gap 3: Celebration Overlay for achievements */}
-        <CelebrationOverlay
-          celebration={celebration}
-          onDismiss={dismissCelebration}
-        />
-      </div>
-    );
-  }
-
-  // Discover view with Course Marketplace
-  if (activeTab === "discover") {
-    return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-cyan-50/30 to-blue-50/30 dark:from-slate-900 dark:via-cyan-900/10 dark:to-blue-900/10">
-        {/* SAM Context Tracker - Invisible, syncs page context */}
-        <SAMContextTracker />
-
-        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
-          {/* Course Marketplace - Browse and discover courses */}
-          <CourseMarketplace
-            showHeader={true}
-            showFilters={true}
-            onEnroll={(courseId) => {
-              window.location.href = `/courses/${courseId}`;
-            }}
-          />
         </div>
 
         {/* SAM AI Assistant - Always available conversational mentor */}

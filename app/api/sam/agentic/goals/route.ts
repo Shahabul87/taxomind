@@ -107,6 +107,8 @@ export async function GET(req: NextRequest) {
           type: true,
           estimatedMinutes: true,
           difficulty: true,
+          completedAt: true,
+          metadata: true,
         },
         orderBy: { order: 'asc' },
       }),
@@ -141,22 +143,32 @@ export async function GET(req: NextRequest) {
     }
 
     // Merge goal data with related data
-    const enrichedGoals = goals.map((goal) => ({
-      ...goal,
-      // Flatten context for backward compatibility
-      courseId: goal.context.courseId,
-      chapterId: goal.context.chapterId,
-      sectionId: goal.context.sectionId,
-      topicIds: goal.context.topicIds,
-      skillIds: goal.context.skillIds,
-      // Add related data
-      course: goal.context.courseId
-        ? coursesById.get(goal.context.courseId) ?? null
-        : null,
-      // Sub-goals and plans from database
-      subGoals: subGoalsByGoalId.get(goal.id) ?? [],
-      plans: plansByGoalId.get(goal.id) ?? [],
-    }));
+    const enrichedGoals = goals.map((goal) => {
+      // Get subGoals and normalize status to lowercase for frontend compatibility
+      const rawSubGoals = subGoalsByGoalId.get(goal.id) ?? [];
+      const normalizedSubGoals = rawSubGoals.map((sg) => ({
+        ...sg,
+        // Prisma stores UPPERCASE, but @sam-ai/agentic expects lowercase
+        status: sg.status?.toLowerCase() ?? 'pending',
+      }));
+
+      return {
+        ...goal,
+        // Flatten context for backward compatibility
+        courseId: goal.context.courseId,
+        chapterId: goal.context.chapterId,
+        sectionId: goal.context.sectionId,
+        topicIds: goal.context.topicIds,
+        skillIds: goal.context.skillIds,
+        // Add related data
+        course: goal.context.courseId
+          ? coursesById.get(goal.context.courseId) ?? null
+          : null,
+        // Sub-goals and plans from database
+        subGoals: normalizedSubGoals,
+        plans: plansByGoalId.get(goal.id) ?? [],
+      };
+    });
 
     // Get total count for pagination
     const totalGoals = await goalStore.getByUser(session.user.id, {

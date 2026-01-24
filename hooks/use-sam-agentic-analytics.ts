@@ -85,6 +85,33 @@ export interface SAMSubGoal {
   status: string;
   order: number;
   type?: string;
+  estimatedMinutes?: number;
+  completedAt?: string | null;
+  metadata?: {
+    weekNumber?: number;
+    weekTitle?: string;
+    dayNumber?: number;
+    scheduledDate?: string;
+    taskType?: string;
+  };
+}
+
+export interface SAMGoalMetadata {
+  planType?: string;
+  totalWeeks?: number;
+  totalTasks?: number;
+  estimatedHours?: number;
+  milestones?: Array<{
+    afterWeek: number;
+    title: string;
+    description?: string;
+  }>;
+  preferences?: {
+    learningStyles?: string[];
+    motivation?: string;
+    startDate?: string;
+    targetEndDate?: string;
+  };
 }
 
 export interface SAMGoal {
@@ -97,6 +124,7 @@ export interface SAMGoal {
   targetDate?: string;
   createdAt: string;
   subGoals: SAMSubGoal[];
+  metadata?: SAMGoalMetadata;
 }
 
 export interface SAMJourneySummary {
@@ -237,6 +265,7 @@ async function fetchWithAuth<T>(
         ...options?.headers,
       },
       credentials: 'include',
+      cache: 'no-store', // Ensure fresh data on each fetch
     });
 
     if (!response.ok) {
@@ -488,6 +517,7 @@ export function useSAMAgenticAnalytics(
       setIsStale(false);
 
       const duration = performance.now() - startTime;
+
       logger.info('[SAM_AGENTIC_ANALYTICS] Data fetched', {
         duration: `${duration.toFixed(2)}ms`,
         isRefresh,
