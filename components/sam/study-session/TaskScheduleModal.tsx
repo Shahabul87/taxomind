@@ -12,6 +12,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogPortal,
+  DialogOverlay,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -145,13 +147,15 @@ export function TaskScheduleModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] w-[95vw] p-0 gap-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
-            <CalendarCheck className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-            Schedule Study Session
-          </DialogTitle>
-        </DialogHeader>
+      <DialogPortal>
+        <DialogOverlay className="fixed inset-0 z-[9998] bg-black/80" />
+        <DialogContent className="fixed left-[50%] top-[50%] z-[9999] translate-x-[-50%] translate-y-[-50%] sm:max-w-[480px] w-[95vw] p-0 gap-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden rounded-lg">
+          <DialogHeader className="p-6 pb-4">
+            <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+              <CalendarCheck className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+              Schedule Study Session
+            </DialogTitle>
+          </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           {/* Scrollable Content */}
@@ -349,7 +353,8 @@ export function TaskScheduleModal({
             </Button>
           </div>
         </form>
-      </DialogContent>
+        </DialogContent>
+      </DialogPortal>
     </Dialog>
   );
 }
