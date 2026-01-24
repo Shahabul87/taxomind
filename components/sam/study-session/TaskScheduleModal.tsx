@@ -145,9 +145,9 @@ export function TaskScheduleModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md z-[9999]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
             <CalendarCheck className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             Schedule Study Session
           </DialogTitle>

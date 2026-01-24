@@ -222,9 +222,9 @@ export function WeekTaskList({
                   {!isCompleted && (
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => onScheduleTask(task)}
-                      className="text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/30"
+                      className="text-teal-600 dark:text-teal-400 border-teal-300 dark:border-teal-700 hover:bg-teal-50 hover:text-teal-700 dark:hover:bg-teal-900/30 dark:hover:text-teal-300"
                     >
                       <CalendarPlus className="w-4 h-4 mr-1" />
                       <span className="hidden sm:inline">Schedule</span>
