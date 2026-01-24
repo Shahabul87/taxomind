@@ -145,7 +145,7 @@ export function TaskScheduleModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] p-0 gap-0 bg-white dark:bg-slate-900">
+      <DialogContent className="sm:max-w-[480px] w-[95vw] p-0 gap-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
             <CalendarCheck className="w-5 h-5 text-teal-600 dark:text-teal-400" />
@@ -153,9 +153,9 @@ export function TaskScheduleModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col">
+        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
           {/* Scrollable Content */}
-          <div className="px-6 space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="px-6 space-y-4 max-h-[55vh] overflow-y-auto overflow-x-hidden">
             {/* Task Info */}
             <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
               <div className="flex items-start gap-3">
