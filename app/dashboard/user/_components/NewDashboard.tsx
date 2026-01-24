@@ -914,25 +914,25 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
             />
           </div>
 
-          {/* Course Creation Plans - For instructors planning to build courses */}
-          <div className="mb-8">
-            <CoursePlansList
-              refreshKey={coursePlanRefreshKey}
-              onCreatePlan={onCreateCoursePlan}
-            />
-          </div>
-
           {/* Goals Progress Overview */}
           <div className="mb-6">
             <GoalsProgress compact={false} />
           </div>
 
           {/* Study Planning Hub - Additional planning tools */}
-          <div className="mt-6">
+          <div className="mt-6 mb-8">
             <StudyPlanningHub
               defaultTab="overview"
               onReviewComplete={(conceptId, score) => console.log("Review completed:", conceptId, score)}
               onInsightSelect={(insight) => console.log("Insight selected:", insight)}
+            />
+          </div>
+
+          {/* Course Creation Plans - For instructors planning to build courses */}
+          <div className="mt-8">
+            <CoursePlansList
+              refreshKey={coursePlanRefreshKey}
+              onCreatePlan={onCreateCoursePlan}
             />
           </div>
         </div>
