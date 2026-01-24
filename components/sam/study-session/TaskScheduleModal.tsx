@@ -145,179 +145,182 @@ export function TaskScheduleModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto z-[9999] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[480px] p-0 gap-0 bg-white dark:bg-slate-900">
+        <DialogHeader className="p-6 pb-4">
           <DialogTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
             <CalendarCheck className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             Schedule Study Session
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Task Info */}
-          <div className="p-4 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-white dark:bg-slate-900">
-                <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-                  {task.title}
-                </h3>
-                {planTitle && (
-                  <p className="text-sm text-slate-600 dark:text-slate-400 truncate">
-                    From: {planTitle}
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          {/* Scrollable Content */}
+          <div className="px-6 space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Task Info */}
+            <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900 flex-shrink-0">
+                  <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-slate-900 dark:text-white text-sm line-clamp-2">
+                    {task.title}
+                  </h3>
+                  {planTitle && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">
+                      From: {planTitle}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Estimated: {task.estimatedMinutes || 60} min
                   </p>
-                )}
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Estimated: {task.estimatedMinutes || 60} minutes
-                </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Date Picker */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Date</Label>
-            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !date && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarDays className="mr-2 h-4 w-4" />
-                  {date ? format(date, 'EEEE, MMMM d, yyyy') : 'Select date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-[10000]" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(newDate) => {
-                    if (newDate) {
-                      setDate(newDate);
-                      setDatePickerOpen(false);
-                    }
-                  }}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Time & Duration */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Start Time */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Start Time</Label>
-              <Popover open={timePickerOpen} onOpenChange={setTimePickerOpen}>
+            {/* Date Picker */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Date</Label>
+              <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-start text-left font-normal"
+                    className={cn(
+                      'w-full justify-start text-left font-normal h-9',
+                      !date && 'text-muted-foreground'
+                    )}
                   >
-                    <Clock className="mr-2 h-4 w-4" />
-                    {formatTimeDisplay(startTime)}
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {date ? format(date, 'EEE, MMM d, yyyy') : 'Select date'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-48 p-0 z-[10000]" align="start">
-                  <div className="h-64 overflow-y-auto p-2">
-                    {TIME_SLOTS.map((slot) => (
-                      <button
-                        key={slot}
-                        type="button"
-                        onClick={() => {
-                          setStartTime(slot);
-                          setTimePickerOpen(false);
-                        }}
-                        className={cn(
-                          'w-full px-3 py-2 text-sm text-left rounded-md transition-colors',
-                          slot === startTime
-                            ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
-                            : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-                        )}
-                      >
-                        {formatTimeDisplay(slot)}
-                      </button>
-                    ))}
-                  </div>
+                <PopoverContent className="w-auto p-0 z-[10000]" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        setDate(newDate);
+                        setDatePickerOpen(false);
+                      }
+                    }}
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    initialFocus
+                  />
                 </PopoverContent>
               </Popover>
             </div>
 
-            {/* Duration */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Duration</Label>
-              <Input
-                type="number"
-                min={15}
-                max={480}
-                step={15}
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full"
+            {/* Time & Duration */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Start Time */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Start Time</Label>
+                <Popover open={timePickerOpen} onOpenChange={setTimePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-9"
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      {formatTimeDisplay(startTime)}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-0 z-[10000]" align="start">
+                    <div className="h-64 overflow-y-auto p-2">
+                      {TIME_SLOTS.map((slot) => (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => {
+                            setStartTime(slot);
+                            setTimePickerOpen(false);
+                          }}
+                          className={cn(
+                            'w-full px-3 py-2 text-sm text-left rounded-md transition-colors',
+                            slot === startTime
+                              ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                          )}
+                        >
+                          {formatTimeDisplay(slot)}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Duration */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium">Duration (min)</Label>
+                <Input
+                  type="number"
+                  min={15}
+                  max={480}
+                  step={15}
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="w-full h-9"
+                />
+              </div>
+            </div>
+
+            {/* Quick Duration Buttons */}
+            <div className="flex flex-wrap gap-1.5">
+              {DURATION_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setDuration(opt.value)}
+                  className={cn(
+                    'px-2.5 py-1 text-xs rounded-full border transition-colors',
+                    duration === opt.value
+                      ? 'bg-teal-100 border-teal-300 text-teal-700 dark:bg-teal-900/30 dark:border-teal-700 dark:text-teal-400'
+                      : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* End Time Display */}
+            <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
+              Session: {formatTimeDisplay(startTime)} → {formatTimeDisplay(getEndTime())} ({duration} min)
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Notes (optional)</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any notes or focus areas..."
+                rows={2}
+                className="resize-none text-sm"
+              />
+            </div>
+
+            {/* Google Calendar Sync */}
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Sync to Google Calendar
+                </span>
+              </div>
+              <Switch
+                checked={syncToGoogleCalendar}
+                onCheckedChange={setSyncToGoogleCalendar}
               />
             </div>
           </div>
 
-          {/* Quick Duration Buttons */}
-          <div className="flex flex-wrap gap-2">
-            {DURATION_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setDuration(opt.value)}
-                className={cn(
-                  'px-3 py-1.5 text-xs rounded-full border transition-colors',
-                  duration === opt.value
-                    ? 'bg-teal-100 border-teal-300 text-teal-700 dark:bg-teal-900/30 dark:border-teal-700 dark:text-teal-400'
-                    : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400'
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          {/* End Time Display */}
-          <div className="text-sm text-slate-600 dark:text-slate-400">
-            Session: {formatTimeDisplay(startTime)} → {formatTimeDisplay(getEndTime())} ({duration} min)
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Notes (optional)</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any notes or focus areas for this session..."
-              rows={3}
-              className="resize-none"
-            />
-          </div>
-
-          {/* Google Calendar Sync */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-2">
-              <CalendarCheck className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Sync to Google Calendar
-              </span>
-            </div>
-            <Switch
-              checked={syncToGoogleCalendar}
-              onCheckedChange={setSyncToGoogleCalendar}
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          {/* Fixed Footer */}
+          <div className="flex gap-3 p-6 pt-4 border-t border-slate-200 dark:border-slate-700 mt-4">
             <Button
               type="button"
               variant="outline"
@@ -330,7 +333,7 @@ export function TaskScheduleModal({
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700"
+              className="flex-1 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white"
             >
               {isSubmitting ? (
                 <>
