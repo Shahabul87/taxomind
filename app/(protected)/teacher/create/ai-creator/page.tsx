@@ -2,7 +2,7 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SamErrorBoundary } from "@/components/sam/sam-error-boundary";
@@ -86,6 +86,7 @@ const STEPS = [
 
 export default function AICreatorPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isGenerationModalOpen, setIsGenerationModalOpen] = React.useState(false);
   const [showCreationProgress, setShowCreationProgress] = React.useState(false);
 
@@ -102,6 +103,14 @@ export default function AICreatorPage() {
     getSamSuggestion,
     resetWizard,
   } = useSamWizard();
+
+  // Pre-fill course title from URL param if provided (from Course Plan "Start Building" button)
+  React.useEffect(() => {
+    const titleParam = searchParams.get("title");
+    if (titleParam && !formData.courseTitle) {
+      setFormData((prev) => ({ ...prev, courseTitle: titleParam }));
+    }
+  }, [searchParams, formData.courseTitle, setFormData]);
 
   const {
     isGenerating,

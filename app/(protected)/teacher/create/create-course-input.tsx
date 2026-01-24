@@ -42,6 +42,7 @@ const formSchema = z.object({
 
 interface CreateCourseInputSectionProps {
   onBack?: () => void;
+  initialTitle?: string;
 }
 
 const titleSuggestions = [
@@ -52,14 +53,14 @@ const titleSuggestions = [
   "Financial Analysis for Beginners",
 ];
 
-export const CreateCourseInputSection = ({ onBack }: CreateCourseInputSectionProps) => {
+export const CreateCourseInputSection = ({ onBack, initialTitle = "" }: CreateCourseInputSectionProps) => {
   const router = useRouter();
   const [isFocused, setIsFocused] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
+      title: initialTitle,
     },
     mode: "onChange",
   });

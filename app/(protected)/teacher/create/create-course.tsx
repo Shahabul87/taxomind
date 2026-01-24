@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreateCourseInputSection } from "./create-course-input";
 import { CourseCreatorSelection } from "./_components/course-creator-selection";
@@ -10,10 +11,14 @@ import { cn } from "@/lib/utils";
 type CreatorMode = "selection" | "classic" | "ai";
 
 export const CreateNewCoursePage = () => {
+  const searchParams = useSearchParams();
+  const initialTitle = searchParams.get("title") || "";
   const [creatorMode, setCreatorMode] = useState<CreatorMode>("selection");
 
   const handleSelectAI = () => {
-    window.location.href = "/teacher/create/ai-creator";
+    // Pass the title param to AI creator if present
+    const titleParam = initialTitle ? `?title=${encodeURIComponent(initialTitle)}` : "";
+    window.location.href = `/teacher/create/ai-creator${titleParam}`;
   };
 
   const handleBack = () => {
@@ -93,7 +98,7 @@ export const CreateNewCoursePage = () => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <CreateCourseInputSection onBack={handleBack} />
+            <CreateCourseInputSection onBack={handleBack} initialTitle={initialTitle} />
           </motion.div>
         )}
       </AnimatePresence>
