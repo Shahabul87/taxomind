@@ -46,16 +46,15 @@ export function SocialSubTab({ user }: SocialSubTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Find Study Partners */}
           <StudyBuddyFinder
-            userId={user.id ?? ''}
-            courseId=""
-            maxBuddies={6}
+            limit={6}
+            compact={false}
             className="min-h-[400px]"
           />
 
           {/* Study Buddy Chat */}
           <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50 overflow-hidden">
             <StudyBuddyChat
-              userId={user.id ?? ''}
+              showBuddyFinder={false}
               className="h-[400px]"
             />
           </div>
@@ -70,14 +69,14 @@ export function SocialSubTab({ user }: SocialSubTabProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Collaboration Space */}
           <CollaborationSpace
-            userId={user.id ?? ''}
             className="min-h-[400px]"
+            compact={false}
           />
 
           {/* Peer Learning Hub */}
           <PeerLearningHub
-            userId={user.id ?? ''}
             className="min-h-[400px]"
+            compact={false}
           />
         </div>
       </section>
@@ -92,7 +91,7 @@ export function SocialSubTab({ user }: SocialSubTabProps) {
           <RealtimeCollaborationWidget />
 
           {/* Active Learners */}
-          <ActiveLearnersWidget courseId="" maxUsers={10} />
+          <ActiveLearnersWidget maxVisible={10} showBreakdown={true} />
 
           {/* Leaderboard */}
           <LeaderboardWidget
@@ -109,7 +108,7 @@ export function SocialSubTab({ user }: SocialSubTabProps) {
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
           <span className="text-xl">📰</span> Learning Feed
         </h2>
-        <SocialLearningFeed userId={user.id ?? ''} className="w-full" />
+        <SocialLearningFeed compact={false} className="w-full" />
       </section>
     </div>
   );

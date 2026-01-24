@@ -40,9 +40,9 @@ export function AIToolsSubTab({ user }: AIToolsSubTabProps) {
         </h2>
         <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50 overflow-hidden">
           <SAMAssistant
-            userId={user.id ?? ''}
-            courseId=""
             className="min-h-[500px]"
+            enableStreaming={true}
+            enableGamification={true}
           />
         </div>
       </section>
