@@ -234,6 +234,9 @@ import { CoursePlansList } from "@/components/sam/course-plan";
 // Blog Content Plans - Display blog publishing plans
 import { BlogPlansList } from "@/components/sam/blog-plan";
 
+// Study Session Scheduler - Smart session scheduling from study plans
+import { StudySessionScheduler } from "@/components/sam/study-session";
+
 // DashboardView type - now controlled by parent via UnifiedDashboardHeader
 type DashboardView = "learning" | "analytics" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "create";
 
@@ -949,6 +952,11 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
               refreshKey={blogPlanRefreshKey}
               onCreatePlan={onCreateBlogPlan}
             />
+          </div>
+
+          {/* Study Session Scheduler - Schedule focused sessions from study plan tasks */}
+          <div className="mt-8">
+            <StudySessionScheduler />
           </div>
         </div>
 

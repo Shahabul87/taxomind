@@ -57,7 +57,7 @@ export function CreateBlogPlanModal({
   const [topics, setTopics] = useState("");
   const [startPublishingDate, setStartPublishingDate] = useState<Date>();
   const [postFrequency, setPostFrequency] = useState<"DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY">("WEEKLY");
-  const [specificDays, setSpecificDays] = useState("");
+  const [specificDays, setSpecificDays] = useState<string[]>([]);
   const [platform, setPlatform] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [contentGoal, setContentGoal] = useState<"TRAFFIC" | "PORTFOLIO" | "MONETIZATION" | "KNOWLEDGE_SHARING">("KNOWLEDGE_SHARING");
@@ -80,7 +80,7 @@ export function CreateBlogPlanModal({
         topics: topics ? topics.split(",").map((t) => t.trim()) : [],
         startPublishingDate,
         postFrequency,
-        specificDays,
+        specificDays: specificDays.join(", "),
         platform,
         targetAudience,
         contentGoal,
@@ -98,7 +98,7 @@ export function CreateBlogPlanModal({
       setTopics("");
       setStartPublishingDate(undefined);
       setPostFrequency("WEEKLY");
-      setSpecificDays("");
+      setSpecificDays([]);
       setPlatform("");
       setTargetAudience("");
       setContentGoal("KNOWLEDGE_SHARING");
@@ -258,7 +258,7 @@ export function CreateBlogPlanModal({
                       {startPublishingDate ? format(startPublishingDate, "PPP") : "Pick start date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-[10000]" align="start">
                     <CalendarComponent
                       mode="single"
                       selected={startPublishingDate}
@@ -286,14 +286,46 @@ export function CreateBlogPlanModal({
                 </div>
 
                 <div>
-                  <Label htmlFor="specificDays">Specific Days</Label>
-                  <Input
-                    id="specificDays"
-                    value={specificDays}
-                    onChange={(e) => setSpecificDays(e.target.value)}
-                    placeholder="E.g., Monday, Thursday"
-                    className="mt-2"
-                  />
+                  <Label>Specific Days</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-2",
+                          specificDays.length === 0 && "text-slate-500"
+                        )}
+                      >
+                        {specificDays.length > 0
+                          ? specificDays.join(", ")
+                          : "Select days"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2 z-[10000]" align="start">
+                      <div className="space-y-1">
+                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day) => (
+                          <label
+                            key={day}
+                            className="flex items-center gap-2 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={specificDays.includes(day)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSpecificDays([...specificDays, day]);
+                                } else {
+                                  setSpecificDays(specificDays.filter((d) => d !== day));
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-slate-300 text-cyan-500 focus:ring-cyan-500"
+                            />
+                            <span className="text-sm text-slate-700 dark:text-slate-300">{day}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
             </div>
