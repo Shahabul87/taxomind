@@ -48,7 +48,7 @@ const tabs: TabConfig[] = [
   {
     id: 'analytics',
     label: 'Analytics',
-    shortLabel: 'Stats',
+    shortLabel: 'Analytics',
     icon: BarChart3,
     gradient: 'from-indigo-500 to-purple-500',
     description: 'Learning analytics & insights',

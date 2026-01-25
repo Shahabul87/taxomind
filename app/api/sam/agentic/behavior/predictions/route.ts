@@ -1,6 +1,8 @@
 /**
  * SAM Behavior Predictions API
  * Predicts churn risk and struggle areas for users
+ *
+ * Returns default predictions when no behavioral data is available
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -25,6 +27,28 @@ function getBehaviorMonitor() {
   }
   return behaviorMonitorInstance;
 }
+
+// Default predictions when no behavioral data is available
+const DEFAULT_CHURN_PREDICTION = {
+  probability: 0,
+  riskLevel: 'low' as const,
+  factors: [],
+  timeToChurn: null,
+  recommendedInterventions: [],
+  hasData: false,
+};
+
+const DEFAULT_STRUGGLE_PREDICTION = {
+  probability: 0,
+  areas: [],
+  recommendedSupport: [],
+  hasData: false,
+};
+
+const DEFAULT_ANOMALIES = {
+  detected: [],
+  hasData: false,
+};
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -53,33 +77,77 @@ export async function GET(req: NextRequest) {
       type: searchParams.get('type') ?? undefined,
     });
 
-    const behaviorMonitor = getBehaviorMonitor();
+    let behaviorMonitor: ReturnType<typeof createBehaviorMonitor> | null = null;
+
+    // Try to initialize behavior monitor, gracefully handle errors
+    try {
+      behaviorMonitor = getBehaviorMonitor();
+    } catch (initError) {
+      logger.warn('[BEHAVIOR_PREDICTIONS] Failed to initialize behavior monitor:', initError);
+      // Return default predictions if monitor fails to initialize
+      return NextResponse.json({
+        success: true,
+        data: {
+          userId: session.user.id,
+          predictedAt: new Date(),
+          predictions: {
+            churn: DEFAULT_CHURN_PREDICTION,
+            struggle: DEFAULT_STRUGGLE_PREDICTION,
+            anomalies: DEFAULT_ANOMALIES,
+          },
+          message: 'No behavioral data available yet',
+        },
+      });
+    }
+
     const results: Record<string, unknown> = {};
 
+    // Get churn prediction with error handling
     if (query.type === 'churn' || query.type === 'all') {
-      const churnPrediction = await behaviorMonitor.predictChurn(session.user.id);
-      results.churn = {
-        probability: churnPrediction.churnProbability,
-        riskLevel: churnPrediction.riskLevel,
-        factors: churnPrediction.factors,
-        timeToChurn: churnPrediction.timeToChurn,
-        recommendedInterventions: churnPrediction.recommendedInterventions,
-      };
+      try {
+        const churnPrediction = await behaviorMonitor.predictChurn(session.user.id);
+        results.churn = {
+          probability: churnPrediction.churnProbability ?? 0,
+          riskLevel: churnPrediction.riskLevel ?? 'low',
+          factors: churnPrediction.factors ?? [],
+          timeToChurn: churnPrediction.timeToChurn ?? null,
+          recommendedInterventions: churnPrediction.recommendedInterventions ?? [],
+          hasData: true,
+        };
+      } catch (churnError) {
+        logger.warn('[BEHAVIOR_PREDICTIONS] Churn prediction failed:', churnError);
+        results.churn = DEFAULT_CHURN_PREDICTION;
+      }
     }
 
+    // Get struggle prediction with error handling
     if (query.type === 'struggle' || query.type === 'all') {
-      const strugglePrediction = await behaviorMonitor.predictStruggle(session.user.id);
-      results.struggle = {
-        probability: strugglePrediction.struggleProbability,
-        areas: strugglePrediction.areas,
-        recommendedSupport: strugglePrediction.recommendedSupport,
-      };
+      try {
+        const strugglePrediction = await behaviorMonitor.predictStruggle(session.user.id);
+        results.struggle = {
+          probability: strugglePrediction.struggleProbability ?? 0,
+          areas: strugglePrediction.areas ?? [],
+          recommendedSupport: strugglePrediction.recommendedSupport ?? [],
+          hasData: true,
+        };
+      } catch (struggleError) {
+        logger.warn('[BEHAVIOR_PREDICTIONS] Struggle prediction failed:', struggleError);
+        results.struggle = DEFAULT_STRUGGLE_PREDICTION;
+      }
     }
 
-    // Also detect anomalies
+    // Detect anomalies with error handling
     if (query.type === 'all') {
-      const anomalies = await behaviorMonitor.detectAnomalies(session.user.id);
-      results.anomalies = anomalies;
+      try {
+        const anomalies = await behaviorMonitor.detectAnomalies(session.user.id);
+        results.anomalies = {
+          ...anomalies,
+          hasData: true,
+        };
+      } catch (anomalyError) {
+        logger.warn('[BEHAVIOR_PREDICTIONS] Anomaly detection failed:', anomalyError);
+        results.anomalies = DEFAULT_ANOMALIES;
+      }
     }
 
     return NextResponse.json({
@@ -91,7 +159,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Error getting predictions:', error);
+    logger.error('[BEHAVIOR_PREDICTIONS] Error getting predictions:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -100,9 +168,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      { error: 'Failed to get predictions' },
-      { status: 500 }
-    );
+    // Return default predictions instead of 500 error for resilience
+    return NextResponse.json({
+      success: true,
+      data: {
+        userId: null,
+        predictedAt: new Date(),
+        predictions: {
+          churn: DEFAULT_CHURN_PREDICTION,
+          struggle: DEFAULT_STRUGGLE_PREDICTION,
+          anomalies: DEFAULT_ANOMALIES,
+        },
+        message: 'Unable to generate predictions at this time',
+      },
+    });
   }
 }
