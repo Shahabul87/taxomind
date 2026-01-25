@@ -16,16 +16,32 @@ export async function GET(req: NextRequest) {
     const where = { userId: user.id };
     const total = await db.dashboardTodo.count({ where });
 
-    const todos = await db.dashboardTodo.findMany({
-      where,
-      include: {
-        course: { select: { id: true, title: true } },
-        chapter: { select: { id: true, title: true, position: true } },
-      },
-      orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { position: "asc" }],
-      skip: (pagination.page - 1) * pagination.limit,
-      take: pagination.limit,
-    });
+    // Try to fetch with all includes, fall back to minimal if there are schema issues
+    let todos;
+    try {
+      todos = await db.dashboardTodo.findMany({
+        where,
+        include: {
+          course: { select: { id: true, title: true } },
+          chapter: { select: { id: true, title: true, position: true } },
+        },
+        orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { position: "asc" }],
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+      });
+    } catch (includeError) {
+      // If include fails (schema mismatch), try without chapter
+      console.warn("[TODOS_GET] Include failed, trying without chapter:", includeError);
+      todos = await db.dashboardTodo.findMany({
+        where,
+        include: {
+          course: { select: { id: true, title: true } },
+        },
+        orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { position: "asc" }],
+        skip: (pagination.page - 1) * pagination.limit,
+        take: pagination.limit,
+      });
+    }
 
     return successResponse(todos, { page: pagination.page, limit: pagination.limit, total });
   } catch (error) {
