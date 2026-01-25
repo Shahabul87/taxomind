@@ -117,10 +117,10 @@ async function fetchStudyTimeData(
     };
     if (courseId) where.courseId = courseId;
 
-    // Get total study time
+    // Get total study time (use actualDuration if available, otherwise estimatedDuration)
     const totalMinutes = await db.learningActivity.aggregate({
       where,
-      _sum: { durationMinutes: true },
+      _sum: { actualDuration: true, estimatedDuration: true },
     });
 
     // Get daily breakdown
@@ -128,7 +128,8 @@ async function fetchStudyTimeData(
       where,
       select: {
         createdAt: true,
-        durationMinutes: true,
+        actualDuration: true,
+        estimatedDuration: true,
       },
     });
 
@@ -143,17 +144,21 @@ async function fetchStudyTimeData(
     for (const activity of activities) {
       const dayKey = format(activity.createdAt, 'yyyy-MM-dd');
       const current = dailyStudyTime.get(dayKey) ?? 0;
-      dailyStudyTime.set(dayKey, current + (activity.durationMinutes ?? 0));
+      // Use actualDuration if available, otherwise fall back to estimatedDuration
+      const duration = activity.actualDuration ?? activity.estimatedDuration ?? 0;
+      dailyStudyTime.set(dayKey, current + duration);
     }
+
+    // Calculate total from actual or estimated duration
+    const totalDurationMinutes = (totalMinutes._sum.actualDuration ?? 0) || (totalMinutes._sum.estimatedDuration ?? 0);
 
     // Calculate average
     const totalDays = days.length;
-    const avgMinutesPerDay =
-      totalDays > 0 ? (totalMinutes._sum.durationMinutes ?? 0) / totalDays : 0;
+    const avgMinutesPerDay = totalDays > 0 ? totalDurationMinutes / totalDays : 0;
 
     return {
-      totalMinutes: totalMinutes._sum.durationMinutes ?? 0,
-      totalHours: Math.round(((totalMinutes._sum.durationMinutes ?? 0) / 60) * 10) / 10,
+      totalMinutes: totalDurationMinutes,
+      totalHours: Math.round((totalDurationMinutes / 60) * 10) / 10,
       avgMinutesPerDay: Math.round(avgMinutesPerDay),
       dailyBreakdown: Array.from(dailyStudyTime.entries()).map(([date, minutes]) => ({
         date,
