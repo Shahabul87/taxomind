@@ -312,9 +312,9 @@ async function fetchPerformanceMetrics(
     const totalCorrect = examAttempts.reduce((sum, a) => sum + (a.correctAnswers ?? 0), 0);
     const accuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
 
-    // Get streak data
-    const streak = await db.streak.findUnique({
-      where: { id: `streak-${userId}` },
+    // Get streak data (use learningStreak model)
+    const streak = await db.learningStreak.findUnique({
+      where: { userId },
       select: {
         currentStreak: true,
         longestStreak: true,

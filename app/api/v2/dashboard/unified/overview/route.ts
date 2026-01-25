@@ -175,8 +175,9 @@ async function fetchNotificationsSummary(userId: string) {
  */
 async function fetchStreakData(userId: string) {
   try {
-    const streak = await db.streak.findUnique({
-      where: { id: `streak-${userId}` },
+    // Use learningStreak model (maps to learning_streaks table)
+    const streak = await db.learningStreak.findUnique({
+      where: { userId },
       select: {
         currentStreak: true,
         longestStreak: true,
@@ -214,14 +215,15 @@ async function fetchActivityStats(userId: string) {
       },
     });
 
-    // Get total study minutes
+    // Get total study minutes (use actualDuration or estimatedDuration)
     const studyMinutes = await db.learningActivity.aggregate({
       where: {
         userId,
         createdAt: { gte: sevenDaysAgo },
       },
       _sum: {
-        durationMinutes: true,
+        actualDuration: true,
+        estimatedDuration: true,
       },
     });
 
@@ -236,10 +238,13 @@ async function fetchActivityStats(userId: string) {
       take: 5,
     });
 
+    // Use actualDuration if available, otherwise estimatedDuration
+    const totalStudyMinutes = (studyMinutes._sum.actualDuration ?? 0) || (studyMinutes._sum.estimatedDuration ?? 0);
+
     return {
       last7Days: {
         activitiesCount,
-        studyMinutes: studyMinutes._sum.durationMinutes ?? 0,
+        studyMinutes: totalStudyMinutes,
       },
       recentCourses: enrollments.map(e => ({
         title: e.course.title,
