@@ -1,331 +1,308 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
 
 interface CognitiveVisualizerProps {
     level: number;
     color: string;
 }
 
+// Map gradient strings to actual hex colors
+const colorMap: Record<string, string> = {
+    "from-violet-500 to-purple-600": "#8b5cf6",
+    "from-blue-500 to-cyan-500": "#3b82f6",
+    "from-emerald-400 to-green-500": "#34d399",
+    "from-amber-400 to-orange-500": "#fbbf24",
+    "from-rose-500 to-red-600": "#f43f5e",
+    "from-fuchsia-500 to-pink-600": "#d946ef",
+};
+
+const getHexColor = (color: string): string => {
+    return colorMap[color] || "#a855f7"; // Default purple
+};
+
 export const CognitiveVisualizer = ({ level, color }: CognitiveVisualizerProps) => {
-    // Extract tailwind color class to hex/rgba for SVG if needed, 
-    // but for now we'll use currentColor or specific classes.
+    const hexColor = getHexColor(color);
 
     return (
-        <div className="relative w-full h-64 md:h-80 bg-black/20 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-sm flex items-center justify-center mb-6">
-            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[length:20px_20px]" />
-
+        <div className="relative w-full h-48 md:h-56 bg-gradient-to-br from-white/5 to-transparent rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center">
             <AnimatePresence mode="wait">
-                {level === 1 && <RememberViz key="remember" color={color} />}
-                {level === 2 && <UnderstandViz key="understand" color={color} />}
-                {level === 3 && <ApplyViz key="apply" color={color} />}
-                {level === 4 && <AnalyzeViz key="analyze" color={color} />}
-                {level === 5 && <EvaluateViz key="evaluate" color={color} />}
-                {level === 6 && <CreateViz key="create" color={color} />}
+                {level === 1 && <RememberViz key="remember" color={hexColor} />}
+                {level === 2 && <UnderstandViz key="understand" color={hexColor} />}
+                {level === 3 && <ApplyViz key="apply" color={hexColor} />}
+                {level === 4 && <AnalyzeViz key="analyze" color={hexColor} />}
+                {level === 5 && <EvaluateViz key="evaluate" color={hexColor} />}
+                {level === 6 && <CreateViz key="create" color={hexColor} />}
             </AnimatePresence>
-
-            {/* Scanline effect */}
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-white/[0.02] to-transparent animate-scan" />
         </div>
     );
 };
 
 // --- Level 1: Remember (Neural Network) ---
 const RememberViz = ({ color }: { color: string }) => {
-    const nodes = Array.from({ length: 8 }).map((_, i) => ({
-        id: i,
-        x: Math.random() * 200 - 100,
-        y: Math.random() * 140 - 70,
-    }));
+    const nodes = [
+        { x: -60, y: -30 }, { x: 0, y: -50 }, { x: 60, y: -30 },
+        { x: -80, y: 20 }, { x: -20, y: 30 }, { x: 40, y: 20 }, { x: 80, y: 40 },
+    ];
 
     return (
-        <motion.div
+        <motion.svg
+            width="280" height="160" viewBox="-140 -80 280 160"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="relative flex items-center justify-center"
         >
-            <svg width="300" height="200" viewBox="-150 -100 300 200" className="overflow-visible">
-                {/* Connections */}
-                {nodes.map((node, i) => (
-                    nodes.slice(i + 1).map((target, j) => (
-                        <motion.line
-                            key={`${i}-${j}`}
-                            x1={node.x}
-                            y1={node.y}
-                            x2={target.x}
-                            y2={target.y}
-                            stroke="currentColor"
-                            strokeWidth="1"
-                            className={`${color.replace('from-', 'text-').replace('to-', '')} opacity-20`}
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{
-                                pathLength: [0, 1, 1, 0],
-                                opacity: [0, 0.3, 0.3, 0]
-                            }}
-                            transition={{
-                                duration: 3,
-                                repeat: Infinity,
-                                delay: Math.random() * 2,
-                                ease: "linear"
-                            }}
-                        />
-                    ))
-                ))}
-                {/* Nodes */}
-                {nodes.map((node, i) => (
-                    <motion.circle
-                        key={i}
-                        cx={node.x}
-                        cy={node.y}
-                        r="4"
-                        className={`${color.replace('from-', 'fill-').replace('to-', '')}`}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: [0.8, 1.2, 0.8] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+            {/* Connections */}
+            {nodes.map((node, i) =>
+                nodes.slice(i + 1).map((target, j) => (
+                    <motion.line
+                        key={`${i}-${j}`}
+                        x1={node.x} y1={node.y}
+                        x2={target.x} y2={target.y}
+                        stroke={color}
+                        strokeWidth="2"
+                        strokeOpacity="0.4"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: [0, 1, 1, 0], strokeOpacity: [0.2, 0.6, 0.6, 0.2] }}
+                        transition={{ duration: 3, repeat: Infinity, delay: (i + j) * 0.15 }}
                     />
-                ))}
-            </svg>
-        </motion.div>
+                ))
+            )}
+            {/* Nodes */}
+            {nodes.map((node, i) => (
+                <motion.circle
+                    key={i}
+                    cx={node.x} cy={node.y} r="10"
+                    fill={color}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [0.8, 1.3, 0.8] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: i * 0.2 }}
+                />
+            ))}
+        </motion.svg>
     );
 };
 
-// --- Level 2: Understand (Pattern Synthesis) ---
+// --- Level 2: Understand (Pattern Organization) ---
 const UnderstandViz = ({ color }: { color: string }) => {
+    const initialPositions = [
+        { x: -100, y: -50 }, { x: 80, y: -60 }, { x: -60, y: 50 },
+        { x: 100, y: 40 }, { x: -20, y: -40 }, { x: 50, y: 60 },
+        { x: -80, y: 10 }, { x: 70, y: -20 }, { x: 10, y: 50 },
+    ];
+
     return (
-        <motion.div
+        <motion.svg
+            width="280" height="160" viewBox="-140 -80 280 160"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="relative"
         >
-            <svg width="300" height="200" viewBox="-150 -100 300 200" className="overflow-visible">
-                {/* Chaotic particles organizing into a grid */}
-                {Array.from({ length: 9 }).map((_, i) => {
-                    const row = Math.floor(i / 3);
-                    const col = i % 3;
-                    const targetX = (col - 1) * 40;
-                    const targetY = (row - 1) * 40;
+            {Array.from({ length: 9 }).map((_, i) => {
+                const row = Math.floor(i / 3);
+                const col = i % 3;
+                const targetX = (col - 1) * 50;
+                const targetY = (row - 1) * 45;
 
-                    return (
-                        <motion.rect
-                            key={i}
-                            width="20"
-                            height="20"
-                            rx="4"
-                            x={-10}
-                            y={-10}
-                            className={`${color.replace('from-', 'fill-').replace('to-', '')} opacity-80`}
-                            initial={{
-                                x: (Math.random() - 0.5) * 200,
-                                y: (Math.random() - 0.5) * 150,
-                                rotate: Math.random() * 360,
-                                opacity: 0
-                            }}
-                            animate={{
-                                x: targetX,
-                                y: targetY,
-                                rotate: 0,
-                                opacity: 1
-                            }}
-                            transition={{
-                                duration: 1.5,
-                                ease: "backOut",
-                                delay: i * 0.1
-                            }}
-                        />
-                    );
-                })}
-                {/* Connecting lines appearing after organization */}
-                <motion.path
-                    d="M-40 -40 H40 M-40 0 H40 M-40 40 H40 M-40 -40 V40 M0 -40 V40 M40 -40 V40"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="text-white/20"
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ delay: 1.5, duration: 1 }}
-                />
-            </svg>
-        </motion.div>
+                return (
+                    <motion.rect
+                        key={i}
+                        width="35" height="35" rx="6"
+                        fill={color}
+                        initial={{ x: initialPositions[i].x, y: initialPositions[i].y, rotate: 45, opacity: 0.3 }}
+                        animate={{ x: targetX - 17, y: targetY - 17, rotate: 0, opacity: 0.9 }}
+                        transition={{ duration: 1.5, ease: "backOut", delay: i * 0.1 }}
+                    />
+                );
+            })}
+            {/* Grid lines */}
+            <motion.path
+                d="M-50 -45 H50 M-50 0 H50 M-50 45 H50 M-50 -45 V45 M0 -45 V45 M50 -45 V45"
+                stroke="white" strokeWidth="2" strokeOpacity="0.3" fill="none"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 1.2, duration: 0.8 }}
+            />
+        </motion.svg>
     );
 };
 
 // --- Level 3: Apply (Process Flow) ---
 const ApplyViz = ({ color }: { color: string }) => {
     return (
-        <motion.div
+        <motion.svg
+            width="280" height="160" viewBox="-140 -80 280 160"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
         >
-            <svg width="300" height="200" viewBox="-150 -100 300 200" className="overflow-visible">
-                {/* Input Particles */}
-                <motion.circle cx="-100" cy="0" r="8" className="fill-white/50"
-                    animate={{ x: [0, 60], opacity: [0, 1, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                />
-                <motion.circle cx="-100" cy="0" r="8" className="fill-white/50"
-                    animate={{ x: [0, 60], opacity: [0, 1, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 1, ease: "linear" }}
-                />
+            {/* Input circles */}
+            <motion.circle r="12" fill="rgba(255,255,255,0.6)"
+                initial={{ cx: -120, cy: -20, opacity: 0 }}
+                animate={{ cx: [-120, -20], cy: [-20, 0], opacity: [0, 1, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+            />
+            <motion.circle r="12" fill="rgba(255,255,255,0.6)"
+                initial={{ cx: -120, cy: 20, opacity: 0 }}
+                animate={{ cx: [-120, -20], cy: [20, 0], opacity: [0, 1, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+            />
 
-                {/* Central Processor (Gear) */}
-                <motion.g animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }}>
-                    <circle cx="0" cy="0" r="30" className="stroke-white/20 fill-transparent" strokeWidth="4" strokeDasharray="10 5" />
-                    <circle cx="0" cy="0" r="15" className={`${color.replace('from-', 'fill-').replace('to-', '')}`} />
-                </motion.g>
+            {/* Central gear */}
+            <motion.g animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: "linear" }}>
+                <circle cx="0" cy="0" r="40" stroke="rgba(255,255,255,0.3)" fill="transparent" strokeWidth="6" strokeDasharray="15 8" />
+                <circle cx="0" cy="0" r="22" fill={color} />
+            </motion.g>
 
-                {/* Output Particles (Transformed) */}
-                <motion.rect x="40" y="-8" width="16" height="16" rx="4" className={`${color.replace('from-', 'fill-').replace('to-', '')}`}
-                    animate={{ x: [0, 60], opacity: [0, 1, 0], rotate: [0, 90] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 0.5, ease: "linear" }}
-                />
-            </svg>
-        </motion.div>
+            {/* Output */}
+            <motion.rect width="24" height="24" rx="6" fill={color}
+                initial={{ x: 20, y: -12, opacity: 0, rotate: 0 }}
+                animate={{ x: [20, 100], y: [-12, -12], opacity: [0, 1, 0], rotate: [0, 180] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.8 }}
+            />
+        </motion.svg>
     );
 };
 
 // --- Level 4: Analyze (Deconstruction) ---
 const AnalyzeViz = ({ color }: { color: string }) => {
     return (
-        <motion.div
+        <motion.svg
+            width="280" height="160" viewBox="-140 -80 280 160"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
         >
-            <svg width="300" height="200" viewBox="-150 -100 300 200" className="overflow-visible">
-                {/* Central Cube Parts */}
-                <motion.g>
-                    {/* Top Left */}
-                    <motion.rect x="-20" y="-20" width="30" height="30" rx="4"
-                        className={`${color.replace('from-', 'fill-').replace('to-', '')} opacity-80`}
-                        animate={{ x: [-20, -40, -20], y: [-20, -40, -20] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    {/* Top Right */}
-                    <motion.rect x="15" y="-20" width="30" height="30" rx="4"
-                        className="fill-white/20"
-                        animate={{ x: [15, 35, 15], y: [-20, -40, -20] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    {/* Bottom Left */}
-                    <motion.rect x="-20" y="15" width="30" height="30" rx="4"
-                        className="fill-white/20"
-                        animate={{ x: [-20, -40, -20], y: [15, 35, 15] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    {/* Bottom Right */}
-                    <motion.rect x="15" y="15" width="30" height="30" rx="4"
-                        className={`${color.replace('from-', 'fill-').replace('to-', '')} opacity-80`}
-                        animate={{ x: [15, 35, 15], y: [15, 35, 15] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
+            {/* Four quadrants that separate */}
+            <motion.rect width="40" height="40" rx="6" fill={color}
+                initial={{ x: -22, y: -22 }}
+                animate={{ x: [-22, -50, -22], y: [-22, -50, -22] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.rect width="40" height="40" rx="6" fill="rgba(255,255,255,0.3)"
+                initial={{ x: 2, y: -22 }}
+                animate={{ x: [2, 30, 2], y: [-22, -50, -22] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.rect width="40" height="40" rx="6" fill="rgba(255,255,255,0.3)"
+                initial={{ x: -22, y: 2 }}
+                animate={{ x: [-22, -50, -22], y: [2, 30, 2] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.rect width="40" height="40" rx="6" fill={color}
+                initial={{ x: 2, y: 2 }}
+                animate={{ x: [2, 30, 2], y: [2, 30, 2] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
 
-                    {/* Connecting Lines showing relationships */}
-                    <motion.line x1="0" y1="0" x2="0" y2="0" stroke="currentColor" strokeWidth="2" className="text-white/30"
-                        animate={{ x1: -25, y1: -25, x2: 25, y2: 25 }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                    <motion.line x1="0" y1="0" x2="0" y2="0" stroke="currentColor" strokeWidth="2" className="text-white/30"
-                        animate={{ x1: 25, y1: -25, x2: -25, y2: 25 }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
-                </motion.g>
-            </svg>
-        </motion.div>
+            {/* Connecting lines */}
+            <motion.line stroke="white" strokeWidth="2" strokeOpacity="0.4"
+                x1={-10} y1={-10} x2={30} y2={30}
+                initial={{ x1: -10, y1: -10, x2: 30, y2: 30 }}
+                animate={{ x1: [-10, -35, -10], y1: [-10, -35, -10], x2: [30, 55, 30], y2: [30, 55, 30] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.line stroke="white" strokeWidth="2" strokeOpacity="0.4"
+                x1={30} y1={-10} x2={-10} y2={30}
+                initial={{ x1: 30, y1: -10, x2: -10, y2: 30 }}
+                animate={{ x1: [30, 55, 30], y1: [-10, -35, -10], x2: [-10, -35, -10], y2: [30, 55, 30] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+        </motion.svg>
     );
 };
 
-// --- Level 5: Evaluate (The Filter) ---
+// --- Level 5: Evaluate (Filter/Judge) ---
 const EvaluateViz = ({ color }: { color: string }) => {
     return (
-        <motion.div
+        <motion.svg
+            width="280" height="160" viewBox="-140 -80 280 160"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
         >
-            <svg width="300" height="200" viewBox="-150 -100 300 200" className="overflow-visible">
-                {/* The Gate/Scale */}
-                <path d="M-10 -40 L-10 40" stroke="currentColor" strokeWidth="4" className="text-white/20" />
+            {/* Filter line */}
+            <line x1="0" y1="-60" x2="0" y2="60" stroke="white" strokeWidth="4" strokeOpacity="0.3" />
 
-                {/* Items Passing Through */}
-                <motion.circle cx="-100" cy="0" r="10" className="fill-white/50"
-                    animate={{ cx: [-100, 20], opacity: [0, 1, 1] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                />
+            {/* Incoming item */}
+            <motion.circle r="16" fill="rgba(255,255,255,0.6)"
+                initial={{ cx: -100, cy: 0 }}
+                animate={{ cx: [-100, -10] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+            />
 
-                {/* Valid Item (Green Check) */}
-                <motion.g animate={{ opacity: [0, 0, 1, 0], x: [0, 0, 60, 80] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
-                    <circle cx="20" cy="0" r="10" className={`${color.replace('from-', 'fill-').replace('to-', '')}`} />
-                    <path d="M16 0 L19 3 L24 -2" stroke="white" strokeWidth="2" fill="none" />
-                </motion.g>
+            {/* Accepted (goes right with checkmark) */}
+            <motion.g
+                initial={{ x: 0, opacity: 0 }}
+                animate={{ x: [0, 100], opacity: [0, 1, 1, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.8 }}
+            >
+                <circle cx="20" cy="0" r="16" fill={color} />
+                <path d="M14 0 L18 4 L26 -4" stroke="white" strokeWidth="3" fill="none" />
+            </motion.g>
 
-                {/* Rejected Item (Red X) - Animated separately to simulate filtering */}
-                <motion.g animate={{ opacity: [0, 0, 1, 0], y: [0, 0, 40, 60], x: [0, 0, 0, 0] }} transition={{ duration: 2, repeat: Infinity, delay: 1, ease: "linear" }}>
-                    <circle cx="-20" cy="0" r="10" className="fill-red-500/50" />
-                    <path d="M-23 -3 L-17 3 M-23 3 L-17 -3" stroke="white" strokeWidth="2" fill="none" />
-                </motion.g>
-            </svg>
-        </motion.div>
+            {/* Rejected (goes down with X) */}
+            <motion.g
+                initial={{ y: 0, opacity: 0 }}
+                animate={{ y: [0, 60], opacity: [0, 1, 1, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1.8 }}
+            >
+                <circle cx="-20" cy="0" r="16" fill="#ef4444" />
+                <path d="M-25 -5 L-15 5 M-25 5 L-15 -5" stroke="white" strokeWidth="3" fill="none" />
+            </motion.g>
+        </motion.svg>
     );
 };
 
-// --- Level 6: Create (Synthesis) ---
+// --- Level 6: Create (Synthesis/Explosion) ---
 const CreateViz = ({ color }: { color: string }) => {
+    const angles = [0, 60, 120, 180, 240, 300];
+
     return (
-        <motion.div
+        <motion.svg
+            width="280" height="160" viewBox="-140 -80 280 160"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
         >
-            <svg width="300" height="200" viewBox="-150 -100 300 200" className="overflow-visible">
-                {/* Swirling Particles */}
-                {Array.from({ length: 6 }).map((_, i) => (
+            {/* Converging particles */}
+            {angles.map((angle, i) => {
+                const rad = (angle * Math.PI) / 180;
+                const startX = Math.cos(rad) * 80;
+                const startY = Math.sin(rad) * 60;
+                return (
                     <motion.circle
                         key={i}
-                        r="4"
-                        className="fill-white/50"
-                        animate={{
-                            cx: [Math.cos(i) * 60, 0],
-                            cy: [Math.sin(i) * 60, 0],
-                            opacity: [1, 0]
-                        }}
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeIn" }}
+                        r="8"
+                        fill="rgba(255,255,255,0.6)"
+                        initial={{ cx: startX, cy: startY, opacity: 1 }}
+                        animate={{ cx: [startX, 0], cy: [startY, 0], opacity: [1, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.15 }}
                     />
-                ))}
+                );
+            })}
 
-                {/* Central Core Explosion */}
-                <motion.circle
-                    cx="0"
-                    cy="0"
-                    r="20"
-                    className={`${color.replace('from-', 'fill-').replace('to-', '')}`}
-                    animate={{ scale: [0.8, 1.5, 0.8], opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                />
+            {/* Central pulsing core */}
+            <motion.circle
+                cx="0" cy="0" r="30"
+                fill={color}
+                animate={{ scale: [0.7, 1.4, 0.7], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+            />
 
-                {/* Radiating Rings */}
-                <motion.circle
-                    cx="0"
-                    cy="0"
-                    r="30"
-                    className="fill-none stroke-white/30"
-                    strokeWidth="1"
-                    animate={{ scale: [1, 2], opacity: [1, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                />
-                <motion.circle
-                    cx="0"
-                    cy="0"
-                    r="30"
-                    className="fill-none stroke-white/30"
-                    strokeWidth="1"
-                    animate={{ scale: [1, 2], opacity: [1, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, delay: 0.5, ease: "easeOut" }}
-                />
-            </svg>
-        </motion.div>
+            {/* Radiating rings */}
+            <motion.circle
+                cx="0" cy="0" r="40"
+                fill="none" stroke="white" strokeWidth="2"
+                animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+            />
+            <motion.circle
+                cx="0" cy="0" r="40"
+                fill="none" stroke="white" strokeWidth="2"
+                animate={{ scale: [1, 2.5], opacity: [0.6, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.7 }}
+            />
+        </motion.svg>
     );
 };
