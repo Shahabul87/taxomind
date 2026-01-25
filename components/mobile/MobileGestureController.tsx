@@ -121,7 +121,7 @@ export function MobileGestureController({
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full mobile-fullscreen"
+      className="relative h-full w-full mobile-fullscreen overflow-x-hidden"
       suppressHydrationWarning
       style={{
         minHeight: viewportHeight || '100vh',

@@ -372,11 +372,11 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // ============================================================================
   if (activeTab === "analytics") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 dark:from-slate-900 dark:via-indigo-900/10 dark:to-purple-900/10">
+      <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 dark:from-slate-900 dark:via-indigo-900/10 dark:to-purple-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
           {/* Learning Analytics Dashboard - Full analytics experience */}
           <LearningAnalyticsDashboard
             defaultTab="overview"
@@ -385,12 +385,12 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           />
 
           {/* Self-Assessment Hub - Merged from assess tab */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <SelfAssessmentHub userId={user.id ?? ""} />
           </div>
 
           {/* Quality & Calibration Metrics - Consolidated from Skills and Gamification tabs */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Quality Score Dashboard - Content quality metrics */}
             <QualityScoreDashboard />
 
@@ -430,18 +430,18 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
           {/* Header Section */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30 shadow-lg">
-                <span className="text-3xl">🎯</span>
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30 shadow-lg flex-shrink-0">
+                <span className="text-2xl sm:text-3xl">🎯</span>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
                   Goals & Milestones
                 </h1>
-                <p className="mt-2 text-base text-slate-600 dark:text-slate-300 font-medium">
+                <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 font-medium">
                   Set, track, and achieve your learning objectives with AI-powered guidance
                 </p>
               </div>
@@ -449,7 +449,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* AI Study Plans - Personalized daily task tracking */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <StudyPlansList
               key={studyPlanRefreshKey}
               onCreatePlan={onCreateStudyPlan}
@@ -461,12 +461,12 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* Goals Progress Overview */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <GoalsProgress compact={false} />
           </div>
 
           {/* Study Planning Hub - Additional planning tools */}
-          <div className="mt-6 mb-8">
+          <div className="mt-4 sm:mt-6 mb-6 sm:mb-8">
             <StudyPlanningHub
               defaultTab="overview"
               onReviewComplete={(conceptId, score) => console.log("Review completed:", conceptId, score)}
@@ -475,7 +475,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* Course Creation Plans - For instructors planning to build courses */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <CoursePlansList
               refreshKey={coursePlanRefreshKey}
               onCreatePlan={onCreateCoursePlan}
@@ -483,7 +483,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* Blog Content Plans - For content creators planning their blog journey */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <BlogPlansList
               refreshKey={blogPlanRefreshKey}
               onCreatePlan={onCreateBlogPlan}
@@ -491,7 +491,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* Study Session Scheduler - Schedule focused sessions from study plan tasks */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <StudySessionScheduler />
           </div>
         </div>
@@ -525,18 +525,18 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
           {/* Header Section */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30">
-                <span className="text-3xl">🎯</span>
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-3">
+              <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 flex-shrink-0">
+                <span className="text-2xl sm:text-3xl">🎯</span>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
                   10,000 Hour Practice Tracker
                 </h1>
-                <p className="mt-2 text-base text-slate-600 dark:text-slate-300 font-medium">
+                <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-600 dark:text-slate-300 font-medium">
                   Track your deliberate practice journey to mastery with quality-adjusted hours
                 </p>
               </div>
@@ -544,7 +544,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* Streak Display */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <PracticeStreakDisplay variant="large" />
           </div>
 
@@ -558,17 +558,17 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* SAM Recommendations */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <PracticeRecommendations limit={3} />
           </div>
 
           {/* Practice Goals */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <PracticeGoalSetter />
           </div>
 
           {/* Calendar Heatmap - Full Width */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <PracticeCalendarHeatmap />
           </div>
 
@@ -611,7 +611,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
           {/* Main Skill Tracker */}
           <SkillBuildTrackerConnected />
 
@@ -620,7 +620,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* ============================================================= */}
 
           {/* Enhanced Knowledge Graph Explorer - Full interactive experience */}
-          <div className="mt-6 sm:mt-8">
+          <div className="mt-4 sm:mt-6 md:mt-8">
             <EnhancedKnowledgeGraphExplorer
               height="700px"
               onConceptSelect={(conceptId) => console.log("Selected concept:", conceptId)}
@@ -645,14 +645,14 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* SAM AI Engine Widgets Section */}
-          <div className="mt-6 sm:mt-8">
+          <div className="mt-4 sm:mt-6 md:mt-8">
             {/* Knowledge Graph Browser - Basic view for quick reference */}
             <KnowledgeGraphBrowser />
             {/* NOTE: QualityScoreDashboard moved to Analytics tab */}
           </div>
 
           {/* Gap 1: Bias Detection Report - Fairness Analysis (Full Width) */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <BiasDetectionReport className="w-full" />
           </div>
 
@@ -661,7 +661,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* ============================================================= */}
 
           {/* Certification Tracker - Full certification pathway management */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <CertificationTracker
               onCertificationStart={(certId) => console.log("Started tracking:", certId)}
               onCertificationComplete={(certId) => console.log("Completed:", certId)}
@@ -669,7 +669,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* Skill to Certification Map - Visual skill-to-cert relationships */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <SkillToCertificationMap
               userId={user.id ?? ""}
               onCertificationSelect={(certId) => console.log("Selected cert:", certId)}
@@ -682,7 +682,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* ============================================================= */}
 
           {/* Research & Academic Integrity Section */}
-          <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="mt-4 sm:mt-6 md:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* ResearchAssistant - Academic research and citation management */}
             <ResearchAssistant userId={user.id ?? ""} className="w-full" />
 
@@ -720,7 +720,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
           {/* Learning Gap Dashboard */}
           <LearningGapDashboard />
         </div>
@@ -754,7 +754,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-8 pt-20 sm:pt-16">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
           {/* Innovation Dashboard - All 4 InnovationEngine features */}
           <InnovationDashboard userId={user.id} />
         </div>
@@ -791,18 +791,18 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
           {/* Header Section */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg">
-                <Wand2 className="h-7 w-7 text-white" />
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <Wand2 className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                   Creator Studio
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="mt-1 text-sm sm:text-base text-slate-600 dark:text-slate-400">
                   AI-powered tools to create courses, assessments, and learning content
                 </p>
               </div>
@@ -813,7 +813,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* Content Generation Studio - Full AI Content Creation */}
           {/* ============================================================= */}
 
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <ContentGenerationStudio />
           </div>
 
@@ -821,7 +821,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* Course Guide & Depth Analysis - Side by Side */}
           {/* ============================================================= */}
 
-          <div className="mb-6 sm:mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="mb-4 sm:mb-6 md:mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Course Guide Builder */}
             <CourseGuideBuilder />
 
@@ -829,7 +829,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
             <DepthAnalyzer />
           </div>
 
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <CreatorBusinessSuite />
           </div>
 
@@ -837,8 +837,8 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* Resource Intelligence - Discover External Learning Resources */}
           {/* ============================================================= */}
 
-          <div className="mb-8">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800/50">
+          <div className="mb-6 sm:mb-8">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 dark:border-slate-700 dark:bg-slate-800/50">
               <ResourceIntelligenceContent
                 courseId=""
                 chapterId=""
@@ -853,7 +853,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           {/* Multimedia Library - AI-Generated Media Assets */}
           {/* ============================================================= */}
 
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <MultimediaLibrary
               userId={user.id ?? ""}
               className="w-full"
@@ -889,11 +889,11 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
       {/* SAM Context Tracker - Invisible, syncs page context */}
       <SAMContextTracker />
 
-      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 pt-16 sm:pt-20">
         {/* Gamification Section */}
-        <section className="mb-6 sm:mb-8">
+        <section className="mb-4 sm:mb-6 md:mb-8">
           {/* Level Progress Header */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <LevelProgressBar />
           </div>
 
@@ -911,17 +911,17 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
 
           {/* SAM AI Achievements */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <AchievementBadges limit={8} showLocked compact={false} />
           </div>
 
           {/* Leaderboard (Full Width) */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <LeaderboardWidget maxDisplay={5} />
           </div>
 
           {/* SAM AI Learning Leaderboard */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <SAMLeaderboardWidget
               limit={5}
               compact={false}

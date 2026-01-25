@@ -310,7 +310,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
       enableBottomBar={isMobile}
       enablePullToRefresh={false}
     >
-      <div className="min-h-screen">
+      <div className="min-h-screen overflow-x-hidden max-w-full">
         {/* Sidebar */}
         <SmartSidebar
           user={user}
@@ -328,7 +328,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
         />
 
         {/* Main Content - pt-14 for unified header height (56px) */}
-        <main className="pt-14 pb-20 md:pb-20 lg:pb-0 md:pl-0 lg:pl-[72px]">
+        <main className="pt-14 pb-20 md:pb-20 lg:pb-0 md:pl-0 lg:pl-[72px] overflow-x-hidden">
           <NewDashboard
             user={user}
             viewMode={viewMode}
