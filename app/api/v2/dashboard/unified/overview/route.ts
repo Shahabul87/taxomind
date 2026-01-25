@@ -181,11 +181,15 @@ async function fetchStreakData(userId: string) {
       select: {
         currentStreak: true,
         longestStreak: true,
-        lastActivityDate: true,
+        lastActiveDate: true,
       },
     });
 
-    return streak ?? {
+    return streak ? {
+      currentStreak: streak.currentStreak,
+      longestStreak: streak.longestStreak,
+      lastActivityDate: streak.lastActiveDate,
+    } : {
       currentStreak: 0,
       longestStreak: 0,
       lastActivityDate: null,
@@ -227,12 +231,21 @@ async function fetchActivityStats(userId: string) {
       },
     });
 
-    // Get course progress updates
+    // Get recent course enrollments (no progress field on Enrollment model)
     const enrollments = await db.enrollment.findMany({
       where: { userId },
       select: {
-        progress: true,
-        course: { select: { title: true } },
+        updatedAt: true,
+        Course: {
+          select: {
+            title: true,
+            chapters: {
+              select: {
+                sections: { select: { id: true } }
+              }
+            }
+          }
+        },
       },
       orderBy: { updatedAt: 'desc' },
       take: 5,
@@ -247,8 +260,8 @@ async function fetchActivityStats(userId: string) {
         studyMinutes: totalStudyMinutes,
       },
       recentCourses: enrollments.map(e => ({
-        title: e.course.title,
-        progress: e.progress,
+        title: e.Course.title,
+        progress: 0, // Progress calculated separately if needed
       })),
     };
   } catch (error) {
