@@ -341,7 +341,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // Show Learning Command Center as the default view with sub-tab navigation
   if (activeTab === "learning") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-900/10 dark:to-indigo-900/10">
+      <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-900/10 dark:to-indigo-900/10">
         {/* Learning Tabs Container - Sub-tab navigation for better organization */}
         <LearningTabsContainer user={user} onCreateStudyPlan={onCreateStudyPlan} />
 
@@ -426,7 +426,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // ============================================================================
   if (activeTab === "goals") {
     return (
-      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
+      <div className="relative min-h-full overflow-x-hidden bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -521,7 +521,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // Practice view with 10,000 Hour Practice Tracking System
   if (activeTab === "practice") {
     return (
-      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
+      <div className="relative min-h-full overflow-x-hidden bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -607,7 +607,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // Skills view with SkillBuildTracker (connected to real API)
   if (activeTab === "skills") {
     return (
-      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
+      <div className="relative min-h-full overflow-x-hidden bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -716,7 +716,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // Gaps view with Learning Gap Analysis Dashboard
   if (activeTab === "gaps") {
     return (
-      <div className="relative min-h-full bg-slate-50 dark:bg-slate-900">
+      <div className="relative min-h-full overflow-x-hidden bg-slate-50 dark:bg-slate-900">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -750,7 +750,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // Innovation view with InnovationEngine features (Cognitive Fitness, Learning DNA, Study Buddy AI, Quantum Paths)
   if (activeTab === "innovation") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-yellow-50/30 to-orange-50/30 dark:from-slate-900 dark:via-yellow-900/10 dark:to-orange-900/10">
+      <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-yellow-50/30 to-orange-50/30 dark:from-slate-900 dark:via-yellow-900/10 dark:to-orange-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 
@@ -787,7 +787,7 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
   // ============================================================================
   if (activeTab === "create") {
     return (
-      <div className="relative min-h-full bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/30 dark:from-slate-900 dark:via-violet-900/10 dark:to-purple-900/10">
+      <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-violet-50/30 to-purple-50/30 dark:from-slate-900 dark:via-violet-900/10 dark:to-purple-900/10">
         {/* SAM Context Tracker - Invisible, syncs page context */}
         <SAMContextTracker />
 

@@ -12,8 +12,11 @@ import {
   Wand2,
   BarChart3,
   Goal,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useViewportHeight } from '@/hooks/useViewportHeight';
 
 export type DashboardView =
   | 'learning'
@@ -117,7 +120,91 @@ interface TabNavigationProps {
   className?: string;
 }
 
-export function TabNavigation({ activeTab, onTabChange, className }: TabNavigationProps) {
+// Mobile Tab Dropdown Component
+function MobileTabDropdown({ activeTab, onTabChange }: { activeTab: DashboardView; onTabChange: (tab: DashboardView) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const activeTabConfig = tabs.find(t => t.id === activeTab) || tabs[0];
+  const ActiveIcon = activeTabConfig.icon;
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      {/* Active Tab Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium',
+          'bg-gradient-to-r text-white shadow-md',
+          activeTabConfig.gradient
+        )}
+      >
+        <ActiveIcon className="h-4 w-4" />
+        <span>{activeTabConfig.label}</span>
+        <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden z-50"
+        >
+          <div className="p-2 max-h-80 overflow-y-auto">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    onTabChange(tab.id);
+                    setIsOpen(false);
+                  }}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                    isActive
+                      ? 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  )}
+                >
+                  <div className={cn(
+                    'flex items-center justify-center h-8 w-8 rounded-lg bg-gradient-to-r',
+                    tab.gradient
+                  )}>
+                    <Icon className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="font-medium">{tab.label}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{tab.description}</div>
+                  </div>
+                  {isActive && <Check className="h-4 w-4 text-emerald-500" />}
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+// Desktop Tab Navigation Component
+function DesktopTabNavigation({ activeTab, onTabChange, className }: TabNavigationProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
@@ -204,8 +291,7 @@ export function TabNavigation({ activeTab, onTabChange, className }: TabNavigati
 
                 <span className="relative z-10 flex items-center gap-1.5">
                   <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.shortLabel}</span>
+                  <span>{tab.label}</span>
                 </span>
               </motion.button>
             );
@@ -222,6 +308,32 @@ export function TabNavigation({ activeTab, onTabChange, className }: TabNavigati
       />
     </div>
   );
+}
+
+export function TabNavigation({ activeTab, onTabChange, className }: TabNavigationProps) {
+  const { isMobile } = useViewportHeight();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Prevent hydration mismatch
+  if (!isMounted) {
+    return <div className={cn('h-10', className)} />;
+  }
+
+  // Mobile: Show dropdown menu for cleaner UX
+  if (isMobile) {
+    return (
+      <div className={cn('flex items-center justify-center', className)}>
+        <MobileTabDropdown activeTab={activeTab} onTabChange={onTabChange} />
+      </div>
+    );
+  }
+
+  // Desktop: Show horizontal scrollable tabs
+  return <DesktopTabNavigation activeTab={activeTab} onTabChange={onTabChange} className={className} />;
 }
 
 export { tabs as dashboardTabs };

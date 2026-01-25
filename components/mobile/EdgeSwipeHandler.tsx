@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useCallback, useState, useEffect } from 'react';
-import { motion, useAnimation, useMotionValue, PanInfo } from 'framer-motion';
+import { motion, useAnimation, PanInfo } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface EdgeSwipeHandlerProps {
@@ -28,9 +28,27 @@ export function EdgeSwipeHandler({
   const [showLeftIndicator, setShowLeftIndicator] = useState(false);
   const [showRightIndicator, setShowRightIndicator] = useState(false);
   const [swipeProgress, setSwipeProgress] = useState(0);
+  const [isDragFromEdge, setIsDragFromEdge] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
   const controls = useAnimation();
+
+  // Reset position on mount, tab change, and page navigation
+  useEffect(() => {
+    // Immediately reset position on any render
+    controls.set({ x: 0 });
+
+    // Also reset on visibility change (tab switch)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        controls.set({ x: 0 });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [controls, children]);
 
   // Show edge indicators on hover or touch
   const handlePointerMove = useCallback(
@@ -81,14 +99,21 @@ export function EdgeSwipeHandler({
     const isLeftEdge = startX < edgeWidth;
     const isRightEdge = startX > viewportWidth - edgeWidth;
 
-    if (!isLeftEdge && !isRightEdge) {
-      // Cancel drag if not from edge
-      controls.start({ x: 0 });
-      return false;
+    if (isLeftEdge || isRightEdge) {
+      setIsDragFromEdge(true);
+    } else {
+      // Not from edge - don't allow drag
+      setIsDragFromEdge(false);
+      controls.set({ x: 0 });
     }
   };
 
   const handleDrag = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // Only allow drag if it started from an edge
+    if (!isDragFromEdge) {
+      controls.set({ x: 0 });
+      return;
+    }
     const progress = Math.abs(info.offset.x / swipeThreshold);
     setSwipeProgress(Math.min(progress, 1));
   };
@@ -99,24 +124,30 @@ export function EdgeSwipeHandler({
 
     setSwipeProgress(0);
 
-    // Check for right swipe (from left edge)
-    if (isLeftSwipeEnabled && (swipeDistance > swipeThreshold || swipeVelocity > 500)) {
-      // Trigger haptic feedback if available
-      if ('vibrate' in navigator) {
-        navigator.vibrate(10);
+    // Only process swipe if it started from an edge
+    if (isDragFromEdge) {
+      // Check for right swipe (from left edge)
+      if (isLeftSwipeEnabled && (swipeDistance > swipeThreshold || swipeVelocity > 500)) {
+        // Trigger haptic feedback if available
+        if ('vibrate' in navigator) {
+          navigator.vibrate(10);
+        }
+        onSwipeRight?.();
       }
-      onSwipeRight?.();
-    }
-    // Check for left swipe (from right edge)
-    else if (isRightSwipeEnabled && (swipeDistance < -swipeThreshold || swipeVelocity < -500)) {
-      // Trigger haptic feedback if available
-      if ('vibrate' in navigator) {
-        navigator.vibrate(10);
+      // Check for left swipe (from right edge)
+      else if (isRightSwipeEnabled && (swipeDistance < -swipeThreshold || swipeVelocity < -500)) {
+        // Trigger haptic feedback if available
+        if ('vibrate' in navigator) {
+          navigator.vibrate(10);
+        }
+        onSwipeLeft?.();
       }
-      onSwipeLeft?.();
     }
 
-    // Animate back to center
+    // Reset drag from edge state
+    setIsDragFromEdge(false);
+
+    // Always animate back to center
     await controls.start({
       x: 0,
       transition: { type: 'spring', stiffness: 300, damping: 30 },
@@ -127,14 +158,15 @@ export function EdgeSwipeHandler({
     <motion.div
       ref={containerRef}
       className={cn('relative h-full w-full overflow-hidden', className)}
-      drag="x"
+      drag={isDragFromEdge ? 'x' : false}
       dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.2}
+      dragElastic={0}
+      dragMomentum={false}
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       animate={controls}
-      style={{ x }}
+      initial={{ x: 0 }}
       suppressHydrationWarning
     >
       {/* Left Edge Indicator */}

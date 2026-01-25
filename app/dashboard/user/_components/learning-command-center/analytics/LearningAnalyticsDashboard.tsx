@@ -82,19 +82,19 @@ function QuickStatCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-4 rounded-xl bg-white/70 p-4 shadow-sm backdrop-blur-sm dark:bg-slate-800/70"
+      className="flex items-center gap-2 sm:gap-3 md:gap-4 rounded-xl bg-white/70 p-3 sm:p-4 shadow-sm backdrop-blur-sm dark:bg-slate-800/70"
     >
-      <div className={cn('flex h-12 w-12 items-center justify-center rounded-xl', color)}>
-        <Icon className="h-6 w-6 text-white" />
+      <div className={cn('flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg sm:rounded-xl flex-shrink-0', color)}>
+        <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
       </div>
-      <div className="flex-1">
-        <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
-        <div className="flex items-baseline gap-2">
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate">{label}</p>
+        <div className="flex items-baseline gap-1 sm:gap-2 flex-wrap">
+          <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white truncate">{value}</p>
           {change && (
             <span
               className={cn(
-                'text-xs font-medium',
+                'text-xs font-medium whitespace-nowrap',
                 changeType === 'positive' && 'text-emerald-600',
                 changeType === 'negative' && 'text-red-500',
                 changeType === 'neutral' && 'text-slate-500'
@@ -152,26 +152,27 @@ export function LearningAnalyticsDashboard({
   };
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-4 sm:space-y-6', className)}>
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
-            <BarChart3 className="h-6 w-6 text-indigo-500" />
-            Learning Analytics
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex-1 min-w-0">
+          <h2 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+            <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500 flex-shrink-0" />
+            <span className="truncate">Learning Analytics</span>
           </h2>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Track your progress and gain insights into your learning journey
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {/* Time Range Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <Filter className="h-4 w-4" />
-                {TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label}
+              <Button variant="outline" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+                <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">{TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label}</span>
+                <span className="sm:hidden">{TIME_RANGE_OPTIONS.find((o) => o.value === timeRange)?.label.split(' ')[0]}</span>
                 <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -194,33 +195,35 @@ export function LearningAnalyticsDashboard({
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="flex-shrink-0"
           >
-            <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+            <RefreshCw className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', isRefreshing && 'animate-spin')} />
+            <span className="hidden sm:inline ml-2">Refresh</span>
           </Button>
 
           {/* Export Button */}
           {onExport && (
-            <Button variant="outline" size="sm" onClick={onExport}>
-              <Download className="mr-2 h-4 w-4" />
-              Export
+            <Button variant="outline" size="sm" onClick={onExport} className="flex-shrink-0">
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Export</span>
             </Button>
           )}
         </div>
       </div>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {isLoading ? (
           <>
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="flex items-center gap-4 rounded-xl bg-white/70 p-4 shadow-sm backdrop-blur-sm dark:bg-slate-800/70 animate-pulse"
+                className="flex items-center gap-2 sm:gap-3 md:gap-4 rounded-xl bg-white/70 p-3 sm:p-4 shadow-sm backdrop-blur-sm dark:bg-slate-800/70 animate-pulse"
               >
-                <div className="h-12 w-12 rounded-xl bg-slate-200 dark:bg-slate-700" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 w-20 rounded bg-slate-200 dark:bg-slate-700" />
-                  <div className="h-6 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl bg-slate-200 dark:bg-slate-700 flex-shrink-0" />
+                <div className="flex-1 space-y-2 min-w-0">
+                  <div className="h-3 sm:h-4 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                  <div className="h-5 sm:h-6 w-16 rounded bg-slate-200 dark:bg-slate-700" />
                 </div>
               </div>
             ))}
@@ -265,47 +268,47 @@ export function LearningAnalyticsDashboard({
 
       {/* Tabbed Content */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-        <div className="mb-4 overflow-x-auto">
-          <TabsList className="inline-flex min-w-full bg-slate-100/80 dark:bg-slate-800/80">
-            <TabsTrigger value="overview" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
+        <div className="mb-3 sm:mb-4 overflow-x-auto scrollbar-hide">
+          <TabsList className="inline-flex min-w-max sm:min-w-full bg-slate-100/80 dark:bg-slate-800/80 px-2 sm:px-1">
+            <TabsTrigger value="overview" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
-            <TabsTrigger value="exams" className="gap-2">
-              <ClipboardCheck className="h-4 w-4" />
+            <TabsTrigger value="exams" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <ClipboardCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Exams</span>
             </TabsTrigger>
-            <TabsTrigger value="progress" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
+            <TabsTrigger value="progress" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Progress</span>
             </TabsTrigger>
-            <TabsTrigger value="insights" className="gap-2">
-              <Brain className="h-4 w-4" />
+            <TabsTrigger value="insights" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Insights</span>
             </TabsTrigger>
-            <TabsTrigger value="quality" className="gap-2">
-              <Shield className="h-4 w-4" />
+            <TabsTrigger value="quality" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Quality</span>
             </TabsTrigger>
-            <TabsTrigger value="conversations" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
+            <TabsTrigger value="conversations" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">History</span>
             </TabsTrigger>
-            <TabsTrigger value="knowledge" className="gap-2">
-              <Network className="h-4 w-4" />
+            <TabsTrigger value="knowledge" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <Network className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Knowledge</span>
             </TabsTrigger>
-            <TabsTrigger value="heatmap" className="gap-2">
-              <Calendar className="h-4 w-4" />
+            <TabsTrigger value="heatmap" className="gap-1 sm:gap-2 px-2 sm:px-3 text-xs sm:text-sm flex-shrink-0">
+              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Activity</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
         {/* Overview Tab - Shows summary of all sections */}
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="space-y-4 sm:space-y-6">
           {/* Top Row: 2 columns */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             {/* SAM Insights Summary */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -326,7 +329,7 @@ export function LearningAnalyticsDashboard({
           </div>
 
           {/* Second Row: 2 columns */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             {/* Course Progress Summary */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -347,7 +350,7 @@ export function LearningAnalyticsDashboard({
           </div>
 
           {/* Third Row: Goals Progress and Proactive Interventions */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -381,17 +384,17 @@ export function LearningAnalyticsDashboard({
             transition={{ delay: 0.4 }}
           >
             <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Trophy className="h-5 w-5 text-amber-500" />
-                  Recent Achievements
+              <CardHeader className="pb-2 sm:pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                  <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 flex-shrink-0" />
+                  <span>Recent Achievements</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                 {isLoading ? (
                   <div className="flex flex-wrap gap-2">
                     {[...Array(4)].map((_, i) => (
-                      <div key={i} className="h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                      <div key={i} className="h-6 w-20 sm:w-24 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
                     ))}
                   </div>
                 ) : data?.achievements && data.achievements.length > 0 ? (
@@ -414,17 +417,17 @@ export function LearningAnalyticsDashboard({
                         <Badge
                           key={achievement.id}
                           variant="secondary"
-                          className={rarityColors[achievement.rarity]}
+                          className={cn('text-xs sm:text-sm', rarityColors[achievement.rarity])}
                         >
-                          {iconMap[achievement.iconType]} {achievement.title}
+                          {iconMap[achievement.iconType]} <span className="truncate max-w-[120px] sm:max-w-none">{achievement.title}</span>
                         </Badge>
                       );
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <Trophy className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <div className="text-center py-4 sm:py-6">
+                    <Trophy className="h-6 w-6 sm:h-8 sm:w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                       Complete lessons and exams to earn achievements!
                     </p>
                   </div>
@@ -449,7 +452,7 @@ export function LearningAnalyticsDashboard({
         </TabsContent>
 
         {/* Insights Tab - Full SAM Insights View */}
-        <TabsContent value="insights" className="space-y-6">
+        <TabsContent value="insights" className="space-y-4 sm:space-y-6">
           <SAMInsights />
           <ConfidenceCalibrationWidget showRecommendations />
         </TabsContent>
@@ -475,13 +478,13 @@ export function LearningAnalyticsDashboard({
 
         {/* Quality Tab - Content Quality Validation */}
         <TabsContent value="quality">
-          <div className="space-y-6">
-            <div className="rounded-lg border border-slate-200/50 bg-white/70 p-4 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-              <div className="mb-4 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-indigo-500" />
-                <h3 className="font-semibold text-slate-900 dark:text-white">Content Quality Validator</h3>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="rounded-lg border border-slate-200/50 bg-white/70 p-3 sm:p-4 md:p-6 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+              <div className="mb-3 sm:mb-4 flex items-center gap-2">
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-500 flex-shrink-0" />
+                <h3 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white">Content Quality Validator</h3>
               </div>
-              <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+              <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 Validate educational content through SAM&apos;s quality gates to ensure accuracy, completeness, and pedagogical effectiveness.
               </p>
               <QualityScoreDashboard />
@@ -491,13 +494,13 @@ export function LearningAnalyticsDashboard({
 
         {/* Conversations Tab - SAM Conversation History */}
         <TabsContent value="conversations">
-          <div className="space-y-4">
-            <div className="rounded-lg border border-slate-200/50 bg-white/70 p-4 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-              <div className="mb-4 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-blue-500" />
-                <h3 className="font-semibold text-slate-900 dark:text-white">SAM Conversation History</h3>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="rounded-lg border border-slate-200/50 bg-white/70 p-3 sm:p-4 md:p-6 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
+              <div className="mb-3 sm:mb-4 flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 flex-shrink-0" />
+                <h3 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white">SAM Conversation History</h3>
               </div>
-              <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+              <p className="mb-3 sm:mb-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 Review your learning conversations with SAM, organized by course and topic. Track key insights and learning moments.
               </p>
             </div>
