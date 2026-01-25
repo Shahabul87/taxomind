@@ -172,11 +172,16 @@ export function ToDosSubTab({ user, onCreateStudyPlan }: ToDosSubTabProps) {
   const fetchStudyPlanTasks = useCallback(async () => {
     setStudyPlanTasksLoading(true);
     try {
-      const res = await fetch('/api/dashboard/study-plan-tasks');
+      // Send local date to avoid timezone issues with server (UTC on Railway)
+      const localDate = format(new Date(), 'yyyy-MM-dd');
+      const res = await fetch(`/api/dashboard/study-plan-tasks?date=${localDate}`);
       if (res.ok) {
         const data = await res.json();
         setStudyPlanTasks(data.data || []);
         setHasStudyPlans(data.meta?.hasStudyPlans ?? false);
+      } else {
+        // Log error for debugging
+        console.error('Study plan tasks API error:', res.status, await res.text().catch(() => ''));
       }
     } catch (error) {
       console.error('Failed to fetch study plan tasks:', error);

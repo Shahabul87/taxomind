@@ -8,6 +8,9 @@ import { format } from 'date-fns';
  *
  * Fetches study plan tasks for the current user that are scheduled for today.
  * These come from SAM learning goals with subgoals that have scheduledDate metadata.
+ *
+ * IMPORTANT: Client should pass ?date=YYYY-MM-DD in their local timezone
+ * to avoid timezone mismatches with server (UTC on Railway).
  */
 export async function GET(req: NextRequest) {
   try {
@@ -19,8 +22,12 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const dateParam = searchParams.get('date');
 
-    // Use provided date or today
+    // Use provided date (from client's local timezone) or server's current date
+    // Client should ALWAYS provide their local date to avoid timezone issues
     const targetDate = dateParam ?? format(new Date(), 'yyyy-MM-dd');
+
+    // Debug: log what we're searching for (remove in production after debugging)
+    console.log('[STUDY_PLAN_TASKS_GET] Searching for date:', targetDate, 'userId:', user.id);
 
     // Get all active goals for the user that are study plans
     const allGoals = await db.sAMLearningGoal.findMany({
@@ -43,6 +50,13 @@ export async function GET(req: NextRequest) {
 
     const hasStudyPlans = goals.length > 0;
 
+    // Debug: log goal counts
+    console.log('[STUDY_PLAN_TASKS_GET] Found goals:', {
+      totalActiveGoals: allGoals.length,
+      studyPlanGoals: goals.length,
+      goalTitles: goals.map(g => g.title).slice(0, 5),
+    });
+
     // Get subgoals scheduled for the target date
     const subGoals = await db.sAMSubGoal.findMany({
       where: {
@@ -63,12 +77,43 @@ export async function GET(req: NextRequest) {
       orderBy: { order: 'asc' },
     });
 
+    // Debug: log subgoal info to understand date distribution
+    const scheduledDates = subGoals.reduce((acc, sg) => {
+      const metadata = sg.metadata as Record<string, unknown> | null;
+      const date = metadata?.scheduledDate as string | undefined;
+      if (date) {
+        acc[date] = (acc[date] || 0) + 1;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    console.log('[STUDY_PLAN_TASKS_GET] Subgoal analysis:', {
+      totalSubgoals: subGoals.length,
+      targetDate,
+      uniqueDates: Object.keys(scheduledDates).length,
+      sampleDates: Object.entries(scheduledDates).slice(0, 10),
+    });
+
     // Filter subgoals that are scheduled for the target date
+    // Handle both exact match and potential format variations
     const todaysTasks = subGoals.filter((sg) => {
       const metadata = sg.metadata as Record<string, unknown> | null;
-      const scheduledDate = metadata?.scheduledDate as string | undefined;
-      return scheduledDate === targetDate;
+      const scheduledDate = metadata?.scheduledDate;
+
+      if (!scheduledDate) return false;
+
+      // Handle string dates (YYYY-MM-DD format)
+      if (typeof scheduledDate === 'string') {
+        // Trim and compare just the date part (first 10 chars)
+        const normalizedScheduled = scheduledDate.trim().slice(0, 10);
+        const normalizedTarget = targetDate.trim().slice(0, 10);
+        return normalizedScheduled === normalizedTarget;
+      }
+
+      return false;
     });
+
+    console.log('[STUDY_PLAN_TASKS_GET] Found tasks for today:', todaysTasks.length);
 
     // Build goal map for quick lookup
     const goalMap = new Map(goals.map((g) => [g.id, g]));
