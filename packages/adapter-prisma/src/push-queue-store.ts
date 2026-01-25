@@ -120,11 +120,45 @@ function mapChannelToDb(channel: DeliveryChannel): string {
 export class PrismaPushQueueStore implements PushQueueStore {
   private prisma: PrismaClient;
 
+  // Cache to prevent excessive queries when queue is empty
+  private lastEmptyCheck: Date | null = null;
+  private cachedPendingCount: number = 0;
+  private readonly EMPTY_CACHE_TTL_MS = 5000; // 5 seconds
+
   constructor(config: PrismaPushQueueStoreConfig) {
     this.prisma = config.prisma;
   }
 
+  /**
+   * Check if we should skip the query based on recent empty result
+   */
+  private shouldSkipQuery(): boolean {
+    if (!this.lastEmptyCheck) return false;
+    if (this.cachedPendingCount > 0) return false;
+
+    const elapsed = Date.now() - this.lastEmptyCheck.getTime();
+    return elapsed < this.EMPTY_CACHE_TTL_MS;
+  }
+
+  /**
+   * Update the empty cache after a query
+   */
+  private updateEmptyCache(count: number): void {
+    this.lastEmptyCheck = new Date();
+    this.cachedPendingCount = count;
+  }
+
+  /**
+   * Invalidate the cache (call after enqueue)
+   */
+  private invalidateCache(): void {
+    this.cachedPendingCount = 1; // Assume there's at least one item
+  }
+
   async enqueue(request: PushDeliveryRequest): Promise<void> {
+    // Set a default far-future expiry if not provided (avoids NULL in queries)
+    const expiresAt = request.expiresAt || new Date(Date.now() + 86400000 * 365); // 1 year default
+
     await this.prisma.sAMPushQueue.create({
       data: {
         id: request.id,
@@ -146,20 +180,32 @@ export class PrismaPushQueueStore implements PushQueueStore {
         attempts: 0,
         maxAttempts: 3,
         queuedAt: new Date(),
-        expiresAt: request.expiresAt || null,
+        expiresAt,
         metadata: request.metadata || null,
       },
     });
+
+    // Invalidate cache since we added an item
+    this.invalidateCache();
   }
 
   async dequeue(count: number): Promise<PushDeliveryRequest[]> {
-    // Get pending items sorted by priority and queue time
+    // Skip query if we recently found the queue empty
+    if (this.shouldSkipQuery()) {
+      return [];
+    }
+
+    const now = new Date();
+
+    // Optimized query: use simple comparison (expiresAt > now)
+    // This works because enqueue now always sets expiresAt
+    // For backwards compatibility, we also accept NULL expiresAt
     const records = await this.prisma.sAMPushQueue.findMany({
       where: {
         status: 'PENDING',
         OR: [
           { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
+          { expiresAt: { gt: now } },
         ],
       },
       orderBy: [
@@ -168,6 +214,9 @@ export class PrismaPushQueueStore implements PushQueueStore {
       ],
       take: count,
     });
+
+    // Update cache based on result
+    this.updateEmptyCache(records.length);
 
     if (records.length === 0) {
       return [];
@@ -179,7 +228,7 @@ export class PrismaPushQueueStore implements PushQueueStore {
       where: { id: { in: ids } },
       data: {
         status: 'PROCESSING',
-        processingAt: new Date(),
+        processingAt: now,
       },
     });
 
@@ -187,12 +236,18 @@ export class PrismaPushQueueStore implements PushQueueStore {
   }
 
   async peek(count: number): Promise<PushDeliveryRequest[]> {
+    // Skip query if we recently found the queue empty
+    if (this.shouldSkipQuery()) {
+      return [];
+    }
+
+    const now = new Date();
     const records = await this.prisma.sAMPushQueue.findMany({
       where: {
         status: 'PENDING',
         OR: [
           { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
+          { expiresAt: { gt: now } },
         ],
       },
       orderBy: [
@@ -201,6 +256,9 @@ export class PrismaPushQueueStore implements PushQueueStore {
       ],
       take: count,
     });
+
+    // Update cache based on result
+    this.updateEmptyCache(records.length);
 
     return records.map(mapRecordToRequest);
   }

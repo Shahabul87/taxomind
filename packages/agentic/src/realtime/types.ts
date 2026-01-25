@@ -581,7 +581,7 @@ export interface PushDispatcherConfig {
 export const DEFAULT_PUSH_DISPATCHER_CONFIG: PushDispatcherConfig = {
   maxQueueSize: 1000,
   batchSize: 50,
-  processingInterval: 100,
+  processingInterval: 2000, // 2 seconds (was 100ms - too aggressive for DB queries)
   retryAttempts: 3,
   retryDelay: 1000,
   defaultExpirationMs: 3600000, // 1 hour
