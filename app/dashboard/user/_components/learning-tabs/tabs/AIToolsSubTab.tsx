@@ -4,7 +4,6 @@ import React from 'react';
 import type { User as NextAuthUser } from 'next-auth';
 
 // Core SAM AI Components
-import { SAMAssistant } from '@/components/sam/SAMAssistant';
 import { SAMEnginePoweredChat } from '@/components/sam/sam-engine-powered-chat';
 
 // Multimodal & Dialogue
@@ -33,18 +32,12 @@ interface AIToolsSubTabProps {
 export function AIToolsSubTab({ user }: AIToolsSubTabProps) {
   return (
     <div className="space-y-6">
-      {/* SAM AI Assistant - Main AI interaction */}
+      {/* SAM AI Chat - Embedded AI interaction */}
       <section>
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
           <span className="text-xl">🤖</span> SAM AI Assistant
         </h2>
-        <div className="rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800/50 overflow-hidden">
-          <SAMAssistant
-            className="min-h-[500px]"
-            enableStreaming={true}
-            enableGamification={true}
-          />
-        </div>
+        <SAMEnginePoweredChat />
       </section>
 
       {/* Multimodal & Dialogue Section */}

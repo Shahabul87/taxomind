@@ -26,7 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSAMGoals, type SAMGoal, type SAMSubGoal } from '@/hooks/use-sam-agentic-analytics';
 import { StudyPlanDashboard } from '@/components/sam/study-plan';
-import { isStudyPlan } from '@/lib/sam/study-plan-metrics';
+import { isStudyPlanGoal } from '@/lib/sam/study-plan-metrics';
 
 export interface GoalsProgressProps {
   compact?: boolean;
@@ -358,7 +358,7 @@ export function GoalsProgress({
           <div className="space-y-3">
             {displayGoals.map((goal) => {
               // Check if this goal is a study plan
-              const goalIsStudyPlan = isStudyPlan(goal.metadata);
+              const goalIsStudyPlan = isStudyPlanGoal(goal.metadata, goal.subGoals);
 
               return goalIsStudyPlan ? (
                 <StudyPlanDashboard
@@ -441,7 +441,7 @@ export function GoalsProgress({
           <AnimatePresence mode="popLayout">
             {displayGoals.map((goal, index) => {
               // Check if this goal is a study plan
-              const goalIsStudyPlan = isStudyPlan(goal.metadata);
+              const goalIsStudyPlan = isStudyPlanGoal(goal.metadata, goal.subGoals);
 
               return (
                 <motion.div

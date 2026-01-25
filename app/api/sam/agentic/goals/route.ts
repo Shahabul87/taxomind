@@ -152,8 +152,20 @@ export async function GET(req: NextRequest) {
         status: sg.status?.toLowerCase() ?? 'pending',
       }));
 
+      // Calculate progress from subGoals
+      const totalSubGoals = normalizedSubGoals.length;
+      const completedSubGoals = normalizedSubGoals.filter(
+        (sg) => sg.status === 'completed'
+      ).length;
+      const calculatedProgress =
+        totalSubGoals > 0
+          ? Math.round((completedSubGoals / totalSubGoals) * 100)
+          : goal.progress;
+
       return {
         ...goal,
+        // Override progress with calculated value from subGoals
+        progress: calculatedProgress,
         // Flatten context for backward compatibility
         courseId: goal.context.courseId,
         chapterId: goal.context.chapterId,

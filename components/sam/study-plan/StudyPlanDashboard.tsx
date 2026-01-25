@@ -27,6 +27,8 @@ import { WeeklyJourneyMap } from './WeeklyJourneyMap';
 import { StudyActivityHeatmap } from './StudyActivityHeatmap';
 import { MilestonesTracker } from './MilestonesTracker';
 import { PaceProjection } from './PaceProjection';
+import { CurrentWeekPanel } from './CurrentWeekPanel';
+import type { DailyTask } from './DailyTaskList';
 
 import {
   calculateStudyPlanMetrics,
@@ -57,6 +59,7 @@ interface StudyPlanDashboardProps {
   goal: GoalData;
   subGoals?: SubGoalData[];
   onRefresh?: () => void;
+  onTaskToggle?: (taskId: string, completed: boolean) => Promise<void>;
   isLoading?: boolean;
   className?: string;
 }
@@ -70,9 +73,11 @@ export function StudyPlanDashboard({
   goal,
   subGoals: initialSubGoals,
   onRefresh,
+  onTaskToggle,
   isLoading = false,
   className,
 }: StudyPlanDashboardProps) {
+  const [updatingTaskId, setUpdatingTaskId] = React.useState<string | null>(null);
   // Memoize subGoals
   const subGoals = useMemo(
     () => initialSubGoals ?? goal.subGoals ?? [],
@@ -112,6 +117,63 @@ export function StudyPlanDashboard({
     ? new Date(goal.metadata.preferences.startDate)
     : new Date(goal.createdAt);
   const targetDate = goal.targetDate ? new Date(goal.targetDate) : null;
+
+  // Get current week data
+  const currentWeek = useMemo(
+    () => weeks.find((w) => w.weekNumber === currentWeekNumber) ?? null,
+    [weeks, currentWeekNumber]
+  );
+
+  // Get tasks for current week as DailyTask format
+  const currentWeekTasks: DailyTask[] = useMemo(() => {
+    return subGoals
+      .filter((sg) => (sg.metadata?.weekNumber ?? 1) === currentWeekNumber)
+      .map((sg) => ({
+        id: sg.id,
+        title: sg.title,
+        completed: sg.status === 'completed',
+        estimatedMinutes: sg.estimatedMinutes ?? 30,
+        scheduledDate: sg.metadata?.scheduledDate ?? null,
+        type: 'study' as const,
+        dayNumber: sg.metadata?.dayNumber ?? 1,
+      }));
+  }, [subGoals, currentWeekNumber]);
+
+  // Handle task toggle
+  const handleTaskToggle = async (taskId: string, completed: boolean) => {
+    if (!onTaskToggle) {
+      // Default implementation: call API directly
+      setUpdatingTaskId(taskId);
+      try {
+        const res = await fetch(`/api/sam/agentic/goals/${goalId}/subgoals/${taskId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: completed ? 'completed' : 'pending',
+            completedAt: completed ? new Date().toISOString() : null,
+          }),
+        });
+
+        if (res.ok) {
+          // Dispatch event for other components to refresh
+          window.dispatchEvent(new CustomEvent('study-plan-task-updated'));
+          // Trigger refresh
+          onRefresh?.();
+        }
+      } catch (error) {
+        console.error('Failed to toggle task:', error);
+      } finally {
+        setUpdatingTaskId(null);
+      }
+    } else {
+      setUpdatingTaskId(taskId);
+      try {
+        await onTaskToggle(taskId, completed);
+      } finally {
+        setUpdatingTaskId(null);
+      }
+    }
+  };
 
   return (
     <Card
@@ -266,6 +328,19 @@ export function StudyPlanDashboard({
             </div>
           </div>
         </div>
+
+        {/* Current Week Panel - Shows daily tasks for current week */}
+        {currentWeek && currentWeekTasks.length > 0 && (
+          <div className="mt-4">
+            <CurrentWeekPanel
+              week={currentWeek}
+              tasks={currentWeekTasks}
+              onTaskToggle={handleTaskToggle}
+              isUpdating={updatingTaskId}
+              defaultExpanded={false}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

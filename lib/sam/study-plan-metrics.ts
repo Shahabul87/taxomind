@@ -489,6 +489,29 @@ export function isStudyPlan(metadata?: GoalMetadata): boolean {
 }
 
 /**
+ * Check if a goal is a study plan based on metadata and/or subGoals
+ * More robust detection that checks subGoals for week structure
+ */
+export function isStudyPlanGoal(
+  metadata?: GoalMetadata,
+  subGoals?: SubGoalData[]
+): boolean {
+  // Check metadata first
+  if (metadata?.planType === 'study_plan') return true;
+  if ((metadata?.totalWeeks ?? 0) > 0) return true;
+
+  // Check if subGoals have week structure
+  if (subGoals && subGoals.length > 0) {
+    const hasWeekStructure = subGoals.some(
+      (sg) => sg.metadata?.weekNumber !== undefined && sg.metadata.weekNumber > 0
+    );
+    if (hasWeekStructure) return true;
+  }
+
+  return false;
+}
+
+/**
  * Format hours for display (e.g., "12h" or "12.5h")
  */
 export function formatHours(hours: number): string {
