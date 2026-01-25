@@ -477,120 +477,124 @@ function SkillOverviewCard({
         {/* Subtle decorative gradient background */}
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/20 via-emerald-50/15 to-teal-50/20 dark:from-cyan-500/5 dark:via-emerald-500/3 dark:to-teal-500/5" />
 
-        <CardHeader className="relative pb-6">
-          <div className="flex items-center gap-4">
+        <CardHeader className="relative pb-3 sm:pb-4 md:pb-6 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6">
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 5 }}
-              className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 shadow-lg shadow-cyan-500/30 dark:shadow-cyan-500/20"
+              className="p-2 sm:p-2.5 md:p-3 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 shadow-lg shadow-cyan-500/30 dark:shadow-cyan-500/20 flex-shrink-0"
             >
-              <GraduationCap className="w-6 h-6 text-white" />
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
             </motion.div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Skill Profile Overview</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">Your comprehensive learning journey</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-white truncate">Skill Profile Overview</h3>
+              <p className="text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1 truncate">Your comprehensive learning journey</p>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="relative">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Enhanced Progress Ring */}
-            <div className="flex flex-col items-center justify-center py-4">
+        <CardContent className="relative px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
+          {/* Mobile: Stack vertically, Tablet+: Grid layout */}
+          <div className="flex flex-col gap-4 sm:gap-5 md:gap-6 lg:grid lg:grid-cols-3 lg:gap-8">
+            {/* Progress Ring - Centered on mobile */}
+            <div className="flex flex-col items-center justify-center py-2 sm:py-3 md:py-4 order-1 lg:order-none">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 transition={{ type: "spring", stiffness: 300 }}
+                className="scale-75 sm:scale-90 md:scale-100"
               >
                 <ProgressRing progress={averageScore} />
               </motion.div>
-              <p className="mt-4 text-sm font-semibold text-slate-700 dark:text-slate-300">Average Mastery</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Across all skills</p>
+              <p className="mt-2 sm:mt-3 md:mt-4 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Average Mastery</p>
+              <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1">Across all skills</p>
             </div>
 
-            {/* Enhanced Stats Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Stats Grid - 2x2 on all sizes */}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 order-2 lg:order-none">
               <motion.div
                 whileHover={{ y: -2 }}
-                className="p-5 rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-500/10 dark:to-cyan-500/5 border border-cyan-200/50 dark:border-cyan-500/20 transition-all hover:shadow-md hover:border-cyan-300 dark:hover:border-cyan-500/30"
+                className="p-2.5 sm:p-3 md:p-4 lg:p-5 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-500/10 dark:to-cyan-500/5 border border-cyan-200/50 dark:border-cyan-500/20 transition-all hover:shadow-md hover:border-cyan-300 dark:hover:border-cyan-500/30"
               >
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="p-2 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20">
-                    <Layers className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 mb-1.5 sm:mb-2 md:mb-3">
+                  <div className="p-1 sm:p-1.5 md:p-2 rounded-md sm:rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20">
+                    <Layers className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-cyan-600 dark:text-cyan-400" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Total Skills</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide truncate">Skills</span>
                 </div>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white">{totalSkills}</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{totalSkills}</p>
               </motion.div>
 
               <motion.div
                 whileHover={{ y: -2 }}
-                className="p-5 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-500/10 dark:to-orange-500/5 border border-orange-200/50 dark:border-orange-500/20 transition-all hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/30"
+                className="p-2.5 sm:p-3 md:p-4 lg:p-5 rounded-lg sm:rounded-xl bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-500/10 dark:to-orange-500/5 border border-orange-200/50 dark:border-orange-500/20 transition-all hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/30"
               >
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="p-2 rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
-                    <Flame className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 mb-1.5 sm:mb-2 md:mb-3">
+                  <div className="p-1 sm:p-1.5 md:p-2 rounded-md sm:rounded-lg bg-orange-500/10 dark:bg-orange-500/20">
+                    <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Streak</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide truncate">Streak</span>
                 </div>
-                <p className="text-3xl font-bold text-slate-900 dark:text-white">{currentStreak}<span className="text-lg font-semibold text-slate-500 dark:text-slate-400 ml-1">days</span></p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">{currentStreak}<span className="text-sm sm:text-base md:text-lg font-semibold text-slate-500 dark:text-slate-400 ml-0.5 sm:ml-1">d</span></p>
               </motion.div>
 
               <motion.div
                 whileHover={{ y: -2 }}
-                className="p-5 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 border border-emerald-200/50 dark:border-emerald-500/20 transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500/30"
+                className="p-2.5 sm:p-3 md:p-4 lg:p-5 rounded-lg sm:rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 border border-emerald-200/50 dark:border-emerald-500/20 transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500/30"
               >
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20">
-                    <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 mb-1.5 sm:mb-2 md:mb-3">
+                  <div className="p-1 sm:p-1.5 md:p-2 rounded-md sm:rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20">
+                    <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Velocity</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide truncate">Velocity</span>
                 </div>
-                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">+12%</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-emerald-600 dark:text-emerald-400">+12%</p>
               </motion.div>
 
               <motion.div
                 whileHover={{ y: -2 }}
-                className="p-5 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/10 dark:to-amber-500/5 border border-amber-200/50 dark:border-amber-500/20 transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-500/30"
+                className="p-2.5 sm:p-3 md:p-4 lg:p-5 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-500/10 dark:to-amber-500/5 border border-amber-200/50 dark:border-amber-500/20 transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-500/30"
               >
-                <div className="flex items-center gap-2.5 mb-3">
-                  <div className="p-2 rounded-lg bg-amber-500/10 dark:bg-amber-500/20">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 mb-1.5 sm:mb-2 md:mb-3">
+                  <div className="p-1 sm:p-1.5 md:p-2 rounded-md sm:rounded-lg bg-amber-500/10 dark:bg-amber-500/20">
+                    <AlertTriangle className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">At Risk</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide truncate">At Risk</span>
                 </div>
-                <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{atRiskCount}</p>
+                <p className="text-xl sm:text-2xl md:text-3xl font-bold text-amber-600 dark:text-amber-400">{atRiskCount}</p>
               </motion.div>
             </div>
 
-            {/* Enhanced Level Distribution */}
-            <div className="space-y-3 py-2">
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-4">Level Distribution</p>
-              {Object.entries(LEVEL_CONFIG).map(([level, config]) => {
-                const count = levelDistribution[level as ProficiencyLevel] || 0;
-                const percentage = totalSkills > 0 ? (count / totalSkills) * 100 : 0;
+            {/* Level Distribution - Collapsible on mobile via scrollable */}
+            <div className="space-y-2 sm:space-y-2.5 md:space-y-3 py-1 sm:py-2 order-3 lg:order-none">
+              <p className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 sm:mb-3 md:mb-4">Level Distribution</p>
+              <div className="max-h-32 sm:max-h-40 md:max-h-none overflow-y-auto space-y-1.5 sm:space-y-2 md:space-y-3 pr-1">
+                {Object.entries(LEVEL_CONFIG).map(([level, config]) => {
+                  const count = levelDistribution[level as ProficiencyLevel] || 0;
+                  const percentage = totalSkills > 0 ? (count / totalSkills) * 100 : 0;
 
-                return (
-                  <motion.div
-                    key={level}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 + Object.keys(LEVEL_CONFIG).indexOf(level) * 0.05 }}
-                    className="group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={cn('text-xs font-semibold w-24 truncate', config.color)}>{config.label}</span>
-                      <div className="flex-1 h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
-                        <motion.div
-                          className={cn('h-full rounded-full bg-gradient-to-r shadow-sm', config.gradient)}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ delay: 0.7, duration: 1, ease: "easeOut" }}
-                        />
+                  return (
+                    <motion.div
+                      key={level}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 + Object.keys(LEVEL_CONFIG).indexOf(level) * 0.05 }}
+                      className="group"
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 md:gap-3">
+                        <span className={cn('text-[10px] sm:text-xs font-semibold w-16 sm:w-20 md:w-24 truncate', config.color)}>{config.label}</span>
+                        <div className="flex-1 h-1.5 sm:h-2 md:h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                          <motion.div
+                            className={cn('h-full rounded-full bg-gradient-to-r shadow-sm', config.gradient)}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ delay: 0.7, duration: 1, ease: "easeOut" }}
+                          />
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-bold text-slate-600 dark:text-slate-400 w-5 sm:w-6 md:w-8 text-right">{count}</span>
                       </div>
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400 w-8 text-right">{count}</span>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -601,6 +605,7 @@ function SkillOverviewCard({
 
 /**
  * Individual Skill Card with enterprise light/dark mode design
+ * Optimized for mobile with touch-friendly targets
  */
 function SkillCard({
   profile,
@@ -617,89 +622,92 @@ function SkillCard({
   const CategoryIcon = categoryConfig.icon;
 
   const velocityIcon = {
-    ACCELERATING: <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
-    STEADY: <Activity className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />,
-    SLOWING: <TrendingDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
-    STAGNANT: <CircleDot className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />,
-    DECLINING: <TrendingDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />,
+    ACCELERATING: <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-600 dark:text-emerald-400" />,
+    STEADY: <Activity className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-600 dark:text-cyan-400" />,
+    SLOWING: <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400" />,
+    STAGNANT: <CircleDot className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 dark:text-slate-500" />,
+    DECLINING: <TrendingDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-600 dark:text-rose-400" />,
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.4 }}
-      whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.2 } }}
+      transition={{ delay: index * 0.03, duration: 0.3 }}
+      whileHover={{ y: -4, scale: 1.01, transition: { duration: 0.2 } }}
+      whileTap={{ scale: 0.98 }}
       className="group"
     >
       <Card className={cn(
-        'relative overflow-hidden border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-all duration-300 shadow-md',
-        'hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-xl hover:shadow-cyan-500/10',
-        profile.decayRisk === 'CRITICAL' && 'border-rose-400 dark:border-rose-500 ring-2 ring-rose-200 dark:ring-rose-500/20 shadow-rose-500/20',
-        profile.decayRisk === 'HIGH' && 'border-orange-400 dark:border-orange-500 ring-2 ring-orange-200 dark:ring-orange-500/20 shadow-orange-500/20'
+        'relative overflow-hidden border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 transition-all duration-300 shadow-sm sm:shadow-md',
+        'hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg sm:hover:shadow-xl hover:shadow-cyan-500/10',
+        profile.decayRisk === 'CRITICAL' && 'border-rose-400 dark:border-rose-500 ring-1 sm:ring-2 ring-rose-200 dark:ring-rose-500/20 shadow-rose-500/20',
+        profile.decayRisk === 'HIGH' && 'border-orange-400 dark:border-orange-500 ring-1 sm:ring-2 ring-orange-200 dark:ring-orange-500/20 shadow-orange-500/20'
       )}>
         {/* Subtle glow effect on hover */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-cyan-50/30 dark:from-cyan-500/5 via-transparent to-emerald-50/30 dark:to-emerald-500/5" />
 
-        <CardContent className="relative p-5">
-          {/* Enhanced Header */}
-          <div className="flex items-start justify-between mb-4">
+        <CardContent className="relative p-2.5 sm:p-3 md:p-4 lg:p-5">
+          {/* Compact Header for mobile */}
+          <div className="flex items-start justify-between mb-2 sm:mb-3 md:mb-4 gap-1.5 sm:gap-2">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2.5 mb-2">
-                <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100 truncate">{profile.skillName}</h3>
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2.5 mb-1.5 sm:mb-2">
+                <h3 className="font-bold text-sm sm:text-base md:text-lg text-slate-900 dark:text-slate-100 truncate">{profile.skillName}</h3>
                 {profile.decayRisk !== 'LOW' && (
                   <motion.div
                     animate={profile.decayRisk === 'CRITICAL' ? { scale: [1, 1.2, 1] } : {}}
                     transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="flex-shrink-0"
                   >
-                    <AlertTriangle className={cn('w-5 h-5 flex-shrink-0', decayConfig.color)} />
+                    <AlertTriangle className={cn('w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5', decayConfig.color)} />
                   </motion.div>
                 )}
               </div>
-              <Badge variant="outline" className={cn('text-xs border-2 font-semibold px-2 py-0.5', categoryConfig.color)}>
-                <CategoryIcon className="w-3.5 h-3.5 mr-1.5" />
-                {categoryConfig.label}
+              <Badge variant="outline" className={cn('text-[10px] sm:text-xs border sm:border-2 font-semibold px-1 sm:px-1.5 md:px-2 py-0.5', categoryConfig.color)}>
+                <CategoryIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 mr-0.5 sm:mr-1 md:mr-1.5" />
+                <span className="hidden xs:inline">{categoryConfig.label}</span>
+                <span className="xs:hidden">{categoryConfig.label.slice(0, 4)}</span>
               </Badge>
             </div>
             <motion.div
               whileHover={{ scale: 1.1 }}
-              className="flex items-center gap-1 ml-2 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800"
+              className="flex items-center gap-1 ml-1 sm:ml-2 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-100 dark:bg-slate-800 flex-shrink-0"
             >
               {velocityIcon[profile.velocityTrend]}
             </motion.div>
           </div>
 
-          {/* Enhanced Score & Level */}
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <div className="flex items-baseline gap-1.5 mb-2">
-                <span className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-emerald-600 dark:from-cyan-400 dark:to-emerald-400 bg-clip-text text-transparent">
+          {/* Score & Level - Compact on mobile */}
+          <div className="flex items-center justify-between mb-2 sm:mb-3 md:mb-4 gap-2 sm:gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-0.5 sm:gap-1 md:gap-1.5 mb-1 sm:mb-2">
+                <span className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-600 to-emerald-600 dark:from-cyan-400 dark:to-emerald-400 bg-clip-text text-transparent">
                   {Math.round(profile.compositeScore)}
                 </span>
-                <span className="text-sm text-slate-400 dark:text-slate-500 font-medium">/100</span>
+                <span className="text-[10px] sm:text-xs md:text-sm text-slate-400 dark:text-slate-500 font-medium">/100</span>
               </div>
-              <Badge className={cn('bg-gradient-to-r text-white text-xs font-semibold shadow-md px-3 py-1', levelConfig.gradient)}>
+              <Badge className={cn('bg-gradient-to-r text-white text-[10px] sm:text-xs font-semibold shadow-sm sm:shadow-md px-1.5 sm:px-2 md:px-3 py-0.5', levelConfig.gradient)}>
                 {levelConfig.label}
               </Badge>
             </div>
-            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+            <div className="p-1 sm:p-1.5 md:p-2 rounded-md sm:rounded-lg bg-slate-50 dark:bg-slate-800/50 flex-shrink-0 hidden xs:block">
               <DimensionBars dimensions={profile.dimensions} />
             </div>
           </div>
 
-          {/* Enhanced Progress bar */}
-          <div className="mb-4">
-            <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-2">
-              <span className="font-semibold">{(() => {
+          {/* Progress bar - Simplified on mobile */}
+          <div className="mb-2 sm:mb-3 md:mb-4">
+            <div className="flex justify-between text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mb-1 sm:mb-2">
+              <span className="font-medium sm:font-semibold truncate">{(() => {
                 const next = getNextLevel(profile.proficiencyLevel);
-                return next ? `To ${LEVEL_CONFIG[next].label}` : 'Max Level';
+                return next ? `To ${LEVEL_CONFIG[next].label}` : 'Max';
               })()}</span>
-              <span className="font-bold text-cyan-600 dark:text-cyan-400">{getProgressToNextLevel(profile.compositeScore, profile.proficiencyLevel)}%</span>
+              <span className="font-bold text-cyan-600 dark:text-cyan-400 ml-1">{getProgressToNextLevel(profile.compositeScore, profile.proficiencyLevel)}%</span>
             </div>
             <div className="relative">
               <Progress
                 value={getProgressToNextLevel(profile.compositeScore, profile.proficiencyLevel)}
-                className="h-2 bg-slate-100 dark:bg-slate-800 shadow-inner"
+                className="h-1.5 sm:h-2 bg-slate-100 dark:bg-slate-800 shadow-inner"
               />
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full opacity-20"
@@ -710,28 +718,29 @@ function SkillCard({
             </div>
           </div>
 
-          {/* Enhanced Footer */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800">
-                <Clock className="w-4 h-4" />
-                <span className="font-semibold">{profile.daysUntilReview}d</span>
+          {/* Footer - Touch-friendly on mobile */}
+          <div className="flex items-center justify-between pt-1.5 sm:pt-2 border-t border-slate-100 dark:border-slate-800 gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4 text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 flex-1 min-w-0">
+              <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 rounded-md bg-slate-100 dark:bg-slate-800">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+                <span className="font-semibold whitespace-nowrap">{profile.daysUntilReview}d</span>
               </div>
               {profile.streak > 0 && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-orange-100 dark:bg-orange-500/20">
-                  <Flame className="w-4 h-4 text-orange-500" />
-                  <span className="font-semibold">{profile.streak}</span>
+                <div className="flex items-center gap-0.5 sm:gap-1 md:gap-1.5 px-1 sm:px-1.5 md:px-2 py-0.5 sm:py-1 rounded-md bg-orange-100 dark:bg-orange-500/20">
+                  <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-orange-500 flex-shrink-0" />
+                  <span className="font-semibold whitespace-nowrap">{profile.streak}</span>
                 </div>
               )}
             </div>
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 px-4 text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-white hover:bg-gradient-to-r hover:from-cyan-500 hover:to-emerald-500 transition-all duration-200"
+              className="h-7 sm:h-8 px-2 sm:px-3 md:px-4 text-[10px] sm:text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-white hover:bg-gradient-to-r hover:from-cyan-500 hover:to-emerald-500 transition-all duration-200 flex-shrink-0 touch-manipulation"
               onClick={() => onPractice(profile.skillId)}
             >
-              <Play className="w-3.5 h-3.5 mr-1.5" />
-              Practice
+              <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-0.5 sm:mr-1 md:mr-1.5" />
+              <span className="hidden sm:inline">Practice</span>
+              <span className="sm:hidden">Go</span>
             </Button>
           </div>
         </CardContent>
@@ -742,6 +751,7 @@ function SkillCard({
 
 /**
  * Decay Alert Panel with enterprise light/dark mode design
+ * Optimized for mobile with compact layout
  */
 function DecayAlertPanel({
   atRiskProfiles,
@@ -757,16 +767,16 @@ function DecayAlertPanel({
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.3 }}
       >
-        <Card className="border-emerald-300 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 shadow-lg">
-          <CardContent className="p-8 text-center">
+        <Card className="border-emerald-300 dark:border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 shadow-md sm:shadow-lg">
+          <CardContent className="p-4 sm:p-5 md:p-6 lg:p-8 text-center">
             <motion.div
               whileHover={{ scale: 1.1 }}
-              className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-500/30 flex items-center justify-center"
+              className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 mx-auto mb-3 sm:mb-4 md:mb-5 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-500 shadow-lg shadow-emerald-500/30 flex items-center justify-center"
             >
-              <Shield className="w-8 h-8 text-white" />
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 text-white" />
             </motion.div>
-            <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mb-2">All Skills Protected</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">No skills at risk of decay. Keep up the great work! 🎉</p>
+            <h3 className="text-base sm:text-lg md:text-xl font-bold text-emerald-700 dark:text-emerald-400 mb-1 sm:mb-2">All Skills Protected</h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">No skills at risk of decay. Keep up the great work!</p>
           </CardContent>
         </Card>
       </motion.div>
@@ -779,21 +789,21 @@ function DecayAlertPanel({
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.3 }}
     >
-      <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-lg">
+      <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-md sm:shadow-lg">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-50/20 dark:from-amber-500/5 via-transparent to-rose-50/20 dark:to-rose-500/5" />
 
-        <CardHeader className="relative pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <CardHeader className="relative pb-2 sm:pb-3 md:pb-4 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6">
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0">
               <motion.div
                 whileHover={{ scale: 1.1, rotate: 5 }}
-                className="p-3 rounded-xl bg-gradient-to-br from-amber-400 to-rose-400 shadow-lg shadow-amber-500/30"
+                className="p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg md:rounded-xl bg-gradient-to-br from-amber-400 to-rose-400 shadow-lg shadow-amber-500/30 flex-shrink-0"
               >
-                <AlertTriangle className="w-6 h-6 text-white" />
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
               </motion.div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Decay Alerts</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-900 dark:text-white truncate">Decay Alerts</h3>
+                <p className="text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1">
                   {atRiskProfiles.length} skill{atRiskProfiles.length > 1 ? 's' : ''} need attention
                 </p>
               </div>
@@ -801,7 +811,7 @@ function DecayAlertPanel({
           </div>
         </CardHeader>
 
-        <CardContent className="relative space-y-3">
+        <CardContent className="relative space-y-1.5 sm:space-y-2 md:space-y-3 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 max-h-48 sm:max-h-64 md:max-h-80 lg:max-h-none overflow-y-auto">
           <AnimatePresence>
             {atRiskProfiles.map((profile, index) => {
               const decayConfig = DECAY_CONFIG[profile.decayRisk];
@@ -813,50 +823,52 @@ function DecayAlertPanel({
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02, x: 4 }}
+                  whileHover={{ scale: 1.01, x: 2 }}
+                  whileTap={{ scale: 0.98 }}
                   className={cn(
-                    'flex items-center justify-between p-4 rounded-xl border-2 shadow-md',
+                    'flex flex-col xs:flex-row items-start xs:items-center justify-between p-2 sm:p-3 md:p-4 rounded-lg sm:rounded-xl border sm:border-2 shadow-sm sm:shadow-md gap-2 sm:gap-3',
                     decayConfig.bgColor,
                     decayConfig.borderColor,
-                    profile.decayRisk === 'CRITICAL' && 'ring-2 ring-rose-300 dark:ring-rose-500/30'
+                    profile.decayRisk === 'CRITICAL' && 'ring-1 sm:ring-2 ring-rose-300 dark:ring-rose-500/30'
                   )}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-1 min-w-0 w-full xs:w-auto">
                     <motion.div
                       animate={profile.decayRisk === 'CRITICAL' ? { scale: [1, 1.1, 1] } : {}}
                       transition={{ repeat: Infinity, duration: 2 }}
                       className={cn(
-                        'w-12 h-12 rounded-xl flex items-center justify-center shadow-md',
+                        'w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-md sm:rounded-lg md:rounded-xl flex items-center justify-center shadow-sm sm:shadow-md flex-shrink-0',
                         profile.decayRisk === 'CRITICAL' ? 'bg-gradient-to-br from-rose-400 to-rose-500' : 'bg-gradient-to-br from-amber-400 to-amber-500'
                       )}
                     >
                       {profile.decayRisk === 'CRITICAL' ? (
-                        <AlertTriangle className="w-6 h-6 text-white" />
+                        <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
                       ) : (
-                        <Clock className="w-6 h-6 text-white" />
+                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
                       )}
                     </motion.div>
-                    <div>
-                      <p className="font-bold text-slate-900 dark:text-white">{profile.skillName}</p>
-                      <p className={cn('text-xs font-semibold mt-0.5', decayConfig.color)}>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-xs sm:text-sm md:text-base text-slate-900 dark:text-white truncate">{profile.skillName}</p>
+                      <p className={cn('text-[10px] sm:text-xs font-semibold mt-0.5', decayConfig.color)}>
                         {profile.daysUntilReview === 0
-                          ? '⚠️ Review overdue!'
-                          : `Review in ${profile.daysUntilReview} day${profile.daysUntilReview > 1 ? 's' : ''}`}
+                          ? 'Review overdue!'
+                          : `Review in ${profile.daysUntilReview}d`}
                       </p>
                     </div>
                   </div>
                   <Button
                     size="sm"
                     className={cn(
-                      'h-9 px-4 font-semibold shadow-lg hover:shadow-xl transition-all',
+                      'h-7 sm:h-8 md:h-9 px-2 sm:px-3 md:px-4 text-[10px] sm:text-xs md:text-sm font-semibold shadow-md sm:shadow-lg hover:shadow-xl transition-all w-full xs:w-auto touch-manipulation',
                       profile.decayRisk === 'CRITICAL'
                         ? 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white'
                         : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white'
                     )}
                     onClick={() => onStartReview(profile.skillId)}
                   >
-                    <Play className="w-4 h-4 mr-1.5" />
-                    Review
+                    <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 mr-0.5 sm:mr-1 md:mr-1.5" />
+                    <span className="hidden xs:inline">Review</span>
+                    <span className="xs:hidden">Go</span>
                   </Button>
                 </motion.div>
               );
@@ -870,6 +882,7 @@ function DecayAlertPanel({
 
 /**
  * Learning Roadmap Timeline with enterprise light/dark mode design
+ * Optimized for mobile with compact timeline view
  */
 function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
   return (
@@ -878,38 +891,38 @@ function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
     >
-      <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-lg">
+      <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden shadow-md sm:shadow-lg">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-50/20 dark:from-violet-500/5 via-transparent to-cyan-50/20 dark:to-cyan-500/5" />
 
-        <CardHeader className="relative pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <CardHeader className="relative pb-2 sm:pb-3 md:pb-4 px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 md:pt-6">
+          <div className="flex items-start sm:items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0">
               <motion.div
                 whileHover={{ scale: 1.1, rotate: -5 }}
-                className="p-3 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 shadow-lg shadow-violet-500/30"
+                className="p-1.5 sm:p-2 md:p-3 rounded-md sm:rounded-lg md:rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 shadow-lg shadow-violet-500/30 flex-shrink-0"
               >
-                <Rocket className="w-6 h-6 text-white" />
+                <Rocket className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
               </motion.div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">{roadmap.title}</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  {roadmap.remainingHours}h remaining &bull; Target: {roadmap.targetDate?.toLocaleDateString()}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-900 dark:text-white truncate">{roadmap.title}</h3>
+                <p className="text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1 line-clamp-1">
+                  {roadmap.remainingHours}h left • {roadmap.targetDate?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-3xl font-bold bg-gradient-to-r from-violet-600 via-cyan-600 to-teal-600 dark:from-violet-400 dark:via-cyan-400 dark:to-teal-400 bg-clip-text text-transparent">
+            <div className="text-right flex-shrink-0">
+              <span className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-violet-600 via-cyan-600 to-teal-600 dark:from-violet-400 dark:via-cyan-400 dark:to-teal-400 bg-clip-text text-transparent">
                 {roadmap.completionPercentage}%
               </span>
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Complete</p>
+              <p className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Done</p>
             </div>
           </div>
         </CardHeader>
 
-        <CardContent className="relative">
-          {/* Enhanced Progress bar */}
-          <div className="mb-8">
-            <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+        <CardContent className="relative px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6">
+          {/* Progress bar */}
+          <div className="mb-3 sm:mb-4 md:mb-6 lg:mb-8">
+            <div className="h-2 sm:h-2.5 md:h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
               <motion.div
                 className="h-full bg-gradient-to-r from-violet-500 via-cyan-500 to-teal-500 rounded-full shadow-lg"
                 initial={{ width: 0 }}
@@ -917,18 +930,18 @@ function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
                 transition={{ duration: 1.2, delay: 0.5, ease: "easeOut" }}
               />
             </div>
-            <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-2">
-              <span className="font-medium">{roadmap.completionPercentage}% complete</span>
-              <span className="font-medium">{roadmap.remainingHours}h remaining</span>
+            <div className="flex justify-between text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 sm:mt-2">
+              <span className="font-medium">{roadmap.completionPercentage}%</span>
+              <span className="font-medium">{roadmap.remainingHours}h left</span>
             </div>
           </div>
 
-          {/* Timeline */}
-          <div className="relative">
+          {/* Timeline - Scrollable on mobile */}
+          <div className="relative max-h-48 sm:max-h-64 md:max-h-80 lg:max-h-none overflow-y-auto pr-1">
             {/* Timeline line */}
-            <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
+            <div className="absolute left-3 sm:left-4 md:left-5 top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700" />
 
-            <div className="space-y-4">
+            <div className="space-y-2 sm:space-y-3 md:space-y-4">
               {roadmap.milestones.map((milestone, index) => {
                 const isCompleted = milestone.status === 'COMPLETED';
                 const isInProgress = milestone.status === 'IN_PROGRESS';
@@ -940,73 +953,75 @@ function RoadmapTimeline({ roadmap }: { roadmap: Roadmap }) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.6 + index * 0.1 }}
-                    className="relative flex gap-4"
+                    className="relative flex gap-2 sm:gap-3 md:gap-4"
                   >
-                    {/* Enhanced Timeline dot */}
+                    {/* Timeline dot - Compact on mobile */}
                     <motion.div
                       whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
                       className={cn(
-                        'relative z-10 w-12 h-12 rounded-xl flex items-center justify-center border-2 shadow-lg',
+                        'relative z-10 w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 rounded-md sm:rounded-lg md:rounded-xl flex items-center justify-center border sm:border-2 shadow-md sm:shadow-lg flex-shrink-0',
                         isCompleted && 'bg-gradient-to-br from-emerald-400 to-emerald-500 border-emerald-500 dark:border-emerald-400 shadow-emerald-500/30',
                         isInProgress && 'bg-gradient-to-br from-cyan-400 to-cyan-500 border-cyan-500 dark:border-cyan-400 shadow-cyan-500/30',
                         !isCompleted && !isInProgress && 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600'
                       )}
                     >
                       {isCompleted ? (
-                        <Check className="w-6 h-6 text-white" />
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
                       ) : isInProgress ? (
-                        <Play className="w-6 h-6 text-white" />
+                        <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
                       ) : isLocked ? (
-                        <Shield className="w-6 h-6 text-slate-400 dark:text-slate-500" />
+                        <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-slate-400 dark:text-slate-500" />
                       ) : (
-                        <CircleDot className="w-6 h-6 text-slate-400 dark:text-slate-500" />
+                        <CircleDot className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-slate-400 dark:text-slate-500" />
                       )}
                     </motion.div>
 
-                    {/* Enhanced Milestone content */}
+                    {/* Milestone content - Compact on mobile */}
                     <motion.div
-                      whileHover={{ x: 4 }}
+                      whileHover={{ x: 2 }}
+                      whileTap={{ scale: 0.99 }}
                       className={cn(
-                        'flex-1 p-5 rounded-xl border-2 shadow-md transition-all',
+                        'flex-1 p-2 sm:p-3 md:p-4 lg:p-5 rounded-md sm:rounded-lg md:rounded-xl border sm:border-2 shadow-sm sm:shadow-md transition-all',
                         isCompleted && 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 border-emerald-300 dark:border-emerald-500/30',
                         isInProgress && 'bg-gradient-to-br from-cyan-50 to-cyan-100/50 dark:from-cyan-500/10 dark:to-cyan-500/5 border-cyan-300 dark:border-cyan-500/30',
                         !isCompleted && !isInProgress && 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50',
                         isLocked && 'opacity-60'
                       )}
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                      <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-1 sm:gap-2">
+                        <div className="flex-1 min-w-0">
                           <h4 className={cn(
-                            'font-bold text-base',
+                            'font-bold text-xs sm:text-sm md:text-base truncate',
                             isCompleted && 'text-emerald-700 dark:text-emerald-400',
                             isInProgress && 'text-cyan-700 dark:text-cyan-400',
                             !isCompleted && !isInProgress && 'text-slate-700 dark:text-slate-300'
                           )}>
                             {milestone.title}
                           </h4>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{milestone.description}</p>
+                          <p className="text-[10px] sm:text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1 line-clamp-2">{milestone.description}</p>
                         </div>
                         {milestone.targetDate && (
-                          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 whitespace-nowrap">
-                            {milestone.targetDate.toLocaleDateString()}
+                          <span className="text-[9px] sm:text-[10px] md:text-xs font-semibold text-slate-500 dark:text-slate-400 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-slate-100 dark:bg-slate-800 whitespace-nowrap self-start flex-shrink-0">
+                            {milestone.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </span>
                         )}
                       </div>
 
-                      {/* Enhanced Skills */}
-                      <div className="flex flex-wrap gap-2 mt-4">
+                      {/* Skills - Horizontal scroll on mobile */}
+                      <div className="flex flex-nowrap sm:flex-wrap gap-1 sm:gap-1.5 md:gap-2 mt-2 sm:mt-3 md:mt-4 overflow-x-auto pb-1 -mx-1 px-1">
                         {milestone.skills.map((skill) => (
                           <Badge
                             key={skill.name}
                             variant="outline"
                             className={cn(
-                              'text-xs font-semibold px-2 py-1 border-2',
+                              'text-[9px] sm:text-[10px] md:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 border sm:border-2 whitespace-nowrap flex-shrink-0',
                               isCompleted && 'border-emerald-400 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10',
                               isInProgress && 'border-cyan-400 dark:border-cyan-500/40 text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10',
                               !isCompleted && !isInProgress && 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400'
                             )}
                           >
-                            {skill.name} &rarr; {LEVEL_CONFIG[skill.targetLevel].label}
+                            {skill.name} → {LEVEL_CONFIG[skill.targetLevel].label}
                           </Badge>
                         ))}
                       </div>
@@ -1067,17 +1082,17 @@ function PracticeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 sm:max-w-md">
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 dark:from-cyan-500/5 via-transparent to-emerald-50/50 dark:to-emerald-500/5 rounded-lg" />
+      <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-[calc(100%-2rem)] max-w-md mx-auto rounded-xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/50 dark:from-cyan-500/5 via-transparent to-emerald-50/50 dark:to-emerald-500/5 rounded-xl sm:rounded-2xl" />
 
         <DialogHeader className="relative">
-          <DialogTitle className="flex items-center gap-3 text-slate-900 dark:text-slate-100">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-100 to-emerald-100 dark:from-cyan-500/20 dark:to-emerald-500/20 shadow-sm">
-              <Timer className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+          <DialogTitle className="flex items-center gap-2 sm:gap-3 text-slate-900 dark:text-slate-100 text-base sm:text-lg">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-cyan-100 to-emerald-100 dark:from-cyan-500/20 dark:to-emerald-500/20 shadow-sm">
+              <Timer className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 dark:text-cyan-400" />
             </div>
             Log Practice Session
           </DialogTitle>
-          <DialogDescription className="text-slate-500 dark:text-slate-400">
+          <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
             Record your practice to track progress and prevent skill decay.
           </DialogDescription>
         </DialogHeader>
@@ -1166,18 +1181,18 @@ function PracticeModal({
           </div>
         </div>
 
-        <DialogFooter className="relative">
+        <DialogFooter className="relative flex-col-reverse sm:flex-row gap-2 sm:gap-0">
           <Button
             variant="ghost"
             onClick={onClose}
-            className="text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="w-full sm:w-auto text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-10 sm:h-9 text-sm"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!skillId || isSubmitting}
-            className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 shadow-sm"
+            className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 shadow-sm h-10 sm:h-9 text-sm touch-manipulation"
           >
             {isSubmitting ? (
               <>
@@ -1185,13 +1200,13 @@ function PracticeModal({
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                 >
-                  <Timer className="w-4 h-4 mr-2" />
+                  <Timer className="w-4 h-4 mr-1.5 sm:mr-2" />
                 </motion.div>
                 Saving...
               </>
             ) : (
               <>
-                <Check className="w-4 h-4 mr-2" />
+                <Check className="w-4 h-4 mr-1.5 sm:mr-2" />
                 Log Practice
               </>
             )}
@@ -1262,31 +1277,31 @@ function ReviewSessionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 sm:max-w-md">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 dark:from-violet-500/5 via-transparent to-amber-50/50 dark:to-amber-500/5 rounded-lg" />
+      <DialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-[calc(100%-2rem)] max-w-md mx-auto rounded-xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-50/50 dark:from-violet-500/5 via-transparent to-amber-50/50 dark:to-amber-500/5 rounded-xl sm:rounded-2xl" />
 
         <DialogHeader className="relative">
-          <DialogTitle className="flex items-center gap-3 text-slate-900 dark:text-slate-100">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-violet-100 to-amber-100 dark:from-violet-500/20 dark:to-amber-500/20 shadow-sm">
-              <Brain className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+          <DialogTitle className="flex items-center gap-2 sm:gap-3 text-slate-900 dark:text-slate-100 text-base sm:text-lg">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-violet-100 to-amber-100 dark:from-violet-500/20 dark:to-amber-500/20 shadow-sm">
+              <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />
             </div>
             Review Session
           </DialogTitle>
-          <DialogDescription className="text-slate-500 dark:text-slate-400">
+          <DialogDescription className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
             Rate your recall to optimize your learning schedule.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative space-y-5 py-4">
+        <div className="relative space-y-3 sm:space-y-4 md:space-y-5 py-3 sm:py-4">
           {/* Skill Being Reviewed */}
-          <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Reviewing</p>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{skillName}</h3>
+          <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-0.5 sm:mb-1">Reviewing</p>
+                <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{skillName}</h3>
               </div>
               <Badge className={cn(
-                'px-3 py-1 text-xs font-semibold',
+                'px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold flex-shrink-0',
                 LEVEL_CONFIG[skillLevel].bgColor,
                 LEVEL_CONFIG[skillLevel].color
               )}>
@@ -1296,17 +1311,17 @@ function ReviewSessionModal({
           </div>
 
           {/* Confidence Rating */}
-          <div className="space-y-3">
-            <Label className="text-slate-700 dark:text-slate-300 font-medium">
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-slate-700 dark:text-slate-300 font-medium text-xs sm:text-sm">
               Confidence Level
             </Label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {[1, 2, 3, 4, 5].map((level) => (
                 <button
                   key={level}
                   onClick={() => setConfidence(level)}
                   className={cn(
-                    'flex-1 py-3 rounded-lg border-2 transition-all duration-200 font-medium text-sm',
+                    'flex-1 py-2.5 sm:py-3 rounded-md sm:rounded-lg border sm:border-2 transition-all duration-200 font-medium text-xs sm:text-sm touch-manipulation',
                     confidence === level
                       ? 'border-violet-500 bg-violet-50 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 shadow-sm'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400'
@@ -1316,69 +1331,69 @@ function ReviewSessionModal({
                 </button>
               ))}
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-              {confidence === 1 && 'Very unsure - need to study more'}
-              {confidence === 2 && 'Somewhat unsure - gaps in knowledge'}
-              {confidence === 3 && 'Neutral - know the basics'}
-              {confidence === 4 && 'Confident - solid understanding'}
-              {confidence === 5 && 'Very confident - mastered this'}
+            <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 text-center">
+              {confidence === 1 && 'Very unsure - need more study'}
+              {confidence === 2 && 'Somewhat unsure - gaps exist'}
+              {confidence === 3 && 'Neutral - know basics'}
+              {confidence === 4 && 'Confident - solid grasp'}
+              {confidence === 5 && 'Very confident - mastered'}
             </p>
           </div>
 
           {/* Quality Rating */}
-          <div className="space-y-3">
-            <Label className="text-slate-700 dark:text-slate-300 font-medium">
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-slate-700 dark:text-slate-300 font-medium text-xs sm:text-sm">
               How was your recall?
             </Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {qualityOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => setQuality(option.value)}
                   className={cn(
-                    'p-3 rounded-xl border-2 transition-all duration-200 text-left',
+                    'p-2 sm:p-3 rounded-lg sm:rounded-xl border sm:border-2 transition-all duration-200 text-left touch-manipulation',
                     quality === option.value
                       ? 'border-slate-900 dark:border-slate-100 bg-slate-50 dark:bg-slate-800 shadow-sm'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   )}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className={cn('w-2 h-2 rounded-full', option.color)} />
-                    <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">{option.label}</span>
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1">
+                    <div className={cn('w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full', option.color)} />
+                    <span className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{option.label}</span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{option.description}</p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Next: {option.interval}</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{option.description}</p>
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 sm:mt-1">Next: {option.interval}</p>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="review-notes" className="text-slate-700 dark:text-slate-300 font-medium">Notes (optional)</Label>
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label htmlFor="review-notes" className="text-slate-700 dark:text-slate-300 font-medium text-xs sm:text-sm">Notes (optional)</Label>
             <Textarea
               id="review-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 resize-none"
+              className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 resize-none text-sm"
               placeholder="Any insights from this review?"
               rows={2}
             />
           </div>
         </div>
 
-        <DialogFooter className="relative">
+        <DialogFooter className="relative flex-col-reverse sm:flex-row gap-2 sm:gap-0">
           <Button
             variant="ghost"
             onClick={() => handleOpenChange(false)}
-            className="text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="w-full sm:w-auto text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-10 sm:h-9 text-sm"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="bg-gradient-to-r from-violet-500 to-amber-500 text-white hover:from-violet-600 hover:to-amber-600 shadow-sm"
+            className="w-full sm:w-auto bg-gradient-to-r from-violet-500 to-amber-500 text-white hover:from-violet-600 hover:to-amber-600 shadow-sm h-10 sm:h-9 text-sm touch-manipulation"
           >
             {isSubmitting ? (
               <>
@@ -1386,14 +1401,15 @@ function ReviewSessionModal({
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                 >
-                  <Brain className="w-4 h-4 mr-2" />
+                  <Brain className="w-4 h-4 mr-1.5 sm:mr-2" />
                 </motion.div>
                 Saving...
               </>
             ) : (
               <>
-                <Check className="w-4 h-4 mr-2" />
-                Complete Review
+                <Check className="w-4 h-4 mr-1.5 sm:mr-2" />
+                <span className="hidden xs:inline">Complete Review</span>
+                <span className="xs:hidden">Submit</span>
               </>
             )}
           </Button>
@@ -1519,31 +1535,31 @@ export default function SkillBuildTracker({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-cyan-50/20 dark:from-slate-950 dark:via-emerald-950/10 dark:to-cyan-950/10 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-cyan-50/20 dark:from-slate-950 dark:via-emerald-950/10 dark:to-cyan-950/10 p-2 sm:p-3 md:p-4 lg:p-6 xl:p-8">
       {/* Enhanced background with animated gradient */}
       <div className="fixed inset-0 bg-gradient-to-br from-cyan-50/40 via-emerald-50/30 to-teal-50/40 dark:from-cyan-950/30 dark:via-emerald-950/20 dark:to-teal-950/30 pointer-events-none" />
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(6,182,212,0.1),transparent_50%)] dark:bg-[radial-gradient(circle_at_30%_20%,rgba(6,182,212,0.05),transparent_50%)] pointer-events-none" />
 
-      <div className="relative max-w-7xl mx-auto space-y-8">
-        {/* Enhanced Header */}
+      <div className="relative max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6 lg:space-y-8">
+        {/* Mobile-first Enhanced Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-2"
+          className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between pb-1 sm:pb-2"
         >
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 shadow-lg shadow-cyan-500/20 dark:shadow-cyan-500/10">
-                <Brain className="w-6 h-6 text-white" />
+          <div className="space-y-1 sm:space-y-2 flex-1 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 md:p-3 rounded-lg sm:rounded-xl md:rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 shadow-lg shadow-cyan-500/20 dark:shadow-cyan-500/10 flex-shrink-0">
+                <Brain className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight">
                   <span className="bg-gradient-to-r from-cyan-600 via-emerald-600 to-teal-600 dark:from-cyan-400 dark:via-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">
                     Skill Development
                   </span>
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm sm:text-base font-medium">
+                <p className="text-slate-600 dark:text-slate-400 mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm lg:text-base font-medium line-clamp-1 sm:line-clamp-none">
                   Track, practice, and master your skills with AI-powered insights
                 </p>
               </div>
@@ -1553,14 +1569,16 @@ export default function SkillBuildTracker({
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
+            className="w-full md:w-auto"
           >
             <Button
               onClick={() => setIsPracticeModalOpen(true)}
-              size="lg"
-              className="bg-gradient-to-r from-cyan-500 via-emerald-500 to-teal-500 text-white hover:from-cyan-600 hover:via-emerald-600 hover:to-teal-600 shadow-lg shadow-cyan-500/30 dark:shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105"
+              size="default"
+              className="w-full md:w-auto h-9 sm:h-10 md:h-11 px-3 sm:px-4 md:px-6 bg-gradient-to-r from-cyan-500 via-emerald-500 to-teal-500 text-white hover:from-cyan-600 hover:via-emerald-600 hover:to-teal-600 shadow-lg shadow-cyan-500/30 dark:shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-[1.02] text-xs sm:text-sm md:text-base font-medium"
             >
-              <Play className="w-5 h-5 mr-2" />
-              Log Practice Session
+              <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 mr-1.5 sm:mr-2" />
+              <span className="hidden sm:inline">Log Practice Session</span>
+              <span className="sm:hidden">Log Practice</span>
             </Button>
           </motion.div>
         </motion.div>
@@ -1574,27 +1592,28 @@ export default function SkillBuildTracker({
           levelDistribution={levelDistribution}
         />
 
-        {/* Enhanced Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Enhanced Skills Grid */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Mobile-first Main Grid - Single column on mobile, 3-col on desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+          {/* Skills Grid - Full width on mobile, 2/3 on desktop */}
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4 md:space-y-6 order-2 lg:order-1">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800"
+              className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 gap-2 sm:gap-3"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-cyan-500 to-emerald-500">
-                  <Code className="w-5 h-5 text-white" />
+              <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-1 min-w-0">
+                <div className="p-1 sm:p-1.5 md:p-2 rounded-md sm:rounded-lg bg-gradient-to-br from-cyan-500 to-emerald-500 flex-shrink-0">
+                  <Code className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Your Skills</h2>
+                <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-slate-900 dark:text-white truncate">Your Skills</h2>
               </div>
-              <Badge variant="outline" className="border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-3 py-1">
+              <Badge variant="outline" className="border sm:border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs md:text-sm flex-shrink-0">
                 {profiles.length} {profiles.length === 1 ? 'skill' : 'skills'}
               </Badge>
             </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Skills cards - 1 col on mobile, 2 on tablet+ */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4 lg:gap-5">
               {profiles.map((profile, index) => (
                 <SkillCard
                   key={profile.id}
@@ -1606,15 +1625,15 @@ export default function SkillBuildTracker({
             </div>
           </div>
 
-          {/* Enhanced Sidebar */}
-          <div className="space-y-6">
-            {/* Decay Alerts */}
+          {/* Sidebar - Show at top on mobile (alerts first), sidebar on desktop */}
+          <div className="space-y-3 sm:space-y-4 md:space-y-6 order-1 lg:order-2">
+            {/* Decay Alerts - Priority on mobile */}
             <DecayAlertPanel
               atRiskProfiles={atRiskProfiles}
               onStartReview={handleStartReview}
             />
 
-            {/* Roadmap */}
+            {/* Roadmap - Collapsible feel on mobile */}
             {roadmap && <RoadmapTimeline roadmap={roadmap} />}
           </div>
         </div>

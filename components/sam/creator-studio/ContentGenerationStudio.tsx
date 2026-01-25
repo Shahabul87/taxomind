@@ -416,27 +416,27 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
 
   return (
     <Card className={cn("", className)}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg">
-              <Wand2 className="h-6 w-6" />
+      <CardHeader className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg">
+              <Wand2 className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <CardTitle className="text-xl">Content Generation Studio</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Content Generation Studio</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Create courses, assessments, exercises, and translations with AI
               </CardDescription>
             </div>
           </div>
-          <Badge variant="secondary" className="bg-violet-100 text-violet-700">
+          <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs shrink-0">
             <Sparkles className="h-3 w-3 mr-1" />
             Premium Feature
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
         {/* Generation Progress */}
         <AnimatePresence>
           {isGenerating && (
@@ -444,11 +444,11 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="p-4 rounded-lg bg-violet-50 border border-violet-200"
+              className="p-3 sm:p-4 rounded-lg bg-violet-50 border border-violet-200"
             >
-              <div className="flex items-center gap-3 mb-2">
-                <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
-                <span className="text-sm font-medium text-violet-700">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-violet-600 shrink-0" />
+                <span className="text-xs sm:text-sm font-medium text-violet-700">
                   Generating content with SAM AI...
                 </span>
               </div>
@@ -460,55 +460,56 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 w-full">
-            <TabsTrigger value="course" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Course</span>
+          <TabsList className="grid grid-cols-4 w-full h-auto">
+            <TabsTrigger value="course" className="gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3 py-2">
+              <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Course</span>
             </TabsTrigger>
-            <TabsTrigger value="assessment" className="gap-2">
-              <FileQuestion className="h-4 w-4" />
-              <span className="hidden sm:inline">Assessment</span>
+            <TabsTrigger value="assessment" className="gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3 py-2">
+              <FileQuestion className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Assessment</span>
             </TabsTrigger>
-            <TabsTrigger value="exercise" className="gap-2">
-              <Code className="h-4 w-4" />
-              <span className="hidden sm:inline">Exercises</span>
+            <TabsTrigger value="exercise" className="gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3 py-2">
+              <Code className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Exercises</span>
             </TabsTrigger>
-            <TabsTrigger value="translate" className="gap-2">
-              <Languages className="h-4 w-4" />
-              <span className="hidden sm:inline">Translate</span>
+            <TabsTrigger value="translate" className="gap-1 sm:gap-2 text-xs sm:text-sm px-1 sm:px-3 py-2">
+              <Languages className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Translate</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Course Generation Tab */}
-          <TabsContent value="course" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Learning Objectives</h4>
-                <Button variant="outline" size="sm" onClick={addObjective}>
-                  <Plus className="h-4 w-4 mr-1" />
+          <TabsContent value="course" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <h4 className="text-sm sm:text-base font-medium">Learning Objectives</h4>
+                <Button variant="outline" size="sm" onClick={addObjective} className="w-full sm:w-auto text-xs sm:text-sm">
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                   Add Objective
                 </Button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {objectives.map((obj, index) => (
-                  <div key={obj.id} className="p-3 rounded-lg border bg-slate-50/50 space-y-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-sm font-medium text-slate-500 mt-2">
+                  <div key={obj.id} className="p-2.5 sm:p-3 rounded-lg border bg-slate-50/50 space-y-2 sm:space-y-3">
+                    <div className="flex items-start gap-1.5 sm:gap-2">
+                      <span className="text-xs sm:text-sm font-medium text-slate-500 mt-2 shrink-0">
                         {index + 1}.
                       </span>
-                      <div className="flex-1 space-y-2">
+                      <div className="flex-1 space-y-2 min-w-0">
                         <Input
                           placeholder="Enter learning objective..."
                           value={obj.objective}
                           onChange={(e) => updateObjective(obj.id, "objective", e.target.value)}
+                          className="text-xs sm:text-sm"
                         />
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                           <Select
                             value={obj.bloomsLevel}
                             onValueChange={(value) => updateObjective(obj.id, "bloomsLevel", value)}
                           >
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-full sm:w-[180px] text-xs sm:text-sm">
                               <SelectValue placeholder="Bloom&apos;s Level" />
                             </SelectTrigger>
                             <SelectContent>
@@ -529,7 +530,7 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                                 e.target.value.split(",").map((s) => s.trim())
                               )
                             }
-                            className="flex-1"
+                            className="flex-1 text-xs sm:text-sm"
                           />
                         </div>
                       </div>
@@ -538,9 +539,9 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                           variant="ghost"
                           size="sm"
                           onClick={() => removeObjective(obj.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="text-red-500 hover:text-red-700 shrink-0"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       )}
                     </div>
@@ -549,15 +550,15 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
               </div>
 
               {/* Advanced Options */}
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="w-full justify-between"
+                  className="w-full justify-between text-xs sm:text-sm"
                 >
                   <span>Advanced Options</span>
-                  {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {showAdvanced ? <ChevronUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <ChevronDown className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                 </Button>
 
                 <AnimatePresence>
@@ -566,9 +567,9 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="space-y-4 p-4 rounded-lg border bg-slate-50/50"
+                      className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-lg border bg-slate-50/50"
                     >
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-2">
                           <Label>Content Style</Label>
                           <Select
@@ -623,7 +624,7 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                         />
                       </div>
 
-                      <div className="flex flex-wrap gap-4">
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
                         <div className="flex items-center gap-2">
                           <Switch
                             checked={courseConfig.includeExamples}
@@ -631,7 +632,7 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                               setCourseConfig((prev) => ({ ...prev, includeExamples: checked }))
                             }
                           />
-                          <Label>Include Examples</Label>
+                          <Label className="text-xs sm:text-sm">Include Examples</Label>
                         </div>
                         <div className="flex items-center gap-2">
                           <Switch
@@ -640,7 +641,7 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                               setCourseConfig((prev) => ({ ...prev, includeActivities: checked }))
                             }
                           />
-                          <Label>Include Activities</Label>
+                          <Label className="text-xs sm:text-sm">Include Activities</Label>
                         </div>
                         <div className="flex items-center gap-2">
                           <Switch
@@ -649,7 +650,7 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                               setCourseConfig((prev) => ({ ...prev, includeVisuals: checked }))
                             }
                           />
-                          <Label>Include Visuals</Label>
+                          <Label className="text-xs sm:text-sm">Include Visuals</Label>
                         </div>
                       </div>
                     </motion.div>
@@ -660,12 +661,12 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
               <Button
                 onClick={handleGenerateCourse}
                 disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-xs sm:text-sm"
               >
                 {isGenerating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                 ) : (
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 )}
                 Generate Course Content
               </Button>
@@ -673,16 +674,17 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
           </TabsContent>
 
           {/* Assessment Generation Tab */}
-          <TabsContent value="assessment" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Assessment Topics</h4>
+          <TabsContent value="assessment" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <h4 className="text-sm sm:text-base font-medium">Assessment Topics</h4>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setAssessmentTopics((prev) => [...prev, ""])}
+                  className="w-full sm:w-auto text-xs sm:text-sm"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                   Add Topic
                 </Button>
               </div>
@@ -698,6 +700,7 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                           prev.map((t, i) => (i === index ? e.target.value : t))
                         )
                       }
+                      className="text-xs sm:text-sm"
                     />
                     {assessmentTopics.length > 1 && (
                       <Button
@@ -706,16 +709,16 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                         onClick={() =>
                           setAssessmentTopics((prev) => prev.filter((_, i) => i !== index))
                         }
-                        className="text-red-500"
+                        className="text-red-500 shrink-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </Button>
                     )}
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
                   <Label>Assessment Type</Label>
                   <Select value={assessmentType} onValueChange={setAssessmentType}>
@@ -747,12 +750,12 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
               <Button
                 onClick={handleGenerateAssessments}
                 disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-xs sm:text-sm"
               >
                 {isGenerating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                 ) : (
-                  <FileQuestion className="h-4 w-4 mr-2" />
+                  <FileQuestion className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 )}
                 Generate Assessment
               </Button>
@@ -760,16 +763,17 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
           </TabsContent>
 
           {/* Exercise Generation Tab */}
-          <TabsContent value="exercise" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Concepts to Practice</h4>
+          <TabsContent value="exercise" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <h4 className="text-sm sm:text-base font-medium">Concepts to Practice</h4>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setExerciseConcepts((prev) => [...prev, ""])}
+                  className="w-full sm:w-auto text-xs sm:text-sm"
                 >
-                  <Plus className="h-4 w-4 mr-1" />
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                   Add Concept
                 </Button>
               </div>
@@ -821,12 +825,12 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
               <Button
                 onClick={handleGenerateExercises}
                 disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-xs sm:text-sm"
               >
                 {isGenerating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                 ) : (
-                  <Code className="h-4 w-4 mr-2" />
+                  <Code className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 )}
                 Generate Exercises
               </Button>
@@ -834,21 +838,22 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
           </TabsContent>
 
           {/* Translation Tab */}
-          <TabsContent value="translate" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Content Title</Label>
+          <TabsContent value="translate" className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-xs sm:text-sm">Content Title</Label>
                 <Input
                   placeholder="Enter content title..."
                   value={translateContent.title}
                   onChange={(e) =>
                     setTranslateContent((prev) => ({ ...prev, title: e.target.value }))
                   }
+                  className="text-xs sm:text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Content Body</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-xs sm:text-sm">Content Body</Label>
                 <Textarea
                   placeholder="Enter content to translate..."
                   value={translateContent.body}
@@ -856,13 +861,14 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
                     setTranslateContent((prev) => ({ ...prev, body: e.target.value }))
                   }
                   rows={6}
+                  className="text-xs sm:text-sm"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Target Language</Label>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label className="text-xs sm:text-sm">Target Language</Label>
                 <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                  <SelectTrigger>
+                  <SelectTrigger className="text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -881,12 +887,12 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
               <Button
                 onClick={handleTranslateContent}
                 disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700"
+                className="w-full bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-xs sm:text-sm"
               >
                 {isGenerating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                 ) : (
-                  <Languages className="h-4 w-4 mr-2" />
+                  <Languages className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 )}
                 Translate Content
               </Button>
@@ -896,39 +902,40 @@ export function ContentGenerationStudio({ className, compact = false }: ContentG
 
         {/* Generated Content History */}
         {generatedContent.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="font-medium flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-sm sm:text-base font-medium flex items-center gap-1.5 sm:gap-2">
+              <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 shrink-0" />
               Generated Content ({generatedContent.length})
             </h4>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {generatedContent.map((content) => (
                 <div
                   key={content.id}
-                  className="p-3 rounded-lg border bg-white flex items-center justify-between"
+                  className="p-2.5 sm:p-3 rounded-lg border bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="capitalize">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                    <Badge variant="outline" className="capitalize text-xs shrink-0">
                       {content.type}
                     </Badge>
-                    <div>
-                      <p className="font-medium text-sm">{content.title}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-xs sm:text-sm truncate">{content.title}</p>
                       <p className="text-xs text-slate-500">
                         Quality: {Math.round(content.quality * 100)}% •{" "}
                         {content.createdAt.toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => copyToClipboard(content.content)}
+                      className="h-8 w-8 p-0"
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => downloadContent(content)}>
-                      <Download className="h-4 w-4" />
+                    <Button variant="ghost" size="sm" onClick={() => downloadContent(content)} className="h-8 w-8 p-0">
+                      <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>

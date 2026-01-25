@@ -83,13 +83,13 @@ export function AchievementsWidget({
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/20">
-              <Trophy className="w-5 h-5 text-white" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/20">
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
                 Achievements
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -102,17 +102,18 @@ export function AchievementsWidget({
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 flex items-center gap-1 font-medium"
+              className="text-xs sm:text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 flex items-center gap-1 font-medium"
             >
-              View All
-              <ChevronRight className="w-4 h-4" />
+              <span className="hidden xs:inline">View All</span>
+              <span className="xs:hidden">All</span>
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </motion.button>
           </Link>
         </div>
 
         {/* Category Filter */}
         {showCategories && (
-          <div className="flex gap-2 mb-5 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-5 overflow-x-auto pb-2 scrollbar-hide -mx-1 sm:mx-0 px-1 sm:px-0">
             <CategoryPill
               label="All"
               active={selectedCategory === "all"}
@@ -131,7 +132,7 @@ export function AchievementsWidget({
         )}
 
         {/* Achievement Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
           <AnimatePresence mode="popLayout">
             {displayAchievements.map((userAchievement, index) => (
               <AchievementCard
@@ -183,13 +184,13 @@ function CategoryPill({
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1.5",
+        "px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex items-center gap-1 sm:gap-1.5 shrink-0",
         active
           ? "bg-amber-500 text-white shadow-lg shadow-amber-500/25"
           : "bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-300"
       )}
     >
-      {IconComponent && <IconComponent className="w-3 h-3" />}
+      {IconComponent && <IconComponent className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
       {label}
     </motion.button>
   );
@@ -245,10 +246,10 @@ function AchievementCard({
       />
 
       {/* Icon */}
-      <div className="flex items-center justify-center mb-3">
+      <div className="flex items-center justify-center mb-2 sm:mb-3">
         <div
           className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-transform",
+            "w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl transition-transform",
             achievement.isUnlocked
               ? "bg-gradient-to-br from-amber-100 dark:from-amber-500/20 to-orange-100 dark:to-orange-500/20"
               : "bg-slate-100 dark:bg-slate-800/50 grayscale"
@@ -257,7 +258,7 @@ function AchievementCard({
           {achievement.isUnlocked ? (
             <span>{achievement.achievement?.icon || "🏆"}</span>
           ) : (
-            <Lock className="w-5 h-5 text-slate-400 dark:text-slate-600" />
+            <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 dark:text-slate-600" />
           )}
         </div>
       </div>

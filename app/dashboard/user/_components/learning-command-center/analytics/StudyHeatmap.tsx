@@ -165,16 +165,16 @@ function StatsCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-3 rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50"
+      className="flex items-center gap-2 sm:gap-3 rounded-lg bg-slate-50 p-2 sm:p-3 dark:bg-slate-800/50"
     >
-      <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg', color)}>
-        <Icon className="h-5 w-5 text-white" />
+      <div className={cn('flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg shrink-0', color)}>
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
       </div>
-      <div>
-        <p className="text-lg font-bold text-slate-900 dark:text-white">{value}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">{value}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{label}</p>
         {subValue && (
-          <p className="text-xs text-slate-400 dark:text-slate-500">{subValue}</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{subValue}</p>
         )}
       </div>
     </motion.div>
@@ -273,44 +273,44 @@ export function StudyHeatmap({
   if (compact) {
     return (
       <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-            <Calendar className="h-5 w-5 text-emerald-500" />
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+          <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 shrink-0" />
             Study Activity
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0">
           {isLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+            <div className="flex items-center justify-center py-4 sm:py-6">
+              <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin text-emerald-500" />
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 dark:from-emerald-950/30 dark:to-teal-950/30">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                    <Flame className="h-5 w-5 text-orange-500" />
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 sm:p-4 dark:from-emerald-950/30 dark:to-teal-950/30">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30 shrink-0">
+                    <Flame className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                       {data.stats.currentStreak}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">day streak</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                    <Clock className="h-5 w-5 text-blue-500" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 shrink-0">
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                       {data.stats.totalStudyHours}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">hours</p>
                   </div>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="w-full text-sm hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+              <Button variant="outline" size="sm" className="w-full text-xs sm:text-sm hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
                 View Full Activity
               </Button>
             </div>
@@ -322,35 +322,35 @@ export function StudyHeatmap({
 
   return (
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-            <Calendar className="h-5 w-5 text-emerald-500" />
-            Study Activity - {year}
+      <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-500 shrink-0" />
+            <span className="truncate">Study Activity - {year}</span>
           </CardTitle>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
               onClick={() => setYear(year - 1)}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
               onClick={() => setYear(year + 1)}
               disabled={year >= new Date().getFullYear()}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
         {/* Heatmap Grid */}
         <div className="overflow-x-auto">
           <div className="min-w-[750px]">
@@ -444,7 +444,7 @@ export function StudyHeatmap({
 
         {/* Stats Grid */}
         {showStats && (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4">
             <StatsCard
               icon={Clock}
               label="Total Hours"
@@ -481,10 +481,10 @@ export function StudyHeatmap({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 p-3 dark:from-emerald-950/30 dark:to-teal-950/30"
+          className="flex items-center justify-center gap-1.5 sm:gap-2 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 p-2.5 sm:p-3 dark:from-emerald-950/30 dark:to-teal-950/30"
         >
-          <Trophy className="h-4 w-4 text-emerald-600" />
-          <span className="text-sm text-slate-600 dark:text-slate-300">
+          <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 shrink-0" />
+          <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 text-center">
             Your peak productivity time is{' '}
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
               {data.stats.bestStudyTime}

@@ -188,16 +188,16 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
   return (
     <div className={cn('space-y-6 sm:space-y-8', className)}>
       {/* Header - Responsive stacking on mobile */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 shadow-lg">
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between pb-4 sm:pb-6 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 shadow-lg">
+            <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
               Learning Gap Analysis
             </h1>
-            <p className="mt-2 text-base font-medium text-slate-600 dark:text-slate-300">
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base font-medium text-slate-600 dark:text-slate-300">
               Identify and close knowledge gaps with AI-powered insights
             </p>
           </div>
@@ -207,10 +207,10 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
           size="sm"
           onClick={refresh}
           disabled={isLoading}
-          className="self-start sm:self-auto"
+          className="self-start sm:self-auto text-xs sm:text-sm"
         >
           <RefreshCw
-            className={cn('mr-2 h-4 w-4', isLoading && 'animate-spin')}
+            className={cn('mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4', isLoading && 'animate-spin')}
           />
           Refresh
         </Button>
@@ -249,23 +249,24 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
 
       {/* Gap Detail Modal */}
       <Dialog open={isGapModalOpen} onOpenChange={setIsGapModalOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           {selectedGap && (
             <>
               <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <DialogTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg">
                     <AlertTriangle className={cn(
-                      'h-5 w-5',
+                      'h-4 w-4 sm:h-5 sm:w-5',
                       selectedGap.severity === 'critical' && 'text-red-500',
                       selectedGap.severity === 'moderate' && 'text-yellow-500',
                       selectedGap.severity === 'minor' && 'text-blue-500'
                     )} />
-                    {selectedGap.skillName}
+                    <span className="truncate">{selectedGap.skillName}</span>
                   </DialogTitle>
                   <Badge
                     variant="outline"
                     className={cn(
+                      'text-xs shrink-0',
                       selectedGap.severity === 'critical' && 'border-red-500/30 text-red-600',
                       selectedGap.severity === 'moderate' && 'border-yellow-500/30 text-yellow-600',
                       selectedGap.severity === 'minor' && 'border-blue-500/30 text-blue-600'
@@ -274,12 +275,12 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
                     {selectedGap.severity}
                   </Badge>
                 </div>
-                <DialogDescription>
+                <DialogDescription className="text-xs sm:text-sm">
                   {selectedGap.topicName && `Topic: ${selectedGap.topicName}`}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-4 pt-4">
+              <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4">
                 {/* Mastery Progress */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
@@ -314,19 +315,19 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
                 {/* Suggested Actions */}
                 {selectedGap.suggestedActions.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Suggested Actions</h4>
+                    <h4 className="text-xs sm:text-sm font-medium">Suggested Actions</h4>
                     <div className="space-y-2">
                       {selectedGap.suggestedActions.map((action) => (
                         <div
                           key={action.id}
-                          className="flex items-center justify-between rounded-lg border p-3"
+                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 rounded-lg border p-2.5 sm:p-3"
                         >
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">{action.title}</p>
+                          <div className="space-y-1 flex-1 min-w-0">
+                            <p className="text-xs sm:text-sm font-medium">{action.title}</p>
                             {action.description && (
-                              <p className="text-xs text-muted-foreground">{action.description}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">{action.description}</p>
                             )}
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground flex-wrap">
                               <span>{action.estimatedTime} min</span>
                               <span>•</span>
                               <span className="capitalize">{action.priority} priority</span>
@@ -336,6 +337,7 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleStartGapAction(action)}
+                            className="w-full sm:w-auto text-xs sm:text-sm"
                           >
                             {action.resourceUrl ? (
                               <>
@@ -356,17 +358,17 @@ export function LearningGapDashboard({ className }: LearningGapDashboardProps) {
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
                   <Button
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                     onClick={() => setIsGapModalOpen(false)}
                   >
                     Close
                   </Button>
                   <Button
                     variant="default"
-                    className="flex-1"
+                    className="flex-1 text-xs sm:text-sm"
                     onClick={() => handleResolveGap(selectedGap.id)}
                   >
                     Mark as Resolved

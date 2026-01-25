@@ -153,15 +153,15 @@ export function CoursePlansList({
     return (
       <div className={cn('space-y-4', className)}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50">
-              <BookOpen className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                 Course Creation Plans
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                 Loading your course plans...
               </p>
             </div>
@@ -220,23 +220,23 @@ export function CoursePlansList({
         </div>
 
         <Card className="border-dashed border-2 border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 flex items-center justify-center mb-4">
-              <Lightbulb className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+          <CardContent className="p-6 sm:p-8 text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 flex items-center justify-center mb-3 sm:mb-4">
+              <Lightbulb className="w-6 h-6 sm:w-8 sm:h-8 text-amber-600 dark:text-amber-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-2">
               No Course Plans Yet
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 max-w-sm mx-auto">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mb-4 sm:mb-6 max-w-sm mx-auto">
               Planning to create a course? Start by outlining your course idea,
               schedule, and learning goals to stay organized.
             </p>
             {onCreatePlan && (
               <Button
                 onClick={onCreatePlan}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-xs sm:text-sm"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                 Create Course Plan
               </Button>
             )}
@@ -250,16 +250,16 @@ export function CoursePlansList({
   return (
     <div className={cn('space-y-4', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50">
-            <BookOpen className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50">
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
               Course Creation Plans
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {plans.length} {plans.length === 1 ? 'plan' : 'plans'}
             </p>
           </div>
@@ -269,9 +269,9 @@ export function CoursePlansList({
           <Button
             onClick={onCreatePlan}
             size="sm"
-            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+            className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-xs sm:text-sm"
           >
-            <Plus className="w-4 h-4 mr-1" />
+            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
             New Plan
           </Button>
         )}

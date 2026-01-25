@@ -35,10 +35,40 @@ function mapChannelToDb(channel) {
 // ============================================================================
 export class PrismaPushQueueStore {
     prisma;
+    // Cache to prevent excessive queries when queue is empty
+    lastEmptyCheck = null;
+    cachedPendingCount = 0;
+    EMPTY_CACHE_TTL_MS = 5000; // 5 seconds
     constructor(config) {
         this.prisma = config.prisma;
     }
+    /**
+     * Check if we should skip the query based on recent empty result
+     */
+    shouldSkipQuery() {
+        if (!this.lastEmptyCheck)
+            return false;
+        if (this.cachedPendingCount > 0)
+            return false;
+        const elapsed = Date.now() - this.lastEmptyCheck.getTime();
+        return elapsed < this.EMPTY_CACHE_TTL_MS;
+    }
+    /**
+     * Update the empty cache after a query
+     */
+    updateEmptyCache(count) {
+        this.lastEmptyCheck = new Date();
+        this.cachedPendingCount = count;
+    }
+    /**
+     * Invalidate the cache (call after enqueue)
+     */
+    invalidateCache() {
+        this.cachedPendingCount = 1; // Assume there's at least one item
+    }
     async enqueue(request) {
+        // Set a default far-future expiry if not provided (avoids NULL in queries)
+        const expiresAt = request.expiresAt || new Date(Date.now() + 86400000 * 365); // 1 year default
         await this.prisma.sAMPushQueue.create({
             data: {
                 id: request.id,
@@ -60,19 +90,28 @@ export class PrismaPushQueueStore {
                 attempts: 0,
                 maxAttempts: 3,
                 queuedAt: new Date(),
-                expiresAt: request.expiresAt || null,
+                expiresAt,
                 metadata: request.metadata || null,
             },
         });
+        // Invalidate cache since we added an item
+        this.invalidateCache();
     }
     async dequeue(count) {
-        // Get pending items sorted by priority and queue time
+        // Skip query if we recently found the queue empty
+        if (this.shouldSkipQuery()) {
+            return [];
+        }
+        const now = new Date();
+        // Optimized query: use simple comparison (expiresAt > now)
+        // This works because enqueue now always sets expiresAt
+        // For backwards compatibility, we also accept NULL expiresAt
         const records = await this.prisma.sAMPushQueue.findMany({
             where: {
                 status: 'PENDING',
                 OR: [
                     { expiresAt: null },
-                    { expiresAt: { gt: new Date() } },
+                    { expiresAt: { gt: now } },
                 ],
             },
             orderBy: [
@@ -81,6 +120,8 @@ export class PrismaPushQueueStore {
             ],
             take: count,
         });
+        // Update cache based on result
+        this.updateEmptyCache(records.length);
         if (records.length === 0) {
             return [];
         }
@@ -90,18 +131,23 @@ export class PrismaPushQueueStore {
             where: { id: { in: ids } },
             data: {
                 status: 'PROCESSING',
-                processingAt: new Date(),
+                processingAt: now,
             },
         });
         return records.map(mapRecordToRequest);
     }
     async peek(count) {
+        // Skip query if we recently found the queue empty
+        if (this.shouldSkipQuery()) {
+            return [];
+        }
+        const now = new Date();
         const records = await this.prisma.sAMPushQueue.findMany({
             where: {
                 status: 'PENDING',
                 OR: [
                     { expiresAt: null },
-                    { expiresAt: { gt: new Date() } },
+                    { expiresAt: { gt: now } },
                 ],
             },
             orderBy: [
@@ -110,6 +156,8 @@ export class PrismaPushQueueStore {
             ],
             take: count,
         });
+        // Update cache based on result
+        this.updateEmptyCache(records.length);
         return records.map(mapRecordToRequest);
     }
     async acknowledge(requestId, result) {

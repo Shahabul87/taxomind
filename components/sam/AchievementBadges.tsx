@@ -202,7 +202,7 @@ function AchievementBadge({
             <div
               className={cn(
                 'relative flex items-center justify-center rounded-full',
-                compact ? 'h-12 w-12' : 'h-16 w-16',
+                compact ? 'h-10 w-10 sm:h-12 sm:w-12' : 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16',
                 rarityConfig.bgColor,
                 achievement.isUnlocked && rarityConfig.glow,
                 achievement.isUnlocked && 'shadow-lg',
@@ -213,14 +213,14 @@ function AchievementBadge({
                 <IconComponent
                   className={cn(
                     rarityConfig.color,
-                    compact ? 'h-6 w-6' : 'h-8 w-8'
+                    compact ? 'h-5 w-5 sm:h-6 sm:w-6' : 'h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8'
                   )}
                 />
               ) : (
                 <Lock
                   className={cn(
                     'text-gray-400',
-                    compact ? 'h-5 w-5' : 'h-6 w-6'
+                    compact ? 'h-4 w-4 sm:h-5 sm:w-5' : 'h-5 w-5 sm:h-6 sm:w-6'
                   )}
                 />
               )}
@@ -328,31 +328,31 @@ function AchievementDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader className="text-center">
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-3 sm:mb-4">
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               className={cn(
-                'flex items-center justify-center h-24 w-24 rounded-full',
+                'flex items-center justify-center h-20 w-20 sm:h-24 sm:w-24 rounded-full',
                 rarityConfig.bgColor,
                 achievement.isUnlocked && rarityConfig.glow,
                 achievement.isUnlocked && 'shadow-xl'
               )}
             >
               {achievement.isUnlocked ? (
-                <IconComponent className={cn('h-12 w-12', rarityConfig.color)} />
+                <IconComponent className={cn('h-10 w-10 sm:h-12 sm:w-12', rarityConfig.color)} />
               ) : (
-                <Lock className="h-10 w-10 text-gray-400" />
+                <Lock className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" />
               )}
             </motion.div>
           </div>
-          <DialogTitle className="text-xl">{achievement.name}</DialogTitle>
-          <DialogDescription>{achievement.description}</DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">{achievement.name}</DialogTitle>
+          <DialogDescription className="text-sm">{achievement.description}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-4">
+        <div className="space-y-3 sm:space-y-4 pt-2 sm:pt-4">
           <div className="flex justify-center gap-2">
             <UIBadge variant="outline" className={rarityConfig.color}>
               {rarityConfig.label}
@@ -460,37 +460,37 @@ export function AchievementBadges({
 
   return (
     <Card className={cn('overflow-hidden', className)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-amber-500" />
-            <CardTitle className="text-base">Achievements</CardTitle>
+            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
+            <CardTitle className="text-sm sm:text-base">Achievements</CardTitle>
           </div>
-          <UIBadge variant="secondary">
+          <UIBadge variant="secondary" className="text-xs">
             {stats.unlocked}/{stats.total}
           </UIBadge>
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm mt-1">
           {stats.totalXp.toLocaleString()} XP earned from badges
         </CardDescription>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-4 sm:p-6 pt-0">
         {isLoading ? (
-          <div className={cn('grid gap-4', compact ? 'grid-cols-6' : 'grid-cols-4')}>
+          <div className={cn('grid gap-3 sm:gap-4', compact ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6')}>
             {[...Array(8)].map((_, i) => (
               <BadgeSkeleton key={i} />
             ))}
           </div>
         ) : filteredAchievements.length === 0 ? (
-          <div className="text-center py-8">
-            <Award className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-            <p className="text-sm text-muted-foreground">
+          <div className="text-center py-6 sm:py-8">
+            <Award className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-2" />
+            <p className="text-xs sm:text-sm text-muted-foreground">
               No achievements yet. Keep learning to earn badges!
             </p>
           </div>
         ) : (
-          <div className={cn('grid gap-2', compact ? 'grid-cols-6' : 'grid-cols-4')}>
+          <div className={cn('grid gap-2 sm:gap-3', compact ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6')}>
             <AnimatePresence>
               {filteredAchievements.map((achievement) => (
                 <AchievementBadge

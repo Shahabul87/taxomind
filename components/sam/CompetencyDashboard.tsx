@@ -178,7 +178,7 @@ function OverallScoreRing({ score }: { score: number }) {
 
   return (
     <div className="relative flex items-center justify-center">
-      <svg className="w-36 h-36 transform -rotate-90" viewBox="0 0 100 100">
+      <svg className="w-24 h-24 sm:w-32 sm:h-32 md:w-36 md:h-36 transform -rotate-90" viewBox="0 0 100 100">
         <defs>
           <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" className={cn('stop-color-current', getGradient(score).split(' ')[0].replace('from-', 'text-'))} />
@@ -209,7 +209,7 @@ function OverallScoreRing({ score }: { score: number }) {
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-3xl font-bold">{score}</span>
+        <span className="text-xl sm:text-2xl md:text-3xl font-bold">{score}</span>
         <span className="text-xs text-muted-foreground">Overall Score</span>
       </div>
     </div>
@@ -259,46 +259,46 @@ function CompetencyCard({
     competency.trend === 'declining' ? 'text-red-500' : 'text-gray-500';
 
   return (
-    <div className="p-4 rounded-xl bg-card border hover:shadow-md transition-all">
-      <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <Award className="w-5 h-5 text-primary" />
+    <div className="p-3 sm:p-4 rounded-xl bg-card border hover:shadow-md transition-all">
+      <div className="flex items-start gap-2 sm:gap-3">
+        <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 shrink-0">
+          <Award className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-sm truncate">{competency.name}</h4>
-            <TrendIcon className={cn('w-4 h-4', trendColor)} />
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+            <h4 className="font-semibold text-xs sm:text-sm truncate">{competency.name}</h4>
+            <TrendIcon className={cn('w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0', trendColor)} />
           </div>
 
-          <p className="text-xs text-muted-foreground mb-3 line-clamp-1">
+          <p className="text-xs text-muted-foreground mb-2 sm:mb-3 line-clamp-1">
             {competency.description}
           </p>
 
           {/* Progress bar */}
           <div className="space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="flex items-center gap-1">
-                <span className={cn('w-2 h-2 rounded-full', currentConfig.color)} />
-                {currentConfig.label}
+              <span className="flex items-center gap-1 truncate">
+                <span className={cn('w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0', currentConfig.color)} />
+                <span className="truncate">{currentConfig.label}</span>
               </span>
-              <span className="text-muted-foreground">→</span>
-              <span className="flex items-center gap-1">
-                {targetConfig.label}
-                <span className={cn('w-2 h-2 rounded-full', targetConfig.color)} />
+              <span className="text-muted-foreground mx-1 shrink-0">→</span>
+              <span className="flex items-center gap-1 truncate">
+                <span className="truncate">{targetConfig.label}</span>
+                <span className={cn('w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0', targetConfig.color)} />
               </span>
             </div>
-            <Progress value={competency.progress} className="h-2" />
+            <Progress value={competency.progress} className="h-1.5 sm:h-2" />
           </div>
 
           {/* Sub-competencies (when expanded) */}
           {expanded && competency.subCompetencies && (
-            <div className="mt-3 pt-3 border-t space-y-2">
+            <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t space-y-2">
               {competency.subCompetencies.map((sub) => (
                 <div key={sub.id} className="flex items-center gap-2">
                   <span className="text-xs flex-1 truncate">{sub.name}</span>
-                  <Progress value={sub.proficiency} className="w-20 h-1.5" />
-                  <span className="text-xs text-muted-foreground w-8 text-right">
+                  <Progress value={sub.proficiency} className="w-16 sm:w-20 h-1 sm:h-1.5" />
+                  <span className="text-xs text-muted-foreground w-6 sm:w-8 text-right shrink-0">
                     {sub.proficiency}%
                   </span>
                 </div>
@@ -307,13 +307,13 @@ function CompetencyCard({
           )}
         </div>
 
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-1.5 sm:gap-2 shrink-0">
           <Badge variant="secondary" className="text-xs">
             {competency.evidenceCount} evidence
           </Badge>
           {competency.subCompetencies && (
-            <Button variant="ghost" size="sm" onClick={onToggle} className="h-6 px-2">
-              {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <Button variant="ghost" size="sm" onClick={onToggle} className="h-6 px-1.5 sm:px-2">
+              {expanded ? <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
             </Button>
           )}
         </div>
@@ -325,21 +325,21 @@ function CompetencyCard({
 function SkillGapCard({ gap }: { gap: SkillGap }) {
   return (
     <div className={cn(
-      'p-3 rounded-lg border',
+      'p-2.5 sm:p-3 rounded-lg border',
       GAP_SEVERITY_COLORS[gap.gapSeverity]
     )}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-medium text-sm">{gap.competencyName}</span>
-        <Badge variant="outline" className="text-xs capitalize">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-2 gap-1.5">
+        <span className="font-medium text-xs sm:text-sm truncate">{gap.competencyName}</span>
+        <Badge variant="outline" className="text-xs capitalize shrink-0">
           {gap.gapSeverity}
         </Badge>
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-        <span>{PROFICIENCY_CONFIG[gap.currentLevel].label}</span>
-        <ArrowRight className="w-3 h-3" />
-        <span>{PROFICIENCY_CONFIG[gap.requiredLevel].label}</span>
-        <span className="ml-auto flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground mb-2">
+        <span className="truncate">{PROFICIENCY_CONFIG[gap.currentLevel].label}</span>
+        <ArrowRight className="w-3 h-3 shrink-0" />
+        <span className="truncate">{PROFICIENCY_CONFIG[gap.requiredLevel].label}</span>
+        <span className="ml-auto flex items-center gap-1 shrink-0">
           <Clock className="w-3 h-3" />
           {gap.estimatedTimeToClose}
         </span>
@@ -359,21 +359,21 @@ function CareerPathCard({ path }: { path: CareerPath }) {
   const Icon = config.icon;
 
   return (
-    <div className="p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border hover:shadow-md transition-all">
-      <div className="flex items-start gap-3">
-        <div className={cn('p-2 rounded-lg bg-background', config.color)}>
-          <Icon className="w-5 h-5" />
+    <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 border hover:shadow-md transition-all">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+        <div className={cn('p-1.5 sm:p-2 rounded-lg bg-background shrink-0', config.color)}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-sm">{path.title}</h4>
+        <div className="flex-1 min-w-0 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+            <h4 className="font-semibold text-xs sm:text-sm truncate">{path.title}</h4>
             {path.demand === 'high' && (
-              <Badge className="bg-green-500/10 text-green-600 text-xs">High demand</Badge>
+              <Badge className="bg-green-500/10 text-green-600 text-xs shrink-0">High demand</Badge>
             )}
           </div>
 
-          <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground mb-2 sm:mb-3">
             <span className="flex items-center gap-1">
               <Target className="w-3 h-3" />
               {path.matchScore}% match
@@ -397,8 +397,8 @@ function CareerPathCard({ path }: { path: CareerPath }) {
           )}
         </div>
 
-        <Button variant="outline" size="sm">
-          <Sparkles className="w-4 h-4 mr-1" />
+        <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+          <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
           Explore
         </Button>
       </div>
@@ -416,25 +416,25 @@ function PortfolioItemCard({ item }: { item: PortfolioItem }) {
   const Icon = typeIcons[item.type];
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-      <div className="p-2 rounded-lg bg-background">
-        <Icon className="w-4 h-4 text-muted-foreground" />
+    <div className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg bg-muted/30">
+      <div className="p-1.5 sm:p-2 rounded-lg bg-background shrink-0">
+        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium truncate">{item.title}</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="text-xs sm:text-sm font-medium truncate">{item.title}</span>
           {item.verified && (
-            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 shrink-0" />
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
           <span className="capitalize">{item.type}</span>
           <span>•</span>
           <span>{new Date(item.date).toLocaleDateString()}</span>
         </div>
       </div>
       {item.impactScore && (
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="text-xs shrink-0">
           {item.impactScore}% impact
         </Badge>
       )}
@@ -541,30 +541,30 @@ export function CompetencyDashboard({
 
   return (
     <Card className={className}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20">
-              <Award className="w-5 h-5 text-blue-600" />
+      <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+              <Award className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
             </div>
             <div>
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Competency Dashboard</CardTitle>
-              <CardDescription>Skills framework &amp; career path analysis</CardDescription>
+              <CardTitle className="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Competency Dashboard</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Skills framework &amp; career path analysis</CardDescription>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={fetchAssessment}>
-            <RefreshCw className="w-4 h-4" />
+          <Button variant="ghost" size="icon" onClick={fetchAssessment} className="h-8 w-8 sm:h-9 sm:w-9">
+            <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0">
         {/* Overview Section */}
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
           <OverallScoreRing score={assessment.overallScore} />
-          <div className="flex-1">
-            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-              <PieChart className="w-4 h-4" />
+          <div className="flex-1 w-full sm:w-auto">
+            <h4 className="text-xs sm:text-sm font-medium mb-2 sm:mb-3 flex items-center gap-2">
+              <PieChart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Level Distribution
             </h4>
             <LevelDistributionChart distribution={assessment.levelDistribution} />
@@ -573,9 +573,9 @@ export function CompetencyDashboard({
 
         {/* Top Competencies */}
         {assessment.topCompetencies.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Star className="w-4 h-4 text-yellow-500" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500" />
               Top Competencies
               <Badge variant="secondary" className="text-xs">
                 {assessment.topCompetencies.length}
@@ -598,9 +598,9 @@ export function CompetencyDashboard({
 
         {/* Skill Gaps */}
         {!compact && assessment.competencyGaps.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-orange-500" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500" />
               Skill Gaps
               <Badge variant="secondary" className="text-xs">
                 {assessment.competencyGaps.length}
@@ -616,9 +616,9 @@ export function CompetencyDashboard({
 
         {/* Career Paths */}
         {assessment.careerPaths.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <GitBranch className="w-4 h-4 text-primary" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <GitBranch className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
               Recommended Career Paths
             </h4>
             <div className="space-y-2">
@@ -631,9 +631,9 @@ export function CompetencyDashboard({
 
         {/* Portfolio */}
         {!compact && assessment.portfolio.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Layers className="w-4 h-4" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Portfolio Highlights
             </h4>
             <div className="space-y-2">
@@ -647,15 +647,15 @@ export function CompetencyDashboard({
         {/* Recommendations */}
         {assessment.recommendations.length > 0 && (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-primary" />
+            <h4 className="text-xs sm:text-sm font-medium flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
               Recommendations
             </h4>
             <div className="space-y-1">
               {assessment.recommendations.slice(0, compact ? 2 : 4).map((rec, i) => (
                 <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-primary/5">
-                  <Zap className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <span className="text-sm">{rec}</span>
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary shrink-0 mt-0.5" />
+                  <span className="text-xs sm:text-sm">{rec}</span>
                 </div>
               ))}
             </div>

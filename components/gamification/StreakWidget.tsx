@@ -95,8 +95,8 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
       <div className="relative z-10">
         {compact ? (
           // Compact Layout
-          <div className="flex items-center gap-4">
-            <div className="relative">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative shrink-0">
               <motion.div
                 animate={{
                   scale: streak.current > 0 ? [1, 1.1, 1] : 1,
@@ -107,7 +107,7 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
                   ease: "easeInOut",
                 }}
                 className={cn(
-                  "w-14 h-14 rounded-xl flex items-center justify-center",
+                  "w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center",
                   streak.current > 0
                     ? `bg-gradient-to-br ${flameColors.gradient}`
                     : "bg-slate-100 dark:bg-slate-800/50"
@@ -115,7 +115,7 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
               >
                 <Flame
                   className={cn(
-                    "w-7 h-7",
+                    "w-6 h-6 sm:w-7 sm:h-7",
                     streak.current > 0 ? "text-white" : "text-slate-400 dark:text-slate-600"
                   )}
                 />
@@ -124,24 +124,24 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"
+                  className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-emerald-500 flex items-center justify-center"
                 >
                   <span className="text-[8px] text-white">✓</span>
                 </motion.div>
               )}
             </div>
 
-            <div className="flex-1">
-              <div className="flex items-baseline gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
                 <span
                   className={cn(
-                    "text-3xl font-black tracking-tight",
+                    "text-2xl sm:text-3xl font-black tracking-tight",
                     streak.current > 0 ? flameColors.text : "text-slate-400 dark:text-slate-600"
                   )}
                 >
                   {streak.current}
                 </span>
-                <span className="text-sm text-slate-500 dark:text-slate-400">day streak</span>
+                <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">day streak</span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Best: {streak.longest} days
@@ -150,9 +150,9 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
 
             {/* Freeze count */}
             {streak.freezeUsed !== undefined && (
-              <div className="flex items-center gap-1 text-cyan-500 dark:text-cyan-400">
-                <Snowflake className="w-4 h-4" />
-                <span className="text-xs font-medium">
+              <div className="flex items-center gap-1 text-cyan-500 dark:text-cyan-400 shrink-0">
+                <Snowflake className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="text-xs font-medium hidden xs:inline">
                   {streak.freezeUsed ? "Used" : "Ready"}
                 </span>
               </div>
@@ -162,10 +162,10 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
           // Full Layout
           <>
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-2">
               <div className="flex items-center gap-2">
-                <Flame className={cn("w-5 h-5", flameColors.text)} />
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                <Flame className={cn("w-4 h-4 sm:w-5 sm:h-5", flameColors.text)} />
+                <span className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400">
                   Learning Streak
                 </span>
               </div>
@@ -181,7 +181,7 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
             </div>
 
             {/* Main Streak Display */}
-            <div className="flex items-center justify-center py-6">
+            <div className="flex items-center justify-center py-4 sm:py-6">
               <motion.div
                 animate={{
                   scale: streak.current > 0 ? [1, 1.05, 1] : 1,
@@ -209,7 +209,7 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
                 {/* Main circle */}
                 <div
                   className={cn(
-                    "relative w-28 h-28 rounded-full flex flex-col items-center justify-center border-4",
+                    "relative w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full flex flex-col items-center justify-center border-4",
                     streak.current > 0
                       ? `bg-gradient-to-br ${flameColors.gradient} ${flameColors.border}`
                       : "bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
@@ -217,13 +217,13 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
                 >
                   <Flame
                     className={cn(
-                      "w-8 h-8 mb-1",
+                      "w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 mb-0.5 sm:mb-1",
                       streak.current > 0 ? "text-white/90" : "text-slate-400 dark:text-slate-600"
                     )}
                   />
                   <span
                     className={cn(
-                      "text-3xl font-black",
+                      "text-2xl sm:text-2xl md:text-3xl font-black",
                       streak.current > 0 ? "text-white" : "text-slate-500 dark:text-slate-400"
                     )}
                   >
@@ -234,7 +234,7 @@ export function StreakWidget({ compact = false }: StreakWidgetProps) {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               <StatItem
                 icon={<TrendingUp className="w-4 h-4" />}
                 label="Best"

@@ -103,20 +103,20 @@ export function CreatorBusinessSuite({ className }: CreatorBusinessSuiteProps) {
 
   return (
     <Card className={cn('border-slate-200 bg-white', className)}>
-      <CardHeader>
+      <CardHeader className="p-4 sm:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 p-2 text-white">
-              <BarChart3 className="h-5 w-5" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 p-1.5 sm:p-2 text-white">
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg">Creator Business Suite</CardTitle>
-              <CardDescription>Market demand, pricing, and profitability insights.</CardDescription>
+              <CardTitle className="text-base sm:text-lg">Creator Business Suite</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Market demand, pricing, and profitability insights.</CardDescription>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full sm:w-[220px] text-xs sm:text-sm">
                 <SelectValue placeholder="Select your course" />
               </SelectTrigger>
               <SelectContent>
@@ -127,14 +127,14 @@ export function CreatorBusinessSuite({ className }: CreatorBusinessSuiteProps) {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={runAnalysis} disabled={isLoading || !selectedCourseId}>
-              {isLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            <Button onClick={runAnalysis} disabled={isLoading || !selectedCourseId} className="w-full sm:w-auto text-xs sm:text-sm">
+              {isLoading ? <RefreshCw className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Sparkles className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />}
               Analyze
             </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}

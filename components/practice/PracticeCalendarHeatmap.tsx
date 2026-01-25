@@ -203,16 +203,16 @@ export function PracticeCalendarHeatmap({
 
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-              <Calendar className="h-5 w-5 text-green-600 dark:text-green-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 dark:text-green-400" />
             </div>
-            Practice Activity
+            <span className="text-base sm:text-xl">Practice Activity</span>
           </CardTitle>
           <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v, 10))}>
-            <SelectTrigger className="w-24">
+            <SelectTrigger className="w-full sm:w-24">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -225,10 +225,10 @@ export function PracticeCalendarHeatmap({
           </Select>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 sm:p-6">
         {/* Stats Summary */}
         {data && (
-          <div className="flex gap-4 mb-4 text-sm">
+          <div className="flex flex-wrap gap-3 sm:gap-4 mb-3 sm:mb-4 text-xs sm:text-sm">
             <div>
               <span className="font-medium">{data.yearlyStats.totalQualityHours.toFixed(1)}</span>
               <span className="text-muted-foreground ml-1">quality hours</span>
@@ -245,11 +245,11 @@ export function PracticeCalendarHeatmap({
         )}
 
         {/* Calendar Grid */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
           <TooltipProvider>
-            <div className="inline-block">
+            <div className="inline-block min-w-full sm:min-w-0">
               {/* Month Labels */}
-              <div className="flex mb-1 ml-8">
+              <div className="flex mb-1 ml-6 sm:ml-8">
                 {monthLabels.map(({ month, position }, index) => (
                   <div
                     key={`${month}-${index}`}
@@ -267,7 +267,7 @@ export function PracticeCalendarHeatmap({
               {/* Grid */}
               <div className="flex">
                 {/* Day Labels */}
-                <div className="flex flex-col mr-1 justify-between py-0.5">
+                <div className="flex flex-col mr-0.5 sm:mr-1 justify-between py-0.5">
                   {DAYS.map((day, index) => (
                     <div
                       key={day}
@@ -288,7 +288,7 @@ export function PracticeCalendarHeatmap({
                           <TooltipTrigger asChild>
                             <div
                               className={cn(
-                                'w-[10px] h-[10px] rounded-sm cursor-pointer transition-colors',
+                                'w-[10px] h-[10px] sm:w-[11px] sm:h-[11px] rounded-sm cursor-pointer transition-colors',
                                 day
                                   ? INTENSITY_COLORS[day.intensity ?? 0]
                                   : 'bg-transparent',

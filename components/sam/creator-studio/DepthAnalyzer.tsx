@@ -254,15 +254,15 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
 
   return (
     <Card className={cn("", className)}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg">
-              <Brain className="h-6 w-6" />
+      <CardHeader className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg">
+              <Brain className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <CardTitle className="text-xl">Content Depth Analyzer</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Content Depth Analyzer</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Analyze course cognitive depth with Bloom&apos;s Taxonomy and Webb&apos;s DOK
               </CardDescription>
             </div>
@@ -272,26 +272,27 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
               variant="outline"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
+              className="text-xs sm:text-sm w-full sm:w-auto"
             >
-              <History className="h-4 w-4 mr-1" />
+              <History className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
               History
             </Button>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
         {/* Course Selection */}
-        <div className="space-y-4 p-4 rounded-lg border bg-slate-50/50">
-          <div className="space-y-2">
-            <Label>Search Your Courses</Label>
+        <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-lg border bg-slate-50/50">
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label className="text-xs sm:text-sm">Search Your Courses</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" />
               <Input
                 placeholder="Search by course title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-8 sm:pl-9 text-xs sm:text-sm"
               />
             </div>
           </div>
@@ -347,11 +348,11 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
           )}
 
           {/* Options */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Analysis Depth</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label className="text-xs sm:text-sm">Analysis Depth</Label>
               <Select value={analysisDepth} onValueChange={(v) => setAnalysisDepth(v as typeof analysisDepth)}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -364,7 +365,7 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
             <div className="flex items-end">
               <div className="flex items-center gap-2">
                 <Switch checked={forceReanalyze} onCheckedChange={setForceReanalyze} />
-                <Label className="text-sm">Force Re-analyze</Label>
+                <Label className="text-xs sm:text-sm">Force Re-analyze</Label>
               </div>
             </div>
           </div>
@@ -372,16 +373,16 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
           <Button
             onClick={runAnalysis}
             disabled={isLoading || !selectedCourse}
-            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700"
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-xs sm:text-sm"
           >
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                 Analyzing...
               </>
             ) : (
               <>
-                <Brain className="h-4 w-4 mr-2" />
+                <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 Analyze Course Depth
               </>
             )}
@@ -436,13 +437,13 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
               className="space-y-4"
             >
               {/* Overview Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Brain className="h-5 w-5 text-emerald-600" />
-                    <span className="text-sm font-medium text-emerald-700">Cognitive Depth</span>
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                    <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium text-emerald-700">Cognitive Depth</span>
                   </div>
-                  <p className={cn("text-3xl font-bold", getDepthColor(analysis.cognitiveDepth))}>
+                  <p className={cn("text-2xl sm:text-3xl font-bold", getDepthColor(analysis.cognitiveDepth))}>
                     {Math.round(analysis.cognitiveDepth * 100)}%
                   </p>
                   <p className="text-xs text-emerald-600 mt-1">
@@ -450,12 +451,12 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
                   </p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Layers className="h-5 w-5 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">Balance Score</span>
+                <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                    <Layers className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 shrink-0" />
+                    <span className="text-xs sm:text-sm font-medium text-blue-700">Balance Score</span>
                   </div>
-                  <p className={cn("text-3xl font-bold", getDepthColor(analysis.balance))}>
+                  <p className={cn("text-2xl sm:text-3xl font-bold", getDepthColor(analysis.balance))}>
                     {Math.round(analysis.balance * 100)}%
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
@@ -505,18 +506,18 @@ export function DepthAnalyzer({ className, compact = false }: DepthAnalyzerProps
 
               {/* Detailed Tabs */}
               <Tabs defaultValue="gaps" className="w-full">
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="gaps">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Gaps
+                <TabsList className="grid grid-cols-3 w-full h-auto">
+                  <TabsTrigger value="gaps" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="hidden xs:inline">Gaps</span>
                   </TabsTrigger>
-                  <TabsTrigger value="skills">
-                    <Target className="h-4 w-4 mr-2" />
-                    Skills
+                  <TabsTrigger value="skills" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="hidden xs:inline">Skills</span>
                   </TabsTrigger>
-                  <TabsTrigger value="actions">
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Actions
+                  <TabsTrigger value="actions" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="hidden xs:inline">Actions</span>
                   </TabsTrigger>
                 </TabsList>
 

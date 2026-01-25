@@ -65,7 +65,7 @@ function DonutChart({
   const total = critical + moderate + minor;
   if (total === 0) {
     return (
-      <div className="relative flex h-32 w-32 items-center justify-center">
+      <div className="relative flex h-24 w-24 sm:h-32 sm:w-32 items-center justify-center">
         <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
           <circle
             cx="50"
@@ -78,7 +78,7 @@ function DonutChart({
           />
         </svg>
         <div className="absolute text-center">
-          <span className="text-2xl font-bold">0</span>
+          <span className="text-xl sm:text-2xl font-bold">0</span>
           <p className="text-xs text-muted-foreground">gaps</p>
         </div>
       </div>
@@ -100,7 +100,7 @@ function DonutChart({
   const minorOffset = -(criticalDash + moderateDash);
 
   return (
-    <div className="relative flex h-32 w-32 items-center justify-center">
+    <div className="relative flex h-24 w-24 sm:h-32 sm:w-32 items-center justify-center">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         {/* Background circle */}
         <circle
@@ -156,7 +156,7 @@ function DonutChart({
         )}
       </svg>
       <div className="absolute text-center">
-        <span className="text-2xl font-bold">{total}</span>
+        <span className="text-xl sm:text-2xl font-bold">{total}</span>
         <p className="text-xs text-muted-foreground">gaps</p>
       </div>
     </div>
@@ -173,27 +173,27 @@ function SeverityLegend({
   minor: number;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5 sm:space-y-2">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-red-500" />
-          <span className="text-sm">Critical</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-red-500" />
+          <span className="text-xs sm:text-sm">Critical</span>
         </div>
-        <span className="font-semibold">{critical}</span>
+        <span className="font-semibold text-xs sm:text-sm">{critical}</span>
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-yellow-500" />
-          <span className="text-sm">Moderate</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-yellow-500" />
+          <span className="text-xs sm:text-sm">Moderate</span>
         </div>
-        <span className="font-semibold">{moderate}</span>
+        <span className="font-semibold text-xs sm:text-sm">{moderate}</span>
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-blue-500" />
-          <span className="text-sm">Minor</span>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-blue-500" />
+          <span className="text-xs sm:text-sm">Minor</span>
         </div>
-        <span className="font-semibold">{minor}</span>
+        <span className="font-semibold text-xs sm:text-sm">{minor}</span>
       </div>
     </div>
   );
@@ -212,37 +212,37 @@ function GapCard({
   return (
     <div
       className={cn(
-        'rounded-lg border-2 p-4 transition-all duration-200 hover:shadow-lg cursor-pointer bg-white dark:bg-slate-800',
+        'rounded-lg border-2 p-3 sm:p-4 transition-all duration-200 hover:shadow-lg cursor-pointer bg-white dark:bg-slate-800',
         gap.severity === 'critical' && 'border-red-300 dark:border-red-700 hover:border-red-400 dark:hover:border-red-600',
         gap.severity === 'moderate' && 'border-yellow-300 dark:border-yellow-700 hover:border-yellow-400 dark:hover:border-yellow-600',
         gap.severity === 'minor' && 'border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600'
       )}
       onClick={onClick}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn('mt-0.5 p-1.5 rounded-lg', config.bgColor)}>
-          <Icon className={cn('h-4 w-4', config.color)} />
+      <div className="flex items-start gap-2 sm:gap-3">
+        <div className={cn('mt-0.5 p-1 sm:p-1.5 rounded-lg shrink-0', config.bgColor)}>
+          <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', config.color)} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-sm truncate text-slate-900 dark:text-white">{gap.skillName}</span>
-            <Badge variant="outline" className="shrink-0 text-xs capitalize font-semibold border-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+            <span className="font-semibold text-xs sm:text-sm truncate text-slate-900 dark:text-white">{gap.skillName}</span>
+            <Badge variant="outline" className="shrink-0 text-[10px] sm:text-xs capitalize font-semibold border-2">
               {config.label}
             </Badge>
           </div>
           {gap.topicName && (
-            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate mb-3">
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate mb-2 sm:mb-3">
               {gap.topicName}
             </p>
           )}
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-slate-600 dark:text-slate-300">Current</span>
               <span className="font-bold text-slate-900 dark:text-white">{Math.round(gap.masteryLevel)}%</span>
             </div>
             <Progress
               value={gap.masteryLevel}
-              className="h-2 bg-slate-200 dark:bg-slate-700"
+              className="h-1.5 sm:h-2 bg-slate-200 dark:bg-slate-700"
             />
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-slate-600 dark:text-slate-300">Target</span>
@@ -250,7 +250,7 @@ function GapCard({
             </div>
           </div>
         </div>
-        <ChevronRight className="h-5 w-5 text-slate-400 dark:text-slate-500 shrink-0 mt-1" />
+        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-slate-400 dark:text-slate-500 shrink-0 mt-1" />
       </div>
     </div>
   );
@@ -279,23 +279,23 @@ export function GapOverviewWidget({
 
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-red-100 dark:bg-red-900/30 p-2.5">
-            <Target className="h-5 w-5 text-red-600 dark:text-red-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="rounded-xl bg-red-100 dark:bg-red-900/30 p-2 sm:p-2.5">
+            <Target className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
           </div>
           <div>
-            <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">Gap Overview</CardTitle>
-            <CardDescription className="text-slate-600 dark:text-slate-300 font-medium">
+            <CardTitle className="text-base sm:text-xl font-bold text-slate-900 dark:text-white">Gap Overview</CardTitle>
+            <CardDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
               Knowledge gaps requiring attention
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 sm:space-y-6 pt-6">
+      <CardContent className="space-y-3 sm:space-y-4 md:space-y-6 pt-4 sm:pt-6 p-4 sm:p-6">
         {/* Summary Section - Stack on mobile, side by side on larger screens */}
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between sm:gap-6">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 sm:flex-row sm:justify-between sm:gap-6">
           <DonutChart
             critical={summary.critical}
             moderate={summary.moderate}
@@ -327,8 +327,8 @@ export function GapOverviewWidget({
         {/* Gap Cards - Responsive grid for larger screens */}
         {hasGaps ? (
           <div className="space-y-2">
-            <h4 className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
+            <h4 className="text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2">
+              <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
               Priority Gaps
             </h4>
             <div className="grid gap-2 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
@@ -343,10 +343,10 @@ export function GapOverviewWidget({
           </div>
         ) : (
           <div className="rounded-lg bg-green-500/10 p-4 sm:p-6 text-center">
-            <div className="mx-auto mb-3 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/20">
+            <div className="mx-auto mb-2 sm:mb-3 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/20">
               <Target className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
-            <h4 className="font-semibold text-green-700">No Active Gaps!</h4>
+            <h4 className="text-sm sm:text-base font-semibold text-green-700">No Active Gaps!</h4>
             <p className="text-xs sm:text-sm text-muted-foreground">
               Great job! You&apos;ve addressed all your knowledge gaps.
             </p>

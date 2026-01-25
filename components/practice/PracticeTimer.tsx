@@ -546,35 +546,35 @@ export function PracticeTimer({
 
   return (
     <Card className={cn('w-full bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-          <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-            <Clock className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700">
+        <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+          <div className="p-1.5 sm:p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+            <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
           </div>
-          Practice Timer
+          <span className="text-base sm:text-xl">Practice Timer</span>
           {activeSession && (
             <Badge
               variant={activeSession.status === 'ACTIVE' ? 'default' : 'secondary'}
-              className="ml-auto font-semibold"
+              className="ml-auto font-semibold text-xs sm:text-sm"
             >
               {activeSession.status === 'ACTIVE' ? 'Running' : 'Paused'}
             </Badge>
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 pt-6">
+      <CardContent className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
         {/* Timer Display */}
-        <div className="text-center py-4">
+        <div className="text-center py-3 sm:py-4">
           <div
             className={cn(
-              'text-5xl font-mono font-bold tabular-nums',
+              'text-3xl sm:text-4xl md:text-5xl font-mono font-bold tabular-nums',
               activeSession?.status === 'ACTIVE' ? 'text-green-500' : 'text-muted-foreground'
             )}
           >
             {formatTime(elapsedSeconds)}
           </div>
           {activeSession && (
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">
               Quality Multiplier: {getMultiplier()}x
             </p>
           )}
@@ -724,55 +724,57 @@ export function PracticeTimer({
         )}
 
         {/* Controls */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {!activeSession ? (
             <Button
-              className="flex-1"
+              className="flex-1 min-w-[140px] text-sm sm:text-base"
               onClick={handleStart}
               disabled={isLoading || !selectedSkill}
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="h-4 w-4 animate-spin mr-1 sm:mr-2" />
               ) : (
-                <Play className="h-4 w-4 mr-2" />
+                <Play className="h-4 w-4 mr-1 sm:mr-2" />
               )}
-              Start Practice
+              <span className="hidden xs:inline">Start Practice</span>
+              <span className="xs:hidden">Start</span>
             </Button>
           ) : (
             <>
               {activeSession.status === 'ACTIVE' ? (
                 <Button
                   variant="secondary"
-                  className="flex-1"
+                  className="flex-1 min-w-[100px] text-sm sm:text-base"
                   onClick={handlePause}
                   disabled={isLoading}
                 >
-                  <Pause className="h-4 w-4 mr-2" />
+                  <Pause className="h-4 w-4 mr-1 sm:mr-2" />
                   Pause
                 </Button>
               ) : (
                 <Button
                   variant="secondary"
-                  className="flex-1"
+                  className="flex-1 min-w-[100px] text-sm sm:text-base"
                   onClick={handleResume}
                   disabled={isLoading}
                 >
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-4 w-4 mr-1 sm:mr-2" />
                   Resume
                 </Button>
               )}
               <Button
                 variant="default"
-                className="flex-1"
+                className="flex-1 min-w-[100px] text-sm sm:text-base"
                 onClick={() => setShowEndDialog(true)}
                 disabled={isLoading}
               >
-                <Square className="h-4 w-4 mr-2" />
+                <Square className="h-4 w-4 mr-1 sm:mr-2" />
                 End
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-9 w-9 sm:h-10 sm:w-10"
                 onClick={handleAbandon}
                 disabled={isLoading}
                 title="Abandon session"
@@ -786,36 +788,36 @@ export function PracticeTimer({
 
       {/* Phase 3/4: End Session Dialog with Enhanced Quality Scoring Inputs */}
       <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
-        <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-[480px] max-h-[85vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>End Practice Session</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">End Practice Session</DialogTitle>
+            <DialogDescription className="text-sm">
               Rate your session quality. Add optional details for better tracking.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-2 sm:py-4">
             {/* Estimated Quality Hours */}
-            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-3 text-center">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-2 sm:p-3 text-center">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                 Estimated Quality Hours
               </p>
-              <p className="text-2xl font-bold text-emerald-600">
+              <p className="text-xl sm:text-2xl font-bold text-emerald-600">
                 {((elapsedSeconds / 3600) * parseFloat(getMultiplier())).toFixed(3)}
               </p>
             </div>
 
             {/* Rating Stars */}
             <div className="space-y-2">
-              <p className="text-sm font-medium">How productive was this session?</p>
-              <div className="flex justify-center gap-2">
+              <p className="text-xs sm:text-sm font-medium">How productive was this session?</p>
+              <div className="flex justify-center gap-1 sm:gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     type="button"
                     onClick={() => setEndSessionRating(star)}
                     className={cn(
-                      'p-1 rounded-full transition-colors',
+                      'p-0.5 sm:p-1 rounded-full transition-colors',
                       endSessionRating && star <= endSessionRating
                         ? 'text-yellow-500'
                         : 'text-slate-300 dark:text-slate-600 hover:text-yellow-400'
@@ -823,7 +825,7 @@ export function PracticeTimer({
                   >
                     <Star
                       className={cn(
-                        'h-8 w-8',
+                        'h-6 w-6 sm:h-8 sm:w-8',
                         endSessionRating && star <= endSessionRating && 'fill-current'
                       )}
                     />

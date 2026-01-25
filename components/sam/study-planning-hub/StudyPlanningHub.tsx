@@ -143,22 +143,22 @@ function QuickMetricCard({
     <button
       onClick={onClick}
       className={cn(
-        'flex items-center gap-3 p-3 rounded-lg border transition-all text-left w-full',
-        'hover:shadow-md hover:border-primary/30',
+        'flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border transition-all text-left w-full',
+        'hover:shadow-md hover:border-primary/30 active:scale-[0.98]',
         color
       )}
     >
-      <div className="p-2 rounded-full bg-background/50">
-        <Icon className="h-4 w-4" />
+      <div className="p-1.5 sm:p-2 rounded-full bg-background/50 flex-shrink-0">
+        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="font-semibold truncate">{value}</div>
+        <div className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</div>
+        <div className="font-semibold text-xs sm:text-sm truncate">{value}</div>
       </div>
       {trend && (
         <div
           className={cn(
-            'text-xs',
+            'text-[10px] sm:text-xs flex-shrink-0',
             trend === 'up' && 'text-green-600',
             trend === 'down' && 'text-red-600',
             trend === 'stable' && 'text-gray-500'
@@ -190,19 +190,19 @@ function QuickAccessCard({
     <button
       onClick={onClick}
       className={cn(
-        'flex items-start gap-3 p-4 rounded-xl border transition-all text-left w-full',
-        'hover:shadow-lg hover:scale-[1.02]',
+        'flex items-start gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl border transition-all text-left w-full',
+        'hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]',
         color
       )}
     >
-      <div className="p-2 rounded-lg bg-background/50">
-        <Icon className="h-5 w-5" />
+      <div className="p-1.5 sm:p-2 rounded-lg bg-background/50 flex-shrink-0">
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-sm">{title}</div>
-        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        <div className="font-medium text-xs sm:text-sm">{title}</div>
+        <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 line-clamp-2">{description}</p>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground mt-1" />
+      <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground mt-0.5 sm:mt-1 flex-shrink-0" />
     </button>
   );
 }
@@ -215,11 +215,11 @@ function OverviewTab({
   courseId?: string;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Daily Plan Quick View */}
       <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <Sun className="h-4 w-4" />
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+          <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Today&apos;s Focus
         </h3>
         <DailyPlanWidget compact />
@@ -227,11 +227,11 @@ function OverviewTab({
 
       {/* Quick Metrics Grid */}
       <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <TrendingUp className="h-4 w-4" />
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+          <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Quick Metrics
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <QuickMetricCard
             icon={Target}
             label="Active Goals"
@@ -266,11 +266,11 @@ function OverviewTab({
 
       {/* Quick Access Panels */}
       <div>
-        <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+          <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Quick Access
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
           <QuickAccessCard
             icon={Target}
             title="Goal Planner"
@@ -303,17 +303,17 @@ function OverviewTab({
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => onNavigate('goals')}>
-          <Target className="h-4 w-4 mr-1" />
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3" onClick={() => onNavigate('goals')}>
+          <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
           New Goal
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onNavigate('reviews')}>
-          <RotateCcw className="h-4 w-4 mr-1" />
+        <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3" onClick={() => onNavigate('reviews')}>
+          <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
           Start Review
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onNavigate('daily')}>
-          <BookOpen className="h-4 w-4 mr-1" />
+        <Button variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-3" onClick={() => onNavigate('daily')}>
+          <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
           Study Now
         </Button>
       </div>
@@ -342,15 +342,15 @@ export function StudyPlanningHub({
 
   return (
     <Card className={cn('overflow-hidden', className)}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20">
-              <BookOpen className="h-5 w-5 text-emerald-600" />
+      <CardHeader className="pb-2 px-3 sm:px-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex-shrink-0">
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
             </div>
-            <div>
-              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">Study Planning &amp; Memory Hub</CardTitle>
-              <CardDescription>
+            <div className="min-w-0">
+              <CardTitle className="text-sm sm:text-lg font-semibold text-slate-900 dark:text-white truncate">Study Planning &amp; Memory Hub</CardTitle>
+              <CardDescription className="text-[11px] sm:text-sm hidden xs:block">
                 Goals, daily plans, spaced repetition, and memory insights
               </CardDescription>
             </div>
@@ -358,8 +358,8 @@ export function StudyPlanningHub({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <RefreshCw className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
+                  <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Refresh all data</TooltipContent>
@@ -368,19 +368,19 @@ export function StudyPlanningHub({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-2">
+      <CardContent className="pt-2 px-3 sm:px-6">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-          <TabsList className="grid w-full grid-cols-4 mb-4">
+          <TabsList className="grid w-full grid-cols-4 mb-3 sm:mb-4 h-9 sm:h-10">
             {TAB_CONFIG.map((tab) => {
               const Icon = tab.icon;
               return (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="flex items-center gap-1.5 text-xs"
+                  className="flex items-center justify-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs px-1 sm:px-2"
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                  <span className="hidden xs:inline sm:inline truncate">{tab.label}</span>
                 </TabsTrigger>
               );
             })}
@@ -401,11 +401,11 @@ export function StudyPlanningHub({
 
               {/* Daily Tab */}
               <TabsContent value="daily" className="mt-0">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div>
-                      <h3 className="font-medium">Today&apos;s Study Plan</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="text-sm sm:text-base font-medium">Today&apos;s Study Plan</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Your daily learning schedule and progress
                       </p>
                     </div>
@@ -424,18 +424,18 @@ export function StudyPlanningHub({
 
               {/* Reviews Tab */}
               <TabsContent value="reviews" className="mt-0">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div>
-                      <h3 className="font-medium">Spaced Repetition Reviews</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="text-sm sm:text-base font-medium">Spaced Repetition Reviews</h3>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         Optimize memory retention with scheduled reviews
                       </p>
                     </div>
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Expand className="h-4 w-4 mr-1" />
+                        <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+                          <Expand className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                           Expand
                         </Button>
                       </DialogTrigger>
@@ -467,15 +467,15 @@ export function StudyPlanningHub({
 
               {/* Memory Tab */}
               <TabsContent value="memory" className="mt-0">
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Memory Insights */}
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium">Memory Insights</h3>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2 sm:mb-3">
+                      <h3 className="text-sm sm:text-base font-medium">Memory Insights</h3>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Expand className="h-4 w-4 mr-1" />
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+                            <Expand className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                             Expand
                           </Button>
                         </DialogTrigger>
@@ -506,12 +506,12 @@ export function StudyPlanningHub({
 
                   {/* Check-in History */}
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-medium">Check-in History</h3>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2 sm:mb-3">
+                      <h3 className="text-sm sm:text-base font-medium">Check-in History</h3>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Expand className="h-4 w-4 mr-1" />
+                          <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+                            <Expand className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                             Expand
                           </Button>
                         </DialogTrigger>

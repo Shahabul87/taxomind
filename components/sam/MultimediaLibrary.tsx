@@ -371,21 +371,21 @@ export function MultimediaLibrary({ userId: _userId, courseId, className }: Mult
 
   return (
     <Card className={cn('', className)}>
-      <CardHeader className="pb-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-lg">
-              <Video className="h-6 w-6" />
+      <CardHeader className="pb-3 sm:pb-4 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-lg">
+              <Video className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <CardTitle className="text-xl">Multimedia Library</CardTitle>
-              <CardDescription>Analyze and track your learning media quality</CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Multimedia Library</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Analyze and track your learning media quality</CardDescription>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-2 sm:gap-3 sm:flex-row sm:items-center w-full sm:w-auto">
             <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
-              <SelectTrigger className="w-[240px]">
+              <SelectTrigger className="w-full sm:w-[240px] text-xs sm:text-sm">
                 <SelectValue placeholder="Select course" />
               </SelectTrigger>
               <SelectContent>
@@ -398,49 +398,49 @@ export function MultimediaLibrary({ userId: _userId, courseId, className }: Mult
             </Select>
             <Button
               onClick={() => setShowAnalyzeModal(true)}
-              className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600"
+              className="bg-gradient-to-r from-indigo-500 to-violet-500 text-white hover:from-indigo-600 hover:to-violet-600 w-full sm:w-auto text-xs sm:text-sm"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
               Analyze Media
             </Button>
           </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-3 mt-4 md:grid-cols-4">
-          <div className="p-3 rounded-lg bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
-            <div className="flex items-center gap-2 mb-1">
-              <Film className="h-4 w-4 text-red-600" />
-              <span className="text-xs text-red-600 font-medium">Videos</span>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-3 sm:mt-4 md:grid-cols-4">
+          <div className="p-2.5 sm:p-3 rounded-lg bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+              <Film className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-600 shrink-0" />
+              <span className="text-[10px] sm:text-xs text-red-600 font-medium">Videos</span>
             </div>
-            <p className="text-2xl font-bold text-red-700">
+            <p className="text-xl sm:text-2xl font-bold text-red-700">
               {mediaItems.filter((m) => m.type === 'video').length}
             </p>
           </div>
-          <div className="p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
-            <div className="flex items-center gap-2 mb-1">
-              <Music className="h-4 w-4 text-purple-600" />
-              <span className="text-xs text-purple-600 font-medium">Audio</span>
+          <div className="p-2.5 sm:p-3 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+              <Music className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 shrink-0" />
+              <span className="text-[10px] sm:text-xs text-purple-600 font-medium">Audio</span>
             </div>
-            <p className="text-2xl font-bold text-purple-700">
+            <p className="text-xl sm:text-2xl font-bold text-purple-700">
               {mediaItems.filter((m) => m.type === 'audio').length}
             </p>
           </div>
-          <div className="p-3 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200">
-            <div className="flex items-center gap-2 mb-1">
-              <Layers className="h-4 w-4 text-amber-600" />
-              <span className="text-xs text-amber-600 font-medium">Interactive</span>
+          <div className="p-2.5 sm:p-3 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+              <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 shrink-0" />
+              <span className="text-[10px] sm:text-xs text-amber-600 font-medium">Interactive</span>
             </div>
-            <p className="text-2xl font-bold text-amber-700">
+            <p className="text-xl sm:text-2xl font-bold text-amber-700">
               {mediaItems.filter((m) => m.type === 'interactive').length}
             </p>
           </div>
-          <div className="p-3 rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-4 w-4 text-indigo-600" />
-              <span className="text-xs text-indigo-600 font-medium">Avg Engagement</span>
+          <div className="p-2.5 sm:p-3 rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-indigo-600 shrink-0" />
+              <span className="text-[10px] sm:text-xs text-indigo-600 font-medium">Avg Engagement</span>
             </div>
-            <p className="text-2xl font-bold text-indigo-700">{averageEngagement}</p>
+            <p className="text-xl sm:text-2xl font-bold text-indigo-700">{averageEngagement}</p>
           </div>
         </div>
       </CardHeader>

@@ -130,24 +130,24 @@ export function PracticeStreakDisplay({
   if (variant === 'large') {
     return (
       <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-700">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Practice Streak</h3>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 gap-2">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">Practice Streak</h3>
             {isNewRecord && (
-              <Badge className="bg-yellow-500 text-black">
+              <Badge className="bg-yellow-500 text-black text-xs">
                 <Trophy className="h-3 w-3 mr-1" />
                 New Record!
               </Badge>
             )}
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
             {/* Current Streak */}
             <div className="flex-1 text-center">
               <div className="relative inline-flex items-center justify-center">
                 <div
                   className={cn(
-                    'w-24 h-24 rounded-full flex items-center justify-center',
+                    'w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center',
                     currentStreak > 0
                       ? 'bg-gradient-to-br from-orange-400 to-red-500'
                       : 'bg-muted'
@@ -155,36 +155,36 @@ export function PracticeStreakDisplay({
                 >
                   <Flame
                     className={cn(
-                      'h-12 w-12',
+                      'h-10 w-10 sm:h-12 sm:w-12',
                       currentStreak > 0 ? 'text-white' : 'text-muted-foreground'
                     )}
                   />
                 </div>
                 {currentStreak >= 7 && (
-                  <Sparkles className="absolute top-0 right-0 h-6 w-6 text-yellow-400 animate-pulse" />
+                  <Sparkles className="absolute top-0 right-0 h-5 w-5 sm:h-6 sm:w-6 text-yellow-400 animate-pulse" />
                 )}
               </div>
-              <div className="mt-3">
-                <span className="text-4xl font-bold tabular-nums">{currentStreak}</span>
-                <span className="text-muted-foreground ml-2">days</span>
+              <div className="mt-2 sm:mt-3">
+                <span className="text-3xl sm:text-4xl font-bold tabular-nums">{currentStreak}</span>
+                <span className="text-muted-foreground ml-1 sm:ml-2 text-sm sm:text-base">days</span>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">Current Streak</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">Current Streak</p>
             </div>
 
             {/* Streak Stats */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4 w-full sm:w-auto">
               <div>
-                <p className="text-sm text-muted-foreground">Longest Streak</p>
-                <p className="text-2xl font-bold tabular-nums">
+                <p className="text-xs sm:text-sm text-muted-foreground">Longest Streak</p>
+                <p className="text-xl sm:text-2xl font-bold tabular-nums">
                   {longestStreak}
-                  <span className="text-sm font-normal text-muted-foreground ml-1">days</span>
+                  <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1">days</span>
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Status</p>
                 <Badge
                   variant={isAtRisk ? 'destructive' : currentStreak > 0 ? 'default' : 'secondary'}
-                  className={cn(isAtRisk && 'animate-pulse')}
+                  className={cn(isAtRisk && 'animate-pulse', 'text-xs')}
                 >
                   {isAtRisk ? 'Practice today!' : currentStreak > 0 ? 'Active' : 'Not started'}
                 </Badge>
@@ -193,16 +193,17 @@ export function PracticeStreakDisplay({
           </div>
 
           {/* Streak Milestones */}
-          <div className="mt-6">
-            <p className="text-sm font-medium mb-2">Milestones</p>
-            <div className="flex gap-2 flex-wrap">
+          <div className="mt-4 sm:mt-6">
+            <p className="text-xs sm:text-sm font-medium mb-2">Milestones</p>
+            <div className="flex gap-1.5 sm:gap-2 flex-wrap">
               {[7, 14, 30, 60, 90, 180, 365].map((days) => (
                 <Badge
                   key={days}
                   variant={currentStreak >= days ? 'default' : 'outline'}
                   className={cn(
                     currentStreak >= days && 'bg-orange-500',
-                    currentStreak < days && 'opacity-50'
+                    currentStreak < days && 'opacity-50',
+                    'text-xs'
                   )}
                 >
                   {days === 7 ? '1 week' : days === 14 ? '2 weeks' : days === 30 ? '1 month' :
@@ -220,11 +221,11 @@ export function PracticeStreakDisplay({
   // Default variant
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardContent className="p-4">
-        <div className="flex items-center gap-4">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div
             className={cn(
-              'w-16 h-16 rounded-full flex items-center justify-center shrink-0',
+              'w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center shrink-0',
               currentStreak > 0
                 ? 'bg-gradient-to-br from-orange-400 to-red-500'
                 : 'bg-muted'
@@ -232,20 +233,20 @@ export function PracticeStreakDisplay({
           >
             <Flame
               className={cn(
-                'h-8 w-8',
+                'h-6 w-6 sm:h-8 sm:w-8',
                 currentStreak > 0 ? 'text-white' : 'text-muted-foreground'
               )}
             />
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-3xl font-bold tabular-nums">{currentStreak}</span>
-              <span className="text-muted-foreground">day streak</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <span className="text-2xl sm:text-3xl font-bold tabular-nums">{currentStreak}</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">day streak</span>
               {isNewRecord && currentStreak > 0 && (
                 <Badge className="bg-yellow-500 text-black text-xs">Record!</Badge>
               )}
             </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground mt-1">
               <span>Best: {longestStreak} days</span>
               {isAtRisk && currentStreak > 0 && (
                 <Badge variant="destructive" className="text-xs animate-pulse">

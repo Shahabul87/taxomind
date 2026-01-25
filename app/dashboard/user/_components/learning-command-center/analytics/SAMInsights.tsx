@@ -139,41 +139,41 @@ function InsightCard({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10 }}
       className={cn(
-        'rounded-xl border p-4',
+        'rounded-xl border p-3 sm:p-4',
         config.borderColor,
         config.bgColor
       )}
     >
-      <div className="flex gap-3">
+      <div className="flex gap-2 sm:gap-3">
         <div
           className={cn(
-            'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg',
+            'flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-lg',
             config.bgColor
           )}
         >
-          <Icon className={cn('h-5 w-5', config.color)} />
+          <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', config.color)} />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <h4 className="font-medium text-slate-900 dark:text-white">
+          <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+            <h4 className="text-sm sm:text-base font-medium text-slate-900 dark:text-white">
               {insight.title}
             </h4>
             {onDismiss && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 flex-shrink-0 text-slate-400 hover:text-slate-600"
+                className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 text-slate-400 hover:text-slate-600"
                 onClick={() => onDismiss(insight)}
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </Button>
             )}
           </div>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
             {insight.description}
           </p>
           {insight.courseName && (
-            <Badge variant="outline" className="mt-2 text-xs">
+            <Badge variant="outline" className="mt-1.5 sm:mt-2 text-xs">
               {insight.courseName}
             </Badge>
           )}
@@ -181,7 +181,7 @@ function InsightCard({
             <Button
               variant="ghost"
               size="sm"
-              className={cn('mt-2 h-7 px-2', config.color)}
+              className={cn('mt-1.5 sm:mt-2 h-6 sm:h-7 px-1.5 sm:px-2 text-xs sm:text-sm', config.color)}
               onClick={() => onAction?.(insight)}
             >
               {insight.action.label}
@@ -240,35 +240,35 @@ function LearningScoreGauge({ score, label }: { score: number; label: string }) 
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative h-20 w-20">
-        <svg className="h-20 w-20 -rotate-90 transform">
+      <div className="relative h-16 w-16 sm:h-20 sm:w-20">
+        <svg className="h-16 w-16 sm:h-20 sm:w-20 -rotate-90 transform">
           <circle
-            cx="40"
-            cy="40"
-            r="36"
+            cx="32"
+            cy="32"
+            r="28"
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth="6"
             fill="none"
             className="text-slate-200 dark:text-slate-700"
           />
           <motion.circle
-            cx="40"
-            cy="40"
-            r="36"
+            cx="32"
+            cy="32"
+            r="28"
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth="6"
             fill="none"
-            initial={{ strokeDashoffset: 2 * Math.PI * 36 }}
+            initial={{ strokeDashoffset: 2 * Math.PI * 28 }}
             animate={{
-              strokeDashoffset: 2 * Math.PI * 36 * (1 - score / 100),
+              strokeDashoffset: 2 * Math.PI * 28 * (1 - score / 100),
             }}
             transition={{ duration: 1, ease: 'easeOut' }}
-            strokeDasharray={`${2 * Math.PI * 36}`}
+            strokeDasharray={`${2 * Math.PI * 28}`}
             className={getColor(score)}
             strokeLinecap="round"
           />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-xl font-bold text-slate-900 dark:text-white">
+        <span className="absolute inset-0 flex items-center justify-center text-base sm:text-xl font-bold text-slate-900 dark:text-white">
           {Math.round(score)}
         </span>
       </div>
@@ -460,16 +460,16 @@ export function SAMInsights({
   if (compact) {
     return (
       <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <Sparkles className="h-5 w-5 text-purple-500" />
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 shrink-0" />
               SAM Learning Insights
             </CardTitle>
             <Badge
               variant="outline"
               className={cn(
-                'text-xs',
+                'text-xs shrink-0',
                 progressRate === 'ahead' && 'bg-emerald-50 text-emerald-700',
                 progressRate === 'on_track' && 'bg-blue-50 text-blue-700',
                 progressRate === 'behind' && 'bg-amber-50 text-amber-700'
@@ -480,21 +480,21 @@ export function SAMInsights({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
           {/* Compact Score Display */}
-          <div className="flex items-center gap-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 p-4 dark:from-purple-950/30 dark:to-pink-950/30">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 p-3 sm:p-4 dark:from-purple-950/30 dark:to-pink-950/30">
             <LearningScoreGauge score={learningScore} label="Learning Score" />
-            <div className="flex-1 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                <Clock className="h-3.5 w-3.5 text-emerald-600" />
+            <div className="flex-1 space-y-1 sm:space-y-1.5 w-full sm:w-auto">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-600 shrink-0" />
                 <span>{formatStudyTime(data.overview.totalStudyTime)} studied</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                <Target className="h-3.5 w-3.5 text-purple-600" />
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <Target className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-purple-600 shrink-0" />
                 <span>{data.overview.activeCourses} active courses</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-                <Trophy className="h-3.5 w-3.5 text-amber-600" />
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <Trophy className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-600 shrink-0" />
                 <span>{data.overview.currentStreak} day streak</span>
               </div>
             </div>
@@ -513,10 +513,10 @@ export function SAMInsights({
           <Button
             variant="outline"
             size="sm"
-            className="w-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20"
+            className="w-full text-xs sm:text-sm bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20"
             onClick={handleAskSAM}
           >
-            <Brain className="mr-2 h-4 w-4 text-purple-500" />
+            <Brain className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
             Ask SAM for guidance
           </Button>
         </CardContent>
@@ -527,16 +527,16 @@ export function SAMInsights({
   // Full view
   return (
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-purple-500" />
+      <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 shrink-0" />
             SAM Learning Insights
           </CardTitle>
           <Badge
             variant="outline"
             className={cn(
-              'text-xs',
+              'text-xs shrink-0',
               progressRate === 'ahead' && 'bg-emerald-50 text-emerald-700',
               progressRate === 'on_track' && 'bg-blue-50 text-blue-700',
               progressRate === 'behind' && 'bg-amber-50 text-amber-700'
@@ -547,25 +547,25 @@ export function SAMInsights({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
         {/* Learning Score & Quick Stats */}
-        <div className="flex items-center justify-between rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 p-4 dark:from-purple-950/30 dark:to-pink-950/30">
+        <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3 sm:gap-4 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 p-3 sm:p-4 dark:from-purple-950/30 dark:to-pink-950/30">
           <LearningScoreGauge score={learningScore} label="Learning Score" />
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-emerald-600" />
+          <div className="flex flex-col gap-1.5 sm:gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 shrink-0" />
               <span className="text-xs text-slate-600 dark:text-slate-300">
                 Study time: <span className="font-semibold">{formatStudyTime(data.overview.totalStudyTime)}</span>
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-purple-600" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 shrink-0" />
               <span className="text-xs text-slate-600 dark:text-slate-300">
                 Active courses: <span className="font-semibold">{data.overview.activeCourses}</span>
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-blue-600" />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 shrink-0" />
               <span className="text-xs text-slate-600 dark:text-slate-300">
                 Avg score: <span className="font-semibold">{Math.round(data.overview.averageScore)}%</span>
               </span>
@@ -598,9 +598,9 @@ export function SAMInsights({
 
         {/* Insights */}
         {displayInsights.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-              <Lightbulb className="h-4 w-4 text-blue-500" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-500 shrink-0" />
               Personalized Recommendations
             </h4>
             <AnimatePresence mode="popLayout">
@@ -625,17 +625,17 @@ export function SAMInsights({
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full text-slate-500"
+                className="w-full text-xs sm:text-sm text-slate-500"
                 onClick={() => setShowAllInsights(!showAllInsights)}
               >
                 {showAllInsights ? (
                   <>
-                    <ChevronUp className="mr-1 h-4 w-4" />
+                    <ChevronUp className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Show less
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="mr-1 h-4 w-4" />
+                    <ChevronDown className="mr-1 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     Show {filteredInsights.length - maxInsights} more
                   </>
                 )}
@@ -646,12 +646,12 @@ export function SAMInsights({
 
         {/* Learning Patterns */}
         {showPatterns && patterns.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-              <BarChart3 className="h-4 w-4 text-indigo-500" />
+          <div className="space-y-1.5 sm:space-y-2">
+            <h4 className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-indigo-500 shrink-0" />
               Learning Patterns
             </h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
               {patterns.map(pattern => (
                 <PatternBadge key={pattern.id} pattern={pattern} />
               ))}
@@ -667,10 +667,10 @@ export function SAMInsights({
         >
           <Button
             variant="outline"
-            className="w-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20"
+            className="w-full text-xs sm:text-sm bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20"
             onClick={handleAskSAM}
           >
-            <Brain className="mr-2 h-4 w-4 text-purple-500" />
+            <Brain className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-500" />
             Ask SAM for personalized guidance
           </Button>
         </motion.div>

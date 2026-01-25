@@ -183,31 +183,31 @@ export function StudyPlanDashboard({
       )}
     >
       {/* Header */}
-      <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3 flex-1 min-w-0">
+      <CardHeader className="pb-2 sm:pb-3 border-b border-slate-100 dark:border-slate-800 px-3 sm:px-6">
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
+          <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="p-2.5 rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 flex-shrink-0"
+              className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50 flex-shrink-0"
             >
-              <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
             </motion.div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <CardTitle className="text-base font-bold text-slate-900 dark:text-white truncate">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <CardTitle className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
                   {goal.title}
                 </CardTitle>
                 <Badge
                   variant="outline"
-                  className="text-[10px] bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700"
+                  className="text-[9px] sm:text-[10px] px-1.5 sm:px-2 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700"
                 >
                   Study Plan
                 </Badge>
               </div>
               {goal.description && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                   {goal.description}
                 </p>
               )}
@@ -219,24 +219,24 @@ export function StudyPlanDashboard({
             size="sm"
             onClick={onRefresh}
             disabled={isLoading}
-            className="flex-shrink-0 h-8 w-8 p-0"
+            className="flex-shrink-0 h-7 w-7 sm:h-8 sm:w-8 p-0"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
             ) : (
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             )}
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="p-4">
-        {/* Main Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <CardContent className="p-3 sm:p-4">
+        {/* Main Grid Layout - Responsive: 1 col mobile, 2 col tablet, 3 col desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {/* Left Column: Radial Progress + Weekly Journey */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Radial Progress */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
+            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
               <RadialProgress
                 percentage={metrics.completionRate}
                 tasksCompleted={metrics.tasksCompleted}
@@ -247,8 +247,8 @@ export function StudyPlanDashboard({
             </div>
 
             {/* Weekly Journey Map */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
-              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
+              <h4 className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 sm:mb-3">
                 Weekly Progress
               </h4>
               <WeeklyJourneyMap
@@ -259,9 +259,9 @@ export function StudyPlanDashboard({
           </div>
 
           {/* Middle Column: Activity Heatmap + Milestones */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Study Activity Heatmap */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
+            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
               <StudyActivityHeatmap
                 subGoals={subGoals}
                 startDate={startDate}
@@ -269,7 +269,7 @@ export function StudyPlanDashboard({
             </div>
 
             {/* Milestones */}
-            <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
+            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50">
               <MilestonesTracker
                 completionRate={metrics.completionRate}
                 tasksCompleted={metrics.tasksCompleted}
@@ -281,9 +281,9 @@ export function StudyPlanDashboard({
             </div>
           </div>
 
-          {/* Right Column: Pace & Projection */}
-          <div className="lg:col-span-1">
-            <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 h-full">
+          {/* Right Column: Pace & Projection - Full width on tablet, single col on desktop */}
+          <div className="md:col-span-2 lg:col-span-1">
+            <div className="p-3 sm:p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 h-full">
               <PaceProjection
                 startDate={startDate}
                 targetDate={targetDate}
@@ -294,21 +294,21 @@ export function StudyPlanDashboard({
               />
 
               {/* Quick Stats */}
-              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-2 rounded-lg bg-white/50 dark:bg-slate-800/50">
-                    <div className="text-lg font-bold text-slate-900 dark:text-white">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="text-center p-1.5 sm:p-2 rounded-lg bg-white/50 dark:bg-slate-800/50">
+                    <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                       {Math.round(metrics.hoursCompleted)}h
                     </div>
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-[9px] sm:text-[10px] text-slate-500">
                       of {Math.round(metrics.hoursCompleted + metrics.hoursRemaining)}h done
                     </div>
                   </div>
-                  <div className="text-center p-2 rounded-lg bg-white/50 dark:bg-slate-800/50">
-                    <div className="text-lg font-bold text-slate-900 dark:text-white">
+                  <div className="text-center p-1.5 sm:p-2 rounded-lg bg-white/50 dark:bg-slate-800/50">
+                    <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                       Week {currentWeekNumber}
                     </div>
-                    <div className="text-[10px] text-slate-500">
+                    <div className="text-[9px] sm:text-[10px] text-slate-500">
                       of {weeks.length} weeks
                     </div>
                   </div>
@@ -316,13 +316,13 @@ export function StudyPlanDashboard({
               </div>
 
               {/* View Full Plan Link */}
-              <div className="mt-4">
+              <div className="mt-3 sm:mt-4">
                 <a
                   href="#ai-study-plans"
-                  className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-lg text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                  className="flex items-center justify-center gap-1.5 sm:gap-2 w-full py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                 >
                   View Tasks & Details
-                  <ExternalLink className="w-3.5 h-3.5" />
+                  <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </a>
               </div>
             </div>

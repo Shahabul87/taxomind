@@ -313,70 +313,71 @@ interface EmptyStateProps {
 
 function EmptyState({ onCreateRoadmap, isGenerating, error }: EmptyStateProps) {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6">
-      <div className="max-w-2xl mx-auto pt-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-4 md:p-6">
+      <div className="max-w-2xl mx-auto pt-12 sm:pt-16 md:pt-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           <Card className="border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg">
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-100 to-emerald-100 dark:from-cyan-500/20 dark:to-emerald-500/20 flex items-center justify-center mb-4">
-                <Rocket className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+            <CardHeader className="text-center pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
+              <div className="mx-auto w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-cyan-100 to-emerald-100 dark:from-cyan-500/20 dark:to-emerald-500/20 flex items-center justify-center mb-3 sm:mb-4">
+                <Rocket className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-600 dark:text-cyan-400" />
               </div>
-              <CardTitle className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              <CardTitle className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">
                 Start Your Skill Journey
               </CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-400 mt-2">
+              <CardDescription className="text-sm sm:text-base text-slate-600 dark:text-slate-400 mt-2">
                 You haven&apos;t tracked any skills yet. Create a learning roadmap to begin building and tracking your skills.
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-center pt-4">
+            <CardContent className="text-center pt-4 px-4 sm:px-6 pb-4 sm:pb-6">
               <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left mb-6">
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <div className="text-2xl mb-2">📊</div>
-                    <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Track Progress</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-left mb-4 sm:mb-6">
+                  <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div className="text-xl sm:text-2xl mb-2">📊</div>
+                    <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">Track Progress</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Monitor your skill development with multi-dimensional scoring
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <div className="text-2xl mb-2">⏰</div>
-                    <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Prevent Decay</h4>
+                  <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div className="text-xl sm:text-2xl mb-2">⏰</div>
+                    <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">Prevent Decay</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Get alerts when skills need review to maintain mastery
                     </p>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <div className="text-2xl mb-2">🎯</div>
-                    <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Reach Goals</h4>
+                  <div className="p-3 sm:p-4 rounded-lg sm:rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <div className="text-xl sm:text-2xl mb-2">🎯</div>
+                    <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">Reach Goals</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Follow personalized roadmaps to achieve your targets
                     </p>
                   </div>
                 </div>
                 {error && (
-                  <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm mb-4">
+                  <div className="p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-xs sm:text-sm mb-4">
                     {error}
                   </div>
                 )}
                 <Button
                   onClick={onCreateRoadmap}
                   disabled={isGenerating}
-                  className="bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 shadow-md disabled:opacity-70"
+                  className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-600 hover:to-emerald-600 shadow-md disabled:opacity-70 text-sm sm:text-base"
                   size="lg"
                 >
                   {isGenerating ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
                       Creating Roadmap...
                     </>
                   ) : (
                     <>
-                      <Plus className="w-5 h-5 mr-2" />
-                      Create Your First Roadmap
+                      <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                      <span className="hidden sm:inline">Create Your First Roadmap</span>
+                      <span className="sm:hidden">Create Roadmap</span>
                     </>
                   )}
                 </Button>

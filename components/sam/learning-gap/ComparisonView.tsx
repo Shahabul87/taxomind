@@ -45,7 +45,7 @@ function PercentileGauge({ percentile }: { percentile: number }) {
   };
 
   return (
-    <div className="relative flex h-24 w-24 items-center justify-center">
+    <div className="relative flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center">
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         {/* Background circle */}
         <circle
@@ -71,7 +71,7 @@ function PercentileGauge({ percentile }: { percentile: number }) {
         />
       </svg>
       <div className="absolute text-center">
-        <span className={cn('text-xl font-bold', getColor())}>{percentile}</span>
+        <span className={cn('text-lg sm:text-xl font-bold', getColor())}>{percentile}</span>
         <p className="text-xs text-muted-foreground">percentile</p>
       </div>
     </div>
@@ -93,10 +93,10 @@ function ComparisonBar({ metric }: { metric: ComparisonMetric }) {
   return (
     <div className="space-y-3">
       {/* Header Row */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-900 dark:text-white">{metric.name}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 sm:gap-2">
+        <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white truncate">{metric.name}</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <span className="text-[10px] sm:text-xs text-muted-foreground">
             {metric.percentile}th percentile
           </span>
           <Badge
@@ -116,7 +116,7 @@ function ComparisonBar({ metric }: { metric: ComparisonMetric }) {
       {/* Bar Container */}
       <div className="relative">
         {/* Background Track */}
-        <div className="h-6 rounded-md bg-slate-100 dark:bg-slate-700/50 overflow-hidden">
+        <div className="h-5 sm:h-6 rounded-md bg-slate-100 dark:bg-slate-700/50 overflow-hidden">
           {/* User Value Bar */}
           <div
             className={cn(
@@ -129,36 +129,36 @@ function ComparisonBar({ metric }: { metric: ComparisonMetric }) {
 
         {/* Target Marker */}
         <div
-          className="absolute top-0 h-6 w-0.5 bg-emerald-600 dark:bg-emerald-400"
+          className="absolute top-0 h-5 sm:h-6 w-0.5 bg-emerald-600 dark:bg-emerald-400"
           style={{ left: `${targetPct}%` }}
         />
 
         {/* Peer Average Marker */}
         <div
-          className="absolute top-0 h-6 w-0.5 bg-yellow-500"
+          className="absolute top-0 h-5 sm:h-6 w-0.5 bg-yellow-500"
           style={{ left: `${peerPct}%` }}
         />
 
         {/* User Value Label - Outside bar for visibility */}
         <div
-          className="absolute top-0 h-6 flex items-center"
+          className="absolute top-0 h-5 sm:h-6 flex items-center"
           style={{ left: `${Math.max(userPct, 2) + 1}%` }}
         >
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+          <span className="text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
             {metric.userValue}{metric.unit}
           </span>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <div className="h-2 w-2 rounded-full bg-yellow-500" />
-          Peer Avg: {metric.peerAverage}{metric.unit}
+      <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-[10px] sm:text-xs text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-yellow-500 shrink-0" />
+          <span className="truncate">Peer Avg: {metric.peerAverage}{metric.unit}</span>
         </span>
-        <span className="flex items-center gap-1.5">
-          <div className="h-2 w-2 rounded-full bg-emerald-600 dark:bg-emerald-400" />
-          Target: {metric.targetValue}{metric.unit}
+        <span className="flex items-center gap-1">
+          <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-600 dark:bg-emerald-400 shrink-0" />
+          <span className="truncate">Target: {metric.targetValue}{metric.unit}</span>
         </span>
       </div>
     </div>
@@ -234,7 +234,7 @@ export function ComparisonView({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 sm:space-y-6 pt-6">
+      <CardContent className="space-y-3 sm:space-y-4 md:space-y-6 pt-4 sm:pt-6 p-4 sm:p-6">
         {/* Peer Group Info */}
         <div className="rounded-lg bg-muted/30 p-2 sm:p-3">
           <p className="text-xs sm:text-sm text-muted-foreground">
@@ -243,7 +243,7 @@ export function ComparisonView({
         </div>
 
         {/* Metrics Comparison - Responsive spacing */}
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-2.5 sm:space-y-3 md:space-y-4">
           {comparison.metrics.map((metric) => (
             <ComparisonBar key={metric.id} metric={metric} />
           ))}

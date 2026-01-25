@@ -140,6 +140,19 @@ npm run typecheck:parallel:watch   # Watch mode
 npm run typecheck:parallel:clean   # Clear cache
 ```
 
+## 🔐 Test Credentials
+
+**For testing features that require authentication:**
+
+| Role | Email | Password | Notes |
+|------|-------|----------|-------|
+| Test User | `charlie.user@taxomind.com` | `password123` | Has study plans with subgoals |
+| Admin | Check `docs/implementation/IMPLEMENTATION_SUMMARY.md` | | |
+
+**Users with Study Plans:**
+- `charlie.user@taxomind.com` - TypeScript & React study plans
+- `sham251087@gmail.com` - Options 101 study plan (has scheduled sessions)
+
 ## 🧠 TypeScript Memory Optimization
 
 **IMPORTANT**: This codebase uses industry-standard TypeScript project references to handle memory constraints.

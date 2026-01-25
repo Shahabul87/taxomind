@@ -196,9 +196,9 @@ function TopThreeEntry({
       </div>
 
       {/* Avatar */}
-      <Avatar className={cn(compact ? 'h-10 w-10' : 'h-12 w-12', 'mb-2')}>
+      <Avatar className={cn(compact ? 'h-8 w-8 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-12 sm:w-12', 'mb-1 sm:mb-2')}>
         <AvatarImage src={entry.avatar} alt={entry.name} />
-        <AvatarFallback className="text-sm font-medium">
+        <AvatarFallback className="text-xs sm:text-sm font-medium">
           {getInitials(entry.name)}
         </AvatarFallback>
       </Avatar>
@@ -207,14 +207,14 @@ function TopThreeEntry({
       <span
         className={cn(
           'font-medium text-center line-clamp-1',
-          compact ? 'text-xs' : 'text-sm'
+          compact ? 'text-xs' : 'text-xs sm:text-sm'
         )}
       >
         {entry.name}
       </span>
 
       {/* XP */}
-      <span className={cn('text-amber-600 font-semibold', compact ? 'text-xs' : 'text-sm')}>
+      <span className={cn('text-amber-600 font-semibold', compact ? 'text-xs' : 'text-xs sm:text-sm')}>
         {formatXP(entry.xp)} XP
       </span>
 
@@ -246,8 +246,8 @@ function LeaderboardRow({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 10 }}
       className={cn(
-        'flex items-center gap-3 rounded-lg transition-colors',
-        compact ? 'py-2 px-2' : 'py-3 px-3',
+        'flex items-center gap-2 sm:gap-3 rounded-lg transition-colors',
+        compact ? 'py-1.5 sm:py-2 px-2' : 'py-2 sm:py-3 px-2 sm:px-3',
         entry.isCurrentUser
           ? 'bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800'
           : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
@@ -256,28 +256,28 @@ function LeaderboardRow({
       {/* Rank */}
       <div
         className={cn(
-          'flex items-center justify-center font-bold',
-          compact ? 'w-5 text-xs' : 'w-6 text-sm',
+          'flex items-center justify-center font-bold shrink-0',
+          compact ? 'w-5 text-xs' : 'w-5 sm:w-6 text-xs sm:text-sm',
           isTopThree ? config?.color : 'text-muted-foreground'
         )}
       >
         {Icon ? (
-          <Icon className={cn(compact ? 'h-4 w-4' : 'h-5 w-5', config?.color)} />
+          <Icon className={cn(compact ? 'h-3.5 w-3.5 sm:h-4 sm:w-4' : 'h-4 w-4 sm:h-5 sm:w-5', config?.color)} />
         ) : (
           <span>#{entry.rank}</span>
         )}
       </div>
 
       {/* Avatar */}
-      <div className="relative">
-        <Avatar className={compact ? 'h-8 w-8' : 'h-10 w-10'}>
+      <div className="relative shrink-0">
+        <Avatar className={compact ? 'h-7 w-7 sm:h-8 sm:w-8' : 'h-8 w-8 sm:h-10 sm:w-10'}>
           <AvatarImage src={entry.avatar} alt={entry.name} />
           <AvatarFallback className="text-xs">
             {getInitials(entry.name)}
           </AvatarFallback>
         </Avatar>
         {entry.isCurrentUser && (
-          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-indigo-500 rounded-full border-2 border-white dark:border-gray-900" />
+          <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 sm:h-3 sm:w-3 bg-indigo-500 rounded-full border-2 border-white dark:border-gray-900" />
         )}
       </div>
 
@@ -324,12 +324,12 @@ function LeaderboardRow({
             <Badge
               variant="outline"
               className={cn(
-                'font-semibold',
-                compact ? 'text-xs px-2' : 'text-sm px-2.5',
+                'font-semibold shrink-0',
+                compact ? 'text-xs px-1.5 sm:px-2' : 'text-xs sm:text-sm px-2 sm:px-2.5',
                 'text-amber-600 border-amber-200 dark:border-amber-800'
               )}
             >
-              <Star className="h-3 w-3 mr-1" />
+              <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
               {formatXP(entry.xp)}
             </Badge>
           </TooltipTrigger>
@@ -426,16 +426,16 @@ export function LeaderboardWidget({
 
   return (
     <Card className={cn('overflow-hidden', className)}>
-      <CardHeader className={compact ? 'pb-2' : 'pb-3'}>
-        <div className="flex items-center justify-between">
+      <CardHeader className={cn(compact ? 'pb-2' : 'pb-3', 'p-4 sm:p-6')}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-amber-500" />
-            <CardTitle className="text-base">Leaderboard</CardTitle>
+            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
+            <CardTitle className="text-sm sm:text-base">Leaderboard</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {!compact && (
               <Select value={period} onValueChange={(v) => setPeriod(v as LeaderboardPeriod)}>
-                <SelectTrigger className="w-[120px] h-8">
+                <SelectTrigger className="w-full sm:w-[120px] h-8 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -452,20 +452,20 @@ export function LeaderboardWidget({
               size="icon"
               onClick={fetchLeaderboard}
               disabled={isLoading}
-              className="h-8 w-8"
+              className="h-8 w-8 shrink-0"
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
               ) : (
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               )}
             </Button>
           </div>
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs sm:text-sm mt-1">
           {scope === 'course' ? 'Course Rankings' : 'Global Rankings'} - {PERIOD_CONFIG[period].label}
           {stats.currentRank && (
-            <span className="ml-2 text-indigo-600 dark:text-indigo-400">
+            <span className="ml-1 sm:ml-2 text-indigo-600 dark:text-indigo-400">
               (You: #{stats.currentRank})
             </span>
           )}
@@ -498,7 +498,7 @@ export function LeaderboardWidget({
           <>
             {/* Top 3 special display - only in non-compact mode */}
             {!compact && topThree.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
                 {/* Reorder to show 2nd, 1st, 3rd */}
                 {[topThree[1], topThree[0], topThree[2]].filter(Boolean).map((entry) => (
                   <TopThreeEntry

@@ -318,21 +318,21 @@ export function PracticeGoalSetter({ className, compact = false }: PracticeGoalS
     if (!stats) return null;
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div className="bg-muted/50 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-primary">{stats.activeGoals}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+        <div className="bg-muted/50 rounded-lg p-2 sm:p-3 text-center">
+          <div className="text-xl sm:text-2xl font-bold text-primary">{stats.activeGoals}</div>
           <div className="text-xs text-muted-foreground">Active</div>
         </div>
-        <div className="bg-muted/50 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-green-600">{stats.completedGoals}</div>
+        <div className="bg-muted/50 rounded-lg p-2 sm:p-3 text-center">
+          <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.completedGoals}</div>
           <div className="text-xs text-muted-foreground">Completed</div>
         </div>
-        <div className="bg-muted/50 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{stats.completionRate.toFixed(0)}%</div>
+        <div className="bg-muted/50 rounded-lg p-2 sm:p-3 text-center">
+          <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.completionRate.toFixed(0)}%</div>
           <div className="text-xs text-muted-foreground">Success Rate</div>
         </div>
-        <div className="bg-muted/50 rounded-lg p-3 text-center">
-          <div className="text-2xl font-bold text-blue-600">{stats.completionVelocity.toFixed(1)}</div>
+        <div className="bg-muted/50 rounded-lg p-2 sm:p-3 text-center">
+          <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.completionVelocity.toFixed(1)}</div>
           <div className="text-xs text-muted-foreground">Goals/Week</div>
         </div>
       </div>
@@ -344,43 +344,43 @@ export function PracticeGoalSetter({ className, compact = false }: PracticeGoalS
     <div
       key={goal.id}
       className={cn(
-        'p-4 rounded-lg border transition-all hover:shadow-sm',
+        'p-3 sm:p-4 rounded-lg border transition-all hover:shadow-sm',
         goal.isCompleted && 'bg-green-50 border-green-200 dark:bg-green-950/20',
         goal.isOverdue && !goal.isCompleted && 'bg-red-50 border-red-200 dark:bg-red-950/20',
         !goal.isCompleted && !goal.isOverdue && 'hover:border-primary/50'
       )}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className="flex items-start justify-between mb-2 gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
           <div className={cn(
-            'p-1.5 rounded-md',
+            'p-1 sm:p-1.5 rounded-md shrink-0',
             goal.isCompleted ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary'
           )}>
-            {getGoalTypeIcon(goal.goalType)}
+            <div className="h-3 w-3 sm:h-4 sm:w-4">{getGoalTypeIcon(goal.goalType)}</div>
           </div>
           <div className="min-w-0 flex-1">
-            <span className="font-medium truncate block">{goal.title}</span>
+            <span className="font-medium truncate block text-sm sm:text-base">{goal.title}</span>
             {goal.skillName && (
               <span className="text-xs text-muted-foreground">{goal.skillName}</span>
             )}
           </div>
           {goal.isCompleted && (
-            <Badge className="bg-green-500 shrink-0">
-              <CheckCircle2 className="h-3 w-3 mr-1" />
+            <Badge className="bg-green-500 shrink-0 text-xs">
+              <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
               Done
             </Badge>
           )}
           {goal.isOverdue && !goal.isCompleted && (
-            <Badge variant="destructive" className="shrink-0">
-              <AlertCircle className="h-3 w-3 mr-1" />
+            <Badge variant="destructive" className="shrink-0 text-xs">
+              <AlertCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
               Overdue
             </Badge>
           )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-              <MoreVertical className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 shrink-0">
+              <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -549,18 +549,19 @@ export function PracticeGoalSetter({ className, compact = false }: PracticeGoalS
   // Full view
   return (
     <Card className={cn('', className)}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
+      <CardHeader className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Practice Goals
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline">
-                  <Zap className="h-4 w-4 mr-1" />
-                  Quick Goal
+                <Button size="sm" variant="outline" className="text-xs sm:text-sm flex-1 sm:flex-none">
+                  <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+                  <span className="hidden xs:inline">Quick Goal</span>
+                  <span className="xs:hidden">Quick</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -581,9 +582,11 @@ export function PracticeGoalSetter({ className, compact = false }: PracticeGoalS
                 setEditingGoal(null);
                 setIsDialogOpen(true);
               }}
+              className="text-xs sm:text-sm flex-1 sm:flex-none"
             >
-              <Plus className="h-4 w-4 mr-1" />
-              Custom Goal
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
+              <span className="hidden xs:inline">Custom Goal</span>
+              <span className="xs:hidden">Custom</span>
             </Button>
           </div>
         </div>
@@ -598,19 +601,25 @@ export function PracticeGoalSetter({ className, compact = false }: PracticeGoalS
             {renderStats()}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="active" className="gap-2">
-                  <Target className="h-4 w-4" />
-                  Active ({activeGoals.length})
+              <TabsList className="mb-3 sm:mb-4 w-full sm:w-auto overflow-x-auto">
+                <TabsTrigger value="active" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Active</span>
+                  <span className="xs:hidden">Act</span>
+                  <span className="hidden sm:inline">({activeGoals.length})</span>
                 </TabsTrigger>
-                <TabsTrigger value="completed" className="gap-2">
-                  <Trophy className="h-4 w-4" />
-                  Completed ({completedGoals.length})
+                <TabsTrigger value="completed" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Trophy className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Completed</span>
+                  <span className="xs:hidden">Done</span>
+                  <span className="hidden sm:inline">({completedGoals.length})</span>
                 </TabsTrigger>
                 {stats && stats.overdueCount > 0 && (
-                  <TabsTrigger value="overdue" className="gap-2">
-                    <AlertCircle className="h-4 w-4" />
-                    Overdue ({stats.overdueCount})
+                  <TabsTrigger value="overdue" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+                    <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Overdue</span>
+                    <span className="xs:hidden">Due</span>
+                    <span className="hidden sm:inline">({stats.overdueCount})</span>
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -784,18 +793,18 @@ function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-yellow-500" />
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
             {goal ? 'Edit Goal' : 'Create Practice Goal'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             Set a custom target to track your practice progress
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div className="space-y-2">
             <Label htmlFor="goal-title">Title *</Label>
             <Input
@@ -817,9 +826,9 @@ function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="goal-type">Goal Type</Label>
+              <Label htmlFor="goal-type" className="text-sm">Goal Type</Label>
               <Select
                 value={formData.goalType}
                 onValueChange={(v) => setFormData({ ...formData, goalType: v as GoalType })}
@@ -838,7 +847,7 @@ function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="goal-target">Target Value *</Label>
+              <Label htmlFor="goal-target" className="text-sm">Target Value *</Label>
               <Input
                 id="goal-target"
                 type="number"
@@ -851,9 +860,9 @@ function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="goal-skill">Skill (Optional)</Label>
+              <Label htmlFor="goal-skill" className="text-sm">Skill (Optional)</Label>
               <Input
                 id="goal-skill"
                 placeholder="e.g., React"
@@ -863,7 +872,7 @@ function GoalDialog({ open, onOpenChange, goal, onSuccess }: GoalDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="goal-deadline">Deadline (Optional)</Label>
+              <Label htmlFor="goal-deadline" className="text-sm">Deadline (Optional)</Label>
               <Input
                 id="goal-deadline"
                 type="datetime-local"
@@ -1003,16 +1012,16 @@ function ProgressDialog({ open, onOpenChange, goal, onSuccess }: ProgressDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[400px] max-h-[85vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-500" />
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
             Update Progress
           </DialogTitle>
-          <DialogDescription>{goal.title}</DialogDescription>
+          <DialogDescription className="text-sm">{goal.title}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Current progress display */}
           <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex justify-between text-sm mb-2">

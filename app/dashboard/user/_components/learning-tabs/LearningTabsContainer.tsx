@@ -93,9 +93,9 @@ export function LearningTabsContainer({ user, onCreateStudyPlan }: LearningTabsC
   return (
     <div className="min-h-full">
       {/* Compact Inline Sub-Tab Selector - No sticky, inline with content */}
-      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pt-2">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pt-4 sm:pt-6">
         <TooltipProvider delayDuration={300}>
-          <nav className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/50">
+          <nav className="inline-flex items-center gap-0.5 sm:gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/50 overflow-x-auto">
             {SUB_TABS.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeSubTab === tab.id;
@@ -106,15 +106,14 @@ export function LearningTabsContainer({ user, onCreateStudyPlan }: LearningTabsC
                     <button
                       onClick={() => setActiveSubTab(tab.id)}
                       className={cn(
-                        'relative flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150',
+                        'relative flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-all duration-150 flex-shrink-0',
                         isActive
                           ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
                           : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
+                      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {/* Show short label on mobile, full label on larger screens */}
-                      <span className="hidden xs:inline sm:hidden">{tab.shortLabel}</span>
                       <span className="hidden sm:inline">{tab.label}</span>
                     </button>
                   </TooltipTrigger>
@@ -130,7 +129,7 @@ export function LearningTabsContainer({ user, onCreateStudyPlan }: LearningTabsC
       </div>
 
       {/* Sub-Tab Content */}
-      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         {renderContent()}
       </div>
     </div>

@@ -239,27 +239,27 @@ export function CourseGuideBuilder({ className, compact = false }: CourseGuideBu
 
   return (
     <Card className={cn("", className)}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-lg">
-              <BookOpen className="h-6 w-6" />
+      <CardHeader className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-lg">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <CardTitle className="text-xl">Course Guide Builder</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Course Guide Builder</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 Generate comprehensive course guides with AI-powered insights
               </CardDescription>
             </div>
           </div>
           {guide && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => exportGuide("json")}>
-                <Download className="h-4 w-4 mr-1" />
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => exportGuide("json")} className="text-xs sm:text-sm">
+                <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                 JSON
               </Button>
-              <Button variant="outline" size="sm" onClick={() => exportGuide("html")}>
-                <FileText className="h-4 w-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={() => exportGuide("html")} className="text-xs sm:text-sm">
+                <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                 HTML
               </Button>
             </div>
@@ -267,18 +267,18 @@ export function CourseGuideBuilder({ className, compact = false }: CourseGuideBu
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
         {/* Course Selection */}
-        <div className="space-y-4 p-4 rounded-lg border bg-slate-50/50">
-          <div className="space-y-2">
-            <Label>Search Your Courses</Label>
+        <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 rounded-lg border bg-slate-50/50">
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label className="text-xs sm:text-sm">Search Your Courses</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400" />
               <Input
                 placeholder="Search by course title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-8 sm:pl-9 text-xs sm:text-sm"
               />
             </div>
           </div>
@@ -337,30 +337,30 @@ export function CourseGuideBuilder({ className, compact = false }: CourseGuideBu
           )}
 
           {/* Options */}
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
             <div className="flex items-center gap-2">
               <Switch checked={includeComparison} onCheckedChange={setIncludeComparison} />
-              <Label className="text-sm">Include Market Comparison</Label>
+              <Label className="text-xs sm:text-sm">Include Market Comparison</Label>
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={includeProjections} onCheckedChange={setIncludeProjections} />
-              <Label className="text-sm">Include Success Projections</Label>
+              <Label className="text-xs sm:text-sm">Include Success Projections</Label>
             </div>
           </div>
 
           <Button
             onClick={generateGuide}
             disabled={isLoading || !selectedCourse}
-            className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700"
+            className="w-full bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-xs sm:text-sm"
           >
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 animate-spin" />
                 Generating Guide...
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                 Generate Course Guide
               </>
             )}
@@ -377,13 +377,13 @@ export function CourseGuideBuilder({ className, compact = false }: CourseGuideBu
               className="space-y-4"
             >
               {/* Header Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Target className="h-4 w-4 text-blue-600" />
-                    <span className="text-xs text-blue-600 font-medium">Depth</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+                <div className="p-2.5 sm:p-3 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mb-1">
+                    <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 shrink-0" />
+                    <span className="text-[10px] sm:text-xs text-blue-600 font-medium">Depth</span>
                   </div>
-                  <p className={cn("text-2xl font-bold", getScoreColor(guide.metrics.depth.overallDepth))}>
+                  <p className={cn("text-xl sm:text-2xl font-bold", getScoreColor(guide.metrics.depth.overallDepth))}>
                     {Math.round(guide.metrics.depth.overallDepth * 100)}%
                   </p>
                 </div>
@@ -421,18 +421,18 @@ export function CourseGuideBuilder({ className, compact = false }: CourseGuideBu
 
               {/* Detailed Tabs */}
               <Tabs defaultValue="metrics" className="w-full">
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="metrics">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Metrics
+                <TabsList className="grid grid-cols-3 w-full h-auto">
+                  <TabsTrigger value="metrics" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="hidden xs:inline">Metrics</span>
                   </TabsTrigger>
-                  <TabsTrigger value="recommendations">
-                    <Target className="h-4 w-4 mr-2" />
-                    Actions
+                  <TabsTrigger value="recommendations" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="hidden xs:inline">Actions</span>
                   </TabsTrigger>
-                  <TabsTrigger value="risks">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Risks
+                  <TabsTrigger value="risks" className="text-xs sm:text-sm px-1 sm:px-3 py-2">
+                    <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 shrink-0" />
+                    <span className="hidden xs:inline">Risks</span>
                   </TabsTrigger>
                 </TabsList>
 

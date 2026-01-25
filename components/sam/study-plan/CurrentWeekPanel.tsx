@@ -86,13 +86,13 @@ export function CurrentWeekPanel({
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+        className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors active:bg-white/30"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           {/* Pin icon */}
           <div
             className={cn(
-              'flex items-center justify-center w-8 h-8 rounded-lg',
+              'flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex-shrink-0',
               isComplete
                 ? 'bg-emerald-100 dark:bg-emerald-900/50'
                 : 'bg-blue-100 dark:bg-blue-900/50'
@@ -100,7 +100,7 @@ export function CurrentWeekPanel({
           >
             <MapPin
               className={cn(
-                'w-4 h-4',
+                'w-3.5 h-3.5 sm:w-4 sm:h-4',
                 isComplete
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : 'text-blue-600 dark:text-blue-400'
@@ -109,34 +109,38 @@ export function CurrentWeekPanel({
           </div>
 
           {/* Week info */}
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <h4 className="font-semibold text-slate-900 dark:text-white">
+          <div className="text-left min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <h4 className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white truncate">
                 Week {weekNumber}: {title}
               </h4>
               {isComplete && (
-                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 text-xs">
+                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 text-[10px] sm:text-xs px-1.5 sm:px-2">
                   Complete
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {dateRange && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {dateRange}
+                <span className="flex items-center gap-0.5 sm:gap-1">
+                  <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                  <span className="hidden xs:inline">{dateRange}</span>
                 </span>
               )}
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
+              <span className="flex items-center gap-0.5 sm:gap-1">
+                <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 {hoursCompleted.toFixed(1)}h / {hoursTotal.toFixed(1)}h
+              </span>
+              {/* Mobile: show task count inline */}
+              <span className="flex sm:hidden items-center">
+                {tasksCompleted}/{tasksTotal}
               </span>
             </div>
           </div>
         </div>
 
         {/* Right side: progress and toggle */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
           <div className="hidden sm:flex items-center gap-2">
             <Badge
               variant="outline"
@@ -159,13 +163,13 @@ export function CurrentWeekPanel({
 
           <div
             className={cn(
-              'flex items-center justify-center h-8 w-8 rounded-md transition-colors',
+              'flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-md transition-colors',
               isComplete
                 ? 'text-emerald-600 dark:text-emerald-400'
                 : 'text-blue-600 dark:text-blue-400'
             )}
           >
-            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />}
           </div>
         </div>
       </button>

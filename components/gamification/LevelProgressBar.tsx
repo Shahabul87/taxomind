@@ -38,25 +38,25 @@ export function LevelProgressBar({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`relative overflow-hidden ${
-        compact ? "p-3" : "p-5"
-      } rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/50 shadow-sm`}
+        compact ? "p-3" : "p-4 sm:p-5"
+      } rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/50 shadow-sm`}
     >
       {/* Gradient accent line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
 
       <div className="relative z-10">
         {/* Level Badge & XP Counter */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Animated Level Badge */}
             <motion.div
               className="relative"
               whileHover={{ scale: 1.1 }}
               transition={{ type: "spring", stiffness: 400 }}
             >
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 p-0.5 shadow-lg shadow-violet-500/25">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 p-0.5 shadow-lg shadow-violet-500/25">
                 <div className="w-full h-full rounded-xl bg-white dark:bg-slate-900 flex items-center justify-center">
-                  <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-violet-500 to-indigo-600">
+                  <span className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-br from-violet-500 to-indigo-600">
                     {xp.currentLevel}
                   </span>
                 </div>
@@ -66,17 +66,17 @@ export function LevelProgressBar({
                 animate={{ rotate: 360 }}
                 transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
               >
-                <Sparkles className="w-4 h-4 text-amber-500" />
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-amber-500" />
               </motion.div>
             </motion.div>
 
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span className="font-bold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight">
                   Level {xp.currentLevel}
                 </span>
                 {currentThreshold && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 font-medium">
+                  <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300 font-medium">
                     {currentThreshold.title}
                   </span>
                 )}
@@ -89,9 +89,9 @@ export function LevelProgressBar({
 
           {/* XP to next level */}
           {showDetails && nextThreshold && (
-            <div className="text-right">
-              <div className="flex items-center gap-1 text-sm">
-                <TrendingUp className="w-4 h-4 text-emerald-500" />
+            <div className="text-left sm:text-right w-full sm:w-auto">
+              <div className="flex items-center gap-1 text-xs sm:text-sm">
+                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
                 <span className="text-slate-900 dark:text-white font-semibold">
                   {xp.xpToNextLevel - xp.xpInCurrentLevel}
                 </span>
@@ -146,14 +146,14 @@ export function LevelProgressBar({
 
         {/* XP breakdown */}
         {showDetails && (
-          <div className="flex items-center justify-between mt-3 text-xs">
-            <span className="text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between mt-2 sm:mt-3 text-xs">
+            <span className="text-slate-500 dark:text-slate-400 truncate">
               {(xp.xpInCurrentLevel ?? 0).toLocaleString()} XP
             </span>
-            <span className="text-slate-600 dark:text-slate-300 font-mono font-medium">
+            <span className="text-slate-600 dark:text-slate-300 font-mono font-medium mx-2">
               {levelProgress.toFixed(1)}%
             </span>
-            <span className="text-slate-500 dark:text-slate-400">
+            <span className="text-slate-500 dark:text-slate-400 truncate">
               {(xp.xpToNextLevel ?? 0).toLocaleString()} XP
             </span>
           </div>

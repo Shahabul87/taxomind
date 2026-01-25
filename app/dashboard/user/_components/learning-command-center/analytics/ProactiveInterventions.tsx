@@ -126,26 +126,26 @@ function InterventionCard({
       exit={{ opacity: 0, x: -20, height: 0, marginBottom: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        'rounded-xl border p-4 transition-all',
+        'rounded-xl border p-3 sm:p-4 transition-all',
         config.borderColor,
         config.bgColor,
         priority.ring
       )}
     >
-      <div className="flex gap-3">
+      <div className="flex gap-2 sm:gap-3">
         {/* Icon */}
         <div className={cn(
-          'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl',
+          'flex h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-xl',
           config.bgColor
         )}>
-          <Icon className={cn('h-5 w-5', config.color)} />
+          <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', config.color)} />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2">
+          <div className="flex items-start justify-between gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <Badge variant="secondary" className={cn('text-xs', priority.badge)}>
                 {intervention.priority}
               </Badge>
@@ -157,32 +157,32 @@ function InterventionCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 flex-shrink-0 text-slate-400 hover:text-slate-600"
+                className="h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0 text-slate-400 hover:text-slate-600"
                 onClick={() => onDismiss(intervention.id)}
               >
-                <X className="h-3.5 w-3.5" />
+                <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
               </Button>
             )}
           </div>
 
           {/* Message */}
-          <p className="mt-2 text-sm font-medium text-slate-900 dark:text-white">
+          <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm font-medium text-slate-900 dark:text-white">
             {intervention.message}
           </p>
 
           {/* Suggested Actions */}
           {intervention.suggestedActions.length > 0 && (
-            <div className="mt-3 space-y-2">
+            <div className="mt-2 sm:mt-3 space-y-1.5 sm:space-y-2">
               <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                 Suggested Actions:
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {intervention.suggestedActions.slice(0, 3).map((action, idx) => (
                   <Button
                     key={idx}
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs"
+                    className="h-6 sm:h-7 text-xs"
                     onClick={() => onAction?.(intervention, action.title)}
                   >
                     <Play className="h-3 w-3 mr-1" />
@@ -194,18 +194,18 @@ function InterventionCard({
           )}
 
           {/* Footer Actions */}
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-2 sm:mt-3 flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              className={cn('h-7 text-xs', config.color)}
+              className={cn('h-6 sm:h-7 text-xs', config.color)}
               onClick={onAskSAM}
             >
               <Brain className="h-3 w-3 mr-1" />
               Ask SAM about this
             </Button>
             {intervention.createdAt && (
-              <span className="text-xs text-slate-400 ml-auto">
+              <span className="text-xs text-slate-400 sm:ml-auto">
                 <Clock className="inline h-3 w-3 mr-1" />
                 {formatTimeAgo(new Date(intervention.createdAt))}
               </span>
@@ -240,14 +240,14 @@ function QuickCheckIn({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 dark:border-indigo-800 dark:from-indigo-950/30 dark:to-purple-950/30"
+      className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 p-3 sm:p-4 dark:border-indigo-800 dark:from-indigo-950/30 dark:to-purple-950/30"
     >
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-900/30">
-          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-indigo-100 dark:bg-indigo-900/30 shrink-0">
+          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 dark:text-indigo-400" />
         </div>
-        <div>
-          <h4 className="font-medium text-slate-900 dark:text-white">
+        <div className="min-w-0 flex-1">
+          <h4 className="text-sm sm:text-base font-medium text-slate-900 dark:text-white">
             Quick Check-in
           </h4>
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -255,32 +255,32 @@ function QuickCheckIn({
           </p>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
         <Button
           variant="outline"
           size="sm"
-          className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
+          className="flex-1 text-xs sm:text-sm bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800"
           onClick={() => onRespond('good')}
         >
-          <CheckCircle className="h-4 w-4 mr-1" />
+          <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
           Great!
         </Button>
         <Button
           variant="outline"
           size="sm"
-          className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
+          className="flex-1 text-xs sm:text-sm bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800"
           onClick={() => onRespond('struggling')}
         >
-          <AlertCircle className="h-4 w-4 mr-1" />
+          <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
           Struggling
         </Button>
         <Button
           variant="outline"
           size="sm"
-          className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+          className="flex-1 text-xs sm:text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
           onClick={() => onRespond('need_help')}
         >
-          <Lightbulb className="h-4 w-4 mr-1" />
+          <Lightbulb className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
           Need Tips
         </Button>
       </div>
@@ -412,21 +412,21 @@ export function ProactiveInterventions({
   if (compact) {
     return (
       <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <Bell className="h-5 w-5 text-purple-500" />
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+            <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 shrink-0" />
               SAM Check-ins
             </CardTitle>
             {pendingInterventions.length > 0 && (
-              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 shrink-0">
                 {pendingInterventions.length} pending
               </Badge>
             )}
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
           {/* Quick Check-in */}
           {showCheckIn && (
             <QuickCheckIn onRespond={handleCheckInResponse} />
@@ -456,21 +456,21 @@ export function ProactiveInterventions({
   // Full view
   return (
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-            <Bell className="h-5 w-5 text-purple-500" />
+      <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+            <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 shrink-0" />
             Proactive Interventions
           </CardTitle>
           {pendingInterventions.length > 0 && (
-            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 shrink-0">
               {pendingInterventions.length} pending
             </Badge>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
         {/* Quick Check-in */}
         {showCheckIn && (
           <QuickCheckIn onRespond={handleCheckInResponse} />
@@ -478,9 +478,9 @@ export function ProactiveInterventions({
 
         {/* Interventions List */}
         {pendingInterventions.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-              <Zap className="h-4 w-4 text-amber-500" />
+          <div className="space-y-2 sm:space-y-3">
+            <h4 className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500 shrink-0" />
               Personalized Interventions
             </h4>
             <AnimatePresence mode="popLayout">

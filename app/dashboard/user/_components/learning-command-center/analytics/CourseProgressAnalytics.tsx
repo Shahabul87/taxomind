@@ -88,14 +88,14 @@ function CourseCard({ course }: { course: CourseProgressItem }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/50"
+      className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4 dark:border-slate-700 dark:bg-slate-800/50"
     >
-      <div className="mb-3 flex items-start justify-between">
+      <div className="mb-2 sm:mb-3 flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-slate-900 dark:text-white truncate">
+          <h4 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white truncate">
             {course.courseTitle}
           </h4>
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 flex items-center gap-1.5 sm:gap-2">
             <Badge
               variant="outline"
               className={cn('text-xs', statusConfig.color, statusConfig.bgColor)}
@@ -105,14 +105,14 @@ function CourseCard({ course }: { course: CourseProgressItem }) {
             </Badge>
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-          <ExternalLink className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
+          <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </Button>
       </div>
 
       {/* Progress bar */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
+      <div className="space-y-1.5 sm:space-y-2">
+        <div className="flex items-center justify-between text-xs sm:text-sm">
           <span className="font-medium text-slate-700 dark:text-slate-300">
             {Math.round(course.progress)}% Complete
           </span>
@@ -138,10 +138,10 @@ function CourseCard({ course }: { course: CourseProgressItem }) {
       </div>
 
       {/* Stats row */}
-      <div className="mt-3 flex items-center gap-4 border-t border-slate-100 pt-3 dark:border-slate-700">
+      <div className="mt-2 sm:mt-3 flex items-center gap-2 sm:gap-4 border-t border-slate-100 pt-2 sm:pt-3 dark:border-slate-700 flex-wrap">
         {course.averageScore > 0 && (
           <div className="flex items-center gap-1">
-            <Target className="h-3.5 w-3.5 text-slate-400" />
+            <Target className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-400 shrink-0" />
             <span className="text-xs text-slate-600 dark:text-slate-400">
               {Math.round(course.averageScore)}% avg
             </span>
@@ -149,7 +149,7 @@ function CourseCard({ course }: { course: CourseProgressItem }) {
         )}
         {course.lastActivity && (
           <div className="flex items-center gap-1 text-xs text-slate-400">
-            <Clock className="h-3.5 w-3.5" />
+            <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
             {new Date(course.lastActivity).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
@@ -166,12 +166,12 @@ function CompactCourseCard({ course }: { course: CourseProgressItem }) {
   const Icon = StatusIcon[course.status];
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50">
+    <div className="flex items-center gap-2 sm:gap-3 rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3 dark:border-slate-700 dark:bg-slate-800/50">
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-slate-900 dark:text-white truncate">
+        <p className="font-medium text-xs sm:text-sm text-slate-900 dark:text-white truncate">
           {course.courseTitle}
         </p>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
           <div className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
             <div
               className={cn(
@@ -184,7 +184,7 @@ function CompactCourseCard({ course }: { course: CourseProgressItem }) {
               style={{ width: `${course.progress}%` }}
             />
           </div>
-          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-10 text-right">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-400 w-8 sm:w-10 text-right shrink-0">
             {Math.round(course.progress)}%
           </span>
         </div>
@@ -270,15 +270,15 @@ export function CourseProgressAnalytics({
   if (compact) {
     return (
       <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <BarChart3 className="h-5 w-5 text-blue-500" />
+            <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 shrink-0" />
               Course Progress
             </CardTitle>
           </div>
           {/* Summary badges */}
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="flex flex-wrap gap-1 sm:gap-1.5 mt-2">
             {coursesAhead > 0 && (
               <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                 {coursesAhead} ahead
@@ -297,7 +297,7 @@ export function CourseProgressAnalytics({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 p-3 sm:p-6 pt-0">
           {displayCourses.map((course, index) => (
             <motion.div
               key={course.courseId}
@@ -310,14 +310,14 @@ export function CourseProgressAnalytics({
           ))}
 
           {/* Summary */}
-          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
-            <div className="flex items-center justify-between text-sm">
+          <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100 dark:border-slate-700">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <span className="text-slate-600 dark:text-slate-400">Average Progress</span>
               <span className="font-semibold text-blue-600 dark:text-blue-400">
                 {Math.round(avgProgress)}%
               </span>
             </div>
-            <div className="flex items-center justify-between text-sm mt-1">
+            <div className="flex items-center justify-between text-xs sm:text-sm mt-1">
               <span className="text-slate-600 dark:text-slate-400">Active Courses</span>
               <span className="font-semibold text-slate-900 dark:text-white">
                 {data.overview.activeCourses}
@@ -326,7 +326,7 @@ export function CourseProgressAnalytics({
           </div>
 
           {courses.length > 3 && (
-            <Button variant="outline" size="sm" className="w-full hover:bg-blue-50 dark:hover:bg-blue-950/30">
+            <Button variant="outline" size="sm" className="w-full text-xs sm:text-sm hover:bg-blue-50 dark:hover:bg-blue-950/30">
               View all {courses.length} courses
             </Button>
           )}
@@ -338,25 +338,25 @@ export function CourseProgressAnalytics({
   // Full view
   return (
     <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-            <BarChart3 className="h-5 w-5 text-blue-500" />
+      <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+            <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 shrink-0" />
             Course Progress Overview
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             {coursesAhead > 0 && (
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+              <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                 {coursesAhead} ahead
               </Badge>
             )}
             {coursesOnTrack > 0 && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                 {coursesOnTrack} on track
               </Badge>
             )}
             {coursesNeedAttention > 0 && (
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+              <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                 {coursesNeedAttention} need attention
               </Badge>
             )}
@@ -364,10 +364,10 @@ export function CourseProgressAnalytics({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className={cn('grid gap-4', showVelocity ? 'lg:grid-cols-3' : '')}>
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+        <div className={cn('grid gap-3 sm:gap-4', showVelocity ? 'lg:grid-cols-3' : '')}>
           {/* Course Cards */}
-          <div className={cn('space-y-3', showVelocity ? 'lg:col-span-2' : '')}>
+          <div className={cn('space-y-2 sm:space-y-3', showVelocity ? 'lg:col-span-2' : '')}>
             {displayCourses.map((course, index) => (
               <motion.div
                 key={course.courseId}
@@ -380,7 +380,7 @@ export function CourseProgressAnalytics({
             ))}
 
             {courses.length > maxCourses && (
-              <Button variant="ghost" className="w-full text-slate-500">
+              <Button variant="ghost" className="w-full text-xs sm:text-sm text-slate-500">
                 View all {courses.length} courses
               </Button>
             )}
@@ -388,55 +388,55 @@ export function CourseProgressAnalytics({
 
           {/* Summary Stats */}
           {showVelocity && (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {/* Learning Velocity */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 dark:border-slate-700 dark:from-slate-800 dark:to-slate-800/50"
+                className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-3 sm:p-4 dark:border-slate-700 dark:from-slate-800 dark:to-slate-800/50"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="font-semibold text-slate-900 dark:text-white">
+                <div className="mb-2 sm:mb-3 flex items-center justify-between">
+                  <h4 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white">
                     Learning Velocity
                   </h4>
                   <div className="flex items-center gap-1 text-emerald-500">
-                    <TrendingUp className="h-4 w-4" />
+                    <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span className="text-xs font-medium">Active</span>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="relative h-16 w-16">
-                      <svg className="h-16 w-16 -rotate-90 transform">
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="relative h-12 w-12 sm:h-16 sm:w-16 shrink-0">
+                      <svg className="h-12 w-12 sm:h-16 sm:w-16 -rotate-90 transform">
                         <circle
-                          cx="32"
-                          cy="32"
-                          r="28"
+                          cx="24"
+                          cy="24"
+                          r="20"
                           stroke="currentColor"
-                          strokeWidth="8"
+                          strokeWidth="6"
                           fill="none"
                           className="text-slate-200 dark:text-slate-700"
                         />
                         <circle
-                          cx="32"
-                          cy="32"
-                          r="28"
+                          cx="24"
+                          cy="24"
+                          r="20"
                           stroke="currentColor"
-                          strokeWidth="8"
+                          strokeWidth="6"
                           fill="none"
-                          strokeDasharray={`${2 * Math.PI * 28}`}
-                          strokeDashoffset={`${2 * Math.PI * 28 * (1 - data.learningPatterns.learningVelocity)}`}
+                          strokeDasharray={`${2 * Math.PI * 20}`}
+                          strokeDashoffset={`${2 * Math.PI * 20 * (1 - data.learningPatterns.learningVelocity)}`}
                           className="text-blue-500"
                           strokeLinecap="round"
                         />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-slate-900 dark:text-white">
+                      <span className="absolute inset-0 flex items-center justify-center text-sm sm:text-lg font-bold text-slate-900 dark:text-white">
                         {Math.round(data.learningPatterns.learningVelocity * 100)}
                       </span>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
                         Velocity Score
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -445,9 +445,9 @@ export function CourseProgressAnalytics({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                     <div className="rounded-lg bg-slate-100 p-2 dark:bg-slate-700/50">
-                      <p className="text-lg font-bold text-slate-900 dark:text-white">
+                      <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                         {data.overview.activeCourses}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -455,7 +455,7 @@ export function CourseProgressAnalytics({
                       </p>
                     </div>
                     <div className="rounded-lg bg-slate-100 p-2 dark:bg-slate-700/50">
-                      <p className="text-lg font-bold text-slate-900 dark:text-white">
+                      <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                         {data.overview.totalExamsCompleted}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -471,11 +471,11 @@ export function CourseProgressAnalytics({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-4 dark:from-blue-950/30 dark:to-indigo-950/30"
+                className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-3 sm:p-4 dark:from-blue-950/30 dark:to-indigo-950/30"
               >
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {Math.round(avgProgress)}%
                     </p>
                     <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -483,7 +483,7 @@ export function CourseProgressAnalytics({
                     </p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                    <p className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                       {data.overview.completedCourses}
                     </p>
                     <p className="text-xs text-slate-600 dark:text-slate-400">

@@ -128,16 +128,16 @@ export function PracticeLeaderboard({
 
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-            <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-              <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
-            {type === 'friends' ? 'Friends' : type === 'skill' ? 'Skill' : 'Global'} Leaderboard
+            <span className="text-base sm:text-xl">{type === 'friends' ? 'Friends' : type === 'skill' ? 'Skill' : 'Global'} Leaderboard</span>
           </CardTitle>
           <Select value={timeframe} onValueChange={(v) => setTimeframe(v as Timeframe)}>
-            <SelectTrigger className="w-28">
+            <SelectTrigger className="w-full sm:w-28">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -148,12 +148,12 @@ export function PracticeLeaderboard({
             </SelectContent>
           </Select>
         </div>
-        <p className="text-sm text-muted-foreground">{data.period.label}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2">{data.period.label}</p>
       </CardHeader>
       <CardContent>
         {/* Podium for top 3 */}
         {showPodium && data.podium.length >= 3 && (
-          <div className="flex justify-center items-end gap-2 mb-6 py-4">
+          <div className="flex justify-center items-end gap-1.5 sm:gap-2 mb-4 sm:mb-6 py-3 sm:py-4">
             {/* 2nd Place */}
             <PodiumSpot entry={data.podium[1]} position={2} />
             {/* 1st Place */}
@@ -209,7 +209,7 @@ interface PodiumSpotProps {
 }
 
 function PodiumSpot({ entry, position }: PodiumSpotProps) {
-  const heights = { 1: 'h-24', 2: 'h-16', 3: 'h-12' };
+  const heights = { 1: 'h-16 sm:h-24', 2: 'h-12 sm:h-16', 3: 'h-10 sm:h-12' };
   const colors = {
     1: 'bg-yellow-500/20 border-yellow-500',
     2: 'bg-gray-400/20 border-gray-400',
@@ -219,13 +219,13 @@ function PodiumSpot({ entry, position }: PodiumSpotProps) {
 
   return (
     <div className="flex flex-col items-center">
-      <Avatar className="h-10 w-10 mb-2">
+      <Avatar className="h-8 w-8 sm:h-10 sm:w-10 mb-1 sm:mb-2">
         <AvatarImage src={entry.userAvatar} alt={entry.userName ?? 'User'} />
-        <AvatarFallback>
+        <AvatarFallback className="text-xs">
           {(entry.userName ?? 'U')[0].toUpperCase()}
         </AvatarFallback>
       </Avatar>
-      <span className="text-xs font-medium truncate max-w-[60px]">
+      <span className="text-xs font-medium truncate max-w-[50px] sm:max-w-[60px]">
         {entry.userName ?? 'Anonymous'}
       </span>
       <span className="text-xs text-muted-foreground">
@@ -233,12 +233,12 @@ function PodiumSpot({ entry, position }: PodiumSpotProps) {
       </span>
       <div
         className={cn(
-          'w-16 rounded-t-md border-t-2 flex items-start justify-center pt-1',
+          'w-12 sm:w-16 rounded-t-md border-t-2 flex items-start justify-center pt-1',
           heights[position],
           colors[position]
         )}
       >
-        <span className="text-xl">{medals[position]}</span>
+        <span className="text-base sm:text-xl">{medals[position]}</span>
       </div>
     </div>
   );
@@ -263,31 +263,35 @@ function LeaderboardRow({ entry, rank, isCurrentUser }: LeaderboardRowProps) {
   return (
     <div
       className={cn(
-        'flex items-center gap-3 p-2 rounded-lg transition-colors',
+        'flex items-center gap-2 sm:gap-3 p-2 rounded-lg transition-colors',
         isCurrentUser ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'
       )}
     >
-      <div className="w-8 flex justify-center">
-        {getRankIcon(rank)}
+      <div className="w-6 sm:w-8 flex justify-center shrink-0">
+        {rank <= 3 ? (
+          <span className="text-base sm:text-lg">{getRankIcon(rank)}</span>
+        ) : (
+          <span className="text-xs sm:text-sm font-medium text-muted-foreground">#{rank}</span>
+        )}
       </div>
-      <Avatar className="h-8 w-8">
+      <Avatar className="h-7 w-7 sm:h-8 sm:w-8 shrink-0">
         <AvatarImage src={entry.userAvatar} alt={entry.userName ?? 'User'} />
         <AvatarFallback className="text-xs">
           {(entry.userName ?? 'U')[0].toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <p className="font-medium truncate text-sm">
+        <p className="font-medium truncate text-xs sm:text-sm">
           {entry.userName ?? 'Anonymous'}
-          {isCurrentUser && <Badge variant="outline" className="ml-2 text-xs">You</Badge>}
+          {isCurrentUser && <Badge variant="outline" className="ml-1.5 sm:ml-2 text-xs">You</Badge>}
         </p>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
+        <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-0.5 sm:gap-1">
+            <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             {entry.qualityHours.toFixed(1)}h
           </span>
-          <span className="flex items-center gap-1">
-            <Flame className="h-3 w-3" />
+          <span className="flex items-center gap-0.5 sm:gap-1">
+            <Flame className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             {entry.streakDays}d
           </span>
         </div>
@@ -295,12 +299,12 @@ function LeaderboardRow({ entry, rank, isCurrentUser }: LeaderboardRowProps) {
       {rankChange !== 0 && (
         <div
           className={cn(
-            'flex items-center gap-1 text-xs',
+            'flex items-center gap-0.5 sm:gap-1 text-xs shrink-0',
             rankChange > 0 ? 'text-green-500' : 'text-red-500'
           )}
         >
           <TrendingUp
-            className={cn('h-3 w-3', rankChange < 0 && 'rotate-180')}
+            className={cn('h-2.5 w-2.5 sm:h-3 sm:w-3', rankChange < 0 && 'rotate-180')}
           />
           {Math.abs(rankChange)}
         </div>

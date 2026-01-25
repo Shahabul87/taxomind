@@ -322,47 +322,47 @@ export function PomodoroTimer({
         preload="auto"
       />
 
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-            <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-              <Timer className="h-5 w-5 text-red-600 dark:text-red-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+              <Timer className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 dark:text-red-400" />
             </div>
-            Pomodoro Timer
+            <span className="text-base sm:text-xl">Pomodoro Timer</span>
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
             >
               {soundEnabled ? (
-                <Volume2 className="h-4 w-4" />
+                <Volume2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               ) : (
-                <VolumeX className="h-4 w-4 text-muted-foreground" />
+                <VolumeX className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
               )}
             </Button>
-            <Badge variant="secondary">
+            <Badge variant="secondary" className="text-xs">
               {totalCompletedToday} today
             </Badge>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6 pt-6">
+      <CardContent className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
         {/* Phase indicator */}
         <div className="flex justify-center">
           <Badge
             className={cn(
-              'px-4 py-1 text-sm bg-gradient-to-r text-white',
+              'px-3 sm:px-4 py-1 text-xs sm:text-sm bg-gradient-to-r text-white',
               PHASE_COLORS[phase]
             )}
           >
             {phase === 'WORK' ? (
-              <Zap className="h-4 w-4 mr-1" />
+              <Zap className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             ) : (
-              <Coffee className="h-4 w-4 mr-1" />
+              <Coffee className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             )}
             {PHASE_LABELS[phase]}
           </Badge>
@@ -372,7 +372,7 @@ export function PomodoroTimer({
         <div className="text-center">
           <div
             className={cn(
-              'text-7xl font-mono font-bold tracking-tight',
+              'text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-mono font-bold tracking-tight',
               timerState === 'RUNNING' && 'animate-pulse'
             )}
           >
@@ -380,7 +380,7 @@ export function PomodoroTimer({
           </div>
           <Progress
             value={progressPercentage}
-            className="mt-4 h-2"
+            className="mt-3 sm:mt-4 h-1.5 sm:h-2"
           />
         </div>
 
@@ -400,15 +400,15 @@ export function PomodoroTimer({
         </div>
 
         {/* Controls */}
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
           {timerState === 'RUNNING' ? (
             <Button
               size="lg"
               variant="secondary"
               onClick={handlePause}
-              className="w-32"
+              className="w-full sm:w-32 text-sm sm:text-base"
             >
-              <Pause className="h-5 w-5 mr-2" />
+              <Pause className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
               Pause
             </Button>
           ) : (
@@ -417,11 +417,11 @@ export function PomodoroTimer({
               onClick={handleStart}
               disabled={isSubmitting}
               className={cn(
-                'w-32 bg-gradient-to-r text-white',
+                'w-full sm:w-32 bg-gradient-to-r text-white text-sm sm:text-base',
                 PHASE_COLORS[phase]
               )}
             >
-              <Play className="h-5 w-5 mr-2" />
+              <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
               {timerState === 'PAUSED' ? 'Resume' : 'Start'}
             </Button>
           )}
@@ -431,8 +431,10 @@ export function PomodoroTimer({
             variant="outline"
             onClick={handleReset}
             disabled={timerState === 'IDLE'}
+            className="w-full sm:w-auto text-sm sm:text-base"
           >
-            <RotateCcw className="h-5 w-5" />
+            <RotateCcw className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-0" />
+            <span className="sm:hidden ml-1">Reset</span>
           </Button>
 
           {phase !== 'WORK' && (
@@ -440,6 +442,7 @@ export function PomodoroTimer({
               size="lg"
               variant="outline"
               onClick={handleSkip}
+              className="w-full sm:w-auto text-sm sm:text-base"
             >
               Skip Break
             </Button>
@@ -448,13 +451,13 @@ export function PomodoroTimer({
 
         {/* Duration presets (only when idle) */}
         {timerState === 'IDLE' && phase === 'WORK' && (
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-sm text-muted-foreground">Duration:</span>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <span className="text-xs sm:text-sm text-muted-foreground">Duration:</span>
             <Select
               value={settings.workDuration.toString()}
               onValueChange={handleDurationChange}
             >
-              <SelectTrigger className="w-24">
+              <SelectTrigger className="w-full sm:w-24">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -470,13 +473,13 @@ export function PomodoroTimer({
         )}
 
         {/* Stats summary */}
-        <div className="flex justify-center gap-6 text-sm text-muted-foreground pt-2 border-t">
-          <div className="flex items-center gap-1">
-            <CheckCircle2 className="h-4 w-4" />
+        <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground pt-2 border-t">
+          <div className="flex items-center justify-center gap-1">
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>{completedSessions} sessions</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Timer className="h-4 w-4" />
+          <div className="flex items-center justify-center gap-1">
+            <Timer className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             <span>
               {Math.round(completedSessions * settings.workDuration)} min focused
             </span>

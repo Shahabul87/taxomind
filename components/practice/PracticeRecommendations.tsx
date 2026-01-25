@@ -170,13 +170,13 @@ export function PracticeRecommendations({
 
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-            <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-              <Lightbulb className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+              <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
-            SAM Recommendations
+            <span className="text-base sm:text-xl">SAM Recommendations</span>
           </CardTitle>
           {showRefresh && (
             <Button
@@ -184,23 +184,24 @@ export function PracticeRecommendations({
               size="sm"
               onClick={() => fetchRecommendations(false)}
               disabled={isRefreshing}
+              className="h-8 w-8 sm:h-9 sm:w-9"
             >
               <RefreshCw
-                className={cn('h-4 w-4', isRefreshing && 'animate-spin')}
+                className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', isRefreshing && 'animate-spin')}
               />
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="pt-6">
+      <CardContent className="pt-4 sm:pt-6">
         {recommendations.length === 0 ? (
-          <div className="py-10 text-center">
-            <Sparkles className="h-12 w-12 mx-auto mb-4 text-slate-300 dark:text-slate-600" />
-            <p className="font-medium text-slate-600 dark:text-slate-300">No recommendations yet.</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Start practicing to get personalized tips!</p>
+          <div className="py-6 sm:py-10 text-center">
+            <Sparkles className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-slate-300 dark:text-slate-600" />
+            <p className="text-sm sm:text-base font-medium text-slate-600 dark:text-slate-300">No recommendations yet.</p>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">Start practicing to get personalized tips!</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recommendations.map((rec) => (
               <RecommendationCard
                 key={rec.id}
@@ -231,33 +232,33 @@ function RecommendationCard({ recommendation, onAction }: RecommendationCardProp
   return (
     <div
       className={cn(
-        'p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer',
+        'p-3 sm:p-4 rounded-lg border-2 transition-all duration-200 cursor-pointer',
         config.bgColor,
         'hover:border-primary/50 hover:shadow-md',
         'border-slate-200 dark:border-slate-700'
       )}
       onClick={onAction}
     >
-      <div className="flex items-start gap-4">
-        <div className={cn('p-2.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm', config.color)}>
-          {config.icon}
+      <div className="flex items-start gap-2 sm:gap-4">
+        <div className={cn('p-2 sm:p-2.5 rounded-lg bg-white dark:bg-slate-800 shadow-sm shrink-0', config.color)}>
+          <div className="h-4 w-4 sm:h-5 sm:w-5">{config.icon}</div>
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="font-semibold text-base text-slate-900 dark:text-white">{recommendation.title}</span>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+            <span className="font-semibold text-sm sm:text-base text-slate-900 dark:text-white">{recommendation.title}</span>
             <Badge variant={priorityBadge.variant} className="text-xs font-semibold">
               {priorityBadge.label}
             </Badge>
           </div>
 
-          <p className="text-sm text-muted-foreground line-clamp-2">
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
             {recommendation.description}
           </p>
 
           {/* Metadata display */}
           {recommendation.metadata && (
-            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs text-muted-foreground">
               {recommendation.metadata.hoursToMilestone !== undefined && (
                 <span className="flex items-center gap-1">
                   <TrendingUp className="h-3 w-3" />
@@ -283,22 +284,22 @@ function RecommendationCard({ recommendation, onAction }: RecommendationCardProp
           {recommendation.skillName && (
             <div className="flex items-center gap-1 mt-2 text-xs">
               {recommendation.skillIcon && <span>{recommendation.skillIcon}</span>}
-              <span className="text-muted-foreground">{recommendation.skillName}</span>
+              <span className="text-muted-foreground truncate">{recommendation.skillName}</span>
             </div>
           )}
         </div>
 
         {/* Action indicator */}
         {recommendation.actionLabel && (
-          <Button variant="ghost" size="sm" className="shrink-0">
+          <Button variant="ghost" size="sm" className="shrink-0 h-8 w-8 sm:h-9 sm:w-9 p-0">
             {recommendation.type === 'SKILL_FOCUS' ||
             recommendation.type === 'STREAK_RISK' ||
             recommendation.type === 'MILESTONE_NEAR' ? (
-              <Play className="h-4 w-4 mr-1" />
+              <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             ) : (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             )}
-            <span className="hidden sm:inline">{recommendation.actionLabel}</span>
+            <span className="hidden sm:inline ml-1">{recommendation.actionLabel}</span>
           </Button>
         )}
       </div>

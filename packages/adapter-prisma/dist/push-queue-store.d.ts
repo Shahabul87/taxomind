@@ -68,7 +68,22 @@ interface PrismaPushDeliveryResultRecord {
 }
 export declare class PrismaPushQueueStore implements PushQueueStore {
     private prisma;
+    private lastEmptyCheck;
+    private cachedPendingCount;
+    private readonly EMPTY_CACHE_TTL_MS;
     constructor(config: PrismaPushQueueStoreConfig);
+    /**
+     * Check if we should skip the query based on recent empty result
+     */
+    private shouldSkipQuery;
+    /**
+     * Update the empty cache after a query
+     */
+    private updateEmptyCache;
+    /**
+     * Invalidate the cache (call after enqueue)
+     */
+    private invalidateCache;
     enqueue(request: PushDeliveryRequest): Promise<void>;
     dequeue(count: number): Promise<PushDeliveryRequest[]>;
     peek(count: number): Promise<PushDeliveryRequest[]>;

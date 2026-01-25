@@ -232,15 +232,15 @@ export function StudySessionScheduler({ className }: StudySessionSchedulerProps)
     return (
       <div className={cn('space-y-4', className)}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/50 dark:to-emerald-900/50">
-              <CalendarClock className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/50 dark:to-emerald-900/50">
+              <CalendarClock className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600 dark:text-teal-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                 Schedule Study Sessions
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                 Loading your study plans...
               </p>
             </div>
@@ -302,14 +302,14 @@ export function StudySessionScheduler({ className }: StudySessionSchedulerProps)
         </div>
 
         <Card className="border-dashed border-2 border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-900/10">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/50 dark:to-emerald-900/50 flex items-center justify-center mb-4">
-              <BookOpen className="w-8 h-8 text-teal-600 dark:text-teal-400" />
+          <CardContent className="p-6 sm:p-8 text-center">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/50 dark:to-emerald-900/50 flex items-center justify-center mb-3 sm:mb-4">
+              <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600 dark:text-teal-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-2">
               No Study Plans Yet
             </h3>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mb-6 max-w-sm mx-auto">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mb-4 sm:mb-6 max-w-sm mx-auto">
               Create a study plan first to schedule focused study sessions for specific tasks.
             </p>
           </CardContent>
@@ -323,15 +323,15 @@ export function StudySessionScheduler({ className }: StudySessionSchedulerProps)
     <div className={cn('space-y-4', className)}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/50 dark:to-emerald-900/50">
-            <CalendarClock className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/50 dark:to-emerald-900/50">
+            <CalendarClock className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600 dark:text-teal-400" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
               Schedule Study Sessions
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
               {studyPlans.length} active {studyPlans.length === 1 ? 'plan' : 'plans'}
             </p>
           </div>
@@ -340,7 +340,7 @@ export function StudySessionScheduler({ className }: StudySessionSchedulerProps)
 
       {/* Plan & Week Selector */}
       <Card className="border-0 shadow-lg bg-white dark:bg-slate-900">
-        <CardContent className="p-4">
+        <CardContent className="p-3 sm:p-4">
           <PlanWeekSelector
             plans={studyPlans}
             selectedPlanId={selectedPlanId}

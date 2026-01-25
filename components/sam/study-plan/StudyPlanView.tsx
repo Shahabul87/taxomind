@@ -306,30 +306,30 @@ export function StudyPlanView({
         className
       )}
     >
-      <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-700">
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-100 dark:border-slate-700 px-3 sm:px-6">
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
+        <div className="flex items-start justify-between gap-2 sm:gap-4">
+          <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
             <div
               className={cn(
-                'p-3 rounded-xl',
+                'p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0',
                 isComplete
                   ? 'bg-emerald-100 dark:bg-emerald-900/50'
                   : 'bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/50 dark:to-blue-900/50'
               )}
             >
               {isComplete ? (
-                <Trophy className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg font-bold text-slate-900 dark:text-white truncate">
+              <CardTitle className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
                 {goal.title}
               </CardTitle>
               {goal.description && (
-                <CardDescription className="text-sm text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
+                <CardDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-0.5 sm:mt-1 line-clamp-2">
                   {goal.description}
                 </CardDescription>
               )}
@@ -341,68 +341,68 @@ export function StudyPlanView({
             variant="ghost"
             size="sm"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex-shrink-0"
+            className="flex-shrink-0 h-8 w-8 sm:h-9 sm:w-9 p-0"
           >
             {isCollapsed ? (
-              <ChevronDown className="w-5 h-5" />
+              <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
             ) : (
-              <ChevronUp className="w-5 h-5" />
+              <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" />
             )}
           </Button>
         </div>
 
         {/* Stats Row */}
-        <div className="flex flex-wrap items-center gap-3 mt-4">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-3 sm:mt-4">
           <Badge
             className={cn(
-              'text-xs',
+              'text-[10px] sm:text-xs px-1.5 sm:px-2',
               isComplete
                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
                 : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
             )}
           >
-            <CheckCircle2 className="w-3 h-3 mr-1" />
+            <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
             {completedTasks}/{totalTasks} tasks
           </Badge>
 
-          <Badge className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-            <Target className="w-3 h-3 mr-1" />
+          <Badge className="text-[10px] sm:text-xs px-1.5 sm:px-2 bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+            <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
             {weeklyData.length} weeks
           </Badge>
 
           {remainingHours > 0 && !isComplete && (
-            <Badge className="text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
-              <Clock className="w-3 h-3 mr-1" />
-              {remainingHours}h remaining
+            <Badge className="text-[10px] sm:text-xs px-1.5 sm:px-2 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+              <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+              {remainingHours}h left
             </Badge>
           )}
 
           {goal.targetDate && (
-            <Badge className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
-              <Calendar className="w-3 h-3 mr-1" />
-              Due {new Date(goal.targetDate).toLocaleDateString()}
+            <Badge className="text-[10px] sm:text-xs px-1.5 sm:px-2 bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300">
+              <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+              <span className="hidden xs:inline">Due </span>{new Date(goal.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </Badge>
           )}
         </div>
 
         {/* Progress Bar */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+        <div className="mt-3 sm:mt-4">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mb-1">
             <span>Overall Progress</span>
             <span className="font-medium">{Math.round(overallProgress)}%</span>
           </div>
           <Progress
             value={overallProgress}
-            className={cn('h-2', isComplete && '[&>div]:bg-emerald-500')}
+            className={cn('h-1.5 sm:h-2', isComplete && '[&>div]:bg-emerald-500')}
           />
         </div>
       </CardHeader>
 
       {/* Content */}
       {!isCollapsed && (
-        <CardContent className="pt-4">
+        <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
           {/* Weekly Sections */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {weeklyData.map((week, index) => (
               <WeeklySection
                 key={week.weekNumber}
@@ -416,12 +416,12 @@ export function StudyPlanView({
 
           {/* Milestones (if any) */}
           {goal.metadata?.milestones && goal.metadata.milestones.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-amber-500" />
+            <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-slate-100 dark:border-slate-700">
+              <h4 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mb-2 sm:mb-3 flex items-center gap-1.5 sm:gap-2">
+                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
                 Milestones
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {goal.metadata.milestones.map((milestone, idx) => {
                   const completedWeeks = weeklyData.filter((w) => {
                     const weekComplete = w.tasks.every((t) => t.status === 'completed');
@@ -433,14 +433,14 @@ export function StudyPlanView({
                     <Badge
                       key={idx}
                       className={cn(
-                        'text-xs',
+                        'text-[10px] sm:text-xs px-1.5 sm:px-2',
                         isMilestoneComplete
                           ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
                           : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
                       )}
                     >
-                      {isMilestoneComplete && <CheckCircle2 className="w-3 h-3 mr-1" />}
-                      Week {milestone.afterWeek}: {milestone.title}
+                      {isMilestoneComplete && <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />}
+                      Wk {milestone.afterWeek}: {milestone.title}
                     </Badge>
                   );
                 })}

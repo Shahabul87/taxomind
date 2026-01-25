@@ -85,13 +85,13 @@ function QuickStat({
   color: string;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', color)}>
-        <Icon className="h-4 w-4 text-white" />
+    <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className={cn('flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-md sm:rounded-lg flex-shrink-0', color)}>
+        <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
       </div>
-      <div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">{label}</p>
-        <p className="text-sm font-semibold text-slate-900 dark:text-white">{value}</p>
+      <div className="min-w-0">
+        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">{label}</p>
+        <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">{value}</p>
       </div>
     </div>
   );
@@ -146,12 +146,12 @@ function GoalProgressCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        'rounded-xl border-2 p-4 transition-all duration-200 hover:shadow-lg',
+        'rounded-xl border-2 p-3 sm:p-4 transition-all duration-200 hover:shadow-lg',
         priority.borderColor,
         'bg-white dark:bg-slate-800'
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 sm:gap-3">
         {/* Priority indicator */}
         <div className={cn('mt-1 h-2 w-2 rounded-full flex-shrink-0', priority.bgColor.replace('bg-', 'bg-').replace('/20', '').replace('/30', ''))} />
 
@@ -159,15 +159,15 @@ function GoalProgressCard({
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-slate-900 dark:text-white truncate">
+              <h4 className="font-medium text-sm sm:text-base text-slate-900 dark:text-white truncate">
                 {goal.title}
               </h4>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="secondary" className={cn('text-xs', status.color)}>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1">
+                <Badge variant="secondary" className={cn('text-[10px] sm:text-xs px-1.5 sm:px-2', status.color)}>
                   {status.label}
                 </Badge>
-                <Badge variant="outline" className={cn('text-xs', priority.color)}>
-                  <Flag className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className={cn('text-[10px] sm:text-xs px-1.5 sm:px-2', priority.color)}>
+                  <Flag className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
                   {priority.label}
                 </Badge>
               </div>
@@ -330,11 +330,11 @@ export function GoalsProgress({
   if (compact) {
     return (
       <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg h-full">
-        <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                <Target className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2 sm:gap-3 text-base sm:text-xl font-bold text-slate-900 dark:text-white">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               Goals Progress
             </CardTitle>
@@ -344,13 +344,13 @@ export function GoalsProgress({
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
           {/* Quick Stats */}
-          <div className="flex items-center justify-around rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 dark:from-emerald-950/30 dark:to-teal-950/30">
+          <div className="flex items-center justify-around rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-2 sm:p-3 dark:from-emerald-950/30 dark:to-teal-950/30">
             <QuickStat icon={Target} label="Total" value={totalGoals} color="bg-slate-500" />
-            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="h-6 sm:h-8 w-px bg-slate-200 dark:bg-slate-700" />
             <QuickStat icon={Zap} label="Active" value={activeGoals} color="bg-amber-500" />
-            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="h-6 sm:h-8 w-px bg-slate-200 dark:bg-slate-700" />
             <QuickStat icon={TrendingUp} label="Progress" value={`${avgProgress}%`} color="bg-emerald-500" />
           </div>
 
@@ -404,15 +404,15 @@ export function GoalsProgress({
   // Full view
   return (
     <Card className="bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg">
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <Target className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <Target className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             Goals Progress
           </CardTitle>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
             <Badge variant="outline" className="text-xs font-semibold border-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
               {activeGoals} active
             </Badge>
@@ -423,9 +423,9 @@ export function GoalsProgress({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6 pt-6">
+      <CardContent className="space-y-4 sm:space-y-6 pt-4 sm:pt-6 p-4 sm:p-6">
         {/* Stats Overview */}
-        <div className="grid grid-cols-4 gap-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-4 dark:from-emerald-950/30 dark:to-teal-950/30">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-2 sm:p-3 md:p-4 dark:from-emerald-950/30 dark:to-teal-950/30">
           <QuickStat icon={Target} label="Total Goals" value={totalGoals} color="bg-slate-500" />
           <QuickStat icon={Zap} label="Active" value={activeGoals} color="bg-amber-500" />
           <QuickStat icon={CheckCircle2} label="Completed" value={completedGoals} color="bg-blue-500" />
@@ -433,9 +433,9 @@ export function GoalsProgress({
         </div>
 
         {/* Goals List */}
-        <div className="space-y-3">
-          <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-            <Zap className="h-4 w-4 text-amber-500" />
+        <div className="space-y-2 sm:space-y-3">
+          <h4 className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-500" />
             Active Goals ({activeGoals})
           </h4>
           <AnimatePresence mode="popLayout">

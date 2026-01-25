@@ -188,31 +188,31 @@ export function TrendAnalysisChart({
 
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-100 dark:bg-blue-900/30 p-2.5">
-              <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="rounded-xl bg-blue-100 dark:bg-blue-900/30 p-2 sm:p-2.5">
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">Trend Analysis</CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-300 font-medium">
+              <CardTitle className="text-base sm:text-xl font-bold text-slate-900 dark:text-white">Trend Analysis</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
                 Learning velocity and progress trends
               </CardDescription>
             </div>
           </div>
-          <div className={cn('flex items-center gap-1 px-3 py-1.5 rounded-full border-2', overallConfig.bgColor)}>
-            <OverallIcon className={cn('h-4 w-4', overallConfig.color)} />
-            <span className={cn('text-sm font-semibold', overallConfig.color)}>
+          <div className={cn('flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border-2 self-start sm:self-auto', overallConfig.bgColor)}>
+            <OverallIcon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', overallConfig.color)} />
+            <span className={cn('text-xs sm:text-sm font-semibold', overallConfig.color)}>
               {overallConfig.label}
             </span>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 sm:space-y-4 pt-6">
+      <CardContent className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 p-4 sm:p-6">
         {/* Period Toggle */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <span className="text-xs sm:text-sm text-muted-foreground">Period:</span>
           <Badge variant="secondary" className="capitalize text-xs">
             {trends.period}
@@ -223,8 +223,8 @@ export function TrendAnalysisChart({
         <div className="grid grid-cols-2 gap-2 sm:gap-3">
           <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
             <div className="flex items-center gap-1 sm:gap-2 mb-1">
-              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Learning Velocity</span>
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4 text-primary shrink-0" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Learning Velocity</span>
             </div>
             <span className="text-base sm:text-lg font-bold">
               {trends.learningVelocity.toFixed(1)}
@@ -233,8 +233,8 @@ export function TrendAnalysisChart({
           </div>
           <div className="rounded-lg bg-muted/50 p-2 sm:p-3">
             <div className="flex items-center gap-1 sm:gap-2 mb-1">
-              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Gap Closure Rate</span>
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 shrink-0" />
+              <span className="text-[10px] sm:text-xs text-muted-foreground truncate">Gap Closure Rate</span>
             </div>
             <span className="text-base sm:text-lg font-bold">{trends.gapClosureRate}</span>
             <span className="text-[10px] sm:text-xs text-muted-foreground ml-1">gaps/week</span>
@@ -255,7 +255,7 @@ export function TrendAnalysisChart({
 
         {/* Selected Metric Detail */}
         {selectedMetric && (
-          <div className="rounded-lg border p-3 sm:p-4">
+          <div className="rounded-lg border p-2.5 sm:p-3 md:p-4">
             <h4 className="text-xs sm:text-sm font-medium mb-1">{selectedMetric.name}</h4>
             <p className="text-[10px] sm:text-xs text-muted-foreground mb-2 sm:mb-3">
               {selectedMetric.description}

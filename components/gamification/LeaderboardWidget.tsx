@@ -63,13 +63,13 @@ export function LeaderboardWidget({
 
       <div className="relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
-              <Trophy className="w-5 h-5 text-white" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/20">
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg tracking-tight">
                 Leaderboard
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -83,16 +83,17 @@ export function LeaderboardWidget({
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 font-medium"
+              className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 font-medium"
             >
-              View Full
-              <ChevronRight className="w-4 h-4" />
+              <span className="hidden xs:inline">View Full</span>
+              <span className="xs:hidden">Full</span>
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </motion.button>
           </Link>
         </div>
 
         {/* Period Tabs */}
-        <div className="flex gap-2 mb-5 p-1 bg-slate-100 dark:bg-slate-800/30 rounded-xl">
+        <div className="flex gap-1.5 sm:gap-2 mb-4 sm:mb-5 p-0.5 sm:p-1 bg-slate-100 dark:bg-slate-800/30 rounded-xl">
           {Object.values(LeaderboardPeriod).map((p) => (
             <motion.button
               key={p}
@@ -100,7 +101,7 @@ export function LeaderboardWidget({
               whileTap={{ scale: 0.98 }}
               onClick={() => setPeriod(p)}
               className={cn(
-                "flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all",
+                "flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg text-xs font-medium transition-all",
                 period === p
                   ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800/50"
@@ -113,7 +114,7 @@ export function LeaderboardWidget({
 
         {/* Top 3 Podium */}
         {entries.length >= 3 && (
-          <div className="flex items-end justify-center gap-2 mb-6">
+          <div className="flex items-end justify-center gap-1.5 sm:gap-2 mb-4 sm:mb-6">
             {/* 2nd Place */}
             <PodiumSpot entry={entries[1]} position={2} />
             {/* 1st Place */}
@@ -170,18 +171,18 @@ function PodiumSpot({
   };
   position: 1 | 2 | 3;
 }) {
-  const heights = { 1: "h-28", 2: "h-20", 3: "h-16" };
+  const heights = { 1: "h-20 sm:h-24 md:h-28", 2: "h-16 sm:h-18 md:h-20", 3: "h-12 sm:h-14 md:h-16" };
   const colors = {
     1: "from-amber-400 to-yellow-500",
     2: "from-slate-300 to-slate-400",
     3: "from-amber-600 to-amber-700",
   };
   const badges = {
-    1: <Crown className="w-6 h-6 text-amber-500" />,
-    2: <Medal className="w-5 h-5 text-slate-400" />,
-    3: <Medal className="w-5 h-5 text-amber-600" />,
+    1: <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />,
+    2: <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />,
+    3: <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />,
   };
-  const sizes = { 1: "w-16 h-16", 2: "w-12 h-12", 3: "w-12 h-12" };
+  const sizes = { 1: "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16", 2: "w-10 h-10 sm:w-12 sm:h-12", 3: "w-10 h-10 sm:w-12 sm:h-12" };
 
   return (
     <motion.div
@@ -191,10 +192,10 @@ function PodiumSpot({
       className="flex flex-col items-center"
     >
       {/* Badge */}
-      <div className="mb-2">{badges[position]}</div>
+      <div className="mb-1 sm:mb-2">{badges[position]}</div>
 
       {/* Avatar */}
-      <div className={cn("relative rounded-full p-0.5 mb-2", sizes[position])}>
+      <div className={cn("relative rounded-full p-0.5 mb-1 sm:mb-2", sizes[position])}>
         <div
           className={cn(
             "absolute inset-0 rounded-full bg-gradient-to-br",
@@ -210,7 +211,7 @@ function PodiumSpot({
               className="object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-700 dark:text-white font-bold">
+            <div className="w-full h-full flex items-center justify-center text-xs sm:text-sm text-slate-700 dark:text-white font-bold">
               {entry.user?.name?.[0] || "?"}
             </div>
           )}
@@ -218,25 +219,25 @@ function PodiumSpot({
       </div>
 
       {/* Name */}
-      <p className="text-xs font-medium text-slate-900 dark:text-white truncate max-w-[80px] text-center">
+      <p className="text-xs font-medium text-slate-900 dark:text-white truncate max-w-[60px] sm:max-w-[80px] text-center">
         {entry.user?.name || "Anonymous"}
       </p>
 
       {/* XP */}
-      <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">
+      <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-1 sm:mb-2">
         {(entry.xpEarned ?? 0).toLocaleString()} XP
       </p>
 
       {/* Podium */}
       <div
         className={cn(
-          "w-20 rounded-t-lg bg-gradient-to-b",
+          "w-16 sm:w-18 md:w-20 rounded-t-lg bg-gradient-to-b",
           heights[position],
           colors[position]
         )}
       >
         <div className="w-full h-full flex items-center justify-center">
-          <span className="text-2xl font-black text-white/80">{position}</span>
+          <span className="text-xl sm:text-2xl font-black text-white/80">{position}</span>
         </div>
       </div>
     </motion.div>
@@ -265,7 +266,7 @@ function LeaderboardRow({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 20 }}
       className={cn(
-        "flex items-center gap-3 p-3 rounded-xl transition-all",
+        "flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl transition-all",
         isCurrentUser
           ? "bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30"
           : "bg-slate-50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50"
@@ -274,7 +275,7 @@ function LeaderboardRow({
       {/* Rank */}
       <div
         className={cn(
-          "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm",
+          "w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center font-bold text-xs sm:text-sm shrink-0",
           isCurrentUser
             ? "bg-emerald-500 text-white"
             : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
@@ -284,7 +285,7 @@ function LeaderboardRow({
       </div>
 
       {/* Avatar */}
-      <div className="relative w-10 h-10 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800">
+      <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800 shrink-0">
         {entry.user?.image ? (
           <Image
             src={entry.user.image}
@@ -293,7 +294,7 @@ function LeaderboardRow({
             className="object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-700 dark:text-white font-semibold">
+          <div className="w-full h-full flex items-center justify-center text-xs sm:text-sm text-slate-700 dark:text-white font-semibold">
             {entry.user?.name?.[0] || "?"}
           </div>
         )}
@@ -303,7 +304,7 @@ function LeaderboardRow({
       <div className="flex-1 min-w-0">
         <p
           className={cn(
-            "font-medium text-sm truncate",
+            "font-medium text-xs sm:text-sm truncate",
             isCurrentUser ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white"
           )}
         >
@@ -319,23 +320,23 @@ function LeaderboardRow({
 
       {/* Rank Change */}
       {entry.rankChange !== undefined && entry.rankChange !== null && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           {entry.rankChange > 0 ? (
             <>
-              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                 +{entry.rankChange}
               </span>
             </>
           ) : entry.rankChange < 0 ? (
             <>
-              <TrendingDown className="w-4 h-4 text-red-500" />
+              <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
               <span className="text-xs text-red-600 dark:text-red-400 font-medium">
                 {entry.rankChange}
               </span>
             </>
           ) : (
-            <Minus className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+            <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 dark:text-slate-500" />
           )}
         </div>
       )}

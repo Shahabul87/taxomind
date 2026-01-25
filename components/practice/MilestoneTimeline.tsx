@@ -139,14 +139,14 @@ export function MilestoneTimeline({
 
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900 dark:text-white">
-          <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-            <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700">
+        <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+          <div className="p-1.5 sm:p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
+            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 dark:text-yellow-400" />
           </div>
-          Milestones
+          <span className="text-base sm:text-xl">Milestones</span>
           {milestones.filter((m) => !m.rewardClaimed).length > 0 && (
-            <Badge variant="destructive" className="ml-auto">
+            <Badge variant="destructive" className="ml-auto text-xs">
               {milestones.filter((m) => !m.rewardClaimed).length} unclaimed
             </Badge>
           )}
@@ -154,18 +154,18 @@ export function MilestoneTimeline({
       </CardHeader>
       <CardContent>
         {displayedMilestones.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            <Trophy className="h-12 w-12 mx-auto mb-3 opacity-20" />
-            <p>No milestones achieved yet.</p>
-            <p className="text-sm">Keep practicing to earn your first milestone!</p>
+          <div className="py-6 sm:py-8 text-center text-muted-foreground">
+            <Trophy className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 sm:mb-3 opacity-20" />
+            <p className="text-sm sm:text-base">No milestones achieved yet.</p>
+            <p className="text-xs sm:text-sm mt-1">Keep practicing to earn your first milestone!</p>
           </div>
         ) : (
           <div className="relative">
             {/* Timeline line */}
-            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
+            <div className="absolute left-3 sm:left-4 top-0 bottom-0 w-0.5 bg-border" />
 
             {/* Milestones */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {displayedMilestones.map((milestone, index) => (
                 <MilestoneItem
                   key={milestone.id}
@@ -207,11 +207,11 @@ function MilestoneItem({
   const hours = parseInt(milestone.milestoneType.replace('HOURS_', ''), 10);
 
   return (
-    <div className="relative pl-10">
+    <div className="relative pl-8 sm:pl-10">
       {/* Timeline dot */}
       <div
         className={cn(
-          'absolute left-2.5 w-3 h-3 rounded-full -translate-x-1/2',
+          'absolute left-2 sm:left-2.5 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full -translate-x-1/2',
           milestone.rewardClaimed
             ? 'bg-green-500'
             : 'bg-yellow-500 animate-pulse'
@@ -221,28 +221,28 @@ function MilestoneItem({
       {/* Content */}
       <div
         className={cn(
-          'p-3 rounded-lg border',
+          'p-2.5 sm:p-3 rounded-lg border',
           !milestone.rewardClaimed && 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900'
         )}
       >
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">{icon}</span>
-              <span className="font-medium">{milestone.badgeName}</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-lg sm:text-xl">{icon}</span>
+              <span className="font-medium text-sm sm:text-base truncate">{milestone.badgeName}</span>
             </div>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               {hours.toLocaleString()} hours in{' '}
               {milestone.skill?.icon && <span className="mr-1">{milestone.skill.icon}</span>}
               {milestone.skill?.name ?? 'skill'}
             </p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground mt-2">
               <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
+                <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 {new Date(milestone.achievedAt).toLocaleDateString()}
               </span>
               <span className="flex items-center gap-1">
-                <Star className="h-3 w-3" />
+                <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                 +{milestone.xpReward} XP
               </span>
             </div>
@@ -250,8 +250,8 @@ function MilestoneItem({
 
           {/* Claim button or claimed status */}
           {milestone.rewardClaimed ? (
-            <Badge variant="secondary" className="shrink-0">
-              <Check className="h-3 w-3 mr-1" />
+            <Badge variant="secondary" className="shrink-0 text-xs">
+              <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
               Claimed
             </Badge>
           ) : (
@@ -259,13 +259,13 @@ function MilestoneItem({
               size="sm"
               onClick={onClaim}
               disabled={isClaiming}
-              className="shrink-0"
+              className="shrink-0 text-xs sm:text-sm w-full sm:w-auto"
             >
               {isClaiming ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
               ) : (
                 <>
-                  <Gift className="h-4 w-4 mr-1" />
+                  <Gift className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                   Claim
                 </>
               )}

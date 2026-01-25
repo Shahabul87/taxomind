@@ -79,26 +79,26 @@ function DecayCard({
   );
 
   return (
-    <div className={cn('rounded-lg border-2 p-4 transition-all duration-200 hover:shadow-md bg-white dark:bg-slate-800', 
+    <div className={cn('rounded-lg border-2 p-3 sm:p-4 transition-all duration-200 hover:shadow-md bg-white dark:bg-slate-800', 
       data.riskLevel === 'critical' && 'border-red-300 dark:border-red-700',
       data.riskLevel === 'high' && 'border-orange-300 dark:border-orange-700',
       data.riskLevel === 'medium' && 'border-yellow-300 dark:border-yellow-700',
       data.riskLevel === 'low' && 'border-green-300 dark:border-green-700'
     )}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="font-semibold text-sm truncate text-slate-900 dark:text-white">{data.skillName}</span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex-1 min-w-0 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+            <span className="font-semibold text-xs sm:text-sm truncate text-slate-900 dark:text-white">{data.skillName}</span>
             <Badge
               variant="outline"
-              className={cn('shrink-0 text-xs font-semibold border-2', config.textColor)}
+              className={cn('shrink-0 text-[10px] sm:text-xs font-semibold border-2', config.textColor)}
             >
               {config.label} Risk
             </Badge>
           </div>
 
           {/* Mastery Progress */}
-          <div className="space-y-2 mb-4">
+          <div className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-4">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-slate-600 dark:text-slate-300">Current Mastery</span>
               <span className={cn('font-bold', config.textColor)}>
@@ -107,19 +107,19 @@ function DecayCard({
             </div>
             <Progress
               value={data.currentMastery}
-              className="h-2 bg-slate-200 dark:bg-slate-700"
+              className="h-1.5 sm:h-2 bg-slate-200 dark:bg-slate-700"
             />
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs mb-2 sm:mb-3">
             <div className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{data.daysSinceLastPractice} days since practice</span>
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{data.daysSinceLastPractice} days since practice</span>
             </div>
             <div className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
-              <TrendingDown className="h-3.5 w-3.5" />
-              <span>{data.decayRate.toFixed(1)}%/day decay</span>
+              <TrendingDown className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{data.decayRate.toFixed(1)}%/day decay</span>
             </div>
           </div>
 
@@ -159,7 +159,7 @@ function DecayCard({
         <Button
           size="sm"
           variant={showUrgent ? 'default' : 'outline'}
-          className={cn('shrink-0', showUrgent && 'bg-red-600 hover:bg-red-700')}
+          className={cn('w-full sm:w-auto shrink-0 text-xs sm:text-sm', showUrgent && 'bg-red-600 hover:bg-red-700')}
           onClick={onReviewClick}
         >
           <RefreshCw className="mr-1 h-3 w-3" />
@@ -220,40 +220,40 @@ export function SkillDecayTracker({
 
   return (
     <Card className={cn('bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 shadow-lg', className)}>
-      <CardHeader className="pb-4 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-orange-100 dark:bg-orange-900/30 p-2.5">
-              <TrendingDown className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+      <CardHeader className="pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="rounded-xl bg-orange-100 dark:bg-orange-900/30 p-2 sm:p-2.5">
+              <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">Skill Decay Tracker</CardTitle>
-              <CardDescription className="text-slate-600 dark:text-slate-300 font-medium">Skills at risk of knowledge decay</CardDescription>
+              <CardTitle className="text-base sm:text-xl font-bold text-slate-900 dark:text-white">Skill Decay Tracker</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">Skills at risk of knowledge decay</CardDescription>
             </div>
           </div>
           {(criticalCount > 0 || highCount > 0) && (
-            <Badge variant="destructive" className="shrink-0 font-semibold border-2">
+            <Badge variant="destructive" className="shrink-0 font-semibold border-2 text-xs">
               {criticalCount + highCount} at risk
             </Badge>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 pt-6">
+      <CardContent className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 p-4 sm:p-6">
         {/* Risk Summary */}
         {decayData.length > 0 && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
             {(['critical', 'high', 'medium', 'low'] as DecayRiskLevel[]).map((level) => {
               const count = decayData.filter((d) => d.riskLevel === level).length;
               const config = RISK_CONFIG[level];
               return (
                 <div
                   key={level}
-                  className="rounded-lg bg-muted/50 p-2 text-center"
+                  className="rounded-lg bg-muted/50 p-1.5 sm:p-2 text-center"
                 >
-                  <div className={cn('mx-auto mb-1 h-2 w-2 rounded-full', config.color)} />
-                  <span className="text-lg font-bold">{count}</span>
-                  <p className="text-xs text-muted-foreground capitalize">{level}</p>
+                  <div className={cn('mx-auto mb-1 h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full', config.color)} />
+                  <span className="text-base sm:text-lg font-bold">{count}</span>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground capitalize">{level}</p>
                 </div>
               );
             })}
@@ -278,12 +278,12 @@ export function SkillDecayTracker({
             )}
           </div>
         ) : (
-          <div className="rounded-lg bg-green-500/10 p-6 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
-              <RefreshCw className="h-6 w-6 text-green-600" />
+          <div className="rounded-lg bg-green-500/10 p-4 sm:p-6 text-center">
+            <div className="mx-auto mb-2 sm:mb-3 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-green-500/20">
+              <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             </div>
-            <h4 className="font-semibold text-green-700">All Skills Healthy!</h4>
-            <p className="text-sm text-muted-foreground">
+            <h4 className="text-sm sm:text-base font-semibold text-green-700">All Skills Healthy!</h4>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               No skills are at risk of significant decay.
             </p>
           </div>

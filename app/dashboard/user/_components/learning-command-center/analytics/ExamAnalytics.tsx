@@ -120,11 +120,11 @@ function StatCard({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl bg-white/70 p-4 shadow-sm backdrop-blur-sm dark:bg-slate-800/70"
+      className="rounded-xl bg-white/70 p-3 sm:p-4 shadow-sm backdrop-blur-sm dark:bg-slate-800/70"
     >
       <div className="flex items-start justify-between">
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-lg', color)}>
-          <Icon className="h-5 w-5 text-white" />
+        <div className={cn('flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg shrink-0', color)}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
         </div>
         {trend && (
           <div
@@ -137,13 +137,13 @@ function StatCard({
           >
             {trend === 'up' && <TrendingUp className="h-3 w-3" />}
             {trend === 'down' && <TrendingDown className="h-3 w-3" />}
-            {subValue}
+            <span className="hidden xs:inline">{subValue}</span>
           </div>
         )}
       </div>
-      <div className="mt-3">
-        <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
-        <p className="text-sm text-slate-500 dark:text-slate-400">{label}</p>
+      <div className="mt-2 sm:mt-3">
+        <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">{label}</p>
       </div>
     </motion.div>
   );
@@ -198,36 +198,36 @@ function RecentAttemptRow({ attempt }: { attempt: ExamAttemptSummary }) {
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="flex items-center justify-between rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50"
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 rounded-lg bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-800/50"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <div
           className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-full',
+            'flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full shrink-0',
             attempt.isPassed
               ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
               : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
           )}
         >
           {attempt.isPassed ? (
-            <CheckCircle2 className="h-4 w-4" />
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           ) : (
-            <XCircle className="h-4 w-4" />
+            <XCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           )}
         </div>
-        <div>
-          <p className="font-medium text-slate-900 dark:text-white">{attempt.examTitle}</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-white truncate">{attempt.examTitle}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
             {attempt.courseTitle} • Attempt #{attempt.attemptNumber}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-4 text-sm">
-        <div className="text-right">
+      <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm w-full sm:w-auto justify-between sm:justify-end">
+        <div className="text-left sm:text-right">
           <p className="font-semibold text-slate-900 dark:text-white">{attempt.score}%</p>
           <p className="text-xs text-slate-500">{formatTime(attempt.timeSpent)}</p>
         </div>
-        <span className="text-xs text-slate-400">{formatDate(attempt.submittedAt)}</span>
+        <span className="text-xs text-slate-400 shrink-0">{formatDate(attempt.submittedAt)}</span>
       </div>
     </motion.div>
   );
@@ -265,19 +265,19 @@ function RecommendationCard({ recommendation }: { recommendation: Recommendation
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800/50"
+      className="flex gap-2 sm:gap-3 rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3 dark:border-slate-700 dark:bg-slate-800/50"
     >
-      <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', colors[recommendation.type])}>
-        <Icon className="h-4 w-4" />
+      <div className={cn('flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg', colors[recommendation.type])}>
+        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </div>
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <p className="font-medium text-slate-900 dark:text-white">{recommendation.title}</p>
-          <Badge variant="secondary" className={cn('text-xs', priorityColors[recommendation.priority])}>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+          <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-white truncate">{recommendation.title}</p>
+          <Badge variant="secondary" className={cn('text-xs shrink-0', priorityColors[recommendation.priority])}>
             {recommendation.priority}
           </Badge>
         </div>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{recommendation.description}</p>
+        <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">{recommendation.description}</p>
       </div>
     </motion.div>
   );
@@ -391,30 +391,30 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
   if (compact) {
     return (
       <Card className={cn('border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70 h-full', className)}>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-            <ClipboardCheck className="h-5 w-5 text-indigo-500" />
+        <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+          <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+            <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-500 shrink-0" />
             Exam Performance
           </CardTitle>
-          <CardDescription>Your exam analytics summary</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Your exam analytics summary</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
           {/* Quick Stats */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.totalAttempts}</p>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="rounded-lg bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-800/50">
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{summary.totalAttempts}</p>
               <p className="text-xs text-slate-500">Total Attempts</p>
             </div>
-            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.passRate}%</p>
+            <div className="rounded-lg bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-800/50">
+              <p className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.passRate}%</p>
               <p className="text-xs text-slate-500">Pass Rate</p>
             </div>
-            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{summary.averageScore}%</p>
+            <div className="rounded-lg bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-800/50">
+              <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{summary.averageScore}%</p>
               <p className="text-xs text-slate-500">Avg Score</p>
             </div>
-            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{summary.bestScore}%</p>
+            <div className="rounded-lg bg-slate-50 p-2.5 sm:p-3 dark:bg-slate-800/50">
+              <p className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">{summary.bestScore}%</p>
               <p className="text-xs text-slate-500">Best Score</p>
             </div>
           </div>
@@ -422,17 +422,18 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
           {/* Recent Performance */}
           {recentAttempts.length > 0 && (
             <div>
-              <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">Recent</p>
-              <div className="space-y-2">
+              <p className="mb-1.5 sm:mb-2 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Recent</p>
+              <div className="space-y-1.5 sm:space-y-2">
                 {recentAttempts.slice(0, 3).map((attempt) => (
                   <div
                     key={attempt.id}
-                    className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/50"
+                    className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 sm:px-3 py-1.5 sm:py-2 dark:bg-slate-800/50"
                   >
-                    <span className="text-sm text-slate-600 dark:text-slate-400">{attempt.examTitle}</span>
+                    <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate flex-1 min-w-0">{attempt.examTitle}</span>
                     <Badge
                       variant="secondary"
                       className={cn(
+                        'text-xs shrink-0 ml-2',
                         attempt.isPassed
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
@@ -452,9 +453,9 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
 
   // Full view
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-4 sm:space-y-6', className)}>
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
         <StatCard
           icon={ClipboardCheck}
           label="Total Attempts"
@@ -486,18 +487,18 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Bloom's Taxonomy Performance */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                <Brain className="h-5 w-5 text-purple-500" />
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 shrink-0" />
                 Cognitive Level Performance
               </CardTitle>
-              <CardDescription>Your performance by Bloom&apos;s taxonomy level</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Your performance by Bloom&apos;s taxonomy level</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
               {bloomsAnalysis.map((bloom, index) => (
                 <TooltipProvider key={bloom.level}>
                   <Tooltip>
@@ -525,14 +526,14 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
         {/* SAM AI Recommendations */}
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
           <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-                <Lightbulb className="h-5 w-5 text-amber-500" />
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
                 SAM AI Recommendations
               </CardTitle>
-              <CardDescription>Personalized suggestions to improve</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Personalized suggestions to improve</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-6 pt-0">
               {recommendations.length > 0 ? (
                 recommendations.slice(0, 4).map((rec, index) => (
                   <RecommendationCard key={index} recommendation={rec} />
@@ -549,26 +550,26 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
       {weakAreas.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="border-amber-200/50 bg-amber-50/50 backdrop-blur-sm dark:border-amber-700/30 dark:bg-amber-900/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base text-amber-700 dark:text-amber-400">
-                <AlertTriangle className="h-5 w-5" />
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
                 Areas Needing Attention
               </CardTitle>
-              <CardDescription>Topics where you scored below 70%</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Topics where you scored below 70%</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="space-y-2 sm:space-y-3">
                 {weakAreas.map((area, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between rounded-lg bg-white/70 p-3 dark:bg-slate-800/50"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 rounded-lg bg-white/70 p-2.5 sm:p-3 dark:bg-slate-800/50"
                   >
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-white">{area.examTitle}</p>
-                      <p className="text-sm text-slate-500">{area.topic}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm sm:text-base font-medium text-slate-900 dark:text-white truncate">{area.examTitle}</p>
+                      <p className="text-xs sm:text-sm text-slate-500 truncate">{area.topic}</p>
                     </div>
-                    <div className="text-right">
-                      <Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                    <div className="text-left sm:text-right shrink-0">
+                      <Badge variant="secondary" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs">
                         {area.score}%
                       </Badge>
                       <p className="mt-1 text-xs text-slate-500">{area.attempts} attempt(s)</p>
@@ -584,14 +585,14 @@ export function ExamAnalytics({ compact = false, className }: ExamAnalyticsProps
       {/* Recent Attempts */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
         <Card className="border-slate-200/50 bg-white/70 backdrop-blur-sm dark:border-slate-700/50 dark:bg-slate-800/70">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg font-semibold text-slate-900 dark:text-white">
-              <ClipboardCheck className="h-5 w-5 text-slate-500" />
+          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-1.5 sm:gap-2 text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+              <ClipboardCheck className="h-4 w-4 sm:h-5 sm:w-5 text-slate-500 shrink-0" />
               Recent Exam Attempts
             </CardTitle>
-            <CardDescription>Your latest exam submissions</CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Your latest exam submissions</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1.5 sm:space-y-2 p-3 sm:p-6 pt-0">
             {recentAttempts.map((attempt) => (
               <RecentAttemptRow key={attempt.id} attempt={attempt} />
             ))}

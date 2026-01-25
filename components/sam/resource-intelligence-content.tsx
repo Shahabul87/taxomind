@@ -278,23 +278,24 @@ export function ResourceIntelligenceContent({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <h3 className="text-base sm:text-lg font-semibold flex items-center gap-1.5 sm:gap-2">
+            <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400 shrink-0" />
             SAM AI Resource Hub
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
             Curated external resources to enhance your learning
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
           {lastUpdated && (
             <Badge variant="outline" className="text-xs">
               <Clock className="w-3 h-3 mr-1" />
-              Updated {lastUpdated.toLocaleTimeString()}
+              <span className="hidden xs:inline">Updated </span>
+              {lastUpdated.toLocaleTimeString()}
             </Badge>
           )}
           <Button
@@ -302,36 +303,37 @@ export function ResourceIntelligenceContent({
             variant="outline"
             size="sm"
             disabled={isLoading}
+            className="text-xs sm:text-sm"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
             ) : (
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             )}
-            <span className="ml-2">Refresh</span>
+            <span className="ml-1.5 sm:ml-2 hidden xs:inline">Refresh</span>
           </Button>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" />
             <Input
               placeholder="Search resources..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-9 sm:pl-10 text-xs sm:text-sm"
             />
           </div>
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
-            className={cn(showFilters && "bg-gray-100 dark:bg-gray-800")}
+            className={cn("text-xs sm:text-sm", showFilters && "bg-gray-100 dark:bg-gray-800")}
           >
-            <Filter className="w-4 h-4" />
-            <span className="ml-2">Filters</span>
+            <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="ml-1.5 sm:ml-2">Filters</span>
           </Button>
         </div>
 
