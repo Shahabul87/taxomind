@@ -363,11 +363,44 @@ export function SAMHealthDashboard({
   // Fetch health data
   const fetchHealth = useCallback(async () => {
     try {
-      const response = await fetch('/api/sam/agentic/health');
+      // Request detailed metrics and alerts
+      const response = await fetch('/api/sam/agentic/health?detailed=true&includeAlerts=true');
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setHealth(result.data);
+        if (result.success && result.data) {
+          // Map API response to component's expected structure
+          const apiData = result.data;
+          const mappedHealth: HealthStatus = {
+            overall: apiData.status || 'unknown',
+            services: (apiData.components || []).map((c: { name: string; status: string; latencyMs?: number; lastCheck: string; details?: string }) => ({
+              name: c.name,
+              status: c.status || 'unknown',
+              latency: c.latencyMs,
+              lastCheck: c.lastCheck,
+              details: c.details,
+            })),
+            metrics: {
+              requestsPerMinute: apiData.metrics?.requestsPerMinute ?? 0,
+              requestsPerMinuteTrend: 'stable',
+              avgLatencyMs: apiData.metrics?.avgResponseTimeMs ?? 0,
+              avgLatencyTrend: 'stable',
+              errorRate: apiData.metrics?.errorRate ?? 0,
+              errorRateTrend: 'stable',
+              activeConnections: apiData.metrics?.activeConnections ?? 0,
+              cpuUsage: undefined,
+              memoryUsage: undefined,
+            },
+            alerts: (apiData.alerts || []).map((a: { id: string; severity: string; message: string; triggeredAt: string; acknowledged: boolean }) => ({
+              id: a.id,
+              severity: a.severity as 'critical' | 'warning' | 'info',
+              title: a.severity.charAt(0).toUpperCase() + a.severity.slice(1) + ' Alert',
+              message: a.message,
+              timestamp: a.triggeredAt,
+              acknowledged: a.acknowledged,
+            })),
+            lastChecked: apiData.timestamp || new Date().toISOString(),
+          };
+          setHealth(mappedHealth);
         }
       }
     } catch (error) {
@@ -520,39 +553,39 @@ export function SAMHealthDashboard({
           <MetricCard
             icon={Gauge}
             label="Requests/min"
-            value={health.metrics.requestsPerMinute}
+            value={health.metrics?.requestsPerMinute ?? 0}
             unit=""
-            trend={health.metrics.requestsPerMinuteTrend}
+            trend={health.metrics?.requestsPerMinuteTrend}
           />
           <MetricCard
             icon={Clock}
             label="Avg Latency"
-            value={health.metrics.avgLatencyMs}
+            value={health.metrics?.avgLatencyMs ?? 0}
             unit="ms"
-            trend={health.metrics.avgLatencyTrend}
+            trend={health.metrics?.avgLatencyTrend}
             threshold={{ warning: 500, critical: 1000 }}
           />
           <MetricCard
             icon={AlertTriangle}
             label="Error Rate"
-            value={Number((health.metrics.errorRate * 100).toFixed(2))}
+            value={Number(((health.metrics?.errorRate ?? 0) * 100).toFixed(2))}
             unit="%"
-            trend={health.metrics.errorRateTrend}
+            trend={health.metrics?.errorRateTrend}
             threshold={{ warning: 1, critical: 5 }}
           />
           <MetricCard
             icon={Zap}
             label="Connections"
-            value={health.metrics.activeConnections}
+            value={health.metrics?.activeConnections ?? 0}
             unit=""
           />
         </div>
 
         {/* Resource usage */}
-        {(health.metrics.cpuUsage !== undefined ||
-          health.metrics.memoryUsage !== undefined) && (
+        {(health.metrics?.cpuUsage !== undefined ||
+          health.metrics?.memoryUsage !== undefined) && (
           <div className="grid grid-cols-2 gap-3">
-            {health.metrics.cpuUsage !== undefined && (
+            {health.metrics?.cpuUsage !== undefined && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1">
@@ -564,7 +597,7 @@ export function SAMHealthDashboard({
                 <Progress value={health.metrics.cpuUsage} className="h-1.5" />
               </div>
             )}
-            {health.metrics.memoryUsage !== undefined && (
+            {health.metrics?.memoryUsage !== undefined && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1">

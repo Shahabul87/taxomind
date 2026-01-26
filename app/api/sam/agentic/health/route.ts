@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/auth';
+import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 
@@ -56,8 +56,9 @@ interface HealthStatus {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    // Support both user and admin authentication
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
