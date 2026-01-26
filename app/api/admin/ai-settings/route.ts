@@ -79,7 +79,15 @@ export async function GET() {
       (session.user.role !== AdminRole.ADMIN &&
         session.user.role !== AdminRole.SUPERADMIN)
     ) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      logger.warn("[ADMIN_AI_SETTINGS_GET] Unauthorized access attempt", {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        role: session?.user?.role,
+      });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized", code: "UNAUTHORIZED" },
+        { status: 401 }
+      );
     }
 
     // Get or create platform settings
@@ -144,7 +152,15 @@ export async function GET() {
     });
   } catch (error) {
     logger.error("[ADMIN_AI_SETTINGS_GET_ERROR]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to fetch AI settings",
+        code: "INTERNAL_ERROR",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -163,7 +179,15 @@ export async function PUT(request: Request) {
       (session.user.role !== AdminRole.ADMIN &&
         session.user.role !== AdminRole.SUPERADMIN)
     ) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      logger.warn("[ADMIN_AI_SETTINGS_PUT] Unauthorized access attempt", {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        role: session?.user?.role,
+      });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized", code: "UNAUTHORIZED" },
+        { status: 401 }
+      );
     }
 
     const body = await request.json();
@@ -209,6 +233,14 @@ export async function PUT(request: Request) {
     });
   } catch (error) {
     logger.error("[ADMIN_AI_SETTINGS_PUT_ERROR]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update AI settings",
+        code: "INTERNAL_ERROR",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

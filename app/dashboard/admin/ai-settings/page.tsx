@@ -147,21 +147,36 @@ export default function AdminAISettingsPage() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const fetchSettings = useCallback(async () => {
     try {
+      setLoadError(null);
       const response = await fetch("/api/admin/ai-settings", {
         credentials: "include",
       });
-      if (response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+
+      if (response.ok && data.success !== false) {
         setProviders(data.providers || []);
         setSettings(data.settings);
       } else {
-        toast.error("Failed to load AI settings");
+        const errorMsg = data.error || "Failed to load AI settings";
+        const errorCode = data.code || "UNKNOWN";
+        console.error("AI Settings API Error:", { errorMsg, errorCode, details: data.details });
+
+        if (errorCode === "UNAUTHORIZED") {
+          setLoadError("Session expired or unauthorized. Please log in again.");
+          toast.error("Please log in to access AI settings");
+        } else {
+          setLoadError(`${errorMsg}${data.details ? `: ${data.details}` : ""}`);
+          toast.error(errorMsg);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch AI settings:", error);
-      toast.error("Failed to load AI settings");
+      setLoadError("Network error: Unable to connect to the server");
+      toast.error("Failed to load AI settings - Network error");
     }
   }, []);
 
@@ -229,11 +244,36 @@ export default function AdminAISettingsPage() {
 
   if (!settings) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Alert className="max-w-md">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to load AI settings. Please refresh the page.
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+        <Alert className="max-w-lg border-red-200 bg-red-50 dark:bg-red-900/20">
+          <AlertTriangle className="h-5 w-5 text-red-500" />
+          <AlertDescription className="space-y-3">
+            <p className="font-semibold text-red-800 dark:text-red-200">
+              Failed to load AI settings
+            </p>
+            <p className="text-sm text-red-700 dark:text-red-300">
+              {loadError || "Unable to load settings. Please try again."}
+            </p>
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="border-red-300 text-red-700 hover:bg-red-100"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Page
+              </Button>
+              {loadError?.includes("unauthorized") || loadError?.includes("Session") ? (
+                <Button
+                  size="sm"
+                  onClick={() => window.location.href = "/admin/auth/login"}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Log In Again
+                </Button>
+              ) : null}
+            </div>
           </AlertDescription>
         </Alert>
       </div>
