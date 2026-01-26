@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@/lib/auth';
+import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
@@ -260,17 +260,18 @@ export async function POST(request: NextRequest) {
   try {
     logger.info('[SECTION_CONTENT] API endpoint called');
 
-    // Check authentication
-    const user = await currentUser();
-    if (!user?.id) {
-      logger.error('[SECTION_CONTENT] Unauthorized - no user');
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
+      logger.error('[SECTION_CONTENT] Unauthorized - no session');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    logger.info('[SECTION_CONTENT] User authenticated:', user.id);
+    logger.info('[SECTION_CONTENT] Session authenticated:', session.userId);
 
     // Check subscription tier and usage limits
-    const accessCheck = await checkAIAccess(user.id, "lesson");
+    // Note: Admins are automatically granted access in checkAIAccess
+    const accessCheck = await checkAIAccess(session.userId, "lesson");
     if (!accessCheck.allowed) {
       return NextResponse.json(
         {
@@ -313,10 +314,11 @@ export async function POST(request: NextRequest) {
       sectionId: contentRequest.sectionId,
       chapterId: contentRequest.chapterId,
       courseId: contentRequest.courseId,
-      userId: user.id
+      userId: session.userId,
+      isAdmin: session.isAdmin
     });
 
-    // Verify section ownership with simpler query
+    // Verify section ownership with simpler query - admins can access any section
     try {
       const section = await db.section.findUnique({
         where: {
@@ -355,7 +357,8 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (section.chapter.course.userId !== user.id) {
+      // Admins bypass ownership check
+      if (!session.isAdmin && section.chapter.course.userId !== session.userId) {
         logger.error('[SECTION_CONTENT] User does not own this course');
         return NextResponse.json(
           { error: 'Access denied - you do not own this course' },
@@ -430,8 +433,10 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Record AI usage after successful response
-      await recordAIUsage(user.id, "lesson", 1);
+      // Record AI usage after successful response (only for users, admins bypass tracking)
+      if (!session.isAdmin && session.userId) {
+        await recordAIUsage(session.userId, "lesson", 1);
+      }
 
       return NextResponse.json({
         success: true,

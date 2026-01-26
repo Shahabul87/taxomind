@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@/lib/auth';
+import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
@@ -147,21 +147,21 @@ function generateMockSections(request: SectionGenerationRequest): any[] {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await currentUser();
-    if (!user?.id) {
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Parse and validate request body
     const body = await request.json();
     const parseResult = SectionGenerationRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
-        { 
-          error: 'Invalid request format', 
-          details: parseResult.error.errors 
+        {
+          error: 'Invalid request format',
+          details: parseResult.error.errors
         },
         { status: 400 }
       );
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     const sectionRequest = parseResult.data;
 
-    // Verify chapter ownership
+    // Verify chapter ownership - admins can access any chapter
     const chapter = await db.chapter.findUnique({
       where: {
         id: sectionRequest.chapterId,
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    if (!chapter || chapter.course.userId !== user.id) {
+    if (!chapter || (!session.isAdmin && chapter.course.userId !== session.userId)) {
       return NextResponse.json(
         { error: 'Chapter not found or access denied' },
         { status: 404 }

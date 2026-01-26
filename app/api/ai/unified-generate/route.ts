@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { getCombinedSession } from "@/lib/auth/combined-session";
 import * as z from "zod";
 import { logger } from "@/lib/logger";
 import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
@@ -536,9 +536,9 @@ function generateMockContent(request: UnifiedGenerateRequest): string {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await currentUser();
-    if (!user?.id) {
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
@@ -551,7 +551,8 @@ export async function POST(request: NextRequest) {
                                        body.entityLevel === "course" ? "course" : "other";
 
     // Check subscription tier and usage limits
-    const accessCheck = await checkAIAccess(user.id, featureType);
+    // Note: Admins are automatically granted access in checkAIAccess
+    const accessCheck = await checkAIAccess(session.userId, featureType);
     if (!accessCheck.allowed) {
       return NextResponse.json(
         {
@@ -687,15 +688,17 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Record successful AI usage
+      // Record successful AI usage (only for users, admins bypass tracking)
       const tokensUsed = (completion.usage?.input_tokens || 0) + (completion.usage?.output_tokens || 0);
-      await recordAIUsage(user.id, featureType, 1, {
-        provider: "anthropic",
-        model: "claude-sonnet-4-5-20250929",
-        tokensUsed,
-        cost: tokensUsed * 0.000009, // Approximate cost per token
-        requestType: contentRequest.contentType,
-      });
+      if (!session.isAdmin && session.userId) {
+        await recordAIUsage(session.userId, featureType, 1, {
+          provider: "anthropic",
+          model: "claude-sonnet-4-5-20250929",
+          tokensUsed,
+          cost: tokensUsed * 0.000009, // Approximate cost per token
+          requestType: contentRequest.contentType,
+        });
+      }
 
       return NextResponse.json({
         success: true,

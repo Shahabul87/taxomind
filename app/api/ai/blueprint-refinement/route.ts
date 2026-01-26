@@ -1,5 +1,4 @@
-import { currentUser } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getCombinedSession } from "@/lib/auth/combined-session";
 import getAnthropicClient from "@/lib/anthropic-client";
 import { logger } from '@/lib/logger';
 
@@ -56,37 +55,32 @@ interface RefinementResult {
 
 export async function POST(req: Request) {
   try {
-    const user = await currentUser();
-
-    if (!user?.id) {
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    // Check if user is admin - admins are now in AdminAccount table
-    const adminAccount = await db.adminAccount.findUnique({
-      where: { id: user.id },
-      select: { id: true, email: true, role: true }
-    });
-
-    if (!adminAccount || (adminAccount.role !== 'ADMIN' && adminAccount.role !== 'SUPERADMIN')) {
+    // Only admins can access blueprint refinement
+    if (!session.isAdmin) {
       return new Response("Forbidden - Admin access required", { status: 403 });
     }
 
     const body = await req.json();
     const request: BlueprintRefinementRequest = body;
-    
+
     // Validate required fields
     if (!request.blueprint) {
       return new Response("Blueprint is required", { status: 400 });
     }
-    
+
     if (!request.refinementGoals || request.refinementGoals.length === 0) {
       return new Response("Refinement goals are required", { status: 400 });
     }
 
     // Generate blueprint refinement
-    const refinementResult = await generateBlueprintRefinement(request, user.id);
-    
+    const refinementResult = await generateBlueprintRefinement(request, session.userId);
+
     return Response.json(refinementResult);
 
   } catch (error) {

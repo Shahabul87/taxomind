@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@/lib/auth';
+import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
 import {
@@ -273,14 +273,15 @@ async function validateAndEnhanceQuestions(
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await currentUser();
-    if (!user?.id) {
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Check subscription tier and usage limits
-    const accessCheck = await checkAIAccess(user.id, "exam");
+    // Note: Admins are automatically granted access in checkAIAccess
+    const accessCheck = await checkAIAccess(session.userId, "exam");
     if (!accessCheck.allowed) {
       return NextResponse.json(
         {
@@ -335,7 +336,7 @@ export async function POST(request: NextRequest) {
           enableQualityValidation: examRequest.enableQualityValidation,
           enableSafetyValidation: examRequest.enableSafetyValidation,
           enablePedagogicalValidation: examRequest.enablePedagogicalValidation,
-          userId: user.id,
+          userId: session.userId,
         };
 
         // Generate with SAM validation pipeline
@@ -365,8 +366,10 @@ export async function POST(request: NextRequest) {
           hints: q.hints,
         }));
 
-        // Record AI usage after successful SAM generation
-        await recordAIUsage(user.id, "exam", 1);
+        // Record AI usage after successful SAM generation (only for users, admins bypass tracking)
+        if (!session.isAdmin && session.userId) {
+          await recordAIUsage(session.userId, "exam", 1);
+        }
 
         return NextResponse.json({
           success: samResult.success,
@@ -409,8 +412,10 @@ export async function POST(request: NextRequest) {
     // Use mock questions for legacy fallback
     const mockQuestions = generateAdvancedMockQuestions(examRequest);
 
-    // Record AI usage after successful legacy generation
-    await recordAIUsage(user.id, "exam", 1);
+    // Record AI usage after successful legacy generation (only for users, admins bypass tracking)
+    if (!session.isAdmin && session.userId) {
+      await recordAIUsage(session.userId, "exam", 1);
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@/lib/auth';
+import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
 import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
@@ -170,14 +170,15 @@ function generateMockQuestions(request: ExamGenerationRequest): any[] {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await currentUser();
-    if (!user?.id) {
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Check subscription tier and usage limits
-    const accessCheck = await checkAIAccess(user.id, "exam");
+    // Note: Admins are automatically granted access in checkAIAccess
+    const accessCheck = await checkAIAccess(session.userId, "exam");
     if (!accessCheck.allowed) {
       return NextResponse.json(
         {
@@ -271,11 +272,13 @@ export async function POST(request: NextRequest) {
           : 'UNDERSTAND',
       }));
 
-      // Record AI usage
-      await recordAIUsage(user.id, "exam", 1, {
-        provider: "anthropic",
-        requestType: "exam_generation",
-      });
+      // Record AI usage (only for users, admins bypass tracking)
+      if (!session.isAdmin && session.userId) {
+        await recordAIUsage(session.userId, "exam", 1, {
+          provider: "anthropic",
+          requestType: "exam_generation",
+        });
+      }
 
       return NextResponse.json({
         success: true,

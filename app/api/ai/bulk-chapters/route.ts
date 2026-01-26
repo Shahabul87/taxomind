@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@/lib/auth';
+import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { 
@@ -208,21 +208,21 @@ function generateMockChapters(courseData: any, request: BulkChapterGenerationReq
 
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication
-    const user = await currentUser();
-    if (!user?.id) {
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Parse and validate request body
     const body = await request.json();
     const parseResult = BulkChapterGenerationRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
-        { 
-          error: 'Invalid request format', 
-          details: parseResult.error.errors 
+        {
+          error: 'Invalid request format',
+          details: parseResult.error.errors
         },
         { status: 400 }
       );
@@ -230,12 +230,11 @@ export async function POST(request: NextRequest) {
 
     const bulkRequest = parseResult.data;
 
-    // Fetch course data to validate ownership and get context
+    // Fetch course data - admins can access any course
     const course = await db.course.findUnique({
-      where: {
-        id: bulkRequest.courseId,
-        userId: user.id
-      },
+      where: session.isAdmin
+        ? { id: bulkRequest.courseId }
+        : { id: bulkRequest.courseId, userId: session.userId },
       include: {
         chapters: true
       }

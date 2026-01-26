@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { getCombinedSession } from "@/lib/auth/combined-session";
 import Anthropic from '@anthropic-ai/sdk';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
 import { aiCacheManager } from "@/lib/ai-cache-manager";
@@ -65,14 +65,15 @@ interface OptimizationResult {
 
 export async function POST(req: Request) {
   try {
-    const user = await currentUser();
-
-    if (!user?.id) {
+    // Check authentication - supports both user and admin auth
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     // Check subscription tier and usage limits
-    const accessCheck = await checkAIAccess(user.id, "analysis");
+    // Note: Admins are automatically granted access in checkAIAccess
+    const accessCheck = await checkAIAccess(session.userId, "analysis");
     if (!accessCheck.allowed) {
       return NextResponse.json(
         {
@@ -90,12 +91,14 @@ export async function POST(req: Request) {
 
     // Use optimized request with caching and deduplication
     const optimization = await optimizeContentOptimization(
-      { ...body, userId: user.id },
+      { ...body, userId: session.userId },
       () => optimizeContent(body)
     );
 
-    // Record AI usage after successful response
-    await recordAIUsage(user.id, "analysis", 1);
+    // Record AI usage after successful response (only for users, admins bypass tracking)
+    if (!session.isAdmin && session.userId) {
+      await recordAIUsage(session.userId, "analysis", 1);
+    }
 
     return NextResponse.json(optimization);
 

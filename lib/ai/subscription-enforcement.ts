@@ -7,11 +7,13 @@
  * - Enforces daily/monthly usage limits
  * - Tracks usage in database
  * - Sends cost alerts when budget thresholds are reached
+ * - Exempts admins from all restrictions
  */
 
 import { db } from "@/lib/db";
 import { SubscriptionTier } from "@prisma/client";
 import { logger } from "@/lib/logger";
+import { getCurrentAdminSession } from "@/lib/admin/check-admin";
 
 // AI Feature types that can be rate-limited
 export type AIFeatureType =
@@ -195,6 +197,17 @@ export async function checkAIAccess(
   requestedUsage: number = 1
 ): Promise<EnforcementResult> {
   try {
+    // Check if current session is an admin - admins bypass all restrictions
+    // Admin auth is completely separate from user auth
+    const adminStatus = await getCurrentAdminSession();
+    if (adminStatus.isAdmin) {
+      logger.info("[AI_ACCESS] Admin bypass", { adminId: adminStatus.adminId, feature, role: adminStatus.role });
+      return {
+        allowed: true,
+        // Admins have unlimited access
+      };
+    }
+
     // Get platform settings
     const settings = await getPlatformSettings();
 

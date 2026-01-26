@@ -45,6 +45,7 @@ import { QualityScoreDashboard } from '@/components/sam/QualityScoreDashboard';
 import { ConversationTimeline } from '@/components/sam/ConversationTimeline';
 import { cn } from '@/lib/utils';
 import { useLearningAnalytics, formatStudyTime } from './hooks/useLearningAnalytics';
+import { SAMAnalyticsProvider } from '@/hooks/use-sam-agentic-analytics';
 
 export interface LearningAnalyticsDashboardProps {
   className?: string;
@@ -151,10 +152,19 @@ export function LearningAnalyticsDashboard({
     scoreChange: data?.overview.totalExamsCompleted ? `${data.overview.totalExamsCompleted} exams` : '-',
   };
 
+  // Map TimeRange to SAMAnalyticsProvider period
+  const samPeriodMap: Record<TimeRange, 'daily' | 'weekly' | 'monthly'> = {
+    week: 'weekly',
+    month: 'monthly',
+    quarter: 'monthly',
+    year: 'monthly',
+  };
+
   return (
-    <div className={cn('space-y-4 sm:space-y-6', className)}>
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <SAMAnalyticsProvider period={samPeriodMap[timeRange]}>
+      <div className={cn('space-y-4 sm:space-y-6', className)}>
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex-1 min-w-0">
           <h2 className="flex items-center gap-2 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
             <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-indigo-500 flex-shrink-0" />
@@ -512,6 +522,7 @@ export function LearningAnalyticsDashboard({
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </SAMAnalyticsProvider>
   );
 }

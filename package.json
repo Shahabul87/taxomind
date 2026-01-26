@@ -145,6 +145,8 @@
     "dev:db:seed": "npx tsx scripts/dev-seed.ts",
     "dev:db:studio": "npx prisma studio",
     "dev:setup": "npm run dev:db:reset && npm run dev:db:seed",
+    "admin:seed": "npx tsx scripts/seed-admin.ts",
+    "admin:seed:railway": "railway run npx tsx scripts/seed-admin.ts",
     "dev:setup:original": "bash scripts/setup-taxomind-original.sh",
     "dev:docker:start": "docker start taxomind-dev-db",
     "dev:docker:stop": "docker stop taxomind-dev-db",

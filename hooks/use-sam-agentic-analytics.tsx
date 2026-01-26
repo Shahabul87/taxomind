@@ -5,6 +5,9 @@
  * for the analytics dashboard. This replaces the legacy
  * useLearningAnalytics hook with real SAM AI-powered data.
  *
+ * IMPORTANT: Use SAMAnalyticsProvider at the top of your component tree
+ * to share data across multiple components and avoid duplicate API calls.
+ *
  * APIs consumed:
  * - /api/sam/agentic/analytics/progress
  * - /api/sam/agentic/behavior/predictions
@@ -15,7 +18,9 @@
  * - /api/sam/agentic/behavior/interventions
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+'use client';
+
+import React, { useState, useEffect, useCallback, useRef, createContext, useContext, useMemo } from 'react';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -379,10 +384,83 @@ function computeNextActions(
 }
 
 // ============================================================================
-// MAIN HOOK
+// CONTEXT FOR SHARED STATE
 // ============================================================================
 
-export function useSAMAgenticAnalytics(
+interface SAMAnalyticsContextValue extends UseSAMAgenticAnalyticsReturn {
+  /** Whether this data is from context (shared) or standalone hook */
+  isFromContext: boolean;
+}
+
+const SAMAnalyticsContext = createContext<SAMAnalyticsContextValue | null>(null);
+
+/**
+ * Provider component that shares SAM analytics data across all child components.
+ * Wrap your dashboard or page with this to avoid duplicate API calls.
+ *
+ * @example
+ * ```tsx
+ * <SAMAnalyticsProvider>
+ *   <BehaviorPredictions />
+ *   <GoalsProgress />
+ *   <ProactiveInterventions />
+ * </SAMAnalyticsProvider>
+ * ```
+ */
+export interface SAMAnalyticsProviderProps {
+  children: React.ReactNode;
+  /** Time period for progress data */
+  period?: 'daily' | 'weekly' | 'monthly';
+  /** Auto-refresh interval in milliseconds (0 = disabled) */
+  refreshInterval?: number;
+  /** Enable/disable fetching */
+  enabled?: boolean;
+  /** Available time for recommendations (minutes) */
+  availableTime?: number;
+}
+
+export function SAMAnalyticsProvider({
+  children,
+  period = 'weekly',
+  refreshInterval = 0,
+  enabled = true,
+  availableTime = 60,
+}: SAMAnalyticsProviderProps) {
+  const analytics = useSAMAgenticAnalyticsInternal({
+    period,
+    refreshInterval,
+    enabled,
+    availableTime,
+  });
+
+  const contextValue = useMemo(
+    () => ({
+      ...analytics,
+      isFromContext: true,
+    }),
+    [analytics]
+  );
+
+  return (
+    <SAMAnalyticsContext.Provider value={contextValue}>
+      {children}
+    </SAMAnalyticsContext.Provider>
+  );
+}
+
+/**
+ * Hook to access the shared SAM analytics context.
+ * Returns null if not wrapped in SAMAnalyticsProvider.
+ */
+export function useSAMAnalyticsContext(): SAMAnalyticsContextValue | null {
+  return useContext(SAMAnalyticsContext);
+}
+
+// ============================================================================
+// INTERNAL HOOK (does the actual fetching)
+// ============================================================================
+
+function useSAMAgenticAnalyticsInternal(
   options: UseSAMAgenticAnalyticsOptions = {}
 ): UseSAMAgenticAnalyticsReturn {
   const {
@@ -591,11 +669,52 @@ export function useSAMAgenticAnalytics(
 }
 
 // ============================================================================
-// CONVENIENCE HOOKS
+// MAIN PUBLIC HOOK (uses context if available)
 // ============================================================================
 
 /**
- * Hook for just behavior predictions
+ * Main hook for SAM analytics data.
+ *
+ * If wrapped in SAMAnalyticsProvider, uses shared context data (recommended).
+ * Otherwise, creates its own fetch cycle (avoid using multiple times without provider).
+ *
+ * @example
+ * ```tsx
+ * // Best practice: wrap with provider and use hook multiple times
+ * <SAMAnalyticsProvider>
+ *   <ComponentA /> // uses useSAMAgenticAnalytics
+ *   <ComponentB /> // uses useSAMAgenticAnalytics - shares data!
+ * </SAMAnalyticsProvider>
+ * ```
+ */
+export function useSAMAgenticAnalytics(
+  options: UseSAMAgenticAnalyticsOptions = {}
+): UseSAMAgenticAnalyticsReturn {
+  // Check if we have context available
+  const contextValue = useContext(SAMAnalyticsContext);
+
+  // If in context, use shared data
+  // Note: Context options (period, etc.) are set at provider level
+  const standaloneResult = useSAMAgenticAnalyticsInternal(
+    // Only fetch if not in context
+    contextValue ? { ...options, enabled: false } : options
+  );
+
+  // Return context value if available, otherwise standalone result
+  if (contextValue) {
+    return contextValue;
+  }
+
+  return standaloneResult;
+}
+
+// ============================================================================
+// CONVENIENCE HOOKS (all use context when available)
+// ============================================================================
+
+/**
+ * Hook for just behavior predictions.
+ * Uses shared context when wrapped in SAMAnalyticsProvider.
  */
 export function useSAMPredictions() {
   const { data, loading, error, refresh } = useSAMAgenticAnalytics();
@@ -608,7 +727,8 @@ export function useSAMPredictions() {
 }
 
 /**
- * Hook for just goals data
+ * Hook for just goals data.
+ * Uses shared context when wrapped in SAMAnalyticsProvider.
  */
 export function useSAMGoals() {
   const { data, loading, error, refresh } = useSAMAgenticAnalytics();
@@ -632,7 +752,8 @@ export function useSAMGoals() {
 }
 
 /**
- * Hook for learning health score
+ * Hook for learning health score.
+ * Uses shared context when wrapped in SAMAnalyticsProvider.
  */
 export function useSAMLearningHealth() {
   const { data, loading } = useSAMAgenticAnalytics();
@@ -648,7 +769,8 @@ export function useSAMLearningHealth() {
 }
 
 /**
- * Hook for interventions with actions
+ * Hook for interventions with actions.
+ * Uses shared context when wrapped in SAMAnalyticsProvider.
  */
 export function useSAMInterventions() {
   const { data, loading, error, refresh } = useSAMAgenticAnalytics();

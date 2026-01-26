@@ -3,10 +3,12 @@
  *
  * Controls access to SAM AI features based on premium subscription status.
  * Free users get limited daily usage, premium users get unlimited access.
+ * Admins have unlimited access without subscription (separate auth system).
  */
 
 import { db } from "@/lib/db";
 import { checkPremiumAccess } from "./check-premium";
+import { getCurrentAdminSession } from "@/lib/admin/check-admin";
 
 // SAM AI Feature definitions
 export type SAMFeature =
@@ -36,12 +38,30 @@ export interface SAMAccessResult {
 
 /**
  * Check if a user can access a specific SAM AI feature
+ *
+ * This function checks in order:
+ * 1. Admin session (separate auth system) - unlimited access
+ * 2. Premium subscription - unlimited access
+ * 3. Free tier - limited access to basic-qa only
  */
 export async function canAccessSamFeature(
   userId: string,
   feature: SAMFeature
 ): Promise<SAMAccessResult> {
-  // Check premium status first
+  // Check if current session is an admin (separate auth system)
+  // Admins have unlimited access to all features
+  const adminStatus = await getCurrentAdminSession();
+  if (adminStatus.isAdmin) {
+    return {
+      allowed: true,
+      reason: `Admin access (${adminStatus.role})`,
+      remainingFreeUsage: null,
+      requiresUpgrade: false,
+      feature,
+    };
+  }
+
+  // Check premium status for regular users
   const premiumStatus = await checkPremiumAccess(userId);
 
   // Premium users have unlimited access to all features
@@ -129,6 +149,12 @@ export async function canAccessSamFeature(
  * Call this AFTER a successful SAM AI request
  */
 export async function incrementSamUsage(userId: string): Promise<void> {
+  // Don't track usage for admins
+  const adminStatus = await getCurrentAdminSession();
+  if (adminStatus.isAdmin) {
+    return;
+  }
+
   const premiumStatus = await checkPremiumAccess(userId);
 
   // Don't track usage for premium users
@@ -162,6 +188,12 @@ export async function incrementSamUsage(userId: string): Promise<void> {
  * Get remaining free usage for a user
  */
 export async function getRemainingFreeUsage(userId: string): Promise<number> {
+  // Admins have unlimited usage
+  const adminStatus = await getCurrentAdminSession();
+  if (adminStatus.isAdmin) {
+    return Infinity;
+  }
+
   const premiumStatus = await checkPremiumAccess(userId);
 
   if (premiumStatus.isPremium) {
@@ -207,6 +239,16 @@ export async function getAvailableFeatures(userId: string): Promise<{
     "math-explanation",
     "exam-creation",
   ];
+
+  // Admins have unlimited access
+  const adminStatus = await getCurrentAdminSession();
+  if (adminStatus.isAdmin) {
+    return allFeatures.map((feature) => ({
+      feature,
+      available: true,
+      reason: `Admin access (${adminStatus.role})`,
+    }));
+  }
 
   const premiumStatus = await checkPremiumAccess(userId);
 
