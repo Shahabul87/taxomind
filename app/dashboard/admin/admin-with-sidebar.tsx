@@ -14,6 +14,7 @@ import {
   Wrench,
   Sparkles,
   Bot,
+  Coins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -104,6 +105,13 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
       href: "/dashboard/admin/ai-settings",
       icon: (
         <Bot className="h-6 w-6 shrink-0 text-neutral-700" />
+      ),
+    },
+    {
+      label: "Token Usage",
+      href: "/dashboard/admin/user-token-usage",
+      icon: (
+        <Coins className="h-6 w-6 shrink-0 text-neutral-700" />
       ),
     },
     {
