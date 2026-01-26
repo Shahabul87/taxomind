@@ -34,7 +34,19 @@ async function main() {
       console.log(`   Email: ${existingAdmin.email}`);
       console.log(`   Role: ${existingAdmin.role}`);
       console.log(`   Created: ${existingAdmin.createdAt}`);
-      console.log("\n⚠️  No changes made. Account already exists.");
+      console.log(`   Email Verified: ${existingAdmin.emailVerified || 'NOT VERIFIED'}`);
+
+      // Fix: Ensure emailVerified is set for existing superadmin
+      if (!existingAdmin.emailVerified) {
+        console.log("\n🔧 Fixing: Setting emailVerified for superadmin...");
+        await prisma.adminAccount.update({
+          where: { email: SUPERADMIN_EMAIL },
+          data: { emailVerified: new Date() },
+        });
+        console.log("✅ emailVerified has been set. You can now login!");
+      } else {
+        console.log("\n⚠️  No changes needed. Account is already verified.");
+      }
       return;
     }
 
@@ -50,6 +62,7 @@ async function main() {
         password: hashedPassword,
         name: SUPERADMIN_NAME,
         role: AdminRole.SUPERADMIN,
+        emailVerified: new Date(), // Pre-verified for superadmin
         isTwoFactorEnabled: false,
       },
     });
