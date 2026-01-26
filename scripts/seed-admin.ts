@@ -1,85 +1,90 @@
 /**
  * Admin Account Seed Script
  *
- * Creates admin accounts in the AdminAccount table (separate from regular users)
+ * This script creates the initial superadmin account.
+ * It can be run safely on production without affecting other data.
  *
- * Usage: npx tsx scripts/seed-admin.ts
+ * Usage:
+ *   Local: npx tsx scripts/seed-admin.ts
+ *   Railway: railway run npx tsx scripts/seed-admin.ts
  */
 
-import * as dotenv from "dotenv";
-import * as path from "path";
-
-// Load environment variables
-dotenv.config({ path: path.join(process.cwd(), ".env.local") });
-dotenv.config({ path: path.join(process.cwd(), ".env.development") });
-dotenv.config({ path: path.join(process.cwd(), ".env") });
-
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, AdminRole } from "@prisma/client";
 import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// Default superadmin credentials
+const SUPERADMIN_EMAIL = "sham251087@gmail.com";
+const SUPERADMIN_PASSWORD = "ShaM2510*##&*";
+const SUPERADMIN_NAME = "Super Admin";
+
 async function main() {
-  console.log("🔐 Seeding admin accounts...\n");
+  console.log("🔐 Admin Account Seed Script");
+  console.log("============================\n");
 
   try {
-    // Admin credentials
-    const adminEmail = "sham251087@gmail.com";
-    const adminPassword = "ShaM2510*##&*";
-    const adminName = "Shahabul Alam";
-
-    // Hash the password
-    const hashedPassword = await hash(adminPassword, 12);
-
-    // Check if admin already exists
+    // Check if superadmin already exists
     const existingAdmin = await prisma.adminAccount.findUnique({
-      where: { email: adminEmail },
+      where: { email: SUPERADMIN_EMAIL },
     });
 
     if (existingAdmin) {
-      console.log(`⚠️  Admin account already exists: ${adminEmail}`);
-      console.log("   Updating password...");
-
-      await prisma.adminAccount.update({
-        where: { email: adminEmail },
-        data: {
-          password: hashedPassword,
-          name: adminName,
-          emailVerified: new Date(),
-        },
-      });
-
-      console.log("✅ Admin password updated successfully!\n");
-    } else {
-      // Create new admin account
-      await prisma.adminAccount.create({
-        data: {
-          email: adminEmail,
-          password: hashedPassword,
-          name: adminName,
-          role: "SUPERADMIN",
-          emailVerified: new Date(),
-          isTwoFactorEnabled: false,
-        },
-      });
-
-      console.log("✅ Admin account created successfully!\n");
+      console.log("✅ Superadmin account already exists:");
+      console.log(`   Email: ${existingAdmin.email}`);
+      console.log(`   Role: ${existingAdmin.role}`);
+      console.log(`   Created: ${existingAdmin.createdAt}`);
+      console.log("\n⚠️  No changes made. Account already exists.");
+      return;
     }
 
-    // Display summary
+    // Hash the password
+    console.log("🔑 Hashing password...");
+    const hashedPassword = await hash(SUPERADMIN_PASSWORD, 12);
+
+    // Create the superadmin account
+    console.log("👤 Creating superadmin account...");
+    const superadmin = await prisma.adminAccount.create({
+      data: {
+        email: SUPERADMIN_EMAIL,
+        password: hashedPassword,
+        name: SUPERADMIN_NAME,
+        role: AdminRole.SUPERADMIN,
+        isTwoFactorEnabled: false,
+      },
+    });
+
+    console.log("\n✅ Superadmin account created successfully!");
     console.log("============================================");
-    console.log("🔑 ADMIN LOGIN CREDENTIALS");
-    console.log("============================================");
-    console.log(`📧 Email:    ${adminEmail}`);
-    console.log(`🔒 Password: ${adminPassword}`);
-    console.log(`👤 Name:     ${adminName}`);
-    console.log(`🛡️  Role:     SUPERADMIN`);
-    console.log("============================================");
-    console.log("\n🌐 Admin Login URL: /admin/auth/login");
+    console.log(`   ID: ${superadmin.id}`);
+    console.log(`   Email: ${superadmin.email}`);
+    console.log(`   Name: ${superadmin.name}`);
+    console.log(`   Role: ${superadmin.role}`);
     console.log("============================================\n");
 
+    console.log("🔐 Login Credentials:");
+    console.log(`   URL: https://taxomind.com/admin/auth/login`);
+    console.log(`   Email: ${SUPERADMIN_EMAIL}`);
+    console.log(`   Password: [as configured in script]\n`);
+
+    console.log("🚨 IMPORTANT: Change the password after first login!");
+
+    // Log the action in audit log if table exists
+    try {
+      await prisma.auditLog.create({
+        data: {
+          action: "ADMIN_CREATED",
+          details: `Superadmin account created for ${SUPERADMIN_EMAIL}`,
+          ipAddress: "seed-script",
+        },
+      });
+      console.log("\n📝 Action logged to audit log.");
+    } catch {
+      console.log("\n⚠️  Could not log to audit log (table may not exist).");
+    }
+
   } catch (error) {
-    console.error("❌ Error seeding admin:", error);
+    console.error("❌ Error creating superadmin account:", error);
     throw error;
   }
 }
