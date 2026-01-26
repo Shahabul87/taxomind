@@ -13,9 +13,13 @@ import {
   Brain,
   ArrowRight,
   CheckCircle2,
-  Zap
+  Zap,
+  Lock,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSubscriptionStatus } from "@/hooks/use-subscription-status";
+import { UpgradePromptModal } from "@/components/subscription/upgrade-prompt";
 
 interface CourseCreatorSelectionProps {
   onSelectClassic: () => void;
@@ -65,10 +69,24 @@ export const CourseCreatorSelection = ({
 }: CourseCreatorSelectionProps) => {
   // Track client-side mount to avoid hydration mismatch with animated particles
   const [isMounted, setIsMounted] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Get subscription status
+  const { isPremium, isLoading: isSubscriptionLoading, features } = useSubscriptionStatus();
+  const canAccessAICreator = isPremium || features.canAccessAICourseCreation;
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Handle AI creator selection with subscription check
+  const handleAISelect = () => {
+    if (canAccessAICreator) {
+      onSelectAI();
+    } else {
+      setShowUpgradeModal(true);
+    }
+  };
 
   const manualFeatures = [
     { icon: Palette, text: "Complete creative control" },
@@ -214,28 +232,48 @@ export const CourseCreatorSelection = ({
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             className="group relative"
           >
-            {/* Premium Badge */}
+            {/* Premium Badge - Shows different badge based on subscription */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
               <motion.div
-                className="px-4 py-1.5 rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white text-xs font-semibold shadow-lg shadow-purple-500/30"
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-white text-xs font-semibold shadow-lg",
+                  canAccessAICreator
+                    ? "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 shadow-purple-500/30"
+                    : "bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 shadow-orange-500/30"
+                )}
                 animate={{
-                  boxShadow: [
-                    "0 10px 25px -5px rgba(139, 92, 246, 0.3)",
-                    "0 10px 35px -5px rgba(139, 92, 246, 0.5)",
-                    "0 10px 25px -5px rgba(139, 92, 246, 0.3)",
-                  ]
+                  boxShadow: canAccessAICreator
+                    ? [
+                        "0 10px 25px -5px rgba(139, 92, 246, 0.3)",
+                        "0 10px 35px -5px rgba(139, 92, 246, 0.5)",
+                        "0 10px 25px -5px rgba(139, 92, 246, 0.3)",
+                      ]
+                    : [
+                        "0 10px 25px -5px rgba(249, 115, 22, 0.3)",
+                        "0 10px 35px -5px rgba(249, 115, 22, 0.5)",
+                        "0 10px 25px -5px rgba(249, 115, 22, 0.3)",
+                      ]
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 <span className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  AI-Powered
+                  {canAccessAICreator ? (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      AI-Powered
+                    </>
+                  ) : (
+                    <>
+                      <Crown className="h-3.5 w-3.5" />
+                      Premium Feature
+                    </>
+                  )}
                 </span>
               </motion.div>
             </div>
 
             <div
-              onClick={onSelectAI}
+              onClick={handleAISelect}
               className={cn(
                 "relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer",
                 "bg-gradient-to-br from-violet-50 via-purple-50/80 to-fuchsia-50/50",
@@ -345,18 +383,34 @@ export const CourseCreatorSelection = ({
                   className={cn(
                     "w-full flex items-center justify-center gap-2 py-3 sm:py-3.5 px-5",
                     "rounded-xl sm:rounded-2xl font-semibold text-sm sm:text-base",
-                    "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600",
-                    "hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700",
-                    "text-white shadow-lg shadow-purple-500/25",
-                    "hover:shadow-xl hover:shadow-purple-500/30",
-                    "transition-all duration-300"
+                    "text-white shadow-lg",
+                    "transition-all duration-300",
+                    canAccessAICreator
+                      ? "bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30"
+                      : "bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:via-orange-600 hover:to-rose-600 shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30"
                   )}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
+                  disabled={isSubscriptionLoading}
                 >
-                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
-                  Start with AI Assistant
-                  <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
+                  {isSubscriptionLoading ? (
+                    <>
+                      <div className="h-4 w-4 sm:h-5 sm:w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Loading...
+                    </>
+                  ) : canAccessAICreator ? (
+                    <>
+                      <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+                      Start with AI Assistant
+                      <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 sm:h-5 sm:w-5" />
+                      Upgrade to Unlock
+                      <Crown className="h-4 w-4 sm:h-5 sm:w-5" />
+                    </>
+                  )}
                 </motion.button>
               </div>
             </div>
@@ -385,7 +439,38 @@ export const CourseCreatorSelection = ({
             </div>
           </div>
         </motion.div>
+
+        {/* Subscription info for non-premium users */}
+        {!canAccessAICreator && !isSubscriptionLoading && (
+          <motion.div
+            variants={itemVariants}
+            className="mt-4"
+          >
+            <div className="flex items-center justify-center gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/50 text-sm text-amber-700 dark:text-amber-300">
+              <Crown className="h-4 w-4" />
+              <span>
+                AI Course Creation is a premium feature.{" "}
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 transition-colors"
+                >
+                  Upgrade now
+                </button>{" "}
+                to unlock AI-powered course generation.
+              </span>
+            </div>
+          </motion.div>
+        )}
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="AI Course Creation"
+        title="Unlock AI Course Creator"
+        description="Create complete courses with AI-powered structure generation, Bloom's taxonomy alignment, and intelligent recommendations."
+      />
     </motion.div>
   );
 };

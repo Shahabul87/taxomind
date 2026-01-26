@@ -1,19 +1,36 @@
 "use client";
 
-import React, { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { CreateCourseInputSection } from "./create-course-input";
 import { CourseCreatorSelection } from "./_components/course-creator-selection";
 import { ArrowLeft, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { UpgradePromptModal } from "@/components/subscription/upgrade-prompt";
 
 type CreatorMode = "selection" | "classic" | "ai";
 
 export const CreateNewCoursePage = () => {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialTitle = searchParams.get("title") || "";
+  const upgradeParam = searchParams.get("upgrade");
   const [creatorMode, setCreatorMode] = useState<CreatorMode>("selection");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  // Handle upgrade redirect from AI creator
+  useEffect(() => {
+    if (upgradeParam === "ai-creator") {
+      setShowUpgradeModal(true);
+      toast.info("Premium subscription required", {
+        description: "Upgrade to access AI Course Creation features.",
+      });
+      // Clean up the URL
+      router.replace("/teacher/create", { scroll: false });
+    }
+  }, [upgradeParam, router]);
 
   const handleSelectAI = () => {
     // Pass the title param to AI creator if present
@@ -102,6 +119,15 @@ export const CreateNewCoursePage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Upgrade Modal for redirect handling */}
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="AI Course Creation"
+        title="Unlock AI Course Creator"
+        description="Create complete courses with AI-powered structure generation, Bloom's taxonomy alignment, and intelligent recommendations."
+      />
     </section>
   );
 };

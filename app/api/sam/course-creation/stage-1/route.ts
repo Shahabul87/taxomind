@@ -3,6 +3,8 @@
  *
  * Generates ONE chapter at a time with full context awareness.
  * Each chapter knows about all previous chapters for consistency.
+ *
+ * SUBSCRIPTION REQUIRED: This endpoint requires a premium subscription.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,6 +12,8 @@ import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { buildStage1Prompt } from '@/lib/sam/course-creation/prompts';
+import { canAccessSamFeature } from '@/lib/premium/sam-access';
+import { checkAIAccess, recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import {
   Stage1Request,
   Stage1Response,
@@ -25,6 +29,27 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage1Res
     const user = await currentUser();
     if (!user?.id) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check subscription for AI course creation
+    const accessResult = await canAccessSamFeature(user.id, 'course-creation');
+    if (!accessResult.allowed) {
+      return NextResponse.json({
+        success: false,
+        error: accessResult.reason,
+        requiresUpgrade: accessResult.requiresUpgrade,
+      }, { status: 403 });
+    }
+
+    // Check AI usage limits
+    const usageCheck = await checkAIAccess(user.id, 'course');
+    if (!usageCheck.allowed) {
+      return NextResponse.json({
+        success: false,
+        error: usageCheck.reason || 'Usage limit exceeded',
+        remainingMonthly: usageCheck.remainingMonthly,
+        upgradeRequired: usageCheck.upgradeRequired,
+      }, { status: 429 });
     }
 
     const body: Stage1Request = await request.json();
@@ -82,6 +107,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage1Res
       title: chapter.title,
       objectivesCount: chapter.learningObjectives.length,
       qualityScore,
+    });
+
+    // Record AI usage for subscription tracking
+    await recordAIUsage(user.id, 'course', 1, {
+      requestType: 'stage-1-chapter-generation',
     });
 
     return NextResponse.json({
