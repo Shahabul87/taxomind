@@ -12,6 +12,53 @@ import {
 // Mark this route as dynamic to prevent static generation attempts
 export const dynamic = "force-dynamic";
 
+// Default settings when table doesn't exist
+const DEFAULT_SETTINGS = {
+  id: "default",
+  defaultProvider: "deepseek",
+  fallbackProvider: "anthropic",
+  anthropicEnabled: true,
+  deepseekEnabled: true,
+  openaiEnabled: true,
+  geminiEnabled: false,
+  mistralEnabled: false,
+  freeMonthlyLimit: 50,
+  starterMonthlyLimit: 500,
+  proMonthlyLimit: 2000,
+  enterpriseMonthlyLimit: 10000,
+  freeDailyChatLimit: 10,
+  starterDailyChatLimit: 100,
+  proDailyChatLimit: 1000,
+  enterpriseDailyChatLimit: 10000,
+  monthlyBudget: null,
+  alertThreshold: 0.8,
+  costAlertEmail: null,
+  allowUserProviderSelection: true,
+  allowUserModelSelection: true,
+  requireApprovalForCourses: false,
+  defaultAnthropicModel: "claude-sonnet-4-5-20250929",
+  defaultDeepseekModel: "deepseek-chat",
+  defaultOpenaiModel: "gpt-4o",
+  defaultGeminiModel: "gemini-pro",
+  defaultMistralModel: "mistral-large",
+  maintenanceMode: false,
+  maintenanceMessage: null,
+  lastUpdatedBy: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+/**
+ * Check if error is due to missing table
+ */
+function isTableNotFoundError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.message.includes("does not exist in the current database") ||
+           error.message.includes("relation") && error.message.includes("does not exist");
+  }
+  return false;
+}
+
 // Validation schema for updating settings
 const UpdateSettingsSchema = z.object({
   // Default Provider Configuration
@@ -90,18 +137,42 @@ export async function GET() {
       );
     }
 
-    // Get or create platform settings
-    let settings = await db.platformAISettings.findUnique({
-      where: { id: "default" },
-    });
+    // Get or create platform settings with fallback for missing table
+    let settings = DEFAULT_SETTINGS;
+    let tableExists = true;
 
-    // If no settings exist, create default settings
-    if (!settings) {
-      settings = await db.platformAISettings.create({
-        data: {
-          id: "default",
-        },
+    try {
+      const dbSettings = await db.platformAISettings.findUnique({
+        where: { id: "default" },
       });
+
+      // If no settings exist, try to create default settings
+      if (!dbSettings) {
+        try {
+          const created = await db.platformAISettings.create({
+            data: {
+              id: "default",
+            },
+          });
+          settings = { ...DEFAULT_SETTINGS, ...created };
+        } catch (createError) {
+          if (isTableNotFoundError(createError)) {
+            tableExists = false;
+            logger.warn("[ADMIN_AI_SETTINGS] Table does not exist, using defaults");
+          } else {
+            throw createError;
+          }
+        }
+      } else {
+        settings = { ...DEFAULT_SETTINGS, ...dbSettings };
+      }
+    } catch (fetchError) {
+      if (isTableNotFoundError(fetchError)) {
+        tableExists = false;
+        logger.warn("[ADMIN_AI_SETTINGS] Table does not exist, using defaults");
+      } else {
+        throw fetchError;
+      }
     }
 
     // Get provider configuration status from environment
@@ -149,6 +220,10 @@ export async function GET() {
       settings,
       providers,
       providerStatus,
+      tableExists,
+      message: tableExists
+        ? undefined
+        : "Database table not found. Using default settings. Please run database migrations.",
     });
   } catch (error) {
     logger.error("[ADMIN_AI_SETTINGS_GET_ERROR]", error);
@@ -207,30 +282,46 @@ export async function PUT(request: Request) {
 
     const data = validationResult.data;
 
-    // Update settings
-    const settings = await db.platformAISettings.upsert({
-      where: { id: "default" },
-      update: {
-        ...data,
-        lastUpdatedBy: session.user.id,
-      },
-      create: {
-        id: "default",
-        ...data,
-        lastUpdatedBy: session.user.id,
-      },
-    });
+    // Update settings with fallback for missing table
+    try {
+      const settings = await db.platformAISettings.upsert({
+        where: { id: "default" },
+        update: {
+          ...data,
+          lastUpdatedBy: session.user.id,
+        },
+        create: {
+          id: "default",
+          ...data,
+          lastUpdatedBy: session.user.id,
+        },
+      });
 
-    logger.info("[ADMIN_AI_SETTINGS_UPDATED]", {
-      adminId: session.user.id,
-      changes: Object.keys(data),
-    });
+      logger.info("[ADMIN_AI_SETTINGS_UPDATED]", {
+        adminId: session.user.id,
+        changes: Object.keys(data),
+      });
 
-    return NextResponse.json({
-      success: true,
-      settings,
-      message: "AI settings updated successfully",
-    });
+      return NextResponse.json({
+        success: true,
+        settings,
+        message: "AI settings updated successfully",
+      });
+    } catch (dbError) {
+      if (isTableNotFoundError(dbError)) {
+        logger.warn("[ADMIN_AI_SETTINGS_PUT] Table does not exist, cannot save");
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Database table not found",
+            code: "TABLE_NOT_FOUND",
+            details: "The platform_ai_settings table does not exist. Please run database migrations: npx prisma migrate deploy",
+          },
+          { status: 503 }
+        );
+      }
+      throw dbError;
+    }
   } catch (error) {
     logger.error("[ADMIN_AI_SETTINGS_PUT_ERROR]", error);
     return NextResponse.json(

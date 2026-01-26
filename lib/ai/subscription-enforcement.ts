@@ -66,8 +66,29 @@ interface PlatformSettings {
   costAlertEmail: string | null;
 }
 
+// Default platform settings when table doesn't exist
+const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
+  maintenanceMode: false,
+  maintenanceMessage: null,
+  freeMonthlyLimit: 50,
+  starterMonthlyLimit: 500,
+  proMonthlyLimit: 2000,
+  enterpriseMonthlyLimit: 10000,
+  freeDailyChatLimit: 10,
+  starterDailyChatLimit: 100,
+  proDailyChatLimit: 1000,
+  enterpriseDailyChatLimit: 10000,
+  allowUserProviderSelection: true,
+  allowUserModelSelection: true,
+  requireApprovalForCourses: false,
+  monthlyBudget: null,
+  alertThreshold: 0.8,
+  costAlertEmail: null,
+};
+
 /**
  * Get platform AI settings (cached)
+ * Returns default settings if table doesn't exist
  */
 async function getPlatformSettings(): Promise<PlatformSettings> {
   const now = Date.now();
@@ -76,31 +97,43 @@ async function getPlatformSettings(): Promise<PlatformSettings> {
     return platformSettingsCache.settings;
   }
 
-  const settings = await db.platformAISettings.findUnique({
-    where: { id: "default" },
-  });
+  try {
+    const settings = await db.platformAISettings.findUnique({
+      where: { id: "default" },
+    });
 
-  const platformSettings: PlatformSettings = {
-    maintenanceMode: settings?.maintenanceMode ?? false,
-    maintenanceMessage: settings?.maintenanceMessage ?? null,
-    freeMonthlyLimit: settings?.freeMonthlyLimit ?? 50,
-    starterMonthlyLimit: settings?.starterMonthlyLimit ?? 500,
-    proMonthlyLimit: settings?.proMonthlyLimit ?? 2000,
-    enterpriseMonthlyLimit: settings?.enterpriseMonthlyLimit ?? 10000,
-    freeDailyChatLimit: settings?.freeDailyChatLimit ?? 10,
-    starterDailyChatLimit: settings?.starterDailyChatLimit ?? 100,
-    proDailyChatLimit: settings?.proDailyChatLimit ?? 1000,
-    enterpriseDailyChatLimit: settings?.enterpriseDailyChatLimit ?? 10000,
-    allowUserProviderSelection: settings?.allowUserProviderSelection ?? true,
-    allowUserModelSelection: settings?.allowUserModelSelection ?? true,
-    requireApprovalForCourses: settings?.requireApprovalForCourses ?? false,
-    monthlyBudget: settings?.monthlyBudget ?? null,
-    alertThreshold: settings?.alertThreshold ?? 0.8,
-    costAlertEmail: settings?.costAlertEmail ?? null,
-  };
+    const platformSettings: PlatformSettings = {
+      maintenanceMode: settings?.maintenanceMode ?? false,
+      maintenanceMessage: settings?.maintenanceMessage ?? null,
+      freeMonthlyLimit: settings?.freeMonthlyLimit ?? 50,
+      starterMonthlyLimit: settings?.starterMonthlyLimit ?? 500,
+      proMonthlyLimit: settings?.proMonthlyLimit ?? 2000,
+      enterpriseMonthlyLimit: settings?.enterpriseMonthlyLimit ?? 10000,
+      freeDailyChatLimit: settings?.freeDailyChatLimit ?? 10,
+      starterDailyChatLimit: settings?.starterDailyChatLimit ?? 100,
+      proDailyChatLimit: settings?.proDailyChatLimit ?? 1000,
+      enterpriseDailyChatLimit: settings?.enterpriseDailyChatLimit ?? 10000,
+      allowUserProviderSelection: settings?.allowUserProviderSelection ?? true,
+      allowUserModelSelection: settings?.allowUserModelSelection ?? true,
+      requireApprovalForCourses: settings?.requireApprovalForCourses ?? false,
+      monthlyBudget: settings?.monthlyBudget ?? null,
+      alertThreshold: settings?.alertThreshold ?? 0.8,
+      costAlertEmail: settings?.costAlertEmail ?? null,
+    };
 
-  platformSettingsCache = { settings: platformSettings, cachedAt: now };
-  return platformSettings;
+    platformSettingsCache = { settings: platformSettings, cachedAt: now };
+    return platformSettings;
+  } catch (error) {
+    // If table doesn't exist, use defaults
+    if (error instanceof Error &&
+        (error.message.includes("does not exist in the current database") ||
+         (error.message.includes("relation") && error.message.includes("does not exist")))) {
+      logger.warn("[PLATFORM_SETTINGS] Table does not exist, using defaults");
+      platformSettingsCache = { settings: DEFAULT_PLATFORM_SETTINGS, cachedAt: now };
+      return DEFAULT_PLATFORM_SETTINGS;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -444,6 +477,7 @@ export async function recordAIUsage(
 
 /**
  * Update platform-wide usage summary and check budget alerts
+ * Gracefully handles missing table
  */
 async function updatePlatformSummary(cost: number): Promise<void> {
   const today = new Date();
@@ -452,17 +486,18 @@ async function updatePlatformSummary(cost: number): Promise<void> {
   try {
     // Upsert platform summary
     await db.platformAIUsageSummary.upsert({
-      where: { date: today },
+      where: { date_period: { date: today, period: "DAILY" } },
       update: {
         totalGenerations: { increment: 1 },
         totalCost: { increment: cost },
       },
       create: {
         date: today,
+        period: "DAILY",
         totalGenerations: 1,
         totalCost: cost,
-        totalTokens: 0,
-        uniqueUsers: 0,
+        totalTokensInput: 0,
+        totalTokensOutput: 0,
       },
     });
 
@@ -471,43 +506,61 @@ async function updatePlatformSummary(cost: number): Promise<void> {
       await checkBudgetAlert();
     }
   } catch (error) {
+    // Silently ignore if table doesn't exist
+    if (error instanceof Error &&
+        (error.message.includes("does not exist in the current database") ||
+         (error.message.includes("relation") && error.message.includes("does not exist")))) {
+      // Table doesn't exist yet, skip recording
+      return;
+    }
     logger.error("[PLATFORM_SUMMARY_UPDATE_ERROR]", error);
   }
 }
 
 /**
  * Check if budget alert should be sent
+ * Gracefully handles missing table
  */
 async function checkBudgetAlert(): Promise<void> {
   const settings = await getPlatformSettings();
 
   if (!settings.monthlyBudget || !settings.costAlertEmail) return;
 
-  // Get current month's total cost
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  try {
+    // Get current month's total cost
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
 
-  const monthlyUsage = await db.platformAIUsageSummary.aggregate({
-    where: {
-      date: { gte: startOfMonth },
-    },
-    _sum: {
-      totalCost: true,
-    },
-  });
-
-  const totalCost = monthlyUsage._sum.totalCost || 0;
-  const threshold = settings.monthlyBudget * settings.alertThreshold;
-
-  if (totalCost >= threshold) {
-    // TODO: Send alert email
-    logger.warn("[BUDGET_ALERT]", {
-      totalCost,
-      budget: settings.monthlyBudget,
-      threshold,
-      alertEmail: settings.costAlertEmail,
+    const monthlyUsage = await db.platformAIUsageSummary.aggregate({
+      where: {
+        date: { gte: startOfMonth },
+      },
+      _sum: {
+        totalCost: true,
+      },
     });
+
+    const totalCost = monthlyUsage._sum.totalCost || 0;
+    const threshold = settings.monthlyBudget * settings.alertThreshold;
+
+    if (totalCost >= threshold) {
+      // TODO: Send alert email
+      logger.warn("[BUDGET_ALERT]", {
+        totalCost,
+        budget: settings.monthlyBudget,
+        threshold,
+        alertEmail: settings.costAlertEmail,
+      });
+    }
+  } catch (error) {
+    // Silently ignore if table doesn't exist
+    if (error instanceof Error &&
+        (error.message.includes("does not exist in the current database") ||
+         (error.message.includes("relation") && error.message.includes("does not exist")))) {
+      return;
+    }
+    logger.error("[BUDGET_ALERT_ERROR]", error);
   }
 }
 
