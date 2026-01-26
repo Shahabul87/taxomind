@@ -444,7 +444,7 @@ export function SAMHealthDashboard({
 
   // Count unacknowledged alerts
   const unackedAlerts = useMemo(
-    () => health?.alerts.filter((a) => !a.acknowledged).length ?? 0,
+    () => (Array.isArray(health?.alerts) ? health.alerts.filter((a) => !a.acknowledged).length : 0),
     [health?.alerts]
   );
 
@@ -613,19 +613,21 @@ export function SAMHealthDashboard({
         )}
 
         {/* Services */}
-        <div className="space-y-2">
-          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Services ({health.services.length})
+        {Array.isArray(health.services) && health.services.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Services ({health.services.length})
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {health.services.map((service) => (
+                <ServiceCard key={service.name} service={service} />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {health.services.map((service) => (
-              <ServiceCard key={service.name} service={service} />
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Alerts */}
-        {health.alerts.length > 0 && (
+        {Array.isArray(health.alerts) && health.alerts.length > 0 && (
           <div className="space-y-2">
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Recent Alerts ({health.alerts.length})
