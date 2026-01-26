@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth } from '@/auth';
+import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 
@@ -14,10 +14,21 @@ import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 // ============================================================================
 
 const querySchema = z.object({
-  hours: z.coerce.number().int().min(1).max(168).optional().default(24),
+  hours: z.coerce.number().int().min(1).max(168).optional(),
+  period: z.enum(['day', 'week', 'month']).optional(),
   metric: z.enum(['calibration', 'memory', 'tools', 'all']).optional().default('all'),
   includeBreakdown: z.coerce.boolean().optional().default(true),
 });
+
+// Convert period to hours
+function periodToHours(period?: string): number {
+  switch (period) {
+    case 'day': return 24;
+    case 'week': return 168;
+    case 'month': return 720;
+    default: return 24;
+  }
+}
 
 // ============================================================================
 // TYPES
@@ -107,8 +118,9 @@ function calculateQualityScore(calibrationError: number, successRate: number, av
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    // Support both user and admin authentication
+    const session = await getCombinedSession();
+    if (!session.userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -118,6 +130,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const parsed = querySchema.safeParse({
       hours: searchParams.get('hours'),
+      period: searchParams.get('period'),
       metric: searchParams.get('metric'),
       includeBreakdown: searchParams.get('includeBreakdown'),
     });
@@ -129,7 +142,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { hours, metric, includeBreakdown } = parsed.data;
+    // Use hours if provided, otherwise convert period to hours
+    const hours = parsed.data.hours ?? periodToHours(parsed.data.period);
+    const { metric, includeBreakdown } = parsed.data;
 
     const telemetry = getSAMTelemetryService();
     telemetry.start();

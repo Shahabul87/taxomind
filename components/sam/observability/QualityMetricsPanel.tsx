@@ -279,7 +279,7 @@ function FeedbackSummaryCard({ feedback }: { feedback: FeedbackSummary }) {
 
       {/* Top reasons */}
       <div className="grid grid-cols-2 gap-3">
-        {feedback.topPositiveReasons.length > 0 && (
+        {Array.isArray(feedback.topPositiveReasons) && feedback.topPositiveReasons.length > 0 && (
           <div>
             <div className="text-xs font-medium text-green-600 mb-1">
               Top Positive
@@ -294,7 +294,7 @@ function FeedbackSummaryCard({ feedback }: { feedback: FeedbackSummary }) {
             </ul>
           </div>
         )}
-        {feedback.topNegativeReasons.length > 0 && (
+        {Array.isArray(feedback.topNegativeReasons) && feedback.topNegativeReasons.length > 0 && (
           <div>
             <div className="text-xs font-medium text-red-600 mb-1">
               Areas to Improve
@@ -315,19 +315,28 @@ function FeedbackSummaryCard({ feedback }: { feedback: FeedbackSummary }) {
 }
 
 function QualityGatesSection({ gates }: { gates: QualityGate[] }) {
-  const passedCount = gates.filter((g) => g.passed).length;
+  const safeGates = Array.isArray(gates) ? gates : [];
+  const passedCount = safeGates.filter((g) => g.passed).length;
+
+  if (safeGates.length === 0) {
+    return (
+      <div className="text-center py-4 text-sm text-gray-500">
+        No quality gates data available
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Quality Gates</span>
         <Badge variant="outline" className="text-xs">
-          {passedCount}/{gates.length} passing
+          {passedCount}/{safeGates.length} passing
         </Badge>
       </div>
 
       <div className="space-y-2">
-        {gates.map((gate) => (
+        {safeGates.map((gate) => (
           <div
             key={gate.name}
             className={cn(
@@ -545,13 +554,25 @@ export function QualityMetricsPanel({
                 </TabsList>
 
                 <TabsContent value="dimensions" className="mt-3 space-y-4">
-                  {metrics.dimensions.map((dimension, index) => (
-                    <DimensionRow key={index} dimension={dimension} />
-                  ))}
+                  {Array.isArray(metrics.dimensions) && metrics.dimensions.length > 0 ? (
+                    metrics.dimensions.map((dimension, index) => (
+                      <DimensionRow key={index} dimension={dimension} />
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-sm text-gray-500">
+                      No dimension data available
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="feedback" className="mt-3">
-                  <FeedbackSummaryCard feedback={metrics.feedback} />
+                  {metrics.feedback ? (
+                    <FeedbackSummaryCard feedback={metrics.feedback} />
+                  ) : (
+                    <div className="text-center py-4 text-sm text-gray-500">
+                      No feedback data available
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="gates" className="mt-3">
