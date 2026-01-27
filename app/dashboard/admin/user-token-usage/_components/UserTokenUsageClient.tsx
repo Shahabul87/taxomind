@@ -247,21 +247,36 @@ export function UserTokenUsageClient() {
       }
 
       const response = await fetch(`/api/admin/user-token-usage?${params}`);
-      const result: ApiResponse = await response.json();
 
       // Only update if this is still the latest request
       if (requestId !== requestIdRef.current) return;
 
+      // Handle non-JSON responses
+      const contentType = response.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        if (response.status === 401) {
+          setError("Admin authentication required. Please log in as an admin.");
+        } else {
+          setError(`Server error: ${response.status} ${response.statusText}`);
+        }
+        return;
+      }
+
+      const result = await response.json();
+
       if (result.success) {
         setData(result.data);
-        setPagination(result.metadata.pagination);
+        setPagination(result.metadata?.pagination || null);
       } else {
-        setError("Failed to fetch data");
+        // Show detailed error message from API
+        const errorMessage = result.error?.message || "Failed to fetch data";
+        setError(errorMessage);
+        console.error("[UserTokenUsage] API Error:", result.error);
       }
     } catch (err) {
       if (requestId !== requestIdRef.current) return;
-      setError("An error occurred while fetching data");
-      console.error(err);
+      setError("An error occurred while fetching data. Please try again.");
+      console.error("[UserTokenUsage] Fetch Error:", err);
     } finally {
       if (requestId === requestIdRef.current) {
         setIsLoading(false);

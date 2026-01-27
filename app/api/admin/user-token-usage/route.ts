@@ -97,7 +97,16 @@ export async function GET(request: Request) {
       (session.user.role !== AdminRole.ADMIN &&
         session.user.role !== AdminRole.SUPERADMIN)
     ) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Admin authentication required",
+          },
+        },
+        { status: 401 }
+      );
     }
 
     // Parse and validate query parameters
