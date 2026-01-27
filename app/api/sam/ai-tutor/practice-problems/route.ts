@@ -47,7 +47,6 @@ Return a JSON array of problems, each with:
 - bloomsLevel: Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation`;
 
     const problemsText = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 2000,
       temperature: 0.8,
       systemPrompt,
@@ -78,7 +77,6 @@ Return a JSON array of problems, each with:
         studentLevel: mapDifficultyLevel(difficulty),
       },
       generationMetadata: {
-        model: 'claude-sonnet-4-5-20250929',
         timestamp: new Date().toISOString(),
       },
     };

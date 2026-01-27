@@ -286,7 +286,6 @@ ${focusAreas?.join(', ') || 'General improvement'}
 6. Tips for improvement based on performance patterns`;
 
   const guideText = await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
     maxTokens: 3000,
     temperature: 0.7,
     systemPrompt,

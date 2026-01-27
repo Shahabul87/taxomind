@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
@@ -8,21 +8,6 @@ import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subsc
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Lazy initialize Anthropic client to avoid build-time environment variable errors
-// Railway and other platforms don't expose secrets during Docker builds
-let anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient(): Anthropic {
-  if (!anthropicClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-    }
-    anthropicClient = new Anthropic({ apiKey });
-  }
-  return anthropicClient;
-}
 
 // Section content generation request schema
 const SectionContentGenerationRequestSchema = z.object({
@@ -375,30 +360,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockContent = generateMockContent(contentRequest.contentType, contentRequest);
-      return NextResponse.json({
-        success: true,
-        content: mockContent,
-        warning: 'AI service not configured, using template response'
-      });
-    }
-
-    // Generate content using Anthropic Claude
+    // Generate content using AI
     try {
       const systemPrompt = SYSTEM_PROMPTS[contentRequest.contentType];
       const userPrompt = contentRequest.contentType === 'learningObjectives'
         ? buildLearningObjectivesPrompt(contentRequest)
         : buildDescriptionPrompt(contentRequest);
 
-      const anthropic = getAnthropicClient();
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 2000,
+      const completion = await aiClient.chat({
+        maxTokens: 2000,
         temperature: 0.7,
-        system: systemPrompt,
+        systemPrompt,
         messages: [
           {
             role: 'user',
@@ -408,9 +380,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text'
-        ? completion.content[0].text
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -442,8 +412,8 @@ export async function POST(request: NextRequest) {
         success: true,
         content: htmlContent,
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString(),
           contentType: contentRequest.contentType
         }

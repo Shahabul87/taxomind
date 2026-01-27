@@ -158,7 +158,6 @@ Return valid JSON only:
 }`;
 
     const diagnosticResponse = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 6000,
       temperature: 0.6,
       systemPrompt: 'You are an expert educational assessment designer. Generate diagnostic assessments in valid JSON format only.',

@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from "next/server";
 import { getCombinedSession } from "@/lib/auth/combined-session";
 import * as z from "zod";
@@ -7,11 +7,6 @@ import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subsc
 
 // Force Node.js runtime
 export const runtime = "nodejs";
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // ============================================================================
 // Schema Definitions
@@ -591,41 +586,29 @@ export async function POST(request: NextRequest) {
       advancedMode: contentRequest.advancedMode,
     });
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn("ANTHROPIC_API_KEY not configured, using mock response");
-      const mockContent = generateMockContent(contentRequest);
-      return NextResponse.json({
-        success: true,
-        content: mockContent,
-        warning: "Using template response - API key not configured",
-      });
-    }
-
-    // Generate content using Anthropic Claude
+    // Generate content using AI
     try {
       const prompt = buildPrompt(contentRequest);
 
       logger.debug("Generated prompt:", prompt.substring(0, 500) + "...");
 
-      const completion = await anthropic.messages.create({
-        model: "claude-sonnet-4-5-20250929",
-        max_tokens: 4000,
+      const completion = await aiClient.chat({
+        maxTokens: 4000,
         temperature: contentRequest.advancedSettings?.creativity
           ? contentRequest.advancedSettings.creativity / 10
           : 0.7,
-        system: SYSTEM_PROMPT,
+        systemPrompt: SYSTEM_PROMPT,
         messages: [
           {
             role: "user",
             content: prompt,
           },
         ],
+        extended: true,
       });
 
       // Extract response
-      const responseText =
-        completion.content[0]?.type === "text" ? completion.content[0].text : "";
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error("Empty response from AI model");
@@ -689,13 +672,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Record successful AI usage (only for users, admins bypass tracking)
-      const tokensUsed = (completion.usage?.input_tokens || 0) + (completion.usage?.output_tokens || 0);
       if (!session.isAdmin && session.userId) {
         await recordAIUsage(session.userId, featureType, 1, {
-          provider: "anthropic",
-          model: "claude-sonnet-4-5-20250929",
-          tokensUsed,
-          cost: tokensUsed * 0.000009, // Approximate cost per token
+          provider: completion.provider,
+          model: completion.model,
           requestType: contentRequest.contentType,
         });
       }
@@ -704,8 +684,8 @@ export async function POST(request: NextRequest) {
         success: true,
         content: cleanedResponse.trim(),
         metadata: {
-          tokensUsed,
-          model: "claude-sonnet-4-5-20250929",
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString(),
           bloomsLevels: contentRequest.bloomsEnabled ? contentRequest.bloomsLevels : undefined,
         },

@@ -2,12 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
-import { Anthropic } from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { BloomsLevel, QuestionType, QuestionDifficulty, QuestionGenerationMode } from '@prisma/client';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Request validation schema
 const GenerateExamSchema = z.object({
@@ -264,11 +260,10 @@ async function generateQuestionsForLevel(
 ): Promise<GeneratedQuestion[]> {
   const systemPrompt = buildQuestionGenerationPrompt(bloomsLevel, questionTypes, difficulty);
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 4000,
+  const response = await aiClient.chat({
+    maxTokens: 4000,
     temperature: 0.7,
-    system: systemPrompt,
+    systemPrompt,
     messages: [
       {
         role: 'user',
@@ -277,8 +272,7 @@ async function generateQuestionsForLevel(
     ],
   });
 
-  const aiResponse = response.content[0];
-  const text = aiResponse.type === 'text' ? aiResponse.text : '';
+  const text = response.content;
 
   try {
     const jsonMatch = text.match(/\[[\s\S]*\]/);

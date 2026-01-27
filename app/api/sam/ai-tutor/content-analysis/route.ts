@@ -9,7 +9,6 @@ async function runAIAnalysis(
   maxTokens: number
 ): Promise<string> {
   return await runSAMChat({
-    model: 'claude-sonnet-4-5-20250929',
     maxTokens,
     temperature: 0.7,
     systemPrompt,

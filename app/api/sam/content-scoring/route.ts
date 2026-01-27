@@ -212,7 +212,6 @@ Return ONLY valid JSON array:
 
   try {
     const responseText = await runSAMChat({
-      model: 'claude-3-5-haiku-20241022',
       maxTokens: 1500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
@@ -287,7 +286,6 @@ Return ONLY valid JSON array:
 
   try {
     const responseText = await runSAMChat({
-      model: 'claude-3-5-haiku-20241022',
       maxTokens: 1500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],

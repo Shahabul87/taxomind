@@ -145,7 +145,6 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
     ];
 
     const aiResponse = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 1500,
       temperature: 0.7,
       systemPrompt,

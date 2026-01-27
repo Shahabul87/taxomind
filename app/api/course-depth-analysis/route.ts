@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import getAnthropicClient from '@/lib/anthropic-client';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { logger } from '@/lib/logger';
 import {
   createEnhancedDepthAnalysisEngine,
@@ -1829,51 +1829,26 @@ Use this exact JSON structure:
   }
 }`;
 
-    // Retry logic for Anthropic API calls
-    async function callAnthropicWithRetry(messageRequest: any, maxRetries: number = 3): Promise<any> {
-      const anthropic = getAnthropicClient();
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          return await anthropic.messages.create(messageRequest);
-        } catch (error: any) {
-          logger.error(`Anthropic API attempt ${attempt} failed:`, error);
-          
-          // Check if it's a rate limit or overload error
-          if (error.status === 529 || error.status === 503 || error.status === 429) {
-            if (attempt < maxRetries) {
-              const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff
-
-              await new Promise(resolve => setTimeout(resolve, delay));
-              continue;
-            }
-          }
-          
-          // If it's not a retryable error or we've exhausted retries, throw
-          throw error;
-        }
-      }
-    }
-
-    const response = await callAnthropicWithRetry({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 4000,
+    const response = await aiClient.chat({
+      maxTokens: 4000,
       temperature: 0.3,
-      system: "You are an expert instructional designer specializing in Bloom's Taxonomy and course depth analysis. Provide precise, actionable insights.",
+      systemPrompt: "You are an expert instructional designer specializing in Bloom's Taxonomy and course depth analysis. Provide precise, actionable insights.",
       messages: [{
         role: "user",
         content: analysisPrompt
-      }]
+      }],
+      extended: true,
     });
 
-    const aiContent = response.content[0];
-    if (aiContent.type !== 'text') {
-      throw new Error('Unexpected response type from AI');
+    const responseText = response.content;
+    if (!responseText) {
+      throw new Error('Empty response from AI');
     }
 
     // Parse AI response
     let analysis;
     try {
-      const jsonMatch = aiContent.text.match(/\{[\s\S]*\}/);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         analysis = JSON.parse(jsonMatch[0]);
       } else {
@@ -1963,19 +1938,16 @@ Use this exact JSON structure:
   } catch (error: any) {
     logger.error('Course depth analysis error:', error);
     
-    // Handle specific Anthropic API errors
+    // Handle specific AI API errors
     let errorMessage = 'Failed to analyze course depth';
     let statusCode = 500;
-    
-    if (error.status === 529) {
-      errorMessage = 'AI service is currently overloaded. Please try again in a few minutes.';
+
+    if (error.status === 529 || error.status === 503) {
+      errorMessage = 'AI service is temporarily unavailable. Please try again later.';
       statusCode = 503;
     } else if (error.status === 429) {
       errorMessage = 'Too many requests. Please wait a moment before trying again.';
       statusCode = 429;
-    } else if (error.status === 503) {
-      errorMessage = 'AI service is temporarily unavailable. Please try again later.';
-      statusCode = 503;
     }
     
     return NextResponse.json({

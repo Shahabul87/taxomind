@@ -3,7 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 
 // ==========================================
 // AI-Powered Analytics Insights API
@@ -259,19 +259,17 @@ async function generateAIInsights(
   // Generate rule-based insights first (fast, no API call needed)
   insights.push(...generateRuleBasedInsights(learningData, creatorData, view));
 
-  // Try to enhance with AI if API key is available
+  // Try to enhance with AI
   try {
-    if (process.env.ANTHROPIC_API_KEY) {
-      const aiEnhancedInsights = await generateClaudeInsights(
-        learningData,
-        creatorData,
-        view,
-        focusArea
-      );
-      insights.push(...aiEnhancedInsights);
-    }
+    const aiEnhancedInsights = await generateClaudeInsights(
+      learningData,
+      creatorData,
+      view,
+      focusArea
+    );
+    insights.push(...aiEnhancedInsights);
   } catch (error) {
-    logger.error('Claude insights error:', error);
+    logger.error('AI insights error:', error);
     // Continue with rule-based insights
   }
 
@@ -444,10 +442,6 @@ async function generateClaudeInsights(
   view: string,
   focusArea?: string
 ): Promise<AIInsight[]> {
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
-
   const prompt = `You are SAM, an AI learning assistant. Analyze this learner's data and provide 2-3 personalized insights.
 
 Learning Data:
@@ -484,15 +478,14 @@ Provide insights in this JSON format:
 Focus on actionable, specific insights based on the data. Be encouraging but honest.`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 500,
+    const response = await aiClient.chat({
+      maxTokens: 500,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const content = response.content[0];
-    if (content.type === 'text') {
-      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
+    const responseText = response.content;
+    if (responseText) {
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const aiInsights = JSON.parse(jsonMatch[0]) as Array<{
           id: string;
@@ -510,7 +503,7 @@ Focus on actionable, specific insights based on the data. Be encouraging but hon
       }
     }
   } catch (error) {
-    logger.error('Claude API error:', error);
+    logger.error('AI API error:', error);
   }
 
   return [];

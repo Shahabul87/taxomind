@@ -6,10 +6,10 @@
 
 import {
   createSAMConfig,
-  createAnthropicAdapter,
   type SAMConfig,
   type SAMConfigInput,
 } from '@sam-ai/core';
+import { getDefaultAdapter } from '@/lib/sam/providers/ai-factory';
 
 // ============================================================================
 // CONFIGURATION
@@ -46,11 +46,11 @@ export interface TaxomindSAMConfigOptions {
 export function getTaxomindSAMConfig(
   options?: TaxomindSAMConfigOptions
 ): SAMConfig {
-  // Create the AI adapter with Anthropic
-  const aiAdapter = createAnthropicAdapter({
-    apiKey: process.env.ANTHROPIC_API_KEY ?? '',
-    model: options?.model ?? 'claude-sonnet-4-5-20250929',
-  });
+  // Create the AI adapter using platform default provider (DeepSeek > Anthropic > OpenAI)
+  const aiAdapter = getDefaultAdapter({ timeout: 60000, maxRetries: 2 });
+  if (!aiAdapter) {
+    throw new Error('No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.');
+  }
 
   // Default features for Taxomind
   const defaultFeatures: SAMConfigInput['features'] = {
@@ -86,16 +86,22 @@ export function getTaxomindSAMConfig(
 
 /**
  * Get the AI model from environment or default
+ * Uses the platform default provider's default model
  */
 export function getDefaultAIModel(): string {
-  return process.env.SAM_AI_MODEL ?? 'claude-sonnet-4-5-20250929';
+  return process.env.SAM_AI_MODEL ?? 'platform-default';
 }
 
 /**
  * Check if SAM is properly configured
+ * Returns true if any AI provider has API keys set
  */
 export function isSAMConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return Boolean(
+    process.env.DEEPSEEK_API_KEY ||
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.OPENAI_API_KEY
+  );
 }
 
 // ============================================================================

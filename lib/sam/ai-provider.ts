@@ -1,125 +1,53 @@
-import { type AIMessage, type AIAdapter } from '@sam-ai/core';
-import { createAIAdapter, createExtendedAIAdapter, getDefaultAdapter } from '@/lib/sam/providers/ai-factory';
-import { type AIProviderType, isProviderAvailable } from '@/lib/sam/providers/ai-registry';
-import { db } from '@/lib/db';
+/**
+ * SAM AI Provider
+ *
+ * Provides `runSAMChat` and `runSAMChatWithPreference` for all SAM API routes.
+ * Uses the enterprise AI client for provider resolution (platform default → user preference → factory fallback).
+ *
+ * @see lib/ai/enterprise-client.ts for the full provider resolution logic
+ */
+
+import { type AIMessage } from '@sam-ai/core';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { logger } from '@/lib/logger';
 
-// Cache for adapters by provider type
-const adapterCache = new Map<string, AIAdapter>();
-
-// Cached adapters using platform default provider (DeepSeek > Anthropic > OpenAI)
-let standardAdapter: AIAdapter | null = null;
-let extendedAdapter: AIAdapter | null = null;
-
-function getStandardAdapter(): AIAdapter {
-  if (!standardAdapter) {
-    standardAdapter = getDefaultAdapter({ timeout: 60000, maxRetries: 2 });
-    if (!standardAdapter) {
-      throw new Error('No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.');
-    }
-    logger.info('[AI Provider] Standard adapter initialized using platform default provider');
-  }
-  return standardAdapter;
-}
-
-function getExtendedAdapter(): AIAdapter {
-  if (!extendedAdapter) {
-    extendedAdapter = getDefaultAdapter({ timeout: 180000, maxRetries: 1 });
-    if (!extendedAdapter) {
-      throw new Error('No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.');
-    }
-    logger.info('[AI Provider] Extended adapter initialized using platform default provider');
-  }
-  return extendedAdapter;
-}
-
 /**
- * Get adapter for a specific provider type
+ * Run a SAM AI chat request.
+ *
+ * Provider resolution: Platform default → Factory default (DeepSeek > Anthropic > OpenAI)
+ *
+ * NOTE: The `model` parameter is intentionally omitted. Each provider uses its own
+ * default model from the registry. Passing provider-specific model names (e.g. claude-*)
+ * breaks when the platform is configured for a different provider.
  */
-function getAdapterForProvider(providerType: AIProviderType, extended: boolean = false): AIAdapter {
-  const cacheKey = `${providerType}-${extended ? 'extended' : 'standard'}`;
-
-  if (adapterCache.has(cacheKey)) {
-    return adapterCache.get(cacheKey)!;
-  }
-
-  const adapter = extended
-    ? createExtendedAIAdapter(providerType)
-    : createAIAdapter(providerType);
-
-  adapterCache.set(cacheKey, adapter);
-  return adapter;
-}
-
-/**
- * Get user's preferred AI provider for a specific capability
- */
-export async function getUserPreferredProvider(
-  userId: string,
-  capability: 'chat' | 'course' | 'analysis' | 'code'
-): Promise<AIProviderType> {
-  try {
-    const prefs = await db.userAIPreferences.findUnique({
-      where: { userId },
-      select: {
-        preferredChatProvider: true,
-        preferredCourseProvider: true,
-        preferredAnalysisProvider: true,
-        preferredCodeProvider: true,
-      },
-    });
-
-    if (!prefs) {
-      return 'anthropic'; // Default
-    }
-
-    const providerMap: Record<string, string | null> = {
-      chat: prefs.preferredChatProvider,
-      course: prefs.preferredCourseProvider,
-      analysis: prefs.preferredAnalysisProvider,
-      code: prefs.preferredCodeProvider,
-    };
-
-    const preferred = providerMap[capability] as AIProviderType | null;
-
-    // Validate the provider is available
-    if (preferred && isProviderAvailable(preferred)) {
-      return preferred;
-    }
-
-    return 'anthropic'; // Fallback to default
-  } catch (error) {
-    console.error('[getUserPreferredProvider] Error:', error);
-    return 'anthropic';
-  }
-}
-
 export async function runSAMChat(options: {
   messages: AIMessage[];
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
-  model?: string;
-  extended?: boolean; // Use extended timeout for complex operations
+  extended?: boolean;
 }): Promise<string> {
-  const adapter = options.extended ? getExtendedAdapter() : getStandardAdapter();
-
-  // Don't pass model override - let the adapter use its configured default model.
-  // Routes previously passed Anthropic-specific models (e.g. claude-3-5-haiku)
-  // which break when the platform is configured for DeepSeek/OpenAI.
-  const response = await adapter.chat({
+  const result = await aiClient.chat({
+    messages: options.messages,
+    systemPrompt: options.systemPrompt,
     maxTokens: options.maxTokens ?? 2000,
     temperature: options.temperature ?? 0.7,
-    systemPrompt: options.systemPrompt,
-    messages: options.messages,
+    extended: options.extended,
   });
 
-  return response.content ?? '';
+  logger.debug('[SAM Chat] Response from provider', {
+    provider: result.provider,
+    model: result.model,
+  });
+
+  return result.content;
 }
 
 /**
- * Run SAM chat with user's preferred provider for a specific capability
- * This respects user's AI provider preferences from settings
+ * Run SAM chat with user's preferred provider for a specific capability.
+ * This respects the user's AI provider preferences from settings.
+ *
+ * Provider resolution: User preference → Platform default → Factory default
  */
 export async function runSAMChatWithPreference(options: {
   userId: string;
@@ -130,18 +58,34 @@ export async function runSAMChatWithPreference(options: {
   temperature?: number;
   extended?: boolean;
 }): Promise<string> {
-  const providerType = await getUserPreferredProvider(options.userId, options.capability);
-
-  console.log(`[runSAMChatWithPreference] Using provider: ${providerType} for ${options.capability}`);
-
-  const adapter = getAdapterForProvider(providerType, options.extended ?? false);
-
-  const response = await adapter.chat({
+  const result = await aiClient.chat({
+    userId: options.userId,
+    messages: options.messages,
+    systemPrompt: options.systemPrompt,
     maxTokens: options.maxTokens ?? 2000,
     temperature: options.temperature ?? 0.7,
-    systemPrompt: options.systemPrompt,
-    messages: options.messages,
+    extended: options.extended,
   });
 
-  return response.content ?? '';
+  logger.debug('[SAM Chat Preference] Response from provider', {
+    provider: result.provider,
+    model: result.model,
+    userId: options.userId,
+    capability: options.capability,
+  });
+
+  return result.content;
+}
+
+/**
+ * Get user's preferred AI provider for a specific capability.
+ * Re-exported for backward compatibility.
+ *
+ * @deprecated Use `aiClient.getResolvedProvider({ userId })` instead
+ */
+export async function getUserPreferredProvider(
+  userId: string,
+  _capability: 'chat' | 'course' | 'analysis' | 'code'
+): Promise<string> {
+  return aiClient.getResolvedProvider({ userId });
 }

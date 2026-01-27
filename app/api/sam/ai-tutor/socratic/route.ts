@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
 Generate a thoughtful Socratic question that will help the student think more deeply about this topic.`;
 
     const question = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 500,
       temperature: 0.7,
       systemPrompt,

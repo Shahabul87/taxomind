@@ -96,7 +96,6 @@ Return ONLY valid JSON in this format:
 }`;
 
   const responseText = await runSAMChat({
-    model: 'claude-3-5-haiku-20241022',
     maxTokens: 800,
     temperature: 0.7,
     messages: [{ role: 'user', content: prompt }],

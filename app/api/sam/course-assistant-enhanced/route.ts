@@ -131,7 +131,6 @@ Return response as JSON:
 
   try {
     const content = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     });

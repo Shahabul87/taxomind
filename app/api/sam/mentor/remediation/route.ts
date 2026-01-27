@@ -98,7 +98,6 @@ Return valid JSON only:
 }`;
 
     const response = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 4000,
       temperature: 0.7,
       systemPrompt: 'You are an expert educational content creator specializing in remediation and personalized learning. Generate content in valid JSON format only.',

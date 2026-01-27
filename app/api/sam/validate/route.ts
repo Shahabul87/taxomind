@@ -220,7 +220,6 @@ Focus on actionable feedback that will help create a more successful course.`;
 
   try {
     const responseText = await runSAMChat({
-      model: "claude-3-5-haiku-20241022",
       maxTokens: 1000,
       temperature: 0.3,
       messages: [{ role: "user", content: prompt }],
@@ -274,7 +273,6 @@ Return ONLY valid JSON with validation results and specific suggestions for impr
 
   try {
     const responseText = await runSAMChat({
-      model: "claude-3-5-haiku-20241022",
       maxTokens: 1200,
       temperature: 0.3,
       messages: [{ role: "user", content: prompt }],
@@ -327,7 +325,6 @@ Return JSON with validation score, issues, and suggestions for improvement.`;
 
   try {
     const responseText = await runSAMChat({
-      model: "claude-3-5-haiku-20241022",
       maxTokens: 800,
       temperature: 0.3,
       messages: [{ role: "user", content: prompt }],

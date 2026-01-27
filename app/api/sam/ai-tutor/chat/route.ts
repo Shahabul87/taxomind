@@ -206,7 +206,6 @@ export async function POST(request: NextRequest) {
     const [responseText, bloomsAnalysis] = await Promise.all([
       // Call Anthropic API via centralized adapter
       runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 2000,
       temperature: 0.7,
       systemPrompt,

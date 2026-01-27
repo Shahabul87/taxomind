@@ -1,21 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { generateIntelligentCourseContent, type EnhancedContentRequest } from './ai-content-generator';
 import { logger } from '@/lib/logger';
-
-// Lazy initialize Anthropic client to avoid build-time environment variable errors
-// Railway and other platforms don't expose secrets during Docker builds
-let anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient(): Anthropic {
-  if (!anthropicClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-    }
-    anthropicClient = new Anthropic({ apiKey });
-  }
-  return anthropicClient;
-}
 
 // Course Blueprint Generation Types
 export interface CourseGenerationRequest {
@@ -162,11 +147,10 @@ export async function generateCourseBlueprint(
       // Fallback to the original generation method
       const prompt = createCourseGenerationPrompt(requirements);
 
-      const anthropic = getAnthropicClient();
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-5-20250929",
-        max_tokens: 4000,
+      const response = await aiClient.chat({
+        maxTokens: 4000,
         temperature: 0.7,
+        extended: true,
         messages: [
           {
             role: "user",
@@ -175,13 +159,8 @@ export async function generateCourseBlueprint(
         ]
       });
 
-      const content = response.content[0];
-      if (content.type !== 'text') {
-        throw new Error('Unexpected response type from Anthropic API');
-      }
-
       // Parse the JSON response
-      const blueprint = JSON.parse(content.text) as AIGeneratedBlueprint;
+      const blueprint = JSON.parse(response.content) as AIGeneratedBlueprint;
       
       // Add metadata
       blueprint.metadata = {
@@ -221,10 +200,8 @@ Provide a brief, encouraging, and helpful suggestion (1-2 sentences) that:
 
 Keep it concise and focused on helping them improve their course design.`;
 
-    const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 150,
+    const response = await aiClient.chat({
+      maxTokens: 150,
       temperature: 0.8,
       messages: [
         {
@@ -234,12 +211,7 @@ Keep it concise and focused on helping them improve their course design.`;
       ]
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Anthropic API');
-    }
-
-    return content.text.trim();
+    return response.content.trim();
     
   } catch (error: any) {
     logger.error('Error generating Sam suggestion:', error);
@@ -440,5 +412,5 @@ function extractIndustryContext(requirements: CourseGenerationRequest): string {
   return context;
 }
 
-// Export the getter function for lazy initialization
-export default getAnthropicClient;
+// Enterprise AI client is used for all AI operations
+// No direct SDK initialization needed

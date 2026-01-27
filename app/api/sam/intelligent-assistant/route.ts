@@ -189,7 +189,6 @@ Generate the chapters now:`;
     ];
 
     const aiResponse = await runSAMChat({
-      model: "claude-sonnet-4-5-20250929",
       maxTokens: 1500,
       temperature: 0.7,
       systemPrompt,

@@ -1,10 +1,6 @@
 import { db } from '@/lib/db';
 import { BloomsLevel, EvaluationType } from '@prisma/client';
-import { Anthropic } from '@anthropic-ai/sdk';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+import { aiClient } from '@/lib/ai/enterprise-client';
 
 // ==========================================
 // Subjective Answer Evaluator Types
@@ -102,7 +98,6 @@ export interface BatchEvaluationRequest {
 // ==========================================
 
 export class SubjectiveEvaluator {
-  private model = 'claude-sonnet-4-5-20250929';
 
   // Bloom's Taxonomy Keywords for Detection
   private bloomsIndicators: Record<BloomsLevel, string[]> = {
@@ -124,18 +119,14 @@ export class SubjectiveEvaluator {
     const systemPrompt = this.buildEvaluationSystemPrompt(context);
     const userPrompt = this.buildEvaluationUserPrompt(studentAnswer, context);
 
-    const response = await anthropic.messages.create({
-      model: this.model,
-      max_tokens: 2000,
-      temperature: 0.3,
-      system: systemPrompt,
+    const response = await aiClient.chat({
+      systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
+      maxTokens: 2000,
+      temperature: 0.3,
     });
 
-    const aiResponse = response.content[0];
-    const analysisText = aiResponse.type === 'text' ? aiResponse.text : '';
-
-    return this.parseEvaluationResponse(analysisText, context);
+    return this.parseEvaluationResponse(response.content, context);
   }
 
   /**
@@ -385,7 +376,7 @@ Please evaluate this answer according to the guidelines and provide your assessm
         strengths: parsed.strengths || [],
         areasForImprovement: parsed.areasForImprovement || [],
         nextSteps: parsed.nextSteps || [],
-        evaluationModel: this.model,
+        evaluationModel: 'platform-default',
         confidence: parsed.confidence || 50,
         flaggedForReview: parsed.flaggedForReview || parsed.confidence < 70,
         evaluationType: 'AI_EVALUATED',
@@ -582,21 +573,19 @@ Respond in JSON format:
   "feedback": "<brief feedback>"
 }`;
 
-    const response = await anthropic.messages.create({
-      model: this.model,
-      max_tokens: 300,
-      temperature: 0.2,
-      system: systemPrompt,
+    const response = await aiClient.chat({
+      systemPrompt,
       messages: [
         {
           role: 'user',
           content: `Expected Answer: ${expectedAnswer}\n\nStudent Answer: ${studentAnswer}`,
         },
       ],
+      maxTokens: 300,
+      temperature: 0.2,
     });
 
-    const aiResponse = response.content[0];
-    const text = aiResponse.type === 'text' ? aiResponse.text : '';
+    const text = response.content;
 
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);

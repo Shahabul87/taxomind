@@ -1,10 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { 
-  ChapterGenerationRequestSchema, 
+import {
+  ChapterGenerationRequestSchema,
   ChapterGenerationResponseSchema,
   type ChapterGenerationResponse,
   CourseDifficulty
@@ -13,11 +13,6 @@ import * as z from 'zod';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Bulk chapter generation request schema
 const BulkChapterGenerationRequestSchema = z.object({
@@ -247,14 +242,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockChapters = generateMockChapters(course, bulkRequest);
-      return NextResponse.json({ success: true, data: mockChapters });
-    }
-
-    // Generate chapters using Anthropic Claude
+    // Generate chapters using AI
     try {
       const prompt = buildBulkChapterPrompt(course, bulkRequest);
 
@@ -264,35 +252,27 @@ export async function POST(request: NextRequest) {
       const baseTokens = 2000;
       const calculatedMaxTokens = Math.min(
         baseTokens + (bulkRequest.chapterCount * tokensPerChapter),
-        16000 // Claude's reasonable limit for structured output
+        16000
       );
 
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: calculatedMaxTokens,
+      const completion = await aiClient.chat({
+        maxTokens: calculatedMaxTokens,
         temperature: 0.7,
-        system: BULK_CHAPTER_SYSTEM_PROMPT,
+        systemPrompt: BULK_CHAPTER_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
             content: prompt
           }
         ],
+        extended: true,
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text'
-        ? completion.content[0].text
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
-      }
-
-      // Check if response was truncated
-      const wasStopReason = completion.stop_reason;
-      if (wasStopReason === 'max_tokens') {
-        logger.warn('AI response was truncated due to max_tokens limit');
       }
 
       // Parse JSON response with recovery logic
@@ -393,12 +373,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         data: validatedChapters.slice(0, bulkRequest.chapterCount),
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString()
         }
       });

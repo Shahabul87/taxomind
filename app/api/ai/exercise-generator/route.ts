@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
@@ -7,11 +7,6 @@ import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement"
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Exercise generation request schema
 const ExerciseGeneratorRequestSchema = z.object({
@@ -255,22 +250,14 @@ export async function POST(request: NextRequest) {
 
     const exerciseRequest = parseResult.data;
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockExercises = generateMockExercises(exerciseRequest);
-      return NextResponse.json({ success: true, exercises: mockExercises });
-    }
-
-    // Generate exercises using Anthropic Claude
+    // Generate exercises using AI
     try {
       const prompt = buildExerciseGeneratorPrompt(exerciseRequest);
-      
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 5000,
+
+      const completion = await aiClient.chat({
+        maxTokens: 5000,
         temperature: 0.7,
-        system: EXERCISE_GENERATOR_SYSTEM_PROMPT,
+        systemPrompt: EXERCISE_GENERATOR_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
@@ -280,9 +267,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -314,7 +299,7 @@ export async function POST(request: NextRequest) {
       // Record AI usage (only for users, admins bypass tracking)
       if (!session.isAdmin && session.userId) {
         await recordAIUsage(session.userId, "exercise", 1, {
-          provider: "anthropic",
+          provider: completion.provider,
           requestType: "exercise_generation",
         });
       }

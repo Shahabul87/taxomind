@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
@@ -14,11 +14,6 @@ import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subsc
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Rate limiting disabled for now
 
@@ -352,34 +347,25 @@ export async function POST(request: NextRequest) {
 
     const curationRequest = parseResult.data;
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockResponse = generateMockResponse(curationRequest);
-      return NextResponse.json({ success: true, data: mockResponse });
-    }
-
-    // Generate content curation using Anthropic Claude
+    // Generate content curation using AI
     try {
       const prompt = buildContentCurationPrompt(curationRequest);
-      
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 8000,
+
+      const completion = await aiClient.chat({
+        maxTokens: 8000,
         temperature: 0.7,
-        system: CONTENT_CURATOR_SYSTEM_PROMPT,
+        systemPrompt: CONTENT_CURATOR_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
             content: prompt
           }
         ],
+        extended: true,
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -420,8 +406,8 @@ export async function POST(request: NextRequest) {
         success: true,
         data: validationResult.data,
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString()
         }
       });

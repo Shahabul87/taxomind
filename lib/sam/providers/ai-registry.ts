@@ -134,14 +134,15 @@ export function getProvidersWithCapability(
 }
 
 /**
- * Get the default provider (first configured one, preferring Anthropic)
+ * Get the default provider (first configured one).
+ * Priority: DeepSeek > Anthropic > OpenAI (matches ai-factory.ts)
  */
 export function getDefaultProvider(): ProviderInfo | undefined {
-  // Prefer Anthropic if configured
-  if (AI_PROVIDERS.anthropic.isConfigured()) {
-    return AI_PROVIDERS.anthropic;
-  }
+  // Priority matches the factory: DeepSeek > Anthropic > OpenAI
+  if (AI_PROVIDERS.deepseek.isConfigured()) return AI_PROVIDERS.deepseek;
+  if (AI_PROVIDERS.anthropic.isConfigured()) return AI_PROVIDERS.anthropic;
+  if (AI_PROVIDERS.openai.isConfigured()) return AI_PROVIDERS.openai;
 
-  // Fall back to first configured provider
+  // Fall back to first configured provider (gemini, mistral, etc.)
   return getConfiguredProviders()[0];
 }

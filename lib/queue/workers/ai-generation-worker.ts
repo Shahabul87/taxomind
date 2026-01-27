@@ -114,7 +114,7 @@ class MockAIService implements AIService {
       content: content[contentType as keyof typeof content],
       metadata: {
         generatedAt: new Date(),
-        model: 'gpt-4o-mini',
+        model: 'platform-default',
         tokensUsed: Math.round(Math.random() * 2000) + 500,
         qualityScore: Math.round((Math.random() * 30) + 70), // 70-100
         difficulty: difficulty,
@@ -141,7 +141,7 @@ class MockAIService implements AIService {
       questions,
       metadata: {
         generatedAt: new Date(),
-        model: 'gpt-4o-mini',
+        model: 'platform-default',
         tokensUsed: Math.round(Math.random() * 1500) + 300,
         qualityScore: Math.round((Math.random() * 25) + 75), // 75-100
         bloomsDistribution: this.calculateBloomsDistribution(questions),
@@ -227,7 +227,7 @@ class MockAIService implements AIService {
       learningPath,
       metadata: {
         generatedAt: new Date(),
-        model: 'gpt-4o-mini',
+        model: 'platform-default',
         tokensUsed: Math.round(Math.random() * 3000) + 1000,
         qualityScore: Math.round((Math.random() * 20) + 80), // 80-100
         personalizationFactors: {
@@ -278,7 +278,7 @@ class MockAIService implements AIService {
       ],
       metadata: {
         analyzedAt: new Date(),
-        model: 'gpt-4o-mini',
+        model: 'platform-default',
         tokensUsed: Math.round(Math.random() * 2500) + 800,
       },
     };
@@ -314,7 +314,7 @@ class MockAIService implements AIService {
       },
       metadata: {
         generatedAt: new Date(),
-        model: 'gpt-4o-mini',
+        model: 'platform-default',
         tokensUsed: Math.round(Math.random() * 1800) + 400,
         personalizationScore: Math.round((Math.random() * 15) + 85),
       },

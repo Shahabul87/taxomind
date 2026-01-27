@@ -8,9 +8,8 @@
  * - Telemetry tracking
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { logger } from '@/lib/logger';
-import { validateEnvVar, ENV_VARS } from '@/lib/env-validation';
 
 // SAM imports
 import {
@@ -99,21 +98,6 @@ Create assessment questions that:
 CRITICAL: Respond with valid JSON array only. No additional text.`;
 
 // ============================================================================
-// Anthropic Client
-// ============================================================================
-
-let anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient(): Anthropic {
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({
-      apiKey: validateEnvVar(ENV_VARS.ANTHROPIC_API_KEY),
-    });
-  }
-  return anthropicClient;
-}
-
-// ============================================================================
 // Main Service Class
 // ============================================================================
 
@@ -179,23 +163,16 @@ export class SAMExamGeneratorService {
   ): Promise<AssessmentQuestion[]> {
     const prompt = this.buildGenerationPrompt(request, bloomsDistribution);
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock questions');
-      return this.generateMockQuestions(request, bloomsDistribution);
-    }
-
     try {
-      const anthropic = getAnthropicClient();
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 6000,
+      const completion = await aiClient.chat({
+        maxTokens: 6000,
         temperature: 0.3,
-        system: SYSTEM_PROMPT,
+        systemPrompt: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
+        extended: true,
       });
 
-      const responseText =
-        completion.content[0]?.type === 'text' ? completion.content[0].text : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');

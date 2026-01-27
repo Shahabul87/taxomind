@@ -283,7 +283,6 @@ function initializeSubsystems(): {
   // Create AI adapter
   const aiAdapter = createAnthropicAdapter({
     apiKey,
-    model: 'claude-sonnet-4-20250514',
     timeout: 60000,
     maxRetries: 2,
   });

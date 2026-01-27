@@ -1,7 +1,6 @@
 import { createHash } from "crypto";
 import { z } from "zod";
 import {
-  createAnthropicAdapter,
   type AIAdapter,
 } from "@sam-ai/core";
 import {
@@ -9,6 +8,7 @@ import {
   EntityType,
   RelationshipType,
 } from "@sam-ai/agentic";
+import { getDefaultAdapter } from "@/lib/sam/providers/ai-factory";
 import { logger } from "@/lib/logger";
 import { getAgenticMemorySystem, buildMemoryMetadata } from "@/lib/sam/agentic-memory";
 
@@ -85,16 +85,11 @@ let memoryAiAdapter: AIAdapter | null = null;
 
 function getMemoryAiAdapter(): AIAdapter {
   if (memoryAiAdapter) return memoryAiAdapter;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is not set");
+  const adapter = getDefaultAdapter({ timeout: 60000, maxRetries: 1 });
+  if (!adapter) {
+    throw new Error("No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.");
   }
-  memoryAiAdapter = createAnthropicAdapter({
-    apiKey,
-    model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-20250514",
-    timeout: 60000,
-    maxRetries: 1,
-  });
+  memoryAiAdapter = adapter;
   return memoryAiAdapter;
 }
 

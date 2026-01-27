@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
@@ -6,11 +6,6 @@ import { logger } from '@/lib/logger';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Course content generation request schema
 const CourseContentRequestSchema = z.object({
@@ -120,22 +115,14 @@ export async function POST(request: NextRequest) {
 
     const contentRequest = parseResult.data;
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockContent = generateMockContent(contentRequest);
-      return NextResponse.json({ success: true, content: mockContent });
-    }
-
-    // Generate content using Anthropic Claude
+    // Generate content using AI
     try {
       const prompt = buildCourseContentPrompt(contentRequest);
-      
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 2000,
+
+      const completion = await aiClient.chat({
+        maxTokens: 2000,
         temperature: 0.7,
-        system: COURSE_CONTENT_SYSTEM_PROMPT,
+        systemPrompt: COURSE_CONTENT_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
@@ -144,21 +131,18 @@ export async function POST(request: NextRequest) {
         ],
       });
 
-      // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         content: responseText.trim(),
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString()
         }
       });

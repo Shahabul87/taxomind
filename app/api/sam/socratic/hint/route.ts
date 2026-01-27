@@ -30,7 +30,6 @@ const getEngine = (dialogueId: string) => {
           const userMessage = messages.find(m => m.role === 'user')?.content || '';
 
           const response = await runSAMChat({
-            model: 'claude-sonnet-4-5-20250929',
             maxTokens: 1000,
             temperature: 0.5,
             systemPrompt: systemMessage,

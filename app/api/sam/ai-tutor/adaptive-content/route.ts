@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     const systemPrompt = buildAdaptiveContentPrompt(format, learningStyle, personality, context);
 
     const content = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 1500,
       temperature: 0.7,
       systemPrompt,

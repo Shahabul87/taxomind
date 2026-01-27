@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCombinedSession } from "@/lib/auth/combined-session";
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
 import { aiCacheManager } from "@/lib/ai-cache-manager";
 import { logger } from '@/lib/logger';
 import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 export const runtime = 'nodejs';
 
@@ -174,19 +170,13 @@ Return ONLY valid JSON:
   ]
 }`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 1500,
+  const response = await aiClient.chat({
+    maxTokens: 1500,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }]
   });
 
-  const contentResponse = response.content[0];
-  if (contentResponse.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-
-  return JSON.parse(contentResponse.text);
+  return JSON.parse(response.content);
 }
 
 async function optimizeDescription(content: any, goals: string[]): Promise<OptimizationResult> {
@@ -214,19 +204,13 @@ Create an optimized description that converts browsers into students.
 
 Return ONLY valid JSON with the same structure, focusing on description optimization.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 2000,
+  const response = await aiClient.chat({
+    maxTokens: 2000,
     temperature: 0.5,
     messages: [{ role: "user", content: prompt }]
   });
 
-  const contentResponse = response.content[0];
-  if (contentResponse.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-
-  return JSON.parse(contentResponse.text);
+  return JSON.parse(response.content);
 }
 
 async function optimizeLearningObjectives(content: any, goals: string[]): Promise<OptimizationResult> {
@@ -252,19 +236,13 @@ Transform these into compelling, measurable learning outcomes.
 
 Return ONLY valid JSON with learning objectives optimization structure.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 1800,
+  const response = await aiClient.chat({
+    maxTokens: 1800,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }]
   });
 
-  const contentResponse = response.content[0];
-  if (contentResponse.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-
-  return JSON.parse(contentResponse.text);
+  return JSON.parse(response.content);
 }
 
 async function comprehensiveOptimization(content: any, goals: string[]): Promise<OptimizationResult> {
@@ -296,17 +274,11 @@ Optimize all elements to work together synergistically for maximum impact.
 
 Return ONLY valid JSON with comprehensive optimization covering title, description, and learning objectives.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 3000,
+  const response = await aiClient.chat({
+    maxTokens: 3000,
     temperature: 0.5,
     messages: [{ role: "user", content: prompt }]
   });
 
-  const contentResponse = response.content[0];
-  if (contentResponse.type !== 'text') {
-    throw new Error('Unexpected response type');
-  }
-
-  return JSON.parse(contentResponse.text);
+  return JSON.parse(response.content);
 }

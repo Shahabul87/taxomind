@@ -92,7 +92,6 @@ Return ONLY valid JSON in this format:
 
   try {
     const responseText = await runSAMChat({
-      model: 'claude-3-5-haiku-20241022',
       maxTokens: 1000,
       temperature: 0.7,
       messages: [{ role: 'user', content: prompt }],

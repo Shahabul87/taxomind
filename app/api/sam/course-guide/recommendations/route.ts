@@ -427,7 +427,6 @@ Course description: "${course.description || 'No description provided'}"
 Generate 3 varied assessment examples.`;
 
     const responseText = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 1000,
       temperature: 0.7,
       systemPrompt,
@@ -463,7 +462,6 @@ Course description: "${course.description || 'No description provided'}"
 Suggest 5 additional topics or sections to fill gaps.`;
 
     const responseText = await runSAMChat({
-      model: 'claude-sonnet-4-5-20250929',
       maxTokens: 600,
       temperature: 0.6,
       systemPrompt,

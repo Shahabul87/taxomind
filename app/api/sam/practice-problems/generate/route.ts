@@ -33,7 +33,6 @@ const createEngineWithAI = () => {
         const userMessage = messages.find(m => m.role === 'user')?.content || '';
 
         const response = await runSAMChat({
-          model: 'claude-sonnet-4-5-20250929',
           maxTokens: 4000,
           temperature: 0.7,
           systemPrompt: systemMessage,

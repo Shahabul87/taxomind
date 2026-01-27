@@ -224,7 +224,6 @@ export async function POST(request: NextRequest) {
     }
 
     const responseText = await runSAMChat({
-      model: 'claude-3-haiku-20240307',
       maxTokens: 500,
       temperature: 0.7,
       systemPrompt,

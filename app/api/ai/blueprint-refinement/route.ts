@@ -1,5 +1,5 @@
 import { getCombinedSession } from "@/lib/auth/combined-session";
-import getAnthropicClient from "@/lib/anthropic-client";
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -160,29 +160,28 @@ Please provide a comprehensive analysis and refinement plan that includes:
 Format your response as a JSON object with the structure matching the RefinementResult interface.`;
 
   try {
-    const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 8000,
+    const response = await aiClient.chat({
+      maxTokens: 8000,
       temperature: 0.3,
       messages: [
         {
           role: "user",
           content: analysisPrompt
         }
-      ]
+      ],
+      extended: true,
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Anthropic API');
+    const responseText = response.content;
+    if (!responseText) {
+      throw new Error('Empty response from AI');
     }
 
     // Parse the AI response
     let aiResult;
     try {
       // Extract JSON from the response
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         aiResult = JSON.parse(jsonMatch[0]);
       } else {

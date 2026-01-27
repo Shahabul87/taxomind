@@ -1,10 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import type { CourseGenerationRequest } from './anthropic-client';
 import { logger } from '@/lib/logger';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
 
 export interface EnhancedContentRequest extends CourseGenerationRequest {
   // Additional context for better generation
@@ -165,19 +161,14 @@ Return ONLY valid JSON in this format:
 
 Focus on evidence-based educational practices and modern learning science principles.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 1000,
+  const response = await aiClient.chat({
+    maxTokens: 1000,
     temperature: 0.6,
+    extended: true,
     messages: [{ role: "user", content: prompt }]
   });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Anthropic API');
-  }
-
-  return JSON.parse(content.text);
+  return JSON.parse(response.content);
 }
 
 async function generateDetailedCourseStructure(
@@ -231,19 +222,14 @@ Return ONLY valid JSON in this format:
 
 Make this course irresistible to the target audience while ensuring educational excellence.`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 2000,
+  const response = await aiClient.chat({
+    maxTokens: 2000,
     temperature: 0.7,
+    extended: true,
     messages: [{ role: "user", content: prompt }]
   });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Anthropic API');
-  }
-
-  return JSON.parse(content.text);
+  return JSON.parse(response.content);
 }
 
 async function generateEnhancedChapters(
@@ -320,19 +306,14 @@ Return ONLY valid JSON in this format:
 
 Make each section rich with practical, actionable content that students can immediately apply.`;
 
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: 3000,
+    const response = await aiClient.chat({
+      maxTokens: 3000,
       temperature: 0.7,
+      extended: true,
       messages: [{ role: "user", content: chapterPrompt }]
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Anthropic API');
-    }
-
-    const chapter = JSON.parse(content.text) as EnhancedChapter;
+    const chapter = JSON.parse(response.content) as EnhancedChapter;
     chapters.push(chapter);
   }
   
@@ -374,19 +355,13 @@ Return ONLY valid JSON:
   "portfolioValue": "How this project enhances student's portfolio and career prospects"
 }`;
 
-  const response = await anthropic.messages.create({
-    model: "claude-3-5-haiku-20241022",
-    max_tokens: 800,
+  const response = await aiClient.chat({
+    maxTokens: 800,
     temperature: 0.7,
     messages: [{ role: "user", content: prompt }]
   });
 
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Anthropic API');
-  }
-
-  return JSON.parse(content.text);
+  return JSON.parse(response.content);
 }
 
 // Helper functions

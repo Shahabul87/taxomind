@@ -1,10 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
 import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
-import { 
-  ChapterGenerationRequestSchema, 
+import {
+  ChapterGenerationRequestSchema,
   ChapterGenerationResponseSchema,
   type ChapterGenerationRequest,
   type ChapterGenerationResponse,
@@ -14,11 +14,6 @@ import {
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Rate limiting disabled for now
 
@@ -280,34 +275,25 @@ export async function POST(request: NextRequest) {
 
     const chapterRequest = parseResult.data;
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockResponse = generateMockResponse(chapterRequest);
-      return NextResponse.json({ success: true, data: mockResponse });
-    }
-
-    // Generate chapter structure using Anthropic Claude
+    // Generate chapter structure using AI
     try {
       const prompt = buildChapterPrompt(chapterRequest);
-      
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 6000,
+
+      const completion = await aiClient.chat({
+        maxTokens: 6000,
         temperature: 0.7,
-        system: CHAPTER_GENERATOR_SYSTEM_PROMPT,
+        systemPrompt: CHAPTER_GENERATOR_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
             content: prompt
           }
         ],
+        extended: true,
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -351,8 +337,8 @@ export async function POST(request: NextRequest) {
         success: true,
         data: validationResult.data,
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString()
         }
       });

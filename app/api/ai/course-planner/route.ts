@@ -1,11 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
 import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
-import { 
-  CourseGenerationRequestSchema, 
+import {
+  CourseGenerationRequestSchema,
   CourseGenerationResponseSchema,
   type CourseGenerationRequest,
   type CourseGenerationResponse,
@@ -15,18 +15,6 @@ import {
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client (optional)
-let anthropic: Anthropic | null = null;
-try {
-  if (process.env.ANTHROPIC_API_KEY) {
-    anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-  }
-} catch (error) {
-  logger.warn('Anthropic API not configured:', error);
-}
 
 const COURSE_PLANNER_SYSTEM_PROMPT = `You are an expert educational designer and curriculum developer with 20+ years of experience creating engaging, effective online courses. Your specialty is transforming learning goals into comprehensive, well-structured course plans that maximize student engagement and learning outcomes.
 
@@ -299,34 +287,25 @@ export async function POST(request: NextRequest) {
 
     const courseRequest = parseResult.data;
 
-    // Check if Anthropic API is configured
-    if (!anthropic) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockResponse = generateMockResponse(courseRequest);
-      return NextResponse.json({ success: true, data: mockResponse });
-    }
-
-    // Generate course plan using Anthropic Claude
+    // Generate course plan using AI
     try {
       const prompt = buildCoursePrompt(courseRequest);
-      
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 8000,
+
+      const completion = await aiClient.chat({
+        maxTokens: 8000,
         temperature: 0.7,
-        system: COURSE_PLANNER_SYSTEM_PROMPT,
+        systemPrompt: COURSE_PLANNER_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
             content: prompt
           }
         ],
+        extended: true,
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -361,7 +340,7 @@ export async function POST(request: NextRequest) {
       // Record AI usage (only for users, admins bypass tracking)
       if (!session.isAdmin && session.userId) {
         await recordAIUsage(session.userId, "course", 1, {
-          provider: "anthropic",
+          provider: completion.provider,
           requestType: "course_generation",
         });
       }
@@ -370,8 +349,8 @@ export async function POST(request: NextRequest) {
         success: true,
         data: validationResult.data,
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString()
         }
       });

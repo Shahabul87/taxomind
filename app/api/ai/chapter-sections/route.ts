@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
@@ -7,11 +7,6 @@ import { logger } from '@/lib/logger';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 // Section generation request schema
 const SectionGenerationRequestSchema = z.object({
@@ -191,22 +186,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if ANTHROPIC_API_KEY is configured
-    if (!process.env.ANTHROPIC_API_KEY) {
-      logger.warn('ANTHROPIC_API_KEY not configured, using mock response');
-      const mockSections = generateMockSections(sectionRequest);
-      return NextResponse.json({ success: true, sections: mockSections });
-    }
-
-    // Generate sections using Anthropic Claude
+    // Generate sections using AI
     try {
       const prompt = buildSectionGenerationPrompt(sectionRequest);
-      
-      const completion = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 4000,
+
+      const completion = await aiClient.chat({
+        maxTokens: 4000,
         temperature: 0.7,
-        system: SECTION_GENERATION_SYSTEM_PROMPT,
+        systemPrompt: SECTION_GENERATION_SYSTEM_PROMPT,
         messages: [
           {
             role: 'user',
@@ -216,9 +203,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Extract and parse the response
-      const responseText = completion.content[0]?.type === 'text' 
-        ? completion.content[0].text 
-        : '';
+      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -247,12 +232,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         sections: aiSections,
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
-          model: 'claude-sonnet-4-5-20250929',
+          provider: completion.provider,
+          model: completion.model,
           generatedAt: new Date().toISOString()
         }
       });

@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { aiClient } from '@/lib/ai/enterprise-client';
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -7,11 +7,6 @@ import { logger } from '@/lib/logger';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
-
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
 
 const RecommendationRequestSchema = z.object({
   sectionId: z.string(),
@@ -89,14 +84,10 @@ export async function POST(req: NextRequest) {
     
     // Generate questions using AI
     let questions;
-    if (process.env.ANTHROPIC_API_KEY) {
-      try {
-        questions = await generateAIQuestions(section, strategy, request);
-      } catch (error) {
-        logger.error('AI question generation failed:', error);
-        questions = generateFallbackQuestions(section, strategy, request);
-      }
-    } else {
+    try {
+      questions = await generateAIQuestions(section, strategy, request);
+    } catch (error) {
+      logger.error('AI question generation failed:', error);
       questions = generateFallbackQuestions(section, strategy, request);
     }
 
@@ -261,11 +252,10 @@ function generateAdaptiveStrategy(performanceData: any, request: any) {
 async function generateAIQuestions(section: any, strategy: any, request: any) {
   const prompt = buildAdaptiveQuestionPrompt(section, strategy, request);
   
-  const completion = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 4000,
+  const completion = await aiClient.chat({
+    maxTokens: 4000,
     temperature: 0.7,
-    system: ADAPTIVE_QUESTION_SYSTEM_PROMPT,
+    systemPrompt: ADAPTIVE_QUESTION_SYSTEM_PROMPT,
     messages: [
       {
         role: 'user',
@@ -274,9 +264,7 @@ async function generateAIQuestions(section: any, strategy: any, request: any) {
     ],
   });
 
-  const responseText = completion.content[0]?.type === 'text' 
-    ? completion.content[0].text 
-    : '';
+  const responseText = completion.content;
 
   if (!responseText) {
     throw new Error('Empty response from AI model');
