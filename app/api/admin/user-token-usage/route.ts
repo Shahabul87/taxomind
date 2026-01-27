@@ -28,15 +28,15 @@ function getStartDate(period: string): Date | null {
   const now = new Date();
   switch (period) {
     case "day":
-      return new Date(now.setDate(now.getDate() - 1));
+      return new Date(now.getTime() - 24 * 60 * 60 * 1000);
     case "week":
-      return new Date(now.setDate(now.getDate() - 7));
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     case "month":
-      return new Date(now.setMonth(now.getMonth() - 1));
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     case "year":
-      return new Date(now.setFullYear(now.getFullYear() - 1));
+      return new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
     default:
-      return new Date(now.setMonth(now.getMonth() - 1));
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   }
 }
 
@@ -82,15 +82,29 @@ interface UserTokenUsage {
   status: "active" | "inactive" | "at_limit";
 }
 
+// Default tier limits (fallback when PlatformAISettings doesn't exist)
+const DEFAULT_TIER_LIMITS: Record<SubscriptionTier, number> = {
+  FREE: 50,
+  STARTER: 500,
+  PROFESSIONAL: 2000,
+  ENTERPRISE: 10000,
+  CUSTOM: 10000,
+};
+
 /**
  * GET /api/admin/user-token-usage
  * Fetch user token usage analytics for admin dashboard
+ * Enterprise-grade implementation with comprehensive error handling
  */
 export async function GET(request: Request) {
+  const startTime = Date.now();
+
   try {
+    // =========================================
+    // 1. Authentication Check
+    // =========================================
     const session = await adminAuth();
 
-    // Check if user is authenticated and is an admin
     if (
       !session ||
       !session.user ||
@@ -109,8 +123,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Parse and validate query parameters
-    // Convert null to undefined so Zod defaults work correctly
+    // =========================================
+    // 2. Parse and Validate Query Parameters
+    // =========================================
     const { searchParams } = new URL(request.url);
     const queryResult = QuerySchema.safeParse({
       page: searchParams.get("page") ?? undefined,
@@ -140,10 +155,30 @@ export async function GET(request: Request) {
     const startDate = getStartDate(params.period);
     const skip = (params.page - 1) * params.limit;
 
-    // Build the date filter for metrics
-    const dateFilter = startDate ? { gte: startDate } : undefined;
+    // =========================================
+    // 3. Fetch Platform AI Settings (with fallback)
+    // =========================================
+    let tierLimits = DEFAULT_TIER_LIMITS;
+    try {
+      const platformSettings = await db.platformAISettings.findFirst({
+        where: { id: "default" },
+      });
+      if (platformSettings) {
+        tierLimits = {
+          FREE: platformSettings.freeMonthlyLimit,
+          STARTER: platformSettings.starterMonthlyLimit,
+          PROFESSIONAL: platformSettings.proMonthlyLimit,
+          ENTERPRISE: platformSettings.enterpriseMonthlyLimit,
+          CUSTOM: platformSettings.enterpriseMonthlyLimit,
+        };
+      }
+    } catch (err) {
+      logger.warn("[USER_TOKEN_USAGE] PlatformAISettings table not available, using defaults", err);
+    }
 
-    // Build user filter
+    // =========================================
+    // 4. Build User Filter
+    // =========================================
     const userWhere: {
       OR?: Array<{ name?: { contains: string; mode: "insensitive" }; email?: { contains: string; mode: "insensitive" } }>;
       subscriptionTier?: SubscriptionTier;
@@ -160,209 +195,18 @@ export async function GET(request: Request) {
       userWhere.subscriptionTier = params.tier as SubscriptionTier;
     }
 
-    // Get platform summary totals
-    const [platformMetrics, tierCounts, totalUsersCount] = await Promise.all([
-      // Aggregate total metrics
-      db.aIUsageMetrics.aggregate({
-        where: dateFilter ? { date: dateFilter } : {},
-        _sum: {
-          totalGenerations: true,
-          totalTokens: true,
-          totalCost: true,
-          courseGenerations: true,
-          chapterGenerations: true,
-          lessonGenerations: true,
-          examGenerations: true,
-          exerciseGenerations: true,
-        },
-      }),
-      // Get counts by tier
-      db.user.groupBy({
-        by: ["subscriptionTier"],
-        _count: true,
-      }),
-      // Total users with AI usage
-      db.user.count({
-        where: {
-          OR: [
-            { dailyAiUsageCount: { gt: 0 } },
-            { monthlyAiUsageCount: { gt: 0 } },
-          ],
-        },
-      }),
-    ]);
-
-    // Get active users in period
-    const activeUsersInPeriod = await db.aIUsageMetrics.groupBy({
-      by: ["userId"],
-      where: dateFilter ? { date: dateFilter, totalGenerations: { gt: 0 } } : { totalGenerations: { gt: 0 } },
-    });
-
-    // Get tier breakdown with usage
-    const tierBreakdownData = await Promise.all(
-      (["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE", "CUSTOM"] as SubscriptionTier[]).map(
-        async (tier) => {
-          const tierCount = tierCounts.find((t) => t.subscriptionTier === tier)?._count || 0;
-
-          // Get users in this tier
-          const usersInTier = await db.user.findMany({
-            where: { subscriptionTier: tier },
-            select: { id: true },
-          });
-
-          const userIds = usersInTier.map((u) => u.id);
-
-          if (userIds.length === 0) {
-            return {
-              tier,
-              count: 0,
-              totalTokens: 0,
-              totalGenerations: 0,
-              totalCost: 0,
-            };
-          }
-
-          const tierMetrics = await db.aIUsageMetrics.aggregate({
-            where: {
-              userId: { in: userIds },
-              ...(dateFilter ? { date: dateFilter } : {}),
-            },
-            _sum: {
-              totalTokens: true,
-              totalGenerations: true,
-              totalCost: true,
-            },
-          });
-
-          return {
-            tier,
-            count: tierCount,
-            totalTokens: tierMetrics._sum.totalTokens || 0,
-            totalGenerations: tierMetrics._sum.totalGenerations || 0,
-            totalCost: tierMetrics._sum.totalCost || 0,
-          } as TierBreakdown;
-        }
-      )
-    );
-
-    // Generation type breakdown
-    const generationBreakdown: GenerationBreakdown[] = [
-      {
-        type: "Courses",
-        count: platformMetrics._sum.courseGenerations || 0,
-        tokens: 0, // Would need more granular tracking
-        cost: 0,
-      },
-      {
-        type: "Chapters",
-        count: platformMetrics._sum.chapterGenerations || 0,
-        tokens: 0,
-        cost: 0,
-      },
-      {
-        type: "Lessons",
-        count: platformMetrics._sum.lessonGenerations || 0,
-        tokens: 0,
-        cost: 0,
-      },
-      {
-        type: "Exams",
-        count: platformMetrics._sum.examGenerations || 0,
-        tokens: 0,
-        cost: 0,
-      },
-      {
-        type: "Exercises",
-        count: platformMetrics._sum.exerciseGenerations || 0,
-        tokens: 0,
-        cost: 0,
-      },
-    ];
-
-    // Get daily trends for charts
-    const dailyTrends = await db.aIUsageMetrics.groupBy({
-      by: ["date"],
-      where: dateFilter ? { date: dateFilter } : {},
-      _sum: {
-        totalTokens: true,
-        totalGenerations: true,
-        totalCost: true,
-      },
-      orderBy: {
-        date: "asc",
-      },
-      take: 30, // Last 30 data points
-    });
-
-    const formattedDailyTrends: DailyTrend[] = dailyTrends.map((d) => ({
-      date: d.date.toISOString().split("T")[0],
-      tokens: d._sum.totalTokens || 0,
-      generations: d._sum.totalGenerations || 0,
-      cost: d._sum.totalCost || 0,
-    }));
-
-    // Get user metrics with aggregation
-    // First, get the user IDs with their aggregated metrics
-    const userMetrics = await db.aIUsageMetrics.groupBy({
-      by: ["userId"],
+    // =========================================
+    // 5. Fetch Users with AI Usage (Primary Data Source)
+    // =========================================
+    // Get users who have any AI usage (from User model fields)
+    const usersWithAiUsage = await db.user.findMany({
       where: {
-        ...(dateFilter ? { date: dateFilter } : {}),
-        user: userWhere,
-      },
-      _sum: {
-        totalTokens: true,
-        totalGenerations: true,
-        totalCost: true,
-        courseGenerations: true,
-        chapterGenerations: true,
-        lessonGenerations: true,
-        examGenerations: true,
-        exerciseGenerations: true,
-      },
-      _max: {
-        date: true,
-      },
-    });
-
-    // Sort and paginate user metrics in-memory
-    type MetricEntry = typeof userMetrics[number];
-    const sortedUserMetrics = [...userMetrics].sort((a: MetricEntry, b: MetricEntry) => {
-      let aValue = 0;
-      let bValue = 0;
-
-      switch (params.sortBy) {
-        case "totalTokens":
-          aValue = a._sum.totalTokens || 0;
-          bValue = b._sum.totalTokens || 0;
-          break;
-        case "totalGenerations":
-          aValue = a._sum.totalGenerations || 0;
-          bValue = b._sum.totalGenerations || 0;
-          break;
-        case "totalCost":
-          aValue = a._sum.totalCost || 0;
-          bValue = b._sum.totalCost || 0;
-          break;
-        case "lastUsageDate":
-          aValue = a._max.date?.getTime() || 0;
-          bValue = b._max.date?.getTime() || 0;
-          break;
-        default:
-          aValue = a._sum.totalTokens || 0;
-          bValue = b._sum.totalTokens || 0;
-      }
-
-      return params.sortOrder === "desc" ? bValue - aValue : aValue - bValue;
-    });
-
-    const paginatedUserMetrics = sortedUserMetrics.slice(skip, skip + params.limit);
-
-    // Get user details for the paginated results
-    const userIds = paginatedUserMetrics.map((m) => m.userId);
-    const users = await db.user.findMany({
-      where: {
-        id: { in: userIds },
         ...userWhere,
+        OR: [
+          { dailyAiUsageCount: { gt: 0 } },
+          { monthlyAiUsageCount: { gt: 0 } },
+          ...(userWhere.OR || []),
+        ],
       },
       select: {
         id: true,
@@ -373,106 +217,298 @@ export async function GET(request: Request) {
         dailyAiUsageCount: true,
         monthlyAiUsageCount: true,
       },
+      orderBy: params.sortBy === "dailyAiUsageCount" || params.sortBy === "monthlyAiUsageCount"
+        ? { [params.sortBy]: params.sortOrder }
+        : { monthlyAiUsageCount: "desc" },
     });
 
-    // Get platform AI settings for limit checks
-    let platformSettings = null;
+    // =========================================
+    // 6. Fetch AI Usage Metrics (if table exists)
+    // =========================================
+    let metricsMap = new Map<string, {
+      totalTokens: number;
+      totalGenerations: number;
+      totalCost: number;
+      courseGenerations: number;
+      chapterGenerations: number;
+      lessonGenerations: number;
+      examGenerations: number;
+      exerciseGenerations: number;
+      lastUsageDate: Date | null;
+    }>();
+
+    let platformTotals = {
+      totalTokens: 0,
+      totalGenerations: 0,
+      totalCost: 0,
+      courseGenerations: 0,
+      chapterGenerations: 0,
+      lessonGenerations: 0,
+      examGenerations: 0,
+      exerciseGenerations: 0,
+    };
+
+    let dailyTrends: DailyTrend[] = [];
+
     try {
-      platformSettings = await db.platformAISettings.findFirst({
-        where: { id: "default" },
-      });
-    } catch {
-      // Table might not exist, continue without it
-    }
+      // Check if AIUsageMetrics table has data
+      const metricsCount = await db.aIUsageMetrics.count();
 
-    // Combine user data with metrics
-    const usersWithUsage: UserTokenUsage[] = paginatedUserMetrics.map((metrics) => {
-      const user = users.find((u) => u.id === metrics.userId);
+      if (metricsCount > 0) {
+        // Build date filter
+        const dateFilter = startDate ? { gte: startDate } : undefined;
 
-      // Determine user status based on limits
-      let status: "active" | "inactive" | "at_limit" = "inactive";
-      if (user) {
-        const tier = user.subscriptionTier;
-        let monthlyLimit = 50; // Default FREE limit
+        // Get aggregated metrics by user
+        const userMetrics = await db.aIUsageMetrics.groupBy({
+          by: ["userId"],
+          where: dateFilter ? { date: dateFilter } : {},
+          _sum: {
+            totalTokens: true,
+            totalGenerations: true,
+            totalCost: true,
+            courseGenerations: true,
+            chapterGenerations: true,
+            lessonGenerations: true,
+            examGenerations: true,
+            exerciseGenerations: true,
+          },
+          _max: {
+            date: true,
+          },
+        });
 
-        if (platformSettings) {
-          switch (tier) {
-            case "FREE":
-              monthlyLimit = platformSettings.freeMonthlyLimit;
-              break;
-            case "STARTER":
-              monthlyLimit = platformSettings.starterMonthlyLimit;
-              break;
-            case "PROFESSIONAL":
-              monthlyLimit = platformSettings.proMonthlyLimit;
-              break;
-            case "ENTERPRISE":
-              monthlyLimit = platformSettings.enterpriseMonthlyLimit;
-              break;
-            default:
-              monthlyLimit = platformSettings.freeMonthlyLimit;
-          }
+        // Build metrics map
+        for (const metric of userMetrics) {
+          metricsMap.set(metric.userId, {
+            totalTokens: metric._sum.totalTokens || 0,
+            totalGenerations: metric._sum.totalGenerations || 0,
+            totalCost: metric._sum.totalCost || 0,
+            courseGenerations: metric._sum.courseGenerations || 0,
+            chapterGenerations: metric._sum.chapterGenerations || 0,
+            lessonGenerations: metric._sum.lessonGenerations || 0,
+            examGenerations: metric._sum.examGenerations || 0,
+            exerciseGenerations: metric._sum.exerciseGenerations || 0,
+            lastUsageDate: metric._max.date || null,
+          });
         }
 
-        if (user.monthlyAiUsageCount >= monthlyLimit) {
-          status = "at_limit";
-        } else if (user.dailyAiUsageCount > 0 || user.monthlyAiUsageCount > 0) {
-          status = "active";
+        // Get platform totals
+        const totals = await db.aIUsageMetrics.aggregate({
+          where: dateFilter ? { date: dateFilter } : {},
+          _sum: {
+            totalTokens: true,
+            totalGenerations: true,
+            totalCost: true,
+            courseGenerations: true,
+            chapterGenerations: true,
+            lessonGenerations: true,
+            examGenerations: true,
+            exerciseGenerations: true,
+          },
+        });
+
+        platformTotals = {
+          totalTokens: totals._sum.totalTokens || 0,
+          totalGenerations: totals._sum.totalGenerations || 0,
+          totalCost: totals._sum.totalCost || 0,
+          courseGenerations: totals._sum.courseGenerations || 0,
+          chapterGenerations: totals._sum.chapterGenerations || 0,
+          lessonGenerations: totals._sum.lessonGenerations || 0,
+          examGenerations: totals._sum.examGenerations || 0,
+          exerciseGenerations: totals._sum.exerciseGenerations || 0,
+        };
+
+        // Get daily trends
+        const trends = await db.aIUsageMetrics.groupBy({
+          by: ["date"],
+          where: dateFilter ? { date: dateFilter } : {},
+          _sum: {
+            totalTokens: true,
+            totalGenerations: true,
+            totalCost: true,
+          },
+          orderBy: {
+            date: "asc",
+          },
+          take: 30,
+        });
+
+        dailyTrends = trends.map((d) => ({
+          date: d.date.toISOString().split("T")[0],
+          tokens: d._sum.totalTokens || 0,
+          generations: d._sum.totalGenerations || 0,
+          cost: d._sum.totalCost || 0,
+        }));
+      }
+    } catch (err) {
+      logger.warn("[USER_TOKEN_USAGE] AIUsageMetrics table error, using fallback data", err);
+    }
+
+    // =========================================
+    // 7. Get Tier Counts
+    // =========================================
+    const tierCounts = await db.user.groupBy({
+      by: ["subscriptionTier"],
+      _count: true,
+    });
+
+    // =========================================
+    // 8. Build Tier Breakdown
+    // =========================================
+    const allTiers: SubscriptionTier[] = ["FREE", "STARTER", "PROFESSIONAL", "ENTERPRISE", "CUSTOM"];
+    const tierBreakdown: TierBreakdown[] = allTiers.map((tier) => {
+      const tierCount = tierCounts.find((t) => t.subscriptionTier === tier)?._count || 0;
+
+      // Aggregate metrics for users in this tier
+      const tierUsers = usersWithAiUsage.filter((u) => u.subscriptionTier === tier);
+      let tierTokens = 0;
+      let tierGenerations = 0;
+      let tierCost = 0;
+
+      for (const user of tierUsers) {
+        const metrics = metricsMap.get(user.id);
+        if (metrics) {
+          tierTokens += metrics.totalTokens;
+          tierGenerations += metrics.totalGenerations;
+          tierCost += metrics.totalCost;
         }
       }
 
       return {
-        id: user?.id || metrics.userId,
-        name: user?.name || null,
-        email: user?.email || null,
-        image: user?.image || null,
-        subscriptionTier: user?.subscriptionTier || "FREE",
-        totalTokens: metrics._sum.totalTokens || 0,
-        totalGenerations: metrics._sum.totalGenerations || 0,
-        totalCost: metrics._sum.totalCost || 0,
-        dailyAiUsageCount: user?.dailyAiUsageCount || 0,
-        monthlyAiUsageCount: user?.monthlyAiUsageCount || 0,
-        courseGenerations: metrics._sum.courseGenerations || 0,
-        chapterGenerations: metrics._sum.chapterGenerations || 0,
-        lessonGenerations: metrics._sum.lessonGenerations || 0,
-        examGenerations: metrics._sum.examGenerations || 0,
-        exerciseGenerations: metrics._sum.exerciseGenerations || 0,
-        lastUsageDate: metrics._max.date || null,
+        tier,
+        count: tierCount,
+        totalTokens: tierTokens,
+        totalGenerations: tierGenerations,
+        totalCost: tierCost,
+      };
+    });
+
+    // =========================================
+    // 9. Build Generation Breakdown
+    // =========================================
+    const generationBreakdown: GenerationBreakdown[] = [
+      { type: "Courses", count: platformTotals.courseGenerations, tokens: 0, cost: 0 },
+      { type: "Chapters", count: platformTotals.chapterGenerations, tokens: 0, cost: 0 },
+      { type: "Lessons", count: platformTotals.lessonGenerations, tokens: 0, cost: 0 },
+      { type: "Exams", count: platformTotals.examGenerations, tokens: 0, cost: 0 },
+      { type: "Exercises", count: platformTotals.exerciseGenerations, tokens: 0, cost: 0 },
+    ];
+
+    // =========================================
+    // 10. Build User List with Usage Data
+    // =========================================
+    const usersWithUsage: UserTokenUsage[] = usersWithAiUsage.map((user) => {
+      const metrics = metricsMap.get(user.id);
+      const monthlyLimit = tierLimits[user.subscriptionTier] || tierLimits.FREE;
+
+      // Determine status
+      let status: "active" | "inactive" | "at_limit" = "inactive";
+      if (user.monthlyAiUsageCount >= monthlyLimit) {
+        status = "at_limit";
+      } else if (user.dailyAiUsageCount > 0 || user.monthlyAiUsageCount > 0) {
+        status = "active";
+      }
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+        subscriptionTier: user.subscriptionTier,
+        totalTokens: metrics?.totalTokens || 0,
+        totalGenerations: metrics?.totalGenerations || user.monthlyAiUsageCount,
+        totalCost: metrics?.totalCost || 0,
+        dailyAiUsageCount: user.dailyAiUsageCount,
+        monthlyAiUsageCount: user.monthlyAiUsageCount,
+        courseGenerations: metrics?.courseGenerations || 0,
+        chapterGenerations: metrics?.chapterGenerations || 0,
+        lessonGenerations: metrics?.lessonGenerations || 0,
+        examGenerations: metrics?.examGenerations || 0,
+        exerciseGenerations: metrics?.exerciseGenerations || 0,
+        lastUsageDate: metrics?.lastUsageDate || null,
         status,
       };
     });
 
-    // Sort by daily/monthly usage if needed (handled separately since it's on user model)
-    if (params.sortBy === "dailyAiUsageCount" || params.sortBy === "monthlyAiUsageCount") {
-      usersWithUsage.sort((a, b) => {
-        const aValue = params.sortBy === "dailyAiUsageCount" ? a.dailyAiUsageCount : a.monthlyAiUsageCount;
-        const bValue = params.sortBy === "dailyAiUsageCount" ? b.dailyAiUsageCount : b.monthlyAiUsageCount;
-        return params.sortOrder === "desc" ? bValue - aValue : aValue - bValue;
-      });
-    }
+    // =========================================
+    // 11. Sort Users
+    // =========================================
+    usersWithUsage.sort((a, b) => {
+      let aValue = 0;
+      let bValue = 0;
 
-    const totalPages = Math.ceil(sortedUserMetrics.length / params.limit);
+      switch (params.sortBy) {
+        case "totalTokens":
+          aValue = a.totalTokens;
+          bValue = b.totalTokens;
+          break;
+        case "totalGenerations":
+          aValue = a.totalGenerations;
+          bValue = b.totalGenerations;
+          break;
+        case "totalCost":
+          aValue = a.totalCost;
+          bValue = b.totalCost;
+          break;
+        case "dailyAiUsageCount":
+          aValue = a.dailyAiUsageCount;
+          bValue = b.dailyAiUsageCount;
+          break;
+        case "monthlyAiUsageCount":
+          aValue = a.monthlyAiUsageCount;
+          bValue = b.monthlyAiUsageCount;
+          break;
+        case "lastUsageDate":
+          aValue = a.lastUsageDate?.getTime() || 0;
+          bValue = b.lastUsageDate?.getTime() || 0;
+          break;
+        default:
+          aValue = a.totalTokens;
+          bValue = b.totalTokens;
+      }
+
+      return params.sortOrder === "desc" ? bValue - aValue : aValue - bValue;
+    });
+
+    // =========================================
+    // 12. Paginate Results
+    // =========================================
+    const totalItems = usersWithUsage.length;
+    const totalPages = Math.ceil(totalItems / params.limit);
+    const paginatedUsers = usersWithUsage.slice(skip, skip + params.limit);
+
+    // =========================================
+    // 13. Calculate Active Users Count
+    // =========================================
+    const activeUsersCount = usersWithUsage.filter(
+      (u) => u.status === "active" || u.status === "at_limit"
+    ).length;
+
+    // =========================================
+    // 14. Return Response
+    // =========================================
+    const responseTime = Date.now() - startTime;
 
     return NextResponse.json({
       success: true,
       data: {
         platformSummary: {
-          totalTokens: platformMetrics._sum.totalTokens || 0,
-          totalGenerations: platformMetrics._sum.totalGenerations || 0,
-          totalCost: platformMetrics._sum.totalCost || 0,
-          activeUsers: activeUsersInPeriod.length,
-          totalUsersWithUsage: totalUsersCount,
-          tierBreakdown: tierBreakdownData,
+          totalTokens: platformTotals.totalTokens,
+          totalGenerations: platformTotals.totalGenerations,
+          totalCost: platformTotals.totalCost,
+          activeUsers: activeUsersCount,
+          totalUsersWithUsage: totalItems,
+          tierBreakdown,
           generationBreakdown,
         },
-        users: usersWithUsage,
-        dailyTrends: formattedDailyTrends,
+        users: paginatedUsers,
+        dailyTrends,
       },
       metadata: {
         pagination: {
           page: params.page,
           limit: params.limit,
-          totalItems: sortedUserMetrics.length,
+          totalItems,
           totalPages,
           hasMore: params.page < totalPages,
         },
@@ -484,16 +520,25 @@ export async function GET(request: Request) {
           sortBy: params.sortBy,
           sortOrder: params.sortOrder,
         },
+        responseTimeMs: responseTime,
       },
     });
   } catch (error) {
-    logger.error("[ADMIN_USER_TOKEN_USAGE_GET_ERROR]", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    logger.error("[ADMIN_USER_TOKEN_USAGE_GET_ERROR]", {
+      message: errorMessage,
+      stack: errorStack,
+    });
+
     return NextResponse.json(
       {
         success: false,
         error: {
           code: "INTERNAL_ERROR",
           message: "Failed to fetch user token usage data",
+          details: process.env.NODE_ENV === "development" ? errorMessage : undefined,
         },
       },
       { status: 500 }
