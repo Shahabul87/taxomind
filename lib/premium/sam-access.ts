@@ -12,21 +12,30 @@ import { getCurrentAdminSession } from "@/lib/admin/check-admin";
 
 // SAM AI Feature definitions
 export type SAMFeature =
-  | "basic-qa"           // Limited for free users
-  | "course-creation"    // Premium only
-  | "content-generation" // Premium only
-  | "quiz-generation"    // Premium only
+  | "basic-qa"           // Free (with daily limit)
+  | "course-creation"    // Free (with daily limit)
+  | "content-generation" // Free (with daily limit)
+  | "quiz-generation"    // Free (with daily limit)
   | "learning-path"      // Premium only
   | "advanced-analytics" // Premium only
-  | "code-explanation"   // Premium only
-  | "math-explanation"   // Premium only
-  | "exam-creation";     // Premium only
+  | "code-explanation"   // Free (with daily limit)
+  | "math-explanation"   // Free (with daily limit)
+  | "exam-creation";     // Free (with daily limit)
 
-// Features available to free users (with limits)
-const FREE_TIER_FEATURES: SAMFeature[] = ["basic-qa"];
+// Features available to free users (with daily limits)
+// Premium-only features: advanced-analytics, learning-path
+const FREE_TIER_FEATURES: SAMFeature[] = [
+  "basic-qa",
+  "course-creation",
+  "content-generation",
+  "quiz-generation",
+  "code-explanation",
+  "math-explanation",
+  "exam-creation",
+];
 
-// Daily limit for free tier users
-const FREE_TIER_DAILY_LIMIT = 5;
+// Daily limit for free tier users (matches PlatformAISettings defaults)
+const FREE_TIER_DAILY_LIMIT = 10;
 
 export interface SAMAccessResult {
   allowed: boolean;
