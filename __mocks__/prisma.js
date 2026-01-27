@@ -6,7 +6,7 @@
 const mockPrismaClient = () => {
   const models = [
     'user', 'course', 'enrollment', 'purchase', 'chapter', 'section',
-    'category', 'attachment', 'userProgress', 'stripeCustomer', 
+    'category', 'attachment', 'userProgress', 'stripeCustomer',
     'passwordResetToken', 'twoFactorToken', 'twoFactorConfirmation',
     'verificationToken', 'account', 'session', 'aiGeneratedContent',
     'courseReview', 'group', 'question', 'questionOption', 'exam',
@@ -19,7 +19,14 @@ const mockPrismaClient = () => {
     'courseProgress', 'moduleProgress', 'userAnswer', 'examResult',
     'certificate', 'badge', 'achievement', 'learningPath',
     'discussionThread', 'discussionPost', 'annotation', 'bookmark',
-    'flashcard', 'studyGroup', 'assignment', 'submission'
+    'flashcard', 'studyGroup', 'assignment', 'submission',
+    // Auth-related models
+    'adminAccount', 'loginAttempt', 'userSession', 'trustedDevice',
+    // SAM-related models
+    'samGoal', 'samSubGoal', 'samPlan', 'samToolExecution', 'samMemory',
+    'samBehaviorEvent', 'samPattern', 'samIntervention', 'samCheckIn',
+    // Study plan models
+    'studyPlan', 'studyPlanTask', 'coursePlan', 'post', 'courseCategory'
   ];
   
   const client = {};

@@ -407,11 +407,19 @@ jest.mock('@prisma/client/runtime/library', () => ({
 const createMockPrismaClient = () => {
   const models = [
     'user', 'course', 'enrollment', 'purchase', 'chapter', 'section',
-    'category', 'attachment', 'userProgress', 'stripeCustomer', 
+    'category', 'attachment', 'userProgress', 'stripeCustomer',
     'passwordResetToken', 'twoFactorToken', 'twoFactorConfirmation',
     'verificationToken', 'account', 'session', 'aiGeneratedContent',
     'courseReview', 'group', 'question', 'questionOption', 'exam',
     'courseCompletionAnalytics', 'courseBloomsAnalysis',
+    // Auth-related models
+    'adminAccount', 'auditLog', 'loginAttempt', 'userSession', 'trustedDevice',
+    // SAM-related models
+    'samGoal', 'samSubGoal', 'samPlan', 'samToolExecution', 'samMemory',
+    'samBehaviorEvent', 'samPattern', 'samIntervention', 'samCheckIn',
+    // Additional models
+    'post', 'notification', 'studyPlan', 'studyPlanTask', 'courseCategory',
+    'coursePlan',
   ];
   
   const mockClient = {};
