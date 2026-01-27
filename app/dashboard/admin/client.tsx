@@ -13,10 +13,10 @@ import {
   BookOpen,
   DollarSign,
   Calendar,
-  CheckCircle, 
-  XCircle, 
-  BarChart3, 
-  MessageSquare, 
+  CheckCircle,
+  XCircle,
+  BarChart3,
+  MessageSquare,
   ArrowUpRight,
   LucideIcon
 } from "lucide-react";
@@ -28,6 +28,57 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { logger } from '@/lib/logger';
+
+// Type definitions for admin dashboard data
+interface AuthProvider {
+  provider: string;
+  _count: {
+    provider: number;
+  };
+}
+
+interface UserGrowthEntry {
+  month: number;
+  year: number;
+  count: number;
+}
+
+interface RecentUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role?: string;
+  image?: string | null;
+  isTeacher: boolean;
+  createdAt: string;
+  emailVerified: string | null;
+}
+
+interface UsersStats {
+  totalUsers: number;
+  lastMonthUsers: number;
+  lastWeekUsers: number;
+  verifiedUsers: number;
+  unverifiedUsers: number;
+  monthlyGrowthRate: number;
+  weeklyGrowthRate: number;
+  verificationRate: number;
+}
+
+interface AdditionalStats {
+  totalCourses: number;
+  totalGroups: number;
+  totalResources: number;
+  totalMessages: number;
+}
+
+interface DashboardData {
+  usersStats: UsersStats;
+  authProviders: AuthProvider[];
+  userGrowth: UserGrowthEntry[];
+  recentUsers: RecentUser[];
+  additionalStats: AdditionalStats;
+}
 
 // Client components for charts
 import { 
@@ -44,7 +95,7 @@ import { EnterpriseIntelligenceDashboard } from "@/components/admin/enterprise-i
 import { MFAStatusAlert } from "./mfa-status-alert";
 
 export function ClientAdminDashboard() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,8 +132,8 @@ export function ClientAdminDashboard() {
           recentUsers,
           additionalStats,
         });
-      } catch (error: any) {
-        logger.error("Error fetching admin data:", error);
+      } catch (error) {
+        logger.error("Error fetching admin data:", error instanceof Error ? error.message : String(error));
       } finally {
         setLoading(false);
       }
@@ -157,16 +208,16 @@ export function ClientAdminDashboard() {
 
   if (data) {
     const { usersStats, authProviders, userGrowth, recentUsers, additionalStats } = data;
-    
+
     // Format data for charts
     const authProvidersData = [
-      { name: "Email/Password", value: usersStats.totalUsers - authProviders.reduce((sum: number, p: any) => sum + p._count.provider, 0) },
-      ...authProviders.map((p: any) => ({ name: p.provider, value: p._count.provider }))
+      { name: "Email/Password", value: usersStats.totalUsers - authProviders.reduce((sum, p) => sum + p._count.provider, 0) },
+      ...authProviders.map((p) => ({ name: p.provider, value: p._count.provider }))
     ];
-    
+
     const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f472b6', '#f59e0b'];
-    
-    const formatUserGrowth = userGrowth.map((entry: any) => ({
+
+    const formatUserGrowth = userGrowth.map((entry) => ({
       month: `${entry.month}/${entry.year}`,
       users: entry.count
     }));
@@ -209,13 +260,13 @@ export function ClientAdminDashboard() {
                     <p className="text-muted-foreground">Loading user growth data...</p>
                   </div>
                 ) : data ? (
-                  <ClientAreaChart 
-                    data={data.userGrowth.map((entry: any) => ({
+                  <ClientAreaChart
+                    data={data.userGrowth.map((entry) => ({
                       month: `${entry.month}/${entry.year}`,
                       users: entry.count
-                    }))} 
-                    xDataKey="month" 
-                    areaDataKey="users" 
+                    }))}
+                    xDataKey="month"
+                    areaDataKey="users"
                     color="#8b5cf6"
                   />
                 ) : (
@@ -234,12 +285,12 @@ export function ClientAdminDashboard() {
                     <p className="text-muted-foreground">Loading authentication data...</p>
                   </div>
                 ) : data ? (
-                  <ClientPieChart 
+                  <ClientPieChart
                     data={[
-                      { name: "Email/Password", value: data.usersStats.totalUsers - data.authProviders.reduce((sum: number, p: any) => sum + p._count.provider, 0) },
-                      ...data.authProviders.map((p: any) => ({ name: p.provider, value: p._count.provider }))
-                    ]} 
-                    colors={['#8b5cf6', '#3b82f6', '#10b981', '#f472b6', '#f59e0b']} 
+                      { name: "Email/Password", value: data.usersStats.totalUsers - data.authProviders.reduce((sum, p) => sum + p._count.provider, 0) },
+                      ...data.authProviders.map((p) => ({ name: p.provider, value: p._count.provider }))
+                    ]}
+                    colors={['#8b5cf6', '#3b82f6', '#10b981', '#f472b6', '#f59e0b']}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full">
@@ -279,7 +330,7 @@ export function ClientAdminDashboard() {
                       </td>
                     </tr>
                   ) : data?.recentUsers ? (
-                    data.recentUsers.map((user: any) => (
+                    data.recentUsers.map((user) => (
                       <tr key={user.id} className="border-b hover:bg-muted/50">
                         <td className="py-3">
                           <div className="flex items-center gap-3">

@@ -23,7 +23,8 @@ import {
   AlertCircle,
   RefreshCw,
   Download,
-  Shield
+  Shield,
+  LucideIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -81,9 +82,12 @@ interface DashboardData {
   };
   metadata?: {
     lastUpdated: string;
-    appliedFilters: any;
+    appliedFilters: Record<string, unknown>;
   };
 }
+
+// Time range type for dashboard filters
+type TimeRange = 'day' | 'week' | 'month' | 'quarter' | 'year' | 'all';
 
 export function SecureClientAdminDashboard() {
   const router = useRouter();
@@ -91,15 +95,15 @@ export function SecureClientAdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [timeRange, setTimeRange] = useState<string>("all");
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   // Secure data fetching with error handling
   const fetchData = useCallback(async (showRefreshIndicator = false) => {
     try {
       if (showRefreshIndicator) setRefreshing(true);
-      
-      const result = await getAdminDashboardDataSecure({ timeRange: timeRange as any });
+
+      const result = await getAdminDashboardDataSecure({ timeRange });
       
       if (!result.success) {
         throw new Error(result.error || "Failed to fetch data");
@@ -472,17 +476,17 @@ export function SecureClientAdminDashboard() {
 }
 
 // Stats card component with improved styling
-function StatsCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  color, 
-  change, 
-  positive 
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+  change,
+  positive
 }: {
   title: string;
   value: string;
-  icon: any;
+  icon: LucideIcon;
   color: string;
   change: string;
   positive: boolean;
@@ -512,15 +516,15 @@ function StatsCard({
 }
 
 // Content stats card component
-function ContentStatsCard({ 
-  title, 
-  value, 
-  icon: Icon, 
-  color 
+function ContentStatsCard({
+  title,
+  value,
+  icon: Icon,
+  color
 }: {
   title: string;
   value: number;
-  icon: any;
+  icon: LucideIcon;
   color: string;
 }) {
   return (

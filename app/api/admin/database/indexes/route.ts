@@ -3,6 +3,30 @@ import { adminAuth } from "@/auth.admin";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
+// Type definitions for raw SQL query results
+interface IndexInfo {
+  schemaname: string;
+  tablename: string;
+  indexname: string;
+  indexdef: string;
+}
+
+interface SlowQuery {
+  query: string;
+  calls: bigint;
+  total_time: number;
+  mean_time: number;
+  rows: bigint;
+}
+
+interface UnusedIndex {
+  schemaname: string;
+  table_name: string;
+  index_name: string;
+  idx_tup_read: bigint;
+  idx_tup_fetch: bigint;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await adminAuth();
@@ -101,16 +125,16 @@ async function createPerformanceIndexes() {
 
 async function getCurrentIndexes() {
   try {
-    const indexes = await db.$queryRaw`
-      SELECT 
+    const indexes = await db.$queryRaw<IndexInfo[]>`
+      SELECT
         schemaname,
         tablename,
         indexname,
         indexdef
-      FROM pg_indexes 
+      FROM pg_indexes
       WHERE schemaname = 'public'
       ORDER BY tablename, indexname
-    ` as any;
+    `;
 
     return indexes;
   } catch (error) {
@@ -122,32 +146,32 @@ async function getCurrentIndexes() {
 async function analyzeMissingIndexes() {
   try {
     // Analyze query patterns and suggest missing indexes
-    const slowQueries = await db.$queryRaw`
-      SELECT 
+    const slowQueries = await db.$queryRaw<SlowQuery[]>`
+      SELECT
         query,
         calls,
         total_time,
         mean_time,
         rows
-      FROM pg_stat_statements 
+      FROM pg_stat_statements
       WHERE mean_time > 100
       ORDER BY mean_time DESC
       LIMIT 10
-    ` as any;
+    `;
 
     // Check for unused indexes
-    const unusedIndexes = await db.$queryRaw`
-      SELECT 
+    const unusedIndexes = await db.$queryRaw<UnusedIndex[]>`
+      SELECT
         schemaname,
         relname as table_name,
         indexrelname as index_name,
         idx_tup_read,
         idx_tup_fetch
-      FROM pg_stat_user_indexes 
-      WHERE idx_tup_read = 0 
+      FROM pg_stat_user_indexes
+      WHERE idx_tup_read = 0
       AND idx_tup_fetch = 0
       AND schemaname = 'public'
-    ` as any;
+    `;
 
     return {
       slowQueries,

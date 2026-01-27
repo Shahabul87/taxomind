@@ -49,6 +49,13 @@ const acceptInvitationSchema = z.object({
   password: z.string().min(8),
 });
 
+// Inferred types from schemas
+type CreateFirstAdminInput = z.infer<typeof createFirstAdminSchema> & { action: string };
+type PromoteUserInput = z.infer<typeof promoteUserSchema> & { action: string };
+type DemoteAdminInput = z.infer<typeof demoteAdminSchema> & { action: string };
+type CreateInvitationInput = z.infer<typeof createInvitationSchema> & { action: string };
+type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema> & { action: string };
+
 /**
  * GET /api/admin/create
  * Check if system needs initial admin and get admin stats
@@ -132,7 +139,7 @@ export async function POST(req: NextRequest) {
 /**
  * Handle first admin creation (no auth required)
  */
-async function handleCreateFirstAdmin(body: any) {
+async function handleCreateFirstAdmin(body: CreateFirstAdminInput) {
   // Check if we already have an admin
   const hasAdmin = !(await needsInitialAdmin());
   if (hasAdmin) {
@@ -174,7 +181,7 @@ async function handleCreateFirstAdmin(body: any) {
 /**
  * Handle user promotion to admin (requires admin auth)
  */
-async function handlePromoteUser(req: NextRequest, body: any) {
+async function handlePromoteUser(req: NextRequest, body: PromoteUserInput) {
   const session = await adminAuth();
   
   if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
@@ -216,7 +223,7 @@ async function handlePromoteUser(req: NextRequest, body: any) {
 /**
  * Handle admin demotion (requires admin auth)
  */
-async function handleDemoteAdmin(req: NextRequest, body: any) {
+async function handleDemoteAdmin(req: NextRequest, body: DemoteAdminInput) {
   const session = await adminAuth();
   
   if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
@@ -258,7 +265,7 @@ async function handleDemoteAdmin(req: NextRequest, body: any) {
 /**
  * Handle admin invitation creation (requires admin auth)
  */
-async function handleCreateInvitation(req: NextRequest, body: any) {
+async function handleCreateInvitation(req: NextRequest, body: CreateInvitationInput) {
   const session = await adminAuth();
   
   if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
@@ -305,7 +312,7 @@ async function handleCreateInvitation(req: NextRequest, body: any) {
 /**
  * Handle admin invitation acceptance (no auth required)
  */
-async function handleAcceptInvitation(body: any) {
+async function handleAcceptInvitation(body: AcceptInvitationInput) {
   const validation = acceptInvitationSchema.safeParse(body);
   
   if (!validation.success) {

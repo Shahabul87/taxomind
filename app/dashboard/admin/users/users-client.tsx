@@ -123,6 +123,36 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     isAccountLocked: false,
   });
 
+  // Refresh users from API (replaces window.location.reload)
+  const refreshUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/admin/users?limit=100");
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setUsers(data.data || []);
+        // Update stats based on refreshed data
+        const refreshedUsers = data.data || [];
+        setStats({
+          total: refreshedUsers.length,
+          active: refreshedUsers.filter((u: UserData) => u.status === "Active").length,
+          instructors: 0, // This would need to come from API
+          newToday: 0, // This would need to come from API
+        });
+      }
+    } catch (err) {
+      console.error("Failed to refresh users:", err);
+      toast({
+        title: "Warning",
+        description: "Failed to refresh user list. Please refresh the page manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
   // Filter users based on search and filters
   useEffect(() => {
     let filtered = [...users];
@@ -148,13 +178,13 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   }, [searchQuery, filterStatus, users]);
 
   // Handle view user details
-  const handleViewUser = (user: UserData) => {
+  const handleViewUser = useCallback((user: UserData) => {
     setSelectedUser(user);
     setViewDialogOpen(true);
-  };
+  }, []);
 
   // Handle edit user
-  const handleEditUser = (user: UserData) => {
+  const handleEditUser = useCallback((user: UserData) => {
     setSelectedUser(user);
     setEditForm({
       name: user.name || "",
@@ -164,10 +194,10 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
       isAccountLocked: user.isAccountLocked,
     });
     setEditDialogOpen(true);
-  };
+  }, []);
 
   // Handle save edit
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = useCallback(async () => {
     if (!selectedUser) return;
 
     try {
@@ -261,8 +291,9 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
       });
 
       setEditDialogOpen(false);
-      // Refresh page to get updated data
-      window.location.reload();
+      setSelectedUser(null);
+      // Refresh users list without page reload
+      await refreshUsers();
     } catch (err) {
       toast({
         title: "Error",
@@ -272,10 +303,10 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedUser, editForm, refreshUsers, toast]);
 
   // Handle user actions (suspend/activate)
-  const handleUserAction = async (userId: string, action: string) => {
+  const handleUserAction = useCallback(async (userId: string, action: string) => {
     try {
       const response = await fetch("/api/admin/users", {
         method: "PATCH",
@@ -296,8 +327,8 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
         description: `User ${action}d successfully`,
       });
 
-      // Refresh page to get updated data
-      window.location.reload();
+      // Refresh users list without page reload
+      await refreshUsers();
     } catch (err) {
       toast({
         title: "Error",
@@ -305,16 +336,16 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
         variant: "destructive",
       });
     }
-  };
+  }, [refreshUsers, toast]);
 
   // Open delete confirmation dialog
-  const handleDeleteClick = (user: UserData) => {
+  const handleDeleteClick = useCallback((user: UserData) => {
     setUserToDelete(user);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Confirm and execute delete
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = useCallback(async () => {
     if (!userToDelete) return;
 
     try {
@@ -341,8 +372,8 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
       setDeleteDialogOpen(false);
       setUserToDelete(null);
 
-      // Refresh page to get updated data
-      window.location.reload();
+      // Refresh users list without page reload
+      await refreshUsers();
     } catch (err) {
       toast({
         title: "Error",
@@ -353,9 +384,10 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userToDelete, refreshUsers, toast]);
 
-  const getStatusColor = (status: string) => {
+  // Get status badge color
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case "Active":
         return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
@@ -366,7 +398,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
     }
-  };
+  }, []);
 
   // getRoleColor removed - users no longer have roles
 
@@ -580,6 +612,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 shrink-0 text-slate-500 dark:text-slate-400"
+                                aria-label="User actions menu"
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
@@ -801,6 +834,7 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                               variant="ghost"
                               size="icon"
                               className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors duration-200"
+                              aria-label="User actions menu"
                             >
                               <MoreVertical className="h-4 w-4" />
                             </Button>
@@ -1334,8 +1368,8 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
           onSuccess={() => {
-            // Refresh users list
-            window.location.reload();
+            // Refresh users list without page reload
+            refreshUsers();
           }}
         />
       </div>

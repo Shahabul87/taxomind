@@ -30,10 +30,13 @@ export const GET = withAdminAuth(async (request, context) => {
       generatedAt: new Date().toISOString(),
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Security alerts API error:', error);
     return NextResponse.json(
-      { error: 'Failed to retrieve security alerts', details: error.message },
+      {
+        error: 'Failed to retrieve security alerts',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
@@ -76,10 +79,13 @@ export const POST = withAdminAuth(async (request, context) => {
         );
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Security action API error:', error);
     return NextResponse.json(
-      { error: 'Failed to execute security action', details: error.message },
+      {
+        error: 'Failed to execute security action',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

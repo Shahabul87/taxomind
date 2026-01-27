@@ -102,10 +102,13 @@ export const GET = withAdminAuth(async (request, context) => {
       generatedAt: new Date().toISOString(),
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Audit dashboard API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch audit dashboard data', details: error.message },
+      {
+        error: 'Failed to fetch audit dashboard data',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
@@ -156,10 +159,13 @@ export const POST = withAdminAuth(async (request, context) => {
         );
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Audit dashboard action error:', error);
     return NextResponse.json(
-      { error: 'Failed to execute audit action', details: error.message },
+      {
+        error: 'Failed to execute audit action',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

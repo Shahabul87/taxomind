@@ -5,7 +5,7 @@ import { withRole } from "@/lib/api-protection";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
-// Input validation schema
+// Input validation schema for GET
 const GetUsersSchema = z.object({
   search: z.string().optional(),
   userType: z.enum(["all", "teacher", "user"]).optional().default("all"),
@@ -14,6 +14,31 @@ const GetUsersSchema = z.object({
   limit: z.number().min(1).max(100).optional().default(10),
   sortBy: z.enum(["createdAt", "name", "email", "lastLoginAt"]).optional().default("createdAt"),
   sortOrder: z.enum(["asc", "desc"]).optional().default("desc"),
+});
+
+// Input validation schema for PATCH
+const PatchUserSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  isTeacher: z.boolean().optional(),
+  action: z.enum([
+    "update",
+    "suspend",
+    "activate",
+    "reset-password",
+    "enable-2fa",
+    "disable-2fa",
+    "verify-email"
+  ]).optional(),
+  data: z.object({
+    name: z.string().min(1).optional(),
+    email: z.string().email("Invalid email format").optional(),
+    isTeacher: z.boolean().optional(),
+  }).optional(),
+});
+
+// Input validation schema for DELETE
+const DeleteUserSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
 });
 
 // Response type
@@ -255,20 +280,29 @@ export const GET = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
 export const PATCH = withRole(AdminRole.ADMIN, async (request: NextRequest) => {
   try {
     const body = await request.json();
-    const { userId, isTeacher, action, data } = body;
 
-    if (!userId) {
+    // Validate input with Zod
+    const validationResult = PatchUserSchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "VALIDATION_ERROR",
-            message: "User ID is required"
-          }
+            message: "Invalid input parameters",
+            details: validationResult.error.errors,
+          },
+          metadata: {
+            timestamp: new Date().toISOString(),
+            requestId: crypto.randomUUID(),
+            version: "1.0.0",
+          },
         },
         { status: 400 }
       );
     }
+
+    const { userId, isTeacher, action, data } = validationResult.data;
 
     // Check if user exists
     const user = await db.user.findUnique({
@@ -427,16 +461,17 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
       hasUserId: !!body.userId
     });
 
-    const { userId } = body;
-
-    if (!userId) {
-      console.log(`[DELETE /api/admin/users] [${requestId}] VALIDATION_ERROR: Missing userId`);
+    // Validate input with Zod
+    const validationResult = DeleteUserSchema.safeParse(body);
+    if (!validationResult.success) {
+      console.log(`[DELETE /api/admin/users] [${requestId}] VALIDATION_ERROR:`, validationResult.error.errors);
       return NextResponse.json(
         {
           success: false,
           error: {
             code: "VALIDATION_ERROR",
-            message: "User ID is required",
+            message: "Invalid input parameters",
+            details: validationResult.error.errors,
           },
           metadata: {
             timestamp: new Date().toISOString(),
@@ -447,6 +482,8 @@ export const DELETE = withRole(AdminRole.ADMIN, async (request: NextRequest) => 
         { status: 400 }
       );
     }
+
+    const { userId } = validationResult.data;
 
     console.log(`[DELETE /api/admin/users] [${requestId}] Fetching user from database:`, userId);
 

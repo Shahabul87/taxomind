@@ -4,6 +4,35 @@ import { db } from "@/lib/db";
 import { QueryPerformanceMonitor } from "@/lib/database/query-optimizer";
 import { logger } from '@/lib/logger';
 
+// Type definitions for raw SQL query results
+interface ConnectionMetrics {
+  active_connections: number;
+  idle_connections: number;
+  total_connections: number;
+  max_connections: number;
+}
+
+interface TableStats {
+  schemaname: string;
+  table_name: string;
+  inserts: bigint;
+  updates: bigint;
+  deletes: bigint;
+  live_tuples: bigint;
+  dead_tuples: bigint;
+  last_vacuum: Date | null;
+  last_autovacuum: Date | null;
+  last_analyze: Date | null;
+  last_autoanalyze: Date | null;
+}
+
+interface TableSize {
+  schemaname: string;
+  table_name: string;
+  size: string;
+  size_bytes: bigint;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await adminAuth();
@@ -68,16 +97,16 @@ export async function GET(request: NextRequest) {
 async function getDatabaseMetrics() {
   try {
     // Get database connection and performance info
-    const result = await db.$queryRaw`
-      SELECT 
+    const result = await db.$queryRaw<ConnectionMetrics[]>`
+      SELECT
         (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_connections,
         (SELECT count(*) FROM pg_stat_activity WHERE state = 'idle') as idle_connections,
         (SELECT count(*) FROM pg_stat_activity) as total_connections,
         (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') as max_connections
-    ` as any;
+    `;
 
-    const stats = await db.$queryRaw`
-      SELECT 
+    const stats = await db.$queryRaw<TableStats[]>`
+      SELECT
         schemaname,
         relname as table_name,
         n_tup_ins as inserts,
@@ -89,10 +118,10 @@ async function getDatabaseMetrics() {
         last_autovacuum,
         last_analyze,
         last_autoanalyze
-      FROM pg_stat_user_tables 
+      FROM pg_stat_user_tables
       ORDER BY n_live_tup DESC
       LIMIT 20
-    ` as any;
+    `;
 
     return {
       connections: result[0],
@@ -106,17 +135,17 @@ async function getDatabaseMetrics() {
 
 async function getTableSizes() {
   try {
-    const sizes = await db.$queryRaw`
-      SELECT 
+    const sizes = await db.$queryRaw<TableSize[]>`
+      SELECT
         schemaname,
         tablename as table_name,
         pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size,
         pg_total_relation_size(schemaname||'.'||tablename) as size_bytes
-      FROM pg_tables 
+      FROM pg_tables
       WHERE schemaname = 'public'
       ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
       LIMIT 20
-    ` as any;
+    `;
 
     return sizes;
   } catch (error) {
