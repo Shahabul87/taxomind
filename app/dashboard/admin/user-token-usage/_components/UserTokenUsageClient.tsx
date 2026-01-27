@@ -50,6 +50,11 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Settings,
+  RotateCcw,
+  Save,
+  X,
+  Pencil,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -114,6 +119,20 @@ interface Pagination {
   totalItems: number;
   totalPages: number;
   hasMore: boolean;
+}
+
+// AI Settings types for admin management
+interface UserAISettings {
+  userId: string;
+  dailyAiUsageCount: number;
+  monthlyAiUsageCount: number;
+  customDailyLimit: number | null;
+  customMonthlyLimit: number | null;
+  tierDailyLimit: number;
+  tierMonthlyLimit: number;
+  preferredProvider: string | null;
+  subscriptionTier: SubscriptionTier;
+  lastUpdated: string | null;
 }
 
 interface ApiResponse {
@@ -217,6 +236,18 @@ export function UserTokenUsageClient() {
   // User detail modal
   const [selectedUser, setSelectedUser] = useState<UserTokenUsage | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+
+  // AI Settings management state
+  const [aiSettings, setAiSettings] = useState<UserAISettings | null>(null);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null);
+
+  // Form state for editing
+  const [formDailyLimit, setFormDailyLimit] = useState<string>("");
+  const [formMonthlyLimit, setFormMonthlyLimit] = useState<string>("");
 
   // Use ref to track current request and prevent race conditions
   const requestIdRef = useRef(0);
@@ -353,6 +384,127 @@ export function UserTokenUsageClient() {
       setSortOrder("desc");
     }
   };
+
+  // Fetch AI settings for selected user
+  const fetchAISettings = useCallback(async (userId: string) => {
+    setIsLoadingSettings(true);
+    setSettingsError(null);
+    setSettingsSuccess(null);
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/ai-settings`);
+      const result = await response.json();
+
+      if (result.success) {
+        setAiSettings(result.data);
+        // Initialize form values
+        setFormDailyLimit(result.data.customDailyLimit?.toString() ?? "");
+        setFormMonthlyLimit(result.data.customMonthlyLimit?.toString() ?? "");
+      } else {
+        setSettingsError(result.error?.message || "Failed to fetch AI settings");
+      }
+    } catch {
+      setSettingsError("Failed to fetch AI settings");
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  }, []);
+
+  // Update AI settings
+  const updateAISettings = async (updates: {
+    customDailyLimit?: number | null;
+    customMonthlyLimit?: number | null;
+    resetDailyUsage?: boolean;
+    resetMonthlyUsage?: boolean;
+  }) => {
+    if (!selectedUser) return;
+
+    setIsSavingSettings(true);
+    setSettingsError(null);
+    setSettingsSuccess(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/users/${selectedUser.id}/ai-settings`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        }
+      );
+      const result = await response.json();
+
+      if (result.success) {
+        setAiSettings(result.data);
+        setSettingsSuccess(result.message || "Settings updated successfully");
+        setIsEditingSettings(false);
+        // Refresh the user list to show updated values
+        fetchData(false);
+      } else {
+        setSettingsError(result.error?.message || "Failed to update settings");
+      }
+    } catch {
+      setSettingsError("Failed to update settings");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  // Handle save settings
+  const handleSaveSettings = () => {
+    const dailyLimit = formDailyLimit.trim() === "" ? null : parseInt(formDailyLimit, 10);
+    const monthlyLimit = formMonthlyLimit.trim() === "" ? null : parseInt(formMonthlyLimit, 10);
+
+    // Validate inputs
+    if (dailyLimit !== null && (isNaN(dailyLimit) || dailyLimit < 0)) {
+      setSettingsError("Daily limit must be a positive number or empty");
+      return;
+    }
+    if (monthlyLimit !== null && (isNaN(monthlyLimit) || monthlyLimit < 0)) {
+      setSettingsError("Monthly limit must be a positive number or empty");
+      return;
+    }
+
+    updateAISettings({
+      customDailyLimit: dailyLimit,
+      customMonthlyLimit: monthlyLimit,
+    });
+  };
+
+  // Handle reset usage
+  const handleResetDailyUsage = () => {
+    if (confirm("Are you sure you want to reset this user's daily usage to 0?")) {
+      updateAISettings({ resetDailyUsage: true });
+    }
+  };
+
+  const handleResetMonthlyUsage = () => {
+    if (confirm("Are you sure you want to reset this user's monthly usage to 0?")) {
+      updateAISettings({ resetMonthlyUsage: true });
+    }
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setIsEditingSettings(false);
+    setSettingsError(null);
+    // Reset form to current values
+    setFormDailyLimit(aiSettings?.customDailyLimit?.toString() ?? "");
+    setFormMonthlyLimit(aiSettings?.customMonthlyLimit?.toString() ?? "");
+  };
+
+  // Effect to fetch AI settings when user modal opens
+  useEffect(() => {
+    if (isUserModalOpen && selectedUser) {
+      fetchAISettings(selectedUser.id);
+    } else {
+      // Reset states when modal closes
+      setAiSettings(null);
+      setIsEditingSettings(false);
+      setSettingsError(null);
+      setSettingsSuccess(null);
+    }
+  }, [isUserModalOpen, selectedUser, fetchAISettings]);
 
   // Calculate chart heights for bar charts
   const maxGenerations = data
@@ -1069,6 +1221,229 @@ export function UserTokenUsageClient() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* AI Settings Management Section */}
+                <div className="border-t border-slate-200 pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg">
+                        <Settings className="h-4 w-4 text-white" />
+                      </div>
+                      <h4 className="font-medium text-slate-900">AI Settings Management</h4>
+                    </div>
+                    {!isEditingSettings && !isLoadingSettings && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditingSettings(true)}
+                        className="gap-1"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Loading state */}
+                  {isLoadingSettings && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
+                      <span className="ml-2 text-slate-600">Loading settings...</span>
+                    </div>
+                  )}
+
+                  {/* Error/Success messages */}
+                  {settingsError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      {settingsError}
+                    </div>
+                  )}
+                  {settingsSuccess && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700 text-sm">
+                      <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                      {settingsSuccess}
+                    </div>
+                  )}
+
+                  {/* Settings content */}
+                  {!isLoadingSettings && aiSettings && (
+                    <div className="space-y-4">
+                      {/* Current Usage with Progress Bars */}
+                      <div className="bg-slate-50 rounded-lg p-4 space-y-4">
+                        <h5 className="text-sm font-medium text-slate-700">Current Usage</h5>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-600">Daily</span>
+                              <span className="font-medium">
+                                {aiSettings.dailyAiUsageCount} / {aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit}
+                              </span>
+                            </div>
+                            <Progress
+                              value={
+                                (aiSettings.dailyAiUsageCount /
+                                  (aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit)) *
+                                100
+                              }
+                              className="h-2"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-600">Monthly</span>
+                              <span className="font-medium">
+                                {aiSettings.monthlyAiUsageCount} / {aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit}
+                              </span>
+                            </div>
+                            <Progress
+                              value={
+                                (aiSettings.monthlyAiUsageCount /
+                                  (aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit)) *
+                                100
+                              }
+                              className="h-2"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tier Default Limits (Read-only info) */}
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <h5 className="text-sm font-medium text-blue-700 mb-2">
+                          Tier Default Limits ({aiSettings.subscriptionTier})
+                        </h5>
+                        <div className="flex gap-6 text-sm">
+                          <div>
+                            <span className="text-blue-600">Daily:</span>{" "}
+                            <span className="font-medium text-blue-900">{aiSettings.tierDailyLimit}</span>
+                          </div>
+                          <div>
+                            <span className="text-blue-600">Monthly:</span>{" "}
+                            <span className="font-medium text-blue-900">{aiSettings.tierMonthlyLimit}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Editable Custom Limits */}
+                      {isEditingSettings ? (
+                        <div className="bg-purple-50 rounded-lg p-4 space-y-4">
+                          <h5 className="text-sm font-medium text-purple-700">Custom Overrides</h5>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-sm text-purple-600">
+                                Custom Daily Limit
+                              </label>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="Empty = use tier default"
+                                value={formDailyLimit}
+                                onChange={(e) => setFormDailyLimit(e.target.value)}
+                                className="bg-white"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm text-purple-600">
+                                Custom Monthly Limit
+                              </label>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="Empty = use tier default"
+                                value={formMonthlyLimit}
+                                onChange={(e) => setFormMonthlyLimit(e.target.value)}
+                                className="bg-white"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-purple-500">
+                            Leave empty to use tier defaults. Set a value to override.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="bg-purple-50 rounded-lg p-4">
+                          <h5 className="text-sm font-medium text-purple-700 mb-2">Custom Overrides</h5>
+                          <div className="flex gap-6 text-sm">
+                            <div>
+                              <span className="text-purple-600">Daily:</span>{" "}
+                              <span className="font-medium text-purple-900">
+                                {aiSettings.customDailyLimit ?? "Using tier default"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-purple-600">Monthly:</span>{" "}
+                              <span className="font-medium text-purple-900">
+                                {aiSettings.customMonthlyLimit ?? "Using tier default"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Reset Buttons */}
+                      {isEditingSettings && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleResetDailyUsage}
+                            disabled={isSavingSettings}
+                            className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Reset Daily Usage
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleResetMonthlyUsage}
+                            disabled={isSavingSettings}
+                            className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Reset Monthly Usage
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Save/Cancel Buttons */}
+                      {isEditingSettings && (
+                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleCancelEdit}
+                            disabled={isSavingSettings}
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveSettings}
+                            disabled={isSavingSettings}
+                            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
+                          >
+                            {isSavingSettings ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <Save className="h-3 w-3 mr-1" />
+                            )}
+                            Save Changes
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Last Updated */}
+                      {aiSettings.lastUpdated && (
+                        <p className="text-xs text-slate-400 text-right">
+                          Last updated: {formatDate(aiSettings.lastUpdated)}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
