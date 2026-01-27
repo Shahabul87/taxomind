@@ -421,12 +421,98 @@ export function QualityMetricsPanel({
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setMetrics(result.data);
+        if (result.success && result.data) {
+          // Map API response to component's expected QualityMetrics interface
+          const apiData = result.data;
+
+          // Build dimensions from available data
+          const dimensions: QualityDimension[] = [];
+
+          if (apiData.calibration) {
+            dimensions.push({
+              name: 'Calibration Accuracy',
+              score: Math.round((1 - (apiData.calibration.calibrationError || 0)) * 100),
+              category: 'accuracy',
+              description: `Brier score: ${(apiData.calibration.brierScore || 0).toFixed(3)}`,
+              trend: 'stable',
+            });
+          }
+
+          if (apiData.memory) {
+            dimensions.push({
+              name: 'Memory Relevance',
+              score: Math.round((apiData.memory.avgRelevanceScore || 0) * 100),
+              category: 'relevance',
+              description: `${apiData.memory.searchCount || 0} searches, ${(apiData.memory.cacheHitRate || 0).toFixed(1)}% cache hit`,
+              trend: 'stable',
+            });
+          }
+
+          if (apiData.tools) {
+            dimensions.push({
+              name: 'Tool Success Rate',
+              score: Math.round((apiData.tools.successRate || 0) * 100),
+              category: 'helpfulness',
+              description: `${apiData.tools.executionCount || 0} executions, avg ${Math.round(apiData.tools.avgLatencyMs || 0)}ms`,
+              trend: 'stable',
+            });
+          }
+
+          // Build quality gates from summary
+          const qualityGates: QualityGate[] = [];
+          if (apiData.summary) {
+            qualityGates.push(
+              {
+                name: 'Calibration',
+                passed: (apiData.summary.calibrationScore || 0) >= 0.7,
+                passRate: (apiData.summary.calibrationScore || 0) * 100,
+                description: 'Confidence calibration accuracy',
+              },
+              {
+                name: 'Memory Quality',
+                passed: (apiData.summary.memoryScore || 0) >= 0.7,
+                passRate: (apiData.summary.memoryScore || 0) * 100,
+                description: 'Memory search relevance',
+              },
+              {
+                name: 'Tool Reliability',
+                passed: (apiData.summary.toolsScore || 0) >= 0.9,
+                passRate: (apiData.summary.toolsScore || 0) * 100,
+                description: 'Tool execution success rate',
+              }
+            );
+          }
+
+          // Build feedback summary (synthetic since API doesn't provide it)
+          const feedback: FeedbackSummary = {
+            totalFeedback: 0,
+            positiveCount: 0,
+            negativeCount: 0,
+            topPositiveReasons: [],
+            topNegativeReasons: [],
+          };
+
+          const mappedMetrics: QualityMetrics = {
+            overallScore: Math.round((apiData.summary?.overallQualityScore || 0) * 100),
+            trend: apiData.summary?.trend || 'stable',
+            trendPercentage: 0,
+            dimensions,
+            feedback,
+            qualityGates,
+            responseCount: apiData.tools?.executionCount || apiData.memory?.searchCount || 0,
+            lastUpdated: apiData.period?.end || new Date().toISOString(),
+          };
+
+          setMetrics(mappedMetrics);
+        } else {
+          setMetrics(null);
         }
+      } else {
+        setMetrics(null);
       }
     } catch (error) {
       console.error('[QualityMetricsPanel] Failed to fetch metrics:', error);
+      setMetrics(null);
     } finally {
       setIsLoading(false);
     }

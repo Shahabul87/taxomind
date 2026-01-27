@@ -341,11 +341,61 @@ export function ToolExecutionLog({
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data) {
-          setExecutions(result.data);
+          // API returns { executions: [], pagination: {} } - extract the executions array
+          const apiExecutions = Array.isArray(result.data.executions)
+            ? result.data.executions
+            : Array.isArray(result.data)
+              ? result.data
+              : [];
+
+          // Map API response to component's expected ToolExecution interface
+          const mappedExecutions: ToolExecution[] = apiExecutions.map((exec: {
+            executionId?: string;
+            id?: string;
+            toolName?: string;
+            toolType?: string;
+            status?: string;
+            input?: Record<string, unknown>;
+            output?: unknown;
+            error?: string | { message?: string };
+            durationMs?: number;
+            startedAt?: string;
+            completedAt?: string;
+            userId?: string;
+            sessionId?: string;
+            planId?: string;
+            metadata?: {
+              retryCount?: number;
+              cacheHit?: boolean;
+              costTokens?: number;
+            };
+          }) => ({
+            id: exec.executionId || exec.id || crypto.randomUUID(),
+            toolName: exec.toolName || 'Unknown Tool',
+            toolType: (exec.toolType as ToolExecution['toolType']) || 'query',
+            status: (exec.status?.toLowerCase() as ToolExecution['status']) || 'success',
+            input: exec.input || {},
+            output: exec.output,
+            error: typeof exec.error === 'string' ? exec.error : exec.error?.message,
+            durationMs: exec.durationMs || 0,
+            startedAt: exec.startedAt || new Date().toISOString(),
+            completedAt: exec.completedAt || new Date().toISOString(),
+            userId: exec.userId || userId || '',
+            sessionId: exec.sessionId || exec.planId || '',
+            metadata: exec.metadata,
+          }));
+
+          setExecutions(mappedExecutions);
+        } else {
+          // Ensure we always have an array even on failure
+          setExecutions([]);
         }
+      } else {
+        setExecutions([]);
       }
     } catch (error) {
       console.error('[ToolExecutionLog] Failed to fetch executions:', error);
+      setExecutions([]);
     } finally {
       setIsLoading(false);
     }
@@ -360,9 +410,12 @@ export function ToolExecutionLog({
     }
   }, [fetchExecutions, refreshInterval]);
 
-  // Filter executions
+  // Filter executions - with defensive array check
   const filteredExecutions = useMemo(() => {
-    return executions.filter((exec) => {
+    // Ensure executions is always an array
+    const safeExecutions = Array.isArray(executions) ? executions : [];
+
+    return safeExecutions.filter((exec) => {
       // Search filter
       if (
         searchQuery &&
@@ -385,16 +438,19 @@ export function ToolExecutionLog({
     });
   }, [executions, searchQuery, statusFilter, typeFilter]);
 
-  // Stats
+  // Stats - with defensive array check
   const stats = useMemo(() => {
-    const success = executions.filter((e) => e.status === 'success').length;
-    const failed = executions.filter((e) => e.status === 'failed').length;
+    // Ensure executions is always an array
+    const safeExecutions = Array.isArray(executions) ? executions : [];
+
+    const success = safeExecutions.filter((e) => e.status === 'success').length;
+    const failed = safeExecutions.filter((e) => e.status === 'failed').length;
     const avgDuration =
-      executions.length > 0
-        ? executions.reduce((acc, e) => acc + e.durationMs, 0) / executions.length
+      safeExecutions.length > 0
+        ? safeExecutions.reduce((acc, e) => acc + e.durationMs, 0) / safeExecutions.length
         : 0;
 
-    return { total: executions.length, success, failed, avgDuration };
+    return { total: safeExecutions.length, success, failed, avgDuration };
   }, [executions]);
 
   // Export as JSON

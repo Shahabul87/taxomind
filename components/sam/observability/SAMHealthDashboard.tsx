@@ -428,18 +428,19 @@ export function SAMHealthDashboard({
     }
   }, [fetchHealth, refreshInterval]);
 
-  // Handle alert acknowledgment
+  // Handle alert acknowledgment - with defensive array check
   const handleAcknowledge = useCallback((alertId: string) => {
-    setHealth((prev) =>
-      prev
-        ? {
-            ...prev,
-            alerts: prev.alerts.map((a) =>
-              a.id === alertId ? { ...a, acknowledged: true } : a
-            ),
-          }
-        : null
-    );
+    setHealth((prev) => {
+      if (!prev) return null;
+      // Ensure alerts is always an array before mapping
+      const safeAlerts = Array.isArray(prev.alerts) ? prev.alerts : [];
+      return {
+        ...prev,
+        alerts: safeAlerts.map((a) =>
+          a.id === alertId ? { ...a, acknowledged: true } : a
+        ),
+      };
+    });
   }, []);
 
   // Count unacknowledged alerts
