@@ -1119,334 +1119,437 @@ export function UserTokenUsageClient() {
         </motion.div>
       </div>
 
-      {/* User Detail Modal */}
+      {/* User Detail Modal - Premium Design */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0">
           {selectedUser && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedUser.image || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-indigo-500 text-white">
-                      {(selectedUser.name || selectedUser.email || "U")[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold">
-                      {selectedUser.name || "Unknown User"}
-                    </div>
-                    <div className="text-sm text-slate-500 font-normal">
-                      {selectedUser.email || "No email"}
-                    </div>
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
-
-              <div className="space-y-6 mt-4">
-                {/* User Info */}
-                <div className="flex items-center gap-3">
-                  <Badge className={cn("font-medium", getTierColor(selectedUser.subscriptionTier))}>
-                    {selectedUser.subscriptionTier}
-                  </Badge>
-                  <div className="flex items-center gap-2">
-                    {getStatusIcon(selectedUser.status)}
-                    <span className="text-sm">{getStatusLabel(selectedUser.status)}</span>
-                  </div>
-                </div>
-
-                {/* Usage Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-slate-900">
-                      {formatNumber(selectedUser.totalTokens)}
-                    </div>
-                    <div className="text-xs text-slate-500">Total Tokens</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-slate-900">
-                      {formatNumber(selectedUser.totalGenerations)}
-                    </div>
-                    <div className="text-xs text-slate-500">Generations</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-slate-900">
-                      {formatCost(selectedUser.totalCost)}
-                    </div>
-                    <div className="text-xs text-slate-500">Total Cost</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-slate-900">
-                      {formatDate(selectedUser.lastUsageDate)}
-                    </div>
-                    <div className="text-xs text-slate-500">Last Activity</div>
-                  </div>
-                </div>
-
-                {/* Usage Limits */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-slate-900">Usage Limits</h4>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600">Daily Usage</span>
-                      <span className="font-medium">{selectedUser.dailyAiUsageCount}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-600">Monthly Usage</span>
-                      <span className="font-medium">{selectedUser.monthlyAiUsageCount}</span>
+            <div className="flex flex-col">
+              {/* Premium Header with Gradient */}
+              <div className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-6 pb-16">
+                <div className="absolute inset-0 bg-black/10" />
+                <div className="relative flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16 ring-4 ring-white/30 shadow-xl">
+                      <AvatarImage src={selectedUser.image || undefined} />
+                      <AvatarFallback className="bg-white/20 text-white text-xl font-bold backdrop-blur-sm">
+                        {(selectedUser.name || selectedUser.email || "U")[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">
+                        {selectedUser.name || "Unknown User"}
+                      </h2>
+                      <p className="text-white/80 text-sm">
+                        {selectedUser.email || "No email"}
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge className={cn(
+                          "font-semibold shadow-sm",
+                          selectedUser.subscriptionTier === "FREE" && "bg-slate-100 text-slate-700",
+                          selectedUser.subscriptionTier === "STARTER" && "bg-blue-100 text-blue-700",
+                          selectedUser.subscriptionTier === "PROFESSIONAL" && "bg-purple-100 text-purple-700",
+                          selectedUser.subscriptionTier === "ENTERPRISE" && "bg-amber-100 text-amber-700",
+                          selectedUser.subscriptionTier === "CUSTOM" && "bg-emerald-100 text-emerald-700"
+                        )}>
+                          {selectedUser.subscriptionTier}
+                        </Badge>
+                        <Badge variant="outline" className={cn(
+                          "bg-white/10 border-white/30 text-white backdrop-blur-sm",
+                          selectedUser.status === "active" && "border-emerald-300",
+                          selectedUser.status === "at_limit" && "border-amber-300",
+                          selectedUser.status === "inactive" && "border-slate-300"
+                        )}>
+                          {getStatusIcon(selectedUser.status)}
+                          <span className="ml-1">{getStatusLabel(selectedUser.status)}</span>
+                        </Badge>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Generation Breakdown */}
-                <div className="space-y-3">
-                  <h4 className="font-medium text-slate-900">Generation Breakdown</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {/* Stats Cards - Floating Design */}
+              <div className="px-6 -mt-10 relative z-10">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { label: "Total Tokens", value: formatNumber(selectedUser.totalTokens), icon: Coins, gradient: "from-amber-400 to-orange-500" },
+                    { label: "Generations", value: formatNumber(selectedUser.totalGenerations), icon: Sparkles, gradient: "from-purple-400 to-pink-500" },
+                    { label: "Total Cost", value: formatCost(selectedUser.totalCost), icon: DollarSign, gradient: "from-emerald-400 to-teal-500" },
+                    { label: "Last Activity", value: formatDate(selectedUser.lastUsageDate), icon: Activity, gradient: "from-blue-400 to-indigo-500" },
+                  ].map((stat, idx) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className="bg-white rounded-xl shadow-lg border border-slate-100 p-4 hover:shadow-xl transition-shadow"
+                    >
+                      <div className={cn("w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center mb-2", stat.gradient)}>
+                        <stat.icon className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="text-lg font-bold text-slate-900">{stat.value}</div>
+                      <div className="text-xs text-slate-500">{stat.label}</div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Content Area */}
+              <div className="p-6 space-y-6">
+                {/* Current Usage with Visual Progress */}
+                <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-5 border border-slate-200">
+                  <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-indigo-500" />
+                    Current Usage
+                  </h3>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-slate-600">Daily Usage</span>
+                        <span className="text-sm font-bold text-indigo-600">
+                          {selectedUser.dailyAiUsageCount}
+                        </span>
+                      </div>
+                      <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min((selectedUser.dailyAiUsageCount / 100) * 100, 100)}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-slate-600">Monthly Usage</span>
+                        <span className="text-sm font-bold text-purple-600">
+                          {selectedUser.monthlyAiUsageCount}
+                        </span>
+                      </div>
+                      <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min((selectedUser.monthlyAiUsageCount / 1000) * 100, 100)}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Generation Breakdown - Icon Grid */}
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    Generation Breakdown
+                  </h3>
+                  <div className="grid grid-cols-5 gap-2">
                     {[
-                      { label: "Courses", value: selectedUser.courseGenerations, icon: BookOpen },
-                      { label: "Chapters", value: selectedUser.chapterGenerations, icon: FileText },
-                      { label: "Lessons", value: selectedUser.lessonGenerations, icon: GraduationCap },
-                      { label: "Exams", value: selectedUser.examGenerations, icon: ClipboardList },
-                      { label: "Exercises", value: selectedUser.exerciseGenerations, icon: Dumbbell },
+                      { label: "Courses", value: selectedUser.courseGenerations, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50" },
+                      { label: "Chapters", value: selectedUser.chapterGenerations, icon: FileText, color: "text-emerald-500", bg: "bg-emerald-50" },
+                      { label: "Lessons", value: selectedUser.lessonGenerations, icon: GraduationCap, color: "text-purple-500", bg: "bg-purple-50" },
+                      { label: "Exams", value: selectedUser.examGenerations, icon: ClipboardList, color: "text-orange-500", bg: "bg-orange-50" },
+                      { label: "Exercises", value: selectedUser.exerciseGenerations, icon: Dumbbell, color: "text-pink-500", bg: "bg-pink-50" },
                     ].map((item) => (
                       <div
                         key={item.label}
-                        className="bg-slate-50 rounded-lg p-3 text-center"
+                        className={cn("rounded-xl p-3 text-center transition-transform hover:scale-105", item.bg)}
                       >
-                        <item.icon className="h-4 w-4 mx-auto text-slate-400 mb-1" />
-                        <div className="text-lg font-bold text-slate-900">
-                          {item.value}
-                        </div>
-                        <div className="text-xs text-slate-500">{item.label}</div>
+                        <item.icon className={cn("h-5 w-5 mx-auto mb-1", item.color)} />
+                        <div className="text-lg font-bold text-slate-900">{item.value}</div>
+                        <div className="text-[10px] text-slate-500 font-medium">{item.label}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* AI Settings Management Section */}
-                <div className="border-t border-slate-200 pt-4 mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg">
-                        <Settings className="h-4 w-4 text-white" />
+                {/* AI Settings Management Section - Premium Card */}
+                <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl border border-indigo-100 overflow-hidden">
+                  {/* Section Header */}
+                  <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-5 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                        <Settings className="h-5 w-5 text-white" />
                       </div>
-                      <h4 className="font-medium text-slate-900">AI Settings Management</h4>
+                      <div>
+                        <h3 className="text-white font-semibold">AI Settings Management</h3>
+                        <p className="text-white/70 text-xs">Configure custom limits and reset usage</p>
+                      </div>
                     </div>
-                    {!isEditingSettings && !isLoadingSettings && (
+                    {!isEditingSettings && !isLoadingSettings && aiSettings && (
                       <Button
-                        variant="outline"
                         size="sm"
                         onClick={() => setIsEditingSettings(true)}
-                        className="gap-1"
+                        className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-sm"
                       >
-                        <Pencil className="h-3 w-3" />
-                        Edit
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                        Edit Settings
                       </Button>
                     )}
                   </div>
 
-                  {/* Loading state */}
-                  {isLoadingSettings && (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
-                      <span className="ml-2 text-slate-600">Loading settings...</span>
-                    </div>
-                  )}
+                  {/* Content */}
+                  <div className="p-5">
+                    {/* Loading state */}
+                    {isLoadingSettings && (
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <div className="relative">
+                          <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin" />
+                        </div>
+                        <span className="mt-4 text-slate-600 text-sm">Loading AI settings...</span>
+                      </div>
+                    )}
 
-                  {/* Error/Success messages */}
-                  {settingsError && (
-                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                      {settingsError}
-                    </div>
-                  )}
-                  {settingsSuccess && (
-                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700 text-sm">
-                      <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                      {settingsSuccess}
-                    </div>
-                  )}
+                    {/* Error state with retry */}
+                    {!isLoadingSettings && settingsError && !aiSettings && (
+                      <div className="flex flex-col items-center justify-center py-8">
+                        <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                          <AlertCircle className="h-8 w-8 text-red-500" />
+                        </div>
+                        <p className="text-red-600 font-medium mb-2">Failed to load settings</p>
+                        <p className="text-slate-500 text-sm mb-4">{settingsError}</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => fetchAISettings(selectedUser.id)}
+                          className="gap-2"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          Retry
+                        </Button>
+                      </div>
+                    )}
 
-                  {/* Settings content */}
-                  {!isLoadingSettings && aiSettings && (
-                    <div className="space-y-4">
-                      {/* Current Usage with Progress Bars */}
-                      <div className="bg-slate-50 rounded-lg p-4 space-y-4">
-                        <h5 className="text-sm font-medium text-slate-700">Current Usage</h5>
+                    {/* Success/Error toasts */}
+                    {settingsError && aiSettings && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4 p-3 bg-red-100 border border-red-200 rounded-xl flex items-center gap-3"
+                      >
+                        <div className="p-1.5 bg-red-500 rounded-full">
+                          <AlertCircle className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-red-700 text-sm font-medium">{settingsError}</span>
+                      </motion.div>
+                    )}
+                    {settingsSuccess && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4 p-3 bg-emerald-100 border border-emerald-200 rounded-xl flex items-center gap-3"
+                      >
+                        <div className="p-1.5 bg-emerald-500 rounded-full">
+                          <CheckCircle className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-emerald-700 text-sm font-medium">{settingsSuccess}</span>
+                      </motion.div>
+                    )}
+
+                    {/* Settings content */}
+                    {!isLoadingSettings && aiSettings && (
+                      <div className="space-y-5">
+                        {/* Usage Progress Cards */}
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-600">Daily</span>
-                              <span className="font-medium">
-                                {aiSettings.dailyAiUsageCount} / {aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit}
+                          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-medium text-slate-600">Daily Usage</span>
+                              <span className="text-xs font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700">
+                                {Math.round((aiSettings.dailyAiUsageCount / (aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit)) * 100)}%
                               </span>
                             </div>
-                            <Progress
-                              value={
-                                (aiSettings.dailyAiUsageCount /
-                                  (aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit)) *
-                                100
-                              }
-                              className="h-2"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-slate-600">Monthly</span>
-                              <span className="font-medium">
-                                {aiSettings.monthlyAiUsageCount} / {aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit}
+                            <div className="text-2xl font-bold text-slate-900 mb-1">
+                              {aiSettings.dailyAiUsageCount}
+                              <span className="text-sm font-normal text-slate-400">
+                                {" "}/ {aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit}
                               </span>
                             </div>
-                            <Progress
-                              value={
-                                (aiSettings.monthlyAiUsageCount /
-                                  (aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit)) *
-                                100
-                              }
-                              className="h-2"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tier Default Limits (Read-only info) */}
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <h5 className="text-sm font-medium text-blue-700 mb-2">
-                          Tier Default Limits ({aiSettings.subscriptionTier})
-                        </h5>
-                        <div className="flex gap-6 text-sm">
-                          <div>
-                            <span className="text-blue-600">Daily:</span>{" "}
-                            <span className="font-medium text-blue-900">{aiSettings.tierDailyLimit}</span>
-                          </div>
-                          <div>
-                            <span className="text-blue-600">Monthly:</span>{" "}
-                            <span className="font-medium text-blue-900">{aiSettings.tierMonthlyLimit}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Editable Custom Limits */}
-                      {isEditingSettings ? (
-                        <div className="bg-purple-50 rounded-lg p-4 space-y-4">
-                          <h5 className="text-sm font-medium text-purple-700">Custom Overrides</h5>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <label className="text-sm text-purple-600">
-                                Custom Daily Limit
-                              </label>
-                              <Input
-                                type="number"
-                                min="0"
-                                placeholder="Empty = use tier default"
-                                value={formDailyLimit}
-                                onChange={(e) => setFormDailyLimit(e.target.value)}
-                                className="bg-white"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-sm text-purple-600">
-                                Custom Monthly Limit
-                              </label>
-                              <Input
-                                type="number"
-                                min="0"
-                                placeholder="Empty = use tier default"
-                                value={formMonthlyLimit}
-                                onChange={(e) => setFormMonthlyLimit(e.target.value)}
-                                className="bg-white"
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{
+                                  width: `${Math.min((aiSettings.dailyAiUsageCount / (aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit)) * 100, 100)}%`
+                                }}
+                                transition={{ duration: 0.8 }}
+                                className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
                               />
                             </div>
                           </div>
-                          <p className="text-xs text-purple-500">
-                            Leave empty to use tier defaults. Set a value to override.
+                          <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-medium text-slate-600">Monthly Usage</span>
+                              <span className="text-xs font-bold px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                                {Math.round((aiSettings.monthlyAiUsageCount / (aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit)) * 100)}%
+                              </span>
+                            </div>
+                            <div className="text-2xl font-bold text-slate-900 mb-1">
+                              {aiSettings.monthlyAiUsageCount}
+                              <span className="text-sm font-normal text-slate-400">
+                                {" "}/ {aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit}
+                              </span>
+                            </div>
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{
+                                  width: `${Math.min((aiSettings.monthlyAiUsageCount / (aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit)) * 100, 100)}%`
+                                }}
+                                transition={{ duration: 0.8, delay: 0.2 }}
+                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tier Defaults Info */}
+                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="p-1 bg-blue-500 rounded">
+                              <Users className="h-3 w-3 text-white" />
+                            </div>
+                            <span className="text-sm font-semibold text-blue-700">
+                              Tier Defaults ({aiSettings.subscriptionTier})
+                            </span>
+                          </div>
+                          <div className="flex gap-8 text-sm">
+                            <div>
+                              <span className="text-blue-600">Daily Limit:</span>{" "}
+                              <span className="font-bold text-blue-900">{aiSettings.tierDailyLimit}</span>
+                            </div>
+                            <div>
+                              <span className="text-blue-600">Monthly Limit:</span>{" "}
+                              <span className="font-bold text-blue-900">{aiSettings.tierMonthlyLimit}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Custom Overrides */}
+                        {isEditingSettings ? (
+                          <div className="bg-white rounded-xl p-4 border-2 border-dashed border-purple-200">
+                            <h4 className="text-sm font-semibold text-purple-700 mb-4 flex items-center gap-2">
+                              <Pencil className="h-4 w-4" />
+                              Custom Override Limits
+                            </h4>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                                  Custom Daily Limit
+                                </label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  placeholder="Leave empty for tier default"
+                                  value={formDailyLimit}
+                                  onChange={(e) => setFormDailyLimit(e.target.value)}
+                                  className="bg-slate-50 border-slate-200 focus:border-purple-500 focus:ring-purple-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                                  Custom Monthly Limit
+                                </label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  placeholder="Leave empty for tier default"
+                                  value={formMonthlyLimit}
+                                  onChange={(e) => setFormMonthlyLimit(e.target.value)}
+                                  className="bg-slate-50 border-slate-200 focus:border-purple-500 focus:ring-purple-500"
+                                />
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-500 mb-4">
+                              Leave fields empty to use tier defaults. Custom limits override tier defaults.
+                            </p>
+
+                            {/* Reset Actions */}
+                            <div className="flex gap-2 mb-4 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleResetDailyUsage}
+                                disabled={isSavingSettings}
+                                className="flex-1 text-amber-700 border-amber-300 hover:bg-amber-100"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                                Reset Daily to 0
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleResetMonthlyUsage}
+                                disabled={isSavingSettings}
+                                className="flex-1 text-amber-700 border-amber-300 hover:bg-amber-100"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                                Reset Monthly to 0
+                              </Button>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCancelEdit}
+                                disabled={isSavingSettings}
+                              >
+                                <X className="h-3.5 w-3.5 mr-1.5" />
+                                Cancel
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={handleSaveSettings}
+                                disabled={isSavingSettings}
+                                className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-md"
+                              >
+                                {isSavingSettings ? (
+                                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                                ) : (
+                                  <Save className="h-3.5 w-3.5 mr-1.5" />
+                                )}
+                                Save Changes
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="p-1 bg-purple-500 rounded">
+                                <Settings className="h-3 w-3 text-white" />
+                              </div>
+                              <span className="text-sm font-semibold text-purple-700">Custom Overrides</span>
+                            </div>
+                            <div className="flex gap-8 text-sm">
+                              <div>
+                                <span className="text-purple-600">Daily:</span>{" "}
+                                <span className="font-bold text-purple-900">
+                                  {aiSettings.customDailyLimit ?? "Using tier default"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-purple-600">Monthly:</span>{" "}
+                                <span className="font-bold text-purple-900">
+                                  {aiSettings.customMonthlyLimit ?? "Using tier default"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Last Updated */}
+                        {aiSettings.lastUpdated && (
+                          <p className="text-xs text-slate-400 text-right">
+                            Settings last updated: {formatDate(aiSettings.lastUpdated)}
                           </p>
-                        </div>
-                      ) : (
-                        <div className="bg-purple-50 rounded-lg p-4">
-                          <h5 className="text-sm font-medium text-purple-700 mb-2">Custom Overrides</h5>
-                          <div className="flex gap-6 text-sm">
-                            <div>
-                              <span className="text-purple-600">Daily:</span>{" "}
-                              <span className="font-medium text-purple-900">
-                                {aiSettings.customDailyLimit ?? "Using tier default"}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-purple-600">Monthly:</span>{" "}
-                              <span className="font-medium text-purple-900">
-                                {aiSettings.customMonthlyLimit ?? "Using tier default"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Reset Buttons */}
-                      {isEditingSettings && (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleResetDailyUsage}
-                            disabled={isSavingSettings}
-                            className="text-amber-600 border-amber-300 hover:bg-amber-50"
-                          >
-                            <RotateCcw className="h-3 w-3 mr-1" />
-                            Reset Daily Usage
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleResetMonthlyUsage}
-                            disabled={isSavingSettings}
-                            className="text-amber-600 border-amber-300 hover:bg-amber-50"
-                          >
-                            <RotateCcw className="h-3 w-3 mr-1" />
-                            Reset Monthly Usage
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Save/Cancel Buttons */}
-                      {isEditingSettings && (
-                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleCancelEdit}
-                            disabled={isSavingSettings}
-                          >
-                            <X className="h-3 w-3 mr-1" />
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={handleSaveSettings}
-                            disabled={isSavingSettings}
-                            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
-                          >
-                            {isSavingSettings ? (
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            ) : (
-                              <Save className="h-3 w-3 mr-1" />
-                            )}
-                            Save Changes
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Last Updated */}
-                      {aiSettings.lastUpdated && (
-                        <p className="text-xs text-slate-400 text-right">
-                          Last updated: {formatDate(aiSettings.lastUpdated)}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>
