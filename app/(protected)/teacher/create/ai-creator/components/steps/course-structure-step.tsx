@@ -399,8 +399,11 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
               courseTitle={formData.courseTitle || ''}
               courseOverview={formData.courseShortOverview}
               courseCategory={formData.courseCategory}
+              courseSubcategory={formData.courseSubcategory}
+              courseIntent={formData.courseIntent}
               targetAudience={formData.targetAudience}
               difficulty={formData.difficulty}
+              bloomsFocus={formData.bloomsFocus}
               existingObjectives={formData.courseGoals || []}
               onAddObjectives={addMultipleGoals}
               disabled={!formData.courseTitle || formData.courseTitle.length < 5}

@@ -124,28 +124,32 @@ export function SAMOverviewGeneratorModal({
         body: JSON.stringify({
           message: `As an expert course creator, generate 3 comprehensive course overviews for: "${courseTitle}"
 
-Course Details:
+COURSE CONTEXT:
+- Title: "${courseTitle}"
 - Category: ${courseCategory || 'Not specified'}
+- Subcategory: ${courseSubcategory || 'Not specified'}
 - Intent: ${courseIntent || 'Not specified'}
 - Target Audience: ${targetAudience || 'Not specified'}
+${currentOverview ? `- Current Overview Draft: "${currentOverview}"` : ''}
 
-For each overview, provide:
-1. A detailed description (100-200 words) focusing on learning outcomes, skills gained, and benefits
-2. Make each overview unique, highlighting different aspects and benefits
+REQUIREMENTS:
+1. Each overview MUST be specifically about "${courseTitle}" — directly reference the subject matter
+2. 100-200 words per overview focusing on learning outcomes, skills gained, and benefits
+3. Make each overview unique, highlighting different aspects (practical skills, career impact, knowledge depth)
+4. Incorporate the course category and target audience naturally
+5. Use engaging, professional language that sells the course value
 
 Return a JSON array with exactly 3 overviews:
-[
-  "Overview 1 text here (100-200 words)",
-  "Overview 2 text here (100-200 words)",
-  "Overview 3 text here (100-200 words)"
-]
+["Overview 1 text here", "Overview 2 text here", "Overview 3 text here"]
 
-Return ONLY valid JSON array, no other text.`,
+Return ONLY valid JSON array, no markdown fences, no other text.`,
           context: createSamContext({
             formData: {
               courseTitle,
               courseShortOverview: currentOverview || '',
               courseCategory: courseCategory || '',
+              courseSubcategory: courseSubcategory || '',
+              courseIntent: courseIntent || '',
               targetAudience: targetAudience || '',
             },
             pageType: 'course_creation',
@@ -162,18 +166,19 @@ Return ONLY valid JSON array, no other text.`,
 
       const result = await response.json();
 
-      // Parse overviews from response
+      // Parse overviews from response — strip markdown fences first
       let generatedOverviews: string[] = [];
+      const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
 
       // Try to parse as JSON array first
       try {
-        const jsonMatch = result.response.match(/\[[\s\S]*\]/);
+        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
           generatedOverviews = JSON.parse(jsonMatch[0]);
         }
       } catch {
         // Fallback: split by numbered patterns
-        const matches = result.response.match(/\d+\.\s*([^]*?)(?=\n\d+\.|$)/g);
+        const matches = rawResponse.match(/\d+\.\s*([^]*?)(?=\n\d+\.|$)/g);
         if (matches) {
           generatedOverviews = matches.map((m: string) => m.replace(/^\d+\.\s*/, '').trim());
         }

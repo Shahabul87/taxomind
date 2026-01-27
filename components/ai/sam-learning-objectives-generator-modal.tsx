@@ -49,8 +49,11 @@ interface SAMLearningObjectivesGeneratorModalProps {
   courseTitle: string;
   courseOverview?: string;
   courseCategory?: string;
+  courseSubcategory?: string;
+  courseIntent?: string;
   targetAudience?: string;
   difficulty?: string;
+  bloomsFocus?: string[];
   existingObjectives?: string[];
   onAddObjectives: (objectives: string[]) => void;
   disabled?: boolean;
@@ -70,8 +73,11 @@ export function SAMLearningObjectivesGeneratorModal({
   courseTitle,
   courseOverview,
   courseCategory,
+  courseSubcategory,
+  courseIntent,
   targetAudience,
   difficulty,
+  bloomsFocus = [],
   existingObjectives = [],
   onAddObjectives,
   disabled = false,
@@ -122,25 +128,35 @@ export function SAMLearningObjectivesGeneratorModal({
     setSelectedObjectives(new Set());
 
     try {
+      const bloomsFocusText = bloomsFocus.length > 0
+        ? `- Bloom's Taxonomy Focus Levels: ${bloomsFocus.join(', ')}`
+        : '- Bloom\'s Taxonomy Focus: Cover all levels (Remember through Create)';
+
       const response = await fetch('/api/sam/ai-tutor/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: `As an expert instructional designer, generate 6 specific, measurable learning objectives for the course: "${courseTitle}"
 
-Course Details:
+COURSE CONTEXT:
+- Title: "${courseTitle}"
 - Overview: ${courseOverview || 'Not specified'}
 - Category: ${courseCategory || 'Not specified'}
+- Subcategory: ${courseSubcategory || 'Not specified'}
+- Course Intent: ${courseIntent || 'Not specified'}
 - Target Audience: ${targetAudience || 'Not specified'}
 - Difficulty: ${difficulty || 'Intermediate'}
+${bloomsFocusText}
 - Existing Objectives: ${existingObjectives.length > 0 ? existingObjectives.join('; ') : 'None yet'}
 
-Requirements:
-1. Each objective MUST start with a Bloom's Taxonomy action verb
-2. Objectives should be specific, measurable, achievable, relevant, and time-bound (SMART)
-3. Cover different cognitive levels (Remember, Understand, Apply, Analyze, Evaluate, Create)
-4. Avoid duplicating existing objectives
-5. Focus on what students will be able to DO after completing the course
+CRITICAL RULES:
+1. Every objective MUST be specifically about "${courseTitle}" — directly reference the subject matter
+2. Each objective MUST start with a Bloom's Taxonomy action verb
+3. Objectives should be specific, measurable, achievable, relevant, and time-bound (SMART)
+${bloomsFocus.length > 0 ? `4. Prioritize objectives at these Bloom's levels: ${bloomsFocus.join(', ')}` : '4. Cover different cognitive levels (Remember, Understand, Apply, Analyze, Evaluate, Create)'}
+5. Avoid duplicating existing objectives
+6. Focus on what students will be able to DO after completing the course
+7. Align objectives with the course overview and target audience
 
 Return a JSON array with exactly 6 objectives in this format:
 [
@@ -151,7 +167,7 @@ Return a JSON array with exactly 6 objectives in this format:
   }
 ]
 
-Return ONLY valid JSON array, no other text.`,
+Return ONLY valid JSON array, no markdown fences, no other text.`,
           context: {
             pageData: {
               pageType: 'course_creation',
@@ -163,7 +179,13 @@ Return ONLY valid JSON array, no other text.`,
               userRole: 'teacher',
               currentCourse: {
                 title: courseTitle,
+                overview: courseOverview,
                 category: courseCategory,
+                subcategory: courseSubcategory,
+                intent: courseIntent,
+                targetAudience,
+                difficulty,
+                bloomsFocus,
               },
             },
             tutorPersonality: {
@@ -187,7 +209,9 @@ Return ONLY valid JSON array, no other text.`,
       let parsedObjectives: ObjectiveSuggestion[] = [];
 
       try {
-        const jsonMatch = result.response.match(/\[[\s\S]*\]/);
+        // Strip markdown fences before JSON extraction
+        const rawResponse = (result.response || '').replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+        const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
           parsedObjectives = parsed.map((item: { objective: string; bloomsLevel?: string; actionVerb?: string }) => ({
@@ -238,7 +262,7 @@ Return ONLY valid JSON array, no other text.`,
     } finally {
       setIsGenerating(false);
     }
-  }, [courseTitle, courseOverview, courseCategory, targetAudience, difficulty, existingObjectives, isGenerating]);
+  }, [courseTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, bloomsFocus, existingObjectives, isGenerating]);
 
   const toggleObjective = (index: number) => {
     setSelectedObjectives(prev => {
