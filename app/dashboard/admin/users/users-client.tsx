@@ -87,6 +87,7 @@ interface UserData {
   isAccountLocked: boolean;
   lastLoginAt: Date | null;
   emailVerified: Date | null;
+  hasAIAccess: boolean;
 }
 
 interface Stats {
@@ -557,6 +558,42 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     }
   }, [aiSettingsUser, toast]);
 
+  // Toggle AI Access for a user
+  const handleToggleAIAccess = useCallback(async (user: UserData) => {
+    const newValue = !user.hasAIAccess;
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/ai-access`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hasAIAccess: newValue }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to update AI access");
+      }
+
+      // Update local state
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, hasAIAccess: newValue } : u))
+      );
+
+      toast({
+        title: "Success",
+        description: newValue
+          ? `AI access granted to ${user.name || user.email}`
+          : `AI access revoked from ${user.name || user.email}`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update AI access",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
   // Get status badge color
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
@@ -856,6 +893,15 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                         {/* Security Indicators */}
                         <div className="flex items-center gap-3 pt-2 border-t border-slate-200 dark:border-slate-700">
                           <div className="flex items-center gap-1.5">
+                            <Switch
+                              checked={user.hasAIAccess}
+                              onCheckedChange={() => handleToggleAIAccess(user)}
+                              className="data-[state=checked]:bg-purple-600 h-4 w-7"
+                              aria-label={`Toggle AI access for ${user.name || user.email}`}
+                            />
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">AI</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
                             {user.isTwoFactorEnabled ? (
                               <Shield className="h-3.5 w-3.5 text-green-500" />
                             ) : (
@@ -897,6 +943,9 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                     </TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-300 text-center">
                       Courses
+                    </TableHead>
+                    <TableHead className="text-slate-600 dark:text-slate-300 text-center">
+                      AI Access
                     </TableHead>
                     <TableHead className="text-slate-600 dark:text-slate-300 text-center">
                       2FA
@@ -968,6 +1017,16 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                       </TableCell>
                       <TableCell className="text-slate-600 dark:text-slate-300 text-center">
                         {user.courses}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center">
+                          <Switch
+                            checked={user.hasAIAccess}
+                            onCheckedChange={() => handleToggleAIAccess(user)}
+                            className="data-[state=checked]:bg-purple-600"
+                            aria-label={`Toggle AI access for ${user.name || user.email}`}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center">

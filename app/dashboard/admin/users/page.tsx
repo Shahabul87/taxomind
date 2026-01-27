@@ -18,6 +18,7 @@ interface UserData {
   isAccountLocked: boolean;
   lastLoginAt: Date | null;
   emailVerified: Date | null;
+  hasAIAccess: boolean;
 }
 
 async function getUsersData(): Promise<UserData[]> {
@@ -34,6 +35,7 @@ async function getUsersData(): Promise<UserData[]> {
         isAccountLocked: true,
         isTwoFactorEnabled: true,
         emailVerified: true,
+        hasAIAccess: true,
         _count: {
           select: {
             courses: true,
@@ -93,6 +95,7 @@ async function getUsersData(): Promise<UserData[]> {
         isAccountLocked: user.isAccountLocked,
         lastLoginAt: user.lastLoginAt,
         emailVerified: user.emailVerified,
+        hasAIAccess: user.hasAIAccess,
       };
     });
 
