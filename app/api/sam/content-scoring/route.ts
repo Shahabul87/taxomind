@@ -212,13 +212,15 @@ Return ONLY valid JSON array:
 
   try {
     const responseText = await runSAMChat({
+      systemPrompt: 'You are a course title scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
       maxTokens: 1500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    // Extract JSON from response
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    // Robust JSON parsing: strip markdown fences, find JSON array
+    const cleaned = responseText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as TitleScore[];
       return parsed;
@@ -286,13 +288,15 @@ Return ONLY valid JSON array:
 
   try {
     const responseText = await runSAMChat({
+      systemPrompt: 'You are a course overview scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
       maxTokens: 1500,
       temperature: 0.3,
       messages: [{ role: 'user', content: prompt }],
     });
 
-    // Extract JSON from response
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    // Robust JSON parsing: strip markdown fences, find JSON array
+    const cleaned = responseText.replace(/```(?:json)?\s*/gi, '').replace(/```\s*/g, '');
+    const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as OverviewScore[];
       // Ensure overview field matches original
