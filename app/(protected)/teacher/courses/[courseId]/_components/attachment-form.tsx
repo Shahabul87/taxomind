@@ -1,13 +1,13 @@
 "use client";
 
-import * as z from "zod";
 import axios from "axios";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { File, Loader2, PlusCircle, X, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { FileUpload } from "@/fileupload/file-upload";
 import { cn } from "@/lib/utils";
 
@@ -22,30 +22,80 @@ interface AttachmentFormProps {
   courseId: string;
 }
 
-const formSchema = z.object({
-  url: z.string().min(1),
-});
-
 export const AttachmentForm = ({
   initialData,
   courseId,
 }: AttachmentFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const toggleEdit = () => setIsEditing((current) => !current);
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      await axios.post(`/api/courses/${courseId}/attachments`, values);
-      toast.success("Course attachment added");
-      setIsEditing(false);
-      router.refresh();
-    } catch {
-      toast.error("Something went wrong");
+  const toggleEdit = () => {
+    if (!isUploading) {
+      setIsEditing((current) => !current);
+      setUploadProgress(0);
     }
   };
+
+  const onUpload = useCallback(async (files: File[]) => {
+    const file = files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    abortControllerRef.current = new AbortController();
+
+    try {
+      // Step 1: Upload file to Google Drive
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await axios.post<{
+        url: string;
+        fileId: string;
+        name: string;
+        mimeType: string;
+        size: number;
+      }>("/api/upload/google-drive", formData, {
+        signal: abortControllerRef.current.signal,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percent);
+          }
+        },
+      });
+
+      // Step 2: Create attachment record in the database
+      await axios.post(`/api/courses/${courseId}/attachments`, {
+        url: uploadResponse.data.url,
+        name: uploadResponse.data.name,
+        fileId: uploadResponse.data.fileId,
+        fileSize: uploadResponse.data.size,
+        mimeType: uploadResponse.data.mimeType,
+        storageProvider: "google-drive",
+      });
+
+      toast.success("Resource uploaded successfully");
+      setIsEditing(false);
+      router.refresh();
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        toast.info("Upload cancelled");
+      } else if (axios.isAxiosError(error) && error.response?.data?.error) {
+        toast.error(error.response.data.error);
+      } else {
+        toast.error("Something went wrong uploading the file");
+      }
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      abortControllerRef.current = null;
+    }
+  }, [courseId, router]);
 
   const onDelete = async (id: string) => {
     try {
@@ -162,14 +212,26 @@ export const AttachmentForm = ({
             <FileUpload
               onChange={(files) => {
                 if (files?.[0]) {
-                  onSubmit({ url: URL.createObjectURL(files[0]) });
+                  onUpload(files);
                 }
               }}
             />
+
+            {/* Upload Progress */}
+            {isUploading && (
+              <div className="mt-3 sm:mt-4 space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+                  <span>Uploading to Google Drive...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+              </div>
+            )}
+
             <div className="flex items-start gap-1.5 sm:gap-2 mt-3 sm:mt-4 p-2.5 sm:p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
               <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
               <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300 leading-relaxed break-words">
-                Add PDF files, documents, or other resources for your students. Supported formats: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX
+                Add PDF files, documents, or other resources for your students. Supported formats: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, PNG, JPG
               </p>
             </div>
           </div>
@@ -177,6 +239,7 @@ export const AttachmentForm = ({
           <div className="flex items-center justify-end">
             <Button
               onClick={toggleEdit}
+              disabled={isUploading}
               variant="outline"
               size="sm"
               type="button"

@@ -182,13 +182,17 @@ model CourseSkill {
 }
 
 model Attachment {
-  id        String   @id @default(uuid())
-  name      String
-  url       String
-  courseId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id              String   @id @default(uuid())
+  name            String
+  url             String
+  courseId         String
+  fileId           String?
+  fileSize         Int?
+  mimeType         String?
+  storageProvider  String   @default("google-drive")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([courseId])
 }
