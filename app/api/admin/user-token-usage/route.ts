@@ -110,15 +110,16 @@ export async function GET(request: Request) {
     }
 
     // Parse and validate query parameters
+    // Convert null to undefined so Zod defaults work correctly
     const { searchParams } = new URL(request.url);
     const queryResult = QuerySchema.safeParse({
-      page: searchParams.get("page"),
-      limit: searchParams.get("limit"),
-      period: searchParams.get("period"),
-      search: searchParams.get("search"),
-      tier: searchParams.get("tier"),
-      sortBy: searchParams.get("sortBy"),
-      sortOrder: searchParams.get("sortOrder"),
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      period: searchParams.get("period") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      tier: searchParams.get("tier") ?? undefined,
+      sortBy: searchParams.get("sortBy") ?? undefined,
+      sortOrder: searchParams.get("sortOrder") ?? undefined,
     });
 
     if (!queryResult.success) {
