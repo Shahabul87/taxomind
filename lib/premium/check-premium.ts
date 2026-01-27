@@ -14,6 +14,7 @@ export interface PremiumStatus {
   expiresAt: Date | null;
   isExpired: boolean;
   daysRemaining: number | null;
+  hasAIAccess: boolean;
 }
 
 /**
@@ -24,6 +25,7 @@ export async function checkPremiumAccess(userId: string): Promise<PremiumStatus>
     where: { id: userId },
     select: {
       isPremium: true,
+      hasAIAccess: true,
       premiumPlan: true,
       premiumExpiresAt: true,
     },
@@ -36,6 +38,7 @@ export async function checkPremiumAccess(userId: string): Promise<PremiumStatus>
       expiresAt: null,
       isExpired: false,
       daysRemaining: null,
+      hasAIAccess: false,
     };
   }
 
@@ -57,11 +60,12 @@ export async function checkPremiumAccess(userId: string): Promise<PremiumStatus>
   }
 
   return {
-    isPremium: effectivelyPremium,
+    isPremium: effectivelyPremium || user.hasAIAccess,
     plan: user.premiumPlan,
     expiresAt: user.premiumExpiresAt,
     isExpired,
     daysRemaining,
+    hasAIAccess: user.hasAIAccess,
   };
 }
 

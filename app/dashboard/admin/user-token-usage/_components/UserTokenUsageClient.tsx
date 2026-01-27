@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -55,6 +56,7 @@ import {
   Save,
   X,
   Pencil,
+  Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -245,6 +247,10 @@ export function UserTokenUsageClient() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null);
 
+  // AI Access state
+  const [hasAIAccess, setHasAIAccess] = useState(false);
+  const [isTogglingAIAccess, setIsTogglingAIAccess] = useState(false);
+
   // Form state for editing
   const [formDailyLimit, setFormDailyLimit] = useState<string>("");
   const [formMonthlyLimit, setFormMonthlyLimit] = useState<string>("");
@@ -410,6 +416,49 @@ export function UserTokenUsageClient() {
     }
   }, []);
 
+  // Fetch AI access status for selected user
+  const fetchAIAccess = useCallback(async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/ai-access`);
+      const result = await response.json();
+      if (result.success) {
+        setHasAIAccess(result.data.hasAIAccess);
+      }
+    } catch {
+      // Silently fail - AI access toggle will just show default state
+    }
+  }, []);
+
+  // Toggle AI access for selected user
+  const toggleAIAccess = async (newValue: boolean) => {
+    if (!selectedUser) return;
+
+    setIsTogglingAIAccess(true);
+    try {
+      const response = await fetch(
+        `/api/admin/users/${selectedUser.id}/ai-access`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hasAIAccess: newValue }),
+        }
+      );
+      const result = await response.json();
+      if (result.success) {
+        setHasAIAccess(result.data.hasAIAccess);
+        setSettingsSuccess(
+          newValue ? "AI access granted to user" : "AI access revoked from user"
+        );
+      } else {
+        setSettingsError(result.error?.message || "Failed to update AI access");
+      }
+    } catch {
+      setSettingsError("Failed to update AI access");
+    } finally {
+      setIsTogglingAIAccess(false);
+    }
+  };
+
   // Update AI settings
   const updateAISettings = async (updates: {
     customDailyLimit?: number | null;
@@ -493,18 +542,20 @@ export function UserTokenUsageClient() {
     setFormMonthlyLimit(aiSettings?.customMonthlyLimit?.toString() ?? "");
   };
 
-  // Effect to fetch AI settings when user modal opens
+  // Effect to fetch AI settings and access when user modal opens
   useEffect(() => {
     if (isUserModalOpen && selectedUser) {
       fetchAISettings(selectedUser.id);
+      fetchAIAccess(selectedUser.id);
     } else {
       // Reset states when modal closes
       setAiSettings(null);
       setIsEditingSettings(false);
       setSettingsError(null);
       setSettingsSuccess(null);
+      setHasAIAccess(false);
     }
-  }, [isUserModalOpen, selectedUser, fetchAISettings]);
+  }, [isUserModalOpen, selectedUser, fetchAISettings, fetchAIAccess]);
 
   // Calculate chart heights for bar charts
   const maxGenerations = data
@@ -1240,6 +1291,42 @@ export function UserTokenUsageClient() {
                           className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
                         />
                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Admin AI Access Toggle */}
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg">
+                        <Zap className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-700">
+                          Grant AI Access
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          Bypass premium subscription for AI features
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        className={cn(
+                          "font-medium text-xs",
+                          hasAIAccess
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-slate-100 text-slate-600"
+                        )}
+                      >
+                        {hasAIAccess ? "Granted" : "Not Granted"}
+                      </Badge>
+                      <Switch
+                        checked={hasAIAccess}
+                        onCheckedChange={toggleAIAccess}
+                        disabled={isTogglingAIAccess}
+                      />
                     </div>
                   </div>
                 </div>

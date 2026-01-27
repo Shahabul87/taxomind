@@ -58,6 +58,7 @@ model User {
 
   // Premium Subscription Fields
   isPremium                               Boolean                              @default(false)
+  hasAIAccess                             Boolean                              @default(false) // Admin-granted AI access (bypasses subscription)
   premiumPlan                             PremiumPlan?
   premiumStartedAt                        DateTime?
   premiumExpiresAt                        DateTime?
