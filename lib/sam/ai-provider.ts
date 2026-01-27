@@ -1,45 +1,34 @@
-import { createAnthropicAdapter, type AIMessage, type AIAdapter } from '@sam-ai/core';
-import { createAIAdapter, createExtendedAIAdapter } from '@/lib/sam/providers/ai-factory';
+import { type AIMessage, type AIAdapter } from '@sam-ai/core';
+import { createAIAdapter, createExtendedAIAdapter, getDefaultAdapter } from '@/lib/sam/providers/ai-factory';
 import { type AIProviderType, isProviderAvailable } from '@/lib/sam/providers/ai-registry';
 import { db } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 // Cache for adapters by provider type
 const adapterCache = new Map<string, AIAdapter>();
 
-// Standard adapter for quick operations (60s timeout) - default Anthropic
-let standardAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
+// Cached adapters using platform default provider (DeepSeek > Anthropic > OpenAI)
+let standardAdapter: AIAdapter | null = null;
+let extendedAdapter: AIAdapter | null = null;
 
-// Extended adapter for complex operations like course generation (3 min timeout)
-let extendedAdapter: ReturnType<typeof createAnthropicAdapter> | null = null;
-
-function getAPIKey(): string {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
-  }
-  return apiKey;
-}
-
-function getStandardAdapter() {
+function getStandardAdapter(): AIAdapter {
   if (!standardAdapter) {
-    standardAdapter = createAnthropicAdapter({
-      apiKey: getAPIKey(),
-      model: 'claude-sonnet-4-5-20250929',
-      timeout: 60000, // 60 seconds for quick operations
-      maxRetries: 2,
-    });
+    standardAdapter = getDefaultAdapter({ timeout: 60000, maxRetries: 2 });
+    if (!standardAdapter) {
+      throw new Error('No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.');
+    }
+    logger.info('[AI Provider] Standard adapter initialized using platform default provider');
   }
   return standardAdapter;
 }
 
-function getExtendedAdapter() {
+function getExtendedAdapter(): AIAdapter {
   if (!extendedAdapter) {
-    extendedAdapter = createAnthropicAdapter({
-      apiKey: getAPIKey(),
-      model: 'claude-sonnet-4-5-20250929',
-      timeout: 180000, // 3 minutes for complex operations
-      maxRetries: 1, // Less retries for long operations
-    });
+    extendedAdapter = getDefaultAdapter({ timeout: 180000, maxRetries: 1 });
+    if (!extendedAdapter) {
+      throw new Error('No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.');
+    }
+    logger.info('[AI Provider] Extended adapter initialized using platform default provider');
   }
   return extendedAdapter;
 }
@@ -115,8 +104,10 @@ export async function runSAMChat(options: {
 }): Promise<string> {
   const adapter = options.extended ? getExtendedAdapter() : getStandardAdapter();
 
+  // Don't pass model override - let the adapter use its configured default model.
+  // Routes previously passed Anthropic-specific models (e.g. claude-3-5-haiku)
+  // which break when the platform is configured for DeepSeek/OpenAI.
   const response = await adapter.chat({
-    model: options.model,
     maxTokens: options.maxTokens ?? 2000,
     temperature: options.temperature ?? 0.7,
     systemPrompt: options.systemPrompt,
