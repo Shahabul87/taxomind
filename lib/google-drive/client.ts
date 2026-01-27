@@ -15,8 +15,10 @@ import { logger } from '@/lib/logger';
 const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL;
 const PRIVATE_KEY = process.env.GOOGLE_DRIVE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
+/** Workspace user email the service account impersonates via domain-wide delegation */
+const IMPERSONATE_USER = process.env.GOOGLE_DRIVE_IMPERSONATE_USER;
 
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,6 +49,7 @@ function createDriveClient(): drive_v3.Drive {
     email: SERVICE_ACCOUNT_EMAIL,
     key: PRIVATE_KEY,
     scopes: [DRIVE_SCOPE],
+    subject: IMPERSONATE_USER || undefined,
   });
 
   return google.drive({ version: 'v3', auth });
