@@ -1122,6 +1122,12 @@ export function UserTokenUsageClient() {
       {/* User Detail Modal - Premium Design */}
       <Dialog open={isUserModalOpen} onOpenChange={setIsUserModalOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+          {/* Visually hidden title for accessibility */}
+          <DialogHeader className="sr-only">
+            <DialogTitle>
+              {selectedUser ? `User Details: ${selectedUser.name || selectedUser.email}` : "User Details"}
+            </DialogTitle>
+          </DialogHeader>
           {selectedUser && (
             <div className="flex flex-col">
               {/* Premium Header with Gradient */}
