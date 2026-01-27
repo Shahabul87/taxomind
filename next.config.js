@@ -104,6 +104,8 @@ const nextConfig = {
     webpackBuildWorker: true,
     // Disable server source maps in production to save memory
     serverSourceMaps: false,
+    // Limit worker threads to prevent OOM during page data collection (Railway/Docker)
+    workerThreads: false,
     // Note: optimizeCss disabled - requires 'critters' package to be installed
     // optimizeCss: true,
     // Enable partial prerendering for faster builds

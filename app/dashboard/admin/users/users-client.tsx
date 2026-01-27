@@ -56,6 +56,9 @@ import {
   X,
   Mail,
   CheckCircle,
+  Sparkles,
+  RotateCcw,
+  Save,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -98,6 +101,20 @@ interface UsersClientProps {
   initialStats: Stats;
 }
 
+// AI Settings type
+interface UserAISettings {
+  userId: string;
+  dailyAiUsageCount: number;
+  monthlyAiUsageCount: number;
+  customDailyLimit: number | null;
+  customMonthlyLimit: number | null;
+  tierDailyLimit: number;
+  tierMonthlyLimit: number;
+  preferredProvider: string | null;
+  subscriptionTier: string;
+  lastUpdated: string | null;
+}
+
 export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
   const [users, setUsers] = useState<UserData[]>(initialUsers);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>(initialUsers);
@@ -122,6 +139,17 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     isTwoFactorEnabled: false,
     isAccountLocked: false,
   });
+
+  // AI Settings dialog states
+  const [aiSettingsDialogOpen, setAiSettingsDialogOpen] = useState(false);
+  const [aiSettingsUser, setAiSettingsUser] = useState<UserData | null>(null);
+  const [aiSettings, setAiSettings] = useState<UserAISettings | null>(null);
+  const [isLoadingAISettings, setIsLoadingAISettings] = useState(false);
+  const [isSavingAISettings, setIsSavingAISettings] = useState(false);
+  const [isEditingAISettings, setIsEditingAISettings] = useState(false);
+  const [aiSettingsError, setAiSettingsError] = useState<string | null>(null);
+  const [formDailyLimit, setFormDailyLimit] = useState<string>("");
+  const [formMonthlyLimit, setFormMonthlyLimit] = useState<string>("");
 
   // Refresh users from API (replaces window.location.reload)
   const refreshUsers = useCallback(async () => {
@@ -386,6 +414,149 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
     }
   }, [userToDelete, refreshUsers, toast]);
 
+  // Fetch AI Settings for a user
+  const fetchAISettings = useCallback(async (userId: string) => {
+    setIsLoadingAISettings(true);
+    setAiSettingsError(null);
+    setAiSettings(null);
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/ai-settings`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to fetch AI settings");
+      }
+
+      setAiSettings(data.data);
+      setFormDailyLimit(data.data.customDailyLimit?.toString() || "");
+      setFormMonthlyLimit(data.data.customMonthlyLimit?.toString() || "");
+    } catch (err) {
+      console.error("Error fetching AI settings:", err);
+      setAiSettingsError(err instanceof Error ? err.message : "Failed to load AI settings");
+    } finally {
+      setIsLoadingAISettings(false);
+    }
+  }, []);
+
+  // Open AI Settings dialog
+  const handleOpenAISettings = useCallback((user: UserData) => {
+    setAiSettingsUser(user);
+    setAiSettingsDialogOpen(true);
+    setIsEditingAISettings(false);
+    fetchAISettings(user.id);
+  }, [fetchAISettings]);
+
+  // Save AI Settings
+  const handleSaveAISettings = useCallback(async () => {
+    if (!aiSettingsUser) return;
+
+    setIsSavingAISettings(true);
+    setAiSettingsError(null);
+
+    try {
+      const response = await fetch(`/api/admin/users/${aiSettingsUser.id}/ai-settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customDailyLimit: formDailyLimit ? parseInt(formDailyLimit) : null,
+          customMonthlyLimit: formMonthlyLimit ? parseInt(formMonthlyLimit) : null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to update AI settings");
+      }
+
+      setAiSettings(data.data);
+      setIsEditingAISettings(false);
+      toast({
+        title: "Success",
+        description: "AI settings updated successfully",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update AI settings",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAISettings(false);
+    }
+  }, [aiSettingsUser, formDailyLimit, formMonthlyLimit, toast]);
+
+  // Reset Daily Usage
+  const handleResetDailyUsage = useCallback(async () => {
+    if (!aiSettingsUser) return;
+
+    setIsSavingAISettings(true);
+
+    try {
+      const response = await fetch(`/api/admin/users/${aiSettingsUser.id}/ai-settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetDailyUsage: true }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to reset daily usage");
+      }
+
+      setAiSettings(data.data);
+      toast({
+        title: "Success",
+        description: "Daily usage counter has been reset",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to reset daily usage",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAISettings(false);
+    }
+  }, [aiSettingsUser, toast]);
+
+  // Reset Monthly Usage
+  const handleResetMonthlyUsage = useCallback(async () => {
+    if (!aiSettingsUser) return;
+
+    setIsSavingAISettings(true);
+
+    try {
+      const response = await fetch(`/api/admin/users/${aiSettingsUser.id}/ai-settings`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetMonthlyUsage: true }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to reset monthly usage");
+      }
+
+      setAiSettings(data.data);
+      toast({
+        title: "Success",
+        description: "Monthly usage counter has been reset",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to reset monthly usage",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAISettings(false);
+    }
+  }, [aiSettingsUser, toast]);
+
   // Get status badge color
   const getStatusColor = useCallback((status: string) => {
     switch (status) {
@@ -628,6 +799,10 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit User
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenAISettings(user)}>
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                AI Settings
+                              </DropdownMenuItem>
                               {!user.emailVerified && (
                                 <DropdownMenuItem onClick={() => handleUserAction(user.id, "verify-email")}>
                                   <Mail className="mr-2 h-4 w-4" />
@@ -858,6 +1033,13 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="hover:bg-slate-100 dark:hover:bg-slate-700"
+                              onClick={() => handleOpenAISettings(user)}
+                            >
+                              <Sparkles className="mr-2 h-4 w-4" />
+                              AI Settings
                             </DropdownMenuItem>
                             {!user.emailVerified && (
                               <DropdownMenuItem
@@ -1362,6 +1544,298 @@ export function UsersClient({ initialUsers, initialStats }: UsersClientProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+        {/* AI Settings Dialog */}
+        <Dialog open={aiSettingsDialogOpen} onOpenChange={setAiSettingsDialogOpen}>
+          <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="space-y-2 sm:space-y-3 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shrink-0">
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <DialogTitle className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 dark:from-purple-400 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent truncate">
+                    AI Settings
+                  </DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    Manage AI usage limits for {aiSettingsUser?.name || aiSettingsUser?.email || "user"}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 py-4 sm:py-6 px-1 scroll-smooth [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:hover:[&::-webkit-scrollbar-thumb]:bg-slate-500">
+              {isLoadingAISettings ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-purple-500 mb-4" />
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Loading AI settings...</p>
+                </div>
+              ) : aiSettingsError ? (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <AlertDescription className="text-sm">{aiSettingsError}</AlertDescription>
+                </Alert>
+              ) : aiSettings ? (
+                <>
+                  {/* User Info Card */}
+                  <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border-2 border-purple-200 dark:border-purple-700 flex items-center justify-center overflow-hidden relative shadow-md shrink-0">
+                      {aiSettingsUser?.image ? (
+                        <Image
+                          src={aiSettingsUser.image}
+                          alt={aiSettingsUser.name || "User"}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <span className="text-xl font-bold bg-gradient-to-br from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                          {aiSettingsUser?.name
+                            ? aiSettingsUser.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()
+                            : aiSettingsUser?.email?.[0]?.toUpperCase() || "U"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
+                        {aiSettingsUser?.name || "No name"}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 truncate">
+                        {aiSettingsUser?.email || "No email"}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                          {aiSettings.subscriptionTier}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current Usage Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1 w-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shrink-0"></div>
+                      <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        Current Usage
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Daily Usage */}
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-blue-700 dark:text-blue-300 uppercase tracking-wide">Daily</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                            onClick={handleResetDailyUsage}
+                            disabled={isSavingAISettings}
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Reset
+                          </Button>
+                        </div>
+                        <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                          {aiSettings.dailyAiUsageCount} / {aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit}
+                        </div>
+                        <div className="mt-2 h-2 bg-blue-200 dark:bg-blue-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, (aiSettings.dailyAiUsageCount / (aiSettings.customDailyLimit ?? aiSettings.tierDailyLimit)) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Monthly Usage */}
+                      <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-purple-700 dark:text-purple-300 uppercase tracking-wide">Monthly</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                            onClick={handleResetMonthlyUsage}
+                            disabled={isSavingAISettings}
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Reset
+                          </Button>
+                        </div>
+                        <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                          {aiSettings.monthlyAiUsageCount} / {aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit}
+                        </div>
+                        <div className="mt-2 h-2 bg-purple-200 dark:bg-purple-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, (aiSettings.monthlyAiUsageCount / (aiSettings.customMonthlyLimit ?? aiSettings.tierMonthlyLimit)) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Custom Limits Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1 w-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 shrink-0"></div>
+                        <h3 className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          Custom Limits
+                        </h3>
+                      </div>
+                      {!isEditingAISettings && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setIsEditingAISettings(true)}
+                          className="h-8 px-3 text-xs border-purple-300 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/30"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+
+                    {isEditingAISettings ? (
+                      <div className="space-y-4 p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-purple-200 dark:border-purple-700">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              Custom Daily Limit
+                            </Label>
+                            <Input
+                              type="number"
+                              placeholder={`Tier default: ${aiSettings.tierDailyLimit}`}
+                              value={formDailyLimit}
+                              onChange={(e) => setFormDailyLimit(e.target.value)}
+                              className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 min-h-[44px] text-base sm:text-sm"
+                            />
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                              Leave empty to use tier default ({aiSettings.tierDailyLimit})
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                              Custom Monthly Limit
+                            </Label>
+                            <Input
+                              type="number"
+                              placeholder={`Tier default: ${aiSettings.tierMonthlyLimit}`}
+                              value={formMonthlyLimit}
+                              onChange={(e) => setFormMonthlyLimit(e.target.value)}
+                              className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 dark:focus:ring-purple-400/20 transition-all duration-200 min-h-[44px] text-base sm:text-sm"
+                            />
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                              Leave empty to use tier default ({aiSettings.tierMonthlyLimit})
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end pt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setIsEditingAISettings(false);
+                              setFormDailyLimit(aiSettings.customDailyLimit?.toString() || "");
+                              setFormMonthlyLimit(aiSettings.customMonthlyLimit?.toString() || "");
+                            }}
+                            disabled={isSavingAISettings}
+                            className="h-8 px-3 text-xs"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveAISettings}
+                            disabled={isSavingAISettings}
+                            className="h-8 px-3 text-xs bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+                          >
+                            {isSavingAISettings ? (
+                              <>
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-3 w-3 mr-1" />
+                                Save
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Daily Limit</span>
+                          <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                            {aiSettings.customDailyLimit ?? (
+                              <span className="text-slate-500 dark:text-slate-400">
+                                {aiSettings.tierDailyLimit} <span className="text-xs">(tier default)</span>
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-white dark:from-slate-800 dark:to-slate-800/50 border border-slate-200 dark:border-slate-700">
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide">Monthly Limit</span>
+                          <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                            {aiSettings.customMonthlyLimit ?? (
+                              <span className="text-slate-500 dark:text-slate-400">
+                                {aiSettings.tierMonthlyLimit} <span className="text-xs">(tier default)</span>
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tier Info */}
+                  <div className="p-4 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800">
+                    <div className="flex items-start gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 shadow-md shrink-0">
+                        <Shield className="h-4 w-4 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                          {aiSettings.subscriptionTier} Tier Defaults
+                        </h4>
+                        <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                          Daily: {aiSettings.tierDailyLimit} queries • Monthly: {aiSettings.tierMonthlyLimit} queries
+                        </p>
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-2">
+                          Custom limits override these defaults. Clear custom limits to revert to tier defaults.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
+
+            <DialogFooter className="border-t border-slate-200 dark:border-slate-700 pt-4 sm:pt-6 flex-shrink-0">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setAiSettingsDialogOpen(false);
+                  setIsEditingAISettings(false);
+                }}
+                className="w-full sm:w-auto border-2 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 min-h-[44px] text-sm sm:text-base"
+              >
+                <X className="mr-2 h-4 w-4 shrink-0" />
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Create Admin Dialog */}
         <CreateAdminDialog
