@@ -19,6 +19,7 @@ interface LearningModeContextType {
   user: SessionUser | null;
   enrollment: Enrollment | null;
   isTeacher: boolean;
+  isPremium: boolean;
   canAccessContent: boolean;
   canTrackProgress: boolean;
   isEnrolled: boolean;
@@ -36,6 +37,7 @@ interface LearningModeProviderProps {
   user: SessionUser | null;
   enrollment: Enrollment | null;
   isTeacher: boolean;
+  isPremium?: boolean;
 }
 
 export function LearningModeProvider({
@@ -44,6 +46,7 @@ export function LearningModeProvider({
   user,
   enrollment,
   isTeacher,
+  isPremium = false,
 }: LearningModeProviderProps) {
   const isEnrolled = !!enrollment;
   const isPreviewMode = mode === "preview";
@@ -55,6 +58,7 @@ export function LearningModeProvider({
     user,
     enrollment,
     isTeacher,
+    isPremium,
     canAccessContent,
     canTrackProgress,
     isEnrolled,

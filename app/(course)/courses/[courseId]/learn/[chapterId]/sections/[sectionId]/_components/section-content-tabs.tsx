@@ -64,7 +64,7 @@ export function SectionContentTabs({
   activeTab: externalActiveTab,
   onTabChange: externalOnTabChange,
 }: SectionContentTabsProps) {
-  const { mode, canAccessContent, isEnrolled, isTeacher } = useLearningMode();
+  const { mode, canAccessContent, isEnrolled, isTeacher, isPremium } = useLearningMode();
   const [internalActiveTab, setInternalActiveTab] = useState("overview");
   const [completedItems, setCompletedItems] = useState<Set<string>>(new Set());
   const [hasMounted, setHasMounted] = useState(false);
@@ -139,6 +139,22 @@ export function SectionContentTabs({
   };
 
   const hasContent = Object.values(contentCounts).some((count) => count > 0);
+
+  // Check if user can access a video based on its access tier
+  const canAccessVideo = (accessTier?: string): boolean => {
+    if (isTeacher) return true;
+    if (!accessTier || accessTier === "FREE") return true;
+    if (accessTier === "ENROLLED") return isEnrolled;
+    if (accessTier === "PREMIUM") return isPremium;
+    return false;
+  };
+
+  // Get lock message based on access tier
+  const getVideoLockMessage = (accessTier?: string): string => {
+    if (accessTier === "ENROLLED") return "Enroll in this course to watch";
+    if (accessTier === "PREMIUM") return "Upgrade to Premium to watch";
+    return "";
+  };
 
   // Group code explanations: main code blocks with their line explanations
   const groupedCodeExplanations = useMemo(() => {
@@ -439,12 +455,16 @@ export function SectionContentTabs({
 
               {/* Video Cards Grid */}
               <div className="grid gap-4 sm:grid-cols-2">
-                {section.videos.map((video: { id: string; title: string; description?: string | null; url?: string; thumbnail?: string | null; platform?: string | null; rating?: number | null; duration?: number | null; author?: string | null }, index: number) => (
+                {section.videos.map((video: { id: string; title: string; description?: string | null; url?: string; thumbnail?: string | null; platform?: string | null; rating?: number | null; duration?: number | null; author?: string | null; accessTier?: string }, index: number) => {
+                  const videoAccessible = canAccessVideo(video.accessTier);
+                  return (
                   <Card key={video.id} className={cn(
-                    "group overflow-hidden bg-white dark:bg-slate-900 border-2 shadow-sm hover:shadow-lg transition-all duration-300",
-                    completedItems.has(video.id)
-                      ? "border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50/50 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/10"
-                      : "border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-700"
+                    "group overflow-hidden bg-white dark:bg-slate-900 border-2 shadow-sm transition-all duration-300",
+                    !videoAccessible
+                      ? "border-slate-300 dark:border-slate-700 opacity-80"
+                      : completedItems.has(video.id)
+                      ? "border-emerald-300 dark:border-emerald-700 bg-gradient-to-br from-emerald-50/50 to-green-50/30 dark:from-emerald-950/20 dark:to-green-950/10 hover:shadow-lg"
+                      : "border-slate-200 dark:border-slate-800 hover:border-red-300 dark:hover:border-red-700 hover:shadow-lg"
                   )}>
                     {/* Thumbnail */}
                     <div className="relative h-44 w-full bg-gradient-to-br from-red-100 via-orange-100 to-amber-100 dark:from-red-900/30 dark:via-orange-900/20 dark:to-amber-900/30 overflow-hidden">
@@ -467,12 +487,33 @@ export function SectionContentTabs({
                       )}
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                      {/* Play button overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <div className="bg-white/95 dark:bg-slate-900/95 rounded-full p-4 shadow-xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
-                          <PlayCircle className="h-10 w-10 text-red-600 dark:text-red-500" />
+                      {/* Play button or Lock overlay */}
+                      {videoAccessible ? (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                          <div className="bg-white/95 dark:bg-slate-900/95 rounded-full p-4 shadow-xl transform scale-90 group-hover:scale-100 transition-transform duration-300">
+                            <PlayCircle className="h-10 w-10 text-red-600 dark:text-red-500" />
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 backdrop-blur-[2px]">
+                          <div className={cn(
+                            "rounded-full p-3 shadow-xl mb-2",
+                            video.accessTier === "PREMIUM"
+                              ? "bg-purple-100 dark:bg-purple-900/80"
+                              : "bg-blue-100 dark:bg-blue-900/80"
+                          )}>
+                            <Lock className={cn(
+                              "h-8 w-8",
+                              video.accessTier === "PREMIUM"
+                                ? "text-purple-600 dark:text-purple-400"
+                                : "text-blue-600 dark:text-blue-400"
+                            )} />
+                          </div>
+                          <span className="text-white text-xs font-medium text-center px-4">
+                            {getVideoLockMessage(video.accessTier)}
+                          </span>
+                        </div>
+                      )}
                       {/* Top badges */}
                       <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
                         {video.platform && (
@@ -484,6 +525,18 @@ export function SectionContentTabs({
                           <Badge className="bg-emerald-500/90 backdrop-blur-sm text-white border-0 text-xs font-medium shadow-lg">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
                             Watched
+                          </Badge>
+                        )}
+                        {video.accessTier === "FREE" && (
+                          <Badge className="bg-emerald-500/90 backdrop-blur-sm text-white border-0 text-xs font-medium shadow-lg">
+                            <Globe className="h-3 w-3 mr-1" />
+                            Free
+                          </Badge>
+                        )}
+                        {video.accessTier === "PREMIUM" && (
+                          <Badge className="bg-purple-500/90 backdrop-blur-sm text-white border-0 text-xs font-medium shadow-lg">
+                            <Award className="h-3 w-3 mr-1" />
+                            Premium
                           </Badge>
                         )}
                       </div>
@@ -559,7 +612,7 @@ export function SectionContentTabs({
                       </div>
 
                       {/* Watch Button */}
-                      {video.url && (
+                      {video.url && videoAccessible && (
                         <Button
                           size="sm"
                           className={cn(
@@ -593,6 +646,24 @@ export function SectionContentTabs({
                         </Button>
                       )}
 
+                      {/* Locked Video Button */}
+                      {!videoAccessible && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled
+                          className={cn(
+                            "w-full cursor-not-allowed",
+                            video.accessTier === "PREMIUM"
+                              ? "border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400"
+                              : "border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-400"
+                          )}
+                        >
+                          <Lock className="h-4 w-4 mr-2" />
+                          {video.accessTier === "PREMIUM" ? "Premium Only" : "Enrolled Only"}
+                        </Button>
+                      )}
+
                       {/* Inline Video Player */}
                       <AnimatePresence>
                         {expandedVideoId === video.id && video.url && (
@@ -618,7 +689,8 @@ export function SectionContentTabs({
                       </AnimatePresence>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
 
             </TabsContent>

@@ -344,6 +344,7 @@ model Video {
   embedUrl    String?
   author      String?
   userId      String
+  accessTier  VideoAccessTier @default(ENROLLED)
   section     Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

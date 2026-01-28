@@ -24,7 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Chapter } from "@prisma/client";
+import { Chapter, VideoAccessTier } from "@prisma/client";
+import { Shield, Globe, Crown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -57,6 +58,7 @@ interface VideoSectionFormProps {
     rating: number | null;
     thumbnail?: string | null;
     platform?: string | null;
+    accessTier?: VideoAccessTier;
   }[];
   courseId: string;
   chapterId: string;
@@ -83,7 +85,14 @@ const formSchema = z.object({
   videoUrl: z.string().url({
     message: "Please enter a valid video URL",
   }),
+  accessTier: z.enum(["FREE", "ENROLLED", "PREMIUM"]).default("ENROLLED"),
 });
+
+const accessTierOptions = [
+  { value: "FREE" as const, label: "Free", description: "Anyone can watch", icon: Globe, color: "text-emerald-600 dark:text-emerald-400" },
+  { value: "ENROLLED" as const, label: "Enrolled", description: "Enrolled students only", icon: Shield, color: "text-blue-600 dark:text-blue-400" },
+  { value: "PREMIUM" as const, label: "Premium", description: "Subscribed users only", icon: Crown, color: "text-purple-600 dark:text-purple-400" },
+];
 
 const RatingStars = ({ rating }: { rating: number | null }) => {
   return (
@@ -134,6 +143,7 @@ export const VideoSectionForm = ({
       title: "",
       videoUrl: "",
       description: "",
+      accessTier: "ENROLLED",
     },
   });
 
@@ -256,6 +266,7 @@ export const VideoSectionForm = ({
           platform: previewData?.platform || null,
           embedUrl: previewData?.embedUrl || null,
           author: previewData?.author || null,
+          accessTier: values.accessTier,
         }
       );
 
@@ -498,6 +509,50 @@ export const VideoSectionForm = ({
                             </span>
                           </div>
                         </div>
+
+                        {/* Access Tier Selector */}
+                        <FormField
+                          control={form.control}
+                          name="accessTier"
+                          render={({ field }) => (
+                            <FormItem className="mt-3 sm:mt-4">
+                              <FormLabel className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                                Access Tier
+                              </FormLabel>
+                              <div className="grid grid-cols-3 gap-2">
+                                {accessTierOptions.map((option) => {
+                                  const Icon = option.icon;
+                                  const isSelected = field.value === option.value;
+                                  return (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() => field.onChange(option.value)}
+                                      className={cn(
+                                        "flex flex-col items-center gap-1 p-2 sm:p-3 rounded-lg border-2 transition-all duration-200",
+                                        isSelected
+                                          ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-950/30"
+                                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                                      )}
+                                    >
+                                      <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", option.color)} />
+                                      <span className={cn(
+                                        "text-xs sm:text-sm font-medium",
+                                        isSelected ? "text-blue-700 dark:text-blue-300" : "text-gray-700 dark:text-gray-300"
+                                      )}>
+                                        {option.label}
+                                      </span>
+                                      <span className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 text-center leading-tight">
+                                        {option.description}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <FormMessage className="text-xs sm:text-sm" />
+                            </FormItem>
+                          )}
+                        />
 
                         <div className="flex justify-end mt-3 sm:mt-4">
                           <Button

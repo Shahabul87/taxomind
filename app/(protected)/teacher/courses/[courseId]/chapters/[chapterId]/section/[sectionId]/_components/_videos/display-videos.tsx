@@ -2,8 +2,10 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { Video as VideoIcon, Star, Play, ExternalLink, Plus, Film } from "lucide-react";
+import { Video as VideoIcon, Star, Play, ExternalLink, Plus, Film, Globe, Shield, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import type { VideoAccessTier } from "@prisma/client";
 
 interface DisplayVideosProps {
   videos: {
@@ -14,9 +16,16 @@ interface DisplayVideosProps {
     rating: number | null;
     thumbnail?: string | null;
     platform?: string | null;
+    accessTier?: VideoAccessTier;
   }[];
   onVideoClick: (url: string) => void;
 }
+
+const tierConfig = {
+  FREE: { label: "Free", icon: Globe, className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800" },
+  ENROLLED: { label: "Enrolled", icon: Shield, className: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border-blue-200 dark:border-blue-800" },
+  PREMIUM: { label: "Premium", icon: Crown, className: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400 border-purple-200 dark:border-purple-800" },
+} as const;
 
 // Helper function to extract YouTube video ID
 const extractYouTubeId = (url: string): string | null => {
@@ -199,6 +208,20 @@ export const DisplayVideos = ({
                   {video.platform}
                 </div>
               )}
+
+              {/* Access Tier badge */}
+              {video.accessTier && (() => {
+                const tier = tierConfig[video.accessTier];
+                const TierIcon = tier.icon;
+                return (
+                  <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5">
+                    <Badge variant="outline" className={cn("text-[9px] sm:text-[10px] px-1.5 py-0.5 gap-1 border", tier.className)}>
+                      <TierIcon className="h-2.5 w-2.5" />
+                      {tier.label}
+                    </Badge>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Details - Bottom on mobile, Right Side on larger screens */}

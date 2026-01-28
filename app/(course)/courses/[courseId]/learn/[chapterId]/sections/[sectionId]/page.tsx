@@ -78,6 +78,16 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
   // Check if user is the teacher
   const isTeacher = courseData.userId === user?.id;
 
+  // Check if user has premium/subscription access
+  let isPremium = false;
+  if (user?.id) {
+    const dbUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: { isPremium: true, hasAIAccess: true },
+    });
+    isPremium = dbUser?.isPremium === true || dbUser?.hasAIAccess === true;
+  }
+
   // Get enrollment from the query result
   const enrollment = courseData.Enrollment?.[0] ?? null;
 
@@ -145,6 +155,7 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
       user={user ?? null}
       enrollment={enrollment}
       isTeacher={isTeacher}
+      isPremium={isPremium}
     >
       <Suspense fallback={<SectionLoadingSkeleton />}>
         <EnterpriseSectionLearning
