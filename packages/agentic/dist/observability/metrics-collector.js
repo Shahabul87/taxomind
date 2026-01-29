@@ -340,11 +340,13 @@ export class AgenticMetricsCollector {
         const recentMemory = await this.memoryQualityTracker.getRecentMetrics(5);
         components['memory_quality'] = {
             name: 'Memory Quality',
-            status: recentMemory.avgRelevanceScore > 0.5
-                ? HealthStatus.HEALTHY
-                : recentMemory.avgRelevanceScore > 0.3
-                    ? HealthStatus.DEGRADED
-                    : HealthStatus.UNHEALTHY,
+            status: recentMemory.searchCount === 0
+                ? HealthStatus.HEALTHY // No data yet is not unhealthy
+                : recentMemory.avgRelevanceScore > 0.5
+                    ? HealthStatus.HEALTHY
+                    : recentMemory.avgRelevanceScore > 0.3
+                        ? HealthStatus.DEGRADED
+                        : HealthStatus.UNHEALTHY,
             lastCheckAt: new Date(),
             latencyMs: recentMemory.avgLatencyMs,
         };

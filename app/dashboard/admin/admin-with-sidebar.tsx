@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import {
+  Activity,
   LayoutDashboard,
   Users,
   BookOpen,
@@ -112,6 +113,13 @@ export function AdminWithSidebar({ user, children }: AdminWithSidebarProps) {
       href: "/dashboard/admin/user-token-usage",
       icon: (
         <Coins className="h-6 w-6 shrink-0 text-neutral-700" />
+      ),
+    },
+    {
+      label: "System Health",
+      href: "/dashboard/admin/system-health",
+      icon: (
+        <Activity className="h-6 w-6 shrink-0 text-neutral-700" />
       ),
     },
     {
