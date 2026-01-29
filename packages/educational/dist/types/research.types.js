@@ -1,4 +1,0 @@
-/**
- * Research Engine Types
- */
-export {};

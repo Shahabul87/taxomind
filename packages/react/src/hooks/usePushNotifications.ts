@@ -139,17 +139,47 @@ const DEFAULT_OPTIONS: Required<
 // ============================================================================
 
 export function usePushNotifications(options: UsePushNotificationsOptions = {}): UsePushNotificationsReturn {
+  // Store callback options in refs so they don't trigger re-memo or re-render cycles
+  const onPermissionChangeRef = useRef(options.onPermissionChange);
+  onPermissionChangeRef.current = options.onPermissionChange;
+  const onSubscriptionChangeRef = useRef(options.onSubscriptionChange);
+  onSubscriptionChangeRef.current = options.onSubscriptionChange;
+  const onSubscribeRef = useRef(options.onSubscribe);
+  onSubscribeRef.current = options.onSubscribe;
+  const onUnsubscribeRef = useRef(options.onUnsubscribe);
+  onUnsubscribeRef.current = options.onUnsubscribe;
+  const onNotificationClickRef = useRef(options.onNotificationClick);
+  onNotificationClickRef.current = options.onNotificationClick;
+  const onNotificationCloseRef = useRef(options.onNotificationClose);
+  onNotificationCloseRef.current = options.onNotificationClose;
+  const onErrorRef = useRef(options.onError);
+  onErrorRef.current = options.onError;
+
+  // Destructure primitives for stable useMemo deps
+  const {
+    serviceWorkerPath,
+    vapidPublicKey,
+    applicationServerKey,
+    autoRequestOnMount,
+    autoRequest,
+  } = options;
+
+  // Only recompute when primitive configuration options change
   const opts = useMemo(
-    () => ({ ...DEFAULT_OPTIONS, ...options }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    () => ({
+      ...DEFAULT_OPTIONS,
+      serviceWorkerPath,
+      vapidPublicKey,
+      applicationServerKey,
+      autoRequestOnMount,
+      autoRequest,
+    }),
     [
-      options.serviceWorkerPath,
-      options.vapidPublicKey,
-      options.applicationServerKey,
-      options.autoRequestOnMount,
-      options.onPermissionChange,
-      options.onSubscribe,
-      options.onUnsubscribe,
+      serviceWorkerPath,
+      vapidPublicKey,
+      applicationServerKey,
+      autoRequestOnMount,
+      autoRequest,
     ]
   );
 
@@ -164,6 +194,28 @@ export function usePushNotifications(options: UsePushNotificationsOptions = {}):
   // Check if supported
   const isSupported =
     typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+
+  // Request permission
+  const requestPermission = useCallback(async (): Promise<PushPermissionState> => {
+    if (!isSupported) {
+      return 'unsupported';
+    }
+
+    try {
+      const result = await Notification.requestPermission();
+      const state = result as PushPermissionState;
+      setPermission(state);
+      onPermissionChangeRef.current?.(state);
+      return state;
+    } catch (error) {
+      onErrorRef.current?.(error instanceof Error ? error : new Error('Permission request failed'));
+      return 'denied';
+    }
+  }, [isSupported]);
+
+  // Ref for requestPermission so the init effect can call the latest version
+  const requestPermissionRef = useRef(requestPermission);
+  requestPermissionRef.current = requestPermission;
 
   // Initialize
   useEffect(() => {
@@ -187,40 +239,21 @@ export function usePushNotifications(options: UsePushNotificationsOptions = {}):
         if (existingSub) {
           const subJSON = subscriptionToJSON(existingSub);
           setSubscription(subJSON);
-          opts.onSubscriptionChange?.(subJSON);
+          onSubscriptionChangeRef.current?.(subJSON);
         }
 
         // Auto-request if enabled
         if (opts.autoRequest && currentPermission === 'default') {
-          requestPermission();
+          requestPermissionRef.current();
         }
       } catch (error) {
         console.error('[usePushNotifications] Service worker registration failed:', error);
-        opts.onError?.(error instanceof Error ? error : new Error('Service worker registration failed'));
+        onErrorRef.current?.(error instanceof Error ? error : new Error('Service worker registration failed'));
       }
     };
 
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run once on mount when supported
-  }, [isSupported]);
-
-  // Request permission
-  const requestPermission = useCallback(async (): Promise<PushPermissionState> => {
-    if (!isSupported) {
-      return 'unsupported';
-    }
-
-    try {
-      const result = await Notification.requestPermission();
-      const state = result as PushPermissionState;
-      setPermission(state);
-      opts.onPermissionChange?.(state);
-      return state;
-    } catch (error) {
-      opts.onError?.(error instanceof Error ? error : new Error('Permission request failed'));
-      return 'denied';
-    }
-  }, [isSupported, opts]);
+  }, [isSupported, opts.serviceWorkerPath, opts.autoRequest]);
 
   // Subscribe to push
   const subscribe = useCallback(async (): Promise<PushSubscription | null> => {
@@ -248,16 +281,16 @@ export function usePushNotifications(options: UsePushNotificationsOptions = {}):
       const pushSubscription = await swRegistrationRef.current.pushManager.subscribe(subscribeOptions);
       const subJSON = subscriptionToJSON(pushSubscription);
       setSubscription(subJSON);
-      opts.onSubscriptionChange?.(subJSON);
+      onSubscriptionChangeRef.current?.(subJSON);
       return subJSON;
     } catch (error) {
       console.error('[usePushNotifications] Subscribe failed:', error);
-      opts.onError?.(error instanceof Error ? error : new Error('Subscribe failed'));
+      onErrorRef.current?.(error instanceof Error ? error : new Error('Subscribe failed'));
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [isSupported, permission, requestPermission, opts]);
+  }, [isSupported, permission, requestPermission, opts.vapidPublicKey]);
 
   // Unsubscribe
   const unsubscribe = useCallback(async (): Promise<boolean> => {
@@ -272,16 +305,16 @@ export function usePushNotifications(options: UsePushNotificationsOptions = {}):
         await existingSub.unsubscribe();
       }
       setSubscription(null);
-      opts.onSubscriptionChange?.(null);
+      onSubscriptionChangeRef.current?.(null);
       return true;
     } catch (error) {
       console.error('[usePushNotifications] Unsubscribe failed:', error);
-      opts.onError?.(error instanceof Error ? error : new Error('Unsubscribe failed'));
+      onErrorRef.current?.(error instanceof Error ? error : new Error('Unsubscribe failed'));
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [isSupported, opts]);
+  }, [isSupported]);
 
   // Show notification
   const showNotification = useCallback(
@@ -322,21 +355,21 @@ export function usePushNotifications(options: UsePushNotificationsOptions = {}):
         });
 
         notification.onclick = () => {
-          opts.onNotificationClick?.(notification);
+          onNotificationClickRef.current?.(notification);
         };
 
         notification.onclose = () => {
-          opts.onNotificationClose?.(notification);
+          onNotificationCloseRef.current?.(notification);
         };
 
         return notification;
       } catch (error) {
         console.error('[usePushNotifications] Show notification failed:', error);
-        opts.onError?.(error instanceof Error ? error : new Error('Show notification failed'));
+        onErrorRef.current?.(error instanceof Error ? error : new Error('Show notification failed'));
         return null;
       }
     },
-    [isSupported, permission, opts]
+    [isSupported, permission]
   );
 
   // Check if notification is visible
@@ -389,13 +422,13 @@ export function usePushNotifications(options: UsePushNotificationsOptions = {}):
         return true;
       } catch (error) {
         console.error('[usePushNotifications] Server registration failed:', error);
-        opts.onError?.(error instanceof Error ? error : new Error('Server registration failed'));
+        onErrorRef.current?.(error instanceof Error ? error : new Error('Server registration failed'));
         return false;
       } finally {
         setIsLoading(false);
       }
     },
-    [subscription, opts]
+    [subscription]
   );
 
   return {

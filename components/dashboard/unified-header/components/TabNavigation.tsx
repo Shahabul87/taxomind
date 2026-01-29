@@ -14,6 +14,7 @@ import {
   Goal,
   ChevronDown,
   Check,
+  Brain,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
@@ -21,6 +22,7 @@ import { useViewportHeight } from '@/hooks/useViewportHeight';
 export type DashboardView =
   | 'learning'
   | 'analytics'
+  | 'cognitive'
   | 'skills'
   | 'practice'
   | 'gamification'
@@ -55,6 +57,14 @@ const tabs: TabConfig[] = [
     icon: BarChart3,
     gradient: 'from-indigo-500 to-purple-500',
     description: 'Learning analytics & insights',
+  },
+  {
+    id: 'cognitive',
+    label: 'Cognitive',
+    shortLabel: 'Cognitive',
+    icon: Brain,
+    gradient: 'from-purple-500 to-pink-500',
+    description: 'Your cognitive growth profile',
   },
   {
     id: 'skills',

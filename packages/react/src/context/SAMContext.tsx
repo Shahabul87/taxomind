@@ -371,9 +371,12 @@ export function SAMProvider({
     return unsubscribe;
   }, [stateMachine, onStateChange, debug]);
 
+  // Store state.context.page in a ref to avoid stale closures
+  const pageContextRef = useRef(state.context.page);
+  pageContextRef.current = state.context.page;
+
   // Auto-detect context from URL
-  // Note: We intentionally exclude state.context.page from deps to avoid infinite loops
-  // since this effect updates the page context. It should only run on mount.
+  // Note: We use pageContextRef to avoid infinite loops since this effect updates page context
   useEffect(() => {
     if (autoDetectContext && typeof window !== 'undefined') {
       const path = window.location.pathname;
@@ -381,14 +384,13 @@ export function SAMProvider({
 
       dispatch({
         type: 'UPDATE_CONTEXT',
-        payload: { page: { ...state.context.page, ...detectedContext } },
+        payload: { page: { ...pageContextRef.current, ...detectedContext } },
       });
 
       if (debug) {
         console.log('[SAM] Auto-detected context:', detectedContext);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoDetectContext, debug]);
 
   const apiOptions: SAMApiTransportOptions | undefined =

@@ -30,15 +30,13 @@ export function useScrollSpy({
   // Create a stable string key from sectionIds for dependency comparison
   const sectionIdsKey = sectionIds.join(',');
 
+  // Keep sectionIds in sync with the ref whenever the key changes
   useEffect(() => {
-    if (typeof window === 'undefined' || !sectionIds.length) return;
-
-    // Only update if the actual content has changed
-    const idsHaveChanged = sectionIdsRef.current.join(',') !== sectionIdsKey;
-    if (!idsHaveChanged && observerRef.current) {
-      return;
-    }
     sectionIdsRef.current = sectionIds;
+  }, [sectionIds, sectionIdsKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !sectionIdsRef.current.length) return;
 
     // Cleanup previous observer
     observerRef.current?.disconnect();
@@ -65,8 +63,8 @@ export function useScrollSpy({
       threshold,
     });
 
-    // Observe all sections
-    sectionIds.forEach((id) => {
+    // Observe all sections from the ref (stable reference)
+    sectionIdsRef.current.forEach((id) => {
       const element = document.getElementById(id);
       if (element) {
         observerRef.current?.observe(element);
@@ -77,7 +75,6 @@ export function useScrollSpy({
     return () => {
       observerRef.current?.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sectionIdsKey, rootMargin, threshold]);
 
   const scrollToSection = useCallback(

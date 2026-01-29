@@ -23,7 +23,7 @@
  * });
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useFormRegistry } from '@/lib/stores/form-registry-store';
 import { emitSAMFormData } from '@sam-ai/react';
@@ -52,21 +52,26 @@ export function useIntelligentSAMSync<T = any>(
   const { registerForm, updateMultipleFields, unregisterForm } = useFormRegistry();
   const pathname = usePathname();
 
+  // Store options and formData in refs to avoid dependency issues
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+
   // Register form on mount
   useEffect(() => {
-    if (options.enabled === false) return;
+    if (optionsRef.current.enabled === false) return;
     registerForm(formId, {
-      purpose: options.formName || formId,
+      purpose: optionsRef.current.formName || formId,
       pageUrl: pathname,
-      formType: options.formType ?? 'intelligent-auto-detect',
-      ...options.metadata,
+      formType: optionsRef.current.formType ?? 'intelligent-auto-detect',
+      ...optionsRef.current.metadata,
     });
 
     return () => {
       unregisterForm(formId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formId, options.formName, pathname, registerForm, unregisterForm]);
+  }, [formId, pathname, registerForm, unregisterForm]);
 
   // Memoize the serialized form data for deep comparison
   const serializedFormData = useMemo(() => JSON.stringify(formData), [formData]);
@@ -77,8 +82,9 @@ export function useIntelligentSAMSync<T = any>(
 
   // Intelligent field extraction and sync
   useEffect(() => {
-    if (options.enabled === false) return;
-    if (!formData) return;
+    if (optionsRef.current.enabled === false) return;
+    const currentFormData = formDataRef.current;
+    if (!currentFormData) return;
 
     const fields: Record<string, { value: unknown; type: string }> = {};
 
@@ -156,60 +162,54 @@ export function useIntelligentSAMSync<T = any>(
     };
 
     // Start extraction from root
-    if (typeof formData === 'object' && formData !== null && !Array.isArray(formData)) {
-      Object.entries(formData as Record<string, unknown>).forEach(([key, value]) => {
+    if (typeof currentFormData === 'object' && currentFormData !== null && !Array.isArray(currentFormData)) {
+      Object.entries(currentFormData as Record<string, unknown>).forEach(([key, value]) => {
         extractFields(value, key);
       });
     } else {
       // Handle non-object form data (edge case)
-      extractFields(formData, 'value');
+      extractFields(currentFormData, 'value');
     }
 
     // Update SAM registry with all auto-detected fields
     updateMultipleFields(formId, fields);
 
+    const opts = optionsRef.current;
     emitSAMFormData({
       formId,
-      formData: formData as Record<string, unknown>,
+      formData: currentFormData as Record<string, unknown>,
       options: {
-        formName: options.formName ?? formId,
+        formName: opts.formName ?? formId,
         metadata: {
           pageUrl: pathname,
-          ...options.metadata,
+          ...opts.metadata,
         },
-        fieldMeta: options.fieldMeta,
-        debounceMs: options.debounce,
-        maxDepth: options.maxDepth,
-        formType: options.formType ?? 'intelligent-auto-detect',
-        isDirty: options.isDirty,
-        isValid: options.isValid,
+        fieldMeta: opts.fieldMeta,
+        debounceMs: opts.debounce,
+        maxDepth: opts.maxDepth,
+        formType: opts.formType ?? 'intelligent-auto-detect',
+        isDirty: opts.isDirty,
+        isValid: opts.isValid,
       },
     });
 
     // Debounce if requested
-    if (options.debounce) {
+    if (optionsRef.current.debounce) {
       const timeoutId = setTimeout(() => {
         updateMultipleFields(formId, fields);
-      }, options.debounce);
+      }, optionsRef.current.debounce);
 
       return () => clearTimeout(timeoutId);
     }
 
     // Deep comparison via serialized data ensures ALL changes are detected
     // Using serialized versions of objects prevents infinite loops from new object references
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // optionsRef is used for mutable options to keep deps stable
   }, [
     serializedFormData,
     serializedMetadata,
     serializedFieldMeta,
     formId,
-    options.debounce,
-    options.enabled,
-    options.formName,
-    options.formType,
-    options.isDirty,
-    options.isValid,
-    options.maxDepth,
     pathname,
     updateMultipleFields,
   ]);
@@ -241,19 +241,22 @@ export function useIntelligentSAMSyncCustom<T = any>(
   const { registerForm, updateMultipleFields, unregisterForm } = useFormRegistry();
   const pathname = usePathname();
 
+  // Store options in ref to avoid stale closures
+  const customOptionsRef = useRef(options);
+  customOptionsRef.current = options;
+
   useEffect(() => {
     registerForm(formId, {
-      purpose: options.formName || formId,
+      purpose: customOptionsRef.current.formName || formId,
       pageUrl: pathname,
       formType: 'custom-detector',
-      ...options.metadata,
+      ...customOptionsRef.current.metadata,
     });
 
     return () => {
       unregisterForm(formId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formId, options.formName, pathname, registerForm, unregisterForm]);
+  }, [formId, pathname, registerForm, unregisterForm]);
 
   // Use custom detector for change tracking
   useEffect(() => {
@@ -272,7 +275,5 @@ export function useIntelligentSAMSyncCustom<T = any>(
     }
 
     updateMultipleFields(formId, fields);
-    // Custom change detector would be used in the parent component
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData, formId, updateMultipleFields]);
 }

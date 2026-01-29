@@ -1,4 +1,0 @@
-/**
- * Trends Engine Types
- */
-export {};

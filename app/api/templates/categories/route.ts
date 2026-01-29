@@ -58,12 +58,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Get popular tags
+    // Get popular tags (limit to prevent memory issues with large template sets)
     const templates = await db.aIContentTemplate.findMany({
       where,
       select: {
         templateType: true
-      }
+      },
+      take: 1000,
     });
 
     const tagCounts = new Map<string, number>();

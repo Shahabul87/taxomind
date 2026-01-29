@@ -22,9 +22,30 @@ import type { SAMConfig, SAMDatabaseAdapter, BloomsLevel } from '@sam-ai/core';
 import { BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER } from '@sam-ai/core';
 import type { BloomsDistribution, CognitiveProfile } from '../types/blooms.types';
 import {
+  createSubLevelAnalyzer,
+  type SubLevelAnalyzer,
+} from '@sam-ai/pedagogy';
+import {
   parseAndValidate,
   type ValidationResult as ParseValidationResult,
 } from '../validation/utils';
+import {
+  SemanticBloomsClassifier,
+  createSemanticBloomsClassifier,
+  type EmbeddingProvider,
+  type SemanticClassificationResult,
+  AMBIGUOUS_VERBS,
+} from '../semantic-blooms-classifier';
+import {
+  BloomsCalibrator,
+  createBloomsCalibrator,
+  bloomsLevelToNumber,
+  numberToBloomsLevel,
+  type BloomsCalibratorStore,
+  type BloomsFeedbackInput,
+  type CalibratedResult,
+  type CalibrationMetrics,
+} from '../calibration';
 import type {
   UnifiedBloomsConfig,
   UnifiedBloomsMode,
@@ -137,10 +158,23 @@ export class UnifiedBloomsEngine {
   private readonly enableCache: boolean;
   private readonly cacheTTL: number;
 
-  // In-memory cache for AI analysis results
+  // LRU cache for AI analysis results (bounded to prevent OOM)
   private readonly cache: Map<string, CacheEntry<UnifiedBloomsResult | UnifiedCourseResult>> = new Map();
+  private readonly maxCacheEntries: number;
   private cacheHits = 0;
   private cacheMisses = 0;
+
+  // Sub-level analyzer for granular Bloom's classification (Phase 1)
+  private readonly subLevelAnalyzer: SubLevelAnalyzer;
+
+  // Semantic classifier for verb disambiguation (Phase 2)
+  private readonly semanticClassifier: SemanticBloomsClassifier;
+  private readonly enableSemanticDisambiguation: boolean;
+  private semanticClassifierReady = false;
+
+  // Calibrator for confidence adjustment (Phase 5)
+  private readonly calibrator: BloomsCalibrator;
+  private readonly enableCalibration: boolean;
 
   constructor(config: UnifiedBloomsConfig) {
     this.config = config.samConfig;
@@ -149,6 +183,47 @@ export class UnifiedBloomsEngine {
     this.confidenceThreshold = config.confidenceThreshold ?? 0.7;
     this.enableCache = config.enableCache ?? true;
     this.cacheTTL = (config.cacheTTL ?? 3600) * 1000; // Convert to ms
+    this.maxCacheEntries = config.maxCacheEntries ?? 500;
+    this.subLevelAnalyzer = createSubLevelAnalyzer();
+
+    // Phase 2: Initialize semantic classifier
+    this.enableSemanticDisambiguation = config.enableSemanticDisambiguation ?? false;
+    this.semanticClassifier = createSemanticBloomsClassifier({
+      embeddingProvider: config.embeddingProvider,
+      cacheTTL: this.cacheTTL,
+    });
+
+    // Pre-load reference embeddings if enabled and provider available
+    if (this.enableSemanticDisambiguation && config.embeddingProvider) {
+      this.initializeSemanticClassifier();
+    }
+
+    // Phase 5: Initialize calibrator for confidence adjustment
+    this.enableCalibration = config.enableCalibration ?? false;
+    this.calibrator = createBloomsCalibrator(
+      {
+        minSamplesForCalibration: config.calibrationMinSamples ?? 100,
+        maxAdjustmentFactor: config.calibrationMaxAdjustment ?? 0.3,
+      },
+      config.calibratorStore
+    );
+  }
+
+  /**
+   * Initialize the semantic classifier asynchronously
+   * Loads reference embeddings for all Bloom's levels
+   */
+  private async initializeSemanticClassifier(): Promise<void> {
+    try {
+      await this.semanticClassifier.loadReferenceEmbeddings();
+      this.semanticClassifierReady = true;
+      this.config.logger?.debug?.('[UnifiedBloomsEngine] Semantic classifier initialized');
+    } catch (error) {
+      this.config.logger?.warn?.(
+        '[UnifiedBloomsEngine] Failed to initialize semantic classifier',
+        error
+      );
+    }
   }
 
   // ============================================================================
@@ -178,6 +253,11 @@ export class UnifiedBloomsEngine {
    * In 'quick' mode: keyword-only analysis
    * In 'standard' mode: keyword analysis, AI escalation if confidence < threshold
    * In 'comprehensive' mode: full AI semantic analysis
+   *
+   * Phase 2: Semantic disambiguation is automatically applied when:
+   * - Embedding provider is configured and ready
+   * - Ambiguous verbs are detected in the content
+   * - Confidence from keyword analysis is below threshold
    *
    * @param content - Text content to analyze
    * @param options - Analysis options
@@ -210,10 +290,28 @@ export class UnifiedBloomsEngine {
 
     // Standard mode: keyword first, escalate if needed
     if (mode === 'standard' && !options.forceAI) {
-      const keywordResult = this.analyzeWithKeywords(content, options, startTime);
+      let keywordResult = this.analyzeWithKeywords(content, options, startTime);
       const threshold = options.confidenceThreshold ?? this.confidenceThreshold;
 
-      // If confidence is high enough, return keyword result
+      // Phase 2: Try semantic disambiguation if confidence is low and ambiguous verbs found
+      const useSemanticDisambiguation = options.useSemanticDisambiguation !== false &&
+        this.enableSemanticDisambiguation &&
+        this.semanticClassifierReady;
+
+      if (
+        keywordResult.confidence < threshold &&
+        keywordResult.ambiguousVerbsFound &&
+        keywordResult.ambiguousVerbsFound.length > 0 &&
+        useSemanticDisambiguation
+      ) {
+        keywordResult = await this.applySemanticDisambiguation(
+          content,
+          keywordResult,
+          startTime
+        );
+      }
+
+      // If confidence is high enough, return result
       if (keywordResult.confidence >= threshold) {
         return keywordResult;
       }
@@ -224,6 +322,88 @@ export class UnifiedBloomsEngine {
 
     // Comprehensive mode: full AI analysis
     return this.analyzeWithAI(content, undefined, options, startTime);
+  }
+
+  /**
+   * Apply semantic disambiguation to improve classification (Phase 2)
+   * Uses embeddings to disambiguate verbs that can indicate multiple levels
+   */
+  private async applySemanticDisambiguation(
+    content: string,
+    keywordResult: UnifiedBloomsResult,
+    startTime: number
+  ): Promise<UnifiedBloomsResult> {
+    const semanticStartTime = Date.now();
+
+    try {
+      const semanticResult = await this.semanticClassifier.classify(content);
+
+      // Only update if semantic analysis was confident
+      if (semanticResult.disambiguated && semanticResult.confidence > keywordResult.confidence) {
+        return {
+          ...keywordResult,
+          dominantLevel: semanticResult.level,
+          confidence: semanticResult.confidence,
+          semanticDisambiguated: true,
+          semanticSimilarityScores: semanticResult.similarityScores,
+          metadata: {
+            ...keywordResult.metadata,
+            method: 'hybrid',
+            processingTimeMs: Date.now() - startTime,
+            semanticDisambiguationUsed: true,
+            semanticProcessingTimeMs: semanticResult.processingTimeMs,
+          },
+        };
+      }
+
+      // Semantic analysis didn't improve confidence
+      return {
+        ...keywordResult,
+        semanticSimilarityScores: semanticResult.similarityScores,
+        metadata: {
+          ...keywordResult.metadata,
+          semanticDisambiguationUsed: true,
+          semanticProcessingTimeMs: Date.now() - semanticStartTime,
+        },
+      };
+    } catch (error) {
+      // Log error but continue with keyword result
+      this.config.logger?.warn?.(
+        '[UnifiedBloomsEngine] Semantic disambiguation failed',
+        error
+      );
+      return keywordResult;
+    }
+  }
+
+  /**
+   * Directly classify content using semantic analysis (Phase 2)
+   * Bypasses keyword analysis and uses only embeddings
+   *
+   * @param content - Text content to classify
+   * @returns Semantic classification result
+   */
+  async classifyWithSemantics(content: string): Promise<SemanticClassificationResult | null> {
+    if (!this.semanticClassifierReady) {
+      return null;
+    }
+
+    try {
+      return await this.semanticClassifier.classify(content);
+    } catch (error) {
+      this.config.logger?.warn?.(
+        '[UnifiedBloomsEngine] Semantic classification failed',
+        error
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Check if semantic classifier is ready for use (Phase 2)
+   */
+  isSemanticClassifierReady(): boolean {
+    return this.semanticClassifierReady;
   }
 
   // ============================================================================
@@ -315,12 +495,26 @@ export class UnifiedBloomsEngine {
           }
         }
 
-        return {
+        const sectionAnalysis: SectionAnalysis = {
           id: section.id,
           title: section.title,
           level,
           confidence,
         };
+
+        // Add sub-level information if requested (Phase 1: Sub-Level Granularity)
+        if (options.includeSubLevel) {
+          const enhancedResult = this.subLevelAnalyzer.getEnhancedResult(
+            level,
+            confidence,
+            sectionText
+          );
+          sectionAnalysis.subLevel = enhancedResult.subLevel;
+          sectionAnalysis.numericScore = enhancedResult.numericScore;
+          sectionAnalysis.subLevelLabel = enhancedResult.label;
+        }
+
+        return sectionAnalysis;
       });
 
       chapterAnalyses.push({
@@ -787,8 +981,8 @@ export class UnifiedBloomsEngine {
   ): UnifiedBloomsResult {
     const text = content.toLowerCase();
     const distribution = this.analyzeKeywordDistribution(text);
-    const dominantLevel = this.findDominantLevel(distribution);
-    const confidence = this.calculateKeywordConfidence(text, dominantLevel);
+    let dominantLevel = this.findDominantLevel(distribution);
+    let confidence = this.calculateKeywordConfidence(text, dominantLevel);
     const cognitiveDepth = this.calculateCognitiveDepth(distribution);
     const balance = this.determineBalance(distribution);
     const gaps = this.identifyGaps(distribution);
@@ -798,6 +992,9 @@ export class UnifiedBloomsEngine {
     if (options.includeSections) {
       // Section analysis would require structured input - skip for raw content
     }
+
+    // Phase 2: Detect ambiguous verbs for semantic disambiguation
+    const ambiguousVerbsFound = this.detectAmbiguousVerbs(text);
 
     const result: UnifiedBloomsResult = {
       dominantLevel,
@@ -817,6 +1014,25 @@ export class UnifiedBloomsEngine {
       },
     };
 
+    // Phase 2: Record ambiguous verbs found (even if not disambiguated)
+    if (ambiguousVerbsFound.length > 0) {
+      result.ambiguousVerbsFound = ambiguousVerbsFound;
+    }
+
+    // Add sub-level information if requested (Phase 1: Sub-Level Granularity)
+    if (options.includeSubLevel) {
+      const enhancedResult = this.subLevelAnalyzer.getEnhancedResult(
+        dominantLevel,
+        confidence,
+        content
+      );
+      result.subLevel = enhancedResult.subLevel;
+      result.numericScore = enhancedResult.numericScore;
+      result.subLevelIndicators = enhancedResult.indicators;
+      result.subLevelLabel = enhancedResult.label;
+      result.enhancedResult = enhancedResult;
+    }
+
     // Cache keyword results too (they're fast but useful for repeated calls)
     if (this.enableCache) {
       const cacheKey = this.generateCacheKey('content', content, 'quick');
@@ -824,6 +1040,24 @@ export class UnifiedBloomsEngine {
     }
 
     return result;
+  }
+
+  /**
+   * Detect ambiguous verbs in content (Phase 2)
+   * These are verbs that can indicate multiple Bloom's levels
+   */
+  private detectAmbiguousVerbs(text: string): string[] {
+    const words = text.split(/\s+/);
+    const found: string[] = [];
+
+    for (const word of words) {
+      const cleaned = word.replace(/[^a-z]/g, '');
+      if (cleaned in AMBIGUOUS_VERBS && !found.includes(cleaned)) {
+        found.push(cleaned);
+      }
+    }
+
+    return found;
   }
 
   private analyzeKeywordDistribution(text: string): BloomsDistribution {
@@ -997,6 +1231,20 @@ export class UnifiedBloomsEngine {
           keywordConfidence: keywordResult?.confidence,
         },
       };
+
+      // Add sub-level information if requested (Phase 1: Sub-Level Granularity)
+      if (options.includeSubLevel) {
+        const enhancedResult = this.subLevelAnalyzer.getEnhancedResult(
+          aiAnalysis.dominantLevel,
+          aiAnalysis.confidence,
+          content
+        );
+        result.subLevel = enhancedResult.subLevel;
+        result.numericScore = enhancedResult.numericScore;
+        result.subLevelIndicators = enhancedResult.indicators;
+        result.subLevelLabel = enhancedResult.label;
+        result.enhancedResult = enhancedResult;
+      }
 
       // Cache AI result
       if (this.enableCache) {
@@ -1568,14 +1816,19 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
       return null;
     }
 
+    // LRU: Move to end of Map iteration order by re-inserting
+    this.cache.delete(key);
+    entry.timestamp = Date.now(); // Update last-access time
+    this.cache.set(key, entry as CacheEntry<UnifiedBloomsResult | UnifiedCourseResult>);
+
     this.cacheHits++;
     return entry.data;
   }
 
   private setCache(key: string, data: UnifiedBloomsResult | UnifiedCourseResult): void {
-    // Clean up old entries if cache is too large
-    if (this.cache.size > 1000) {
-      this.evictOldestEntries(100);
+    // Evict least-recently-used entries if cache exceeds max size
+    if (this.cache.size >= this.maxCacheEntries) {
+      this.evictLRUEntries(Math.max(1, Math.floor(this.maxCacheEntries * 0.1)));
     }
 
     this.cache.set(key, {
@@ -1586,13 +1839,135 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
     });
   }
 
-  private evictOldestEntries(count: number): void {
-    const entries = Array.from(this.cache.entries());
-    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-    for (let i = 0; i < count && i < entries.length; i++) {
-      this.cache.delete(entries[i][0]);
+  private evictLRUEntries(count: number): void {
+    // Map iterates in insertion order; oldest (least recently used) entries are first
+    let evicted = 0;
+    for (const key of this.cache.keys()) {
+      if (evicted >= count) break;
+      this.cache.delete(key);
+      evicted++;
     }
+  }
+
+  // ============================================================================
+  // PUBLIC API - CALIBRATION (Phase 5)
+  // ============================================================================
+
+  /**
+   * Record feedback for a Bloom's classification (Phase 5)
+   * Used to improve classification accuracy over time
+   *
+   * @param content - The content that was classified
+   * @param predictedLevel - The predicted Bloom's level
+   * @param feedback - Feedback details (actual level, assessment outcome, etc.)
+   * @returns Feedback ID if stored, null otherwise
+   */
+  async recordClassificationFeedback(
+    content: string,
+    predictedLevel: BloomsLevel,
+    feedback: {
+      predictedConfidence: number;
+      predictedSubLevel?: 'BASIC' | 'INTERMEDIATE' | 'ADVANCED';
+      actualLevel?: BloomsLevel;
+      actualSubLevel?: 'BASIC' | 'INTERMEDIATE' | 'ADVANCED';
+      assessmentOutcome?: number;
+      feedbackType: 'EXPLICIT' | 'IMPLICIT' | 'EXPERT';
+      userId?: string;
+      courseId?: string;
+      sectionId?: string;
+      analysisMethod?: 'keyword' | 'ai' | 'hybrid';
+    }
+  ): Promise<string | null> {
+    const input: BloomsFeedbackInput = {
+      content,
+      predictedLevel: bloomsLevelToNumber(predictedLevel),
+      predictedConfidence: feedback.predictedConfidence,
+      predictedSubLevel: feedback.predictedSubLevel,
+      actualLevel: feedback.actualLevel ? bloomsLevelToNumber(feedback.actualLevel) : undefined,
+      actualSubLevel: feedback.actualSubLevel,
+      assessmentOutcome: feedback.assessmentOutcome,
+      feedbackType: feedback.feedbackType,
+      userId: feedback.userId,
+      courseId: feedback.courseId,
+      sectionId: feedback.sectionId,
+      analysisMethod: feedback.analysisMethod,
+    };
+
+    return this.calibrator.recordFeedback(input);
+  }
+
+  /**
+   * Get calibration-adjusted result for a classification (Phase 5)
+   *
+   * @param predictedLevel - The predicted Bloom's level
+   * @param confidence - The confidence score
+   * @returns Calibrated result with adjusted confidence and potentially adjusted level
+   */
+  async getCalibratedResult(
+    predictedLevel: BloomsLevel,
+    confidence: number
+  ): Promise<{
+    calibratedLevel: BloomsLevel;
+    calibratedConfidence: number;
+    calibrationApplied: boolean;
+    levelAdjustment: number;
+  }> {
+    if (!this.enableCalibration) {
+      return {
+        calibratedLevel: predictedLevel,
+        calibratedConfidence: confidence,
+        calibrationApplied: false,
+        levelAdjustment: 0,
+      };
+    }
+
+    const result = await this.calibrator.calibrate(
+      bloomsLevelToNumber(predictedLevel),
+      confidence
+    );
+
+    return {
+      calibratedLevel: numberToBloomsLevel(result.calibratedLevel),
+      calibratedConfidence: result.calibratedConfidence,
+      calibrationApplied: result.calibrationApplied,
+      levelAdjustment: result.levelAdjustment,
+    };
+  }
+
+  /**
+   * Get calibration metrics (Phase 5)
+   * Returns accuracy, calibration error, and adjustment factors
+   */
+  async getCalibrationMetrics(): Promise<CalibrationMetrics | null> {
+    return this.calibrator.getMetrics();
+  }
+
+  /**
+   * Get calibration health status (Phase 5)
+   * Indicates whether calibration is ready and its quality
+   */
+  async getCalibrationHealth(): Promise<{
+    hasEnoughData: boolean;
+    totalSamples: number;
+    overallAccuracy: number;
+    calibrationQuality: 'good' | 'moderate' | 'poor' | 'insufficient';
+    expectedCalibrationError: number;
+  }> {
+    return this.calibrator.getHealthStatus();
+  }
+
+  /**
+   * Check if calibration is enabled and ready (Phase 5)
+   */
+  isCalibrationEnabled(): boolean {
+    return this.enableCalibration;
+  }
+
+  /**
+   * Clear calibration cache (Phase 5)
+   */
+  clearCalibrationCache(): void {
+    this.calibrator.clearCache();
   }
 }
 

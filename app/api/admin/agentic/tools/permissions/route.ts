@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
         category: parsed.data.category,
       },
       orderBy: { grantedAt: "desc" },
+      take: 200,
     });
 
     return NextResponse.json({

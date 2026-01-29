@@ -199,6 +199,9 @@ export async function GET(request: Request) {
     // 5. Fetch Users with AI Usage (Primary Data Source)
     // =========================================
     // Get users who have any AI usage (from User model fields)
+    // Safety limit to prevent loading entire user table into memory.
+    // Results are re-sorted and paginated in JS (step 11-12) because sort
+    // fields can come from the joined AIUsageMetrics aggregation.
     const usersWithAiUsage = await db.user.findMany({
       where: {
         ...userWhere,
@@ -220,6 +223,7 @@ export async function GET(request: Request) {
       orderBy: params.sortBy === "dailyAiUsageCount" || params.sortBy === "monthlyAiUsageCount"
         ? { [params.sortBy]: params.sortOrder }
         : { monthlyAiUsageCount: "desc" },
+      take: 1000,
     });
 
     // =========================================

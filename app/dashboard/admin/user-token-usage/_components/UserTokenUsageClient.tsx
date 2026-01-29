@@ -258,6 +258,9 @@ export function UserTokenUsageClient() {
   // Use ref to track current request and prevent race conditions
   const requestIdRef = useRef(0);
 
+  // Ref to store the latest fetchData for stable access in effects
+  const fetchDataRef = useRef<(resetPage?: boolean) => Promise<void>>();
+
   // Fetch data function
   const fetchData = useCallback(async (resetPage = false) => {
     const requestId = ++requestIdRef.current;
@@ -320,24 +323,25 @@ export function UserTokenUsageClient() {
       }
     }
   }, [currentPage, period, searchQuery, tierFilter, sortBy, sortOrder]);
+  fetchDataRef.current = fetchData;
 
   // Initial load and filter changes
   useEffect(() => {
-    fetchData(true);
-  }, [period, tierFilter, sortBy, sortOrder]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchDataRef.current?.(true);
+  }, [period, tierFilter, sortBy, sortOrder]);
 
   // Page changes
   useEffect(() => {
-    fetchData(false);
-  }, [currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchDataRef.current?.(false);
+  }, [currentPage]);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchData(true);
+      fetchDataRef.current?.(true);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   // Export function
   const handleExport = () => {

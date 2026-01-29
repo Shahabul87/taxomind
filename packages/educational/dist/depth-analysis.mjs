@@ -19,7 +19,7 @@ import {
   serializeAnalysisResult,
   transcriptAnalyzer,
   webbDOKAnalyzer
-} from "./chunk-GF2L6ICH.mjs";
+} from "./chunk-VYBSJ3HE.mjs";
 
 // src/standards/validated-distributions.ts
 var VALIDATED_DISTRIBUTIONS = [

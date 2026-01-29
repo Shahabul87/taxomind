@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Users, Globe, Zap } from 'lucide-react';
 
@@ -25,6 +25,9 @@ export const LiveEnrollmentTicker = ({
   const [recentActivity, setRecentActivity] = useState<EnrollmentActivity | null>(null);
   const [viewersCount, setViewersCount] = useState(Math.floor(Math.random() * 20) + 5);
   const [isVisible, setIsVisible] = useState(false);
+
+  // Track all nested timeouts for proper cleanup
+  const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Simulated live data - in production, this would connect to a WebSocket or SSE
   useEffect(() => {
@@ -66,14 +69,15 @@ export const LiveEnrollmentTicker = ({
       activityIndex++;
       setIsVisible(true);
 
-      // Hide after 4 seconds
-      setTimeout(() => {
+      // Hide after 4 seconds - tracked for cleanup
+      const hideTimeout = setTimeout(() => {
         setIsVisible(false);
       }, 4000);
+      timeoutRefs.current.push(hideTimeout);
     }, 12000); // Show new activity every 12 seconds
 
-    // Show initial activity after 3 seconds
-    setTimeout(() => {
+    // Show initial activity after 3 seconds - tracked for cleanup
+    const initialTimeout = setTimeout(() => {
       const activity = activities[0];
       setRecentActivity({
         id: `${Date.now()}`,
@@ -83,12 +87,16 @@ export const LiveEnrollmentTicker = ({
         action: activity.action
       });
       setIsVisible(true);
-      setTimeout(() => setIsVisible(false), 4000);
+      const initialHideTimeout = setTimeout(() => setIsVisible(false), 4000);
+      timeoutRefs.current.push(initialHideTimeout);
     }, 3000);
+    timeoutRefs.current.push(initialTimeout);
 
     return () => {
       clearInterval(viewerInterval);
       clearInterval(activityInterval);
+      timeoutRefs.current.forEach(clearTimeout);
+      timeoutRefs.current = [];
     };
   }, []);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -89,6 +89,8 @@ export const ChatView = ({ chatId, userId, onBack }: ChatViewProps) => {
     email?: string | null;
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const otherUserRef = useRef(otherUser);
+  otherUserRef.current = otherUser;
 
   // Initialize typing indicator
   const {
@@ -114,38 +116,11 @@ export const ChatView = ({ chatId, userId, onBack }: ChatViewProps) => {
     },
   });
 
-  // Connect to Socket.io and join conversation
-  useEffect(() => {
-    const socket = connectSocket();
-
-    socket.on("connect", () => {
-      joinConversation(chatId);
-    });
-
-    if (socket.connected) {
-      joinConversation(chatId);
-    }
-
-    return () => {
-      leaveConversation(chatId);
-    };
-  }, [chatId]);
-
-  useEffect(() => {
-    fetchMessages();
-    fetchOtherUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatId]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, typingUsers]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const fetchOtherUser = async () => {
+  const fetchOtherUser = useCallback(async () => {
     try {
       const [user1, user2] = chatId.split("-");
       const otherUserId = user1 === userId ? user2 : user1;
@@ -165,9 +140,9 @@ export const ChatView = ({ chatId, userId, onBack }: ChatViewProps) => {
     } catch (error) {
       console.error("Failed to fetch other user:", error);
     }
-  };
+  }, [chatId, userId]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch("/api/messages", {
@@ -200,7 +175,7 @@ export const ChatView = ({ chatId, userId, onBack }: ChatViewProps) => {
 
       setMessages(conversationMessages);
 
-      if (conversationMessages.length > 0 && !otherUser) {
+      if (conversationMessages.length > 0 && !otherUserRef.current) {
         const firstOtherMessage = conversationMessages.find(
           (msg: Message) => msg.senderId !== userId
         );
@@ -214,7 +189,33 @@ export const ChatView = ({ chatId, userId, onBack }: ChatViewProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [chatId, userId]);
+
+  // Connect to Socket.io and join conversation
+  useEffect(() => {
+    const socket = connectSocket();
+
+    socket.on("connect", () => {
+      joinConversation(chatId);
+    });
+
+    if (socket.connected) {
+      joinConversation(chatId);
+    }
+
+    return () => {
+      leaveConversation(chatId);
+    };
+  }, [chatId]);
+
+  useEffect(() => {
+    fetchMessages();
+    fetchOtherUser();
+  }, [fetchMessages, fetchOtherUser]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, typingUsers]);
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;

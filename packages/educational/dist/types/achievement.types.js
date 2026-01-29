@@ -1,4 +1,0 @@
-/**
- * Achievement Engine Types
- */
-export {};

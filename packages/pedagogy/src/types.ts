@@ -39,6 +39,156 @@ export function getBloomsLevelIndex(level: BloomsLevel): number {
   return BLOOMS_LEVEL_ORDER.indexOf(level);
 }
 
+// ============================================================================
+// BLOOM'S SUB-LEVEL TYPES (Phase 1: Sub-Level Granularity)
+// ============================================================================
+
+/**
+ * Sub-level within each Bloom's level
+ * Provides finer granularity for assessment and progression tracking
+ */
+export type BloomsSubLevel = 'BASIC' | 'INTERMEDIATE' | 'ADVANCED';
+
+/**
+ * Order of sub-levels from lowest to highest complexity
+ */
+export const BLOOMS_SUB_LEVEL_ORDER: BloomsSubLevel[] = [
+  'BASIC',
+  'INTERMEDIATE',
+  'ADVANCED',
+];
+
+/**
+ * Get numeric index of a sub-level (0-2)
+ */
+export function getBloomsSubLevelIndex(subLevel: BloomsSubLevel): number {
+  return BLOOMS_SUB_LEVEL_ORDER.indexOf(subLevel);
+}
+
+/**
+ * Indicator types for determining sub-level
+ */
+export type SubLevelIndicatorType = 'complexity' | 'abstraction' | 'transfer' | 'novelty';
+
+/**
+ * Indicator for sub-level determination
+ */
+export interface SubLevelIndicator {
+  /**
+   * Type of indicator
+   */
+  type: SubLevelIndicatorType;
+
+  /**
+   * Score for this indicator (0-1)
+   * BASIC: 0-0.33, INTERMEDIATE: 0.34-0.66, ADVANCED: 0.67-1.0
+   */
+  score: number;
+
+  /**
+   * Evidence text supporting this score
+   */
+  evidence: string;
+}
+
+/**
+ * Enhanced Bloom's result with sub-level granularity
+ */
+export interface EnhancedBloomsResult {
+  /**
+   * The main Bloom's level (1-6 or REMEMBER-CREATE)
+   */
+  level: BloomsLevel;
+
+  /**
+   * Numeric level value (1-6)
+   */
+  levelNumeric: number;
+
+  /**
+   * Sub-level within the main level
+   */
+  subLevel: BloomsSubLevel;
+
+  /**
+   * Numeric sub-level value (0-2)
+   */
+  subLevelNumeric: number;
+
+  /**
+   * Combined numeric score (1.0 - 6.9)
+   * Examples: 3.0 = Apply-Basic, 3.3 = Apply-Intermediate, 3.7 = Apply-Advanced
+   */
+  numericScore: number;
+
+  /**
+   * Confidence in the assessment (0-1)
+   */
+  confidence: number;
+
+  /**
+   * Indicators used to determine sub-level
+   */
+  indicators: SubLevelIndicator[];
+
+  /**
+   * Human-readable label (e.g., "Apply - Advanced")
+   */
+  label: string;
+}
+
+/**
+ * Calculate numeric score from level and sub-level
+ * @param level - Bloom's level (1-6)
+ * @param subLevel - Sub-level
+ * @returns Numeric score (1.0 - 6.9)
+ */
+export function calculateBloomsNumericScore(
+  levelOrName: number | BloomsLevel,
+  subLevel: BloomsSubLevel
+): number {
+  const level = typeof levelOrName === 'string'
+    ? getBloomsLevelIndex(levelOrName) + 1
+    : levelOrName;
+  const subLevelIndex = getBloomsSubLevelIndex(subLevel);
+  // BASIC = +0.0, INTERMEDIATE = +0.3, ADVANCED = +0.7
+  const subLevelOffset = subLevelIndex === 0 ? 0 : subLevelIndex === 1 ? 0.3 : 0.7;
+  return Math.round((level + subLevelOffset) * 10) / 10;
+}
+
+/**
+ * Determine sub-level from indicator scores
+ * @param indicators - Array of sub-level indicators
+ * @returns The determined sub-level
+ */
+export function determineSubLevelFromIndicators(
+  indicators: SubLevelIndicator[]
+): BloomsSubLevel {
+  if (indicators.length === 0) {
+    return 'BASIC';
+  }
+
+  // Calculate average indicator score
+  const avgScore = indicators.reduce((sum, i) => sum + i.score, 0) / indicators.length;
+
+  if (avgScore >= 0.67) {
+    return 'ADVANCED';
+  } else if (avgScore >= 0.34) {
+    return 'INTERMEDIATE';
+  } else {
+    return 'BASIC';
+  }
+}
+
+/**
+ * Create a human-readable label for the Bloom's level and sub-level
+ */
+export function createBloomsLabel(level: BloomsLevel, subLevel: BloomsSubLevel): string {
+  const levelName = level.charAt(0) + level.slice(1).toLowerCase();
+  const subLevelName = subLevel.charAt(0) + subLevel.slice(1).toLowerCase();
+  return `${levelName} - ${subLevelName}`;
+}
+
 /**
  * Bloom's distribution across levels
  */

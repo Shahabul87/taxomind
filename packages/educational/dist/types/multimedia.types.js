@@ -1,4 +1,0 @@
-/**
- * Multimedia Engine Types
- */
-export {};

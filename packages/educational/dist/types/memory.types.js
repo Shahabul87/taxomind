@@ -1,4 +1,0 @@
-/**
- * Memory Engine Types
- */
-export {};

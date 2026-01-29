@@ -105,16 +105,31 @@ const DEFAULT_DISPLAY_CONFIG: InterventionDisplayConfig = {
 // ============================================================================
 
 export function useInterventions(options: UseInterventionsOptions = {}): UseInterventionsReturn {
+  // Store callback options in refs so they do not destabilize memoized values
+  const onInterventionRef = useRef(options.onIntervention);
+  onInterventionRef.current = options.onIntervention;
+  const acknowledgeRef = useRef(options.acknowledge);
+  acknowledgeRef.current = options.acknowledge;
+  const onDismissRef = useRef(options.onDismiss);
+  onDismissRef.current = options.onDismiss;
+  const dismissEventRef = useRef(options.dismissEvent);
+  dismissEventRef.current = options.dismissEvent;
+  const onActionRef = useRef(options.onAction);
+  onActionRef.current = options.onAction;
+
   const opts = useMemo(
-    () => ({ ...DEFAULT_OPTIONS, ...options }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    () => ({
+      ...DEFAULT_OPTIONS,
+      defaultSurface: options.defaultSurface ?? DEFAULT_OPTIONS.defaultSurface,
+      autoDismissMs: options.autoDismissMs ?? DEFAULT_OPTIONS.autoDismissMs,
+      maxVisible: options.maxVisible ?? DEFAULT_OPTIONS.maxVisible,
+      enableSound: options.enableSound ?? DEFAULT_OPTIONS.enableSound,
+    }),
     [
       options.defaultSurface,
       options.autoDismissMs,
       options.maxVisible,
       options.enableSound,
-      options.onIntervention,
-      options.acknowledge,
     ]
   );
 
@@ -131,6 +146,9 @@ export function useInterventions(options: UseInterventionsOptions = {}): UseInte
 
   // Auto-dismiss timers
   const dismissTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+
+  // Ref for dismiss callback to break circular dependency between add and dismiss
+  const dismissRef = useRef<(id: string, reason?: string) => void>(() => {});
 
   // Generate unique ID
   const generateId = useCallback(() => {
@@ -260,10 +278,10 @@ export function useInterventions(options: UseInterventionsOptions = {}): UseInte
             return updated;
           });
 
-          // Set auto-dismiss timer
+          // Set auto-dismiss timer using ref to avoid circular dependency
           if (displayConfig.duration && displayConfig.duration > 0) {
             const timer = setTimeout(() => {
-              dismiss(id, 'timeout');
+              dismissRef.current(id, 'timeout');
             }, displayConfig.duration);
             dismissTimersRef.current.set(id, timer);
           }
@@ -273,10 +291,9 @@ export function useInterventions(options: UseInterventionsOptions = {}): UseInte
         return prev;
       });
 
-      opts.onIntervention?.(intervention);
-      opts.acknowledge?.(id, 'viewed');
+      onInterventionRef.current?.(intervention);
+      acknowledgeRef.current?.(id, 'viewed');
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- dismiss is defined after this callback
     [generateId, getDisplayConfig, opts]
   );
 
@@ -310,8 +327,8 @@ export function useInterventions(options: UseInterventionsOptions = {}): UseInte
         return next;
       });
 
-      opts.onDismiss?.(interventionId, reason);
-      opts.dismissEvent?.(interventionId, reason);
+      onDismissRef.current?.(interventionId, reason);
+      dismissEventRef.current?.(interventionId, reason);
 
       // Show next pending intervention
       setInterventions((interventions) => {
@@ -333,8 +350,11 @@ export function useInterventions(options: UseInterventionsOptions = {}): UseInte
         return interventions;
       });
     },
-    [opts]
+    [opts.maxVisible]
   );
+
+  // Keep dismissRef in sync so add's setTimeout always calls the latest dismiss
+  dismissRef.current = dismiss;
 
   // Dismiss all
   const dismissAll = useCallback(() => {
@@ -363,9 +383,9 @@ export function useInterventions(options: UseInterventionsOptions = {}): UseInte
         }
         return next;
       });
-      opts.acknowledge?.(interventionId, 'viewed');
+      acknowledgeRef.current?.(interventionId, 'viewed');
     },
-    [opts]
+    []
   );
 
   // Trigger action
@@ -383,10 +403,10 @@ export function useInterventions(options: UseInterventionsOptions = {}): UseInte
         }
         return next;
       });
-      opts.onAction?.(interventionId, action);
-      opts.acknowledge?.(interventionId, 'clicked');
+      onActionRef.current?.(interventionId, action);
+      acknowledgeRef.current?.(interventionId, 'clicked');
     },
-    [opts]
+    []
   );
 
   // Check if type is visible

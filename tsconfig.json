@@ -128,6 +128,7 @@
     ".next/**",
     "coverage/**",
     "dist/**",
+    "packages/*/dist/**",
     "__tests__/**",
     "**/*.test.ts",
     "**/*.test.tsx",

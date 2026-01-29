@@ -14,8 +14,17 @@ import type {
   ActivityAnalysis,
   PedagogicalIssue,
   PedagogicalEvaluator,
+  SubLevelIndicator,
+  EnhancedBloomsResult,
 } from './types';
-import { BLOOMS_LEVEL_ORDER, getBloomsLevelIndex } from './types';
+import {
+  BLOOMS_LEVEL_ORDER,
+  getBloomsLevelIndex,
+  determineSubLevelFromIndicators,
+  calculateBloomsNumericScore,
+  createBloomsLabel,
+  getBloomsSubLevelIndex,
+} from './types';
 
 // ============================================================================
 // BLOOM'S VERB TAXONOMY
@@ -226,11 +235,400 @@ export const BLOOMS_ACTIVITIES: Record<BloomsLevel, string[]> = {
 };
 
 // ============================================================================
+// SUB-LEVEL INDICATORS (Phase 1: Sub-Level Granularity)
+// ============================================================================
+
+/**
+ * Sub-level indicator record type
+ */
+type SubLevelIndicatorRecord = Record<'BASIC' | 'INTERMEDIATE' | 'ADVANCED', string[]>;
+
+/**
+ * Complexity indicators for sub-level determination
+ * BASIC: 0-0.33, INTERMEDIATE: 0.34-0.66, ADVANCED: 0.67-1.0
+ */
+export const SUB_LEVEL_COMPLEXITY_INDICATORS: SubLevelIndicatorRecord = {
+  BASIC: [
+    'single',
+    'simple',
+    'basic',
+    'one',
+    'individual',
+    'isolated',
+    'fundamental',
+    'elementary',
+    'straightforward',
+    'direct',
+    'single step',
+    'single concept',
+    'one example',
+    'familiar',
+    'routine',
+    'standard',
+    'given',
+    'provided',
+    'recall',
+    'recognize',
+  ],
+  INTERMEDIATE: [
+    'multiple',
+    'several',
+    'related',
+    'connected',
+    'combination',
+    'compare',
+    'some',
+    'various',
+    'moderate',
+    'modified',
+    'adapted',
+    'similar context',
+    'new example',
+    'different situation',
+    'pattern',
+    'sequence',
+    'relationship',
+    'procedure',
+    'method',
+    'technique',
+  ],
+  ADVANCED: [
+    'complex',
+    'interconnected',
+    'system',
+    'integrated',
+    'novel',
+    'unprecedented',
+    'unique',
+    'original',
+    'synthesize',
+    'abstract',
+    'theoretical',
+    'hypothetical',
+    'cross-domain',
+    'multidisciplinary',
+    'innovative',
+    'creative',
+    'comprehensive',
+    'holistic',
+    'emergent',
+    'transformative',
+  ],
+};
+
+/**
+ * Abstraction indicators for sub-level determination
+ */
+export const SUB_LEVEL_ABSTRACTION_INDICATORS: SubLevelIndicatorRecord = {
+  BASIC: [
+    'concrete',
+    'specific',
+    'example',
+    'instance',
+    'case',
+    'tangible',
+    'physical',
+    'visual',
+    'hands-on',
+    'practical',
+    'observable',
+    'measurable',
+  ],
+  INTERMEDIATE: [
+    'pattern',
+    'category',
+    'type',
+    'class',
+    'group',
+    'general',
+    'principle',
+    'concept',
+    'rule',
+    'guideline',
+    'framework',
+    'model',
+  ],
+  ADVANCED: [
+    'abstract',
+    'theoretical',
+    'conceptual',
+    'paradigm',
+    'meta',
+    'philosophical',
+    'epistemological',
+    'ontological',
+    'axiomatic',
+    'universal',
+    'transcendent',
+    'emergent',
+  ],
+};
+
+/**
+ * Transfer context indicators for sub-level determination
+ */
+export const SUB_LEVEL_TRANSFER_INDICATORS: SubLevelIndicatorRecord = {
+  BASIC: [
+    'same',
+    'identical',
+    'exact',
+    'similar',
+    'like before',
+    'as shown',
+    'as demonstrated',
+    'following the example',
+    'using the template',
+    'same context',
+    'familiar situation',
+    'known scenario',
+  ],
+  INTERMEDIATE: [
+    'similar context',
+    'related situation',
+    'modified',
+    'adapted',
+    'adjusted',
+    'varied',
+    'different example',
+    'alternative approach',
+    'comparable scenario',
+    'parallel case',
+    'analogous',
+    'corresponding',
+  ],
+  ADVANCED: [
+    'novel context',
+    'new situation',
+    'unfamiliar',
+    'unprecedented',
+    'unique scenario',
+    'different domain',
+    'cross-disciplinary',
+    'transfer',
+    'generalize',
+    'extrapolate',
+    'innovative application',
+    'original context',
+  ],
+};
+
+/**
+ * Novelty indicators for sub-level determination
+ */
+export const SUB_LEVEL_NOVELTY_INDICATORS: SubLevelIndicatorRecord = {
+  BASIC: [
+    'familiar',
+    'known',
+    'recognized',
+    'standard',
+    'typical',
+    'common',
+    'usual',
+    'expected',
+    'routine',
+    'practiced',
+    'rehearsed',
+    'memorized',
+  ],
+  INTERMEDIATE: [
+    'modified',
+    'variation',
+    'adapted',
+    'adjusted',
+    'changed',
+    'altered',
+    'different',
+    'new variation',
+    'alternative',
+    'updated',
+    'revised',
+    'improved',
+  ],
+  ADVANCED: [
+    'novel',
+    'unprecedented',
+    'original',
+    'innovative',
+    'creative',
+    'unique',
+    'groundbreaking',
+    'pioneering',
+    'inventive',
+    'unconventional',
+    'revolutionary',
+    'cutting-edge',
+  ],
+};
+
+// ============================================================================
+// SUB-LEVEL ANALYZER
+// ============================================================================
+
+/**
+ * Sub-Level Analyzer for determining BASIC/INTERMEDIATE/ADVANCED within Bloom&apos;s levels
+ */
+export class SubLevelAnalyzer {
+  /**
+   * Analyze content for sub-level indicators
+   */
+  analyze(content: string): SubLevelIndicator[] {
+    const lowerContent = content.toLowerCase();
+    const indicators: SubLevelIndicator[] = [];
+
+    // Analyze complexity
+    const complexityResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_COMPLEXITY_INDICATORS,
+      'complexity'
+    );
+    indicators.push(complexityResult);
+
+    // Analyze abstraction
+    const abstractionResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_ABSTRACTION_INDICATORS,
+      'abstraction'
+    );
+    indicators.push(abstractionResult);
+
+    // Analyze transfer
+    const transferResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_TRANSFER_INDICATORS,
+      'transfer'
+    );
+    indicators.push(transferResult);
+
+    // Analyze novelty
+    const noveltyResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_NOVELTY_INDICATORS,
+      'novelty'
+    );
+    indicators.push(noveltyResult);
+
+    return indicators;
+  }
+
+  /**
+   * Analyze a specific indicator type
+   */
+  private analyzeIndicatorType(
+    content: string,
+    indicators: SubLevelIndicatorRecord,
+    type: 'complexity' | 'abstraction' | 'transfer' | 'novelty'
+  ): SubLevelIndicator {
+    let basicCount = 0;
+    let intermediateCount = 0;
+    let advancedCount = 0;
+    const evidence: string[] = [];
+
+    // Count BASIC indicators
+    for (const indicator of indicators.BASIC) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, '\\s+')}\\b`, 'gi');
+      const matches = content.match(regex);
+      if (matches) {
+        basicCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+
+    // Count INTERMEDIATE indicators
+    for (const indicator of indicators.INTERMEDIATE) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, '\\s+')}\\b`, 'gi');
+      const matches = content.match(regex);
+      if (matches) {
+        intermediateCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+
+    // Count ADVANCED indicators
+    for (const indicator of indicators.ADVANCED) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, '\\s+')}\\b`, 'gi');
+      const matches = content.match(regex);
+      if (matches) {
+        advancedCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+
+    // Calculate weighted score (0-1)
+    // ADVANCED indicators are weighted 3x, INTERMEDIATE 2x, BASIC 1x
+    const totalWeighted = basicCount + intermediateCount * 2 + advancedCount * 3;
+    const maxPossible = basicCount + intermediateCount * 2 + advancedCount * 3 || 1;
+
+    let score: number;
+    if (totalWeighted === 0) {
+      // Default to INTERMEDIATE if no indicators found
+      score = 0.5;
+    } else {
+      // Calculate normalized score based on where the weight distribution falls
+      const advancedWeight = (advancedCount * 3) / maxPossible;
+      const intermediateWeight = (intermediateCount * 2) / maxPossible;
+      const basicWeight = basicCount / maxPossible;
+
+      // Score is weighted average: BASIC=0.17, INTERMEDIATE=0.5, ADVANCED=0.83
+      score = basicWeight * 0.17 + intermediateWeight * 0.5 + advancedWeight * 0.83;
+
+      // Clamp to 0-1 range
+      score = Math.max(0, Math.min(1, score));
+    }
+
+    return {
+      type,
+      score,
+      evidence: evidence.join(', ') || 'No specific indicators found',
+    };
+  }
+
+  /**
+   * Get enhanced Bloom&apos;s result with sub-level information
+   */
+  getEnhancedResult(
+    level: BloomsLevel,
+    confidence: number,
+    content: string
+  ): EnhancedBloomsResult {
+    const indicators = this.analyze(content);
+    const subLevel = determineSubLevelFromIndicators(indicators);
+    const levelNumeric = getBloomsLevelIndex(level) + 1;
+    const subLevelNumeric = getBloomsSubLevelIndex(subLevel);
+    const numericScore = calculateBloomsNumericScore(level, subLevel);
+    const label = createBloomsLabel(level, subLevel);
+
+    return {
+      level,
+      levelNumeric,
+      subLevel,
+      subLevelNumeric,
+      numericScore,
+      confidence,
+      indicators,
+      label,
+    };
+  }
+}
+
+/**
+ * Create a sub-level analyzer instance
+ */
+export function createSubLevelAnalyzer(): SubLevelAnalyzer {
+  return new SubLevelAnalyzer();
+}
+
+// ============================================================================
 // BLOOM'S ALIGNER IMPLEMENTATION
 // ============================================================================
 
 /**
- * Configuration for Bloom's Aligner
+ * Configuration for Bloom&apos;s Aligner
  */
 export interface BloomsAlignerConfig {
   /**

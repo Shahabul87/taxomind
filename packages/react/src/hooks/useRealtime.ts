@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type {
   ConnectionState,
   ConnectionStats,
@@ -91,7 +91,40 @@ const DEFAULT_OPTIONS: Required<Omit<UseRealtimeOptions, 'authToken' | 'userId' 
 // ============================================================================
 
 export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
+  // Destructure primitives for stable useMemo deps; store callbacks in refs
+  const { url, autoConnect, authToken, userId, sessionId, reconnect, heartbeatInterval } = options;
+  const onConnectRef = useRef(options.onConnect);
+  onConnectRef.current = options.onConnect;
+  const onDisconnectRef = useRef(options.onDisconnect);
+  onDisconnectRef.current = options.onDisconnect;
+  const onErrorRef = useRef(options.onError);
+  onErrorRef.current = options.onError;
+  const onMessageRef = useRef(options.onMessage);
+  onMessageRef.current = options.onMessage;
+
+  const reconnectEnabled = reconnect?.enabled;
+  const reconnectMaxAttempts = reconnect?.maxAttempts;
+  const reconnectDelay = reconnect?.delay;
+
+  const opts = useMemo(() => ({
+    ...DEFAULT_OPTIONS,
+    url: url ?? DEFAULT_OPTIONS.url,
+    autoConnect: autoConnect ?? DEFAULT_OPTIONS.autoConnect,
+    authToken,
+    userId,
+    sessionId,
+    reconnect: {
+      ...DEFAULT_OPTIONS.reconnect,
+      enabled: reconnectEnabled ?? DEFAULT_OPTIONS.reconnect.enabled,
+      maxAttempts: reconnectMaxAttempts ?? DEFAULT_OPTIONS.reconnect.maxAttempts,
+      delay: reconnectDelay ?? DEFAULT_OPTIONS.reconnect.delay,
+    },
+    heartbeatInterval: heartbeatInterval ?? DEFAULT_OPTIONS.heartbeatInterval,
+    onConnect: onConnectRef.current,
+    onDisconnect: onDisconnectRef.current,
+    onError: onErrorRef.current,
+    onMessage: onMessageRef.current,
+  }), [url, autoConnect, authToken, userId, sessionId, reconnectEnabled, reconnectMaxAttempts, reconnectDelay, heartbeatInterval]);
 
   // State
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
@@ -113,6 +146,14 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
     reconnectCount: 0,
     latencyMs: 0,
   });
+
+  // Refs for stable access to callbacks and state inside effects.
+  // These break circular dependencies and prevent reconnection loops.
+  const sendHeartbeatRef = useRef<() => void>(() => {});
+  const connectRef = useRef<() => void>(() => {});
+  const disconnectRef = useRef<() => void>(() => {});
+  const connectionStateRef = useRef<ConnectionState>(connectionState);
+  connectionStateRef.current = connectionState;
 
   // Generate unique IDs
   const generateEventId = useCallback(() => {
@@ -184,7 +225,7 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
           clearInterval(heartbeatIntervalRef.current);
         }
         heartbeatIntervalRef.current = setInterval(() => {
-          sendHeartbeat();
+          sendHeartbeatRef.current();
         }, opts.heartbeatInterval);
       };
 
@@ -197,8 +238,8 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
           heartbeatIntervalRef.current = null;
         }
 
-        // Notify callback
-        opts.onDisconnect?.(event.reason || 'Connection closed');
+        // Notify callback via ref (latest value)
+        onDisconnectRef.current?.(event.reason || 'Connection closed');
 
         // Attempt reconnection
         if (opts.reconnect?.enabled && reconnectAttemptsRef.current < (opts.reconnect?.maxAttempts || 5)) {
@@ -216,7 +257,7 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
       ws.onerror = () => {
         const err = new Error('WebSocket error');
         setError(err);
-        opts.onError?.(err);
+        onErrorRef.current?.(err);
       };
 
       ws.onmessage = (event) => {
@@ -229,11 +270,11 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
           // Handle connected event
           if (data.type === 'connected') {
             statsRef.current.connectionId = (data.payload as { connectionId: string }).connectionId;
-            opts.onConnect?.(data);
+            onConnectRef.current?.(data);
           }
 
           // Notify general message handler
-          opts.onMessage?.(data);
+          onMessageRef.current?.(data);
 
           // Notify type-specific subscribers
           notifySubscribers(data);
@@ -245,8 +286,8 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
       setError(e instanceof Error ? e : new Error('Failed to connect'));
       setConnectionState('failed');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sendHeartbeat is defined after connect
   }, [opts, generateEventId, notifySubscribers]);
+  connectRef.current = connect;
 
   // Disconnect from WebSocket
   const disconnect = useCallback(() => {
@@ -264,6 +305,7 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
     }
     setConnectionState('disconnected');
   }, []);
+  disconnectRef.current = disconnect;
 
   // Send event
   const send = useCallback(<T extends SAMEventType>(type: T, payload: unknown) => {
@@ -303,6 +345,7 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
       connectionId: statsRef.current.connectionId,
     });
   }, [send]);
+  sendHeartbeatRef.current = sendHeartbeat;
 
   // Acknowledge event
   const acknowledge = useCallback((eventId: string, action?: 'viewed' | 'clicked' | 'dismissed') => {
@@ -321,26 +364,27 @@ export function useRealtime(options: UseRealtimeOptions = {}): UseRealtimeReturn
     });
   }, [send]);
 
-  // Auto-connect on mount
+  // Auto-connect on mount.
+  // Uses refs to avoid reconnection loops when connect/disconnect change identity.
   useEffect(() => {
     if (opts.autoConnect) {
-      connect();
+      connectRef.current();
     }
 
     return () => {
-      disconnect();
+      disconnectRef.current();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only depend on autoConnect to avoid reconnection loops
   }, [opts.autoConnect]);
 
-  // Update connection when auth changes
+  // Update connection when auth changes.
+  // Uses refs so this effect only fires when authToken or userId change,
+  // not when connect/disconnect/connectionState change identity.
   useEffect(() => {
-    if (connectionState === 'connected' && (opts.authToken || opts.userId)) {
+    if (connectionStateRef.current === 'connected' && (opts.authToken || opts.userId)) {
       // Reconnect with new auth
-      disconnect();
-      connect();
+      disconnectRef.current();
+      connectRef.current();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only trigger on auth changes, not connection state
   }, [opts.authToken, opts.userId]);
 
   return {

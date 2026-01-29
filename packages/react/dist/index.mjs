@@ -210,7 +210,7 @@ function SAMProvider({
   onStateChange,
   onError
 }) {
-  const initialState = useMemo(
+  const initialState2 = useMemo(
     () => ({
       context: createDefaultContext(initialContext),
       state: "idle",
@@ -223,7 +223,7 @@ function SAMProvider({
     }),
     [initialContext]
   );
-  const [state, dispatch] = useReducer(samReducer, initialState);
+  const [state, dispatch] = useReducer(samReducer, initialState2);
   const { orchestrator, stateMachine } = useMemo(() => {
     const sm = createStateMachine();
     if (transport === "api") {
@@ -2819,28 +2819,35 @@ function useAgentic(options = {}) {
   const [skills, setSkills] = useState10([]);
   const [checkIns, setCheckIns] = useState10([]);
   const [error, setError] = useState10(null);
-  const [isLoadingGoals, setIsLoadingGoals] = useState10(false);
+  const [isLoadingGoals, setIsLoadingGoals] = useState10(autoFetchGoals);
   const [isLoadingPlans, setIsLoadingPlans] = useState10(false);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState10(false);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState10(autoFetchRecommendations);
   const [isLoadingProgress, setIsLoadingProgress] = useState10(false);
   const [isLoadingSkills, setIsLoadingSkills] = useState10(false);
-  const [isLoadingCheckIns, setIsLoadingCheckIns] = useState10(false);
+  const [isLoadingCheckIns, setIsLoadingCheckIns] = useState10(autoFetchCheckIns);
   const mountedRef = useRef9(true);
-  const apiCall = useCallback13(async (url, options2) => {
+  const apiCall = useCallback13(async (url, options2, timeoutMs = 15e3) => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       const response = await fetch(url, {
         headers: {
           "Content-Type": "application/json",
           ...options2?.headers
         },
-        ...options2
+        ...options2,
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       const result = await response.json();
       if (!response.ok) {
         return { success: false, error: result.error || "Request failed" };
       }
       return { success: true, data: result.data };
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        return { success: false, error: "Request timed out. Please try again." };
+      }
       const message = err instanceof Error ? err.message : "Network error";
       return { success: false, error: message };
     }
@@ -3140,10 +3147,226 @@ function useAgentic(options = {}) {
 
 // src/hooks/useRealtime.ts
 import { useState as useState11, useEffect as useEffect10, useCallback as useCallback14, useRef as useRef10 } from "react";
+var DEFAULT_OPTIONS = {
+  url: "/api/sam/ws",
+  autoConnect: true,
+  reconnect: {
+    enabled: true,
+    maxAttempts: 5,
+    delay: 1e3
+  },
+  heartbeatInterval: 3e4
+};
+function useRealtime(options = {}) {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const [connectionState, setConnectionState] = useState11("disconnected");
+  const [stats, setStats] = useState11(null);
+  const [error, setError] = useState11(null);
+  const wsRef = useRef10(null);
+  const reconnectAttemptsRef = useRef10(0);
+  const reconnectTimeoutRef = useRef10(null);
+  const heartbeatIntervalRef = useRef10(null);
+  const subscribersRef = useRef10(/* @__PURE__ */ new Map());
+  const statsRef = useRef10({
+    connectionId: "",
+    connectedAt: /* @__PURE__ */ new Date(),
+    lastHeartbeatAt: /* @__PURE__ */ new Date(),
+    messagesSent: 0,
+    messagesReceived: 0,
+    reconnectCount: 0,
+    latencyMs: 0
+  });
+  const generateEventId = useCallback14(() => {
+    return `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  }, []);
+  const notifySubscribers = useCallback14((event) => {
+    const subscribers = subscribersRef.current.get(event.type);
+    if (subscribers) {
+      subscribers.forEach((callback) => {
+        try {
+          callback(event);
+        } catch (e) {
+          console.error("[useRealtime] Subscriber error:", e);
+        }
+      });
+    }
+  }, []);
+  const sendMessage = useCallback14((message) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message));
+      statsRef.current.messagesSent++;
+      setStats({ ...statsRef.current });
+    }
+  }, []);
+  const connect = useCallback14(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+    setConnectionState("connecting");
+    setError(null);
+    try {
+      const wsUrl = new URL(opts.url, window.location.origin);
+      wsUrl.protocol = wsUrl.protocol.replace("http", "ws");
+      if (opts.authToken) {
+        wsUrl.searchParams.set("token", opts.authToken);
+      }
+      if (opts.userId) {
+        wsUrl.searchParams.set("userId", opts.userId);
+      }
+      if (opts.sessionId) {
+        wsUrl.searchParams.set("sessionId", opts.sessionId);
+      }
+      const ws = new WebSocket(wsUrl.toString());
+      wsRef.current = ws;
+      ws.onopen = () => {
+        setConnectionState("connected");
+        reconnectAttemptsRef.current = 0;
+        statsRef.current = {
+          ...statsRef.current,
+          connectionId: generateEventId(),
+          connectedAt: /* @__PURE__ */ new Date()
+        };
+        setStats({ ...statsRef.current });
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+        }
+        heartbeatIntervalRef.current = setInterval(() => {
+          sendHeartbeat();
+        }, opts.heartbeatInterval);
+      };
+      ws.onclose = (event) => {
+        setConnectionState("disconnected");
+        if (heartbeatIntervalRef.current) {
+          clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = null;
+        }
+        opts.onDisconnect?.(event.reason || "Connection closed");
+        if (opts.reconnect?.enabled && reconnectAttemptsRef.current < (opts.reconnect?.maxAttempts || 5)) {
+          setConnectionState("reconnecting");
+          reconnectAttemptsRef.current++;
+          statsRef.current.reconnectCount++;
+          const delay = (opts.reconnect?.delay || 1e3) * Math.pow(2, reconnectAttemptsRef.current - 1);
+          reconnectTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, Math.min(delay, 3e4));
+        }
+      };
+      ws.onerror = () => {
+        const err = new Error("WebSocket error");
+        setError(err);
+        opts.onError?.(err);
+      };
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          statsRef.current.messagesReceived++;
+          statsRef.current.lastHeartbeatAt = /* @__PURE__ */ new Date();
+          setStats({ ...statsRef.current });
+          if (data.type === "connected") {
+            statsRef.current.connectionId = data.payload.connectionId;
+            opts.onConnect?.(data);
+          }
+          opts.onMessage?.(data);
+          notifySubscribers(data);
+        } catch (e) {
+          console.error("[useRealtime] Failed to parse message:", e);
+        }
+      };
+    } catch (e) {
+      setError(e instanceof Error ? e : new Error("Failed to connect"));
+      setConnectionState("failed");
+    }
+  }, [opts, generateEventId, notifySubscribers]);
+  const disconnect = useCallback14(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.close(1e3, "User disconnect");
+      wsRef.current = null;
+    }
+    setConnectionState("disconnected");
+  }, []);
+  const send = useCallback14((type, payload) => {
+    sendMessage({
+      type,
+      payload,
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      eventId: generateEventId(),
+      userId: opts.userId,
+      sessionId: opts.sessionId
+    });
+  }, [sendMessage, generateEventId, opts.userId, opts.sessionId]);
+  const subscribe = useCallback14((eventType, callback) => {
+    if (!subscribersRef.current.has(eventType)) {
+      subscribersRef.current.set(eventType, /* @__PURE__ */ new Set());
+    }
+    subscribersRef.current.get(eventType).add(callback);
+    return () => {
+      subscribersRef.current.get(eventType)?.delete(callback);
+    };
+  }, []);
+  const sendActivity = useCallback14((activity) => {
+    send("activity", activity);
+  }, [send]);
+  const sendHeartbeat = useCallback14(() => {
+    send("heartbeat", {
+      status: "alive",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      connectionId: statsRef.current.connectionId
+    });
+  }, [send]);
+  const acknowledge = useCallback14((eventId, action) => {
+    send("acknowledge", {
+      eventId,
+      received: true,
+      action
+    });
+  }, [send]);
+  const dismiss = useCallback14((eventId, reason) => {
+    send("dismiss", {
+      eventId,
+      reason: reason || "user_action"
+    });
+  }, [send]);
+  useEffect10(() => {
+    if (opts.autoConnect) {
+      connect();
+    }
+    return () => {
+      disconnect();
+    };
+  }, [opts.autoConnect]);
+  useEffect10(() => {
+    if (connectionState === "connected" && (opts.authToken || opts.userId)) {
+      disconnect();
+      connect();
+    }
+  }, [opts.authToken, opts.userId]);
+  return {
+    connectionState,
+    isConnected: connectionState === "connected",
+    stats,
+    error,
+    connect,
+    disconnect,
+    send,
+    subscribe,
+    sendActivity,
+    sendHeartbeat,
+    acknowledge,
+    dismiss
+  };
+}
 
 // src/hooks/usePresence.ts
 import { useState as useState12, useEffect as useEffect11, useCallback as useCallback15, useRef as useRef11, useMemo as useMemo4 } from "react";
-var DEFAULT_OPTIONS = {
+var DEFAULT_OPTIONS2 = {
   sessionId: void 0,
   initialStatus: "online",
   trackVisibility: true,
@@ -3157,7 +3380,7 @@ var DEFAULT_OPTIONS = {
 };
 function usePresence(options) {
   const opts = useMemo4(
-    () => ({ ...DEFAULT_OPTIONS, ...options }),
+    () => ({ ...DEFAULT_OPTIONS2, ...options }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
     [
       options.userId,
@@ -3342,6 +3565,308 @@ function usePresence(options) {
 
 // src/hooks/useInterventions.ts
 import { useState as useState13, useEffect as useEffect12, useCallback as useCallback16, useRef as useRef12, useMemo as useMemo5 } from "react";
+var DEFAULT_OPTIONS3 = {
+  maxVisible: 3,
+  autoDismissMs: 1e4,
+  enableSound: false,
+  defaultSurface: "toast"
+};
+var DEFAULT_DISPLAY_CONFIG = {
+  surface: "toast",
+  position: "top-right",
+  duration: 1e4,
+  dismissible: true,
+  blocking: false,
+  priority: 1,
+  animation: "slide",
+  sound: false,
+  vibrate: false
+};
+function useInterventions(options = {}) {
+  const opts = useMemo5(
+    () => ({ ...DEFAULT_OPTIONS3, ...options }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    [
+      options.defaultSurface,
+      options.autoDismissMs,
+      options.maxVisible,
+      options.enableSound,
+      options.onIntervention,
+      options.acknowledge
+    ]
+  );
+  const [interventions, setInterventions] = useState13(/* @__PURE__ */ new Map());
+  const [visibleIds, setVisibleIds] = useState13(/* @__PURE__ */ new Set());
+  const [latestNudge, setLatestNudge] = useState13(null);
+  const [latestCelebration, setLatestCelebration] = useState13(null);
+  const [latestRecommendation, setLatestRecommendation] = useState13(null);
+  const [latestGoalProgress, setLatestGoalProgress] = useState13(null);
+  const [latestStepCompletion, setLatestStepCompletion] = useState13(null);
+  const dismissTimersRef = useRef12(/* @__PURE__ */ new Map());
+  const generateId = useCallback16(() => {
+    return `int_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  }, []);
+  const getDisplayConfig = useCallback16(
+    (event) => {
+      const config = { ...DEFAULT_DISPLAY_CONFIG, surface: opts.defaultSurface };
+      switch (event.type) {
+        case "celebration":
+          return {
+            ...config,
+            surface: "modal",
+            position: "center",
+            blocking: true,
+            priority: 10,
+            animation: "bounce",
+            sound: opts.enableSound,
+            duration: 5e3
+          };
+        case "intervention":
+          return {
+            ...config,
+            surface: "modal",
+            position: "center",
+            blocking: true,
+            priority: 8,
+            dismissible: event.dismissible ?? true
+          };
+        case "checkin":
+          return {
+            ...config,
+            surface: "sidebar",
+            position: "right",
+            blocking: false,
+            priority: 6
+          };
+        case "nudge":
+          return {
+            ...config,
+            surface: "toast",
+            position: event.payload.position || "top-right",
+            priority: 4,
+            duration: event.payload.dismissAfterMs || opts.autoDismissMs
+          };
+        case "recommendation":
+          return {
+            ...config,
+            surface: "toast",
+            position: "bottom-right",
+            priority: 3
+          };
+        case "step_completed":
+        case "goal_progress":
+          return {
+            ...config,
+            surface: "toast",
+            position: "top-right",
+            priority: 5,
+            duration: 5e3
+          };
+        default:
+          return config;
+      }
+    },
+    [opts.defaultSurface, opts.enableSound, opts.autoDismissMs]
+  );
+  const add = useCallback16(
+    (event, customConfig) => {
+      const id = event.eventId || generateId();
+      const displayConfig = {
+        ...getDisplayConfig(event),
+        ...customConfig
+      };
+      const intervention = {
+        id,
+        event,
+        displayConfig,
+        visible: false,
+        createdAt: /* @__PURE__ */ new Date()
+      };
+      switch (event.type) {
+        case "nudge":
+          setLatestNudge(event.payload);
+          break;
+        case "celebration":
+          setLatestCelebration(event.payload);
+          break;
+        case "recommendation":
+          setLatestRecommendation(event.payload);
+          break;
+        case "goal_progress":
+          setLatestGoalProgress(event.payload);
+          break;
+        case "step_completed":
+          setLatestStepCompletion(event.payload);
+          break;
+      }
+      setInterventions((prev) => {
+        const next = new Map(prev);
+        next.set(id, intervention);
+        return next;
+      });
+      setVisibleIds((prev) => {
+        if (prev.size < opts.maxVisible) {
+          const next = new Set(prev);
+          next.add(id);
+          setInterventions((interventions2) => {
+            const updated = new Map(interventions2);
+            const int = updated.get(id);
+            if (int) {
+              updated.set(id, { ...int, visible: true, displayedAt: /* @__PURE__ */ new Date() });
+            }
+            return updated;
+          });
+          if (displayConfig.duration && displayConfig.duration > 0) {
+            const timer = setTimeout(() => {
+              dismiss(id, "timeout");
+            }, displayConfig.duration);
+            dismissTimersRef.current.set(id, timer);
+          }
+          return next;
+        }
+        return prev;
+      });
+      opts.onIntervention?.(intervention);
+      opts.acknowledge?.(id, "viewed");
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dismiss is defined after this callback
+    [generateId, getDisplayConfig, opts]
+  );
+  const dismiss = useCallback16(
+    (interventionId, reason = "user_action") => {
+      const timer = dismissTimersRef.current.get(interventionId);
+      if (timer) {
+        clearTimeout(timer);
+        dismissTimersRef.current.delete(interventionId);
+      }
+      setVisibleIds((prev) => {
+        const next = new Set(prev);
+        next.delete(interventionId);
+        return next;
+      });
+      setInterventions((prev) => {
+        const next = new Map(prev);
+        const int = next.get(interventionId);
+        if (int) {
+          next.set(interventionId, {
+            ...int,
+            visible: false,
+            dismissedAt: /* @__PURE__ */ new Date(),
+            interactionType: "dismiss"
+          });
+        }
+        return next;
+      });
+      opts.onDismiss?.(interventionId, reason);
+      opts.dismissEvent?.(interventionId, reason);
+      setInterventions((interventions2) => {
+        const pending2 = Array.from(interventions2.values()).filter((i) => !i.visible && !i.dismissedAt).sort((a, b) => b.displayConfig.priority - a.displayConfig.priority);
+        if (pending2.length > 0) {
+          const nextInt = pending2[0];
+          setVisibleIds((vis) => {
+            if (vis.size < opts.maxVisible) {
+              const next = new Set(vis);
+              next.add(nextInt.id);
+              return next;
+            }
+            return vis;
+          });
+        }
+        return interventions2;
+      });
+    },
+    [opts]
+  );
+  const dismissAll = useCallback16(() => {
+    dismissTimersRef.current.forEach((timer) => clearTimeout(timer));
+    dismissTimersRef.current.clear();
+    setVisibleIds(/* @__PURE__ */ new Set());
+    setInterventions((prev) => {
+      const next = new Map(prev);
+      next.forEach((int, id) => {
+        next.set(id, { ...int, visible: false, dismissedAt: /* @__PURE__ */ new Date() });
+      });
+      return next;
+    });
+  }, []);
+  const markViewed = useCallback16(
+    (interventionId) => {
+      setInterventions((prev) => {
+        const next = new Map(prev);
+        const int = next.get(interventionId);
+        if (int && !int.interactedAt) {
+          next.set(interventionId, { ...int, interactedAt: /* @__PURE__ */ new Date() });
+        }
+        return next;
+      });
+      opts.acknowledge?.(interventionId, "viewed");
+    },
+    [opts]
+  );
+  const triggerAction = useCallback16(
+    (interventionId, action) => {
+      setInterventions((prev) => {
+        const next = new Map(prev);
+        const int = next.get(interventionId);
+        if (int) {
+          next.set(interventionId, {
+            ...int,
+            interactedAt: /* @__PURE__ */ new Date(),
+            interactionType: "action"
+          });
+        }
+        return next;
+      });
+      opts.onAction?.(interventionId, action);
+      opts.acknowledge?.(interventionId, "clicked");
+    },
+    [opts]
+  );
+  const hasVisible = useCallback16(
+    (type) => {
+      return Array.from(interventions.values()).some((i) => i.visible && i.event.type === type);
+    },
+    [interventions]
+  );
+  const get = useCallback16(
+    (interventionId) => {
+      return interventions.get(interventionId);
+    },
+    [interventions]
+  );
+  useEffect12(() => {
+    const timers = dismissTimersRef.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
+  const allInterventions = Array.from(interventions.values());
+  const queue = {
+    items: allInterventions,
+    maxVisible: opts.maxVisible,
+    currentlyVisible: Array.from(visibleIds),
+    priorityOrder: allInterventions.filter((i) => !i.dismissedAt).sort((a, b) => b.displayConfig.priority - a.displayConfig.priority).map((i) => i.id)
+  };
+  const visible = allInterventions.filter((i) => visibleIds.has(i.id));
+  const pending = allInterventions.filter((i) => !i.visible && !i.dismissedAt);
+  return {
+    queue,
+    visible,
+    pending,
+    add,
+    dismiss,
+    dismissAll,
+    markViewed,
+    triggerAction,
+    hasVisible,
+    get,
+    latestNudge,
+    latestCelebration,
+    latestRecommendation,
+    latestGoalProgress,
+    latestStepCompletion
+  };
+}
 
 // src/hooks/usePushNotifications.ts
 import { useState as useState14, useEffect as useEffect13, useCallback as useCallback17, useRef as useRef13, useMemo as useMemo6 } from "react";
@@ -3365,7 +3890,7 @@ function subscriptionToJSON(sub) {
     }
   };
 }
-var DEFAULT_OPTIONS2 = {
+var DEFAULT_OPTIONS4 = {
   serviceWorkerPath: "/sw.js",
   autoRequest: false,
   autoRequestOnMount: false,
@@ -3373,7 +3898,7 @@ var DEFAULT_OPTIONS2 = {
 };
 function usePushNotifications(options = {}) {
   const opts = useMemo6(
-    () => ({ ...DEFAULT_OPTIONS2, ...options }),
+    () => ({ ...DEFAULT_OPTIONS4, ...options }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
     [
       options.serviceWorkerPath,
@@ -3771,10 +4296,265 @@ function useSAMMemory(options = {}) {
 // src/hooks/useTutoringOrchestration.tsx
 import { useState as useState16, useCallback as useCallback19, useMemo as useMemo7, createContext as createContext2, useContext as useContext2 } from "react";
 import { jsx as jsx2 } from "react/jsx-runtime";
+var initialState = {
+  hasActivePlan: false,
+  currentStep: null,
+  stepProgress: null,
+  transition: null,
+  pendingConfirmations: [],
+  metadata: null
+};
+function useTutoringOrchestration() {
+  const [state, setState] = useState16(initialState);
+  const updateFromResponse = useCallback19(
+    (orchestration) => {
+      if (!orchestration) {
+        return;
+      }
+      setState({
+        hasActivePlan: orchestration.hasActivePlan ?? false,
+        currentStep: orchestration.currentStep ?? null,
+        stepProgress: orchestration.stepProgress ?? null,
+        transition: orchestration.transition ?? null,
+        pendingConfirmations: orchestration.pendingConfirmations ?? [],
+        metadata: orchestration.metadata ?? null
+      });
+    },
+    []
+  );
+  const clearState = useCallback19(() => {
+    setState(initialState);
+  }, []);
+  const hasStepTransition = useMemo7(
+    () => state.transition !== null,
+    [state.transition]
+  );
+  const isPlanComplete = useMemo7(
+    () => state.transition?.planComplete ?? false,
+    [state.transition]
+  );
+  const hasPendingConfirmations = useMemo7(
+    () => state.pendingConfirmations.length > 0,
+    [state.pendingConfirmations]
+  );
+  const currentStepProgress = useMemo7(
+    () => state.stepProgress?.progressPercent ?? 0,
+    [state.stepProgress]
+  );
+  const shouldShowCelebration = useMemo7(
+    () => state.transition?.celebration !== null && state.transition !== null,
+    [state.transition]
+  );
+  return {
+    state,
+    updateFromResponse,
+    clearState,
+    hasStepTransition,
+    isPlanComplete,
+    hasPendingConfirmations,
+    currentStepProgress,
+    shouldShowCelebration
+  };
+}
+function useCurrentStep() {
+  const { state } = useTutoringOrchestration();
+  return useMemo7(
+    () => ({
+      step: state.currentStep,
+      objectives: state.currentStep?.objectives ?? [],
+      stepType: state.currentStep?.type ?? null
+    }),
+    [state.currentStep]
+  );
+}
+function useStepProgress() {
+  const { state } = useTutoringOrchestration();
+  return useMemo7(
+    () => ({
+      progressPercent: state.stepProgress?.progressPercent ?? 0,
+      isComplete: state.stepProgress?.stepComplete ?? false,
+      confidence: state.stepProgress?.confidence ?? 0,
+      pendingCriteria: state.stepProgress?.pendingCriteria ?? []
+    }),
+    [state.stepProgress]
+  );
+}
+function useStepCelebration() {
+  const { state, clearState } = useTutoringOrchestration();
+  return useMemo7(
+    () => ({
+      show: state.transition?.celebration !== null && state.transition !== null,
+      celebration: state.transition?.celebration ?? null,
+      dismiss: clearState
+    }),
+    [state.transition, clearState]
+  );
+}
 var TutoringOrchestrationContext = createContext2(null);
+function TutoringOrchestrationProvider({ children }) {
+  const orchestration = useTutoringOrchestration();
+  return /* @__PURE__ */ jsx2(TutoringOrchestrationContext.Provider, { value: orchestration, children });
+}
+function useTutoringOrchestrationContext() {
+  const context = useContext2(TutoringOrchestrationContext);
+  if (!context) {
+    throw new Error(
+      "useTutoringOrchestrationContext must be used within TutoringOrchestrationProvider"
+    );
+  }
+  return context;
+}
 
 // src/hooks/useNotifications.ts
 import { useState as useState17, useEffect as useEffect14, useCallback as useCallback20, useRef as useRef15 } from "react";
+function useNotifications(options = {}) {
+  const {
+    type,
+    unreadOnly = false,
+    limit = 20,
+    refreshInterval,
+    disabled = false
+  } = options;
+  const [notifications, setNotifications] = useState17([]);
+  const [total, setTotal] = useState17(0);
+  const [unreadCount, setUnreadCount] = useState17(0);
+  const [isLoading, setIsLoading] = useState17(false);
+  const [error, setError] = useState17(null);
+  const [hasMore, setHasMore] = useState17(false);
+  const offsetRef = useRef15(0);
+  const fetchNotifications = useCallback20(
+    async (reset = true) => {
+      if (disabled) return;
+      setIsLoading(true);
+      setError(null);
+      const currentOffset = reset ? 0 : offsetRef.current;
+      try {
+        const params = new URLSearchParams();
+        if (type) params.set("type", type);
+        if (unreadOnly) params.set("unreadOnly", "true");
+        params.set("limit", String(limit));
+        params.set("offset", String(currentOffset));
+        const response = await fetch(
+          `/api/sam/agentic/notifications?${params.toString()}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch notifications");
+        }
+        const result = await response.json();
+        if (result.success) {
+          const { data } = result;
+          if (reset) {
+            setNotifications(data.notifications);
+            offsetRef.current = limit;
+          } else {
+            setNotifications((prev) => [...prev, ...data.notifications]);
+            offsetRef.current = currentOffset + limit;
+          }
+          setTotal(data.pagination.total);
+          setUnreadCount(data.unreadCount);
+          setHasMore(data.pagination.hasMore);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("Unknown error"));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [type, unreadOnly, limit, disabled]
+  );
+  const markAsRead = useCallback20(async (notificationIds) => {
+    try {
+      const response = await fetch("/api/sam/agentic/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds })
+      });
+      if (!response.ok) {
+        throw new Error("Failed to mark notifications as read");
+      }
+      setNotifications(
+        (prev) => prev.map(
+          (n) => notificationIds.includes(n.id) ? { ...n, read: true } : n
+        )
+      );
+      setUnreadCount((prev) => Math.max(0, prev - notificationIds.length));
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Unknown error"));
+      throw err;
+    }
+  }, []);
+  const dismiss = useCallback20(
+    async (notificationId, feedback) => {
+      try {
+        const response = await fetch("/api/sam/agentic/notifications", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notificationId, feedback })
+        });
+        if (!response.ok) {
+          throw new Error("Failed to dismiss notification");
+        }
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+        setTotal((prev) => prev - 1);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error("Unknown error"));
+        throw err;
+      }
+    },
+    []
+  );
+  const unreadCountRef = useRef15(unreadCount);
+  unreadCountRef.current = unreadCount;
+  const clearRead = useCallback20(async () => {
+    try {
+      const response = await fetch("/api/sam/agentic/notifications", {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        throw new Error("Failed to clear notifications");
+      }
+      setNotifications((prev) => prev.filter((n) => !n.read));
+      setTotal(unreadCountRef.current);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Unknown error"));
+      throw err;
+    }
+  }, []);
+  const isLoadingRef = useRef15(isLoading);
+  isLoadingRef.current = isLoading;
+  const hasMoreRef = useRef15(hasMore);
+  hasMoreRef.current = hasMore;
+  const loadMore = useCallback20(async () => {
+    if (!hasMoreRef.current || isLoadingRef.current) return;
+    await fetchNotifications(false);
+  }, [fetchNotifications]);
+  const refresh = useCallback20(async () => {
+    await fetchNotifications(true);
+  }, [fetchNotifications]);
+  useEffect14(() => {
+    fetchNotifications(true);
+  }, [fetchNotifications]);
+  useEffect14(() => {
+    if (!refreshInterval || disabled) return;
+    const intervalId = setInterval(() => {
+      fetchNotifications(true);
+    }, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, disabled, fetchNotifications]);
+  return {
+    notifications,
+    total,
+    unreadCount,
+    isLoading,
+    error,
+    refresh,
+    markAsRead,
+    dismiss,
+    clearRead,
+    loadMore,
+    hasMore
+  };
+}
 
 // src/hooks/useBehaviorPatterns.ts
 import { useState as useState18, useEffect as useEffect15, useCallback as useCallback21 } from "react";
@@ -3932,6 +4712,857 @@ function useRecommendations(options = {}) {
     fetchRecommendations
   };
 }
+
+// src/hooks/useExamEngine.ts
+import { useState as useState20, useCallback as useCallback23, useRef as useRef17 } from "react";
+var DEFAULT_BLOOMS_DISTRIBUTION = {
+  REMEMBER: 15,
+  UNDERSTAND: 20,
+  APPLY: 25,
+  ANALYZE: 20,
+  EVALUATE: 15,
+  CREATE: 5
+};
+var DEFAULT_DIFFICULTY_DISTRIBUTION = {
+  EASY: 30,
+  MEDIUM: 50,
+  HARD: 20
+};
+function useExamEngine(options = {}) {
+  const {
+    apiEndpoint = "/api/sam/exam-engine",
+    courseId,
+    sectionIds,
+    includeStudentProfile = true,
+    onExamGenerated,
+    onError
+  } = options;
+  const [isGenerating, setIsGenerating] = useState20(false);
+  const [isLoading, setIsLoading] = useState20(false);
+  const [generatedExam, setGeneratedExam] = useState20(null);
+  const [examWithProfile, setExamWithProfile] = useState20(null);
+  const [error, setError] = useState20(null);
+  const optionsRef = useRef17(options);
+  optionsRef.current = options;
+  const generateExam = useCallback23(
+    async (config) => {
+      setIsGenerating(true);
+      setError(null);
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            courseId,
+            sectionIds,
+            config: {
+              totalQuestions: config.totalQuestions,
+              timeLimit: config.timeLimit,
+              bloomsDistribution: {
+                ...DEFAULT_BLOOMS_DISTRIBUTION,
+                ...config.bloomsDistribution
+              },
+              difficultyDistribution: {
+                ...DEFAULT_DIFFICULTY_DISTRIBUTION,
+                ...config.difficultyDistribution
+              },
+              questionTypes: config.questionTypes || ["MULTIPLE_CHOICE", "SHORT_ANSWER"],
+              adaptiveMode: config.adaptiveMode ?? false
+            },
+            includeStudentProfile
+          })
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to generate exam: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const exam = data.data;
+          setGeneratedExam(exam);
+          onExamGenerated?.(exam);
+          return exam;
+        }
+        throw new Error(data.error || "Failed to generate exam");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return null;
+      } finally {
+        setIsGenerating(false);
+      }
+    },
+    [apiEndpoint, courseId, sectionIds, includeStudentProfile, onExamGenerated, onError]
+  );
+  const getExam = useCallback23(
+    async (examId) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ examId });
+        const response = await fetch(`${apiEndpoint}?${params}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to get exam: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const exam = data.data;
+          setExamWithProfile(exam);
+          return exam;
+        }
+        throw new Error(data.error || "Failed to get exam");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [apiEndpoint, onError]
+  );
+  const getDefaultBloomsDistribution = useCallback23(() => {
+    return { ...DEFAULT_BLOOMS_DISTRIBUTION };
+  }, []);
+  const getDefaultDifficultyDistribution = useCallback23(() => {
+    return { ...DEFAULT_DIFFICULTY_DISTRIBUTION };
+  }, []);
+  const reset = useCallback23(() => {
+    setGeneratedExam(null);
+    setExamWithProfile(null);
+    setError(null);
+  }, []);
+  return {
+    isGenerating,
+    isLoading,
+    generatedExam,
+    examWithProfile,
+    error,
+    generateExam,
+    getExam,
+    getDefaultBloomsDistribution,
+    getDefaultDifficultyDistribution,
+    reset
+  };
+}
+
+// src/hooks/useQuestionBank.ts
+import { useState as useState21, useCallback as useCallback24, useRef as useRef18 } from "react";
+function useQuestionBank(options = {}) {
+  const {
+    apiEndpoint = "/api/sam/exam-engine/question-bank",
+    courseId,
+    subject,
+    topic,
+    pageSize = 50,
+    onQuestionsLoaded,
+    onQuestionsAdded,
+    onError
+  } = options;
+  const [questions, setQuestions] = useState21([]);
+  const [stats, setStats] = useState21(null);
+  const [pagination, setPagination] = useState21(null);
+  const [isLoading, setIsLoading] = useState21(false);
+  const [isAdding, setIsAdding] = useState21(false);
+  const [isUpdating, setIsUpdating] = useState21(false);
+  const [isDeleting, setIsDeleting] = useState21(false);
+  const [error, setError] = useState21(null);
+  const currentQueryRef = useRef18({});
+  const optionsRef = useRef18(options);
+  optionsRef.current = options;
+  const getQuestions = useCallback24(
+    async (query = {}) => {
+      setIsLoading(true);
+      setError(null);
+      currentQueryRef.current = query;
+      try {
+        const params = new URLSearchParams();
+        if (query.courseId || courseId) params.append("courseId", query.courseId || courseId || "");
+        if (query.subject || subject) params.append("subject", query.subject || subject || "");
+        if (query.topic || topic) params.append("topic", query.topic || topic || "");
+        if (query.bloomsLevel) params.append("bloomsLevel", query.bloomsLevel);
+        if (query.difficulty) params.append("difficulty", query.difficulty);
+        if (query.questionType) params.append("questionType", query.questionType);
+        params.append("limit", String(query.limit || pageSize));
+        params.append("offset", String(query.offset || 0));
+        const response = await fetch(`${apiEndpoint}?${params}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to get questions: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const loadedQuestions = data.data.questions;
+          setQuestions(loadedQuestions);
+          setStats(data.data.stats || null);
+          setPagination(data.data.pagination || null);
+          onQuestionsLoaded?.(loadedQuestions);
+          return loadedQuestions;
+        }
+        throw new Error(data.error || "Failed to get questions");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [apiEndpoint, courseId, subject, topic, pageSize, onQuestionsLoaded, onError]
+  );
+  const addQuestions = useCallback24(
+    async (newQuestions, subjectOverride, topicOverride) => {
+      setIsAdding(true);
+      setError(null);
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            courseId,
+            subject: subjectOverride || subject,
+            topic: topicOverride || topic,
+            questions: newQuestions
+          })
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to add questions: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success && data.data) {
+          const count = data.data.count || 0;
+          onQuestionsAdded?.(count);
+          return count;
+        }
+        throw new Error(data.error || "Failed to add questions");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return 0;
+      } finally {
+        setIsAdding(false);
+      }
+    },
+    [apiEndpoint, courseId, subject, topic, onQuestionsAdded, onError]
+  );
+  const updateQuestion = useCallback24(
+    async (questionId, updates) => {
+      setIsUpdating(true);
+      setError(null);
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionId,
+            updates
+          })
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to update question: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success) {
+          setQuestions(
+            (prev) => prev.map(
+              (q) => q.id === questionId ? { ...q, ...data.data } : q
+            )
+          );
+          return true;
+        }
+        throw new Error(data.error || "Failed to update question");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return false;
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [apiEndpoint, onError]
+  );
+  const deleteQuestion = useCallback24(
+    async (questionId) => {
+      setIsDeleting(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({ id: questionId });
+        const response = await fetch(`${apiEndpoint}?${params}`, {
+          method: "DELETE"
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to delete question: ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.success) {
+          setQuestions((prev) => prev.filter((q) => q.id !== questionId));
+          return true;
+        }
+        throw new Error(data.error || "Failed to delete question");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return false;
+      } finally {
+        setIsDeleting(false);
+      }
+    },
+    [apiEndpoint, onError]
+  );
+  const loadMore = useCallback24(async () => {
+    if (!pagination?.hasMore || isLoading) return;
+    const newOffset = pagination.offset + pagination.limit;
+    const query = { ...currentQueryRef.current, offset: newOffset };
+    setIsLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (query.courseId || courseId) params.append("courseId", query.courseId || courseId || "");
+      if (query.subject || subject) params.append("subject", query.subject || subject || "");
+      if (query.topic || topic) params.append("topic", query.topic || topic || "");
+      if (query.bloomsLevel) params.append("bloomsLevel", query.bloomsLevel);
+      if (query.difficulty) params.append("difficulty", query.difficulty);
+      if (query.questionType) params.append("questionType", query.questionType);
+      params.append("limit", String(query.limit || pageSize));
+      params.append("offset", String(newOffset));
+      const response = await fetch(`${apiEndpoint}?${params}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load more questions: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        const loadedQuestions = data.data.questions;
+        setQuestions((prev) => [...prev, ...loadedQuestions]);
+        setPagination(data.data.pagination || null);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      onError?.(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiEndpoint, courseId, subject, topic, pageSize, pagination, isLoading, onError]);
+  const refresh = useCallback24(async () => {
+    await getQuestions(currentQueryRef.current);
+  }, [getQuestions]);
+  const reset = useCallback24(() => {
+    setQuestions([]);
+    setStats(null);
+    setPagination(null);
+    setError(null);
+    currentQueryRef.current = {};
+  }, []);
+  return {
+    questions,
+    stats,
+    pagination,
+    isLoading,
+    isAdding,
+    isUpdating,
+    isDeleting,
+    error,
+    getQuestions,
+    addQuestions,
+    updateQuestion,
+    deleteQuestion,
+    loadMore,
+    refresh,
+    reset
+  };
+}
+
+// src/hooks/useInnovationFeatures.ts
+import { useState as useState22, useCallback as useCallback25, useRef as useRef19 } from "react";
+function useInnovationFeatures(options = {}) {
+  const {
+    apiEndpoint = "/api/sam/innovation-features",
+    autoLoadStatus = false,
+    onError
+  } = options;
+  const [featuresStatus, setFeaturesStatus] = useState22(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState22(false);
+  const [cognitiveFitness, setCognitiveFitness] = useState22(null);
+  const [isAssessingFitness, setIsAssessingFitness] = useState22(false);
+  const [learningDNA, setLearningDNA] = useState22(null);
+  const [dnaVisualization, setDnaVisualization] = useState22(null);
+  const [isGeneratingDNA, setIsGeneratingDNA] = useState22(false);
+  const [studyBuddy, setStudyBuddy] = useState22(null);
+  const [isCreatingBuddy, setIsCreatingBuddy] = useState22(false);
+  const [isInteracting, setIsInteracting] = useState22(false);
+  const [quantumPaths, setQuantumPaths] = useState22([]);
+  const [isCreatingPath, setIsCreatingPath] = useState22(false);
+  const [error, setError] = useState22(null);
+  const hasLoadedRef = useRef19(false);
+  const apiCall = useCallback25(
+    async (action, data = {}) => {
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, data })
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Request failed: ${response.statusText}`);
+        }
+        const result = await response.json();
+        if (result.success) {
+          return result.data;
+        }
+        throw new Error(result.error || "Request failed");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return null;
+      }
+    },
+    [apiEndpoint, onError]
+  );
+  const loadFeaturesStatus = useCallback25(async () => {
+    setIsLoadingStatus(true);
+    setError(null);
+    try {
+      const response = await fetch(apiEndpoint);
+      if (!response.ok) {
+        throw new Error(`Failed to load status: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        const status = {
+          hasCognitiveFitness: data.data.hasCognitiveFitness,
+          hasLearningDNA: data.data.hasLearningDNA,
+          hasStudyBuddy: data.data.hasStudyBuddy,
+          activeQuantumPaths: data.data.activeQuantumPaths,
+          lastUpdated: {
+            fitness: data.data.lastUpdated?.fitness ? new Date(data.data.lastUpdated.fitness) : void 0,
+            dna: data.data.lastUpdated?.dna ? new Date(data.data.lastUpdated.dna) : void 0,
+            buddy: data.data.lastUpdated?.buddy ? new Date(data.data.lastUpdated.buddy) : void 0
+          }
+        };
+        setFeaturesStatus(status);
+        return status;
+      }
+      return null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      onError?.(message);
+      return null;
+    } finally {
+      setIsLoadingStatus(false);
+    }
+  }, [apiEndpoint, onError]);
+  if (autoLoadStatus && !hasLoadedRef.current) {
+    hasLoadedRef.current = true;
+    loadFeaturesStatus();
+  }
+  const assessCognitiveFitness = useCallback25(async () => {
+    setIsAssessingFitness(true);
+    setError(null);
+    const result = await apiCall("assess-cognitive-fitness", {});
+    if (result) {
+      setCognitiveFitness(result.fitness);
+      setIsAssessingFitness(false);
+      return result.fitness;
+    }
+    setIsAssessingFitness(false);
+    return null;
+  }, [apiCall]);
+  const startFitnessExercise = useCallback25(
+    async (exerciseId) => {
+      return apiCall("start-fitness-exercise", { exerciseId });
+    },
+    [apiCall]
+  );
+  const completeFitnessExercise = useCallback25(
+    async (sessionId, performance, duration) => {
+      await apiCall("complete-fitness-exercise", { sessionId, performance, duration });
+    },
+    [apiCall]
+  );
+  const getFitnessRecommendations = useCallback25(async () => {
+    const result = await apiCall("get-fitness-recommendations", {});
+    return result?.recommendations || [];
+  }, [apiCall]);
+  const generateLearningDNA = useCallback25(async () => {
+    setIsGeneratingDNA(true);
+    setError(null);
+    const result = await apiCall("generate-learning-dna", {});
+    if (result) {
+      setLearningDNA(result.dna);
+      setDnaVisualization(result.visualization);
+      setIsGeneratingDNA(false);
+      return result.dna;
+    }
+    setIsGeneratingDNA(false);
+    return null;
+  }, [apiCall]);
+  const analyzeDNATraits = useCallback25(async () => {
+    return apiCall("analyze-dna-traits", {});
+  }, [apiCall]);
+  const trackDNAEvolution = useCallback25(async () => {
+    return apiCall("track-dna-evolution", {});
+  }, [apiCall]);
+  const createStudyBuddy = useCallback25(
+    async (preferences) => {
+      setIsCreatingBuddy(true);
+      setError(null);
+      const result = await apiCall("create-study-buddy", { preferences });
+      if (result) {
+        setStudyBuddy(result.buddy);
+        setIsCreatingBuddy(false);
+        return result.buddy;
+      }
+      setIsCreatingBuddy(false);
+      return null;
+    },
+    [apiCall]
+  );
+  const interactWithBuddy = useCallback25(
+    async (type, context) => {
+      if (!studyBuddy) {
+        setError("No study buddy found. Create one first.");
+        return null;
+      }
+      setIsInteracting(true);
+      setError(null);
+      const result = await apiCall("interact-with-buddy", {
+        buddyId: studyBuddy.buddyId,
+        interactionType: type,
+        context
+      });
+      setIsInteracting(false);
+      return result?.interaction || null;
+    },
+    [apiCall, studyBuddy]
+  );
+  const updateBuddyPersonality = useCallback25(
+    async (personalityUpdates, reason) => {
+      if (!studyBuddy) {
+        setError("No study buddy found.");
+        return false;
+      }
+      const result = await apiCall(
+        "update-buddy-personality",
+        {
+          buddyId: studyBuddy.buddyId,
+          personalityUpdates,
+          reason
+        }
+      );
+      if (result?.success && result.updatedPersonality) {
+        setStudyBuddy(
+          (prev) => prev ? { ...prev, personality: result.updatedPersonality } : null
+        );
+        return true;
+      }
+      return false;
+    },
+    [apiCall, studyBuddy]
+  );
+  const getBuddyEffectiveness = useCallback25(async () => {
+    if (!studyBuddy) {
+      setError("No study buddy found.");
+      return null;
+    }
+    return apiCall("get-buddy-effectiveness", {
+      buddyId: studyBuddy.buddyId
+    });
+  }, [apiCall, studyBuddy]);
+  const createQuantumPath = useCallback25(
+    async (learningGoal, preferences) => {
+      setIsCreatingPath(true);
+      setError(null);
+      const result = await apiCall("create-quantum-path", {
+        learningGoal,
+        preferences
+      });
+      if (result) {
+        setQuantumPaths((prev) => [...prev, result.quantumPath]);
+        setIsCreatingPath(false);
+        return result.quantumPath;
+      }
+      setIsCreatingPath(false);
+      return null;
+    },
+    [apiCall]
+  );
+  const observeQuantumPath = useCallback25(
+    async (pathId, type, data) => {
+      const result = await apiCall(
+        "observe-quantum-path",
+        {
+          pathId,
+          observationType: type,
+          observationData: data
+        }
+      );
+      return result?.observation || null;
+    },
+    [apiCall]
+  );
+  const getPathProbabilities = useCallback25(
+    async (pathId) => {
+      return apiCall("get-path-probabilities", { pathId });
+    },
+    [apiCall]
+  );
+  const collapseQuantumPath = useCallback25(
+    async (pathId, reason) => {
+      const result = await apiCall("collapse-quantum-path", {
+        pathId,
+        reason
+      });
+      if (result) {
+        setQuantumPaths(
+          (prev) => prev.map(
+            (p) => p.pathId === pathId ? { ...p, collapsed: true, isActive: false } : p
+          )
+        );
+      }
+      return result;
+    },
+    [apiCall]
+  );
+  const clearError = useCallback25(() => {
+    setError(null);
+  }, []);
+  return {
+    // Status
+    featuresStatus,
+    isLoadingStatus,
+    // Cognitive Fitness
+    cognitiveFitness,
+    isAssessingFitness,
+    assessCognitiveFitness,
+    startFitnessExercise,
+    completeFitnessExercise,
+    getFitnessRecommendations,
+    // Learning DNA
+    learningDNA,
+    dnaVisualization,
+    isGeneratingDNA,
+    generateLearningDNA,
+    analyzeDNATraits,
+    trackDNAEvolution,
+    // Study Buddy
+    studyBuddy,
+    isCreatingBuddy,
+    isInteracting,
+    createStudyBuddy,
+    interactWithBuddy,
+    updateBuddyPersonality,
+    getBuddyEffectiveness,
+    // Quantum Paths
+    quantumPaths,
+    isCreatingPath,
+    createQuantumPath,
+    observeQuantumPath,
+    getPathProbabilities,
+    collapseQuantumPath,
+    // General
+    error,
+    loadFeaturesStatus,
+    clearError
+  };
+}
+
+// src/hooks/useMultimodal.ts
+import { useState as useState23, useCallback as useCallback26, useRef as useRef20 } from "react";
+async function convertFileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(",")[1];
+      resolve({
+        data: base64,
+        fileName: file.name,
+        mimeType: file.type,
+        fileSize: file.size
+      });
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+function useMultimodal(options = {}) {
+  const {
+    apiEndpoint = "/api/sam/multimodal",
+    courseId,
+    assignmentId,
+    defaultOptions = {},
+    onProcessingComplete,
+    onError
+  } = options;
+  const [isProcessing, setIsProcessing] = useState23(false);
+  const [processedInput, setProcessedInput] = useState23(null);
+  const [processingStatus, setProcessingStatus] = useState23(null);
+  const [storageQuota, setStorageQuota] = useState23(null);
+  const [error, setError] = useState23(null);
+  const optionsRef = useRef20(options);
+  optionsRef.current = options;
+  const apiCall = useCallback26(
+    async (action, data) => {
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, data })
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `Request failed: ${response.statusText}`);
+        }
+        const result = await response.json();
+        if (result.success) {
+          return result.data;
+        }
+        throw new Error(result.error?.message || "Request failed");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        onError?.(message);
+        return null;
+      }
+    },
+    [apiEndpoint, onError]
+  );
+  const processInput = useCallback26(
+    async (file, processingOptions, expectedType) => {
+      setIsProcessing(true);
+      setError(null);
+      const result = await apiCall("process-input", {
+        file,
+        options: { ...defaultOptions, ...processingOptions },
+        courseId,
+        assignmentId,
+        expectedType
+      });
+      if (result) {
+        setProcessedInput(result);
+        onProcessingComplete?.(result);
+      }
+      setIsProcessing(false);
+      return result;
+    },
+    [apiCall, defaultOptions, courseId, assignmentId, onProcessingComplete]
+  );
+  const processBatch = useCallback26(
+    async (files, processingOptions) => {
+      setIsProcessing(true);
+      setError(null);
+      const result = await apiCall("batch-process", {
+        files,
+        options: { ...defaultOptions, ...processingOptions },
+        courseId,
+        assignmentId
+      });
+      setIsProcessing(false);
+      return result;
+    },
+    [apiCall, defaultOptions, courseId, assignmentId]
+  );
+  const validateInput = useCallback26(
+    async (file) => {
+      const result = await apiCall("validate-input", { file });
+      return result || { isValid: false, errors: ["Validation failed"], warnings: [] };
+    },
+    [apiCall]
+  );
+  const extractText = useCallback26(
+    async (file) => {
+      setIsProcessing(true);
+      setError(null);
+      const result = await apiCall("extract-text", { file });
+      setIsProcessing(false);
+      return result;
+    },
+    [apiCall]
+  );
+  const assessQuality = useCallback26(
+    async (file) => {
+      return apiCall("assess-quality", { file });
+    },
+    [apiCall]
+  );
+  const getProcessingStatus = useCallback26(
+    async (inputId) => {
+      const result = await apiCall("get-status", { inputId });
+      if (result) {
+        setProcessingStatus(result);
+      }
+      return result;
+    },
+    [apiCall]
+  );
+  const cancelProcessing = useCallback26(
+    async (inputId) => {
+      const result = await apiCall("cancel-processing", { inputId });
+      return result?.success || false;
+    },
+    [apiCall]
+  );
+  const getStorageQuota = useCallback26(async () => {
+    try {
+      const response = await fetch(`${apiEndpoint}?endpoint=quota`);
+      if (!response.ok) {
+        throw new Error(`Failed to get quota: ${response.statusText}`);
+      }
+      const data = await response.json();
+      if (data.success && data.data) {
+        const quota = data.data;
+        setStorageQuota(quota);
+        return quota;
+      }
+      return null;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(message);
+      onError?.(message);
+      return null;
+    }
+  }, [apiEndpoint, onError]);
+  const fileToBase64 = useCallback26(async (file) => {
+    return convertFileToBase64(file);
+  }, []);
+  const reset = useCallback26(() => {
+    setProcessedInput(null);
+    setProcessingStatus(null);
+    setError(null);
+  }, []);
+  return {
+    isProcessing,
+    processedInput,
+    processingStatus,
+    storageQuota,
+    error,
+    processInput,
+    processBatch,
+    validateInput,
+    extractText,
+    assessQuality,
+    getProcessingStatus,
+    cancelProcessing,
+    getStorageQuota,
+    fileToBase64,
+    reset
+  };
+}
+
+// src/hooks/useEnhancedBloomsAnalysis.ts
+import { useState as useState24, useCallback as useCallback27, useRef as useRef21 } from "react";
 
 // src/utils/contextDetector.ts
 var DEFAULT_ROUTE_PATTERNS = [
@@ -4121,6 +5752,7 @@ export {
   SAMContext,
   SAMProvider,
   SAM_FORM_DATA_EVENT,
+  TutoringOrchestrationProvider,
   VERSION,
   contextDetector,
   createContextDetector,
@@ -4129,8 +5761,16 @@ export {
   hasCapability,
   useAgentic,
   useBehaviorPatterns,
+  useCurrentStep,
+  useExamEngine,
+  useInnovationFeatures,
+  useInterventions,
+  useMultimodal,
+  useNotifications,
   usePresence,
   usePushNotifications,
+  useQuestionBank,
+  useRealtime,
   useRecommendations,
   useSAM,
   useSAMActions,
@@ -4149,5 +5789,9 @@ export {
   useSAMPageContext,
   useSAMPageLinks,
   useSAMPracticeProblems,
-  useSAMSocraticDialogue
+  useSAMSocraticDialogue,
+  useStepCelebration,
+  useStepProgress,
+  useTutoringOrchestration,
+  useTutoringOrchestrationContext
 };

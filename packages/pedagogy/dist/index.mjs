@@ -10,6 +10,38 @@ var BLOOMS_LEVEL_ORDER = [
 function getBloomsLevelIndex(level) {
   return BLOOMS_LEVEL_ORDER.indexOf(level);
 }
+var BLOOMS_SUB_LEVEL_ORDER = [
+  "BASIC",
+  "INTERMEDIATE",
+  "ADVANCED"
+];
+function getBloomsSubLevelIndex(subLevel) {
+  return BLOOMS_SUB_LEVEL_ORDER.indexOf(subLevel);
+}
+function calculateBloomsNumericScore(levelOrName, subLevel) {
+  const level = typeof levelOrName === "string" ? getBloomsLevelIndex(levelOrName) + 1 : levelOrName;
+  const subLevelIndex = getBloomsSubLevelIndex(subLevel);
+  const subLevelOffset = subLevelIndex === 0 ? 0 : subLevelIndex === 1 ? 0.3 : 0.7;
+  return Math.round((level + subLevelOffset) * 10) / 10;
+}
+function determineSubLevelFromIndicators(indicators) {
+  if (indicators.length === 0) {
+    return "BASIC";
+  }
+  const avgScore = indicators.reduce((sum, i) => sum + i.score, 0) / indicators.length;
+  if (avgScore >= 0.67) {
+    return "ADVANCED";
+  } else if (avgScore >= 0.34) {
+    return "INTERMEDIATE";
+  } else {
+    return "BASIC";
+  }
+}
+function createBloomsLabel(level, subLevel) {
+  const levelName = level.charAt(0) + level.slice(1).toLowerCase();
+  const subLevelName = subLevel.charAt(0) + subLevel.slice(1).toLowerCase();
+  return `${levelName} - ${subLevelName}`;
+}
 var DIFFICULTY_LEVEL_ORDER = [
   "beginner",
   "intermediate",
@@ -224,6 +256,320 @@ var BLOOMS_ACTIVITIES = {
     "innovation challenge"
   ]
 };
+var SUB_LEVEL_COMPLEXITY_INDICATORS = {
+  BASIC: [
+    "single",
+    "simple",
+    "basic",
+    "one",
+    "individual",
+    "isolated",
+    "fundamental",
+    "elementary",
+    "straightforward",
+    "direct",
+    "single step",
+    "single concept",
+    "one example",
+    "familiar",
+    "routine",
+    "standard",
+    "given",
+    "provided",
+    "recall",
+    "recognize"
+  ],
+  INTERMEDIATE: [
+    "multiple",
+    "several",
+    "related",
+    "connected",
+    "combination",
+    "compare",
+    "some",
+    "various",
+    "moderate",
+    "modified",
+    "adapted",
+    "similar context",
+    "new example",
+    "different situation",
+    "pattern",
+    "sequence",
+    "relationship",
+    "procedure",
+    "method",
+    "technique"
+  ],
+  ADVANCED: [
+    "complex",
+    "interconnected",
+    "system",
+    "integrated",
+    "novel",
+    "unprecedented",
+    "unique",
+    "original",
+    "synthesize",
+    "abstract",
+    "theoretical",
+    "hypothetical",
+    "cross-domain",
+    "multidisciplinary",
+    "innovative",
+    "creative",
+    "comprehensive",
+    "holistic",
+    "emergent",
+    "transformative"
+  ]
+};
+var SUB_LEVEL_ABSTRACTION_INDICATORS = {
+  BASIC: [
+    "concrete",
+    "specific",
+    "example",
+    "instance",
+    "case",
+    "tangible",
+    "physical",
+    "visual",
+    "hands-on",
+    "practical",
+    "observable",
+    "measurable"
+  ],
+  INTERMEDIATE: [
+    "pattern",
+    "category",
+    "type",
+    "class",
+    "group",
+    "general",
+    "principle",
+    "concept",
+    "rule",
+    "guideline",
+    "framework",
+    "model"
+  ],
+  ADVANCED: [
+    "abstract",
+    "theoretical",
+    "conceptual",
+    "paradigm",
+    "meta",
+    "philosophical",
+    "epistemological",
+    "ontological",
+    "axiomatic",
+    "universal",
+    "transcendent",
+    "emergent"
+  ]
+};
+var SUB_LEVEL_TRANSFER_INDICATORS = {
+  BASIC: [
+    "same",
+    "identical",
+    "exact",
+    "similar",
+    "like before",
+    "as shown",
+    "as demonstrated",
+    "following the example",
+    "using the template",
+    "same context",
+    "familiar situation",
+    "known scenario"
+  ],
+  INTERMEDIATE: [
+    "similar context",
+    "related situation",
+    "modified",
+    "adapted",
+    "adjusted",
+    "varied",
+    "different example",
+    "alternative approach",
+    "comparable scenario",
+    "parallel case",
+    "analogous",
+    "corresponding"
+  ],
+  ADVANCED: [
+    "novel context",
+    "new situation",
+    "unfamiliar",
+    "unprecedented",
+    "unique scenario",
+    "different domain",
+    "cross-disciplinary",
+    "transfer",
+    "generalize",
+    "extrapolate",
+    "innovative application",
+    "original context"
+  ]
+};
+var SUB_LEVEL_NOVELTY_INDICATORS = {
+  BASIC: [
+    "familiar",
+    "known",
+    "recognized",
+    "standard",
+    "typical",
+    "common",
+    "usual",
+    "expected",
+    "routine",
+    "practiced",
+    "rehearsed",
+    "memorized"
+  ],
+  INTERMEDIATE: [
+    "modified",
+    "variation",
+    "adapted",
+    "adjusted",
+    "changed",
+    "altered",
+    "different",
+    "new variation",
+    "alternative",
+    "updated",
+    "revised",
+    "improved"
+  ],
+  ADVANCED: [
+    "novel",
+    "unprecedented",
+    "original",
+    "innovative",
+    "creative",
+    "unique",
+    "groundbreaking",
+    "pioneering",
+    "inventive",
+    "unconventional",
+    "revolutionary",
+    "cutting-edge"
+  ]
+};
+var SubLevelAnalyzer = class {
+  /**
+   * Analyze content for sub-level indicators
+   */
+  analyze(content) {
+    const lowerContent = content.toLowerCase();
+    const indicators = [];
+    const complexityResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_COMPLEXITY_INDICATORS,
+      "complexity"
+    );
+    indicators.push(complexityResult);
+    const abstractionResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_ABSTRACTION_INDICATORS,
+      "abstraction"
+    );
+    indicators.push(abstractionResult);
+    const transferResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_TRANSFER_INDICATORS,
+      "transfer"
+    );
+    indicators.push(transferResult);
+    const noveltyResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_NOVELTY_INDICATORS,
+      "novelty"
+    );
+    indicators.push(noveltyResult);
+    return indicators;
+  }
+  /**
+   * Analyze a specific indicator type
+   */
+  analyzeIndicatorType(content, indicators, type) {
+    let basicCount = 0;
+    let intermediateCount = 0;
+    let advancedCount = 0;
+    const evidence = [];
+    for (const indicator of indicators.BASIC) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      const matches = content.match(regex);
+      if (matches) {
+        basicCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+    for (const indicator of indicators.INTERMEDIATE) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      const matches = content.match(regex);
+      if (matches) {
+        intermediateCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+    for (const indicator of indicators.ADVANCED) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      const matches = content.match(regex);
+      if (matches) {
+        advancedCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+    const totalWeighted = basicCount + intermediateCount * 2 + advancedCount * 3;
+    const maxPossible = basicCount + intermediateCount * 2 + advancedCount * 3 || 1;
+    let score;
+    if (totalWeighted === 0) {
+      score = 0.5;
+    } else {
+      const advancedWeight = advancedCount * 3 / maxPossible;
+      const intermediateWeight = intermediateCount * 2 / maxPossible;
+      const basicWeight = basicCount / maxPossible;
+      score = basicWeight * 0.17 + intermediateWeight * 0.5 + advancedWeight * 0.83;
+      score = Math.max(0, Math.min(1, score));
+    }
+    return {
+      type,
+      score,
+      evidence: evidence.join(", ") || "No specific indicators found"
+    };
+  }
+  /**
+   * Get enhanced Bloom&apos;s result with sub-level information
+   */
+  getEnhancedResult(level, confidence, content) {
+    const indicators = this.analyze(content);
+    const subLevel = determineSubLevelFromIndicators(indicators);
+    const levelNumeric = getBloomsLevelIndex(level) + 1;
+    const subLevelNumeric = getBloomsSubLevelIndex(subLevel);
+    const numericScore = calculateBloomsNumericScore(level, subLevel);
+    const label = createBloomsLabel(level, subLevel);
+    return {
+      level,
+      levelNumeric,
+      subLevel,
+      subLevelNumeric,
+      numericScore,
+      confidence,
+      indicators,
+      label
+    };
+  }
+};
+function createSubLevelAnalyzer() {
+  return new SubLevelAnalyzer();
+}
 var DEFAULT_BLOOMS_ALIGNER_CONFIG = {
   significanceThreshold: 10,
   acceptableVariance: 1,
@@ -1193,6 +1539,516 @@ function createLenientScaffoldingEvaluator() {
   });
 }
 
+// src/cognitive-load-analyzer.ts
+var INTRINSIC_LOAD_INDICATORS = {
+  high: [
+    "complex",
+    "advanced",
+    "intricate",
+    "sophisticated",
+    "multifaceted",
+    "interconnected",
+    "abstract",
+    "theoretical",
+    "conceptual",
+    "nuanced",
+    "comprehensive",
+    "challenging",
+    "demanding",
+    "intensive",
+    "rigorous"
+  ],
+  moderate: [
+    "multiple",
+    "several",
+    "various",
+    "related",
+    "connected",
+    "integrated",
+    "combined",
+    "detailed",
+    "thorough",
+    "systematic"
+  ],
+  low: [
+    "simple",
+    "basic",
+    "fundamental",
+    "elementary",
+    "straightforward",
+    "single",
+    "isolated",
+    "concrete",
+    "familiar",
+    "routine"
+  ]
+};
+var EXTRANEOUS_LOAD_INDICATORS = {
+  high: [
+    // Format issues
+    "inconsistent",
+    "disorganized",
+    "cluttered",
+    "confusing",
+    "unclear",
+    // Navigation issues
+    "scattered",
+    "fragmented",
+    "discontinuous",
+    "jump",
+    "abrupt",
+    // Presentation issues
+    "redundant",
+    "repetitive",
+    "verbose",
+    "wordy",
+    "convoluted"
+  ],
+  moderate: [
+    "dense",
+    "lengthy",
+    "packed",
+    "detailed",
+    "technical"
+  ],
+  low: [
+    "clear",
+    "organized",
+    "structured",
+    "concise",
+    "streamlined",
+    "coherent",
+    "logical",
+    "sequential",
+    "focused",
+    "minimal"
+  ]
+};
+var GERMANE_LOAD_INDICATORS = {
+  high: [
+    // Active learning
+    "practice",
+    "apply",
+    "solve",
+    "create",
+    "design",
+    "build",
+    // Reflection
+    "reflect",
+    "consider",
+    "think",
+    "analyze",
+    "evaluate",
+    "synthesize",
+    // Connection
+    "connect",
+    "relate",
+    "integrate",
+    "transfer",
+    "generalize",
+    "abstract",
+    // Self-explanation
+    "explain",
+    "describe",
+    "elaborate",
+    "justify",
+    "reason",
+    "argue"
+  ],
+  moderate: [
+    "example",
+    "demonstrate",
+    "illustrate",
+    "show",
+    "compare",
+    "contrast",
+    "differentiate",
+    "distinguish",
+    "categorize"
+  ],
+  low: [
+    "memorize",
+    "recall",
+    "recognize",
+    "list",
+    "name",
+    "identify",
+    "repeat",
+    "copy",
+    "state",
+    "define"
+  ]
+};
+var BLOOMS_COGNITIVE_REQUIREMENTS = {
+  REMEMBER: 20,
+  UNDERSTAND: 35,
+  APPLY: 50,
+  ANALYZE: 65,
+  EVALUATE: 80,
+  CREATE: 95
+};
+var CognitiveLoadAnalyzer = class {
+  /**
+   * Analyze content for cognitive load
+   */
+  analyze(content, targetBloomsLevel) {
+    const startTime = Date.now();
+    const text = content.toLowerCase();
+    const intrinsic = this.measureIntrinsicLoad(text);
+    const extraneous = this.measureExtraneousLoad(text);
+    const germane = this.measureGermaneLoad(text);
+    const totalLoad = this.calculateTotalLoad(intrinsic, extraneous, germane);
+    const loadCategory = this.categorizeLoad(totalLoad);
+    const balance = this.assessBalance(intrinsic, extraneous, germane);
+    const recommendations = this.generateRecommendations(
+      intrinsic,
+      extraneous,
+      germane,
+      balance
+    );
+    const bloomsCompatibility = this.assessBloomsCompatibility(
+      totalLoad,
+      targetBloomsLevel
+    );
+    return {
+      totalLoad,
+      loadCategory,
+      measurements: {
+        intrinsic,
+        extraneous,
+        germane
+      },
+      balance,
+      recommendations,
+      bloomsCompatibility,
+      metadata: {
+        processingTimeMs: Date.now() - startTime,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        contentLength: content.length
+      }
+    };
+  }
+  /**
+   * Measure intrinsic cognitive load
+   */
+  measureIntrinsicLoad(text) {
+    const factors = [];
+    let totalScore = 0;
+    const highMatches = this.countIndicators(text, INTRINSIC_LOAD_INDICATORS.high);
+    const moderateMatches = this.countIndicators(text, INTRINSIC_LOAD_INDICATORS.moderate);
+    const lowMatches = this.countIndicators(text, INTRINSIC_LOAD_INDICATORS.low);
+    const complexityScore = this.calculateIndicatorScore(highMatches, moderateMatches, lowMatches);
+    if (complexityScore > 0) {
+      factors.push({
+        name: "Content Complexity",
+        contribution: complexityScore,
+        evidence: `High: ${highMatches}, Moderate: ${moderateMatches}, Low: ${lowMatches} complexity indicators`,
+        optimizable: false
+        // Intrinsic complexity is inherent
+      });
+      totalScore += complexityScore * 0.4;
+    }
+    const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+    const avgSentenceLength = sentences.length > 0 ? sentences.reduce((sum, s) => sum + s.split(/\s+/).length, 0) / sentences.length : 0;
+    const sentenceLengthScore = Math.min(100, avgSentenceLength * 4);
+    factors.push({
+      name: "Sentence Complexity",
+      contribution: sentenceLengthScore,
+      evidence: `Average ${Math.round(avgSentenceLength)} words per sentence`,
+      optimizable: true
+    });
+    totalScore += sentenceLengthScore * 0.3;
+    const words = text.split(/\s+/).filter((w) => w.length > 0);
+    const uniqueWords = new Set(words);
+    const vocabDiversity = words.length > 0 ? uniqueWords.size / words.length * 100 : 0;
+    factors.push({
+      name: "Vocabulary Diversity",
+      contribution: vocabDiversity,
+      evidence: `${uniqueWords.size} unique words out of ${words.length} total`,
+      optimizable: false
+    });
+    totalScore += vocabDiversity * 0.3;
+    return {
+      type: "intrinsic",
+      score: Math.min(100, totalScore),
+      factors,
+      confidence: 0.75
+    };
+  }
+  /**
+   * Measure extraneous cognitive load
+   */
+  measureExtraneousLoad(text) {
+    const factors = [];
+    let totalScore = 0;
+    const highMatches = this.countIndicators(text, EXTRANEOUS_LOAD_INDICATORS.high);
+    const moderateMatches = this.countIndicators(text, EXTRANEOUS_LOAD_INDICATORS.moderate);
+    const lowMatches = this.countIndicators(text, EXTRANEOUS_LOAD_INDICATORS.low);
+    const extraneousScore = this.calculateIndicatorScore(highMatches, moderateMatches, lowMatches);
+    if (highMatches > 0 || moderateMatches > 0) {
+      factors.push({
+        name: "Presentation Issues",
+        contribution: extraneousScore,
+        evidence: `${highMatches} high, ${moderateMatches} moderate extraneous indicators`,
+        optimizable: true
+      });
+      totalScore += extraneousScore * 0.5;
+    }
+    const words = text.split(/\s+/).filter((w) => w.length > 3);
+    const wordCounts = /* @__PURE__ */ new Map();
+    for (const word of words) {
+      wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+    }
+    const repeatedWords = [...wordCounts.values()].filter((c) => c > 3).length;
+    const repetitionScore = Math.min(100, repeatedWords * 10);
+    if (repetitionScore > 0) {
+      factors.push({
+        name: "Content Repetition",
+        contribution: repetitionScore,
+        evidence: `${repeatedWords} words repeated more than 3 times`,
+        optimizable: true
+      });
+      totalScore += repetitionScore * 0.3;
+    }
+    const parenthesesCount = (text.match(/\(/g) || []).length;
+    const formattingScore = Math.min(100, parenthesesCount * 5);
+    if (formattingScore > 20) {
+      factors.push({
+        name: "Formatting Complexity",
+        contribution: formattingScore,
+        evidence: `${parenthesesCount} parenthetical expressions`,
+        optimizable: true
+      });
+      totalScore += formattingScore * 0.2;
+    }
+    const clarityBonus = lowMatches * 5;
+    totalScore = Math.max(0, totalScore - clarityBonus);
+    return {
+      type: "extraneous",
+      score: Math.min(100, totalScore),
+      factors,
+      confidence: 0.7
+    };
+  }
+  /**
+   * Measure germane cognitive load
+   */
+  measureGermaneLoad(text) {
+    const factors = [];
+    let totalScore = 0;
+    const highMatches = this.countIndicators(text, GERMANE_LOAD_INDICATORS.high);
+    const moderateMatches = this.countIndicators(text, GERMANE_LOAD_INDICATORS.moderate);
+    const lowMatches = this.countIndicators(text, GERMANE_LOAD_INDICATORS.low);
+    const germaneScore = this.calculateIndicatorScore(highMatches, moderateMatches, lowMatches);
+    if (highMatches > 0 || moderateMatches > 0) {
+      factors.push({
+        name: "Schema Building Activities",
+        contribution: germaneScore,
+        evidence: `${highMatches} high, ${moderateMatches} moderate germane indicators`,
+        optimizable: false
+      });
+      totalScore += germaneScore * 0.5;
+    }
+    const questionCount = (text.match(/\?/g) || []).length;
+    const questionScore = Math.min(100, questionCount * 15);
+    if (questionScore > 0) {
+      factors.push({
+        name: "Questioning Prompts",
+        contribution: questionScore,
+        evidence: `${questionCount} questions present`,
+        optimizable: false
+      });
+      totalScore += questionScore * 0.25;
+    }
+    const exampleIndicators = ["example", "for instance", "such as", "e.g.", "consider"];
+    const exampleCount = exampleIndicators.reduce(
+      (count, indicator) => count + (text.match(new RegExp(indicator, "gi")) || []).length,
+      0
+    );
+    const exampleScore = Math.min(100, exampleCount * 20);
+    if (exampleScore > 0) {
+      factors.push({
+        name: "Concrete Examples",
+        contribution: exampleScore,
+        evidence: `${exampleCount} examples provided`,
+        optimizable: false
+      });
+      totalScore += exampleScore * 0.25;
+    }
+    return {
+      type: "germane",
+      score: Math.min(100, totalScore),
+      factors,
+      confidence: 0.75
+    };
+  }
+  /**
+   * Count indicator matches in text
+   */
+  countIndicators(text, indicators) {
+    let count = 0;
+    for (const indicator of indicators) {
+      const regex = new RegExp(`\\b${indicator}\\b`, "gi");
+      const matches = text.match(regex);
+      if (matches) {
+        count += matches.length;
+      }
+    }
+    return count;
+  }
+  /**
+   * Calculate score based on indicator matches
+   */
+  calculateIndicatorScore(high, moderate, low) {
+    const score = high * 15 + moderate * 8 + low * 3;
+    return Math.min(100, score);
+  }
+  /**
+   * Calculate total cognitive load
+   */
+  calculateTotalLoad(intrinsic, extraneous, germane) {
+    const weightedLoad = intrinsic.score * 0.35 + extraneous.score * 0.45 + // Extraneous gets higher weight as it's wasteful
+    germane.score * 0.2;
+    return Math.round(weightedLoad);
+  }
+  /**
+   * Categorize total load
+   */
+  categorizeLoad(totalLoad) {
+    if (totalLoad <= 30) return "low";
+    if (totalLoad <= 55) return "moderate";
+    if (totalLoad <= 75) return "high";
+    return "overload";
+  }
+  /**
+   * Assess cognitive load balance
+   */
+  assessBalance(intrinsic, extraneous, germane) {
+    const extraneousMinimized = extraneous.score <= 30;
+    const germaneMaximized = germane.score >= 50;
+    const intrinsicAppropriate = intrinsic.score >= 30 && intrinsic.score <= 70;
+    let status;
+    let score;
+    if (extraneousMinimized && germaneMaximized && intrinsicAppropriate) {
+      status = "optimal";
+      score = 90 + (germane.score - 50) * 0.2;
+    } else if (extraneous.score >= 60 || germane.score < 30 && intrinsic.score < 30) {
+      status = "problematic";
+      score = 30 - (extraneous.score - 60) * 0.5;
+    } else {
+      status = "suboptimal";
+      score = 60;
+      if (extraneousMinimized) score += 10;
+      if (germaneMaximized) score += 10;
+      if (intrinsicAppropriate) score += 10;
+    }
+    return {
+      status,
+      extraneousMinimized,
+      germaneMaximized,
+      intrinsicAppropriate,
+      score: Math.min(100, Math.max(0, score))
+    };
+  }
+  /**
+   * Generate recommendations for optimizing cognitive load
+   */
+  generateRecommendations(intrinsic, extraneous, germane, balance) {
+    const recommendations = [];
+    if (extraneous.score > 40) {
+      recommendations.push({
+        targetType: "extraneous",
+        action: "Reduce extraneous cognitive load",
+        expectedImprovement: `Could reduce total load by ${Math.round(extraneous.score * 0.3)}%`,
+        priority: 1,
+        techniques: [
+          "Simplify presentation and remove unnecessary elements",
+          "Use consistent formatting throughout",
+          "Eliminate redundant information",
+          "Improve content organization and flow"
+        ]
+      });
+    }
+    if (germane.score < 40) {
+      recommendations.push({
+        targetType: "germane",
+        action: "Increase schema-building activities",
+        expectedImprovement: "Enhance learning effectiveness and retention",
+        priority: 2,
+        techniques: [
+          "Add more practice problems and exercises",
+          "Include self-explanation prompts",
+          "Provide worked examples with annotations",
+          "Add reflection questions",
+          "Connect new concepts to prior knowledge"
+        ]
+      });
+    }
+    if (intrinsic.score > 70) {
+      recommendations.push({
+        targetType: "intrinsic",
+        action: "Manage intrinsic complexity",
+        expectedImprovement: "Make content more accessible without losing depth",
+        priority: 2,
+        techniques: [
+          "Break complex concepts into smaller chunks",
+          "Provide scaffolding for difficult sections",
+          "Use analogies and concrete examples",
+          "Consider prerequisite knowledge requirements"
+        ]
+      });
+    }
+    if (!balance.germaneMaximized && balance.extraneousMinimized) {
+      recommendations.push({
+        targetType: "germane",
+        action: "Redirect saved cognitive capacity to learning",
+        expectedImprovement: "Use available cognitive resources productively",
+        priority: 3,
+        techniques: [
+          "Add higher-order thinking questions",
+          "Include application scenarios",
+          "Encourage elaboration and connection-making"
+        ]
+      });
+    }
+    return recommendations.sort((a, b) => a.priority - b.priority);
+  }
+  /**
+   * Assess compatibility with Bloom's taxonomy levels
+   */
+  assessBloomsCompatibility(totalLoad, targetLevel) {
+    const remainingCapacity = Math.max(0, 100 - totalLoad);
+    let maxLevel = "REMEMBER";
+    const levels = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+    for (const level of levels) {
+      if (remainingCapacity >= BLOOMS_COGNITIVE_REQUIREMENTS[level]) {
+        maxLevel = level;
+      }
+    }
+    const supportsTargetLevel = targetLevel ? remainingCapacity >= BLOOMS_COGNITIVE_REQUIREMENTS[targetLevel] : true;
+    const adjustments = [];
+    if (targetLevel && !supportsTargetLevel) {
+      const required = BLOOMS_COGNITIVE_REQUIREMENTS[targetLevel];
+      const deficit = required - remainingCapacity;
+      adjustments.push(
+        `Reduce cognitive load by ${deficit}% to support ${targetLevel} level activities`
+      );
+      adjustments.push(
+        `Consider simplifying content or reducing extraneous load`
+      );
+    }
+    return {
+      maxRecommendedLevel: maxLevel,
+      supportsTargetLevel,
+      remainingCapacity,
+      adjustments: adjustments.length > 0 ? adjustments : void 0
+    };
+  }
+};
+function createCognitiveLoadAnalyzer() {
+  return new CognitiveLoadAnalyzer();
+}
+
 // src/zpd-evaluator.ts
 var ZPD_ZONE_RANGES = {
   TOO_EASY: { min: 0, max: 20 },
@@ -1228,24 +2084,41 @@ var DEFAULT_ZPD_CONFIG = {
   maxChallengeScore: 85,
   minSupportAdequacy: 60,
   passingScore: 70,
-  challengeWeight: 0.4,
-  supportWeight: 0.35,
-  personalizationWeight: 0.25
+  challengeWeight: 0.35,
+  supportWeight: 0.3,
+  personalizationWeight: 0.2,
+  // Phase 3: Cognitive Load Integration
+  includeCognitiveLoad: true,
+  maxCognitiveLoad: 70,
+  cognitiveLoadWeight: 0.15
 };
 var ZPDEvaluator = class {
   name = "ZPDEvaluator";
   description = "Evaluates content fit within student's Zone of Proximal Development";
   config;
+  cognitiveLoadAnalyzer;
   constructor(config = {}) {
     this.config = { ...DEFAULT_ZPD_CONFIG, ...config };
+    this.cognitiveLoadAnalyzer = createCognitiveLoadAnalyzer();
   }
   /**
    * Evaluate content for ZPD fit
    */
   async evaluate(content, studentProfile) {
     const startTime = Date.now();
+    let cognitiveLoadResult;
+    if (this.config.includeCognitiveLoad) {
+      cognitiveLoadResult = this.cognitiveLoadAnalyzer.analyze(
+        content.content,
+        content.targetBloomsLevel
+      );
+    }
     const challengeLevel = this.analyzeChallengeLevel(content, studentProfile);
-    const zpdZone = this.determineZPDZone(challengeLevel.score);
+    const adjustedChallengeScore = cognitiveLoadResult ? this.adjustChallengeForCognitiveLoad(
+      challengeLevel.score,
+      cognitiveLoadResult
+    ) : challengeLevel.score;
+    const zpdZone = this.determineZPDZone(adjustedChallengeScore);
     const supportAdequacy = this.analyzeSupportAdequacy(
       content,
       challengeLevel
@@ -1253,7 +2126,8 @@ var ZPDEvaluator = class {
     const engagementPrediction = this.predictEngagement(
       zpdZone,
       challengeLevel,
-      supportAdequacy
+      supportAdequacy,
+      cognitiveLoadResult
     );
     const personalizationFit = this.analyzePersonalizationFit(
       content,
@@ -1264,7 +2138,8 @@ var ZPDEvaluator = class {
       challengeLevel,
       supportAdequacy,
       personalizationFit,
-      zpdZone
+      zpdZone,
+      cognitiveLoadResult
     );
     const { issues, recommendations } = this.analyzeIssuesAndRecommendations(
       zpdZone,
@@ -1272,7 +2147,8 @@ var ZPDEvaluator = class {
       supportAdequacy,
       engagementPrediction,
       personalizationFit,
-      studentProfile
+      studentProfile,
+      cognitiveLoadResult
     );
     const passed = score >= this.config.passingScore && inZPD;
     return {
@@ -1288,7 +2164,16 @@ var ZPDEvaluator = class {
         challengeScore: challengeLevel.score,
         supportScore: supportAdequacy.score,
         engagementPrediction: engagementPrediction.predictedState,
-        personalizationScore: personalizationFit.score
+        personalizationScore: personalizationFit.score,
+        // Phase 3: Cognitive load data
+        cognitiveLoad: cognitiveLoadResult ? {
+          totalLoad: cognitiveLoadResult.totalLoad,
+          category: cognitiveLoadResult.loadCategory,
+          intrinsic: cognitiveLoadResult.measurements.intrinsic.score,
+          extraneous: cognitiveLoadResult.measurements.extraneous.score,
+          germane: cognitiveLoadResult.measurements.germane.score,
+          adjustedChallengeScore
+        } : void 0
       },
       inZPD,
       zpdZone,
@@ -1297,6 +2182,18 @@ var ZPDEvaluator = class {
       engagementPrediction,
       personalizationFit
     };
+  }
+  /**
+   * Adjust challenge score based on cognitive load (Phase 3)
+   * High cognitive load effectively increases the perceived challenge
+   */
+  adjustChallengeForCognitiveLoad(baseChallenge, cognitiveLoad) {
+    if (cognitiveLoad.totalLoad <= this.config.maxCognitiveLoad) {
+      return baseChallenge;
+    }
+    const excess = cognitiveLoad.totalLoad - this.config.maxCognitiveLoad;
+    const adjustment = Math.floor(excess / 10) * 5;
+    return Math.min(100, baseChallenge + adjustment);
   }
   /**
    * Analyze challenge level of content
@@ -1508,8 +2405,9 @@ var ZPDEvaluator = class {
   }
   /**
    * Predict student engagement
+   * Phase 3: Now considers cognitive load impact on engagement
    */
-  predictEngagement(zpdZone, challengeLevel, supportAdequacy) {
+  predictEngagement(zpdZone, challengeLevel, supportAdequacy, cognitiveLoad) {
     const predictedState = ZONE_ENGAGEMENT_MAP[zpdZone];
     let score = 50;
     if (this.isInZPD(zpdZone)) {
@@ -1551,6 +2449,25 @@ var ZPDEvaluator = class {
     }
     if (zpdZone === "FRUSTRATION" || zpdZone === "UNREACHABLE") {
       engagementFactors.push("Content is too difficult, risking frustration");
+    }
+    if (cognitiveLoad) {
+      if (cognitiveLoad.loadCategory === "overload") {
+        score = Math.max(0, score - 20);
+        disengagementRisk = Math.min(1, disengagementRisk + 0.3);
+        engagementFactors.push("Cognitive overload detected - may cause mental fatigue");
+      } else if (cognitiveLoad.loadCategory === "high") {
+        score = Math.max(0, score - 10);
+        disengagementRisk = Math.min(1, disengagementRisk + 0.15);
+        engagementFactors.push("High cognitive load - monitor for fatigue");
+      }
+      if (cognitiveLoad.measurements.extraneous.score > 50) {
+        score = Math.max(0, score - 5);
+        engagementFactors.push("Extraneous cognitive load is high - simplify presentation");
+      }
+      if (cognitiveLoad.measurements.germane.score > 60) {
+        score = Math.min(100, score + 5);
+        engagementFactors.push("Good schema-building activities present");
+      }
     }
     return {
       score,
@@ -1646,9 +2563,20 @@ var ZPDEvaluator = class {
   }
   /**
    * Calculate overall ZPD score
+   * Phase 3: Now includes cognitive load factor
    */
-  calculateScore(challengeLevel, supportAdequacy, personalizationFit, zpdZone) {
-    let score = this.config.challengeWeight * (challengeLevel.appropriate ? 85 : 50) + this.config.supportWeight * supportAdequacy.score + this.config.personalizationWeight * personalizationFit.score;
+  calculateScore(challengeLevel, supportAdequacy, personalizationFit, zpdZone, cognitiveLoad) {
+    let cognitiveLoadScore = 75;
+    if (cognitiveLoad) {
+      const extraneousPenalty = cognitiveLoad.measurements.extraneous.score * 0.5;
+      const germaneBonus = cognitiveLoad.measurements.germane.score * 0.3;
+      const balanceBonus = cognitiveLoad.balance.status === "optimal" ? 20 : 0;
+      cognitiveLoadScore = Math.max(0, Math.min(
+        100,
+        100 - extraneousPenalty + germaneBonus + balanceBonus
+      ));
+    }
+    let score = this.config.challengeWeight * (challengeLevel.appropriate ? 85 : 50) + this.config.supportWeight * supportAdequacy.score + this.config.personalizationWeight * personalizationFit.score + this.config.cognitiveLoadWeight * cognitiveLoadScore;
     if (zpdZone === "ZPD_OPTIMAL") {
       score = Math.min(100, score * 1.1);
     } else if (this.isInZPD(zpdZone)) {
@@ -1660,6 +2588,9 @@ var ZPDEvaluator = class {
       } else {
         score *= 0.85;
       }
+    }
+    if (cognitiveLoad?.loadCategory === "overload") {
+      score *= 0.85;
     }
     return Math.round(score);
   }
@@ -1681,8 +2612,9 @@ var ZPDEvaluator = class {
   }
   /**
    * Analyze issues and generate recommendations
+   * Phase 3: Now includes cognitive load analysis
    */
-  analyzeIssuesAndRecommendations(zpdZone, challengeLevel, supportAdequacy, engagementPrediction, personalizationFit, studentProfile) {
+  analyzeIssuesAndRecommendations(zpdZone, challengeLevel, supportAdequacy, engagementPrediction, personalizationFit, studentProfile, cognitiveLoadResult) {
     const issues = [];
     const recommendations = [];
     if (zpdZone === "TOO_EASY") {
@@ -1787,6 +2719,88 @@ var ZPDEvaluator = class {
       }
       if (studentProfile.recentPerformance.trend === "declining") {
         recommendations.push("Consider diagnostic assessment to identify issues");
+      }
+    }
+    if (cognitiveLoadResult) {
+      if (cognitiveLoadResult.loadCategory === "overload") {
+        issues.push({
+          type: "cognitive_overload",
+          severity: "critical",
+          description: `Cognitive overload detected (total load: ${Math.round(cognitiveLoadResult.totalLoad)}%)`,
+          learningImpact: "Students will struggle to process and retain information",
+          suggestedFix: "Reduce complexity, break into smaller chunks, remove extraneous elements"
+        });
+        recommendations.push(
+          "Break content into smaller, focused sections",
+          "Remove decorative or non-essential elements",
+          "Use progressive disclosure for complex topics"
+        );
+      } else if (cognitiveLoadResult.loadCategory === "high") {
+        issues.push({
+          type: "high_cognitive_load",
+          severity: "high",
+          description: `High cognitive load detected (total load: ${Math.round(cognitiveLoadResult.totalLoad)}%)`,
+          learningImpact: "May cause mental fatigue and reduced retention",
+          suggestedFix: "Consider simplifying presentation or adding more scaffolding"
+        });
+        recommendations.push("Add more visual aids and worked examples");
+      }
+      if (cognitiveLoadResult.measurements.extraneous.score > 60) {
+        issues.push({
+          type: "high_extraneous_load",
+          severity: "high",
+          description: "High extraneous cognitive load - presentation is inefficient",
+          learningImpact: "Cognitive resources wasted on non-learning activities",
+          suggestedFix: "Simplify formatting, remove distracting elements, improve organization"
+        });
+        recommendations.push(
+          "Simplify visual presentation and reduce clutter",
+          "Use consistent formatting and clear structure",
+          "Eliminate redundant or confusing navigation"
+        );
+      } else if (cognitiveLoadResult.measurements.extraneous.score > 40) {
+        issues.push({
+          type: "moderate_extraneous_load",
+          severity: "medium",
+          description: "Moderate extraneous cognitive load detected",
+          learningImpact: "Some cognitive resources diverted from learning",
+          suggestedFix: "Review presentation efficiency"
+        });
+      }
+      if (cognitiveLoadResult.measurements.germane.score < 30) {
+        issues.push({
+          type: "low_germane_load",
+          severity: "medium",
+          description: "Low germane cognitive load - insufficient schema-building activities",
+          learningImpact: "Limited long-term retention and transfer",
+          suggestedFix: "Add practice problems, comparisons, and connection-making activities"
+        });
+        recommendations.push(
+          "Add more practice exercises with feedback",
+          "Include comparisons to prior knowledge",
+          "Add self-explanation prompts"
+        );
+      }
+      if (cognitiveLoadResult.measurements.intrinsic.score > 60 && !supportAdequacy.adequate) {
+        issues.push({
+          type: "unsupported_complexity",
+          severity: "high",
+          description: "Complex content without adequate instructional support",
+          learningImpact: "Learners may not be able to process difficult material",
+          suggestedFix: "Add more scaffolding, worked examples, or reduce element interactivity"
+        });
+        recommendations.push(
+          "Add step-by-step worked examples",
+          "Break complex procedures into sub-steps",
+          "Consider completion problems (partially solved examples)"
+        );
+      }
+      if (cognitiveLoadResult.balance.status !== "optimal") {
+        for (const rec of cognitiveLoadResult.recommendations) {
+          if (!recommendations.includes(rec.action)) {
+            recommendations.push(rec.action);
+          }
+        }
       }
     }
     return { issues, recommendations };
@@ -2093,24 +3107,37 @@ async function evaluatePedagogically(content, studentProfile, config) {
 export {
   BLOOMS_ACTIVITIES,
   BLOOMS_LEVEL_ORDER,
+  BLOOMS_SUB_LEVEL_ORDER,
   BLOOMS_VERBS,
   BloomsAligner,
   COMPLEXITY_INDICATORS,
+  CognitiveLoadAnalyzer,
   DEFAULT_BLOOMS_ALIGNER_CONFIG,
   DEFAULT_PEDAGOGICAL_PIPELINE_CONFIG,
   DEFAULT_SCAFFOLDING_CONFIG,
   DEFAULT_ZPD_CONFIG,
   DIFFICULTY_LEVEL_ORDER,
+  EXTRANEOUS_LOAD_INDICATORS,
+  GERMANE_LOAD_INDICATORS,
   GRADUAL_RELEASE_INDICATORS,
+  INTRINSIC_LOAD_INDICATORS,
   PedagogicalPipeline,
+  SUB_LEVEL_ABSTRACTION_INDICATORS,
+  SUB_LEVEL_COMPLEXITY_INDICATORS,
+  SUB_LEVEL_NOVELTY_INDICATORS,
+  SUB_LEVEL_TRANSFER_INDICATORS,
   SUPPORT_INDICATORS,
   SUPPORT_TYPES,
   ScaffoldingEvaluator,
+  SubLevelAnalyzer,
   ZONE_ENGAGEMENT_MAP,
   ZPDEvaluator,
   ZPD_ZONE_RANGES,
+  calculateBloomsNumericScore,
   createBloomsAligner,
+  createBloomsLabel,
   createBloomsPipeline,
+  createCognitiveLoadAnalyzer,
   createLenientBloomsAligner,
   createLenientScaffoldingEvaluator,
   createLenientZPDEvaluator,
@@ -2121,9 +3148,12 @@ export {
   createStrictPedagogicalPipeline,
   createStrictScaffoldingEvaluator,
   createStrictZPDEvaluator,
+  createSubLevelAnalyzer,
   createZPDEvaluator,
   createZPDPipeline,
+  determineSubLevelFromIndicators,
   evaluatePedagogically,
   getBloomsLevelIndex,
+  getBloomsSubLevelIndex,
   getDifficultyLevelIndex
 };

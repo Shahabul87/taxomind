@@ -102,6 +102,8 @@ export function SamFloatingChatbot({
   const [isLoading, setIsLoading] = useState(false);
   const [pendingContextMessage, setPendingContextMessage] = useState<{ message: string; context?: Record<string, unknown> } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sendMessageRef = useRef<(content: string, context?: Record<string, unknown>) => Promise<void>>(null);
+  const buildCourseContextRef = useRef<() => Record<string, unknown>>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -187,23 +189,6 @@ export function SamFloatingChatbot({
       ]
     }]);
   }, [courseData.title, courseData.chapters, courseData.isPublished, courseData.whatYouWillLearn.length]);
-
-  // Process pending context messages (from "Fix Now" buttons, etc.)
-  useEffect(() => {
-    if (pendingContextMessage && isOpen && !isLoading) {
-      const { message, context } = pendingContextMessage;
-      setPendingContextMessage(null); // Clear pending message
-
-      // Build enhanced context and send the message
-      const enhancedContext = context ? { ...buildCourseContext(), ...context } : buildCourseContext();
-
-      // Use setTimeout to ensure the chat is fully rendered
-      setTimeout(() => {
-        sendMessage(message, enhancedContext);
-      }, 150);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingContextMessage, isOpen, isLoading]);
 
   const calculateCourseHealthScore = useCallback(() => {
     let score = 0;
@@ -377,6 +362,29 @@ export function SamFloatingChatbot({
       setIsLoading(false);
     }
   };
+
+  // Keep refs in sync with the latest function references
+  sendMessageRef.current = sendMessage;
+  buildCourseContextRef.current = buildCourseContext;
+
+  // Process pending context messages (from "Fix Now" buttons, etc.)
+  useEffect(() => {
+    if (pendingContextMessage && isOpen && !isLoading) {
+      const { message, context } = pendingContextMessage;
+      setPendingContextMessage(null); // Clear pending message
+
+      // Build enhanced context and send the message
+      const currentBuildCourseContext = buildCourseContextRef.current;
+      if (currentBuildCourseContext) {
+        const enhancedContext = context ? { ...currentBuildCourseContext(), ...context } : currentBuildCourseContext();
+
+        // Use setTimeout to ensure the chat is fully rendered
+        setTimeout(() => {
+          sendMessageRef.current?.(message, enhancedContext);
+        }, 150);
+      }
+    }
+  }, [pendingContextMessage, isOpen, isLoading]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

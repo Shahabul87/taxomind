@@ -9,6 +9,12 @@
 
 import type { SAMConfig, SAMDatabaseAdapter, BloomsLevel } from '@sam-ai/core';
 import type { BloomsDistribution, CognitiveProfile } from './blooms.types';
+import type {
+  BloomsSubLevel,
+  SubLevelIndicator,
+  EnhancedBloomsResult,
+} from '@sam-ai/pedagogy';
+import type { BloomsCalibratorStore } from '../calibration';
 
 // ============================================================================
 // CONFIGURATION
@@ -53,6 +59,59 @@ export interface UnifiedBloomsConfig {
    * @default 3600 (1 hour)
    */
   cacheTTL?: number;
+
+  /**
+   * Maximum number of entries in the LRU cache
+   * Prevents unbounded memory growth from cached AI results
+   * @default 500
+   */
+  maxCacheEntries?: number;
+
+  /**
+   * Enable semantic disambiguation for ambiguous verbs (Phase 2)
+   * When enabled, uses embeddings to disambiguate verbs like "explain"
+   * that can indicate multiple Bloom's levels depending on context
+   * @default false (requires embedding provider)
+   */
+  enableSemanticDisambiguation?: boolean;
+
+  /**
+   * Embedding provider for semantic analysis (Phase 2)
+   * Required if enableSemanticDisambiguation is true
+   */
+  embeddingProvider?: {
+    embed(text: string): Promise<number[]>;
+    embedBatch(texts: string[]): Promise<number[][]>;
+    getDimensions(): number;
+  };
+
+  // ========== CALIBRATION (Phase 5) ==========
+
+  /**
+   * Enable confidence calibration learning loop (Phase 5)
+   * When enabled, classification confidence is adjusted based on historical feedback
+   * @default false
+   */
+  enableCalibration?: boolean;
+
+  /**
+   * Minimum samples required before calibration adjustments are applied (Phase 5)
+   * @default 100
+   */
+  calibrationMinSamples?: number;
+
+  /**
+   * Maximum confidence adjustment factor (Phase 5)
+   * Prevents wild swings in calibration
+   * @default 0.3
+   */
+  calibrationMaxAdjustment?: number;
+
+  /**
+   * Store for persisting calibration feedback and metrics (Phase 5)
+   * If not provided, calibration works in memory only
+   */
+  calibratorStore?: BloomsCalibratorStore;
 }
 
 // ============================================================================
@@ -86,6 +145,19 @@ export interface AnalysisOptions {
    * Custom confidence threshold for this request
    */
   confidenceThreshold?: number;
+
+  /**
+   * Include sub-level granularity analysis (BASIC/INTERMEDIATE/ADVANCED)
+   * @default false
+   */
+  includeSubLevel?: boolean;
+
+  /**
+   * Use semantic disambiguation for ambiguous verbs (Phase 2)
+   * Only works if embedding provider is configured in engine
+   * @default true (when embedding provider available)
+   */
+  useSemanticDisambiguation?: boolean;
 }
 
 // ============================================================================
@@ -137,6 +209,54 @@ export interface UnifiedBloomsResult {
    * Analysis metadata
    */
   metadata: AnalysisMetadata;
+
+  // ========== SUB-LEVEL GRANULARITY (Phase 1) ==========
+
+  /**
+   * Sub-level within the dominant level (if includeSubLevel was true)
+   * BASIC (0-0.33), INTERMEDIATE (0.34-0.66), ADVANCED (0.67-1.0)
+   */
+  subLevel?: BloomsSubLevel;
+
+  /**
+   * Combined numeric score (1.0 - 6.9)
+   * Examples: 3.0 = Apply-Basic, 3.3 = Apply-Intermediate, 3.7 = Apply-Advanced
+   */
+  numericScore?: number;
+
+  /**
+   * Indicators that determined the sub-level
+   * Includes complexity, abstraction, transfer, and novelty scores
+   */
+  subLevelIndicators?: SubLevelIndicator[];
+
+  /**
+   * Human-readable label (e.g., "Apply - Advanced")
+   */
+  subLevelLabel?: string;
+
+  /**
+   * Enhanced result with full sub-level details (if includeSubLevel was true)
+   */
+  enhancedResult?: EnhancedBloomsResult;
+
+  // ========== SEMANTIC DISAMBIGUATION (Phase 2) ==========
+
+  /**
+   * Whether semantic disambiguation was used for this classification
+   */
+  semanticDisambiguated?: boolean;
+
+  /**
+   * Similarity scores to each Bloom's level (if semantic disambiguation was used)
+   * Values are 0-1 cosine similarities to reference embeddings
+   */
+  semanticSimilarityScores?: Record<BloomsLevel, number>;
+
+  /**
+   * Ambiguous verbs found in the content that required disambiguation
+   */
+  ambiguousVerbsFound?: string[];
 }
 
 export interface UnifiedBloomsRecommendation {
@@ -191,6 +311,23 @@ export interface SectionAnalysis {
    * Detected keywords that influenced classification
    */
   detectedKeywords?: string[];
+
+  // ========== SUB-LEVEL GRANULARITY (Phase 1) ==========
+
+  /**
+   * Sub-level within the detected level (if includeSubLevel was true)
+   */
+  subLevel?: BloomsSubLevel;
+
+  /**
+   * Combined numeric score (1.0 - 6.9)
+   */
+  numericScore?: number;
+
+  /**
+   * Human-readable label (e.g., "Apply - Advanced")
+   */
+  subLevelLabel?: string;
 }
 
 export interface AnalysisMetadata {
@@ -229,6 +366,16 @@ export interface AnalysisMetadata {
    * Indicates fallback to default values was used
    */
   validationError?: string;
+
+  /**
+   * Whether semantic disambiguation was applied (Phase 2)
+   */
+  semanticDisambiguationUsed?: boolean;
+
+  /**
+   * Processing time for semantic analysis in milliseconds (Phase 2)
+   */
+  semanticProcessingTimeMs?: number;
 }
 
 // ============================================================================

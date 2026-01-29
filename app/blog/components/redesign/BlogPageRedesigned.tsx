@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -87,6 +87,8 @@ export function BlogPageRedesigned({
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
 
   // Mock categories if not provided
   const defaultCategories: Category[] = useMemo(() => {
@@ -117,6 +119,9 @@ export function BlogPageRedesigned({
       { id: 'security', name: 'Security', count: 12 }
     ];
   }, [availableCategories, categories]);
+
+  const defaultCategoriesRef = useRef(defaultCategories);
+  defaultCategoriesRef.current = defaultCategories;
 
   // Handle scroll for sticky header
   useEffect(() => {
@@ -182,12 +187,11 @@ export function BlogPageRedesigned({
 
   // Initialize from URL params on mount
   useEffect(() => {
-    const params = new URLSearchParams(searchParams?.toString());
+    const params = new URLSearchParams(searchParamsRef.current?.toString());
     const q = params.get('q') || '';
     const cat = params.get('category') || '';
-    // const cats = params.get('categories') || '';
-    const sort = params.get('sort') as any;
-    const dateRange = params.get('dateRange') as any;
+    const sort = params.get('sort') as 'latest' | 'popular' | 'trending' | 'mostCommented' | undefined;
+    const dateRange = params.get('dateRange') as 'today' | 'week' | 'month' | 'year' | 'all' | undefined;
     const authors = params.get('authors');
     const tags = params.get('tags');
 
@@ -197,10 +201,9 @@ export function BlogPageRedesigned({
     if (authors) setFilters(prev => ({ ...prev, authors: authors.split(',') }));
     if (tags) setFilters(prev => ({ ...prev, tags: tags.split(',') }));
     if (cat) {
-      const id = defaultCategories.find(c => c.name === cat)?.id || 'all';
+      const id = defaultCategoriesRef.current.find(c => c.name === cat)?.id || 'all';
       setActiveCategory(id);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch first page when filters/search/category change

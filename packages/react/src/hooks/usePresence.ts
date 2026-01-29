@@ -92,9 +92,30 @@ const DEFAULT_OPTIONS: Required<
 // ============================================================================
 
 export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
+  // Store callback-type options in refs so they never appear in dependency arrays.
+  // This keeps useMemo/useCallback/useEffect deps limited to stable primitives.
+  const onIdleRef = useRef(options.onIdle);
+  onIdleRef.current = options.onIdle;
+  const onAwayRef = useRef(options.onAway);
+  onAwayRef.current = options.onAway;
+  const onActiveRef = useRef(options.onActive);
+  onActiveRef.current = options.onActive;
+  const sendActivityRef = useRef(options.sendActivity);
+  sendActivityRef.current = options.sendActivity;
+  const onStatusChangeRef = useRef(options.onStatusChange);
+  onStatusChangeRef.current = options.onStatusChange;
+
   const opts = useMemo(
-    () => ({ ...DEFAULT_OPTIONS, ...options }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+    () => ({
+      userId: options.userId,
+      sessionId: options.sessionId ?? DEFAULT_OPTIONS.sessionId,
+      initialStatus: options.initialStatus ?? DEFAULT_OPTIONS.initialStatus,
+      trackVisibility: options.trackVisibility ?? DEFAULT_OPTIONS.trackVisibility,
+      trackActivity: options.trackActivity ?? DEFAULT_OPTIONS.trackActivity,
+      idleTimeout: options.idleTimeout ?? DEFAULT_OPTIONS.idleTimeout,
+      awayTimeout: options.awayTimeout ?? DEFAULT_OPTIONS.awayTimeout,
+      activityDebounce: options.activityDebounce ?? DEFAULT_OPTIONS.activityDebounce,
+    }),
     [
       options.userId,
       options.sessionId,
@@ -103,6 +124,7 @@ export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
       options.trackActivity,
       options.trackVisibility,
       options.initialStatus,
+      options.activityDebounce,
     ]
   );
 
@@ -173,7 +195,7 @@ export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
     idleTimeoutRef.current = setTimeout(() => {
       if (previousStatusRef.current === 'online' || previousStatusRef.current === 'studying') {
         setStatusState('idle');
-        opts.onIdle?.();
+        onIdleRef.current?.();
       }
     }, opts.idleTimeout);
 
@@ -181,10 +203,10 @@ export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
     awayTimeoutRef.current = setTimeout(() => {
       if (previousStatusRef.current !== 'offline' && previousStatusRef.current !== 'do_not_disturb') {
         setStatusState('away');
-        opts.onAway?.();
+        onAwayRef.current?.();
       }
     }, opts.awayTimeout);
-  }, [clearTimers, opts]);
+  }, [clearTimers, opts.idleTimeout, opts.awayTimeout]);
 
   // Set status with callback
   const setStatus = useCallback(
@@ -193,19 +215,22 @@ export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
       if (newStatus !== prevStatus) {
         previousStatusRef.current = newStatus;
         setStatusState(newStatus);
-        opts.onStatusChange?.(newStatus, prevStatus);
+        onStatusChangeRef.current?.(newStatus, prevStatus);
 
         // Send status update
-        opts.sendActivity?.({
+        sendActivityRef.current?.({
           type: 'interaction',
           data: { statusChange: { from: prevStatus, to: newStatus } },
         });
       }
     },
-    [opts]
+    []
   );
 
   // Record activity
+  const statusRef = useRef(status);
+  statusRef.current = status;
+
   const recordActivity = useCallback(
     (type: ActivityPayload['type'] = 'interaction') => {
       // Debounce activity recording
@@ -221,22 +246,22 @@ export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
       setLastActivityAt(new Date());
 
       // Reset to active if was idle/away
-      if (status === 'idle' || status === 'away') {
+      if (statusRef.current === 'idle' || statusRef.current === 'away') {
         setStatus('online');
-        opts.onActive?.();
+        onActiveRef.current?.();
       }
 
       // Reset timers
       resetTimers();
 
       // Send activity event
-      opts.sendActivity?.({
+      sendActivityRef.current?.({
         type,
         data: { timestamp: new Date().toISOString() },
         pageContext: typeof window !== 'undefined' ? { url: window.location.href } : undefined,
       });
     },
-    [opts, status, setStatus, resetTimers]
+    [opts.activityDebounce, setStatus, resetTimers]
   );
 
   // Update metadata
@@ -252,7 +277,7 @@ export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
       if (document.visibilityState === 'visible') {
         recordActivity('focus');
       } else {
-        opts.sendActivity?.({
+        sendActivityRef.current?.({
           type: 'blur',
           data: { timestamp: new Date().toISOString() },
         });
@@ -263,8 +288,7 @@ export function usePresence(options: UsePresenceOptions): UsePresenceReturn {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only track visibility changes, not full opts object
-  }, [opts.trackVisibility, recordActivity, opts.sendActivity]);
+  }, [opts.trackVisibility, recordActivity]);
 
   // Track user activity (mouse, keyboard, scroll)
   useEffect(() => {

@@ -288,129 +288,177 @@ export interface TaxomindIntegrationContext {
 let contextInstance: TaxomindIntegrationContext | null = null;
 
 /**
- * Initialize all stores lazily
+ * Create lazy-initialized stores using Proxy
+ *
+ * Instead of creating all 50+ stores eagerly on first context access,
+ * each store is created on-demand when first accessed. This reduces
+ * the initial memory spike and speeds up cold starts.
+ *
+ * Batch-created stores (observability, self-evaluation, meta-learning)
+ * are initialized as a group when any store from that group is accessed.
  */
-function initializeStores(): TaxomindAgenticStores {
-  logger.info('[TaxomindContext] Initializing all Prisma stores...');
+function createLazyStores(): TaxomindAgenticStores {
+  const cache = new Map<string, unknown>();
 
-  // Initialize observability stores from adapter-prisma
-  // Type cast required due to Prisma client extensions
-  const observabilityStores = createPrismaObservabilityStores({ prisma: db as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'] });
-  const selfEvaluationStores = createPrismaSelfEvaluationStores({ prisma: db as Parameters<typeof createPrismaSelfEvaluationStores>[0]['prisma'] });
-  const metaLearningStores = createPrismaMetaLearningStores({ prisma: db as Parameters<typeof createPrismaMetaLearningStores>[0]['prisma'] });
-  const journeyTimelineStore = createPrismaJourneyTimelineStore({ prisma: db as Parameters<typeof createPrismaJourneyTimelineStore>[0]['prisma'] });
-
-  const stores: TaxomindAgenticStores = {
-    // Goal Planning
-    goal: createPrismaGoalStore(),
-    subGoal: createPrismaSubGoalStore(),
-    plan: createPrismaPlanStore(),
-
-    // Proactive Intervention
-    behaviorEvent: createPrismaBehaviorEventStore(),
-    pattern: createPrismaPatternStore(),
-    intervention: createPrismaInterventionStore(),
-    checkIn: createPrismaCheckInStore(),
-
-    // Tool Registry
-    tool: createPrismaToolStore(),
-
-    // Analytics
-    learningSession: createPrismaLearningSessionStore(),
-    topicProgress: createPrismaTopicProgressStore(),
-    learningGap: createPrismaLearningGapStore(),
-    skillAssessment: createPrismaSkillAssessmentStore(),
-    recommendation: createPrismaRecommendationStore(),
-    content: createPrismaContentStore(),
-
-    // Memory
-    vector: createPrismaVectorAdapter(),
-    knowledgeGraph: createPrismaKnowledgeGraphStore(),
-    sessionContext: createPrismaSessionContextStore(),
-
-    // Learning Path
-    skill: createPrismaSkillStore(),
-    learningPath: createPrismaLearningPathStore(),
-    courseGraph: createPrismaCourseGraphStore(),
-
-    // Multi-Session
-    learningPlan: createPrismaLearningPlanStore(),
-    tutoringSession: createPrismaTutoringSessionStore(),
-
-    // SkillBuildTrack
-    skillBuildTrack: createPrismaSkillBuildTrackStore(),
-
-    // Observability (from adapter-prisma)
-    toolTelemetry: observabilityStores.toolTelemetry,
-    confidenceCalibration: observabilityStores.confidenceCalibration,
-    memoryQuality: observabilityStores.memoryQuality,
-    planLifecycle: observabilityStores.planLifecycle,
-    metrics: observabilityStores.metrics,
-
-    // Self-Evaluation (from adapter-prisma)
-    confidenceScore: selfEvaluationStores.confidenceScore,
-    verificationResult: selfEvaluationStores.verificationResult,
-    qualityRecord: selfEvaluationStores.qualityRecord,
-    calibration: selfEvaluationStores.calibration,
-    selfCritique: selfEvaluationStores.selfCritique,
-
-    // Meta-Learning (from adapter-prisma)
-    learningPattern: metaLearningStores.learningPattern,
-    metaLearningInsight: metaLearningStores.metaLearningInsight,
-    learningStrategy: metaLearningStores.learningStrategy,
-    learningEvent: metaLearningStores.learningEvent,
-
-    // Journey Timeline (from adapter-prisma)
-    journeyTimeline: journeyTimelineStore,
-
-    // Presence (realtime user tracking)
-    // Type cast required due to Prisma client extensions
-    presence: createPrismaPresenceStore({ prisma: db as Parameters<typeof createPrismaPresenceStore>[0]['prisma'] }),
-
-    // Student Profile (mastery tracking)
-    // Type cast required due to Prisma client extensions
-    studentProfile: createPrismaStudentProfileStore({ prisma: db as Parameters<typeof createPrismaStudentProfileStore>[0]['prisma'] }),
-
-    // Review Schedule (spaced repetition)
-    // Type cast required due to Prisma client extensions
-    reviewSchedule: createPrismaReviewScheduleStore({ prisma: db as Parameters<typeof createPrismaReviewScheduleStore>[0]['prisma'] }),
-
-    // Push Queue (persistent push notification queue)
-    // Type cast through unknown required due to extended Prisma client type mismatch
-    pushQueue: createPrismaPushQueueStore({ prisma: db as unknown as Parameters<typeof createPrismaPushQueueStore>[0]['prisma'] }),
-
-    // Phase 6: Educational Engine Stores
-    microlearning: createPrismaMicrolearningStore(),
-    metacognition: createPrismaMetacognitionStore(),
-    competency: createPrismaCompetencyStore(),
-    peerLearning: createPrismaPeerLearningStore(),
-    integrity: createPrismaIntegrityStore(),
-    multimodal: createPrismaMultimodalStore(),
-
-    // Phase 7: 10,000 Hour Practice Tracking Stores
-    practiceSession: createPrismaPracticeSessionStore(),
-    skillMastery10K: createPrismaSkillMastery10KStore(),
-    practiceLeaderboard: createPrismaPracticeLeaderboardStore(),
-    dailyPracticeLog: createPrismaDailyPracticeLogStore(),
-
-    // Practice Challenge Store
-    practiceChallenge: createPrismaPracticeChallengeStore(),
-
-    // Practice Goal Store
-    practiceGoal: createPrismaPracticeGoalStore(),
-
-    // Spaced Repetition Store (SM-2 Algorithm)
-    spacedRepetition: createPrismaSpacedRepetitionStore(),
-
-    // Memory Lifecycle: Reindex Job Store
-    reindexJob: createPrismaReindexJobStore(),
+  // Lazy batch initializers - create all stores in a group on first access
+  let observabilityStores: ReturnType<typeof createPrismaObservabilityStores> | null = null;
+  const getObservabilityStores = () => {
+    if (!observabilityStores) {
+      observabilityStores = createPrismaObservabilityStores({ prisma: db as Parameters<typeof createPrismaObservabilityStores>[0]['prisma'] });
+    }
+    return observabilityStores;
   };
 
-  logger.info('[TaxomindContext] All stores initialized', {
-    storeCount: Object.keys(stores).length,
+  let selfEvaluationStores: ReturnType<typeof createPrismaSelfEvaluationStores> | null = null;
+  const getSelfEvaluationStores = () => {
+    if (!selfEvaluationStores) {
+      selfEvaluationStores = createPrismaSelfEvaluationStores({ prisma: db as Parameters<typeof createPrismaSelfEvaluationStores>[0]['prisma'] });
+    }
+    return selfEvaluationStores;
+  };
+
+  let metaLearningStores: ReturnType<typeof createPrismaMetaLearningStores> | null = null;
+  const getMetaLearningStores = () => {
+    if (!metaLearningStores) {
+      metaLearningStores = createPrismaMetaLearningStores({ prisma: db as Parameters<typeof createPrismaMetaLearningStores>[0]['prisma'] });
+    }
+    return metaLearningStores;
+  };
+
+  // Per-store factory map: storeName → factory function
+  const storeFactories: Record<string, () => unknown> = {
+    // Goal Planning
+    goal: () => createPrismaGoalStore(),
+    subGoal: () => createPrismaSubGoalStore(),
+    plan: () => createPrismaPlanStore(),
+
+    // Proactive Intervention
+    behaviorEvent: () => createPrismaBehaviorEventStore(),
+    pattern: () => createPrismaPatternStore(),
+    intervention: () => createPrismaInterventionStore(),
+    checkIn: () => createPrismaCheckInStore(),
+
+    // Tool Registry
+    tool: () => createPrismaToolStore(),
+
+    // Analytics
+    learningSession: () => createPrismaLearningSessionStore(),
+    topicProgress: () => createPrismaTopicProgressStore(),
+    learningGap: () => createPrismaLearningGapStore(),
+    skillAssessment: () => createPrismaSkillAssessmentStore(),
+    recommendation: () => createPrismaRecommendationStore(),
+    content: () => createPrismaContentStore(),
+
+    // Memory
+    vector: () => createPrismaVectorAdapter(),
+    knowledgeGraph: () => createPrismaKnowledgeGraphStore(),
+    sessionContext: () => createPrismaSessionContextStore(),
+
+    // Learning Path
+    skill: () => createPrismaSkillStore(),
+    learningPath: () => createPrismaLearningPathStore(),
+    courseGraph: () => createPrismaCourseGraphStore(),
+
+    // Multi-Session
+    learningPlan: () => createPrismaLearningPlanStore(),
+    tutoringSession: () => createPrismaTutoringSessionStore(),
+
+    // SkillBuildTrack
+    skillBuildTrack: () => createPrismaSkillBuildTrackStore(),
+
+    // Observability (batch-created from adapter-prisma)
+    toolTelemetry: () => getObservabilityStores().toolTelemetry,
+    confidenceCalibration: () => getObservabilityStores().confidenceCalibration,
+    memoryQuality: () => getObservabilityStores().memoryQuality,
+    planLifecycle: () => getObservabilityStores().planLifecycle,
+    metrics: () => getObservabilityStores().metrics,
+
+    // Self-Evaluation (batch-created from adapter-prisma)
+    confidenceScore: () => getSelfEvaluationStores().confidenceScore,
+    verificationResult: () => getSelfEvaluationStores().verificationResult,
+    qualityRecord: () => getSelfEvaluationStores().qualityRecord,
+    calibration: () => getSelfEvaluationStores().calibration,
+    selfCritique: () => getSelfEvaluationStores().selfCritique,
+
+    // Meta-Learning (batch-created from adapter-prisma)
+    learningPattern: () => getMetaLearningStores().learningPattern,
+    metaLearningInsight: () => getMetaLearningStores().metaLearningInsight,
+    learningStrategy: () => getMetaLearningStores().learningStrategy,
+    learningEvent: () => getMetaLearningStores().learningEvent,
+
+    // Journey Timeline (from adapter-prisma)
+    journeyTimeline: () => createPrismaJourneyTimelineStore({ prisma: db as Parameters<typeof createPrismaJourneyTimelineStore>[0]['prisma'] }),
+
+    // Presence (realtime user tracking)
+    presence: () => createPrismaPresenceStore({ prisma: db as Parameters<typeof createPrismaPresenceStore>[0]['prisma'] }),
+
+    // Student Profile (mastery tracking)
+    studentProfile: () => createPrismaStudentProfileStore({ prisma: db as Parameters<typeof createPrismaStudentProfileStore>[0]['prisma'] }),
+
+    // Review Schedule (spaced repetition)
+    reviewSchedule: () => createPrismaReviewScheduleStore({ prisma: db as Parameters<typeof createPrismaReviewScheduleStore>[0]['prisma'] }),
+
+    // Push Queue (persistent push notification queue)
+    pushQueue: () => createPrismaPushQueueStore({ prisma: db as unknown as Parameters<typeof createPrismaPushQueueStore>[0]['prisma'] }),
+
+    // Phase 6: Educational Engine Stores
+    microlearning: () => createPrismaMicrolearningStore(),
+    metacognition: () => createPrismaMetacognitionStore(),
+    competency: () => createPrismaCompetencyStore(),
+    peerLearning: () => createPrismaPeerLearningStore(),
+    integrity: () => createPrismaIntegrityStore(),
+    multimodal: () => createPrismaMultimodalStore(),
+
+    // Phase 7: 10,000 Hour Practice Tracking Stores
+    practiceSession: () => createPrismaPracticeSessionStore(),
+    skillMastery10K: () => createPrismaSkillMastery10KStore(),
+    practiceLeaderboard: () => createPrismaPracticeLeaderboardStore(),
+    dailyPracticeLog: () => createPrismaDailyPracticeLogStore(),
+
+    // Practice Challenge Store
+    practiceChallenge: () => createPrismaPracticeChallengeStore(),
+
+    // Practice Goal Store
+    practiceGoal: () => createPrismaPracticeGoalStore(),
+
+    // Spaced Repetition Store (SM-2 Algorithm)
+    spacedRepetition: () => createPrismaSpacedRepetitionStore(),
+
+    // Memory Lifecycle: Reindex Job Store
+    reindexJob: () => createPrismaReindexJobStore(),
+  };
+
+  logger.info('[TaxomindContext] Lazy store proxy created', {
+    registeredStores: Object.keys(storeFactories).length,
   });
 
-  return stores;
+  // Return a Proxy that creates stores on first access
+  return new Proxy({} as TaxomindAgenticStores, {
+    get(_target, prop: string) {
+      if (cache.has(prop)) {
+        return cache.get(prop);
+      }
+
+      const factory = storeFactories[prop];
+      if (!factory) {
+        return undefined;
+      }
+
+      logger.debug(`[TaxomindContext] Lazy-initializing store: ${prop}`);
+      const store = factory();
+      cache.set(prop, store);
+      return store;
+    },
+    ownKeys() {
+      return Object.keys(storeFactories);
+    },
+    getOwnPropertyDescriptor(_target, prop: string) {
+      if (prop in storeFactories) {
+        return { configurable: true, enumerable: true, writable: false };
+      }
+      return undefined;
+    },
+  });
 }
 
 function initializeIntegrationContext(): AdapterIntegrationContext {
@@ -458,7 +506,7 @@ export function getTaxomindContext(): TaxomindIntegrationContext {
     logger.info('[TaxomindContext] Creating new context instance...');
 
     contextInstance = {
-      stores: initializeStores(),
+      stores: createLazyStores(),
       integration: initializeIntegrationContext(),
       isInitialized: true,
       initializationTime: new Date(),

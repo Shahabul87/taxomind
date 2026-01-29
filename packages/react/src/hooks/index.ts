@@ -187,3 +187,15 @@ export type {
   BatchProcessingResult,
   StorageQuota,
 } from './useMultimodal';
+
+// Phase 1-6: Enhanced Bloom's Taxonomy Analysis Hook
+export { useEnhancedBloomsAnalysis } from './useEnhancedBloomsAnalysis';
+export type {
+  BloomsSubLevel,
+  CognitiveLoadData,
+  EnhancedBloomsAnalysisResult,
+  UseEnhancedBloomsAnalysisOptions,
+  UseEnhancedBloomsAnalysisReturn,
+  FeedbackData,
+  FeedbackResult,
+} from './useEnhancedBloomsAnalysis';

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User } from "next-auth";
 import dynamic from "next/dynamic";
+import { Brain, LayoutDashboard, BookOpen, BarChart3, Trophy } from "lucide-react";
+import { ReactErrorBoundary } from "@/components/react-error-boundary";
 
 // Tab Loading Skeleton
 const TabLoadingSkeleton = () => (
@@ -39,6 +41,20 @@ const AchievementsTab = dynamic(
   { loading: () => <TabLoadingSkeleton />, ssr: false }
 );
 
+const CognitiveTab = dynamic(
+  () => import('./tabs/CognitiveTab').then(mod => ({ default: mod.CognitiveTab })),
+  { loading: () => <TabLoadingSkeleton />, ssr: false }
+);
+
+// Tab configuration with icons
+const TABS = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'learning', label: 'Learning', icon: BookOpen },
+  { id: 'cognitive', label: 'Cognitive', icon: Brain },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'achievements', label: 'Achievements', icon: Trophy },
+] as const;
+
 interface TabbedDashboardProps {
   user: User;
 }
@@ -47,40 +63,65 @@ export function TabbedDashboard({ user }: TabbedDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
 
   const renderTabContent = () => {
+    const tabLabel = TABS.find(t => t.id === activeTab)?.label ?? 'Tab';
+    let content: React.ReactNode;
+
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab user={user} />;
+        content = <OverviewTab user={user} />;
+        break;
       case 'learning':
-        return <LearningTab user={user} />;
+        content = <LearningTab user={user} />;
+        break;
+      case 'cognitive':
+        content = <CognitiveTab user={user} />;
+        break;
       case 'analytics':
-        return <AnalyticsTab user={user} />;
+        content = <AnalyticsTab user={user} />;
+        break;
       case 'achievements':
-        return <AchievementsTab user={user} />;
+        content = <AchievementsTab user={user} />;
+        break;
       default:
-        return <OverviewTab user={user} />;
+        content = <OverviewTab user={user} />;
     }
+
+    return (
+      <ReactErrorBoundary key={activeTab} name={tabLabel}>
+        {content}
+      </ReactErrorBoundary>
+    );
   };
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-blue-50/30 dark:from-slate-950 dark:via-purple-950/20 dark:to-blue-950/20">
-      {/* Temporary simple sidebar */}
+      {/* Sidebar */}
       <div className="w-80 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-r border-slate-200/50 dark:border-slate-700/50">
         <div className="p-4">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Dashboard</h3>
           <div className="space-y-2">
-            {['overview', 'learning', 'analytics', 'achievements'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                  activeTab === tab
-                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                  {tab.id === 'cognitive' && (
+                    <span className="ml-auto text-xs bg-purple-500 text-white px-1.5 py-0.5 rounded">
+                      New
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

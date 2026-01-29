@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FileText, Search, Plus, X, Edit2, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -72,25 +72,7 @@ export const TemplatesPopover = ({
     }
   }, [open]);
 
-  useEffect(() => {
-    filterTemplates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templates, searchQuery, selectedCategory]);
-
-  const fetchTemplates = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/messages/templates");
-      const data = await response.json();
-      setTemplates(data.templates || []);
-    } catch (error) {
-      console.error("Failed to fetch templates:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterTemplates = () => {
+  const filterTemplates = useCallback(() => {
     let filtered = templates;
 
     // Filter by category
@@ -108,6 +90,23 @@ export const TemplatesPopover = ({
     }
 
     setFilteredTemplates(filtered);
+  }, [templates, searchQuery, selectedCategory]);
+
+  useEffect(() => {
+    filterTemplates();
+  }, [filterTemplates]);
+
+  const fetchTemplates = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/messages/templates");
+      const data = await response.json();
+      setTemplates(data.templates || []);
+    } catch (error) {
+      console.error("Failed to fetch templates:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTemplateSelect = (template: MessageTemplate) => {

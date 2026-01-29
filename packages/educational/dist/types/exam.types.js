@@ -1,4 +1,0 @@
-/**
- * Exam Engine Types
- */
-export {};

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -33,6 +33,13 @@ export const VideoPlayer = ({
   const [isReady, setIsReady] = useState(false);
   const router = useRouter();
   const confetti = useConfettiStore();
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const onEnd = async (): Promise<void> => {
     try {
@@ -40,6 +47,9 @@ export const VideoPlayer = ({
         await axios.put(`/api/courses/${courseId}/chapters/${chapterId}/progress`, {
           isCompleted: true,
         });
+
+        // Prevent state updates after unmount
+        if (!isMountedRef.current) return;
 
         if (!nextChapterId) {
           confetti.onOpen();
@@ -53,6 +63,7 @@ export const VideoPlayer = ({
         }
       }
     } catch {
+      if (!isMountedRef.current) return;
       toast.error("Something went wrong");
     }
   }

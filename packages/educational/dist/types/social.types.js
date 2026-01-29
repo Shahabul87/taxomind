@@ -1,4 +1,0 @@
-/**
- * Social Engine Types
- */
-export {};

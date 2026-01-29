@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getDbMetrics } from '@/lib/db-pooled';
 import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
 import { shouldUseRealNews, isProductionEnvironment } from '@/lib/config/news-config';
+import { getAdapterStatus } from '@/lib/sam/integration-adapters';
 import { logger } from '@/lib/logger';
 
 interface HealthStatus {
@@ -92,6 +94,36 @@ export async function GET(req: NextRequest) {
     }
   } catch (dbError) {
     logger.error('[HEALTH_CHECK] Enterprise API error:', dbError);
+  }
+
+  // SAM AI adapter status
+  try {
+    const samStatus = getAdapterStatus();
+    (health as Record<string, unknown>).sam = {
+      aiAdapter: samStatus.hasAIAdapter ? 'initialized' : 'not_initialized',
+      embeddingProvider: samStatus.hasEmbeddingProvider ? 'initialized' : 'not_initialized',
+      adapterSource: samStatus.adapterSource,
+      circuitBreaker: samStatus.circuitBreakerState,
+    };
+  } catch (error) {
+    logger.debug('[HEALTH_CHECK] SAM status unavailable:', error);
+  }
+
+  // Database pool metrics
+  try {
+    const dbPoolMetrics = getDbMetrics();
+    (health as Record<string, unknown>).dbPool = {
+      totalQueries: dbPoolMetrics.totalQueries,
+      errorCount: dbPoolMetrics.errorCount,
+      latency: {
+        p50: `${Math.round(dbPoolMetrics.latency.p50)}ms`,
+        p95: `${Math.round(dbPoolMetrics.latency.p95)}ms`,
+        p99: `${Math.round(dbPoolMetrics.latency.p99)}ms`,
+        avg: `${Math.round(dbPoolMetrics.latency.avg)}ms`,
+      },
+    };
+  } catch (error) {
+    logger.debug('[HEALTH_CHECK] DB pool metrics unavailable:', error);
   }
 
   // Check Redis connection if configured

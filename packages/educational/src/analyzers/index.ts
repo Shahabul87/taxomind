@@ -69,3 +69,53 @@ export type {
   TranscriptAnalysisResult,
   CourseTranscriptAnalysisResult,
 } from './transcript-analyzer';
+
+// ============================================================================
+// VIDEO COGNITIVE ANALYZER - Phase 4: Multimedia Content Analysis
+// ============================================================================
+
+export {
+  // Class
+  VideoCognitiveAnalyzer,
+  // Factory
+  createVideoCognitiveAnalyzer,
+} from './video-cognitive-analyzer';
+export type {
+  VideoSource,
+  VideoMetadata,
+  TranscriptSegment,
+  TranscriptChunk,
+  ChunkAnalysis,
+  CognitiveTransition,
+  PausePoint,
+  VideoAnalysisResult,
+  VideoAnalyzerConfig,
+  TranscriptFetcher,
+  ContentAnalyzer as VideoContentAnalyzer,
+} from './video-cognitive-analyzer';
+
+// ============================================================================
+// IMAGE COGNITIVE ANALYZER - Phase 4: Multimedia Content Analysis
+// ============================================================================
+
+export {
+  // Class
+  ImageCognitiveAnalyzer,
+  // Factory
+  createImageCognitiveAnalyzer,
+} from './image-cognitive-analyzer';
+export type {
+  ImageType,
+  VisualComplexity,
+  ImageMetadata,
+  ExtractedTextRegion,
+  VisualElement,
+  ColorAnalysis,
+  StructuralAnalysis,
+  CognitiveAssessment,
+  AccessibilityAssessment,
+  ImageAnalysisResult,
+  ImageAnalyzerConfig,
+  VisionProvider,
+  ContentAnalyzer as ImageContentAnalyzer,
+} from './image-cognitive-analyzer';

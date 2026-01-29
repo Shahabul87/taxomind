@@ -10,6 +10,11 @@ export type {
   // Bloom's types
   BloomsLevel,
   BloomsDistribution,
+  // Sub-level types (Phase 1)
+  BloomsSubLevel,
+  SubLevelIndicatorType,
+  SubLevelIndicator,
+  EnhancedBloomsResult,
   // Difficulty types
   DifficultyLevel,
   // Student profile types
@@ -55,6 +60,12 @@ export type {
 export {
   BLOOMS_LEVEL_ORDER,
   getBloomsLevelIndex,
+  // Sub-level constants and functions (Phase 1)
+  BLOOMS_SUB_LEVEL_ORDER,
+  getBloomsSubLevelIndex,
+  calculateBloomsNumericScore,
+  determineSubLevelFromIndicators,
+  createBloomsLabel,
   DIFFICULTY_LEVEL_ORDER,
   getDifficultyLevelIndex,
   DEFAULT_PEDAGOGICAL_PIPELINE_CONFIG,
@@ -70,6 +81,13 @@ export {
   BLOOMS_ACTIVITIES,
   DEFAULT_BLOOMS_ALIGNER_CONFIG,
   type BloomsAlignerConfig,
+  // Sub-level analyzer (Phase 1)
+  SubLevelAnalyzer,
+  createSubLevelAnalyzer,
+  SUB_LEVEL_COMPLEXITY_INDICATORS,
+  SUB_LEVEL_ABSTRACTION_INDICATORS,
+  SUB_LEVEL_TRANSFER_INDICATORS,
+  SUB_LEVEL_NOVELTY_INDICATORS,
 } from './blooms-aligner';
 
 // Scaffolding Evaluator
@@ -97,6 +115,22 @@ export {
   DEFAULT_ZPD_CONFIG,
   type ZPDEvaluatorConfig,
 } from './zpd-evaluator';
+
+// Cognitive Load Analyzer (Phase 3)
+export {
+  CognitiveLoadAnalyzer,
+  createCognitiveLoadAnalyzer,
+  INTRINSIC_LOAD_INDICATORS,
+  EXTRANEOUS_LOAD_INDICATORS,
+  GERMANE_LOAD_INDICATORS,
+  type CognitiveLoadType,
+  type CognitiveLoadMeasurement,
+  type CognitiveLoadFactor,
+  type CognitiveLoadResult,
+  type CognitiveLoadBalance,
+  type CognitiveLoadRecommendation,
+  type BloomsCompatibility,
+} from './cognitive-load-analyzer';
 
 // Pipeline
 export {

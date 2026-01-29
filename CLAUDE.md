@@ -425,6 +425,42 @@ npm test          # Test suite
 - ✅ Authorization check
 - ✅ Error messages don't leak internals
 - ✅ Rate limiting
+- ✅ Timeout protection for async operations
+- ✅ Pagination bounds on all `findMany` queries
+
+### AI / SAM API Route Patterns
+```typescript
+// ✅ CORRECT - All AI analysis calls use retryable timeout + rate limiting
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+
+export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+  // ...
+  const result = await withRetryableTimeout(
+    () => engine.analyze(data),
+    TIMEOUT_DEFAULTS.AI_ANALYSIS, // 30s per attempt
+    'operationName'
+  );
+}
+```
+
+### Database Query Safety
+```typescript
+// ✅ CORRECT - Always bound findMany with take
+const items = await db.model.findMany({
+  where: { ... },
+  take: 200, // Prevent unbounded result sets
+});
+
+// ✅ CORRECT - Use transactions for multi-step writes
+const result = await db.$transaction(async (tx) => {
+  const record = await tx.model.update({ ... });
+  await tx.related.create({ ... });
+  return record;
+});
+```
 
 ### React Hook Rules
 - ✅ Include ALL dependencies in useEffect/useCallback
@@ -439,6 +475,13 @@ npm test          # Test suite
 - `routes.ts` - Route configuration
 - `auth.ts` - NextAuth config
 - `lib/db.ts` - Database singleton
+- `lib/db-pooled.ts` - Connection pooling, metrics, health check
+- `lib/sam/utils/timeout.ts` - Timeout + retry utilities for AI calls
+- `lib/sam/utils/error-handler.ts` - Circuit breaker, error types, retry
+- `lib/sam/middleware/rate-limiter.ts` - In-memory rate limiting
+- `lib/sam/integration-adapters.ts` - AI adapter with circuit breaker
+- `components/react-error-boundary.tsx` - React ErrorBoundary for component isolation
+- `app/api/health/route.ts` - Health check (DB, SAM, pool metrics)
 
 ## Icons (Lucide React)
 

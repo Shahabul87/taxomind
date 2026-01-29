@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -96,12 +96,20 @@ export const CourseReviews = ({ courseId, initialReviews = [], userId, isEnrolle
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const fetchReviews = async (opts?: { page?: number; sortBy?: SortOption; rating?: number | null }): Promise<void> => {
+  // Ref to hold latest state for use in non-callback contexts (e.g. toggleHelpful, onSubmit)
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const sortByRef = useRef(sortBy);
+  sortByRef.current = sortBy;
+  const ratingFilterRef = useRef(ratingFilter);
+  ratingFilterRef.current = ratingFilter;
+
+  const fetchReviews = useCallback(async (opts?: { page?: number; sortBy?: SortOption; rating?: number | null }): Promise<void> => {
     try {
       setIsLoading(true);
-      const p = opts?.page ?? page;
-      const s = opts?.sortBy ?? sortBy;
-      const r = opts?.rating ?? ratingFilter;
+      const p = opts?.page ?? pageRef.current;
+      const s = opts?.sortBy ?? sortByRef.current;
+      const r = opts?.rating ?? ratingFilterRef.current;
       const url = `/api/courses/${courseId}/reviews?page=${p}&pageSize=${pageSize}&sortBy=${s}${r ? `&rating=${r}` : ''}`;
       const res = await axios.get<ReviewsResponse>(url);
       setReviews(res.data.items);
@@ -113,13 +121,12 @@ export const CourseReviews = ({ courseId, initialReviews = [], userId, isEnrolle
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [courseId, pageSize]);
 
   // Load on mount and whenever URL-relevant state changes
   useEffect(() => {
     fetchReviews({ page, sortBy, rating: ratingFilter }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, sortBy, ratingFilter, courseId]);
+  }, [page, sortBy, ratingFilter, fetchReviews]);
 
   // Sync state from URL (back/forward navigation)
   useEffect(() => {
@@ -128,10 +135,9 @@ export const CourseReviews = ({ courseId, initialReviews = [], userId, isEnrolle
     const nextPage = Math.max(parseInt(searchParams?.get('page') || '1', 10) || 1, 1);
     const r = searchParams?.get('rating');
     const nextRating = r ? (parseInt(r, 10) || null) : null;
-    if (nextSort !== sortBy) setSortBy(nextSort);
-    if (nextPage !== page) setPage(nextPage);
-    if (nextRating !== ratingFilter) setRatingFilter(nextRating);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (nextSort !== sortByRef.current) setSortBy(nextSort);
+    if (nextPage !== pageRef.current) setPage(nextPage);
+    if (nextRating !== ratingFilterRef.current) setRatingFilter(nextRating);
   }, [searchParams]);
 
   const toggleHelpful = async (reviewId: string, hasVoted: boolean): Promise<void> => {

@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { getStore } from '@/lib/sam/taxomind-context';
 import {
   type GoalPriority,
@@ -45,7 +46,7 @@ const GetGoalsQuerySchema = z.object({
 });
 
 // ============================================================================
-// GET - List user goals
+// GET - List user goals (OPTIMIZED - Single query with includes)
 // ============================================================================
 
 export async function GET(req: NextRequest) {
@@ -66,90 +67,78 @@ export async function GET(req: NextRequest) {
       offset: searchParams.get('offset') ?? undefined,
     });
 
-    // Use the GoalStore from @sam-ai/agentic package for querying
-    const goals = await goalStore.getByUser(session.user.id, {
-      status: query.status ? [query.status as GoalStatus] : undefined,
-      priority: query.priority ? [query.priority as GoalPriority] : undefined,
-      courseId: query.courseId,
-      limit: query.limit,
-      offset: query.offset,
-      orderBy: 'createdAt',
-      orderDir: 'desc',
-    });
+    // Build where clause - normalize lowercase input to uppercase Prisma enums
+    const whereClause = {
+      userId: session.user.id,
+      ...(query.status && { status: query.status.toUpperCase() as SAMGoalStatusPrisma }),
+      ...(query.priority && { priority: query.priority.toUpperCase() as SAMGoalPriorityPrisma }),
+      ...(query.courseId && { courseId: query.courseId }),
+    };
 
-    // Fetch related course data for each goal
-    const courses = await db.course.findMany({
-      where: {
-        id: {
-          in: goals
-            .filter((g) => g.context.courseId)
-            .map((g) => g.context.courseId as string),
-        },
-      },
-      select: { id: true, title: true },
-    });
-
-    // Build a map for quick lookups
-    const coursesById = new Map(courses.map((c) => [c.id, c]));
-
-    // Fetch subGoals and plans for all goals
-    const goalIds = goals.map((g) => g.id);
-
-    const [subGoalsData, plansData] = await Promise.all([
-      db.sAMSubGoal.findMany({
-        where: { goalId: { in: goalIds } },
-        select: {
-          id: true,
-          goalId: true,
-          title: true,
-          order: true,
-          status: true,
-          type: true,
-          estimatedMinutes: true,
-          difficulty: true,
-          completedAt: true,
-          metadata: true,
-        },
-        orderBy: { order: 'asc' },
-      }),
-      db.sAMExecutionPlan.findMany({
-        where: { goalId: { in: goalIds } },
-        select: {
-          id: true,
-          goalId: true,
-          status: true,
-          overallProgress: true,
-          currentStepId: true,
-          startDate: true,
-          targetDate: true,
+    // OPTIMIZED: Single query with includes instead of N+1 queries
+    // Previous implementation made 5 separate queries:
+    // 1. goalStore.getByUser (goals)
+    // 2. db.course.findMany (courses)
+    // 3. db.sAMSubGoal.findMany (subGoals)
+    // 4. db.sAMExecutionPlan.findMany (plans)
+    // 5. goalStore.getByUser again (for count)
+    //
+    // Now: Single query with includes + count
+    const [goalsWithRelations, totalCount] = await Promise.all([
+      db.sAMLearningGoal.findMany({
+        where: whereClause,
+        include: {
+          // Include course relation directly
+          course: {
+            select: { id: true, title: true },
+          },
+          // Include subGoals relation with ordering
+          subGoals: {
+            select: {
+              id: true,
+              goalId: true,
+              title: true,
+              order: true,
+              status: true,
+              type: true,
+              estimatedMinutes: true,
+              difficulty: true,
+              completedAt: true,
+              metadata: true,
+            },
+            orderBy: { order: 'asc' },
+          },
+          // Include plans relation
+          plans: {
+            select: {
+              id: true,
+              goalId: true,
+              status: true,
+              overallProgress: true,
+              currentStepId: true,
+              startDate: true,
+              targetDate: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
         },
         orderBy: { createdAt: 'desc' },
+        take: query.limit,
+        skip: query.offset,
       }),
+      // Use count instead of fetching all records for pagination
+      db.sAMLearningGoal.count({ where: whereClause }),
     ]);
 
-    // Build maps for quick lookups
-    const subGoalsByGoalId = new Map<string, typeof subGoalsData>();
-    for (const sg of subGoalsData) {
-      const existing = subGoalsByGoalId.get(sg.goalId) ?? [];
-      existing.push(sg);
-      subGoalsByGoalId.set(sg.goalId, existing);
-    }
-
-    const plansByGoalId = new Map<string, typeof plansData>();
-    for (const plan of plansData) {
-      const existing = plansByGoalId.get(plan.goalId) ?? [];
-      existing.push(plan);
-      plansByGoalId.set(plan.goalId, existing);
-    }
-
-    // Merge goal data with related data
-    const enrichedGoals = goals.map((goal) => {
-      // Get subGoals and normalize status to lowercase for frontend compatibility
-      const rawSubGoals = subGoalsByGoalId.get(goal.id) ?? [];
-      const normalizedSubGoals = rawSubGoals.map((sg) => ({
+    // Transform to match expected response format
+    const enrichedGoals = goalsWithRelations.map((goal) => {
+      // Normalize subGoal status to lowercase for frontend compatibility
+      const normalizedSubGoals = goal.subGoals.map((sg) => ({
         ...sg,
-        // Prisma stores UPPERCASE, but @sam-ai/agentic expects lowercase
+        // Prisma stores UPPERCASE, but frontend expects lowercase
         status: sg.status?.toLowerCase() ?? 'pending',
+        type: sg.type?.toLowerCase() ?? 'learn',
+        difficulty: sg.difficulty?.toLowerCase() ?? 'medium',
       }));
 
       // Calculate progress from subGoals
@@ -158,35 +147,53 @@ export async function GET(req: NextRequest) {
         (sg) => sg.status === 'completed'
       ).length;
       const calculatedProgress =
-        totalSubGoals > 0
-          ? Math.round((completedSubGoals / totalSubGoals) * 100)
-          : goal.progress;
+        totalSubGoals > 0 ? Math.round((completedSubGoals / totalSubGoals) * 100) : 0;
+
+      // Normalize plans status to lowercase
+      const normalizedPlans = goal.plans.map((plan) => ({
+        ...plan,
+        status: plan.status?.toLowerCase() ?? 'draft',
+      }));
 
       return {
-        ...goal,
-        // Override progress with calculated value from subGoals
+        id: goal.id,
+        userId: goal.userId,
+        title: goal.title,
+        description: goal.description,
+        targetDate: goal.targetDate,
+        // Normalize enums to lowercase for frontend
+        priority: goal.priority?.toLowerCase() ?? 'medium',
+        status: goal.status?.toLowerCase() ?? 'draft',
+        // Progress calculation
         progress: calculatedProgress,
-        // Flatten context for backward compatibility
-        courseId: goal.context.courseId,
-        chapterId: goal.context.chapterId,
-        sectionId: goal.context.sectionId,
-        topicIds: goal.context.topicIds,
-        skillIds: goal.context.skillIds,
-        // Add related data
-        course: goal.context.courseId
-          ? coursesById.get(goal.context.courseId) ?? null
-          : null,
-        // Sub-goals and plans from database
+        // Mastery levels normalized
+        currentMastery: goal.currentMastery?.toLowerCase() ?? null,
+        targetMastery: goal.targetMastery?.toLowerCase() ?? null,
+        // Context fields (flattened for backward compatibility)
+        context: {
+          courseId: goal.courseId,
+          chapterId: goal.chapterId,
+          sectionId: goal.sectionId,
+          topicIds: goal.topicIds,
+          skillIds: goal.skillIds,
+        },
+        courseId: goal.courseId,
+        chapterId: goal.chapterId,
+        sectionId: goal.sectionId,
+        topicIds: goal.topicIds,
+        skillIds: goal.skillIds,
+        // Metadata
+        tags: goal.tags,
+        metadata: goal.metadata,
+        // Timestamps
+        createdAt: goal.createdAt,
+        updatedAt: goal.updatedAt,
+        completedAt: goal.completedAt,
+        // Related data from includes (no extra queries!)
+        course: goal.course,
         subGoals: normalizedSubGoals,
-        plans: plansByGoalId.get(goal.id) ?? [],
+        plans: normalizedPlans,
       };
-    });
-
-    // Get total count for pagination
-    const totalGoals = await goalStore.getByUser(session.user.id, {
-      status: query.status ? [query.status as GoalStatus] : undefined,
-      priority: query.priority ? [query.priority as GoalPriority] : undefined,
-      courseId: query.courseId,
     });
 
     return NextResponse.json({
@@ -194,10 +201,10 @@ export async function GET(req: NextRequest) {
       data: {
         goals: enrichedGoals,
         pagination: {
-          total: totalGoals.length,
+          total: totalCount,
           limit: query.limit,
           offset: query.offset,
-          hasMore: query.offset + goals.length < totalGoals.length,
+          hasMore: query.offset + goalsWithRelations.length < totalCount,
         },
       },
     });
@@ -218,11 +225,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Type aliases for Prisma enums (uppercase)
+type SAMGoalStatusPrisma = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
+type SAMGoalPriorityPrisma = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
 // ============================================================================
 // POST - Create a new goal
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  // Rate limit goal creation requests
+  const rateLimitResponse = await withRateLimit(req, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

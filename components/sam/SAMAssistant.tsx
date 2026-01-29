@@ -1073,6 +1073,16 @@ function SAMAssistantInner({
 
   const sessionStartTimeRef = useRef<number | null>(null);
 
+  // Refs for stable access in effects without triggering re-runs
+  const trackBehaviorEventRef = useRef<(
+    type: 'session_start' | 'session_end' | 'page_view' | 'content_interaction' | 'help_requested' | 'frustration_signal',
+    data?: Record<string, unknown>
+  ) => Promise<void>>();
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
+  const pageContextRef = useRef(pageContext);
+  pageContextRef.current = pageContext;
+
   // Track behavior events to the agentic events API
   const trackBehaviorEvent = useCallback(async (
     type: 'session_start' | 'session_end' | 'page_view' | 'content_interaction' | 'help_requested' | 'frustration_signal',
@@ -1105,6 +1115,7 @@ function SAMAssistantInner({
       console.error('[SAMAssistant] Failed to track behavior event:', error);
     }
   }, [session?.user?.id, pageContext, windowEntityContext.entityType]);
+  trackBehaviorEventRef.current = trackBehaviorEvent;
 
   // Track session start/end when SAM panel opens/closes
   useEffect(() => {
@@ -1113,31 +1124,31 @@ function SAMAssistantInner({
     if (isOpen) {
       // Session started
       sessionStartTimeRef.current = Date.now();
-      trackBehaviorEvent('session_start', {
+      trackBehaviorEventRef.current?.('session_start', {
         source: 'sam_panel_open',
-        pageName: pageContext.pageName,
+        pageName: pageContextRef.current.pageName,
       });
     } else if (sessionStartTimeRef.current) {
       // Session ended
-      trackBehaviorEvent('session_end', {
+      trackBehaviorEventRef.current?.('session_end', {
         source: 'sam_panel_close',
-        pageName: pageContext.pageName,
-        messageCount: messages.length,
+        pageName: pageContextRef.current.pageName,
+        messageCount: messagesRef.current.length,
       });
       sessionStartTimeRef.current = null;
     }
-  }, [isOpen, session?.user?.id, pageContext.pageName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, session?.user?.id]);
 
   // Track page navigation while SAM is open
   useEffect(() => {
     if (!isOpen || !session?.user?.id) return;
 
-    trackBehaviorEvent('page_view', {
-      pageName: pageContext.pageName,
-      pageType: pageContext.pageType,
-      entityId: pageContext.entityId,
+    trackBehaviorEventRef.current?.('page_view', {
+      pageName: pageContextRef.current.pageName,
+      pageType: pageContextRef.current.pageType,
+      entityId: pageContextRef.current.entityId,
     });
-  }, [pathname, isOpen, session?.user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pathname, isOpen, session?.user?.id]);
 
   // Listen for entity context from SimpleCourseContext and similar components
   useEffect(() => {

@@ -1,4 +1,0 @@
-/**
- * Resource Engine Types
- */
-export {};

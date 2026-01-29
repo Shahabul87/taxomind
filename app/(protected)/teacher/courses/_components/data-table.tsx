@@ -78,6 +78,7 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const [announcement, setAnnouncement] = React.useState<string>('');
   const [serverData, setServerData] = React.useState<any[]>(Array.isArray(data) ? data : []);
+  const [paginationState, setPaginationState] = React.useState({ pageIndex: 0, pageSize: 10 });
   const [total, setTotal] = React.useState<number>(Array.isArray(data) ? data.length : 0);
 
   // Helper function for ARIA announcements
@@ -178,20 +179,21 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
     onColumnFiltersChange: setColumnFilters,
     getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPaginationState,
     // Ensure unique row IDs even if course.id is empty or undefined
     getRowId: (row: any, index) => row?.id || `row-${index}`,
     state: {
       sorting,
       columnFilters,
       rowSelection,
+      pagination: paginationState,
     },
     ...(serverMode ? { manualPagination: true } : {}),
-    initialState: {
-      pagination: {
-        pageSize: 10,
-      },
-    },
   })
+
+  // Ref to access table instance in the server data effect without adding it as a dependency
+  const tableRef = React.useRef(table);
+  tableRef.current = table;
 
   // Get unique categories and handle empty/null cases
   const uniqueCategories = React.useMemo(() => {
@@ -222,14 +224,12 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
     const t = setTimeout(async () => {
       try {
         setIsLoading(true);
-        const pageIndex = table.getState().pagination.pageIndex;
-        const pageSize = table.getState().pagination.pageSize;
-        const titleFilter = (table.getColumn("title")?.getFilterValue() as string) || '';
-        const categoryFilter = (table.getColumn("category")?.getFilterValue() as string) || '';
+        const titleFilter = (tableRef.current.getColumn("title")?.getFilterValue() as string) || '';
+        const categoryFilter = (tableRef.current.getColumn("category")?.getFilterValue() as string) || '';
         const sort = sorting[0];
         const params = new URLSearchParams({
-          page: String(pageIndex + 1),
-          pageSize: String(pageSize),
+          page: String(paginationState.pageIndex + 1),
+          pageSize: String(paginationState.pageSize),
           search: titleFilter,
           category: categoryFilter,
           status: statusFilter,
@@ -245,8 +245,8 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
           setServerData(json.data.courses);
           setTotal(json.data.pagination.total);
         }
-      } catch (e:any) {
-        if (e?.name !== 'AbortError') {
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name !== 'AbortError') {
           // soft-fail
         }
       } finally {
@@ -258,8 +258,7 @@ export function DataTable<TData, TValue>({columns, data = [], serverMode = true}
       controller.abort();
       clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverMode, sorting, statusFilter, priceRange, table.getState().pagination, table.getState().columnFilters]);
+  }, [serverMode, sorting, columnFilters, statusFilter, priceRange, paginationState]);
 
   // Bulk operation handlers
   const handleBulkDelete = async () => {

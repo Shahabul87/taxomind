@@ -43,10 +43,12 @@ interface ToolingSystem {
 }
 
 let toolingSystem: ToolingSystem | null = null;
-let toolRegistrationDone = false;
-let externalToolsRegistered = false;
 let toolAiAdapter: AIAdapter | null = null;
 let toolAiAdapterPromise: Promise<AIAdapter | null> | null = null;
+
+// Promise-based locks to prevent race conditions
+let toolRegistrationPromise: Promise<void> | null = null;
+let externalToolsRegistrationPromise: Promise<void> | null = null;
 
 /**
  * Reset tooling adapter cache (useful when switching providers)
@@ -54,7 +56,8 @@ let toolAiAdapterPromise: Promise<AIAdapter | null> | null = null;
 export function resetToolingAdapterCache(): void {
   toolAiAdapter = null;
   toolAiAdapterPromise = null;
-  toolRegistrationDone = false;
+  toolRegistrationPromise = null;
+  externalToolsRegistrationPromise = null;
   logger.info('[Tooling] Adapter cache cleared, tools will re-register');
 }
 
@@ -100,11 +103,16 @@ function buildToolConfigMap(): Map<string, ToolConfiguration> {
   try {
     const profile = getIntegrationProfile();
     const configs = Object.values(profile.tools).flat();
-    return new Map(configs.map((config) => [config.id, config]));
+    const configMap = new Map(configs.map((config) => [config.id, config]));
+    logger.debug('[Tooling] Tool config map built', { toolCount: configMap.size });
+    return configMap;
   } catch (error) {
-    logger.warn('[Tooling] Failed to load integration tool configs', {
+    // Log as error (not warn) since missing tool configs can cause issues
+    logger.error('[Tooling] Failed to load integration tool configs', {
       error: error instanceof Error ? error.message : String(error),
+      impact: 'Tools may not have proper permissions or rate limits configured',
     });
+    // Return empty map but log the impact - this is recoverable but degraded
     return new Map();
   }
 }
@@ -134,13 +142,32 @@ function applyToolConfig(tool: ToolDefinition, config?: ToolConfiguration): void
   }
 }
 
+/**
+ * Register mentor tools with Promise-based locking to prevent race conditions.
+ * Multiple concurrent calls will wait for the first registration to complete.
+ */
 async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
-  if (toolRegistrationDone) return;
+  // If registration is already in progress, wait for it
+  if (toolRegistrationPromise) {
+    return toolRegistrationPromise;
+  }
 
+  // Start registration and store the promise for concurrent callers
+  toolRegistrationPromise = doRegisterMentorTools(toolRegistry);
+
+  try {
+    await toolRegistrationPromise;
+  } catch (error) {
+    // Reset promise on failure so registration can be retried
+    toolRegistrationPromise = null;
+    throw error;
+  }
+}
+
+async function doRegisterMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   const aiAdapter = await getToolAiAdapter();
   if (!aiAdapter) {
     logger.warn('[Tooling] Skipping mentor tools registration - AI adapter not available');
-    toolRegistrationDone = true;
     return;
   }
 
@@ -168,6 +195,8 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   });
 
   const toolCache = getToolRegistryCache();
+  let registeredCount = 0;
+  let updatedCount = 0;
 
   for (const tool of tools) {
     applyToolConfig(tool, toolConfigMap.get(tool.id));
@@ -175,6 +204,7 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
     if (!existing) {
       // Tool not in DB - register it (this also adds to cache)
       await toolRegistry.register(tool);
+      registeredCount++;
     } else {
       // Tool exists in DB - add to cache first, then update
       toolCache.set(tool.id, tool);
@@ -195,14 +225,39 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
         deprecated: tool.deprecated,
         deprecationMessage: tool.deprecationMessage,
       });
+      updatedCount++;
     }
   }
 
-  toolRegistrationDone = true;
+  logger.info('[Tooling] Mentor tools registration complete', {
+    registered: registeredCount,
+    updated: updatedCount,
+    total: tools.length,
+  });
 }
 
+/**
+ * Register external API tools with Promise-based locking.
+ */
 async function registerExternalAPITools(toolRegistry: ToolRegistry): Promise<void> {
-  if (externalToolsRegistered) return;
+  // If registration is already in progress, wait for it
+  if (externalToolsRegistrationPromise) {
+    return externalToolsRegistrationPromise;
+  }
+
+  // Start registration and store the promise
+  externalToolsRegistrationPromise = doRegisterExternalAPITools(toolRegistry);
+
+  try {
+    await externalToolsRegistrationPromise;
+  } catch (error) {
+    // Reset promise on failure so registration can be retried
+    externalToolsRegistrationPromise = null;
+    throw error;
+  }
+}
+
+async function doRegisterExternalAPITools(toolRegistry: ToolRegistry): Promise<void> {
 
   logger.info('[Tooling] Registering external API tools');
 
@@ -245,7 +300,6 @@ async function registerExternalAPITools(toolRegistry: ToolRegistry): Promise<voi
     }
   }
 
-  externalToolsRegistered = true;
   logger.info('[Tooling] External API tools registered', { count: externalTools.length });
 }
 

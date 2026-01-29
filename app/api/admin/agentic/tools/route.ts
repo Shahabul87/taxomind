@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
     const tools = await db.agentTool.findMany({
       where: parsed.data.includeDisabled ? undefined : { enabled: true },
       orderBy: { name: "asc" },
+      take: 200,
     });
 
     return NextResponse.json({

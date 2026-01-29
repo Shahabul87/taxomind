@@ -1337,3 +1337,139 @@ export {
   type BloomsProgressEntry,
   type BatchProgressResult,
 } from './progress-recorder';
+
+// SAM Services - Consolidated singleton for all SAM services
+export {
+  samServices,
+  preWarmSAMServices,
+  preWarmAllSAMServices,
+  checkSAMServicesHealth,
+  type ToolingServices,
+  type ProactiveServices,
+  type SelfEvaluationServices,
+  type OrchestrationServices,
+  type MemoryLifecycleServices,
+  type SAMServicesHealth,
+  type ServiceHealth,
+} from './sam-services';
+
+// Error Handler - Centralized error handling utilities
+export {
+  SAMError,
+  SAMInitializationError,
+  SAMServiceUnavailableError,
+  SAMConfigError,
+  SAMTimeoutError,
+  withErrorHandling,
+  withErrorHandlingSync,
+  mustSucceed,
+  tryOptional,
+  tryArray,
+  withRetry,
+  withTimeout,
+  CircuitBreaker,
+  CircuitState,
+  getErrorMessage,
+  isSAMError,
+  createErrorResponse,
+  type ErrorHandlerOptions,
+  type CircuitBreakerConfig,
+} from './utils/error-handler';
+
+// Enum Normalizer - Type-safe enum conversions between frontend and Prisma
+export {
+  toPrismaEnum,
+  toFrontendEnum,
+  toPrismaEnumWithDefault,
+  toFrontendEnumWithDefault,
+  toGoalStatusPrisma,
+  toGoalStatusFrontend,
+  toGoalPriorityPrisma,
+  toGoalPriorityFrontend,
+  normalizeForPrisma,
+  normalizeForFrontend,
+  normalizeGoalForFrontend,
+  isValidGoalStatus,
+  isValidGoalPriority,
+  SAMGoalStatusValues,
+  SAMGoalPriorityValues,
+  type SAMGoalStatusFrontend,
+  type SAMGoalStatusPrisma,
+  type SAMGoalPriorityFrontend,
+  type SAMGoalPriorityPrisma,
+} from './utils/enum-normalizer';
+
+// Transaction Wrapper - Atomic cross-store operations
+export {
+  withTransaction,
+  withTransactionOrThrow,
+  createGoalWithSubGoals,
+  createPlanWithSteps,
+  completeGoalWithSubGoals,
+  deleteGoalCascade,
+  batchTransaction,
+  getPrismaErrorDescription,
+  type TransactionClient,
+  type TransactionOptions,
+  type TransactionResult,
+} from './utils/transaction-wrapper';
+
+// API Response - Standardized API response format
+export {
+  SAM_ERROR_CODES,
+  successResponse,
+  paginatedResponse,
+  errorResponse,
+  handleZodError,
+  handleSAMError,
+  handleError,
+  unauthorizedResponse,
+  forbiddenResponse,
+  notFoundResponse,
+  badRequestResponse,
+  rateLimitResponse,
+  serviceUnavailableResponse,
+  getRequestId,
+  createRequestContext,
+  isSuccessResponse,
+  isErrorResponse,
+  type SAMErrorCode,
+  type APIError,
+  type ResponseMetadata,
+  type SuccessResponse,
+  type ErrorResponse,
+  type APIResponse,
+  type PaginationMeta,
+  type PaginatedResponse,
+} from './utils/api-response';
+
+// Rate Limiter - Token bucket rate limiting
+export {
+  RateLimiter,
+  RATE_LIMIT_CONFIGS,
+  rateLimiters,
+  withRateLimit,
+  createRateLimitMiddleware,
+  detectRateLimitCategory,
+  autoRateLimit,
+  getRateLimitStats,
+  clearAllRateLimits,
+  clearUserRateLimits,
+  stopCleanup,
+  type RateLimitConfig,
+  type RateLimitResult,
+  type RateLimitCategory,
+} from './middleware/rate-limiter';
+
+// Pre-Warm - Service pre-warming for cold start optimization
+export {
+  preWarmSAM,
+  ensureSAMPreWarmed,
+  getPreWarmStatus,
+  isPreWarmed,
+  resetPreWarm,
+  startBackgroundPreWarm,
+  getPreWarmHealth,
+  type PreWarmStatus,
+  type ServicePreWarmResult,
+} from './middleware/pre-warm';

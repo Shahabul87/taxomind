@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { User as NextAuthUser } from "next-auth";
 import { ActivityStream } from "./ActivityStream";
@@ -240,8 +240,11 @@ import { BlogPlansList } from "@/components/sam/blog-plan";
 // Study Session Scheduler - Smart session scheduling from study plans
 import { StudySessionScheduler } from "@/components/sam/study-session";
 
+// Cognitive Profile Dashboard - Learner's cognitive growth tracking (Bloom's Taxonomy)
+import { CognitiveProfileDashboard } from "@/components/learner/cognitive-profile-dashboard";
+
 // DashboardView type - now controlled by parent via UnifiedDashboardHeader
-type DashboardView = "learning" | "analytics" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "create";
+type DashboardView = "learning" | "analytics" | "cognitive" | "skills" | "practice" | "gamification" | "goals" | "gaps" | "innovation" | "create";
 
 interface NewDashboardProps {
   user: NextAuthUser;
@@ -294,33 +297,41 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
     },
   });
 
-  // Event handlers
-  const handleViewDetails = (id: string) => {
+  // Refs for stable callback access to changing values
+  const activitiesRef = useRef(activities);
+  activitiesRef.current = activities;
+  const deleteActivityRef = useRef(deleteActivity);
+  deleteActivityRef.current = deleteActivity;
+  const updateActivityRef = useRef(updateActivity);
+  updateActivityRef.current = updateActivity;
+
+  // Memoized event handlers - stable references prevent child re-renders
+  const handleViewDetails = useCallback((id: string) => {
     console.log("View details for activity:", id);
     // TODO: Navigate to activity detail page or open modal
-  };
+  }, []);
 
-  const handleEdit = (id: string) => {
+  const handleEdit = useCallback((id: string) => {
     console.log("Edit activity:", id);
     // TODO: Open edit modal with activity data
-  };
+  }, []);
 
-  const handleDelete = async (id: string) => {
-    const success = await deleteActivity(id);
+  const handleDelete = useCallback(async (id: string) => {
+    const success = await deleteActivityRef.current(id);
     if (!success) {
       console.error("Failed to delete activity");
       // TODO: Show error toast
     }
-  };
+  }, []);
 
-  const handleToggleComplete = async (id: string) => {
-    const activity = activities.find((a) => a.id === id);
+  const handleToggleComplete = useCallback(async (id: string) => {
+    const activity = activitiesRef.current.find((a) => a.id === id);
     if (!activity) return;
 
     const isCompleted =
       activity.status === "SUBMITTED" || activity.status === "GRADED";
 
-    const success = await updateActivity(id, {
+    const success = await updateActivityRef.current(id, {
       status: isCompleted ? "NOT_STARTED" : "SUBMITTED",
       completedAt: isCompleted ? undefined : new Date(),
     });
@@ -329,12 +340,12 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
       console.error("Failed to toggle activity completion");
       // TODO: Show error toast
     }
-  };
+  }, []);
 
-  const handleToggleFavorite = async (id: string) => {
+  const handleToggleFavorite = useCallback(async (id: string) => {
     console.log("Toggle favorite for activity:", id);
     // TODO: Implement favorite functionality (add to schema if needed)
-  };
+  }, []);
 
   // NOTE: ViewToggle removed - navigation now handled by UnifiedDashboardHeader in parent
 
@@ -398,6 +409,39 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
             <ConfidenceCalibrationWidget />
           </div>
         </div>
+
+        {/* SAM AI Assistant - Always available conversational mentor */}
+        <SAMAssistantWrapper />
+
+        {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
+        <ToolApprovalDialog
+          request={pendingRequest}
+          open={isToolApprovalOpen}
+          onOpenChange={setToolApprovalOpen}
+          onApprove={handleToolApprove}
+          onDeny={handleToolDeny}
+          isProcessing={isToolApprovalProcessing}
+        />
+
+        {/* Gap 3: Celebration Overlay for achievements */}
+        <CelebrationOverlay
+          celebration={celebration}
+          onDismiss={dismissCelebration}
+        />
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // COGNITIVE TAB - Personal Cognitive Profile (Bloom's Taxonomy Experience)
+  // ============================================================================
+  if (activeTab === "cognitive") {
+    return (
+      <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/30 dark:from-slate-900 dark:via-purple-900/10 dark:to-pink-900/10">
+        {/* SAM Context Tracker - Invisible, syncs page context */}
+        <SAMContextTracker />
+
+        <CognitiveProfileDashboard userId={user.id ?? ""} />
 
         {/* SAM AI Assistant - Always available conversational mentor */}
         <SAMAssistantWrapper />

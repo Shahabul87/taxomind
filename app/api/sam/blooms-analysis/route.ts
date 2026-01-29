@@ -7,12 +7,28 @@ import type {
   UnifiedCourseResult,
   ChapterAnalysis,
 } from '@sam-ai/educational';
+import {
+  createCognitiveLoadAnalyzer,
+  type CognitiveLoadResult,
+} from '@sam-ai/pedagogy';
 import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { normalizeToUppercaseSafe } from '@/lib/sam/utils/blooms-normalizer';
 import { BloomsLevel } from '@prisma/client';
 import crypto from 'crypto';
+
+// Create Cognitive Load Analyzer singleton (Phase 3: Cognitive Load Integration)
+let cognitiveLoadAnalyzer: ReturnType<typeof createCognitiveLoadAnalyzer> | null = null;
+
+function getCognitiveLoadAnalyzer() {
+  if (!cognitiveLoadAnalyzer) {
+    cognitiveLoadAnalyzer = createCognitiveLoadAnalyzer();
+  }
+  return cognitiveLoadAnalyzer;
+}
 
 // Create Unified Blooms engine singleton (Priority 1: Unified Bloom's Engine)
 let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
@@ -32,6 +48,10 @@ function getUnifiedBloomsEngine() {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit AI analysis requests
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -42,7 +62,11 @@ export async function POST(request: NextRequest) {
     const {
       courseId,
       depth = 'detailed',
-      includeRecommendations = true
+      includeRecommendations = true,
+      // Phase 1: Sub-level granularity options
+      includeSubLevel = false,
+      // Phase 3: Cognitive load analysis options
+      includeCognitiveLoad = false,
     } = await request.json();
 
     if (!courseId) {
@@ -148,11 +172,17 @@ export async function POST(request: NextRequest) {
       depth: depth as 'basic' | 'detailed' | 'comprehensive',
       includeRecommendations,
       mode: depth === 'comprehensive' ? 'comprehensive' : 'standard',
+      // Phase 1: Sub-level granularity
+      includeSubLevel,
     };
 
-    // Perform Bloom's Taxonomy analysis using unified engine
+    // Perform Bloom's Taxonomy analysis using unified engine (with timeout)
     const engine = getUnifiedBloomsEngine();
-    const analysis = await engine.analyzeCourse(courseData, options);
+    const analysis = await withRetryableTimeout(
+      () => engine.analyzeCourse(courseData, options),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'analyzeCourse'
+    );
 
     // Generate content hash for change detection
     const contentHash = generateContentHash(courseData);
@@ -170,6 +200,22 @@ export async function POST(request: NextRequest) {
     // Persist chapter-level analysis (Task 6)
     await persistChapterAnalysis(analysis.chapters);
 
+    // Phase 3: Cognitive Load Analysis
+    let cognitiveLoad: CognitiveLoadResult | null = null;
+    if (includeCognitiveLoad) {
+      try {
+        const loadAnalyzer = getCognitiveLoadAnalyzer();
+        // Build course content text for cognitive load analysis
+        const courseContentText = buildCourseContentForCognitiveLoad(courseData);
+        cognitiveLoad = loadAnalyzer.analyze(courseContentText, {
+          bloomsLevel: analysis.chapters[0]?.primaryLevel ?? 'REMEMBER',
+        });
+      } catch (error) {
+        logger.warn('Cognitive load analysis failed:', error);
+        // Non-critical - continue without cognitive load data
+      }
+    }
+
     // Record the analysis as a SAM interaction
     await recordSAMInteraction(user.id, courseId, 'BLOOMS_ANALYSIS', {
       depth,
@@ -177,8 +223,11 @@ export async function POST(request: NextRequest) {
       balance: analysis.courseLevel.balance,
       persisted: true,
       analysisId: persistedAnalysis.id,
+      includeSubLevel,
+      includeCognitiveLoad,
     });
 
+    // Build enhanced response with sub-level and cognitive load data
     return NextResponse.json({
       success: true,
       data: {
@@ -187,6 +236,19 @@ export async function POST(request: NextRequest) {
         learningPathway: analysis.learningPathway,
         recommendations: analysis.recommendations,
         analyzedAt: analysis.analyzedAt,
+        // Phase 3: Cognitive load data (if requested)
+        ...(cognitiveLoad && {
+          cognitiveLoad: {
+            totalLoad: cognitiveLoad.totalLoad,
+            loadCategory: cognitiveLoad.loadCategory,
+            intrinsicLoad: cognitiveLoad.measurements.intrinsic.score,
+            extraneousLoad: cognitiveLoad.measurements.extraneous.score,
+            germaneLoad: cognitiveLoad.measurements.germane.score,
+            balance: cognitiveLoad.balance,
+            bloomsCompatibility: cognitiveLoad.bloomsCompatibility,
+            recommendations: cognitiveLoad.recommendations,
+          },
+        }),
       },
       metadata: {
         courseId,
@@ -200,10 +262,21 @@ export async function POST(request: NextRequest) {
         persisted: true,
         analysisId: persistedAnalysis.id,
         contentHash,
+        // Phase 1 & 3: Enhanced options metadata
+        includeSubLevel,
+        includeCognitiveLoad,
+        cognitiveLoadIncluded: !!cognitiveLoad,
       },
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Blooms analysis timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Analysis timed out. Please try again or use a smaller course.' },
+        { status: 504 }
+      );
+    }
     logger.error('Blooms analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to perform Blooms analysis' },
@@ -755,4 +828,47 @@ function extractQuestionsFromExams(
   }
 
   return questions;
+}
+
+/**
+ * Build course content text for cognitive load analysis
+ * Extracts key content from course structure for analysis
+ */
+function buildCourseContentForCognitiveLoad(courseData: UnifiedCourseInput): string {
+  const contentParts: string[] = [];
+
+  // Add course-level info
+  contentParts.push(courseData.title);
+  if (courseData.description) {
+    contentParts.push(courseData.description);
+  }
+  if (courseData.objectives && courseData.objectives.length > 0) {
+    contentParts.push(...courseData.objectives);
+  }
+
+  // Add chapter and section content
+  for (const chapter of courseData.chapters) {
+    contentParts.push(chapter.title);
+    if (chapter.learningOutcomes) {
+      contentParts.push(chapter.learningOutcomes);
+    }
+    if (chapter.courseGoals) {
+      contentParts.push(chapter.courseGoals);
+    }
+
+    for (const section of chapter.sections) {
+      contentParts.push(section.title);
+      if (section.content) {
+        contentParts.push(section.content);
+      }
+      if (section.description) {
+        contentParts.push(section.description);
+      }
+      if (section.learningObjectives && section.learningObjectives.length > 0) {
+        contentParts.push(...section.learningObjectives);
+      }
+    }
+  }
+
+  return contentParts.join('\n\n');
 }

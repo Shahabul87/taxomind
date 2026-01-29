@@ -67,25 +67,34 @@ export const QuestionList = ({ courseId, sections = [], userId, isInstructor = f
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Initialize state from URL
+  // Track whether this is the initial mount for URL initialization
+  const isInitialMountRef = useRef(true);
+
+  // Initialize state from URL (runs once on mount)
   useEffect(() => {
+    if (!isInitialMountRef.current) return;
+    isInitialMountRef.current = false;
+
     const qp = searchParams;
     const q = qp?.get('q') || '';
     const s = (qp?.get('sortBy') as SortBy) || 'recent';
     const sec = qp?.get('sectionId') || '';
-    const v = (qp?.get('qaView') as any) || 'all';
+    const v = (qp?.get('qaView') as 'all' | 'unanswered' | 'mine' | 'pinned') || 'all';
     setSearch(q);
     setSortBy(['recent','top','unanswered'].includes(s) ? s : 'recent');
     setSectionId(sec);
     setView(['all','unanswered','mine','pinned'].includes(v) ? v : 'all');
     setPage(1);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
+
+  // Ref to read the latest searchParams without adding it as a dep
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
 
   // Push state to URL
   useEffect(() => {
     if (!pathname) return;
-    const currentParams = searchParams?.toString() || '';
+    const currentParams = searchParamsRef.current?.toString() || '';
     const qp = new URLSearchParams(currentParams);
 
     if (search) qp.set('q', search); else qp.delete('q');
@@ -99,8 +108,7 @@ export const QuestionList = ({ courseId, sections = [], userId, isInstructor = f
     if (currentParams !== newParamsString) {
       router.replace(`${pathname}?${newParamsString}`, { scroll: false });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, sortBy, sectionId, view, pathname]);
+  }, [search, sortBy, sectionId, view, pathname, router]);
 
   const fetchQuestions = useCallback(async () => {
     setIsLoading(true);
@@ -182,7 +190,6 @@ export const QuestionList = ({ courseId, sections = [], userId, isInstructor = f
     } catch {
       // no-op
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]);
 
   const handleVote = async (questionId: string, value: number) => {

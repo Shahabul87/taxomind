@@ -158,6 +158,9 @@ model Course {
   // Phase 3: Enterprise Payment System - Payment Transaction Relations
   paymentTransactions      PaymentTransaction[]    @relation("CoursePaymentTransactions")
 
+  // Cognitive Quality (Bloom's Taxonomy Experience - January 2026)
+  cognitiveQuality         CourseCognitiveQuality? @relation("CourseCognitiveQuality")
+
   @@index([categoryId])
   @@index([organizationId])
 }
@@ -642,6 +645,8 @@ model UserExamAttempt {
   @@unique([userId, examId, attemptNumber])
   @@index([status])
   @@index([userId, examId])
+  @@index([userId, status, startedAt])  // PERFORMANCE: Exam history queries with status filter
+  @@index([examId, status, startedAt])  // PERFORMANCE: Per-exam analytics queries
 }
 
 model CourseBloomsAnalysis {

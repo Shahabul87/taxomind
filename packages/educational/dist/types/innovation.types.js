@@ -1,4 +1,0 @@
-/**
- * Innovation Engine Types
- */
-export {};

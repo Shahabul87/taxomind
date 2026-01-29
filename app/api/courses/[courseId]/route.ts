@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { logCourseUpdate, logCourseDeletion } from '@/lib/audit/course-audit';
 import { queueCourseReindex } from '@/lib/sam/memory-lifecycle-service';
+
+const UpdateCourseSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters").max(200, "Title must be at most 200 characters").optional(),
+  description: z.string().max(10000, "Description must be at most 10000 characters").optional().nullable(),
+  imageUrl: z.string().url("Must be a valid URL").max(2048).optional().nullable(),
+  price: z.number().min(0, "Price must be non-negative").max(10000, "Price must be at most 10000").optional().nullable(),
+  whatYouWillLearn: z.array(z.string().max(500)).max(20, "Maximum 20 learning objectives").optional(),
+  isPublished: z.boolean().optional(),
+  isFeatured: z.boolean().optional(),
+  subtitle: z.string().max(500, "Subtitle must be at most 500 characters").optional().nullable(),
+  categoryId: z.string().max(100).optional().nullable(),
+  subcategoryId: z.string().max(100).optional().nullable(),
+}).strict();
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -138,16 +152,26 @@ export async function PATCH(
     const { courseId } = await params;
 
     const user = await currentUser();
-    
-    if (!user?.id) {
 
+    if (!user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const values = await request.json();
+    const body = await request.json();
 
-    const updateData: any = {};
-    
+    // Validate input with Zod schema
+    const parseResult = UpdateCourseSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json({
+        error: "Validation failed",
+        details: parseResult.error.flatten().fieldErrors,
+      }, { status: 400 });
+    }
+
+    const values = parseResult.data;
+
+    const updateData: Record<string, string | number | boolean | string[] | null | undefined> = {};
+
     if (values.title !== undefined) updateData.title = values.title;
     if (values.description !== undefined) updateData.description = values.description;
     if (values.imageUrl !== undefined) updateData.imageUrl = values.imageUrl;
@@ -156,8 +180,7 @@ export async function PATCH(
     if (values.isPublished !== undefined) updateData.isPublished = values.isPublished;
     if (values.isFeatured !== undefined) updateData.isFeatured = values.isFeatured;
     if (values.subtitle !== undefined) updateData.subtitle = values.subtitle;
-    // Note: targetAudience and difficulty fields don't exist in Course schema, skipping
-    
+
     if (values.categoryId !== undefined) {
       if (values.categoryId) {
         try {
@@ -187,12 +210,10 @@ export async function PATCH(
                   name: categoryName,
                 }
               });
-
             }
           }
 
           updateData.categoryId = category.id;
-
         } catch (categoryError: unknown) {
           logger.error("[COURSE_PATCH] Error handling category:", categoryError);
         }
@@ -205,7 +226,6 @@ export async function PATCH(
     if (values.subcategoryId !== undefined) {
       if (values.subcategoryId) {
         try {
-          // Verify the subcategory exists
           const subcategory = await db.category.findUnique({
             where: { id: values.subcategoryId }
           });
@@ -224,7 +244,6 @@ export async function PATCH(
     }
 
     if (Object.keys(updateData).length === 0) {
-
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
     }
 
@@ -236,7 +255,6 @@ export async function PATCH(
     });
 
     if (!existingCourse) {
-
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
@@ -275,15 +293,16 @@ export async function PATCH(
       });
 
       return NextResponse.json(course);
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
+      const message = dbError instanceof Error ? dbError.message : "Unknown database error";
       logger.error("[COURSE_PATCH] Database error during update:", dbError);
-      return NextResponse.json({ error: `Database Error: ${dbError.message}` }, { status: 500 });
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("[COURSE_PATCH] Detailed error:", error);
-    if (error.name === "SyntaxError") {
+    if (error instanceof SyntaxError) {
       return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 });
     }
-    return NextResponse.json({ error: `Internal Error: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }

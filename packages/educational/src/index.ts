@@ -1630,3 +1630,116 @@ export {
   type AnthropicModelConfig,
   type DeepSeekModelConfig,
 } from './llm-adapter';
+
+// ============================================================================
+// SEMANTIC BLOOM'S CLASSIFIER EXPORTS (Phase 2: Semantic Disambiguation)
+// ============================================================================
+
+export {
+  // Classifier
+  SemanticBloomsClassifier,
+  createSemanticBloomsClassifier,
+  createSemanticBloomsClassifierWithProvider,
+
+  // Reference Data
+  AMBIGUOUS_VERBS,
+  REFERENCE_PHRASES,
+
+  // Types
+  type EmbeddingProvider,
+  type SemanticClassificationResult,
+  type SemanticClassifierConfig,
+} from './semantic-blooms-classifier';
+
+// ============================================================================
+// BLOOM'S CALIBRATION EXPORTS (Phase 5: Confidence Calibration Learning Loop)
+// ============================================================================
+
+export {
+  // Calibrator
+  BloomsCalibrator,
+  createBloomsCalibrator,
+
+  // Utility Functions
+  bloomsLevelToNumber,
+  numberToBloomsLevel,
+  hashContent,
+
+  // Types
+  type BloomsFeedbackType,
+  type BloomsFeedbackInput,
+  type CalibrationMetrics,
+  type CalibratedResult,
+  type BloomsCalibratorConfig,
+  type BloomsCalibratorStore,
+} from './calibration';
+
+// ============================================================================
+// MULTIMEDIA BLOOM'S ENGINE EXPORTS (Phase 4: Multimedia Content Analysis)
+// ============================================================================
+
+export {
+  // Multimedia Bloom's Engine
+  MultimediaBloomsEngine,
+  createMultimediaBloomsEngine,
+  createContentAnalyzerFromEngine,
+} from './engines/multimedia-blooms-engine';
+
+export type {
+  MultimediaType,
+  MultimediaContent,
+  MultimediaAnalysisResult,
+  CognitiveInsight,
+  MultimediaEngineConfig as MultimediaBloomsEngineConfig,
+  MultimediaAnalysisOptions,
+} from './engines/multimedia-blooms-engine';
+
+// ============================================================================
+// VIDEO COGNITIVE ANALYZER EXPORTS (Phase 4: Multimedia Content Analysis)
+// ============================================================================
+
+export {
+  // Video Analyzer
+  VideoCognitiveAnalyzer,
+  createVideoCognitiveAnalyzer,
+} from './analyzers/video-cognitive-analyzer';
+
+export type {
+  VideoSource,
+  VideoMetadata,
+  TranscriptSegment,
+  TranscriptChunk,
+  ChunkAnalysis,
+  CognitiveTransition,
+  PausePoint,
+  VideoAnalysisResult,
+  VideoAnalyzerConfig,
+  TranscriptFetcher,
+  ContentAnalyzer as VideoContentAnalyzer,
+} from './analyzers/video-cognitive-analyzer';
+
+// ============================================================================
+// IMAGE COGNITIVE ANALYZER EXPORTS (Phase 4: Multimedia Content Analysis)
+// ============================================================================
+
+export {
+  // Image Analyzer
+  ImageCognitiveAnalyzer,
+  createImageCognitiveAnalyzer,
+} from './analyzers/image-cognitive-analyzer';
+
+export type {
+  ImageType,
+  VisualComplexity,
+  ImageMetadata as CognitiveImageMetadata,
+  ExtractedTextRegion,
+  VisualElement as CognitiveVisualElement,
+  ColorAnalysis as CognitiveColorAnalysis,
+  StructuralAnalysis,
+  CognitiveAssessment,
+  AccessibilityAssessment,
+  ImageAnalysisResult as CognitiveImageAnalysisResult,
+  ImageAnalyzerConfig,
+  VisionProvider,
+  ContentAnalyzer as ImageContentAnalyzer,
+} from './analyzers/image-cognitive-analyzer';

@@ -203,6 +203,9 @@ model User {
   // SAM Knowledge Graph Engine Relations (added January 2026)
   samConceptMasteries                     SAMConceptMastery[]                  @relation("SAMConceptMasteries")
 
+  // Bloom's Classification Feedback (Phase 5: Calibration Learning Loop)
+  bloomsClassificationFeedback            BloomsClassificationFeedback[]       @relation("BloomsClassificationFeedback")
+
   // Agent Tooling Relations
   agentToolInvocations                    AgentToolInvocation[]
   agentAuditLogs                          AgentAuditLog[]
@@ -433,6 +436,14 @@ model User {
   // Marketing & Communications (added January 2026)
   newsletterSubscriptions    NewsletterSubscriber[]
   assignedContactSubmissions ContactSubmission[]           @relation("AssignedContacts")
+
+  // Cognitive Profile (Bloom's Taxonomy Experience - January 2026)
+  cognitiveProfile           UserCognitiveProfile?         @relation("UserCognitiveProfile")
+
+  // PERFORMANCE: Composite indexes for frequent query patterns
+  @@index([subscriptionTier, hasAIAccess])   // AI access control queries
+  @@index([isPremium, premiumExpiresAt])     // Premium expiry checks
+  @@index([dailyAiUsageResetAt])            // Usage reset batch queries
 }
 
 model Account {

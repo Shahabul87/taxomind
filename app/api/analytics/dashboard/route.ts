@@ -379,41 +379,57 @@ async function getContentAnalytics(courseId: string, dateFilter: DateFilter) {
     select: { id: true, title: true }
   });
 
-  const sectionAnalytics = await Promise.all(
-    sections.map(async (section) => {
-      const views = await db.realtime_activities.count({
-        where: {
-          sectionId: section.id,
-          action: 'section_view',
-          timestamp: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-        }
-      });
+  const sectionIds = sections.map(s => s.id);
+  if (sectionIds.length === 0) return [];
 
-      const completions = await db.user_progress.count({
-        where: {
-          sectionId: section.id,
-          isCompleted: true
-        }
-      });
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-      const avgTime = await db.user_progress.aggregate({
-        where: {
-          sectionId: section.id,
-          timeSpent: { gt: 0 }
-        },
-        _avg: { timeSpent: true }
-      });
+  // Batch queries instead of N+1 per-section queries
+  const [viewsBySection, completionsBySection, avgTimeBySection] = await Promise.all([
+    db.realtime_activities.groupBy({
+      by: ['sectionId'],
+      where: {
+        sectionId: { in: sectionIds },
+        action: 'section_view',
+        timestamp: { gte: sevenDaysAgo }
+      },
+      _count: true
+    }),
+    db.user_progress.groupBy({
+      by: ['sectionId'],
+      where: {
+        sectionId: { in: sectionIds },
+        isCompleted: true
+      },
+      _count: true
+    }),
+    db.user_progress.groupBy({
+      by: ['sectionId'],
+      where: {
+        sectionId: { in: sectionIds },
+        timeSpent: { gt: 0 }
+      },
+      _avg: { timeSpent: true }
+    }),
+  ]);
 
-      return {
-        sectionId: section.id,
-        title: section.title,
-        views,
-        completions,
-        averageTime: avgTime._avg.timeSpent || 0,
-        completionRate: views > 0 ? (completions / views) * 100 : 0
-      };
-    })
-  );
+  // Build lookup maps for O(1) access
+  const viewsMap = new Map(viewsBySection.map(v => [v.sectionId, v._count]));
+  const completionsMap = new Map(completionsBySection.map(c => [c.sectionId, c._count]));
+  const avgTimeMap = new Map(avgTimeBySection.map(t => [t.sectionId, t._avg.timeSpent || 0]));
+
+  const sectionAnalytics = sections.map(section => {
+    const views = viewsMap.get(section.id) || 0;
+    const completions = completionsMap.get(section.id) || 0;
+    return {
+      sectionId: section.id,
+      title: section.title,
+      views,
+      completions,
+      averageTime: avgTimeMap.get(section.id) || 0,
+      completionRate: views > 0 ? (completions / views) * 100 : 0
+    };
+  });
 
   return sectionAnalytics.sort((a, b) => b.views - a.views);
 }
@@ -421,15 +437,34 @@ async function getContentAnalytics(courseId: string, dateFilter: DateFilter) {
 async function getEngagementTrends(courseId: string, timeframe: string) {
   const points = timeframe === '1d' ? 24 : timeframe === '7d' ? 7 : 30;
   const interval = timeframe === '1d' ? 'hour' : 'day';
-  
-  // This is a simplified version - in production, you'd want more sophisticated time grouping
-  const trends = [];
+
   const now = new Date();
-  
+  const rangeStart = new Date(now);
+
+  if (interval === 'hour') {
+    rangeStart.setHours(now.getHours() - points);
+  } else {
+    rangeStart.setDate(now.getDate() - points);
+  }
+
+  // Single query for all interactions in the time range
+  const allInteractions = await db.realtime_activities.findMany({
+    where: {
+      courseId,
+      timestamp: {
+        gte: rangeStart,
+        lte: now
+      }
+    },
+    select: { timestamp: true }
+  });
+
+  // Build trends by bucketing in memory instead of N queries
+  const trends = [];
   for (let i = points - 1; i >= 0; i--) {
     const startTime = new Date(now);
     const endTime = new Date(now);
-    
+
     if (interval === 'hour') {
       startTime.setHours(now.getHours() - i - 1);
       endTime.setHours(now.getHours() - i);
@@ -437,23 +472,17 @@ async function getEngagementTrends(courseId: string, timeframe: string) {
       startTime.setDate(now.getDate() - i - 1);
       endTime.setDate(now.getDate() - i);
     }
-    
-    const interactions = await db.realtime_activities.count({
-      where: {
-        courseId,
-        timestamp: {
-          gte: startTime,
-          lt: endTime
-        }
-      }
-    });
-    
+
+    const interactions = allInteractions.filter(
+      a => a.timestamp >= startTime && a.timestamp < endTime
+    ).length;
+
     trends.push({
       time: endTime.toISOString(),
       interactions
     });
   }
-  
+
   return trends;
 }
 
@@ -477,42 +506,50 @@ async function identifyAtRiskStudents(courseId: string) {
     }
   });
 
-  const atRiskList = [];
+  const userIds = enrolledStudents.map(e => e.userId);
+  if (userIds.length === 0) return [];
 
-  for (const enrollment of enrolledStudents) {
-    const recentActivity = await db.realtime_activities.count({
+  // Batch queries instead of per-student N+1 pattern
+  const [activityByUser, engagementByUser] = await Promise.all([
+    db.realtime_activities.groupBy({
+      by: ['userId'],
       where: {
-        userId: enrollment.userId,
+        userId: { in: userIds },
         courseId,
-        timestamp: {
-          gte: twoWeeksAgo
-        }
-      }
-    });
-
-    const avgEngagement = await db.learning_metrics.aggregate({
+        timestamp: { gte: twoWeeksAgo }
+      },
+      _count: true
+    }),
+    db.learning_metrics.groupBy({
+      by: ['userId'],
       where: {
-        userId: enrollment.userId,
+        userId: { in: userIds },
         courseId
       },
-      _avg: {
-        overallProgress: true
-      }
-    });
+      _avg: { overallProgress: true }
+    }),
+  ]);
 
-    if (recentActivity < 5 || (avgEngagement._avg.overallProgress || 0) < 30) {
-      atRiskList.push({
+  // Build lookup maps for O(1) access
+  const activityMap = new Map(activityByUser.map(r => [r.userId, r._count]));
+  const engagementMap = new Map(engagementByUser.map(e => [e.userId, e._avg.overallProgress || 0]));
+
+  const atRiskList = enrolledStudents
+    .map(enrollment => {
+      const recentActivity = activityMap.get(enrollment.userId) || 0;
+      const avgEngagement = engagementMap.get(enrollment.userId) || 0;
+      return {
         studentId: enrollment.userId,
         name: enrollment.User.name,
         email: enrollment.User.email,
-        progress: 0, // Calculate from user_progress if needed
+        progress: 0,
         lastActive: enrollment.updatedAt,
         recentInteractions: recentActivity,
-        engagementScore: avgEngagement._avg.overallProgress || 0,
-        riskLevel: recentActivity === 0 ? 'high' : 'medium'
-      });
-    }
-  }
+        engagementScore: avgEngagement,
+        riskLevel: recentActivity === 0 ? 'high' as const : 'medium' as const
+      };
+    })
+    .filter(student => student.recentInteractions < 5 || student.engagementScore < 30);
 
   return atRiskList.sort((a, b) => {
     if (a.riskLevel === 'high' && b.riskLevel === 'medium') return -1;

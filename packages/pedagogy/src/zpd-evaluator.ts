@@ -20,6 +20,11 @@ import type {
   PedagogicalEvaluator,
 } from './types';
 import { getBloomsLevelIndex, getDifficultyLevelIndex } from './types';
+import {
+  createCognitiveLoadAnalyzer,
+  type CognitiveLoadAnalyzer,
+  type CognitiveLoadResult,
+} from './cognitive-load-analyzer';
 
 // ============================================================================
 // ZPD CONSTANTS
@@ -115,6 +120,25 @@ export interface ZPDEvaluatorConfig {
    * Weight for personalization fit
    */
   personalizationWeight?: number;
+
+  /**
+   * Whether to include cognitive load analysis (Phase 3)
+   * @default true
+   */
+  includeCognitiveLoad?: boolean;
+
+  /**
+   * Maximum total cognitive load before ZPD adjustment (Phase 3)
+   * If load exceeds this, ZPD zone is adjusted toward easier content
+   * @default 70
+   */
+  maxCognitiveLoad?: number;
+
+  /**
+   * Weight for cognitive load in score calculation (Phase 3)
+   * @default 0.15
+   */
+  cognitiveLoadWeight?: number;
 }
 
 /**
@@ -126,9 +150,13 @@ export const DEFAULT_ZPD_CONFIG: Required<ZPDEvaluatorConfig> = {
   maxChallengeScore: 85,
   minSupportAdequacy: 60,
   passingScore: 70,
-  challengeWeight: 0.4,
-  supportWeight: 0.35,
-  personalizationWeight: 0.25,
+  challengeWeight: 0.35,
+  supportWeight: 0.30,
+  personalizationWeight: 0.20,
+  // Phase 3: Cognitive Load Integration
+  includeCognitiveLoad: true,
+  maxCognitiveLoad: 70,
+  cognitiveLoadWeight: 0.15,
 };
 
 /**
@@ -143,9 +171,11 @@ export class ZPDEvaluator
     "Evaluates content fit within student's Zone of Proximal Development";
 
   private readonly config: Required<ZPDEvaluatorConfig>;
+  private readonly cognitiveLoadAnalyzer: CognitiveLoadAnalyzer;
 
   constructor(config: ZPDEvaluatorConfig = {}) {
     this.config = { ...DEFAULT_ZPD_CONFIG, ...config };
+    this.cognitiveLoadAnalyzer = createCognitiveLoadAnalyzer();
   }
 
   /**
@@ -157,11 +187,28 @@ export class ZPDEvaluator
   ): Promise<ZPDEvaluatorResult> {
     const startTime = Date.now();
 
+    // Phase 3: Analyze cognitive load if enabled
+    let cognitiveLoadResult: CognitiveLoadResult | undefined;
+    if (this.config.includeCognitiveLoad) {
+      cognitiveLoadResult = this.cognitiveLoadAnalyzer.analyze(
+        content.content,
+        content.targetBloomsLevel
+      );
+    }
+
     // Analyze challenge level
     const challengeLevel = this.analyzeChallengeLevel(content, studentProfile);
 
-    // Determine ZPD zone
-    const zpdZone = this.determineZPDZone(challengeLevel.score);
+    // Phase 3: Adjust challenge based on cognitive load
+    const adjustedChallengeScore = cognitiveLoadResult
+      ? this.adjustChallengeForCognitiveLoad(
+          challengeLevel.score,
+          cognitiveLoadResult
+        )
+      : challengeLevel.score;
+
+    // Determine ZPD zone (using adjusted challenge if cognitive load is high)
+    const zpdZone = this.determineZPDZone(adjustedChallengeScore);
 
     // Analyze support adequacy
     const supportAdequacy = this.analyzeSupportAdequacy(
@@ -169,11 +216,12 @@ export class ZPDEvaluator
       challengeLevel
     );
 
-    // Predict engagement
+    // Predict engagement (consider cognitive load)
     const engagementPrediction = this.predictEngagement(
       zpdZone,
       challengeLevel,
-      supportAdequacy
+      supportAdequacy,
+      cognitiveLoadResult
     );
 
     // Analyze personalization fit
@@ -185,12 +233,13 @@ export class ZPDEvaluator
     // Determine if in ZPD
     const inZPD = this.isInZPD(zpdZone);
 
-    // Calculate score
+    // Calculate score (include cognitive load factor)
     const score = this.calculateScore(
       challengeLevel,
       supportAdequacy,
       personalizationFit,
-      zpdZone
+      zpdZone,
+      cognitiveLoadResult
     );
 
     // Analyze issues and recommendations
@@ -200,7 +249,8 @@ export class ZPDEvaluator
       supportAdequacy,
       engagementPrediction,
       personalizationFit,
-      studentProfile
+      studentProfile,
+      cognitiveLoadResult
     );
 
     const passed = score >= this.config.passingScore && inZPD;
@@ -219,6 +269,15 @@ export class ZPDEvaluator
         supportScore: supportAdequacy.score,
         engagementPrediction: engagementPrediction.predictedState,
         personalizationScore: personalizationFit.score,
+        // Phase 3: Cognitive load data
+        cognitiveLoad: cognitiveLoadResult ? {
+          totalLoad: cognitiveLoadResult.totalLoad,
+          category: cognitiveLoadResult.loadCategory,
+          intrinsic: cognitiveLoadResult.measurements.intrinsic.score,
+          extraneous: cognitiveLoadResult.measurements.extraneous.score,
+          germane: cognitiveLoadResult.measurements.germane.score,
+          adjustedChallengeScore,
+        } : undefined,
       },
       inZPD,
       zpdZone,
@@ -227,6 +286,27 @@ export class ZPDEvaluator
       engagementPrediction,
       personalizationFit,
     };
+  }
+
+  /**
+   * Adjust challenge score based on cognitive load (Phase 3)
+   * High cognitive load effectively increases the perceived challenge
+   */
+  private adjustChallengeForCognitiveLoad(
+    baseChallenge: number,
+    cognitiveLoad: CognitiveLoadResult
+  ): number {
+    // If cognitive load is within acceptable range, no adjustment
+    if (cognitiveLoad.totalLoad <= this.config.maxCognitiveLoad) {
+      return baseChallenge;
+    }
+
+    // High cognitive load increases effective challenge
+    // For every 10 points over max, add 5 to challenge
+    const excess = cognitiveLoad.totalLoad - this.config.maxCognitiveLoad;
+    const adjustment = Math.floor(excess / 10) * 5;
+
+    return Math.min(100, baseChallenge + adjustment);
   }
 
   /**
@@ -525,11 +605,13 @@ export class ZPDEvaluator
 
   /**
    * Predict student engagement
+   * Phase 3: Now considers cognitive load impact on engagement
    */
   private predictEngagement(
     zpdZone: ZPDZone,
     challengeLevel: ChallengeLevel,
-    supportAdequacy: SupportAdequacy
+    supportAdequacy: SupportAdequacy,
+    cognitiveLoad?: CognitiveLoadResult
   ): EngagementPrediction {
     // Base engagement from ZPD zone
     const predictedState = ZONE_ENGAGEMENT_MAP[zpdZone];
@@ -583,6 +665,31 @@ export class ZPDEvaluator
     }
     if (zpdZone === 'FRUSTRATION' || zpdZone === 'UNREACHABLE') {
       engagementFactors.push('Content is too difficult, risking frustration');
+    }
+
+    // Phase 3: Cognitive load impact on engagement
+    if (cognitiveLoad) {
+      if (cognitiveLoad.loadCategory === 'overload') {
+        score = Math.max(0, score - 20);
+        disengagementRisk = Math.min(1, disengagementRisk + 0.3);
+        engagementFactors.push('Cognitive overload detected - may cause mental fatigue');
+      } else if (cognitiveLoad.loadCategory === 'high') {
+        score = Math.max(0, score - 10);
+        disengagementRisk = Math.min(1, disengagementRisk + 0.15);
+        engagementFactors.push('High cognitive load - monitor for fatigue');
+      }
+
+      // High extraneous load is particularly harmful
+      if (cognitiveLoad.measurements.extraneous.score > 50) {
+        score = Math.max(0, score - 5);
+        engagementFactors.push('Extraneous cognitive load is high - simplify presentation');
+      }
+
+      // High germane load is positive for learning
+      if (cognitiveLoad.measurements.germane.score > 60) {
+        score = Math.min(100, score + 5);
+        engagementFactors.push('Good schema-building activities present');
+      }
     }
 
     return {
@@ -700,18 +807,34 @@ export class ZPDEvaluator
 
   /**
    * Calculate overall ZPD score
+   * Phase 3: Now includes cognitive load factor
    */
   private calculateScore(
     challengeLevel: ChallengeLevel,
     supportAdequacy: SupportAdequacy,
     personalizationFit: PersonalizationFit,
-    zpdZone: ZPDZone
+    zpdZone: ZPDZone,
+    cognitiveLoad?: CognitiveLoadResult
   ): number {
-    // Weighted combination
+    // Phase 3: Calculate cognitive load score
+    let cognitiveLoadScore = 75; // Default if not measured
+    if (cognitiveLoad) {
+      // Good balance: low extraneous, high germane, appropriate intrinsic
+      const extraneousPenalty = cognitiveLoad.measurements.extraneous.score * 0.5;
+      const germaneBonus = cognitiveLoad.measurements.germane.score * 0.3;
+      const balanceBonus = cognitiveLoad.balance.status === 'optimal' ? 20 : 0;
+
+      cognitiveLoadScore = Math.max(0, Math.min(100,
+        100 - extraneousPenalty + germaneBonus + balanceBonus
+      ));
+    }
+
+    // Weighted combination (Phase 3: includes cognitive load weight)
     let score =
       this.config.challengeWeight * (challengeLevel.appropriate ? 85 : 50) +
       this.config.supportWeight * supportAdequacy.score +
-      this.config.personalizationWeight * personalizationFit.score;
+      this.config.personalizationWeight * personalizationFit.score +
+      this.config.cognitiveLoadWeight * cognitiveLoadScore;
 
     // Bonus for optimal ZPD zone
     if (zpdZone === 'ZPD_OPTIMAL') {
@@ -727,6 +850,11 @@ export class ZPDEvaluator
       } else {
         score *= 0.85;
       }
+    }
+
+    // Phase 3: Additional penalty for cognitive overload
+    if (cognitiveLoad?.loadCategory === 'overload') {
+      score *= 0.85;
     }
 
     return Math.round(score);
@@ -757,6 +885,7 @@ export class ZPDEvaluator
 
   /**
    * Analyze issues and generate recommendations
+   * Phase 3: Now includes cognitive load analysis
    */
   private analyzeIssuesAndRecommendations(
     zpdZone: ZPDZone,
@@ -764,7 +893,8 @@ export class ZPDEvaluator
     supportAdequacy: SupportAdequacy,
     engagementPrediction: EngagementPrediction,
     personalizationFit: PersonalizationFit,
-    studentProfile?: StudentCognitiveProfile
+    studentProfile?: StudentCognitiveProfile,
+    cognitiveLoadResult?: CognitiveLoadResult
   ): { issues: PedagogicalIssue[]; recommendations: string[] } {
     const issues: PedagogicalIssue[] = [];
     const recommendations: string[] = [];
@@ -887,6 +1017,103 @@ export class ZPDEvaluator
       }
       if (studentProfile.recentPerformance.trend === 'declining') {
         recommendations.push('Consider diagnostic assessment to identify issues');
+      }
+    }
+
+    // Phase 3: Cognitive load issues and recommendations
+    if (cognitiveLoadResult) {
+      // Cognitive overload
+      if (cognitiveLoadResult.loadCategory === 'overload') {
+        issues.push({
+          type: 'cognitive_overload',
+          severity: 'critical',
+          description: `Cognitive overload detected (total load: ${Math.round(cognitiveLoadResult.totalLoad)}%)`,
+          learningImpact: 'Students will struggle to process and retain information',
+          suggestedFix: 'Reduce complexity, break into smaller chunks, remove extraneous elements',
+        });
+        recommendations.push(
+          'Break content into smaller, focused sections',
+          'Remove decorative or non-essential elements',
+          'Use progressive disclosure for complex topics'
+        );
+      } else if (cognitiveLoadResult.loadCategory === 'high') {
+        issues.push({
+          type: 'high_cognitive_load',
+          severity: 'high',
+          description: `High cognitive load detected (total load: ${Math.round(cognitiveLoadResult.totalLoad)}%)`,
+          learningImpact: 'May cause mental fatigue and reduced retention',
+          suggestedFix: 'Consider simplifying presentation or adding more scaffolding',
+        });
+        recommendations.push('Add more visual aids and worked examples');
+      }
+
+      // High extraneous load (waste of cognitive resources)
+      if (cognitiveLoadResult.measurements.extraneous.score > 60) {
+        issues.push({
+          type: 'high_extraneous_load',
+          severity: 'high',
+          description: 'High extraneous cognitive load - presentation is inefficient',
+          learningImpact: 'Cognitive resources wasted on non-learning activities',
+          suggestedFix: 'Simplify formatting, remove distracting elements, improve organization',
+        });
+        recommendations.push(
+          'Simplify visual presentation and reduce clutter',
+          'Use consistent formatting and clear structure',
+          'Eliminate redundant or confusing navigation'
+        );
+      } else if (cognitiveLoadResult.measurements.extraneous.score > 40) {
+        issues.push({
+          type: 'moderate_extraneous_load',
+          severity: 'medium',
+          description: 'Moderate extraneous cognitive load detected',
+          learningImpact: 'Some cognitive resources diverted from learning',
+          suggestedFix: 'Review presentation efficiency',
+        });
+      }
+
+      // Low germane load (not enough schema-building)
+      if (cognitiveLoadResult.measurements.germane.score < 30) {
+        issues.push({
+          type: 'low_germane_load',
+          severity: 'medium',
+          description: 'Low germane cognitive load - insufficient schema-building activities',
+          learningImpact: 'Limited long-term retention and transfer',
+          suggestedFix: 'Add practice problems, comparisons, and connection-making activities',
+        });
+        recommendations.push(
+          'Add more practice exercises with feedback',
+          'Include comparisons to prior knowledge',
+          'Add self-explanation prompts'
+        );
+      }
+
+      // High intrinsic load without adequate support
+      if (
+        cognitiveLoadResult.measurements.intrinsic.score > 60 &&
+        !supportAdequacy.adequate
+      ) {
+        issues.push({
+          type: 'unsupported_complexity',
+          severity: 'high',
+          description: 'Complex content without adequate instructional support',
+          learningImpact: 'Learners may not be able to process difficult material',
+          suggestedFix: 'Add more scaffolding, worked examples, or reduce element interactivity',
+        });
+        recommendations.push(
+          'Add step-by-step worked examples',
+          'Break complex procedures into sub-steps',
+          'Consider completion problems (partially solved examples)'
+        );
+      }
+
+      // Imbalanced cognitive load profile
+      if (cognitiveLoadResult.balance.status !== 'optimal') {
+        // Get recommendations from top-level recommendations array
+        for (const rec of cognitiveLoadResult.recommendations) {
+          if (!recommendations.includes(rec.action)) {
+            recommendations.push(rec.action);
+          }
+        }
       }
     }
 

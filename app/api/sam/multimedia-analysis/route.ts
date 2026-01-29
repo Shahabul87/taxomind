@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { createMultimediaEngine } from "@sam-ai/educational";
+import {
+  createMultimediaEngine,
+  createUnifiedBloomsEngine,
+  MultimediaBloomsEngine,
+} from "@sam-ai/educational";
 import type {
   VideoContent,
   AudioContent,
   InteractiveContent,
+  MultimediaContent,
+  MultimediaAnalysisOptions,
 } from "@sam-ai/educational";
 import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import type { SAMInteractionType } from '@prisma/client';
 
 // Create multimedia engine singleton with portable package
@@ -22,6 +30,51 @@ function getMultimediaEngine() {
     });
   }
   return multimediaEngine;
+}
+
+// Create Multimedia Bloom's Engine singleton (Phase 4: Multimedia Content Analysis)
+let multimediaBloomsEngine: MultimediaBloomsEngine | null = null;
+
+function getMultimediaBloomsEngine(): MultimediaBloomsEngine {
+  if (!multimediaBloomsEngine) {
+    // Create content analyzer adapter using unified blooms engine
+    const unifiedEngine = createUnifiedBloomsEngine({
+      samConfig: getSAMConfig(),
+      database: getDatabaseAdapter(),
+      defaultMode: 'standard',
+      confidenceThreshold: 0.7,
+      enableCache: true,
+      cacheTTL: 3600,
+    });
+
+    // Create adapter for the content analyzer interface
+    const contentAnalyzer = {
+      async analyze(content: string, options?: { includeSubLevel?: boolean }) {
+        const result = await unifiedEngine.analyze(content, {
+          mode: 'standard',
+          includeSubLevel: options?.includeSubLevel,
+        });
+        return {
+          dominantLevel: result.dominantLevel,
+          distribution: result.distribution,
+          confidence: result.confidence,
+          cognitiveDepth: result.cognitiveDepth,
+          subLevel: result.subLevel,
+        };
+      },
+    };
+
+    multimediaBloomsEngine = new MultimediaBloomsEngine(contentAnalyzer, {
+      enableParallelAnalysis: true,
+      maxParallelImages: 5,
+      logger: {
+        debug: (msg: string, ...args: unknown[]) => logger.debug(msg, ...args),
+        warn: (msg: string, ...args: unknown[]) => logger.warn(msg, ...args),
+        error: (msg: string, ...args: unknown[]) => logger.error(msg, ...args),
+      },
+    });
+  }
+  return multimediaBloomsEngine;
 }
 
 function normalizeAnalysis(analysis: unknown) {
@@ -87,6 +140,10 @@ async function recordSAMInteraction(
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit AI analysis requests
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {
@@ -138,25 +195,115 @@ export async function POST(req: NextRequest) {
     let analysis;
     switch (contentType) {
       case "video":
-        analysis = await engine.analyzeVideo({
-          ...contentData,
-          courseId,
-        } as VideoContent);
+        analysis = await withRetryableTimeout(
+          () => engine.analyzeVideo({ ...contentData, courseId } as VideoContent),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeVideo'
+        );
         break;
 
       case "audio":
-        analysis = await engine.analyzeAudio({
-          ...contentData,
-          courseId,
-        } as AudioContent);
+        analysis = await withRetryableTimeout(
+          () => engine.analyzeAudio({ ...contentData, courseId } as AudioContent),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeAudio'
+        );
         break;
 
       case "interactive":
-        analysis = await engine.analyzeInteractive({
-          ...contentData,
-          courseId,
-        } as InteractiveContent);
+        analysis = await withRetryableTimeout(
+          () => engine.analyzeInteractive({ ...contentData, courseId } as InteractiveContent),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeInteractive'
+        );
         break;
+
+      // Phase 4: Bloom's Taxonomy Analysis for Multimedia Content
+      case "blooms-video": {
+        const bloomsEngine = getMultimediaBloomsEngine();
+        const videoContent: MultimediaContent = {
+          type: 'video',
+          id: contentData.videoId ?? `video-${Date.now()}`,
+          title: contentData.title,
+          video: {
+            source: contentData.source ?? 'youtube',
+            videoId: contentData.videoId,
+            url: contentData.url,
+            transcript: contentData.transcript,
+          },
+          textContext: contentData.textContext,
+        };
+        const options: MultimediaAnalysisOptions = {
+          includeChunkAnalysis: contentData.includeChunkAnalysis ?? true,
+          includeSubLevel: contentData.includeSubLevel ?? true,
+        };
+        analysis = await withRetryableTimeout(
+          () => bloomsEngine.analyze(videoContent, options),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'bloomsAnalyzeVideo'
+        );
+        break;
+      }
+
+      case "blooms-image": {
+        const bloomsEngine = getMultimediaBloomsEngine();
+        const imageContent: MultimediaContent = {
+          type: 'image',
+          id: contentData.imageId ?? `image-${Date.now()}`,
+          title: contentData.title,
+          image: {
+            data: contentData.imageData,
+            metadata: {
+              mimeType: contentData.mimeType ?? 'image/jpeg',
+              altText: contentData.altText,
+            },
+          },
+          textContext: contentData.textContext,
+        };
+        const options: MultimediaAnalysisOptions = {
+          includeAccessibility: contentData.includeAccessibility ?? true,
+          includeSubLevel: contentData.includeSubLevel ?? true,
+        };
+        analysis = await withRetryableTimeout(
+          () => bloomsEngine.analyze(imageContent, options),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'bloomsAnalyzeImage'
+        );
+        break;
+      }
+
+      case "blooms-mixed": {
+        const bloomsEngine = getMultimediaBloomsEngine();
+        const mixedContent: MultimediaContent = {
+          type: 'mixed',
+          id: contentData.contentId ?? `mixed-${Date.now()}`,
+          title: contentData.title,
+          video: contentData.video ? {
+            source: contentData.video.source ?? 'youtube',
+            videoId: contentData.video.videoId,
+            url: contentData.video.url,
+          } : undefined,
+          images: contentData.images?.map((img: { data: string; mimeType?: string; altText?: string }) => ({
+            data: img.data,
+            metadata: {
+              mimeType: img.mimeType ?? 'image/jpeg',
+              altText: img.altText,
+            },
+          })),
+          textContext: contentData.textContext,
+        };
+        const options: MultimediaAnalysisOptions = {
+          includeChunkAnalysis: contentData.includeChunkAnalysis ?? true,
+          includeAccessibility: contentData.includeAccessibility ?? true,
+          includeSubLevel: contentData.includeSubLevel ?? true,
+        };
+        analysis = await withRetryableTimeout(
+          () => bloomsEngine.analyze(mixedContent, options),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'bloomsAnalyzeMixed'
+        );
+        break;
+      }
 
       default:
         return NextResponse.json(
@@ -208,6 +355,13 @@ export async function POST(req: NextRequest) {
       analysisId: storedAnalysis.id,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error("Multi-modal analysis timed out:", { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: "Analysis timed out. Please try again with smaller content." },
+        { status: 504 }
+      );
+    }
     logger.error("Multi-modal analysis error:", error);
     return NextResponse.json(
       { error: "Failed to analyze content" },

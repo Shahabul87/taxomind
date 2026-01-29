@@ -237,19 +237,17 @@ export function RealTimeDashboard({
   };
 
   useEffect(() => {
-    const currentWs = wsRef.current;
-    const currentTimer = refreshTimer.current;
-    
     initializeRealTimeConnection();
     fetchInitialData();
 
+    // Capture ref values for cleanup (React hooks rule)
+    const ws = wsRef.current;
+
     return () => {
-      if (currentWs) {
-        currentWs.close();
+      if (ws) {
+        ws.close();
       }
-      if (currentTimer) {
-        clearInterval(currentTimer);
-      }
+      stopAutoRefresh();
     };
   }, [fetchInitialData]);
 

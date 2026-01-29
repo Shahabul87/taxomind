@@ -70,6 +70,7 @@ export async function GET() {
       orderBy: {
         name: "asc"
       },
+      take: 500,
     });
 
     return NextResponse.json(categories);

@@ -1,4 +1,0 @@
-/**
- * Integrity Engine Types
- */
-export {};

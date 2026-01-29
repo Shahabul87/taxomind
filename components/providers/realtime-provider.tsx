@@ -547,16 +547,21 @@ export function RealtimeProvider({
     });
   }, [sendEvent]);
 
+  // Store connect/disconnect in refs to avoid stale closures and infinite loops
+  const connectRef = useRef(connect);
+  const disconnectRef = useRef(disconnect);
+  connectRef.current = connect;
+  disconnectRef.current = disconnect;
+
   // Auto-connect when authenticated
   useEffect(() => {
     if (autoConnect && authStatus === 'authenticated' && session?.user?.id) {
-      connect();
+      connectRef.current();
     }
 
     return () => {
-      disconnect();
+      disconnectRef.current();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only connect on auth change
   }, [autoConnect, authStatus, session?.user?.id]);
 
   // Disconnect when user logs out

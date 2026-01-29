@@ -5,6 +5,7 @@
  * Tracks and updates student mastery levels based on evaluations
  */
 import type { TopicMastery, MasteryLevel, EvaluationOutcome, StudentProfileStore, BloomsLevel } from './types';
+import type { BloomsSubLevel } from '@sam-ai/pedagogy';
 /**
  * Configuration for mastery tracking
  */
@@ -33,12 +34,24 @@ export interface MasteryTrackerConfig {
     bloomsWeights?: Record<BloomsLevel, number>;
     /**
      * Decay rate for unused topics (per day)
+     * @deprecated Use bloomsDecayRates for Bloom's-weighted decay
      */
     decayRatePerDay?: number;
     /**
      * Days before decay starts
      */
     decayStartDays?: number;
+    /**
+     * Bloom's level-specific decay rates (Phase 6: Enhanced Mastery Decay)
+     * Higher cognitive levels decay faster as they require more practice to maintain
+     */
+    bloomsDecayRates?: Record<BloomsLevel, number>;
+    /**
+     * Sub-level decay modifier (Phase 6: Enhanced Mastery Decay)
+     * ADVANCED skills decay faster than BASIC skills
+     * Format: { BASIC: multiplier, INTERMEDIATE: multiplier, ADVANCED: multiplier }
+     */
+    subLevelDecayModifiers?: Record<BloomsSubLevel, number>;
 }
 /**
  * Default mastery tracker configuration
@@ -120,8 +133,40 @@ export declare class MasteryTracker {
     calculateMasteryLevel(score: number): MasteryLevel;
     /**
      * Apply decay to unused topics
+     * Phase 6: Enhanced with Bloom's-weighted decay rates
+     *
+     * @param studentId - Student identifier
+     * @param topicId - Topic identifier
+     * @param currentDate - Current date for decay calculation
+     * @param subLevel - Optional sub-level for more granular decay (BASIC/INTERMEDIATE/ADVANCED)
      */
-    applyDecay(studentId: string, topicId: string, currentDate?: Date): Promise<TopicMastery | null>;
+    applyDecay(studentId: string, topicId: string, currentDate?: Date, subLevel?: BloomsSubLevel): Promise<TopicMastery | null>;
+    /**
+     * Get the Bloom's-level specific decay rate (Phase 6)
+     * Higher cognitive levels decay faster as they require more practice to maintain
+     *
+     * @param bloomsLevel - The Bloom's taxonomy level
+     * @returns Decay rate per day as a percentage
+     */
+    getBloomsDecayRate(bloomsLevel: BloomsLevel): number;
+    /**
+     * Calculate effective decay rate including sub-level modifier (Phase 6)
+     *
+     * @param bloomsLevel - The Bloom's taxonomy level
+     * @param subLevel - Optional sub-level (BASIC/INTERMEDIATE/ADVANCED)
+     * @returns Effective decay rate per day as a percentage
+     */
+    getEffectiveDecayRate(bloomsLevel: BloomsLevel, subLevel?: BloomsSubLevel): number;
+    /**
+     * Estimate days until mastery decays to a target score (Phase 6)
+     *
+     * @param currentScore - Current mastery score
+     * @param targetScore - Target score to decay to
+     * @param bloomsLevel - The Bloom's taxonomy level
+     * @param subLevel - Optional sub-level for more precise estimation
+     * @returns Estimated days until decay reaches target (after grace period)
+     */
+    estimateDaysUntilDecay(currentScore: number, targetScore: number, bloomsLevel: BloomsLevel, subLevel?: BloomsSubLevel): number;
     /**
      * Get topics needing review (mastery below threshold)
      */

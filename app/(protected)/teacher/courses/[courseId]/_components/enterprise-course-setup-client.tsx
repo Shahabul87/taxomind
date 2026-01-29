@@ -20,7 +20,8 @@ import {
   GraduationCap,
   Users,
   Clock,
-  Layers
+  Layers,
+  Brain
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Chapter, Course, Attachment, Category } from "@prisma/client";
@@ -47,6 +48,8 @@ import { CourseLearningOutcomeForm } from "./course-learning-outcome-form";
 import { ContextAwareFeatureRevealer } from "@/components/ui/context-aware-feature-revealer";
 import { BlueprintIntegration } from "./blueprint-integration";
 import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
+import { CognitiveRecommendationsPanel } from "@/components/teacher/cognitive-recommendations-panel";
+import { CourseBenchmarkCard } from "@/components/teacher/course-benchmark-card";
 
 interface Section {
   id: string;
@@ -874,11 +877,62 @@ export const EnterpriseCourseSetupClient = ({
           </div>
         </motion.div>
 
-        {/* Quick Link to Depth Analyzer */}
+        {/* Cognitive Quality Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8"
+        >
+          <div className={cn(
+            "rounded-xl overflow-hidden",
+            "bg-white/70 dark:bg-gray-900/70",
+            "border border-gray-200/70 dark:border-gray-800/70",
+            "backdrop-blur-md",
+            "shadow-md hover:shadow-lg transition-shadow duration-300"
+          )}>
+            {/* Card Header - Brain/Cognitive */}
+            <div className="p-3 sm:p-4 md:p-5 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-violet-50/50 to-indigo-50/30 dark:from-violet-950/20 dark:to-indigo-950/10">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
+                  <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
+                    Cognitive Quality
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 hidden sm:block">
+                    Bloom&apos;s Taxonomy analysis and improvement recommendations
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="p-3 sm:p-4 md:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* AI Recommendations Panel */}
+                <CognitiveRecommendationsPanel courseId={course.id} />
+
+                {/* Category Benchmark Card */}
+                {course.categoryId && (
+                  <CourseBenchmarkCard
+                    courseId={course.id}
+                    onViewRecommendations={() => {
+                      // Scroll to recommendations or open modal
+                      const el = document.querySelector('[data-recommendations-panel]');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Quick Link to Depth Analyzer */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
           className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8"
         >
           <Link href={`/teacher/depth-analyzer?courseId=${course.id}`}>

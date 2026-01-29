@@ -1,8 +1,12 @@
 import {
   EnhancedDepthAnalysisEngine,
+  ImageCognitiveAnalyzer,
+  VideoCognitiveAnalyzer,
   createEnhancedDepthAnalysisEngine,
+  createImageCognitiveAnalyzer,
+  createVideoCognitiveAnalyzer,
   enhancedDepthEngine
-} from "./chunk-GF2L6ICH.mjs";
+} from "./chunk-VYBSJ3HE.mjs";
 
 // src/engines/exam-engine.ts
 var AdvancedExamEngine = class {
@@ -13744,7 +13748,1220 @@ function createMarketEngine(config = {}) {
 
 // src/engines/unified-blooms-engine.ts
 import { z as z3 } from "zod";
-import { BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER } from "@sam-ai/core";
+import { BLOOMS_LEVELS as BLOOMS_LEVELS2, BLOOMS_LEVEL_ORDER as BLOOMS_LEVEL_ORDER2 } from "@sam-ai/core";
+
+// ../pedagogy/dist/index.mjs
+var BLOOMS_LEVEL_ORDER = [
+  "REMEMBER",
+  "UNDERSTAND",
+  "APPLY",
+  "ANALYZE",
+  "EVALUATE",
+  "CREATE"
+];
+function getBloomsLevelIndex(level) {
+  return BLOOMS_LEVEL_ORDER.indexOf(level);
+}
+var BLOOMS_SUB_LEVEL_ORDER = [
+  "BASIC",
+  "INTERMEDIATE",
+  "ADVANCED"
+];
+function getBloomsSubLevelIndex(subLevel) {
+  return BLOOMS_SUB_LEVEL_ORDER.indexOf(subLevel);
+}
+function calculateBloomsNumericScore(levelOrName, subLevel) {
+  const level = typeof levelOrName === "string" ? getBloomsLevelIndex(levelOrName) + 1 : levelOrName;
+  const subLevelIndex = getBloomsSubLevelIndex(subLevel);
+  const subLevelOffset = subLevelIndex === 0 ? 0 : subLevelIndex === 1 ? 0.3 : 0.7;
+  return Math.round((level + subLevelOffset) * 10) / 10;
+}
+function determineSubLevelFromIndicators(indicators) {
+  if (indicators.length === 0) {
+    return "BASIC";
+  }
+  const avgScore = indicators.reduce((sum, i) => sum + i.score, 0) / indicators.length;
+  if (avgScore >= 0.67) {
+    return "ADVANCED";
+  } else if (avgScore >= 0.34) {
+    return "INTERMEDIATE";
+  } else {
+    return "BASIC";
+  }
+}
+function createBloomsLabel(level, subLevel) {
+  const levelName = level.charAt(0) + level.slice(1).toLowerCase();
+  const subLevelName = subLevel.charAt(0) + subLevel.slice(1).toLowerCase();
+  return `${levelName} - ${subLevelName}`;
+}
+var SUB_LEVEL_COMPLEXITY_INDICATORS = {
+  BASIC: [
+    "single",
+    "simple",
+    "basic",
+    "one",
+    "individual",
+    "isolated",
+    "fundamental",
+    "elementary",
+    "straightforward",
+    "direct",
+    "single step",
+    "single concept",
+    "one example",
+    "familiar",
+    "routine",
+    "standard",
+    "given",
+    "provided",
+    "recall",
+    "recognize"
+  ],
+  INTERMEDIATE: [
+    "multiple",
+    "several",
+    "related",
+    "connected",
+    "combination",
+    "compare",
+    "some",
+    "various",
+    "moderate",
+    "modified",
+    "adapted",
+    "similar context",
+    "new example",
+    "different situation",
+    "pattern",
+    "sequence",
+    "relationship",
+    "procedure",
+    "method",
+    "technique"
+  ],
+  ADVANCED: [
+    "complex",
+    "interconnected",
+    "system",
+    "integrated",
+    "novel",
+    "unprecedented",
+    "unique",
+    "original",
+    "synthesize",
+    "abstract",
+    "theoretical",
+    "hypothetical",
+    "cross-domain",
+    "multidisciplinary",
+    "innovative",
+    "creative",
+    "comprehensive",
+    "holistic",
+    "emergent",
+    "transformative"
+  ]
+};
+var SUB_LEVEL_ABSTRACTION_INDICATORS = {
+  BASIC: [
+    "concrete",
+    "specific",
+    "example",
+    "instance",
+    "case",
+    "tangible",
+    "physical",
+    "visual",
+    "hands-on",
+    "practical",
+    "observable",
+    "measurable"
+  ],
+  INTERMEDIATE: [
+    "pattern",
+    "category",
+    "type",
+    "class",
+    "group",
+    "general",
+    "principle",
+    "concept",
+    "rule",
+    "guideline",
+    "framework",
+    "model"
+  ],
+  ADVANCED: [
+    "abstract",
+    "theoretical",
+    "conceptual",
+    "paradigm",
+    "meta",
+    "philosophical",
+    "epistemological",
+    "ontological",
+    "axiomatic",
+    "universal",
+    "transcendent",
+    "emergent"
+  ]
+};
+var SUB_LEVEL_TRANSFER_INDICATORS = {
+  BASIC: [
+    "same",
+    "identical",
+    "exact",
+    "similar",
+    "like before",
+    "as shown",
+    "as demonstrated",
+    "following the example",
+    "using the template",
+    "same context",
+    "familiar situation",
+    "known scenario"
+  ],
+  INTERMEDIATE: [
+    "similar context",
+    "related situation",
+    "modified",
+    "adapted",
+    "adjusted",
+    "varied",
+    "different example",
+    "alternative approach",
+    "comparable scenario",
+    "parallel case",
+    "analogous",
+    "corresponding"
+  ],
+  ADVANCED: [
+    "novel context",
+    "new situation",
+    "unfamiliar",
+    "unprecedented",
+    "unique scenario",
+    "different domain",
+    "cross-disciplinary",
+    "transfer",
+    "generalize",
+    "extrapolate",
+    "innovative application",
+    "original context"
+  ]
+};
+var SUB_LEVEL_NOVELTY_INDICATORS = {
+  BASIC: [
+    "familiar",
+    "known",
+    "recognized",
+    "standard",
+    "typical",
+    "common",
+    "usual",
+    "expected",
+    "routine",
+    "practiced",
+    "rehearsed",
+    "memorized"
+  ],
+  INTERMEDIATE: [
+    "modified",
+    "variation",
+    "adapted",
+    "adjusted",
+    "changed",
+    "altered",
+    "different",
+    "new variation",
+    "alternative",
+    "updated",
+    "revised",
+    "improved"
+  ],
+  ADVANCED: [
+    "novel",
+    "unprecedented",
+    "original",
+    "innovative",
+    "creative",
+    "unique",
+    "groundbreaking",
+    "pioneering",
+    "inventive",
+    "unconventional",
+    "revolutionary",
+    "cutting-edge"
+  ]
+};
+var SubLevelAnalyzer = class {
+  /**
+   * Analyze content for sub-level indicators
+   */
+  analyze(content) {
+    const lowerContent = content.toLowerCase();
+    const indicators = [];
+    const complexityResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_COMPLEXITY_INDICATORS,
+      "complexity"
+    );
+    indicators.push(complexityResult);
+    const abstractionResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_ABSTRACTION_INDICATORS,
+      "abstraction"
+    );
+    indicators.push(abstractionResult);
+    const transferResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_TRANSFER_INDICATORS,
+      "transfer"
+    );
+    indicators.push(transferResult);
+    const noveltyResult = this.analyzeIndicatorType(
+      lowerContent,
+      SUB_LEVEL_NOVELTY_INDICATORS,
+      "novelty"
+    );
+    indicators.push(noveltyResult);
+    return indicators;
+  }
+  /**
+   * Analyze a specific indicator type
+   */
+  analyzeIndicatorType(content, indicators, type) {
+    let basicCount = 0;
+    let intermediateCount = 0;
+    let advancedCount = 0;
+    const evidence = [];
+    for (const indicator of indicators.BASIC) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      const matches = content.match(regex);
+      if (matches) {
+        basicCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+    for (const indicator of indicators.INTERMEDIATE) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      const matches = content.match(regex);
+      if (matches) {
+        intermediateCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+    for (const indicator of indicators.ADVANCED) {
+      const regex = new RegExp(`\\b${indicator.replace(/\s+/g, "\\s+")}\\b`, "gi");
+      const matches = content.match(regex);
+      if (matches) {
+        advancedCount += matches.length;
+        if (evidence.length < 3) {
+          evidence.push(`"${indicator}" (${matches.length}x)`);
+        }
+      }
+    }
+    const totalWeighted = basicCount + intermediateCount * 2 + advancedCount * 3;
+    const maxPossible = basicCount + intermediateCount * 2 + advancedCount * 3 || 1;
+    let score;
+    if (totalWeighted === 0) {
+      score = 0.5;
+    } else {
+      const advancedWeight = advancedCount * 3 / maxPossible;
+      const intermediateWeight = intermediateCount * 2 / maxPossible;
+      const basicWeight = basicCount / maxPossible;
+      score = basicWeight * 0.17 + intermediateWeight * 0.5 + advancedWeight * 0.83;
+      score = Math.max(0, Math.min(1, score));
+    }
+    return {
+      type,
+      score,
+      evidence: evidence.join(", ") || "No specific indicators found"
+    };
+  }
+  /**
+   * Get enhanced Bloom&apos;s result with sub-level information
+   */
+  getEnhancedResult(level, confidence, content) {
+    const indicators = this.analyze(content);
+    const subLevel = determineSubLevelFromIndicators(indicators);
+    const levelNumeric = getBloomsLevelIndex(level) + 1;
+    const subLevelNumeric = getBloomsSubLevelIndex(subLevel);
+    const numericScore = calculateBloomsNumericScore(level, subLevel);
+    const label = createBloomsLabel(level, subLevel);
+    return {
+      level,
+      levelNumeric,
+      subLevel,
+      subLevelNumeric,
+      numericScore,
+      confidence,
+      indicators,
+      label
+    };
+  }
+};
+function createSubLevelAnalyzer() {
+  return new SubLevelAnalyzer();
+}
+
+// src/semantic-blooms-classifier.ts
+import { BLOOMS_LEVELS } from "@sam-ai/core";
+var AMBIGUOUS_VERBS = {
+  // "explain" can be UNDERSTAND, EVALUATE, or CREATE depending on context
+  explain: ["UNDERSTAND", "EVALUATE", "CREATE"],
+  describe: ["REMEMBER", "UNDERSTAND", "ANALYZE"],
+  demonstrate: ["UNDERSTAND", "APPLY"],
+  show: ["REMEMBER", "UNDERSTAND", "APPLY"],
+  discuss: ["UNDERSTAND", "ANALYZE", "EVALUATE"],
+  interpret: ["UNDERSTAND", "ANALYZE"],
+  compare: ["UNDERSTAND", "ANALYZE"],
+  contrast: ["UNDERSTAND", "ANALYZE"],
+  examine: ["ANALYZE", "EVALUATE"],
+  investigate: ["ANALYZE", "EVALUATE"],
+  develop: ["APPLY", "CREATE"],
+  construct: ["APPLY", "CREATE"],
+  produce: ["APPLY", "CREATE"],
+  modify: ["APPLY", "CREATE"],
+  design: ["APPLY", "CREATE"],
+  plan: ["APPLY", "ANALYZE", "CREATE"],
+  organize: ["UNDERSTAND", "ANALYZE"],
+  categorize: ["UNDERSTAND", "ANALYZE"],
+  classify: ["UNDERSTAND", "ANALYZE"],
+  distinguish: ["UNDERSTAND", "ANALYZE"],
+  illustrate: ["UNDERSTAND", "APPLY"],
+  calculate: ["APPLY", "ANALYZE"],
+  experiment: ["APPLY", "ANALYZE"],
+  test: ["APPLY", "ANALYZE", "EVALUATE"],
+  assess: ["ANALYZE", "EVALUATE"],
+  critique: ["ANALYZE", "EVALUATE"],
+  judge: ["ANALYZE", "EVALUATE"],
+  recommend: ["EVALUATE", "CREATE"],
+  formulate: ["APPLY", "CREATE"],
+  hypothesize: ["ANALYZE", "CREATE"],
+  predict: ["UNDERSTAND", "ANALYZE"],
+  infer: ["UNDERSTAND", "ANALYZE"],
+  conclude: ["ANALYZE", "EVALUATE"],
+  justify: ["ANALYZE", "EVALUATE"],
+  support: ["ANALYZE", "EVALUATE"],
+  argue: ["ANALYZE", "EVALUATE"]
+};
+var REFERENCE_PHRASES = {
+  REMEMBER: [
+    "Define the key terms and vocabulary",
+    "List the main facts and figures",
+    "Recall the basic information",
+    "Identify the correct answer from options",
+    "Name the components of the system",
+    "State the definition of the concept",
+    "Recognize the pattern in the data",
+    "Match the terms with their definitions",
+    "Label the parts of the diagram",
+    "Select the correct formula",
+    "Memorize the sequence of steps",
+    "Recite the important dates",
+    "Outline the main points",
+    "Duplicate the process exactly",
+    "Reproduce the chart or graph",
+    "Record the observations",
+    "Tell what happened in order",
+    "Locate the information in the text",
+    "Quote the exact passage",
+    "Repeat the procedure as shown",
+    "Write the basic formula",
+    "Copy the model provided",
+    "Fill in the blanks with facts",
+    "List all items in the category",
+    "Point to the correct answer",
+    "Who, what, when, where questions",
+    "True or false statements",
+    "Multiple choice recognition",
+    "Flashcard-style recall",
+    "Simple factual questions"
+  ],
+  UNDERSTAND: [
+    "Explain the main idea in your own words",
+    "Summarize the key points of the passage",
+    "Interpret the meaning of the data",
+    "Describe how the process works",
+    "Compare and contrast two concepts",
+    "Paraphrase the complex explanation",
+    "Classify items into categories",
+    "Distinguish between similar concepts",
+    "Predict what might happen next",
+    "Give an example of the concept",
+    "Illustrate the idea with a diagram",
+    "Translate the technical terms",
+    "Rewrite in simpler language",
+    "Generalize the pattern you observe",
+    "Infer the meaning from context",
+    "Extend the concept to new situations",
+    "Convert the information to another form",
+    "Discuss why this is important",
+    "Relate this to what you already know",
+    "Express the concept differently",
+    "What is the main idea?",
+    "How would you explain this to someone?",
+    "Why does this happen?",
+    "What is the significance of this?",
+    "How are these similar or different?",
+    "What does this represent?",
+    "Clarify the misunderstanding",
+    "Elaborate on the explanation",
+    "Recognize the underlying meaning",
+    "Associate concepts together"
+  ],
+  APPLY: [
+    "Apply the formula to solve the problem",
+    "Use the method in a new situation",
+    "Demonstrate how to perform the task",
+    "Solve the practical problem using concepts",
+    "Implement the algorithm in code",
+    "Execute the procedure correctly",
+    "Calculate the result using the equation",
+    "Complete the exercise using learned skills",
+    "Practice the technique in a simulation",
+    "Show how the theory works in practice",
+    "Operate the equipment or software",
+    "Produce a working solution",
+    "Construct a model using the principles",
+    "Modify the approach for different context",
+    "Schedule tasks using the framework",
+    "Illustrate with a working example",
+    "Experiment with different variables",
+    "Handle a real-world scenario",
+    "Carry out the steps correctly",
+    "Apply knowledge to everyday situations",
+    "How would you use this in real life?",
+    "What approach would you take?",
+    "Can you solve this problem?",
+    "Show me how it works",
+    "Practice applying the concept",
+    "Use the skill in context",
+    "Execute the plan you developed",
+    "Perform the task independently",
+    "Work through the example",
+    "Try this yourself now"
+  ],
+  ANALYZE: [
+    "Analyze the structure of the argument",
+    "Break down the problem into components",
+    "Identify the underlying assumptions",
+    "Examine the relationship between variables",
+    "Differentiate between fact and opinion",
+    "Organize information into a framework",
+    "Compare different approaches systematically",
+    "Investigate the root cause of the issue",
+    "Question the validity of the claim",
+    "Categorize based on specific criteria",
+    "Deconstruct the complex system",
+    "Find patterns in the data",
+    "Determine the key factors",
+    "Distinguish cause from effect",
+    "Survey the available evidence",
+    "Attribute outcomes to specific causes",
+    "Correlate variables in the dataset",
+    "Diagram the relationships",
+    "Dissect the argument into parts",
+    "Test the hypothesis with evidence",
+    "What are the underlying patterns?",
+    "How do these parts relate?",
+    "What evidence supports this?",
+    "Why did this happen?",
+    "What factors contributed?",
+    "How can we explain this relationship?",
+    "What is the structure here?",
+    "Identify the components and connections",
+    "Trace the cause and effect chain",
+    "Map out the dependencies"
+  ],
+  EVALUATE: [
+    "Evaluate the effectiveness of the solution",
+    "Judge the quality of the argument",
+    "Critique the methodology used",
+    "Assess the strengths and weaknesses",
+    "Justify your position with evidence",
+    "Argue for or against the proposal",
+    "Defend your conclusion",
+    "Rate the options based on criteria",
+    "Prioritize the recommendations",
+    "Validate the results are accurate",
+    "Recommend the best approach",
+    "Decide which option is optimal",
+    "Value the importance of each factor",
+    "Determine if the conclusion is sound",
+    "Appraise the quality of work",
+    "Criticize the flaws in reasoning",
+    "Support your evaluation with reasons",
+    "Measure against the standards",
+    "Discriminate between quality levels",
+    "Conclude based on your assessment",
+    "What is your opinion and why?",
+    "Which approach is better?",
+    "How would you improve this?",
+    "Is this valid or reliable?",
+    "What are the pros and cons?",
+    "Would you agree or disagree?",
+    "How effective was this?",
+    "Make a judgment call",
+    "Weigh the evidence",
+    "Provide a critical review"
+  ],
+  CREATE: [
+    "Create an original solution to the problem",
+    "Design a new system or process",
+    "Develop an innovative approach",
+    "Invent a novel method",
+    "Compose a unique piece",
+    "Generate new ideas or hypotheses",
+    "Plan a comprehensive project",
+    "Construct something entirely new",
+    "Formulate a new theory",
+    "Build a prototype from scratch",
+    "Synthesize ideas into something new",
+    "Author an original work",
+    "Devise a creative strategy",
+    "Combine elements in new ways",
+    "Produce original content",
+    "Assemble components innovatively",
+    "Integrate different concepts creatively",
+    "Reorganize into a new structure",
+    "Modify extensively to create something new",
+    "Compile a new comprehensive resource",
+    "What new thing can you create?",
+    "How would you design this?",
+    "Propose a novel solution",
+    "Imagine a better approach",
+    "What if you started from scratch?",
+    "Create your own version",
+    "Invent a new way to do this",
+    "Develop an original framework",
+    "Compose a new strategy",
+    "Generate innovative possibilities"
+  ]
+};
+var SemanticBloomsClassifier = class {
+  config;
+  embeddingCache = /* @__PURE__ */ new Map();
+  referenceEmbeddings = /* @__PURE__ */ new Map();
+  referenceEmbeddingsLoaded = false;
+  loadingPromise = null;
+  constructor(config = {}) {
+    this.config = {
+      minSimilarityThreshold: config.minSimilarityThreshold ?? 0.75,
+      embeddingProvider: config.embeddingProvider ?? null,
+      cacheTTL: config.cacheTTL ?? 24 * 60 * 60 * 1e3,
+      // 24 hours
+      maxCacheEntries: config.maxCacheEntries ?? 5e3,
+      debug: config.debug ?? false
+    };
+  }
+  /**
+   * Check if an embedding provider is configured
+   */
+  hasEmbeddingProvider() {
+    return this.config.embeddingProvider !== null;
+  }
+  /**
+   * Set the embedding provider
+   */
+  setEmbeddingProvider(provider) {
+    this.config.embeddingProvider = provider;
+  }
+  /**
+   * Check if a verb is ambiguous (can indicate multiple levels)
+   */
+  isAmbiguousVerb(verb) {
+    const normalizedVerb = verb.toLowerCase().trim();
+    return normalizedVerb in AMBIGUOUS_VERBS;
+  }
+  /**
+   * Get possible levels for an ambiguous verb
+   */
+  getPossibleLevels(verb) {
+    const normalizedVerb = verb.toLowerCase().trim();
+    return AMBIGUOUS_VERBS[normalizedVerb] ?? [];
+  }
+  /**
+   * Extract verbs from content for analysis
+   */
+  extractVerbs(content) {
+    const words = content.toLowerCase().split(/\s+/);
+    const verbs = [];
+    for (const word of words) {
+      const cleaned = word.replace(/[^a-z]/g, "");
+      if (cleaned in AMBIGUOUS_VERBS) {
+        verbs.push(cleaned);
+      }
+    }
+    return [...new Set(verbs)];
+  }
+  /**
+   * Load reference embeddings for all Bloom's levels
+   * This should be called once during initialization
+   */
+  async loadReferenceEmbeddings() {
+    if (this.loadingPromise) {
+      return this.loadingPromise;
+    }
+    if (this.referenceEmbeddingsLoaded) {
+      return;
+    }
+    if (!this.hasEmbeddingProvider()) {
+      throw new Error("No embedding provider configured");
+    }
+    this.loadingPromise = this.doLoadReferenceEmbeddings();
+    await this.loadingPromise;
+  }
+  async doLoadReferenceEmbeddings() {
+    const provider = this.config.embeddingProvider;
+    const allPhrases = [];
+    const levelIndices = /* @__PURE__ */ new Map();
+    let currentIndex = 0;
+    for (const level of BLOOMS_LEVELS) {
+      const phrases = REFERENCE_PHRASES[level];
+      const start = currentIndex;
+      allPhrases.push(...phrases);
+      currentIndex += phrases.length;
+      levelIndices.set(level, { start, end: currentIndex });
+    }
+    if (this.config.debug) {
+      console.log(`[SemanticBloomsClassifier] Loading ${allPhrases.length} reference embeddings...`);
+    }
+    try {
+      const allEmbeddings = await provider.embedBatch(allPhrases);
+      for (const level of BLOOMS_LEVELS) {
+        const indices = levelIndices.get(level);
+        if (indices) {
+          const levelEmbeddings = allEmbeddings.slice(indices.start, indices.end);
+          this.referenceEmbeddings.set(level, levelEmbeddings);
+        }
+      }
+      this.referenceEmbeddingsLoaded = true;
+      if (this.config.debug) {
+        console.log("[SemanticBloomsClassifier] Reference embeddings loaded successfully");
+      }
+    } catch (error) {
+      this.loadingPromise = null;
+      throw error;
+    }
+  }
+  /**
+   * Classify content using semantic similarity
+   */
+  async classify(content) {
+    const startTime = Date.now();
+    if (!this.referenceEmbeddingsLoaded) {
+      await this.loadReferenceEmbeddings();
+    }
+    const contentEmbedding = await this.getEmbedding(content);
+    const similarityScores = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    let maxSimilarity = 0;
+    let bestLevel = "UNDERSTAND";
+    let bestReferenceIndex = 0;
+    for (const level of BLOOMS_LEVELS) {
+      const levelEmbeddings = this.referenceEmbeddings.get(level);
+      if (!levelEmbeddings) continue;
+      let levelMaxSimilarity = 0;
+      let levelBestIndex = 0;
+      for (let i = 0; i < levelEmbeddings.length; i++) {
+        const similarity = this.cosineSimilarity(contentEmbedding, levelEmbeddings[i]);
+        if (similarity > levelMaxSimilarity) {
+          levelMaxSimilarity = similarity;
+          levelBestIndex = i;
+        }
+      }
+      similarityScores[level] = levelMaxSimilarity;
+      if (levelMaxSimilarity > maxSimilarity) {
+        maxSimilarity = levelMaxSimilarity;
+        bestLevel = level;
+        bestReferenceIndex = levelBestIndex;
+      }
+    }
+    const sortedScores = Object.values(similarityScores).sort((a, b) => b - a);
+    const margin = sortedScores[0] - sortedScores[1];
+    const confidence = Math.min(1, 0.5 + margin * 2 + maxSimilarity * 0.3);
+    return {
+      level: bestLevel,
+      confidence: Math.round(confidence * 100) / 100,
+      similarityScores,
+      disambiguated: maxSimilarity >= this.config.minSimilarityThreshold,
+      matchedReferenceIndex: bestReferenceIndex,
+      processingTimeMs: Date.now() - startTime
+    };
+  }
+  /**
+   * Disambiguate an ambiguous verb based on its context
+   */
+  async disambiguateVerb(verb, context) {
+    if (!this.isAmbiguousVerb(verb)) {
+      return {
+        level: "UNDERSTAND",
+        confidence: 0.5,
+        similarityScores: {
+          REMEMBER: 0,
+          UNDERSTAND: 0.5,
+          APPLY: 0,
+          ANALYZE: 0,
+          EVALUATE: 0,
+          CREATE: 0
+        },
+        disambiguated: false,
+        processingTimeMs: 0
+      };
+    }
+    return this.classify(context);
+  }
+  /**
+   * Batch classify multiple pieces of content
+   */
+  async classifyBatch(contents) {
+    const results = [];
+    for (const content of contents) {
+      const result = await this.classify(content);
+      results.push(result);
+    }
+    return results;
+  }
+  /**
+   * Get embedding for text (with caching)
+   */
+  async getEmbedding(text) {
+    const cacheKey = this.hashString(text);
+    const cached = this.embeddingCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.embedding;
+    }
+    const embedding = await this.config.embeddingProvider.embed(text);
+    this.setEmbeddingCache(cacheKey, embedding);
+    return embedding;
+  }
+  /**
+   * Set embedding in cache
+   */
+  setEmbeddingCache(key, embedding) {
+    if (this.embeddingCache.size >= this.config.maxCacheEntries) {
+      this.evictOldestEntries(100);
+    }
+    this.embeddingCache.set(key, {
+      embedding,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + this.config.cacheTTL
+    });
+  }
+  /**
+   * Evict oldest cache entries
+   */
+  evictOldestEntries(count) {
+    const entries = Array.from(this.embeddingCache.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    for (let i = 0; i < count && i < entries.length; i++) {
+      this.embeddingCache.delete(entries[i][0]);
+    }
+  }
+  /**
+   * Calculate cosine similarity between two vectors
+   */
+  cosineSimilarity(a, b) {
+    if (a.length !== b.length) {
+      throw new Error("Vectors must have same length");
+    }
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < a.length; i++) {
+      dotProduct += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    normA = Math.sqrt(normA);
+    normB = Math.sqrt(normB);
+    if (normA === 0 || normB === 0) {
+      return 0;
+    }
+    return dotProduct / (normA * normB);
+  }
+  /**
+   * Simple string hash function
+   */
+  hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+  }
+  /**
+   * Clear the embedding cache
+   */
+  clearCache() {
+    this.embeddingCache.clear();
+  }
+  /**
+   * Get cache statistics
+   */
+  getCacheStats() {
+    return {
+      size: this.embeddingCache.size,
+      maxSize: this.config.maxCacheEntries
+    };
+  }
+  /**
+   * Check if reference embeddings are loaded
+   */
+  isReady() {
+    return this.referenceEmbeddingsLoaded;
+  }
+};
+function createSemanticBloomsClassifier(config) {
+  return new SemanticBloomsClassifier(config);
+}
+function createSemanticBloomsClassifierWithProvider(embeddingProvider, config) {
+  return new SemanticBloomsClassifier({
+    ...config,
+    embeddingProvider
+  });
+}
+
+// src/calibration/blooms-calibrator.ts
+import { createHash } from "crypto";
+var BloomsCalibrator = class {
+  config;
+  store;
+  // In-memory cache for fast access
+  metricsCache = null;
+  metricsCacheTime = 0;
+  METRICS_CACHE_TTL = 60 * 60 * 1e3;
+  // 1 hour
+  constructor(config = {}, store) {
+    this.config = {
+      minSamplesForCalibration: config.minSamplesForCalibration ?? 100,
+      numConfidenceBuckets: config.numConfidenceBuckets ?? 10,
+      maxAdjustmentFactor: config.maxAdjustmentFactor ?? 0.3,
+      expertFeedbackWeight: config.expertFeedbackWeight ?? 3,
+      implicitPositiveThreshold: config.implicitPositiveThreshold ?? 0.7
+    };
+    this.store = store ?? null;
+  }
+  /**
+   * Generate a content hash for deduplication
+   */
+  hashContent(content) {
+    return createHash("sha256").update(content.trim().toLowerCase()).digest("hex");
+  }
+  /**
+   * Record feedback for a classification
+   */
+  async recordFeedback(input) {
+    if (!this.store) {
+      return null;
+    }
+    const contentHash = this.hashContent(input.content);
+    const feedbackId = await this.store.saveFeedback({
+      ...input,
+      contentHash
+    });
+    this.metricsCache = null;
+    return feedbackId;
+  }
+  /**
+   * Calculate calibration metrics from feedback data
+   */
+  async calculateMetrics(startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3), endDate = /* @__PURE__ */ new Date()) {
+    const accuracyByLevel = {};
+    const calibrationBuckets = {};
+    for (let level = 1; level <= 6; level++) {
+      accuracyByLevel[level] = { correct: 0, total: 0, accuracy: 0 };
+    }
+    for (let i = 0; i < this.config.numConfidenceBuckets; i++) {
+      const bucketStart = i / this.config.numConfidenceBuckets;
+      const bucketEnd = (i + 1) / this.config.numConfidenceBuckets;
+      const key = `${bucketStart.toFixed(1)}-${bucketEnd.toFixed(1)}`;
+      calibrationBuckets[key] = {
+        correct: 0,
+        total: 0,
+        avgConfidence: 0,
+        avgAccuracy: 0,
+        confidenceSum: 0
+      };
+    }
+    const feedback = this.store ? await this.store.getFeedbackInRange(startDate, endDate) : [];
+    let totalCorrect = 0;
+    let totalVerified = 0;
+    for (const entry of feedback) {
+      const isCorrect = this.evaluateFeedback(entry);
+      if (isCorrect === null) continue;
+      const weight = entry.feedbackType === "EXPERT" ? this.config.expertFeedbackWeight : 1;
+      if (accuracyByLevel[entry.predictedLevel]) {
+        accuracyByLevel[entry.predictedLevel].total += weight;
+        if (isCorrect) {
+          accuracyByLevel[entry.predictedLevel].correct += weight;
+          totalCorrect += weight;
+        }
+        totalVerified += weight;
+      }
+      const bucketIndex = Math.min(
+        Math.floor(entry.predictedConfidence * this.config.numConfidenceBuckets),
+        this.config.numConfidenceBuckets - 1
+      );
+      const bucketStart = bucketIndex / this.config.numConfidenceBuckets;
+      const bucketEnd = (bucketIndex + 1) / this.config.numConfidenceBuckets;
+      const bucketKey = `${bucketStart.toFixed(1)}-${bucketEnd.toFixed(1)}`;
+      if (calibrationBuckets[bucketKey]) {
+        calibrationBuckets[bucketKey].total += weight;
+        calibrationBuckets[bucketKey].confidenceSum += entry.predictedConfidence * weight;
+        if (isCorrect) {
+          calibrationBuckets[bucketKey].correct += weight;
+        }
+      }
+    }
+    const overallAccuracy = totalVerified > 0 ? totalCorrect / totalVerified : 0;
+    for (const level of Object.keys(accuracyByLevel)) {
+      const levelData = accuracyByLevel[parseInt(level)];
+      levelData.accuracy = levelData.total > 0 ? levelData.correct / levelData.total : 0;
+    }
+    let ece = 0;
+    let mce = 0;
+    for (const key of Object.keys(calibrationBuckets)) {
+      const bucket = calibrationBuckets[key];
+      if (bucket.total > 0) {
+        bucket.avgConfidence = bucket.confidenceSum / bucket.total;
+        bucket.avgAccuracy = bucket.correct / bucket.total;
+        const calibrationError = Math.abs(bucket.avgAccuracy - bucket.avgConfidence);
+        const bucketWeight = bucket.total / (totalVerified || 1);
+        ece += calibrationError * bucketWeight;
+        mce = Math.max(mce, calibrationError);
+      }
+      delete bucket.confidenceSum;
+    }
+    const levelAdjustments = this.calculateLevelAdjustments(accuracyByLevel, overallAccuracy);
+    const confidenceAdjustment = this.calculateConfidenceAdjustment(
+      calibrationBuckets,
+      totalVerified
+    );
+    return {
+      totalSamples: feedback.length,
+      overallAccuracy,
+      expectedCalibrationError: ece,
+      maxCalibrationError: mce,
+      accuracyByLevel,
+      calibrationBuckets,
+      levelAdjustments,
+      confidenceAdjustment
+    };
+  }
+  /**
+   * Evaluate if a feedback entry indicates correct prediction
+   */
+  evaluateFeedback(entry) {
+    switch (entry.feedbackType) {
+      case "EXPLICIT":
+      case "EXPERT":
+        if (entry.actualLevel !== void 0) {
+          return entry.predictedLevel === entry.actualLevel;
+        }
+        return null;
+      case "IMPLICIT":
+        if (entry.assessmentOutcome !== void 0) {
+          return entry.assessmentOutcome >= this.config.implicitPositiveThreshold;
+        }
+        return null;
+      default:
+        return null;
+    }
+  }
+  /**
+   * Calculate level-specific adjustments
+   */
+  calculateLevelAdjustments(accuracyByLevel, overallAccuracy) {
+    const adjustments = {};
+    for (let level = 1; level <= 6; level++) {
+      const levelData = accuracyByLevel[level];
+      if (levelData.total < 10) {
+        adjustments[level] = 0;
+        continue;
+      }
+      const rawAdjustment = levelData.accuracy - overallAccuracy;
+      adjustments[level] = Math.max(
+        -this.config.maxAdjustmentFactor,
+        Math.min(this.config.maxAdjustmentFactor, rawAdjustment)
+      );
+    }
+    return adjustments;
+  }
+  /**
+   * Calculate global confidence adjustment
+   */
+  calculateConfidenceAdjustment(calibrationBuckets, totalSamples) {
+    if (totalSamples < this.config.minSamplesForCalibration) {
+      return 0;
+    }
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const bucket of Object.values(calibrationBuckets)) {
+      if (bucket.total > 0) {
+        const diff = bucket.avgAccuracy - bucket.avgConfidence;
+        weightedSum += diff * bucket.total;
+        totalWeight += bucket.total;
+      }
+    }
+    if (totalWeight === 0) return 0;
+    const rawAdjustment = weightedSum / totalWeight;
+    return Math.max(
+      -this.config.maxAdjustmentFactor,
+      Math.min(this.config.maxAdjustmentFactor, rawAdjustment)
+    );
+  }
+  /**
+   * Get cached or fresh calibration metrics
+   */
+  async getMetrics() {
+    if (this.metricsCache && Date.now() - this.metricsCacheTime < this.METRICS_CACHE_TTL) {
+      return this.metricsCache;
+    }
+    if (this.store) {
+      const storedMetrics = await this.store.getLatestMetrics();
+      if (storedMetrics) {
+        this.metricsCache = storedMetrics;
+        this.metricsCacheTime = Date.now();
+        return storedMetrics;
+      }
+    }
+    const metrics = await this.calculateMetrics();
+    this.metricsCache = metrics;
+    this.metricsCacheTime = Date.now();
+    return metrics;
+  }
+  /**
+   * Apply calibration to a classification result
+   */
+  async calibrate(predictedLevel, predictedConfidence) {
+    const metrics = await this.getMetrics();
+    if (!metrics || metrics.totalSamples < this.config.minSamplesForCalibration) {
+      return {
+        originalLevel: predictedLevel,
+        calibratedLevel: predictedLevel,
+        originalConfidence: predictedConfidence,
+        calibratedConfidence: predictedConfidence,
+        levelAdjustment: 0,
+        calibrationApplied: false
+      };
+    }
+    const levelAdjustment = metrics.levelAdjustments[predictedLevel] || 0;
+    let calibratedConfidence = predictedConfidence + metrics.confidenceAdjustment + levelAdjustment;
+    calibratedConfidence = Math.max(0, Math.min(1, calibratedConfidence));
+    let calibratedLevel = predictedLevel;
+    if (calibratedConfidence < 0.3 && metrics.levelAdjustments[predictedLevel] < -0.1) {
+      const prevLevel = predictedLevel - 1;
+      const nextLevel = predictedLevel + 1;
+      const prevAccuracy = metrics.accuracyByLevel[prevLevel]?.accuracy || 0;
+      const nextAccuracy = metrics.accuracyByLevel[nextLevel]?.accuracy || 0;
+      const currentAccuracy = metrics.accuracyByLevel[predictedLevel]?.accuracy || 0;
+      if (prevLevel >= 1 && prevAccuracy > currentAccuracy + 0.1) {
+        calibratedLevel = prevLevel;
+      } else if (nextLevel <= 6 && nextAccuracy > currentAccuracy + 0.1) {
+        calibratedLevel = nextLevel;
+      }
+    }
+    return {
+      originalLevel: predictedLevel,
+      calibratedLevel,
+      originalConfidence: predictedConfidence,
+      calibratedConfidence,
+      levelAdjustment,
+      calibrationApplied: true
+    };
+  }
+  /**
+   * Check if enough data exists for reliable calibration
+   */
+  async hasEnoughData() {
+    const metrics = await this.getMetrics();
+    return (metrics?.totalSamples ?? 0) >= this.config.minSamplesForCalibration;
+  }
+  /**
+   * Get calibration health status
+   */
+  async getHealthStatus() {
+    const metrics = await this.getMetrics();
+    if (!metrics) {
+      return {
+        hasEnoughData: false,
+        totalSamples: 0,
+        overallAccuracy: 0,
+        calibrationQuality: "insufficient",
+        expectedCalibrationError: 1
+      };
+    }
+    let quality;
+    if (metrics.totalSamples < this.config.minSamplesForCalibration) {
+      quality = "insufficient";
+    } else if (metrics.expectedCalibrationError < 0.05) {
+      quality = "good";
+    } else if (metrics.expectedCalibrationError < 0.15) {
+      quality = "moderate";
+    } else {
+      quality = "poor";
+    }
+    return {
+      hasEnoughData: metrics.totalSamples >= this.config.minSamplesForCalibration,
+      totalSamples: metrics.totalSamples,
+      overallAccuracy: metrics.overallAccuracy,
+      calibrationQuality: quality,
+      expectedCalibrationError: metrics.expectedCalibrationError
+    };
+  }
+  /**
+   * Clear the metrics cache
+   */
+  clearCache() {
+    this.metricsCache = null;
+    this.metricsCacheTime = 0;
+  }
+};
+function createBloomsCalibrator(config, store) {
+  return new BloomsCalibrator(config, store);
+}
+function bloomsLevelToNumber(level) {
+  const mapping = {
+    REMEMBER: 1,
+    UNDERSTAND: 2,
+    APPLY: 3,
+    ANALYZE: 4,
+    EVALUATE: 5,
+    CREATE: 6
+  };
+  return mapping[level] || 1;
+}
+function numberToBloomsLevel(num) {
+  const mapping = {
+    1: "REMEMBER",
+    2: "UNDERSTAND",
+    3: "APPLY",
+    4: "ANALYZE",
+    5: "EVALUATE",
+    6: "CREATE"
+  };
+  return mapping[num] || "REMEMBER";
+}
+function hashContent(content) {
+  return createHash("sha256").update(content.trim().toLowerCase()).digest("hex");
+}
+
+// src/engines/unified-blooms-engine.ts
 var BLOOMS_KEYWORDS2 = {
   REMEMBER: [
     "define",
@@ -13910,6 +15127,15 @@ var UnifiedBloomsEngine = class {
   cache = /* @__PURE__ */ new Map();
   cacheHits = 0;
   cacheMisses = 0;
+  // Sub-level analyzer for granular Bloom's classification (Phase 1)
+  subLevelAnalyzer;
+  // Semantic classifier for verb disambiguation (Phase 2)
+  semanticClassifier;
+  enableSemanticDisambiguation;
+  semanticClassifierReady = false;
+  // Calibrator for confidence adjustment (Phase 5)
+  calibrator;
+  enableCalibration;
   constructor(config) {
     this.config = config.samConfig;
     this.database = config.database;
@@ -13917,6 +15143,39 @@ var UnifiedBloomsEngine = class {
     this.confidenceThreshold = config.confidenceThreshold ?? 0.7;
     this.enableCache = config.enableCache ?? true;
     this.cacheTTL = (config.cacheTTL ?? 3600) * 1e3;
+    this.subLevelAnalyzer = createSubLevelAnalyzer();
+    this.enableSemanticDisambiguation = config.enableSemanticDisambiguation ?? false;
+    this.semanticClassifier = createSemanticBloomsClassifier({
+      embeddingProvider: config.embeddingProvider,
+      cacheTTL: this.cacheTTL
+    });
+    if (this.enableSemanticDisambiguation && config.embeddingProvider) {
+      this.initializeSemanticClassifier();
+    }
+    this.enableCalibration = config.enableCalibration ?? false;
+    this.calibrator = createBloomsCalibrator(
+      {
+        minSamplesForCalibration: config.calibrationMinSamples ?? 100,
+        maxAdjustmentFactor: config.calibrationMaxAdjustment ?? 0.3
+      },
+      config.calibratorStore
+    );
+  }
+  /**
+   * Initialize the semantic classifier asynchronously
+   * Loads reference embeddings for all Bloom's levels
+   */
+  async initializeSemanticClassifier() {
+    try {
+      await this.semanticClassifier.loadReferenceEmbeddings();
+      this.semanticClassifierReady = true;
+      this.config.logger?.debug?.("[UnifiedBloomsEngine] Semantic classifier initialized");
+    } catch (error) {
+      this.config.logger?.warn?.(
+        "[UnifiedBloomsEngine] Failed to initialize semantic classifier",
+        error
+      );
+    }
   }
   // ============================================================================
   // PUBLIC API - QUICK CLASSIFY
@@ -13943,6 +15202,11 @@ var UnifiedBloomsEngine = class {
    * In 'standard' mode: keyword analysis, AI escalation if confidence < threshold
    * In 'comprehensive' mode: full AI semantic analysis
    *
+   * Phase 2: Semantic disambiguation is automatically applied when:
+   * - Embedding provider is configured and ready
+   * - Ambiguous verbs are detected in the content
+   * - Confidence from keyword analysis is below threshold
+   *
    * @param content - Text content to analyze
    * @param options - Analysis options
    * @returns Unified analysis result
@@ -13968,14 +15232,90 @@ var UnifiedBloomsEngine = class {
       return result;
     }
     if (mode === "standard" && !options.forceAI) {
-      const keywordResult = this.analyzeWithKeywords(content, options, startTime);
+      let keywordResult = this.analyzeWithKeywords(content, options, startTime);
       const threshold = options.confidenceThreshold ?? this.confidenceThreshold;
+      const useSemanticDisambiguation = options.useSemanticDisambiguation !== false && this.enableSemanticDisambiguation && this.semanticClassifierReady;
+      if (keywordResult.confidence < threshold && keywordResult.ambiguousVerbsFound && keywordResult.ambiguousVerbsFound.length > 0 && useSemanticDisambiguation) {
+        keywordResult = await this.applySemanticDisambiguation(
+          content,
+          keywordResult,
+          startTime
+        );
+      }
       if (keywordResult.confidence >= threshold) {
         return keywordResult;
       }
       return this.analyzeWithAI(content, keywordResult, options, startTime);
     }
     return this.analyzeWithAI(content, void 0, options, startTime);
+  }
+  /**
+   * Apply semantic disambiguation to improve classification (Phase 2)
+   * Uses embeddings to disambiguate verbs that can indicate multiple levels
+   */
+  async applySemanticDisambiguation(content, keywordResult, startTime) {
+    const semanticStartTime = Date.now();
+    try {
+      const semanticResult = await this.semanticClassifier.classify(content);
+      if (semanticResult.disambiguated && semanticResult.confidence > keywordResult.confidence) {
+        return {
+          ...keywordResult,
+          dominantLevel: semanticResult.level,
+          confidence: semanticResult.confidence,
+          semanticDisambiguated: true,
+          semanticSimilarityScores: semanticResult.similarityScores,
+          metadata: {
+            ...keywordResult.metadata,
+            method: "hybrid",
+            processingTimeMs: Date.now() - startTime,
+            semanticDisambiguationUsed: true,
+            semanticProcessingTimeMs: semanticResult.processingTimeMs
+          }
+        };
+      }
+      return {
+        ...keywordResult,
+        semanticSimilarityScores: semanticResult.similarityScores,
+        metadata: {
+          ...keywordResult.metadata,
+          semanticDisambiguationUsed: true,
+          semanticProcessingTimeMs: Date.now() - semanticStartTime
+        }
+      };
+    } catch (error) {
+      this.config.logger?.warn?.(
+        "[UnifiedBloomsEngine] Semantic disambiguation failed",
+        error
+      );
+      return keywordResult;
+    }
+  }
+  /**
+   * Directly classify content using semantic analysis (Phase 2)
+   * Bypasses keyword analysis and uses only embeddings
+   *
+   * @param content - Text content to classify
+   * @returns Semantic classification result
+   */
+  async classifyWithSemantics(content) {
+    if (!this.semanticClassifierReady) {
+      return null;
+    }
+    try {
+      return await this.semanticClassifier.classify(content);
+    } catch (error) {
+      this.config.logger?.warn?.(
+        "[UnifiedBloomsEngine] Semantic classification failed",
+        error
+      );
+      return null;
+    }
+  }
+  /**
+   * Check if semantic classifier is ready for use (Phase 2)
+   */
+  isSemanticClassifierReady() {
+    return this.semanticClassifierReady;
   }
   // ============================================================================
   // PUBLIC API - ANALYZE COURSE
@@ -14013,14 +15353,49 @@ var UnifiedBloomsEngine = class {
         includeSections: true
       });
       const sectionAnalyses = chapter.sections.map((section) => {
-        const sectionText = `${section.title} ${section.content ?? ""} ${section.description ?? ""}`;
-        const level = this.quickClassify(sectionText);
-        return {
+        const sectionTextParts = [
+          section.title,
+          section.content ?? "",
+          section.description ?? ""
+        ];
+        if (section.learningObjectives && section.learningObjectives.length > 0) {
+          sectionTextParts.push(...section.learningObjectives);
+        }
+        if (section.questions && section.questions.length > 0) {
+          sectionTextParts.push(...section.questions.map((q) => q.text));
+        }
+        const sectionText = sectionTextParts.join(" ");
+        let level = this.quickClassify(sectionText);
+        let confidence = this.calculateKeywordConfidence(sectionText.toLowerCase(), level);
+        if (section.questions && section.questions.length > 0) {
+          const questionLevels = section.questions.filter((q) => q.bloomsLevel).map((q) => q.bloomsLevel);
+          if (questionLevels.length > 0) {
+            const questionDominant = this.getDominantLevel(questionLevels);
+            if (questionDominant === level) {
+              confidence = Math.min(1, confidence + 0.15);
+            } else {
+              level = questionDominant;
+              confidence = Math.min(1, confidence + 0.1);
+            }
+          }
+        }
+        const sectionAnalysis = {
           id: section.id,
           title: section.title,
           level,
-          confidence: this.calculateKeywordConfidence(sectionText.toLowerCase(), level)
+          confidence
         };
+        if (options.includeSubLevel) {
+          const enhancedResult = this.subLevelAnalyzer.getEnhancedResult(
+            level,
+            confidence,
+            sectionText
+          );
+          sectionAnalysis.subLevel = enhancedResult.subLevel;
+          sectionAnalysis.numericScore = enhancedResult.numericScore;
+          sectionAnalysis.subLevelLabel = enhancedResult.label;
+        }
+        return sectionAnalysis;
       });
       chapterAnalyses.push({
         chapterId: chapter.id,
@@ -14134,6 +15509,13 @@ var UnifiedBloomsEngine = class {
   }
   /**
    * Get cognitive profile for a user
+   *
+   * Fetches student's Bloom's progress from the database and transforms it
+   * into a cognitive profile for adaptive learning and personalization.
+   *
+   * @param userId - User ID to fetch profile for
+   * @param courseId - Optional course ID to scope the profile
+   * @returns Cognitive profile with level mastery and learning insights
    */
   async getCognitiveProfile(userId, courseId) {
     const defaultProfile = {
@@ -14153,7 +15535,63 @@ var UnifiedBloomsEngine = class {
     if (!this.database) {
       return defaultProfile;
     }
-    return defaultProfile;
+    if (!courseId) {
+      return defaultProfile;
+    }
+    try {
+      const progress = await this.database.findBloomsProgress(userId, courseId);
+      if (!progress) {
+        return defaultProfile;
+      }
+      const levelMastery = {
+        REMEMBER: progress.rememberScore / 100,
+        UNDERSTAND: progress.understandScore / 100,
+        APPLY: progress.applyScore / 100,
+        ANALYZE: progress.analyzeScore / 100,
+        EVALUATE: progress.evaluateScore / 100,
+        CREATE: progress.createScore / 100
+      };
+      const weights = {
+        REMEMBER: 0.1,
+        UNDERSTAND: 0.15,
+        APPLY: 0.2,
+        ANALYZE: 0.2,
+        EVALUATE: 0.17,
+        CREATE: 0.18
+      };
+      const overallMastery = Object.entries(levelMastery).reduce(
+        (sum, [level, score]) => sum + score * weights[level],
+        0
+      );
+      const preferredLevels = Object.entries(levelMastery).filter(([, score]) => score >= 0.7).sort((a, b) => b[1] - a[1]).map(([level]) => level);
+      const challengeAreas = Object.entries(levelMastery).filter(([, score]) => score < 0.4).sort((a, b) => a[1] - b[1]).map(([level]) => level);
+      let learningVelocity = 1;
+      if (progress.assessmentCount > 0) {
+        const frequencyBonus = Math.min(progress.assessmentCount / 10, 0.5);
+        learningVelocity = 1 + frequencyBonus;
+        if (progress.lastAssessedAt) {
+          const daysSinceLastAssessment = Math.floor(
+            (Date.now() - new Date(progress.lastAssessedAt).getTime()) / (1e3 * 60 * 60 * 24)
+          );
+          if (daysSinceLastAssessment > 30) {
+            learningVelocity *= 0.8;
+          } else if (daysSinceLastAssessment <= 7) {
+            learningVelocity *= 1.1;
+          }
+        }
+      }
+      return {
+        overallMastery: Math.round(overallMastery * 100) / 100,
+        // Round to 2 decimals
+        levelMastery,
+        learningVelocity: Math.round(learningVelocity * 100) / 100,
+        preferredLevels,
+        challengeAreas
+      };
+    } catch (error) {
+      console.error("[UnifiedBloomsEngine] Error fetching cognitive profile:", error);
+      return defaultProfile;
+    }
   }
   // ============================================================================
   // PUBLIC API - SPACED REPETITION (SM-2 ALGORITHM)
@@ -14287,8 +15725,8 @@ var UnifiedBloomsEngine = class {
   analyzeWithKeywords(content, options, startTime) {
     const text = content.toLowerCase();
     const distribution = this.analyzeKeywordDistribution(text);
-    const dominantLevel = this.findDominantLevel(distribution);
-    const confidence = this.calculateKeywordConfidence(text, dominantLevel);
+    let dominantLevel = this.findDominantLevel(distribution);
+    let confidence = this.calculateKeywordConfidence(text, dominantLevel);
     const cognitiveDepth = this.calculateCognitiveDepth(distribution);
     const balance = this.determineBalance(distribution);
     const gaps = this.identifyGaps(distribution);
@@ -14296,6 +15734,7 @@ var UnifiedBloomsEngine = class {
     let sectionAnalysis;
     if (options.includeSections) {
     }
+    const ambiguousVerbsFound = this.detectAmbiguousVerbs(text);
     const result = {
       dominantLevel,
       distribution,
@@ -14313,11 +15752,41 @@ var UnifiedBloomsEngine = class {
         keywordConfidence: confidence
       }
     };
+    if (ambiguousVerbsFound.length > 0) {
+      result.ambiguousVerbsFound = ambiguousVerbsFound;
+    }
+    if (options.includeSubLevel) {
+      const enhancedResult = this.subLevelAnalyzer.getEnhancedResult(
+        dominantLevel,
+        confidence,
+        content
+      );
+      result.subLevel = enhancedResult.subLevel;
+      result.numericScore = enhancedResult.numericScore;
+      result.subLevelIndicators = enhancedResult.indicators;
+      result.subLevelLabel = enhancedResult.label;
+      result.enhancedResult = enhancedResult;
+    }
     if (this.enableCache) {
       const cacheKey = this.generateCacheKey("content", content, "quick");
       this.setCache(cacheKey, result);
     }
     return result;
+  }
+  /**
+   * Detect ambiguous verbs in content (Phase 2)
+   * These are verbs that can indicate multiple Bloom's levels
+   */
+  detectAmbiguousVerbs(text) {
+    const words = text.split(/\s+/);
+    const found = [];
+    for (const word of words) {
+      const cleaned = word.replace(/[^a-z]/g, "");
+      if (cleaned in AMBIGUOUS_VERBS && !found.includes(cleaned)) {
+        found.push(cleaned);
+      }
+    }
+    return found;
   }
   analyzeKeywordDistribution(text) {
     const distribution = {
@@ -14329,7 +15798,7 @@ var UnifiedBloomsEngine = class {
       CREATE: 0
     };
     let totalMatches = 0;
-    for (const level of BLOOMS_LEVELS) {
+    for (const level of BLOOMS_LEVELS2) {
       const keywords = BLOOMS_KEYWORDS2[level];
       let levelCount = 0;
       for (const keyword of keywords) {
@@ -14343,7 +15812,7 @@ var UnifiedBloomsEngine = class {
       totalMatches += levelCount;
     }
     if (totalMatches > 0) {
-      for (const level of BLOOMS_LEVELS) {
+      for (const level of BLOOMS_LEVELS2) {
         distribution[level] = Math.round(distribution[level] / totalMatches * 100);
       }
     } else {
@@ -14357,7 +15826,7 @@ var UnifiedBloomsEngine = class {
   findDominantLevel(distribution) {
     let maxLevel = "UNDERSTAND";
     let maxValue = 0;
-    for (const level of BLOOMS_LEVELS) {
+    for (const level of BLOOMS_LEVELS2) {
       if (distribution[level] > maxValue) {
         maxValue = distribution[level];
         maxLevel = level;
@@ -14381,8 +15850,8 @@ var UnifiedBloomsEngine = class {
   calculateCognitiveDepth(distribution) {
     let weightedSum = 0;
     let totalWeight = 0;
-    for (const level of BLOOMS_LEVELS) {
-      const weight = BLOOMS_LEVEL_ORDER[level];
+    for (const level of BLOOMS_LEVELS2) {
+      const weight = BLOOMS_LEVEL_ORDER2[level];
       weightedSum += distribution[level] * weight;
       totalWeight += distribution[level];
     }
@@ -14403,7 +15872,7 @@ var UnifiedBloomsEngine = class {
   }
   identifyGaps(distribution) {
     const gaps = [];
-    for (const level of BLOOMS_LEVELS) {
+    for (const level of BLOOMS_LEVELS2) {
       if (distribution[level] < 5) {
         gaps.push(level);
       }
@@ -14450,6 +15919,18 @@ var UnifiedBloomsEngine = class {
           keywordConfidence: keywordResult?.confidence
         }
       };
+      if (options.includeSubLevel) {
+        const enhancedResult = this.subLevelAnalyzer.getEnhancedResult(
+          aiAnalysis.dominantLevel,
+          aiAnalysis.confidence,
+          content
+        );
+        result.subLevel = enhancedResult.subLevel;
+        result.numericScore = enhancedResult.numericScore;
+        result.subLevelIndicators = enhancedResult.indicators;
+        result.subLevelLabel = enhancedResult.label;
+        result.enhancedResult = enhancedResult;
+      }
       if (this.enableCache) {
         const cacheKey = this.generateCacheKey("content", content, "comprehensive");
         this.setCache(cacheKey, result);
@@ -14572,7 +16053,7 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
     };
   }
   validateBloomsLevel(level) {
-    if (BLOOMS_LEVELS.includes(level)) {
+    if (BLOOMS_LEVELS2.includes(level)) {
       return level;
     }
     return "UNDERSTAND";
@@ -14593,13 +16074,13 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
       CREATE: 0
     };
     let total = 0;
-    for (const level of BLOOMS_LEVELS) {
+    for (const level of BLOOMS_LEVELS2) {
       normalized[level] = Math.max(0, dist[level] ?? 0);
       total += normalized[level];
     }
     if (total > 0 && total !== 100) {
       const factor = 100 / total;
-      for (const level of BLOOMS_LEVELS) {
+      for (const level of BLOOMS_LEVELS2) {
         normalized[level] = Math.round(normalized[level] * factor);
       }
     }
@@ -14731,7 +16212,7 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
   }
   generateLearningPathway(distribution, chapters) {
     const stages = [];
-    for (const level of BLOOMS_LEVELS) {
+    for (const level of BLOOMS_LEVELS2) {
       const levelChapters = chapters.filter((c) => c.primaryLevel === level);
       const mastery = distribution[level];
       if (mastery > 0 || level === "REMEMBER" || level === "UNDERSTAND") {
@@ -14771,10 +16252,10 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
   // PRIVATE - COGNITIVE PROGRESS HELPERS
   // ============================================================================
   identifyPreferredLevels(mastery) {
-    return BLOOMS_LEVELS.filter((level) => mastery[level] >= 70);
+    return BLOOMS_LEVELS2.filter((level) => mastery[level] >= 70);
   }
   identifyChallengeAreas(mastery) {
-    return BLOOMS_LEVELS.filter((level) => mastery[level] < 40);
+    return BLOOMS_LEVELS2.filter((level) => mastery[level] < 40);
   }
   generateProgressRecommendations(profile, recentLevel, score) {
     const recommendations = [];
@@ -14787,9 +16268,9 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
         priority: 1
       });
     } else if (score >= 0.8) {
-      const levelIndex = BLOOMS_LEVELS.indexOf(recentLevel);
-      if (levelIndex < BLOOMS_LEVELS.length - 1) {
-        const nextLevel = BLOOMS_LEVELS[levelIndex + 1];
+      const levelIndex = BLOOMS_LEVELS2.indexOf(recentLevel);
+      if (levelIndex < BLOOMS_LEVELS2.length - 1) {
+        const nextLevel = BLOOMS_LEVELS2[levelIndex + 1];
         recommendations.push({
           type: "advance",
           title: `Ready for ${nextLevel}`,
@@ -14813,14 +16294,61 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
   // ============================================================================
   // PRIVATE - HELPERS
   // ============================================================================
+  /**
+   * Extract text from chapter for Bloom's analysis
+   * Enriched to include learning outcomes, objectives, and question text
+   */
   extractChapterText(chapter) {
     const parts = [chapter.title];
+    if (chapter.learningOutcomes) {
+      parts.push(chapter.learningOutcomes);
+    }
+    if (chapter.courseGoals) {
+      parts.push(chapter.courseGoals);
+    }
     for (const section of chapter.sections) {
       parts.push(section.title);
       if (section.content) parts.push(section.content);
       if (section.description) parts.push(section.description);
+      if (section.learningObjectives && section.learningObjectives.length > 0) {
+        parts.push(...section.learningObjectives);
+      }
+      if (section.questions && section.questions.length > 0) {
+        for (const q of section.questions) {
+          parts.push(q.text);
+        }
+      }
     }
     return parts.join(" ");
+  }
+  /**
+   * Get the dominant Bloom's level from an array of levels
+   * Used to determine section-level classification from assessment questions
+   */
+  getDominantLevel(levels) {
+    if (levels.length === 0) {
+      return "UNDERSTAND";
+    }
+    const counts = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    for (const level of levels) {
+      counts[level]++;
+    }
+    let maxCount = 0;
+    let dominantLevel = "UNDERSTAND";
+    for (const level of BLOOMS_LEVELS2) {
+      if (counts[level] > maxCount) {
+        maxCount = counts[level];
+        dominantLevel = level;
+      }
+    }
+    return dominantLevel;
   }
   aggregateDistributions(distributions) {
     const aggregate = {
@@ -14833,11 +16361,11 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
     };
     if (distributions.length === 0) return aggregate;
     for (const dist of distributions) {
-      for (const level of BLOOMS_LEVELS) {
+      for (const level of BLOOMS_LEVELS2) {
         aggregate[level] += dist[level];
       }
     }
-    for (const level of BLOOMS_LEVELS) {
+    for (const level of BLOOMS_LEVELS2) {
       aggregate[level] = Math.round(aggregate[level] / distributions.length);
     }
     return aggregate;
@@ -14889,6 +16417,88 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
     for (let i = 0; i < count && i < entries.length; i++) {
       this.cache.delete(entries[i][0]);
     }
+  }
+  // ============================================================================
+  // PUBLIC API - CALIBRATION (Phase 5)
+  // ============================================================================
+  /**
+   * Record feedback for a Bloom's classification (Phase 5)
+   * Used to improve classification accuracy over time
+   *
+   * @param content - The content that was classified
+   * @param predictedLevel - The predicted Bloom's level
+   * @param feedback - Feedback details (actual level, assessment outcome, etc.)
+   * @returns Feedback ID if stored, null otherwise
+   */
+  async recordClassificationFeedback(content, predictedLevel, feedback) {
+    const input = {
+      content,
+      predictedLevel: bloomsLevelToNumber(predictedLevel),
+      predictedConfidence: feedback.predictedConfidence,
+      predictedSubLevel: feedback.predictedSubLevel,
+      actualLevel: feedback.actualLevel ? bloomsLevelToNumber(feedback.actualLevel) : void 0,
+      actualSubLevel: feedback.actualSubLevel,
+      assessmentOutcome: feedback.assessmentOutcome,
+      feedbackType: feedback.feedbackType,
+      userId: feedback.userId,
+      courseId: feedback.courseId,
+      sectionId: feedback.sectionId,
+      analysisMethod: feedback.analysisMethod
+    };
+    return this.calibrator.recordFeedback(input);
+  }
+  /**
+   * Get calibration-adjusted result for a classification (Phase 5)
+   *
+   * @param predictedLevel - The predicted Bloom's level
+   * @param confidence - The confidence score
+   * @returns Calibrated result with adjusted confidence and potentially adjusted level
+   */
+  async getCalibratedResult(predictedLevel, confidence) {
+    if (!this.enableCalibration) {
+      return {
+        calibratedLevel: predictedLevel,
+        calibratedConfidence: confidence,
+        calibrationApplied: false,
+        levelAdjustment: 0
+      };
+    }
+    const result = await this.calibrator.calibrate(
+      bloomsLevelToNumber(predictedLevel),
+      confidence
+    );
+    return {
+      calibratedLevel: numberToBloomsLevel(result.calibratedLevel),
+      calibratedConfidence: result.calibratedConfidence,
+      calibrationApplied: result.calibrationApplied,
+      levelAdjustment: result.levelAdjustment
+    };
+  }
+  /**
+   * Get calibration metrics (Phase 5)
+   * Returns accuracy, calibration error, and adjustment factors
+   */
+  async getCalibrationMetrics() {
+    return this.calibrator.getMetrics();
+  }
+  /**
+   * Get calibration health status (Phase 5)
+   * Indicates whether calibration is ready and its quality
+   */
+  async getCalibrationHealth() {
+    return this.calibrator.getHealthStatus();
+  }
+  /**
+   * Check if calibration is enabled and ready (Phase 5)
+   */
+  isCalibrationEnabled() {
+    return this.enableCalibration;
+  }
+  /**
+   * Clear calibration cache (Phase 5)
+   */
+  clearCalibrationCache() {
+    this.calibrator.clearCache();
   }
 };
 function createUnifiedBloomsEngine(config) {
@@ -26061,71 +27671,7700 @@ Format as JSON:
 function createMultimodalInputEngine(samConfig, config) {
   return new MultimodalInputEngine(samConfig, config);
 }
+
+// src/types/skill-build-track.types.ts
+var PROFICIENCY_THRESHOLDS = {
+  NOVICE: 0,
+  BEGINNER: 15,
+  COMPETENT: 35,
+  PROFICIENT: 55,
+  ADVANCED: 70,
+  EXPERT: 85,
+  STRATEGIST: 95
+};
+var DEFAULT_DECAY_RATES = {
+  NOVICE: 0.05,
+  // 5% per day
+  BEGINNER: 0.04,
+  // 4% per day
+  COMPETENT: 0.03,
+  // 3% per day
+  PROFICIENT: 0.02,
+  // 2% per day
+  ADVANCED: 0.015,
+  // 1.5% per day
+  EXPERT: 0.01,
+  // 1% per day
+  STRATEGIST: 5e-3
+  // 0.5% per day
+};
+
+// src/engines/skill-build-track-engine.ts
+var DEFAULT_COMPOSITE_WEIGHTS = {
+  mastery: 0.35,
+  retention: 0.25,
+  application: 0.25,
+  confidence: 0.08,
+  calibration: 0.07
+};
+var PROFICIENCY_ORDER = [
+  "NOVICE",
+  "BEGINNER",
+  "COMPETENT",
+  "PROFICIENT",
+  "ADVANCED",
+  "EXPERT",
+  "STRATEGIST"
+];
+var InMemorySkillBuildTrackStore = class {
+  skillDefinitions = /* @__PURE__ */ new Map();
+  skillProfiles = /* @__PURE__ */ new Map();
+  roadmaps = /* @__PURE__ */ new Map();
+  skillBenchmarks = /* @__PURE__ */ new Map();
+  roleBenchmarks = /* @__PURE__ */ new Map();
+  practiceLogs = /* @__PURE__ */ new Map();
+  achievements = /* @__PURE__ */ new Map();
+  getProfileKey(userId, skillId) {
+    return `${userId}:${skillId}`;
+  }
+  getBenchmarkKey(id, source) {
+    return `${id}:${source}`;
+  }
+  // Skill Definitions
+  async getSkillDefinition(skillId) {
+    return this.skillDefinitions.get(skillId) ?? null;
+  }
+  async getSkillDefinitions() {
+    return Array.from(this.skillDefinitions.values());
+  }
+  async saveSkillDefinition(skill) {
+    this.skillDefinitions.set(skill.id, skill);
+  }
+  // Skill Profiles
+  async getSkillProfile(userId, skillId) {
+    return this.skillProfiles.get(this.getProfileKey(userId, skillId)) ?? null;
+  }
+  async getUserSkillProfiles(userId) {
+    return Array.from(this.skillProfiles.values()).filter(
+      (p) => p.userId === userId
+    );
+  }
+  async saveSkillProfile(profile) {
+    this.skillProfiles.set(
+      this.getProfileKey(profile.userId, profile.skillId),
+      profile
+    );
+  }
+  async updateSkillProfile(userId, skillId, update) {
+    const key = this.getProfileKey(userId, skillId);
+    const existing = this.skillProfiles.get(key);
+    if (existing) {
+      this.skillProfiles.set(key, { ...existing, ...update });
+    }
+  }
+  // Evidence
+  async addEvidence(userId, skillId, evidence) {
+    const key = this.getProfileKey(userId, skillId);
+    const profile = this.skillProfiles.get(key);
+    if (profile) {
+      profile.evidence.push(evidence);
+    }
+  }
+  async getEvidence(userId, skillId) {
+    const profile = this.skillProfiles.get(this.getProfileKey(userId, skillId));
+    return profile?.evidence ?? [];
+  }
+  // Roadmaps
+  async getRoadmap(roadmapId) {
+    return this.roadmaps.get(roadmapId) ?? null;
+  }
+  async getUserRoadmaps(userId, status) {
+    return Array.from(this.roadmaps.values()).filter(
+      (r) => r.userId === userId && (!status || r.status === status)
+    );
+  }
+  async saveRoadmap(roadmap) {
+    this.roadmaps.set(roadmap.id, roadmap);
+  }
+  async updateRoadmap(roadmapId, update) {
+    const existing = this.roadmaps.get(roadmapId);
+    if (existing) {
+      this.roadmaps.set(roadmapId, { ...existing, ...update });
+    }
+  }
+  // Benchmarks
+  async getSkillBenchmark(skillId, source) {
+    return this.skillBenchmarks.get(this.getBenchmarkKey(skillId, source)) ?? null;
+  }
+  async getRoleBenchmark(roleId, source) {
+    return this.roleBenchmarks.get(this.getBenchmarkKey(roleId, source)) ?? null;
+  }
+  async saveBenchmarkData(benchmark) {
+    if ("skillId" in benchmark) {
+      this.skillBenchmarks.set(
+        this.getBenchmarkKey(benchmark.skillId, benchmark.source),
+        benchmark
+      );
+    } else {
+      this.roleBenchmarks.set(
+        this.getBenchmarkKey(benchmark.roleId, benchmark.source),
+        benchmark
+      );
+    }
+  }
+  // Practice Logs
+  async savePracticeLog(log) {
+    const key = this.getProfileKey(log.userId, log.skillId);
+    const logs = this.practiceLogs.get(key) ?? [];
+    logs.push(log);
+    this.practiceLogs.set(key, logs);
+  }
+  async getPracticeLogs(userId, skillId, limit) {
+    const logs = this.practiceLogs.get(this.getProfileKey(userId, skillId)) ?? [];
+    return limit ? logs.slice(-limit) : logs;
+  }
+  // Achievements
+  async saveAchievement(userId, achievement) {
+    const achievements = this.achievements.get(userId) ?? [];
+    achievements.push(achievement);
+    this.achievements.set(userId, achievements);
+  }
+  async getUserAchievements(userId) {
+    return this.achievements.get(userId) ?? [];
+  }
+};
+var SkillBuildTrackEngine = class {
+  samConfig;
+  store;
+  weights;
+  decayRates;
+  enableVelocityTracking;
+  enableDecayPrediction;
+  enableBenchmarking;
+  constructor(config) {
+    this.samConfig = config.samConfig;
+    this.store = config.database ?? new InMemorySkillBuildTrackStore();
+    this.weights = { ...DEFAULT_COMPOSITE_WEIGHTS, ...config.customScoreWeights };
+    this.decayRates = { ...DEFAULT_DECAY_RATES, ...config.customDecayRates };
+    this.enableVelocityTracking = config.enableVelocityTracking ?? true;
+    this.enableDecayPrediction = config.enableDecayPrediction ?? true;
+    this.enableBenchmarking = config.enableBenchmarking ?? true;
+  }
+  // ============================================================================
+  // PROFICIENCY MANAGEMENT
+  // ============================================================================
+  /**
+   * Convert a composite score (0-100) to proficiency level
+   */
+  scoreToLevel(score) {
+    if (score >= PROFICIENCY_THRESHOLDS.STRATEGIST) return "STRATEGIST";
+    if (score >= PROFICIENCY_THRESHOLDS.EXPERT) return "EXPERT";
+    if (score >= PROFICIENCY_THRESHOLDS.ADVANCED) return "ADVANCED";
+    if (score >= PROFICIENCY_THRESHOLDS.PROFICIENT) return "PROFICIENT";
+    if (score >= PROFICIENCY_THRESHOLDS.COMPETENT) return "COMPETENT";
+    if (score >= PROFICIENCY_THRESHOLDS.BEGINNER) return "BEGINNER";
+    return "NOVICE";
+  }
+  /**
+   * Convert proficiency level to minimum threshold score
+   */
+  levelToScore(level) {
+    return PROFICIENCY_THRESHOLDS[level];
+  }
+  /**
+   * Compare two proficiency levels
+   * Returns: negative if a < b, 0 if equal, positive if a > b
+   */
+  compareLevels(a, b) {
+    return PROFICIENCY_ORDER.indexOf(a) - PROFICIENCY_ORDER.indexOf(b);
+  }
+  /**
+   * Get the next proficiency level
+   */
+  getNextLevel(current) {
+    const idx = PROFICIENCY_ORDER.indexOf(current);
+    return idx < PROFICIENCY_ORDER.length - 1 ? PROFICIENCY_ORDER[idx + 1] : null;
+  }
+  /**
+   * Get points needed to reach next level
+   */
+  getPointsToNextLevel(currentScore) {
+    const currentLevel = this.scoreToLevel(currentScore);
+    const nextLevel = this.getNextLevel(currentLevel);
+    if (!nextLevel) return 0;
+    return Math.max(0, PROFICIENCY_THRESHOLDS[nextLevel] - currentScore);
+  }
+  // ============================================================================
+  // SKILL PROFILE OPERATIONS
+  // ============================================================================
+  /**
+   * Get a user&apos;s skill profile
+   */
+  async getSkillProfile(input) {
+    const profile = await this.store.getSkillProfile(input.userId, input.skillId);
+    if (!profile) return null;
+    if (this.enableDecayPrediction && profile.lastPracticedAt) {
+      const daysSinceLastPractice = this.getDaysSince(profile.lastPracticedAt);
+      if (daysSinceLastPractice > 0) {
+        const decayedProfile = this.applyDecay(profile, daysSinceLastPractice);
+        await this.store.updateSkillProfile(input.userId, input.skillId, {
+          compositeScore: decayedProfile.compositeScore,
+          proficiencyLevel: decayedProfile.proficiencyLevel,
+          dimensions: decayedProfile.dimensions,
+          decay: decayedProfile.decay
+        });
+        return decayedProfile;
+      }
+    }
+    return profile;
+  }
+  /**
+   * Get all skill profiles for a user
+   */
+  async getUserSkillProfiles(input) {
+    let profiles = await this.store.getUserSkillProfiles(input.userId);
+    if (input.category) {
+      profiles = profiles.filter((p) => p.skill?.category === input.category);
+    }
+    if (input.minLevel) {
+      profiles = profiles.filter(
+        (p) => this.compareLevels(p.proficiencyLevel, input.minLevel) >= 0
+      );
+    }
+    if (this.enableDecayPrediction) {
+      profiles = profiles.map((p) => {
+        if (p.lastPracticedAt) {
+          const daysSince = this.getDaysSince(p.lastPracticedAt);
+          if (daysSince > 0) {
+            return this.applyDecay(p, daysSince);
+          }
+        }
+        return p;
+      });
+    }
+    let decayRisks;
+    if (input.includeDecayRisks) {
+      decayRisks = profiles.filter((p) => p.decay.riskLevel !== "LOW").map((p) => ({
+        skillId: p.skillId,
+        skillName: p.skill?.name ?? p.skillId,
+        currentScore: p.compositeScore,
+        daysUntilLevelDrop: p.decay.daysUntilLevelDrop ?? 999,
+        riskLevel: p.decay.riskLevel
+      })).sort((a, b) => (a.daysUntilLevelDrop ?? 999) - (b.daysUntilLevelDrop ?? 999));
+    }
+    const total = profiles.length;
+    if (input.offset) {
+      profiles = profiles.slice(input.offset);
+    }
+    if (input.limit) {
+      profiles = profiles.slice(0, input.limit);
+    }
+    return { profiles, total, decayRisks };
+  }
+  // ============================================================================
+  // PRACTICE & UPDATES
+  // ============================================================================
+  /**
+   * Record a practice session and update skill profile
+   */
+  async recordPractice(input) {
+    const { userId, skillId } = input;
+    let profile = await this.store.getSkillProfile(userId, skillId);
+    const isNewProfile = !profile;
+    const previousScore = profile?.compositeScore ?? 0;
+    const previousLevel = profile?.proficiencyLevel ?? "NOVICE";
+    if (!profile) {
+      profile = this.createNewProfile(userId, skillId);
+    }
+    const dimensionUpdates = this.calculateDimensionUpdates(profile, input);
+    const newDimensions = this.applyDimensionUpdates(profile.dimensions, dimensionUpdates);
+    const newScore = this.calculateCompositeScore(newDimensions);
+    const newLevel = this.scoreToLevel(newScore);
+    const velocityUpdate = this.enableVelocityTracking ? this.updateVelocity(profile, input, newScore - previousScore) : profile.velocity;
+    const newPracticeHistory = this.updatePracticeHistory(profile.practiceHistory, input);
+    const newDecay = this.resetDecay(newLevel);
+    let levelChange;
+    if (newLevel !== previousLevel) {
+      levelChange = {
+        fromLevel: previousLevel,
+        toLevel: newLevel,
+        scoreAtChange: newScore,
+        reason: input.isAssessment ? "ASSESSMENT" : "PRACTICE",
+        date: /* @__PURE__ */ new Date()
+      };
+    }
+    const updatedProfile = {
+      ...profile,
+      dimensions: newDimensions,
+      compositeScore: newScore,
+      proficiencyLevel: newLevel,
+      velocity: velocityUpdate,
+      decay: newDecay,
+      practiceHistory: newPracticeHistory,
+      levelHistory: levelChange ? [...profile.levelHistory, levelChange] : profile.levelHistory,
+      lastPracticedAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    await this.store.saveSkillProfile(updatedProfile);
+    await this.store.savePracticeLog({
+      id: this.generateId(),
+      userId,
+      skillId,
+      durationMinutes: input.durationMinutes,
+      score: input.score,
+      maxScore: input.maxScore,
+      isAssessment: input.isAssessment ?? false,
+      completed: input.completed ?? true,
+      sourceId: input.sourceId,
+      sourceType: input.sourceType,
+      notes: input.notes,
+      dimensionChanges: dimensionUpdates,
+      compositeScoreChange: newScore - previousScore,
+      timestamp: /* @__PURE__ */ new Date()
+    });
+    const newAchievements = await this.checkAchievements(
+      userId,
+      updatedProfile,
+      levelChange,
+      isNewProfile
+    );
+    const recommendations = this.generateRecommendationsForProfile(updatedProfile);
+    return {
+      profile: updatedProfile,
+      previousScore,
+      newScore,
+      scoreChange: newScore - previousScore,
+      levelChange,
+      velocityUpdate,
+      newAchievements,
+      recommendations,
+      unlockedSkills: []
+      // Would check prerequisite dependencies
+    };
+  }
+  // ============================================================================
+  // VELOCITY TRACKING
+  // ============================================================================
+  /**
+   * Update velocity metrics after practice
+   */
+  updateVelocity(profile, input, scoreChange) {
+    const recentScores = [...profile.velocity.recentScores, scoreChange].slice(-10);
+    const avgScoreChange = recentScores.reduce((a, b) => a + b, 0) / recentScores.length;
+    const learningSpeed = Math.max(0, avgScoreChange * (60 / (input.durationMinutes || 60)));
+    const trend = this.determineTrend(recentScores);
+    const acceleration = this.calculateAcceleration(recentScores);
+    const pointsToNext = this.getPointsToNextLevel(profile.compositeScore + scoreChange);
+    const sessionsToNextLevel = avgScoreChange > 0 ? Math.ceil(pointsToNext / avgScoreChange) : 999;
+    const daysToNextLevel = sessionsToNextLevel;
+    return {
+      learningSpeed,
+      sessionsToNextLevel,
+      daysToNextLevel,
+      trend,
+      acceleration,
+      recentScores,
+      calculatedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Determine learning trend from recent scores
+   */
+  determineTrend(recentScores) {
+    if (recentScores.length < 3) return "STEADY";
+    const recent = recentScores.slice(-3);
+    const avgRecent = recent.reduce((a, b) => a + b, 0) / recent.length;
+    if (recentScores.length >= 5) {
+      const older = recentScores.slice(-5, -3);
+      const avgOlder = older.reduce((a, b) => a + b, 0) / older.length;
+      if (avgRecent > avgOlder * 1.2) return "ACCELERATING";
+      if (avgRecent < avgOlder * 0.8) return "SLOWING";
+    }
+    if (avgRecent > 1) return "STEADY";
+    if (avgRecent < 0) return "DECLINING";
+    return "STAGNANT";
+  }
+  /**
+   * Calculate acceleration from score history
+   */
+  calculateAcceleration(recentScores) {
+    if (recentScores.length < 4) return 0;
+    const half = Math.floor(recentScores.length / 2);
+    const firstHalf = recentScores.slice(0, half);
+    const secondHalf = recentScores.slice(half);
+    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    return avgSecond - avgFirst;
+  }
+  // ============================================================================
+  // DECAY PREDICTION
+  // ============================================================================
+  /**
+   * Get decay predictions for user&apos;s skills
+   */
+  async getDecayPredictions(input) {
+    const { userId, skillIds, daysAhead = 30 } = input;
+    let profiles;
+    if (skillIds && skillIds.length > 0) {
+      profiles = (await Promise.all(
+        skillIds.map((id) => this.store.getSkillProfile(userId, id))
+      )).filter((p) => p !== null);
+    } else {
+      profiles = await this.store.getUserSkillProfiles(userId);
+    }
+    const predictions = profiles.map((profile) => {
+      const decayCurve = this.generateForgettingCurve(
+        profile.compositeScore,
+        profile.decay.decayRate,
+        daysAhead
+      );
+      const daysUntilLevelDrop = this.calculateDaysUntilLevelDrop(
+        profile.compositeScore,
+        profile.proficiencyLevel,
+        profile.decay.decayRate
+      );
+      const riskLevel = this.calculateDecayRisk(daysUntilLevelDrop, profile.compositeScore);
+      return {
+        skillId: profile.skillId,
+        skillName: profile.skill?.name ?? profile.skillId,
+        currentScore: profile.compositeScore,
+        currentLevel: profile.proficiencyLevel,
+        decayRate: profile.decay.decayRate,
+        decayCurve,
+        daysUntilLevelDrop,
+        riskLevel
+      };
+    });
+    const reviewSchedule = predictions.filter((p) => p.riskLevel !== "LOW").map((p) => ({
+      skillId: p.skillId,
+      skillName: p.skillName,
+      recommendedDate: new Date(
+        Date.now() + Math.min(p.daysUntilLevelDrop ?? 7, 7) * 24 * 60 * 60 * 1e3
+      ),
+      urgency: p.riskLevel,
+      estimatedMinutes: 15 + (p.riskLevel === "CRITICAL" ? 15 : 0)
+    })).sort((a, b) => a.recommendedDate.getTime() - b.recommendedDate.getTime());
+    const overallRisk = this.calculateOverallDecayRisk(predictions);
+    return { predictions, reviewSchedule, overallRisk };
+  }
+  /**
+   * Generate forgetting curve data points
+   */
+  generateForgettingCurve(currentScore, decayRate, days) {
+    const points = [];
+    for (let d = 0; d <= days; d += Math.max(1, Math.floor(days / 10))) {
+      const retention = Math.exp(-decayRate * d);
+      const predictedScore = currentScore * retention;
+      points.push({
+        daysFromNow: d,
+        predictedScore: Math.round(predictedScore * 10) / 10,
+        predictedLevel: this.scoreToLevel(predictedScore)
+      });
+    }
+    return points;
+  }
+  /**
+   * Calculate days until level drop
+   */
+  calculateDaysUntilLevelDrop(currentScore, currentLevel, decayRate) {
+    const levelThreshold = PROFICIENCY_THRESHOLDS[currentLevel];
+    if (currentScore <= levelThreshold) return 0;
+    const t = -Math.log(levelThreshold / currentScore) / decayRate;
+    return Math.floor(t);
+  }
+  /**
+   * Apply decay to a profile
+   */
+  applyDecay(profile, daysSinceLastPractice) {
+    const decayRate = this.decayRates[profile.proficiencyLevel];
+    const retention = Math.exp(-decayRate * daysSinceLastPractice);
+    const newDimensions = {
+      mastery: profile.dimensions.mastery * (0.7 + 0.3 * retention),
+      retention: profile.dimensions.retention * retention,
+      application: profile.dimensions.application * (0.8 + 0.2 * retention),
+      confidence: profile.dimensions.confidence,
+      calibration: profile.dimensions.calibration
+    };
+    const newScore = this.calculateCompositeScore(newDimensions);
+    const newLevel = this.scoreToLevel(newScore);
+    const newDecay = {
+      decayRate,
+      daysSinceLastPractice,
+      predictedDecay: this.generateForgettingCurve(newScore, decayRate, 30),
+      halfLifeDays: Math.round(Math.log(2) / decayRate),
+      daysUntilLevelDrop: this.calculateDaysUntilLevelDrop(newScore, newLevel, decayRate),
+      recommendedReviewDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3),
+      riskLevel: this.calculateDecayRisk(
+        this.calculateDaysUntilLevelDrop(newScore, newLevel, decayRate),
+        newScore
+      )
+    };
+    return {
+      ...profile,
+      dimensions: newDimensions,
+      compositeScore: newScore,
+      proficiencyLevel: newLevel,
+      decay: newDecay
+    };
+  }
+  /**
+   * Reset decay info after practice
+   */
+  resetDecay(level) {
+    const decayRate = this.decayRates[level];
+    return {
+      decayRate,
+      daysSinceLastPractice: 0,
+      predictedDecay: [],
+      halfLifeDays: Math.round(Math.log(2) / decayRate),
+      daysUntilLevelDrop: void 0,
+      recommendedReviewDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3),
+      riskLevel: "LOW"
+    };
+  }
+  /**
+   * Calculate decay risk level
+   */
+  calculateDecayRisk(daysUntilDrop, currentScore) {
+    if (daysUntilDrop === void 0) return "LOW";
+    if (daysUntilDrop <= 3) return "CRITICAL";
+    if (daysUntilDrop <= 7) return "HIGH";
+    if (daysUntilDrop <= 14 || currentScore < 30) return "MEDIUM";
+    return "LOW";
+  }
+  /**
+   * Calculate overall decay risk
+   */
+  calculateOverallDecayRisk(predictions) {
+    const criticalCount = predictions.filter((p) => p.riskLevel === "CRITICAL").length;
+    const highCount = predictions.filter((p) => p.riskLevel === "HIGH").length;
+    if (criticalCount > 0) return "CRITICAL";
+    if (highCount >= 3) return "HIGH";
+    if (highCount > 0) return "MEDIUM";
+    return "LOW";
+  }
+  // ============================================================================
+  // ROADMAP GENERATION
+  // ============================================================================
+  /**
+   * Generate a personalized learning roadmap
+   */
+  async generateRoadmap(input) {
+    const { userId, targetType, targetSkills, targetCompletionDate, hoursPerWeek = 10 } = input;
+    const existingProfiles = await this.store.getUserSkillProfiles(userId);
+    const profileMap = new Map(existingProfiles.map((p) => [p.skillId, p]));
+    const targets = (targetSkills ?? []).map((t) => {
+      const existing = profileMap.get(t.skillId);
+      return {
+        skillId: t.skillId,
+        skillName: existing?.skill?.name ?? t.skillId,
+        currentLevel: existing?.proficiencyLevel ?? "NOVICE",
+        targetLevel: t.targetLevel,
+        priority: this.calculateSkillPriority(existing, t.targetLevel)
+      };
+    });
+    const totalHours = this.estimateTotalHours(targets);
+    const milestones = this.buildMilestones(targets, hoursPerWeek);
+    const roadmap = {
+      id: this.generateId(),
+      userId,
+      title: `${targetType} Roadmap`,
+      description: `Personalized learning roadmap for ${targets.length} skills`,
+      status: "DRAFT",
+      targetOutcome: {
+        type: targetType,
+        targetName: targetType,
+        targetSkills: targets
+      },
+      milestones,
+      totalEstimatedHours: totalHours,
+      completionPercentage: 0,
+      targetCompletionDate,
+      adjustments: [],
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    await this.store.saveRoadmap(roadmap);
+    return { roadmap };
+  }
+  /**
+   * Build milestones for a roadmap
+   */
+  buildMilestones(targets, hoursPerWeek) {
+    const milestones = [];
+    const sortedTargets = [...targets].sort((a, b) => {
+      const priorityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+      return priorityOrder[a.priority] - priorityOrder[b.priority];
+    });
+    let order = 1;
+    let accumulatedHours = 0;
+    for (const target of sortedTargets) {
+      const estimatedHours = this.estimateHoursForSkill(
+        target.currentLevel,
+        target.targetLevel
+      );
+      const milestone = {
+        id: this.generateId(),
+        roadmapId: "",
+        order,
+        title: `Achieve ${target.targetLevel} in ${target.skillName}`,
+        description: `Progress from ${target.currentLevel} to ${target.targetLevel}`,
+        status: order === 1 ? "AVAILABLE" : "LOCKED",
+        skills: [{
+          skillId: target.skillId,
+          skillName: target.skillName,
+          targetLevel: target.targetLevel,
+          currentLevel: target.currentLevel,
+          progress: 0,
+          estimatedHours
+        }],
+        estimatedHours,
+        prerequisites: order > 1 ? [milestones[order - 2].id] : [],
+        resources: [],
+        assessmentRequired: true
+      };
+      accumulatedHours += estimatedHours;
+      milestone.targetDate = new Date(
+        Date.now() + accumulatedHours / hoursPerWeek * 7 * 24 * 60 * 60 * 1e3
+      );
+      milestones.push(milestone);
+      order++;
+    }
+    return milestones;
+  }
+  // ============================================================================
+  // BENCHMARKING
+  // ============================================================================
+  /**
+   * Get benchmark data for a skill
+   */
+  async getSkillBenchmark(input) {
+    const { skillId, userId, source = "INDUSTRY" } = input;
+    let benchmark = await this.store.getSkillBenchmark(skillId, source);
+    if (!benchmark) {
+      benchmark = this.generateDefaultBenchmark(skillId, source);
+      await this.store.saveBenchmarkData(benchmark);
+    }
+    if (userId) {
+      const profile = await this.store.getSkillProfile(userId, skillId);
+      if (profile) {
+        benchmark.userPosition = this.calculateBenchmarkPosition(
+          profile.compositeScore,
+          benchmark.distribution
+        );
+      }
+    }
+    return benchmark;
+  }
+  /**
+   * Get role-based benchmark
+   */
+  async getRoleBenchmark(input) {
+    const { roleId, userId, source = "ROLE" } = input;
+    const benchmark = await this.store.getRoleBenchmark(roleId, source);
+    return benchmark;
+  }
+  /**
+   * Calculate user&apos;s benchmark position
+   */
+  calculatePercentile(score, distribution) {
+    const z4 = (score - distribution.mean) / distribution.standardDeviation;
+    const percentile = 0.5 * (1 + this.erf(z4 / Math.sqrt(2)));
+    return Math.round(percentile * 100);
+  }
+  /**
+   * Error function approximation for normal distribution
+   */
+  erf(x) {
+    const t = 1 / (1 + 0.3275911 * Math.abs(x));
+    const a1 = 0.254829592;
+    const a2 = -0.284496736;
+    const a3 = 1.421413741;
+    const a4 = -1.453152027;
+    const a5 = 1.061405429;
+    const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+    return x >= 0 ? y : -y;
+  }
+  /**
+   * Calculate benchmark position
+   */
+  calculateBenchmarkPosition(score, distribution) {
+    const percentile = this.calculatePercentile(score, distribution);
+    let comparison;
+    if (percentile >= 90) comparison = "TOP_PERFORMER";
+    else if (percentile >= 60) comparison = "ABOVE_AVERAGE";
+    else if (percentile >= 40) comparison = "AVERAGE";
+    else comparison = "BELOW_AVERAGE";
+    return { score, percentile, comparison };
+  }
+  /**
+   * Generate default benchmark data
+   */
+  generateDefaultBenchmark(skillId, source) {
+    return {
+      skillId,
+      skillName: skillId,
+      source,
+      distribution: {
+        min: 0,
+        max: 100,
+        mean: 45,
+        median: 42,
+        standardDeviation: 20,
+        percentiles: {
+          10: 20,
+          25: 30,
+          50: 45,
+          75: 60,
+          90: 75
+        }
+      },
+      levelDistribution: {
+        NOVICE: 0.15,
+        BEGINNER: 0.25,
+        COMPETENT: 0.3,
+        PROFICIENT: 0.15,
+        ADVANCED: 0.1,
+        EXPERT: 0.04,
+        STRATEGIST: 0.01
+      },
+      timeToLevel: {
+        BEGINNER: 20,
+        COMPETENT: 100,
+        PROFICIENT: 300,
+        ADVANCED: 800,
+        EXPERT: 2e3,
+        STRATEGIST: 5e3
+      },
+      sampleSize: 1e3,
+      lastUpdated: /* @__PURE__ */ new Date()
+    };
+  }
+  // ============================================================================
+  // PORTFOLIO
+  // ============================================================================
+  /**
+   * Get complete skill portfolio for a user
+   */
+  async getPortfolio(input) {
+    const { userId } = input;
+    const profiles = await this.store.getUserSkillProfiles(userId);
+    const achievements = await this.store.getUserAchievements(userId);
+    const summary = this.buildPortfolioSummary(profiles);
+    const categoryDistribution = this.buildCategoryDistribution(profiles);
+    let employability;
+    if (input.includeEmployability) {
+      employability = await this.buildEmployabilityAnalysis(profiles, input.targetRoleIds);
+    }
+    let recommendations = [];
+    if (input.includeRecommendations) {
+      recommendations = this.generatePortfolioRecommendations(profiles);
+    }
+    return {
+      userId,
+      skills: profiles,
+      summary,
+      categoryDistribution,
+      employability: employability ?? this.getDefaultEmployability(),
+      recommendations,
+      achievements,
+      lastUpdated: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Add evidence to a skill profile
+   */
+  async addEvidence(input) {
+    const evidence = {
+      id: this.generateId(),
+      type: input.type,
+      title: input.title,
+      description: input.description,
+      sourceId: input.sourceId,
+      sourceUrl: input.sourceUrl,
+      score: input.score,
+      maxScore: input.maxScore,
+      demonstratedLevel: input.demonstratedLevel,
+      verified: false,
+      date: input.date,
+      expiresAt: input.expiresAt,
+      createdAt: /* @__PURE__ */ new Date()
+    };
+    await this.store.addEvidence(input.userId, input.skillId, evidence);
+    const newAchievements = await this.checkEvidenceAchievements(
+      input.userId,
+      evidence
+    );
+    return { evidence, newAchievements };
+  }
+  // ============================================================================
+  // INSIGHTS
+  // ============================================================================
+  /**
+   * Get personalized insights for a user
+   */
+  async getInsights(input) {
+    const { userId } = input;
+    const profiles = await this.store.getUserSkillProfiles(userId);
+    const practiceLogs = await this.getAllPracticeLogs(userId, profiles);
+    const progressSummary = this.buildProgressSummary(profiles, practiceLogs);
+    const learningPatterns = this.analyzeLearningPatterns(practiceLogs);
+    const decayRisks = this.buildDecayRiskSummary(profiles);
+    const velocityAnalysis = this.buildVelocityAnalysis(profiles);
+    let recommendations = [];
+    let nextActions = [];
+    if (input.includeRecommendations) {
+      recommendations = this.generateInsightRecommendations(
+        profiles,
+        decayRisks,
+        velocityAnalysis
+      ).slice(0, input.maxRecommendations ?? 5);
+    }
+    if (input.includeNextActions) {
+      nextActions = this.generateNextActions(profiles, decayRisks);
+    }
+    return {
+      userId,
+      progressSummary,
+      learningPatterns,
+      decayRisks,
+      velocityAnalysis,
+      recommendations,
+      nextActions,
+      generatedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  /**
+   * Generate recommendations for a profile
+   */
+  generateRecommendationsForProfile(profile) {
+    const recommendations = [];
+    if (profile.velocity.trend === "DECLINING" || profile.velocity.trend === "STAGNANT") {
+      recommendations.push({
+        id: this.generateId(),
+        type: "PRACTICE",
+        priority: "HIGH",
+        skillId: profile.skillId,
+        skillName: profile.skill?.name ?? profile.skillId,
+        title: "Resume Practice",
+        description: `Your learning velocity is ${profile.velocity.trend.toLowerCase()}. Regular practice will help.`,
+        reason: "Velocity decline detected",
+        estimatedMinutes: 30,
+        expectedImpact: 15
+      });
+    }
+    if (profile.decay.riskLevel === "HIGH" || profile.decay.riskLevel === "CRITICAL") {
+      recommendations.push({
+        id: this.generateId(),
+        type: "REVIEW",
+        priority: profile.decay.riskLevel === "CRITICAL" ? "CRITICAL" : "HIGH",
+        skillId: profile.skillId,
+        skillName: profile.skill?.name ?? profile.skillId,
+        title: "Review Required",
+        description: `Skill is at risk of level drop in ${profile.decay.daysUntilLevelDrop ?? "few"} days.`,
+        reason: "Decay risk detected",
+        estimatedMinutes: 20,
+        expectedImpact: 10
+      });
+    }
+    return recommendations;
+  }
+  // ============================================================================
+  // HELPER METHODS
+  // ============================================================================
+  /**
+   * Create a new skill profile
+   */
+  createNewProfile(userId, skillId) {
+    const now = /* @__PURE__ */ new Date();
+    return {
+      id: this.generateId(),
+      userId,
+      skillId,
+      dimensions: {
+        mastery: 0,
+        retention: 0,
+        application: 0,
+        confidence: 50,
+        calibration: 50
+      },
+      compositeScore: 0,
+      proficiencyLevel: "NOVICE",
+      velocity: {
+        learningSpeed: 0,
+        sessionsToNextLevel: 999,
+        daysToNextLevel: 999,
+        trend: "STAGNANT",
+        acceleration: 0,
+        recentScores: [],
+        calculatedAt: now
+      },
+      decay: {
+        decayRate: DEFAULT_DECAY_RATES.NOVICE,
+        daysSinceLastPractice: 0,
+        predictedDecay: [],
+        halfLifeDays: Math.round(Math.log(2) / DEFAULT_DECAY_RATES.NOVICE),
+        recommendedReviewDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3),
+        riskLevel: "LOW"
+      },
+      evidence: [],
+      practiceHistory: {
+        totalSessions: 0,
+        totalMinutes: 0,
+        averageSessionMinutes: 0,
+        averageScore: 0,
+        bestScore: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        sessionsThisWeek: 0,
+        sessionsThisMonth: 0
+      },
+      levelHistory: [],
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+  /**
+   * Calculate dimension updates based on practice input
+   */
+  calculateDimensionUpdates(profile, input) {
+    const updates = {};
+    const scorePercent = input.score && input.maxScore ? input.score / input.maxScore * 100 : 70;
+    const masteryGain = Math.max(0, (scorePercent - 50) / 5);
+    updates.mastery = Math.min(100, profile.dimensions.mastery + masteryGain);
+    const retentionGain = Math.min(10, input.durationMinutes / 10);
+    updates.retention = Math.min(100, profile.dimensions.retention + retentionGain);
+    if (input.completed) {
+      const applicationGain = input.isAssessment ? 8 : 4;
+      updates.application = Math.min(100, profile.dimensions.application + applicationGain);
+    }
+    if (input.score !== void 0) {
+      const expectedScore = profile.dimensions.confidence;
+      const actualPercent = scorePercent;
+      const confidenceAdjust = (actualPercent - expectedScore) * 0.1;
+      updates.confidence = Math.max(0, Math.min(100, profile.dimensions.confidence + confidenceAdjust));
+    }
+    if (profile.practiceHistory.totalSessions > 3) {
+      const calibrationGain = 1;
+      updates.calibration = Math.min(100, profile.dimensions.calibration + calibrationGain);
+    }
+    return updates;
+  }
+  /**
+   * Apply dimension updates
+   */
+  applyDimensionUpdates(current, updates) {
+    return {
+      mastery: updates.mastery ?? current.mastery,
+      retention: updates.retention ?? current.retention,
+      application: updates.application ?? current.application,
+      confidence: updates.confidence ?? current.confidence,
+      calibration: updates.calibration ?? current.calibration
+    };
+  }
+  /**
+   * Calculate composite score from dimensions
+   */
+  calculateCompositeScore(dimensions) {
+    const score = dimensions.mastery * this.weights.mastery + dimensions.retention * this.weights.retention + dimensions.application * this.weights.application + dimensions.confidence * this.weights.confidence + dimensions.calibration * this.weights.calibration;
+    return Math.round(score * 10) / 10;
+  }
+  /**
+   * Update practice history
+   */
+  updatePracticeHistory(history, input) {
+    const newTotal = history.totalSessions + 1;
+    const newMinutes = history.totalMinutes + input.durationMinutes;
+    const score = input.score ?? history.averageScore;
+    return {
+      totalSessions: newTotal,
+      totalMinutes: newMinutes,
+      averageSessionMinutes: newMinutes / newTotal,
+      averageScore: (history.averageScore * history.totalSessions + score) / newTotal,
+      bestScore: Math.max(history.bestScore, score),
+      currentStreak: history.currentStreak + 1,
+      // Simplified - would need date checking
+      longestStreak: Math.max(history.longestStreak, history.currentStreak + 1),
+      lastSessionDate: /* @__PURE__ */ new Date(),
+      sessionsThisWeek: history.sessionsThisWeek + 1,
+      // Simplified
+      sessionsThisMonth: history.sessionsThisMonth + 1
+      // Simplified
+    };
+  }
+  /**
+   * Check for achievements after practice
+   */
+  async checkAchievements(userId, profile, levelChange, isNewSkill) {
+    const achievements = [];
+    const now = /* @__PURE__ */ new Date();
+    if (levelChange && this.compareLevels(levelChange.toLevel, levelChange.fromLevel) > 0) {
+      achievements.push({
+        id: this.generateId(),
+        type: "LEVEL_UP",
+        title: `Reached ${levelChange.toLevel}`,
+        description: `Advanced to ${levelChange.toLevel} level in ${profile.skill?.name ?? profile.skillId}`,
+        skillId: profile.skillId,
+        skillName: profile.skill?.name,
+        level: levelChange.toLevel,
+        earnedAt: now,
+        rarity: this.getLevelRarity(levelChange.toLevel)
+      });
+    }
+    if (profile.practiceHistory.currentStreak === 7) {
+      achievements.push({
+        id: this.generateId(),
+        type: "STREAK",
+        title: "Week Warrior",
+        description: "7-day practice streak achieved",
+        skillId: profile.skillId,
+        earnedAt: now,
+        rarity: "UNCOMMON"
+      });
+    }
+    if (isNewSkill) {
+      achievements.push({
+        id: this.generateId(),
+        type: "MASTERY",
+        title: "New Journey",
+        description: `Started learning ${profile.skill?.name ?? profile.skillId}`,
+        skillId: profile.skillId,
+        earnedAt: now,
+        rarity: "COMMON"
+      });
+    }
+    for (const achievement of achievements) {
+      await this.store.saveAchievement(userId, achievement);
+    }
+    return achievements;
+  }
+  /**
+   * Check for evidence-related achievements
+   */
+  async checkEvidenceAchievements(userId, evidence) {
+    const achievements = [];
+    if (evidence.type === "CERTIFICATION") {
+      achievements.push({
+        id: this.generateId(),
+        type: "MASTERY",
+        title: "Certified",
+        description: `Earned certification: ${evidence.title}`,
+        earnedAt: /* @__PURE__ */ new Date(),
+        rarity: "RARE"
+      });
+      await this.store.saveAchievement(userId, achievements[0]);
+    }
+    return achievements;
+  }
+  /**
+   * Get rarity based on level
+   */
+  getLevelRarity(level) {
+    const rarities = {
+      NOVICE: "COMMON",
+      BEGINNER: "COMMON",
+      COMPETENT: "UNCOMMON",
+      PROFICIENT: "RARE",
+      ADVANCED: "RARE",
+      EXPERT: "EPIC",
+      STRATEGIST: "LEGENDARY"
+    };
+    return rarities[level];
+  }
+  /**
+   * Calculate skill priority
+   */
+  calculateSkillPriority(profile, targetLevel) {
+    const currentLevel = profile?.proficiencyLevel ?? "NOVICE";
+    const levelGap = this.compareLevels(targetLevel, currentLevel);
+    if (levelGap >= 4) return "CRITICAL";
+    if (levelGap >= 3) return "HIGH";
+    if (levelGap >= 2) return "MEDIUM";
+    return "LOW";
+  }
+  /**
+   * Estimate total hours for roadmap
+   */
+  estimateTotalHours(targets) {
+    return targets.reduce((total, target) => {
+      return total + this.estimateHoursForSkill(target.currentLevel, target.targetLevel);
+    }, 0);
+  }
+  /**
+   * Estimate hours to progress between levels
+   */
+  estimateHoursForSkill(fromLevel, toLevel) {
+    const hoursPerLevel = {
+      NOVICE: 0,
+      BEGINNER: 20,
+      COMPETENT: 50,
+      PROFICIENT: 100,
+      ADVANCED: 200,
+      EXPERT: 500,
+      STRATEGIST: 1e3
+    };
+    const fromIdx = PROFICIENCY_ORDER.indexOf(fromLevel);
+    const toIdx = PROFICIENCY_ORDER.indexOf(toLevel);
+    let total = 0;
+    for (let i = fromIdx + 1; i <= toIdx; i++) {
+      total += hoursPerLevel[PROFICIENCY_ORDER[i]];
+    }
+    return total;
+  }
+  /**
+   * Build portfolio summary
+   */
+  buildPortfolioSummary(profiles) {
+    const skillsByLevel = profiles.reduce((acc, p) => {
+      acc[p.proficiencyLevel] = (acc[p.proficiencyLevel] || 0) + 1;
+      return acc;
+    }, {});
+    const totalEvidence = profiles.reduce((sum, p) => sum + p.evidence.length, 0);
+    const verifiedEvidence = profiles.reduce(
+      (sum, p) => sum + p.evidence.filter((e) => e.verified).length,
+      0
+    );
+    return {
+      totalSkills: profiles.length,
+      skillsByLevel: {
+        NOVICE: skillsByLevel.NOVICE ?? 0,
+        BEGINNER: skillsByLevel.BEGINNER ?? 0,
+        COMPETENT: skillsByLevel.COMPETENT ?? 0,
+        PROFICIENT: skillsByLevel.PROFICIENT ?? 0,
+        ADVANCED: skillsByLevel.ADVANCED ?? 0,
+        EXPERT: skillsByLevel.EXPERT ?? 0,
+        STRATEGIST: skillsByLevel.STRATEGIST ?? 0
+      },
+      averageCompositeScore: profiles.length > 0 ? profiles.reduce((sum, p) => sum + p.compositeScore, 0) / profiles.length : 0,
+      totalLearningHours: profiles.reduce((sum, p) => sum + p.practiceHistory.totalMinutes, 0) / 60,
+      totalEvidenceItems: totalEvidence,
+      verifiedEvidence,
+      activeRoadmaps: 0,
+      // Would query roadmaps
+      completedRoadmaps: 0,
+      currentStreak: Math.max(...profiles.map((p) => p.practiceHistory.currentStreak), 0),
+      longestStreak: Math.max(...profiles.map((p) => p.practiceHistory.longestStreak), 0)
+    };
+  }
+  /**
+   * Build category distribution
+   */
+  buildCategoryDistribution(profiles) {
+    const categories = [
+      "TECHNICAL",
+      "SOFT",
+      "DOMAIN",
+      "TOOL",
+      "METHODOLOGY",
+      "CERTIFICATION",
+      "LEADERSHIP"
+    ];
+    const distribution = {};
+    for (const category of categories) {
+      const categoryProfiles = profiles.filter((p) => p.skill?.category === category);
+      distribution[category] = {
+        skillCount: categoryProfiles.length,
+        averageScore: categoryProfiles.length > 0 ? categoryProfiles.reduce((sum, p) => sum + p.compositeScore, 0) / categoryProfiles.length : 0,
+        strongestSkill: categoryProfiles.length > 0 ? categoryProfiles.sort((a, b) => b.compositeScore - a.compositeScore)[0].skill?.name : void 0,
+        weakestSkill: categoryProfiles.length > 0 ? categoryProfiles.sort((a, b) => a.compositeScore - b.compositeScore)[0].skill?.name : void 0,
+        trend: "STEADY"
+      };
+    }
+    return distribution;
+  }
+  /**
+   * Build employability analysis
+   */
+  async buildEmployabilityAnalysis(profiles, targetRoleIds) {
+    const avgScore = profiles.length > 0 ? profiles.reduce((sum, p) => sum + p.compositeScore, 0) / profiles.length : 0;
+    return {
+      overallScore: Math.round(avgScore * 0.8),
+      // 80% weight to skill scores
+      matchingRoles: [],
+      inDemandSkills: [],
+      criticalGaps: [],
+      marketPosition: {
+        percentileRank: 50,
+        competitiveAdvantages: [],
+        uniqueSkillCombinations: [],
+        emergingOpportunities: []
+      },
+      improvementPlan: []
+    };
+  }
+  /**
+   * Get default employability analysis
+   */
+  getDefaultEmployability() {
+    return {
+      overallScore: 0,
+      matchingRoles: [],
+      inDemandSkills: [],
+      criticalGaps: [],
+      marketPosition: {
+        percentileRank: 0,
+        competitiveAdvantages: [],
+        uniqueSkillCombinations: [],
+        emergingOpportunities: []
+      },
+      improvementPlan: []
+    };
+  }
+  /**
+   * Generate portfolio recommendations
+   */
+  generatePortfolioRecommendations(profiles) {
+    const recommendations = [];
+    const decayingSkills = profiles.filter(
+      (p) => p.decay.riskLevel === "HIGH" || p.decay.riskLevel === "CRITICAL"
+    );
+    for (const skill of decayingSkills.slice(0, 3)) {
+      recommendations.push({
+        id: this.generateId(),
+        type: "REVIEW",
+        priority: skill.decay.riskLevel === "CRITICAL" ? "CRITICAL" : "HIGH",
+        skillId: skill.skillId,
+        skillName: skill.skill?.name ?? skill.skillId,
+        title: `Review ${skill.skill?.name ?? skill.skillId}`,
+        description: "This skill is at risk of decay",
+        reason: "Decay risk detected",
+        estimatedMinutes: 20,
+        expectedImpact: 15
+      });
+    }
+    return recommendations;
+  }
+  /**
+   * Get all practice logs for profiles
+   */
+  async getAllPracticeLogs(userId, profiles) {
+    const allLogs = [];
+    for (const profile of profiles) {
+      const logs = await this.store.getPracticeLogs(userId, profile.skillId);
+      allLogs.push(...logs);
+    }
+    return allLogs.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+  /**
+   * Build progress summary
+   */
+  buildProgressSummary(profiles, practiceLogs) {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1e3);
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3);
+    const recentLogs = practiceLogs.filter((l) => l.timestamp > weekAgo);
+    const monthLogs = practiceLogs.filter((l) => l.timestamp > monthAgo);
+    return {
+      skillsImproved: profiles.filter((p) => p.velocity.trend === "ACCELERATING" || p.velocity.trend === "STEADY").length,
+      skillsDeclined: profiles.filter((p) => p.velocity.trend === "DECLINING").length,
+      newSkillsStarted: profiles.filter((p) => p.practiceHistory.totalSessions <= 3).length,
+      milestonesCompleted: 0,
+      // Would query roadmaps
+      hoursThisWeek: recentLogs.reduce((sum, l) => sum + l.durationMinutes, 0) / 60,
+      hoursThisMonth: monthLogs.reduce((sum, l) => sum + l.durationMinutes, 0) / 60,
+      overallTrend: this.calculateOverallTrend(profiles)
+    };
+  }
+  /**
+   * Calculate overall learning trend
+   */
+  calculateOverallTrend(profiles) {
+    if (profiles.length === 0) return "STAGNANT";
+    const trends = profiles.map((p) => p.velocity.trend);
+    const accelerating = trends.filter((t) => t === "ACCELERATING").length;
+    const declining = trends.filter((t) => t === "DECLINING").length;
+    if (accelerating > declining * 2) return "ACCELERATING";
+    if (declining > accelerating * 2) return "DECLINING";
+    if (accelerating > declining) return "STEADY";
+    if (declining > accelerating) return "SLOWING";
+    return "STEADY";
+  }
+  /**
+   * Analyze learning patterns
+   */
+  analyzeLearningPatterns(practiceLogs) {
+    if (practiceLogs.length === 0) {
+      return {
+        preferredTimeOfDay: "Unknown",
+        averageSessionDuration: 0,
+        optimalSessionDuration: 30,
+        consistencyScore: 0,
+        bestPerformingCategory: "TECHNICAL",
+        challengingCategory: "TECHNICAL",
+        learningStyle: "MIXED"
+      };
+    }
+    const avgDuration = practiceLogs.reduce((sum, l) => sum + l.durationMinutes, 0) / practiceLogs.length;
+    return {
+      preferredTimeOfDay: "Afternoon",
+      // Would analyze timestamps
+      averageSessionDuration: avgDuration,
+      optimalSessionDuration: Math.max(25, Math.min(avgDuration * 1.2, 60)),
+      consistencyScore: Math.min(100, practiceLogs.length * 10),
+      bestPerformingCategory: "TECHNICAL",
+      challengingCategory: "SOFT",
+      learningStyle: "MIXED"
+    };
+  }
+  /**
+   * Build decay risk summary
+   */
+  buildDecayRiskSummary(profiles) {
+    const highRisk = profiles.filter((p) => p.decay.riskLevel === "HIGH" || p.decay.riskLevel === "CRITICAL").map((p) => ({
+      skillId: p.skillId,
+      skillName: p.skill?.name ?? p.skillId,
+      currentScore: p.compositeScore,
+      daysUntilLevelDrop: p.decay.daysUntilLevelDrop ?? 999,
+      riskLevel: p.decay.riskLevel
+    }));
+    const mediumRisk = profiles.filter((p) => p.decay.riskLevel === "MEDIUM").map((p) => ({
+      skillId: p.skillId,
+      skillName: p.skill?.name ?? p.skillId,
+      currentScore: p.compositeScore,
+      daysUntilLevelDrop: p.decay.daysUntilLevelDrop ?? 999,
+      riskLevel: "MEDIUM"
+    }));
+    const upcomingReviews = profiles.filter((p) => p.decay.recommendedReviewDate <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3)).map((p) => ({
+      skillId: p.skillId,
+      skillName: p.skill?.name ?? p.skillId,
+      recommendedDate: p.decay.recommendedReviewDate,
+      urgency: p.decay.riskLevel === "CRITICAL" ? "HIGH" : p.decay.riskLevel === "HIGH" ? "MEDIUM" : "LOW"
+    }));
+    return { highRiskSkills: highRisk, mediumRiskSkills: mediumRisk, upcomingReviews };
+  }
+  /**
+   * Build velocity analysis
+   */
+  buildVelocityAnalysis(profiles) {
+    const sorted = [...profiles].sort(
+      (a, b) => b.velocity.learningSpeed - a.velocity.learningSpeed
+    );
+    const fastest = sorted.slice(0, 3).map((p) => ({
+      skillId: p.skillId,
+      skillName: p.skill?.name ?? p.skillId,
+      velocity: p.velocity.learningSpeed,
+      trend: p.velocity.trend,
+      daysToNextLevel: p.velocity.daysToNextLevel
+    }));
+    const slowest = sorted.slice(-3).map((p) => ({
+      skillId: p.skillId,
+      skillName: p.skill?.name ?? p.skillId,
+      velocity: p.velocity.learningSpeed,
+      trend: p.velocity.trend,
+      daysToNextLevel: p.velocity.daysToNextLevel
+    }));
+    const avgSpeed = profiles.length > 0 ? profiles.reduce((sum, p) => sum + p.velocity.learningSpeed, 0) / profiles.length : 0;
+    return {
+      fastestLearningSkills: fastest,
+      slowestLearningSkills: slowest,
+      averageLearningSpeed: avgSpeed,
+      projectedCompletions: []
+      // Would calculate based on targets
+    };
+  }
+  /**
+   * Generate insight recommendations
+   */
+  generateInsightRecommendations(profiles, decayRisks, velocityAnalysis) {
+    const recommendations = [];
+    for (const skill of decayRisks.highRiskSkills.slice(0, 2)) {
+      recommendations.push({
+        id: this.generateId(),
+        type: "REVIEW",
+        priority: skill.riskLevel === "CRITICAL" ? "CRITICAL" : "HIGH",
+        skillId: skill.skillId,
+        skillName: skill.skillName,
+        title: `Urgent: Review ${skill.skillName}`,
+        description: `Risk of level drop in ${skill.daysUntilLevelDrop} days`,
+        reason: "Decay risk",
+        estimatedMinutes: 20,
+        expectedImpact: 20
+      });
+    }
+    for (const skill of velocityAnalysis.slowestLearningSkills.slice(0, 2)) {
+      if (skill.velocity < 0.5) {
+        recommendations.push({
+          id: this.generateId(),
+          type: "PRACTICE",
+          priority: "MEDIUM",
+          skillId: skill.skillId,
+          skillName: skill.skillName,
+          title: `Boost ${skill.skillName}`,
+          description: "Learning velocity is low",
+          reason: "Low velocity",
+          estimatedMinutes: 30,
+          expectedImpact: 15
+        });
+      }
+    }
+    return recommendations;
+  }
+  /**
+   * Generate next actions
+   */
+  generateNextActions(profiles, decayRisks) {
+    const actions = [];
+    if (decayRisks.highRiskSkills.length > 0) {
+      const skill = decayRisks.highRiskSkills[0];
+      actions.push({
+        type: "REVIEW",
+        skillId: skill.skillId,
+        skillName: skill.skillName,
+        description: `Review ${skill.skillName} to prevent level drop`,
+        estimatedMinutes: 20,
+        urgency: "HIGH",
+        reason: `Level drop in ${skill.daysUntilLevelDrop} days`
+      });
+    }
+    for (const review of decayRisks.upcomingReviews.slice(0, 2)) {
+      actions.push({
+        type: "REVIEW",
+        skillId: review.skillId,
+        skillName: review.skillName,
+        description: `Scheduled review for ${review.skillName}`,
+        estimatedMinutes: 15,
+        urgency: review.urgency,
+        reason: "Scheduled review"
+      });
+    }
+    const bestToProgress = profiles.filter((p) => p.velocity.trend === "ACCELERATING" || p.velocity.trend === "STEADY").sort((a, b) => a.velocity.daysToNextLevel - b.velocity.daysToNextLevel)[0];
+    if (bestToProgress) {
+      actions.push({
+        type: "PRACTICE",
+        skillId: bestToProgress.skillId,
+        skillName: bestToProgress.skill?.name ?? bestToProgress.skillId,
+        description: `Continue practice - ${bestToProgress.velocity.daysToNextLevel} days to next level`,
+        estimatedMinutes: 30,
+        urgency: "MEDIUM",
+        reason: "Best momentum"
+      });
+    }
+    return actions.slice(0, 5);
+  }
+  /**
+   * Get days since a date
+   */
+  getDaysSince(date) {
+    return Math.floor((Date.now() - date.getTime()) / (24 * 60 * 60 * 1e3));
+  }
+  /**
+   * Generate unique ID
+   */
+  generateId() {
+    return `sbt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+};
+function createSkillBuildTrackEngine(config) {
+  return new SkillBuildTrackEngine(config);
+}
+
+// src/ingestion/extractors/pdf-extractor.ts
+var PDF_EXTRACTOR_VERSION = "1.0.0";
+var PDFExtractor = class {
+  supportedTypes = ["PDF_DOCUMENT"];
+  name = "PDF Extractor";
+  version = PDF_EXTRACTOR_VERSION;
+  pdfParse = null;
+  initPromise = null;
+  /**
+   * Initialize pdf-parse library (lazy load)
+   */
+  async initPDFParse() {
+    if (this.pdfParse) return;
+    if (this.initPromise) {
+      await this.initPromise;
+      return;
+    }
+    this.initPromise = (async () => {
+      try {
+        const pdfParseModule = await Function('return import("pdf-parse")')();
+        this.pdfParse = pdfParseModule.default || pdfParseModule;
+      } catch {
+        this.pdfParse = null;
+      }
+    })();
+    await this.initPromise;
+  }
+  /**
+   * Check if this extractor can process the given source
+   */
+  canProcess(source) {
+    if (source.type === "PDF_DOCUMENT") {
+      return true;
+    }
+    if (source.mimeType === "application/pdf") {
+      return true;
+    }
+    if (source.fileName?.toLowerCase().endsWith(".pdf")) {
+      return true;
+    }
+    if (source.url?.toLowerCase().endsWith(".pdf")) {
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Extract content from PDF
+   */
+  async extract(source, options = {}) {
+    const issues = [];
+    let text = "";
+    let pageCount = 0;
+    let title;
+    let author;
+    let createdDate;
+    try {
+      const buffer = await this.getBuffer(source);
+      if (!buffer || buffer.length === 0) {
+        throw new Error("Empty or invalid PDF buffer");
+      }
+      await this.initPDFParse();
+      if (this.pdfParse) {
+        const result = await this.pdfParse(buffer);
+        text = result.text || "";
+        pageCount = result.numpages || 0;
+        if (result.info) {
+          title = result.info.Title;
+          author = result.info.Author;
+          if (result.info.CreationDate) {
+            try {
+              createdDate = this.parsePDFDate(result.info.CreationDate);
+            } catch {
+            }
+          }
+        }
+        if (options.maxPages && pageCount > options.maxPages) {
+          text = this.limitToPages(text, options.maxPages, pageCount);
+          issues.push({
+            type: "warning",
+            code: "PAGES_LIMITED",
+            message: `Only first ${options.maxPages} of ${pageCount} pages extracted`
+          });
+        }
+      } else {
+        text = this.fallbackExtract(buffer);
+        issues.push({
+          type: "warning",
+          code: "FALLBACK_EXTRACTION",
+          message: "pdf-parse not available, using fallback extraction"
+        });
+      }
+      text = this.cleanText(text);
+      const wordCount = this.countWords(text);
+      let sections;
+      if (options.extractStructure) {
+        sections = this.extractSections(text);
+      }
+      const quality = this.calculateQuality(text, pageCount, issues);
+      return {
+        text,
+        wordCount,
+        metadata: {
+          pageCount,
+          fileSize: buffer.length,
+          mimeType: "application/pdf",
+          title,
+          author,
+          createdDate,
+          headings: this.extractHeadings(text)
+        },
+        sections,
+        quality
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      issues.push({
+        type: "error",
+        code: "EXTRACTION_FAILED",
+        message: errorMessage
+      });
+      return {
+        text: "",
+        wordCount: 0,
+        metadata: {
+          pageCount: 0,
+          mimeType: "application/pdf"
+        },
+        quality: {
+          score: 0,
+          usedOCR: false,
+          coveragePercent: 0,
+          confidence: 0,
+          issues
+        }
+      };
+    }
+  }
+  /**
+   * Get PDF buffer from various source types
+   */
+  async getBuffer(source) {
+    if (source.buffer) {
+      return source.buffer;
+    }
+    if (source.filePath) {
+      const fs = await import("fs/promises");
+      return fs.readFile(source.filePath);
+    }
+    if (source.url) {
+      return this.fetchFromUrl(source.url);
+    }
+    throw new Error("No valid source provided (buffer, filePath, or url required)");
+  }
+  /**
+   * Fetch PDF from URL
+   */
+  async fetchFromUrl(url) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown fetch error";
+      throw new Error(`Failed to fetch PDF from URL: ${message}`);
+    }
+  }
+  /**
+   * Parse PDF date format (D:YYYYMMDDHHmmSS)
+   */
+  parsePDFDate(dateStr) {
+    const match = dateStr.match(/D:(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?/);
+    if (match) {
+      const [, year, month, day, hour = "00", minute = "00", second = "00"] = match;
+      return new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        parseInt(hour),
+        parseInt(minute),
+        parseInt(second)
+      );
+    }
+    return void 0;
+  }
+  /**
+   * Fallback text extraction for when pdf-parse is not available
+   */
+  fallbackExtract(buffer) {
+    const content = buffer.toString("latin1");
+    const textMatches = [];
+    const btEtRegex = /BT\s*([\s\S]*?)\s*ET/g;
+    let match;
+    while ((match = btEtRegex.exec(content)) !== null) {
+      const textContent = match[1];
+      const tjRegex = /\((.*?)\)\s*Tj|\[(.*?)\]\s*TJ/g;
+      let tjMatch;
+      while ((tjMatch = tjRegex.exec(textContent)) !== null) {
+        const text = tjMatch[1] || tjMatch[2];
+        if (text) {
+          textMatches.push(text.replace(/\\(\d{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8))));
+        }
+      }
+    }
+    return textMatches.join(" ");
+  }
+  /**
+   * Limit text to approximately the first N pages
+   */
+  limitToPages(text, maxPages, totalPages) {
+    const ratio = maxPages / totalPages;
+    const targetLength = Math.floor(text.length * ratio);
+    return text.substring(0, targetLength);
+  }
+  /**
+   * Clean and normalize extracted text
+   */
+  cleanText(text) {
+    return text.replace(/\s+/g, " ").replace(/\n{3,}/g, "\n\n").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "").trim();
+  }
+  /**
+   * Count words in text
+   */
+  countWords(text) {
+    if (!text) return 0;
+    return text.split(/\s+/).filter((word) => word.length > 0).length;
+  }
+  /**
+   * Extract headings from text (heuristic-based)
+   */
+  extractHeadings(text) {
+    const headings = [];
+    const lines = text.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.length < 100) {
+        if (trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed)) {
+          headings.push(trimmed);
+          continue;
+        }
+        if (/^(\d+\.)+\s*.+/.test(trimmed) && !trimmed.endsWith(".")) {
+          headings.push(trimmed);
+          continue;
+        }
+        if (/^[A-Z][a-zA-Z\s]+$/.test(trimmed) && trimmed.length > 5 && trimmed.length < 60) {
+          headings.push(trimmed);
+        }
+      }
+    }
+    return [...new Set(headings)].slice(0, 50);
+  }
+  /**
+   * Extract sections from text based on headings
+   */
+  extractSections(text) {
+    const sections = [];
+    const headings = this.extractHeadings(text);
+    if (headings.length === 0) {
+      return [
+        {
+          content: text,
+          position: 0,
+          wordCount: this.countWords(text)
+        }
+      ];
+    }
+    let lastIndex = 0;
+    let position = 0;
+    for (const heading of headings) {
+      const headingIndex = text.indexOf(heading, lastIndex);
+      if (headingIndex === -1) continue;
+      if (headingIndex > lastIndex && sections.length > 0) {
+        const prevContent = text.substring(lastIndex, headingIndex).trim();
+        if (prevContent) {
+          sections[sections.length - 1].content = prevContent;
+          sections[sections.length - 1].wordCount = this.countWords(prevContent);
+        }
+      }
+      sections.push({
+        title: heading,
+        content: "",
+        position: position++,
+        wordCount: 0
+      });
+      lastIndex = headingIndex + heading.length;
+    }
+    if (sections.length > 0 && lastIndex < text.length) {
+      const remainingContent = text.substring(lastIndex).trim();
+      sections[sections.length - 1].content = remainingContent;
+      sections[sections.length - 1].wordCount = this.countWords(remainingContent);
+    }
+    return sections.filter((s) => s.wordCount > 0);
+  }
+  /**
+   * Calculate extraction quality metrics
+   */
+  calculateQuality(text, pageCount, issues) {
+    const hasErrors = issues.some((i) => i.type === "error");
+    if (hasErrors || !text) {
+      return {
+        score: 0,
+        usedOCR: false,
+        coveragePercent: 0,
+        confidence: 0,
+        issues
+      };
+    }
+    const expectedWords = pageCount * 300;
+    const actualWords = this.countWords(text);
+    const coveragePercent = Math.min(100, actualWords / expectedWords * 100);
+    let confidence = coveragePercent / 100;
+    const warningCount = issues.filter((i) => i.type === "warning").length;
+    confidence = Math.max(0, confidence - warningCount * 0.1);
+    const score = confidence * (1 - warningCount * 0.05);
+    return {
+      score: Math.max(0, Math.min(1, score)),
+      usedOCR: false,
+      coveragePercent: Math.min(100, coveragePercent),
+      confidence: Math.max(0, Math.min(1, confidence)),
+      issues
+    };
+  }
+};
+var pdfExtractor = new PDFExtractor();
+
+// src/ingestion/extractors/slide-extractor.ts
+var SLIDE_EXTRACTOR_VERSION = "1.0.0";
+var SlideExtractor = class {
+  supportedTypes = ["SLIDE_DECK"];
+  name = "Slide Deck Extractor";
+  version = SLIDE_EXTRACTOR_VERSION;
+  JSZip = null;
+  initPromise = null;
+  /**
+   * Initialize JSZip library (lazy load)
+   */
+  async initJSZip() {
+    if (this.JSZip) return;
+    if (this.initPromise) {
+      await this.initPromise;
+      return;
+    }
+    this.initPromise = (async () => {
+      try {
+        const jszip = await Function('return import("jszip")')();
+        this.JSZip = jszip.default || jszip;
+      } catch {
+        this.JSZip = null;
+      }
+    })();
+    await this.initPromise;
+  }
+  /**
+   * Check if this extractor can process the given source
+   */
+  canProcess(source) {
+    if (source.type === "SLIDE_DECK") {
+      return true;
+    }
+    const pptxMimeTypes = [
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/vnd.ms-powerpoint"
+    ];
+    if (source.mimeType && pptxMimeTypes.includes(source.mimeType)) {
+      return true;
+    }
+    const fileName = source.fileName?.toLowerCase() || source.url?.toLowerCase() || "";
+    if (fileName.endsWith(".pptx") || fileName.endsWith(".ppt")) {
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Extract content from slide deck
+   */
+  async extract(source, options = {}) {
+    const issues = [];
+    try {
+      const buffer = await this.getBuffer(source);
+      if (!buffer || buffer.length === 0) {
+        throw new Error("Empty or invalid presentation buffer");
+      }
+      await this.initJSZip();
+      if (!this.JSZip) {
+        throw new Error("JSZip library not available");
+      }
+      const zip = await this.JSZip.loadAsync(buffer);
+      const slides = await this.extractSlides(zip, options.maxPages);
+      const metadata = await this.extractMetadata(zip);
+      const allText = slides.map((s) => s.content).join("\n\n");
+      const cleanedText = this.cleanText(allText);
+      const wordCount = this.countWords(cleanedText);
+      const sections = slides.map((slide, index) => ({
+        title: slide.title || `Slide ${index + 1}`,
+        content: slide.content,
+        position: index,
+        wordCount: this.countWords(slide.content),
+        startPage: index + 1,
+        endPage: index + 1
+      }));
+      if (options.maxPages && slides.length >= options.maxPages) {
+        const totalSlides = await this.countTotalSlides(zip);
+        if (totalSlides > options.maxPages) {
+          issues.push({
+            type: "warning",
+            code: "SLIDES_LIMITED",
+            message: `Only first ${options.maxPages} of ${totalSlides} slides extracted`
+          });
+        }
+      }
+      const quality = this.calculateQuality(cleanedText, slides.length, issues);
+      return {
+        text: cleanedText,
+        wordCount,
+        metadata: {
+          slideCount: slides.length,
+          fileSize: buffer.length,
+          mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          title: metadata.title,
+          author: metadata.author,
+          createdDate: metadata.created,
+          headings: slides.map((s) => s.title).filter(Boolean)
+        },
+        sections,
+        quality
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      issues.push({
+        type: "error",
+        code: "EXTRACTION_FAILED",
+        message: errorMessage
+      });
+      return {
+        text: "",
+        wordCount: 0,
+        metadata: {
+          slideCount: 0,
+          mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        },
+        quality: {
+          score: 0,
+          usedOCR: false,
+          coveragePercent: 0,
+          confidence: 0,
+          issues
+        }
+      };
+    }
+  }
+  /**
+   * Get presentation buffer from various source types
+   */
+  async getBuffer(source) {
+    if (source.buffer) {
+      return source.buffer;
+    }
+    if (source.filePath) {
+      const fs = await import("fs/promises");
+      return fs.readFile(source.filePath);
+    }
+    if (source.url) {
+      const response = await fetch(source.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch presentation: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    }
+    throw new Error("No valid source provided");
+  }
+  /**
+   * Extract slides from PPTX ZIP
+   */
+  async extractSlides(zip, maxSlides) {
+    const slides = [];
+    const slideFiles = Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name)).sort((a, b) => {
+      const numA = parseInt(a.match(/slide(\d+)/)?.[1] || "0");
+      const numB = parseInt(b.match(/slide(\d+)/)?.[1] || "0");
+      return numA - numB;
+    });
+    const limit = maxSlides || slideFiles.length;
+    for (let i = 0; i < Math.min(slideFiles.length, limit); i++) {
+      const file = slideFiles[i];
+      const content = await zip.file(file)?.async("string");
+      if (content) {
+        const slideData = this.parseSlideXML(content);
+        slides.push(slideData);
+      }
+    }
+    return slides;
+  }
+  /**
+   * Parse slide XML to extract text
+   */
+  parseSlideXML(xml) {
+    const texts = [];
+    let title = null;
+    const textRegex = /<a:t>([^<]*)<\/a:t>/g;
+    let match;
+    while ((match = textRegex.exec(xml)) !== null) {
+      const text = this.decodeXMLEntities(match[1]).trim();
+      if (text) {
+        texts.push(text);
+        if (!title && text.length > 3) {
+          title = text;
+        }
+      }
+    }
+    const titleMatch = xml.match(/<p:ph type="title"[^>]*>[\s\S]*?<a:t>([^<]*)<\/a:t>/);
+    if (titleMatch) {
+      title = this.decodeXMLEntities(titleMatch[1]).trim() || title;
+    }
+    const txBodyRegex = /<p:txBody>[\s\S]*?<\/p:txBody>/g;
+    while ((match = txBodyRegex.exec(xml)) !== null) {
+      const innerTexts = match[0].match(/<a:t>([^<]*)<\/a:t>/g);
+      if (innerTexts) {
+        for (const innerText of innerTexts) {
+          const textMatch = innerText.match(/<a:t>([^<]*)<\/a:t>/);
+          if (textMatch) {
+            const text = this.decodeXMLEntities(textMatch[1]).trim();
+            if (text && !texts.includes(text)) {
+              texts.push(text);
+            }
+          }
+        }
+      }
+    }
+    return {
+      title,
+      content: texts.join("\n")
+    };
+  }
+  /**
+   * Extract presentation metadata
+   */
+  async extractMetadata(zip) {
+    try {
+      const coreXml = await zip.file("docProps/core.xml")?.async("string");
+      if (!coreXml) {
+        return {};
+      }
+      const titleMatch = coreXml.match(/<dc:title>([^<]*)<\/dc:title>/);
+      const authorMatch = coreXml.match(/<dc:creator>([^<]*)<\/dc:creator>/);
+      const createdMatch = coreXml.match(/<dcterms:created[^>]*>([^<]*)<\/dcterms:created>/);
+      return {
+        title: titleMatch ? this.decodeXMLEntities(titleMatch[1]) : void 0,
+        author: authorMatch ? this.decodeXMLEntities(authorMatch[1]) : void 0,
+        created: createdMatch ? new Date(createdMatch[1]) : void 0
+      };
+    } catch {
+      return {};
+    }
+  }
+  /**
+   * Count total slides in presentation
+   */
+  async countTotalSlides(zip) {
+    return Object.keys(zip.files).filter(
+      (name) => /^ppt\/slides\/slide\d+\.xml$/.test(name)
+    ).length;
+  }
+  /**
+   * Decode XML entities
+   */
+  decodeXMLEntities(text) {
+    return text.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code))).replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
+  }
+  /**
+   * Clean and normalize text
+   */
+  cleanText(text) {
+    return text.replace(/\s+/g, " ").replace(/\n{3,}/g, "\n\n").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "").trim();
+  }
+  /**
+   * Count words
+   */
+  countWords(text) {
+    if (!text) return 0;
+    return text.split(/\s+/).filter((word) => word.length > 0).length;
+  }
+  /**
+   * Calculate extraction quality
+   */
+  calculateQuality(text, slideCount, issues) {
+    const hasErrors = issues.some((i) => i.type === "error");
+    if (hasErrors || !text) {
+      return {
+        score: 0,
+        usedOCR: false,
+        coveragePercent: 0,
+        confidence: 0,
+        issues
+      };
+    }
+    const expectedWords = slideCount * 50;
+    const actualWords = this.countWords(text);
+    const coveragePercent = Math.min(100, actualWords / Math.max(1, expectedWords) * 100);
+    let confidence = Math.min(1, coveragePercent / 100);
+    const warningCount = issues.filter((i) => i.type === "warning").length;
+    confidence = Math.max(0, confidence - warningCount * 0.1);
+    const score = confidence * (1 - warningCount * 0.05);
+    return {
+      score: Math.max(0, Math.min(1, score)),
+      usedOCR: false,
+      coveragePercent: Math.min(100, coveragePercent),
+      confidence: Math.max(0, Math.min(1, confidence)),
+      issues
+    };
+  }
+};
+var slideExtractor = new SlideExtractor();
+
+// src/ingestion/extractors/text-extractor.ts
+var TEXT_EXTRACTOR_VERSION = "1.0.0";
+var TextExtractor = class {
+  supportedTypes = [
+    "TEXT_BLOCK",
+    "QUIZ_CONTENT",
+    "ASSIGNMENT_CONTENT"
+  ];
+  name = "Text Extractor";
+  version = TEXT_EXTRACTOR_VERSION;
+  /**
+   * Check if this extractor can process the given source
+   */
+  canProcess(source) {
+    if (this.supportedTypes.includes(source.type)) {
+      return true;
+    }
+    const textMimeTypes = [
+      "text/plain",
+      "text/html",
+      "text/markdown",
+      "text/x-markdown",
+      "application/json"
+    ];
+    if (source.mimeType && textMimeTypes.includes(source.mimeType)) {
+      return true;
+    }
+    const fileName = source.fileName?.toLowerCase() || source.url?.toLowerCase() || "";
+    const textExtensions = [".txt", ".md", ".markdown", ".html", ".htm", ".json"];
+    if (textExtensions.some((ext) => fileName.endsWith(ext))) {
+      return true;
+    }
+    return false;
+  }
+  /**
+   * Extract content from text source
+   */
+  async extract(source, options = {}) {
+    const issues = [];
+    try {
+      let rawText = await this.getRawText(source);
+      if (!rawText || rawText.trim().length === 0) {
+        issues.push({
+          type: "warning",
+          code: "EMPTY_CONTENT",
+          message: "Source contains no text content"
+        });
+        return {
+          text: "",
+          wordCount: 0,
+          metadata: {
+            mimeType: source.mimeType || "text/plain"
+          },
+          quality: {
+            score: 0,
+            usedOCR: false,
+            coveragePercent: 0,
+            confidence: 1,
+            issues
+          }
+        };
+      }
+      const contentType = this.detectContentType(rawText, source);
+      let processedText;
+      switch (contentType) {
+        case "html":
+          processedText = this.extractFromHTML(rawText);
+          break;
+        case "markdown":
+          processedText = this.extractFromMarkdown(rawText);
+          break;
+        case "json":
+          processedText = this.extractFromJSON(rawText);
+          break;
+        default:
+          processedText = rawText;
+      }
+      const cleanedText = this.cleanText(processedText);
+      const wordCount = this.countWords(cleanedText);
+      let sections;
+      if (options.extractStructure) {
+        sections = this.extractSections(cleanedText, contentType);
+      }
+      const headings = this.extractHeadings(cleanedText, contentType);
+      const quality = this.calculateQuality(cleanedText, issues);
+      return {
+        text: cleanedText,
+        wordCount,
+        metadata: {
+          mimeType: source.mimeType || this.getMimeType(contentType),
+          fileSize: Buffer.from(rawText).length,
+          headings,
+          extra: {
+            detectedType: contentType,
+            originalLength: rawText.length
+          }
+        },
+        sections,
+        quality
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      issues.push({
+        type: "error",
+        code: "EXTRACTION_FAILED",
+        message: errorMessage
+      });
+      return {
+        text: "",
+        wordCount: 0,
+        metadata: {
+          mimeType: source.mimeType || "text/plain"
+        },
+        quality: {
+          score: 0,
+          usedOCR: false,
+          coveragePercent: 0,
+          confidence: 0,
+          issues
+        }
+      };
+    }
+  }
+  /**
+   * Get raw text from source
+   */
+  async getRawText(source) {
+    if (source.buffer) {
+      return source.buffer.toString("utf-8");
+    }
+    if (source.filePath) {
+      const fs = await import("fs/promises");
+      return fs.readFile(source.filePath, "utf-8");
+    }
+    if (source.url) {
+      const response = await fetch(source.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch text: ${response.status}`);
+      }
+      return response.text();
+    }
+    throw new Error("No valid source provided");
+  }
+  /**
+   * Detect content type from content and source
+   */
+  detectContentType(content, source) {
+    if (source.mimeType) {
+      if (source.mimeType.includes("html")) return "html";
+      if (source.mimeType.includes("markdown")) return "markdown";
+      if (source.mimeType.includes("json")) return "json";
+    }
+    const fileName = source.fileName?.toLowerCase() || "";
+    if (fileName.endsWith(".html") || fileName.endsWith(".htm")) return "html";
+    if (fileName.endsWith(".md") || fileName.endsWith(".markdown")) return "markdown";
+    if (fileName.endsWith(".json")) return "json";
+    const trimmed = content.trim();
+    if (/<(!DOCTYPE|html|head|body|div|p|span|a|img|table|ul|ol|li|h[1-6])/i.test(trimmed)) {
+      return "html";
+    }
+    if (trimmed.startsWith("{") && trimmed.endsWith("}") || trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        JSON.parse(trimmed);
+        return "json";
+      } catch {
+      }
+    }
+    if (/^#{1,6}\s|^\*\*|^-\s|\[.*\]\(.*\)|```/m.test(trimmed)) {
+      return "markdown";
+    }
+    return "plain";
+  }
+  /**
+   * Extract text from HTML content
+   */
+  extractFromHTML(html) {
+    let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
+    text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+    text = text.replace(/<!--[\s\S]*?-->/g, "");
+    text = text.replace(/<\/(p|div|h[1-6]|li|tr|br)>/gi, "\n");
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+    text = text.replace(/<li[^>]*>/gi, "\u2022 ");
+    text = text.replace(/<[^>]+>/g, " ");
+    text = this.decodeHTMLEntities(text);
+    return text;
+  }
+  /**
+   * Extract text from Markdown content
+   */
+  extractFromMarkdown(markdown) {
+    let text = markdown;
+    text = text.replace(/```[\s\S]*?```/g, "\n[code block]\n");
+    text = text.replace(/`[^`]+`/g, "");
+    text = text.replace(/^#{1,6}\s+(.+)$/gm, "$1");
+    text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
+    text = text.replace(/\*([^*]+)\*/g, "$1");
+    text = text.replace(/__([^_]+)__/g, "$1");
+    text = text.replace(/_([^_]+)_/g, "$1");
+    text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, "[image: $1]");
+    text = text.replace(/^[-*_]{3,}$/gm, "");
+    text = text.replace(/^[-*+]\s+/gm, "\u2022 ");
+    text = text.replace(/^\d+\.\s+/gm, "");
+    return text;
+  }
+  /**
+   * Extract text from JSON content
+   */
+  extractFromJSON(json) {
+    try {
+      const parsed = JSON.parse(json);
+      return this.extractTextFromObject(parsed);
+    } catch {
+      return json;
+    }
+  }
+  /**
+   * Recursively extract text values from JSON object
+   */
+  extractTextFromObject(obj, depth = 0) {
+    if (depth > 10) return "";
+    if (typeof obj === "string") {
+      return obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.extractTextFromObject(item, depth + 1)).join("\n");
+    }
+    if (typeof obj === "object" && obj !== null) {
+      const record = obj;
+      const texts = [];
+      const priorityKeys = ["text", "content", "description", "title", "question", "answer", "explanation"];
+      for (const key of priorityKeys) {
+        if (key in record) {
+          const text = this.extractTextFromObject(record[key], depth + 1);
+          if (text) texts.push(text);
+        }
+      }
+      for (const [key, value] of Object.entries(record)) {
+        if (!priorityKeys.includes(key)) {
+          const text = this.extractTextFromObject(value, depth + 1);
+          if (text) texts.push(text);
+        }
+      }
+      return texts.join("\n");
+    }
+    return "";
+  }
+  /**
+   * Decode HTML entities
+   */
+  decodeHTMLEntities(text) {
+    const entities = {
+      "&amp;": "&",
+      "&lt;": "<",
+      "&gt;": ">",
+      "&quot;": '"',
+      "&apos;": "'",
+      "&nbsp;": " ",
+      "&ndash;": "\u2013",
+      "&mdash;": "\u2014",
+      "&lsquo;": "\u2018",
+      "&rsquo;": "\u2019",
+      "&ldquo;": "\u201C",
+      "&rdquo;": "\u201D",
+      "&hellip;": "\u2026",
+      "&copy;": "\xA9",
+      "&reg;": "\xAE",
+      "&trade;": "\u2122"
+    };
+    let result = text;
+    for (const [entity, char] of Object.entries(entities)) {
+      result = result.replace(new RegExp(entity, "gi"), char);
+    }
+    result = result.replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code)));
+    result = result.replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)));
+    return result;
+  }
+  /**
+   * Clean and normalize text
+   */
+  cleanText(text) {
+    return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/[\t ]+/g, " ").replace(/\n /g, "\n").replace(/ \n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "").trim();
+  }
+  /**
+   * Count words
+   */
+  countWords(text) {
+    if (!text) return 0;
+    return text.split(/\s+/).filter((word) => word.length > 0).length;
+  }
+  /**
+   * Extract headings from text
+   */
+  extractHeadings(text, contentType) {
+    const headings = [];
+    const lines = text.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.length > 100) continue;
+      if (contentType === "markdown") {
+        const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+        if (headerMatch) {
+          headings.push(headerMatch[2]);
+          continue;
+        }
+      }
+      if (trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed) && trimmed.length > 3) {
+        headings.push(trimmed);
+      } else if (/^(\d+\.)+\s*.+/.test(trimmed) && !trimmed.endsWith(".")) {
+        headings.push(trimmed);
+      }
+    }
+    return [...new Set(headings)].slice(0, 50);
+  }
+  /**
+   * Extract sections from text
+   */
+  extractSections(text, contentType) {
+    const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
+    if (paragraphs.length <= 1) {
+      return [
+        {
+          content: text,
+          position: 0,
+          wordCount: this.countWords(text)
+        }
+      ];
+    }
+    return paragraphs.map((paragraph, index) => {
+      const trimmed = paragraph.trim();
+      const lines = trimmed.split("\n");
+      const firstLine = lines[0]?.trim() || "";
+      const isHeading = firstLine.length < 80 && (firstLine === firstLine.toUpperCase() || /^(\d+\.)+\s*.+/.test(firstLine) || contentType === "markdown" && /^#{1,6}\s+/.test(firstLine));
+      return {
+        title: isHeading ? firstLine : void 0,
+        content: isHeading && lines.length > 1 ? lines.slice(1).join("\n").trim() : trimmed,
+        position: index,
+        wordCount: this.countWords(trimmed)
+      };
+    });
+  }
+  /**
+   * Get MIME type for content type
+   */
+  getMimeType(contentType) {
+    switch (contentType) {
+      case "html":
+        return "text/html";
+      case "markdown":
+        return "text/markdown";
+      case "json":
+        return "application/json";
+      default:
+        return "text/plain";
+    }
+  }
+  /**
+   * Calculate extraction quality
+   */
+  calculateQuality(text, issues) {
+    const hasErrors = issues.some((i) => i.type === "error");
+    if (hasErrors) {
+      return {
+        score: 0,
+        usedOCR: false,
+        coveragePercent: 0,
+        confidence: 0,
+        issues
+      };
+    }
+    const wordCount = this.countWords(text);
+    const hasContent = wordCount > 0;
+    const confidence = hasContent ? 0.95 : 0;
+    const coveragePercent = hasContent ? 100 : 0;
+    const warningCount = issues.filter((i) => i.type === "warning").length;
+    const score = Math.max(0, confidence - warningCount * 0.1);
+    return {
+      score,
+      usedOCR: false,
+      coveragePercent,
+      confidence,
+      issues
+    };
+  }
+};
+var textExtractor = new TextExtractor();
+
+// src/ingestion/extractors/attachment-router.ts
+var ATTACHMENT_ROUTER_VERSION = "1.0.0";
+var MIME_TYPE_MAP = {
+  // PDF
+  "application/pdf": "PDF_DOCUMENT",
+  // PowerPoint
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "SLIDE_DECK",
+  "application/vnd.ms-powerpoint": "SLIDE_DECK",
+  // Text formats
+  "text/plain": "TEXT_BLOCK",
+  "text/html": "TEXT_BLOCK",
+  "text/markdown": "TEXT_BLOCK",
+  "text/x-markdown": "TEXT_BLOCK",
+  "application/json": "TEXT_BLOCK",
+  // Word documents (treated as attachment for now)
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "ATTACHMENT",
+  "application/msword": "ATTACHMENT",
+  // Excel (treated as attachment)
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "ATTACHMENT",
+  "application/vnd.ms-excel": "ATTACHMENT",
+  // Images (not extractable as text)
+  "image/jpeg": "ATTACHMENT",
+  "image/png": "ATTACHMENT",
+  "image/gif": "ATTACHMENT",
+  "image/webp": "ATTACHMENT",
+  // Video (transcript extraction deferred)
+  "video/mp4": "VIDEO_TRANSCRIPT",
+  "video/webm": "VIDEO_TRANSCRIPT",
+  "video/quicktime": "VIDEO_TRANSCRIPT"
+};
+var EXTENSION_TYPE_MAP = {
+  // PDF
+  ".pdf": "PDF_DOCUMENT",
+  // PowerPoint
+  ".pptx": "SLIDE_DECK",
+  ".ppt": "SLIDE_DECK",
+  // Text
+  ".txt": "TEXT_BLOCK",
+  ".md": "TEXT_BLOCK",
+  ".markdown": "TEXT_BLOCK",
+  ".html": "TEXT_BLOCK",
+  ".htm": "TEXT_BLOCK",
+  ".json": "TEXT_BLOCK",
+  // Word
+  ".docx": "ATTACHMENT",
+  ".doc": "ATTACHMENT",
+  // Excel
+  ".xlsx": "ATTACHMENT",
+  ".xls": "ATTACHMENT",
+  ".csv": "TEXT_BLOCK",
+  // Images
+  ".jpg": "ATTACHMENT",
+  ".jpeg": "ATTACHMENT",
+  ".png": "ATTACHMENT",
+  ".gif": "ATTACHMENT",
+  ".webp": "ATTACHMENT",
+  ".svg": "ATTACHMENT",
+  // Video
+  ".mp4": "VIDEO_TRANSCRIPT",
+  ".webm": "VIDEO_TRANSCRIPT",
+  ".mov": "VIDEO_TRANSCRIPT"
+};
+var EXTRACTABLE_TYPES = [
+  "PDF_DOCUMENT",
+  "SLIDE_DECK",
+  "TEXT_BLOCK",
+  "QUIZ_CONTENT",
+  "ASSIGNMENT_CONTENT"
+];
+var AttachmentRouter = class {
+  supportedTypes = ["ATTACHMENT"];
+  name = "Attachment Router";
+  version = ATTACHMENT_ROUTER_VERSION;
+  extractors;
+  pdfExtractor;
+  slideExtractor;
+  textExtractor;
+  constructor() {
+    this.pdfExtractor = new PDFExtractor();
+    this.slideExtractor = new SlideExtractor();
+    this.textExtractor = new TextExtractor();
+    this.extractors = [
+      this.pdfExtractor,
+      this.slideExtractor,
+      this.textExtractor
+    ];
+  }
+  /**
+   * Check if this router can process the given source
+   * The router can attempt to process any attachment
+   */
+  canProcess(source) {
+    if (source.type === "ATTACHMENT") {
+      return true;
+    }
+    return this.extractors.some((e) => e.canProcess(source));
+  }
+  /**
+   * Detect content type from source
+   */
+  detectContentType(source) {
+    if (source.type && source.type !== "ATTACHMENT") {
+      return source.type;
+    }
+    if (source.mimeType && MIME_TYPE_MAP[source.mimeType]) {
+      return MIME_TYPE_MAP[source.mimeType];
+    }
+    const fileName = source.fileName?.toLowerCase() || "";
+    const url = source.url?.toLowerCase() || "";
+    const path = source.filePath?.toLowerCase() || "";
+    for (const [ext, type] of Object.entries(EXTENSION_TYPE_MAP)) {
+      if (fileName.endsWith(ext) || url.endsWith(ext) || path.endsWith(ext)) {
+        return type;
+      }
+    }
+    return "ATTACHMENT";
+  }
+  /**
+   * Check if a content type is extractable
+   */
+  isExtractable(type) {
+    return EXTRACTABLE_TYPES.includes(type);
+  }
+  /**
+   * Get the appropriate extractor for a source
+   */
+  getExtractorForSource(source) {
+    const detectedType = this.detectContentType(source);
+    const updatedSource = { ...source, type: detectedType };
+    for (const extractor of this.extractors) {
+      if (extractor.canProcess(updatedSource)) {
+        return extractor;
+      }
+    }
+    return null;
+  }
+  /**
+   * Extract content from attachment by routing to appropriate extractor
+   */
+  async extract(source, options = {}) {
+    const issues = [];
+    const detectedType = this.detectContentType(source);
+    if (!this.isExtractable(detectedType)) {
+      issues.push({
+        type: "warning",
+        code: "NOT_EXTRACTABLE",
+        message: `Content type ${detectedType} is not extractable as text`
+      });
+      return {
+        text: "",
+        wordCount: 0,
+        metadata: {
+          mimeType: source.mimeType,
+          fileSize: source.fileSize,
+          extra: {
+            detectedType,
+            originalFileName: source.fileName
+          }
+        },
+        quality: {
+          score: 0,
+          usedOCR: false,
+          coveragePercent: 0,
+          confidence: 1,
+          issues
+        }
+      };
+    }
+    const updatedSource = {
+      ...source,
+      type: detectedType
+    };
+    const extractor = this.getExtractorForSource(updatedSource);
+    if (!extractor) {
+      issues.push({
+        type: "error",
+        code: "NO_EXTRACTOR",
+        message: `No extractor available for type ${detectedType}`
+      });
+      return {
+        text: "",
+        wordCount: 0,
+        metadata: {
+          mimeType: source.mimeType,
+          extra: {
+            detectedType
+          }
+        },
+        quality: {
+          score: 0,
+          usedOCR: false,
+          coveragePercent: 0,
+          confidence: 0,
+          issues
+        }
+      };
+    }
+    try {
+      const result = await extractor.extract(updatedSource, options);
+      result.metadata.extra = {
+        ...result.metadata.extra,
+        routedFrom: "ATTACHMENT",
+        routedTo: detectedType,
+        extractorUsed: extractor.name,
+        extractorVersion: extractor.version
+      };
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      issues.push({
+        type: "error",
+        code: "EXTRACTION_FAILED",
+        message: `${extractor.name} failed: ${errorMessage}`
+      });
+      return {
+        text: "",
+        wordCount: 0,
+        metadata: {
+          mimeType: source.mimeType,
+          extra: {
+            detectedType,
+            extractorUsed: extractor.name
+          }
+        },
+        quality: {
+          score: 0,
+          usedOCR: false,
+          coveragePercent: 0,
+          confidence: 0,
+          issues
+        }
+      };
+    }
+  }
+  /**
+   * Get all registered extractors
+   */
+  getExtractors() {
+    return [...this.extractors];
+  }
+  /**
+   * Get supported file extensions
+   */
+  getSupportedExtensions() {
+    return Object.entries(EXTENSION_TYPE_MAP).filter(([_, type]) => EXTRACTABLE_TYPES.includes(type)).map(([ext]) => ext);
+  }
+  /**
+   * Get supported MIME types
+   */
+  getSupportedMimeTypes() {
+    return Object.entries(MIME_TYPE_MAP).filter(([_, type]) => EXTRACTABLE_TYPES.includes(type)).map(([mime]) => mime);
+  }
+};
+var attachmentRouter = new AttachmentRouter();
+var contentTypeUtils = {
+  /**
+   * Detect content type from filename
+   */
+  detectFromFilename(filename) {
+    const lower = filename.toLowerCase();
+    for (const [ext, type] of Object.entries(EXTENSION_TYPE_MAP)) {
+      if (lower.endsWith(ext)) {
+        return type;
+      }
+    }
+    return "ATTACHMENT";
+  },
+  /**
+   * Detect content type from MIME type
+   */
+  detectFromMimeType(mimeType) {
+    return MIME_TYPE_MAP[mimeType] || "ATTACHMENT";
+  },
+  /**
+   * Check if a file is extractable
+   */
+  isFileExtractable(filename) {
+    const type = contentTypeUtils.detectFromFilename(filename);
+    return EXTRACTABLE_TYPES.includes(type);
+  },
+  /**
+   * Get all extractable extensions
+   */
+  getExtractableExtensions() {
+    return Object.entries(EXTENSION_TYPE_MAP).filter(([_, type]) => EXTRACTABLE_TYPES.includes(type)).map(([ext]) => ext);
+  }
+};
+
+// src/ingestion/ingestion-pipeline.ts
+var PIPELINE_VERSION = "1.0.0";
+var noopLogger = {
+  info: () => {
+  },
+  warn: () => {
+  },
+  error: () => {
+  },
+  debug: () => {
+  }
+};
+var ContentIngestionPipeline = class {
+  extractors;
+  storage;
+  router;
+  concurrency;
+  retryAttempts;
+  retryDelay;
+  defaultOptions;
+  logger;
+  // Status tracking
+  isRunning = false;
+  currentTarget = null;
+  progress = 0;
+  startedAt = null;
+  abortController = null;
+  constructor(options) {
+    this.extractors = options.extractors;
+    this.storage = options.storage;
+    this.concurrency = options.concurrency ?? 3;
+    this.retryAttempts = options.retryAttempts ?? 2;
+    this.retryDelay = options.retryDelay ?? 1e3;
+    this.defaultOptions = options.defaultExtractionOptions ?? {};
+    this.logger = options.logger ?? noopLogger;
+    this.router = new AttachmentRouter();
+  }
+  /**
+   * Get current ingestion status
+   */
+  getStatus() {
+    return {
+      isRunning: this.isRunning,
+      progress: this.progress,
+      currentSource: this.currentTarget ?? void 0,
+      startedAt: this.startedAt ?? void 0
+    };
+  }
+  /**
+   * Abort current ingestion
+   */
+  abort() {
+    if (this.abortController) {
+      this.abortController.abort();
+    }
+  }
+  /**
+   * Ingest all content from a course
+   */
+  async ingestCourse(course) {
+    this.startIngestion(course.id);
+    const startTime = Date.now();
+    const errors = [];
+    const byType = this.initializeByType();
+    let totalSources = 0;
+    let processedSources = 0;
+    let failedSources = 0;
+    let skippedSources = 0;
+    let totalWords = 0;
+    try {
+      const allSections = [];
+      for (const chapter of course.chapters) {
+        allSections.push(...chapter.sections);
+      }
+      totalSources = this.countTotalSources(allSections);
+      this.logger.info(`Starting ingestion for course ${course.id} with ${totalSources} sources`);
+      const sectionBatches = this.batchArray(allSections, this.concurrency);
+      let processedCount = 0;
+      for (const batch of sectionBatches) {
+        if (this.abortController?.signal.aborted) {
+          this.logger.info("Ingestion aborted");
+          break;
+        }
+        const batchResults = await Promise.all(
+          batch.map((section) => this.ingestSection(section))
+        );
+        for (const result of batchResults) {
+          processedSources += result.processedSources;
+          failedSources += result.failedSources;
+          skippedSources += result.skippedSources;
+          totalWords += result.totalWords;
+          errors.push(...result.errors);
+          for (const [type, stats] of Object.entries(result.byType)) {
+            const typeKey = type;
+            byType[typeKey].total += stats.total;
+            byType[typeKey].processed += stats.processed;
+            byType[typeKey].failed += stats.failed;
+            byType[typeKey].words += stats.words;
+          }
+        }
+        processedCount += batch.length;
+        this.progress = Math.round(processedCount / allSections.length * 100);
+      }
+      this.logger.info(
+        `Course ingestion complete: ${processedSources} processed, ${failedSources} failed, ${skippedSources} skipped`
+      );
+      return {
+        targetId: course.id,
+        targetType: "course",
+        totalSources,
+        processedSources,
+        failedSources,
+        skippedSources,
+        totalWords,
+        durationMs: Date.now() - startTime,
+        byType,
+        errors
+      };
+    } finally {
+      this.endIngestion();
+    }
+  }
+  /**
+   * Ingest content from a single section
+   */
+  async ingestSection(section) {
+    const startTime = Date.now();
+    const errors = [];
+    const byType = this.initializeByType();
+    let totalSources = 0;
+    let processedSources = 0;
+    let failedSources = 0;
+    let skippedSources = 0;
+    let totalWords = 0;
+    const rawSources = this.collectSectionSources(section);
+    totalSources = rawSources.length;
+    this.logger.debug?.(`Processing section ${section.id} with ${totalSources} sources`);
+    for (const rawSource of rawSources) {
+      this.currentTarget = rawSource.fileName || rawSource.url || rawSource.type;
+      try {
+        const existing = await this.storage.getBySectionId(section.id);
+        const existingSource = existing.find(
+          (e) => e.originalUrl === rawSource.url || e.fileName === rawSource.fileName && e.sourceType === rawSource.type
+        );
+        if (existingSource && existingSource.status === "COMPLETED") {
+          this.logger.debug?.(`Skipping already processed source: ${rawSource.fileName || rawSource.url}`);
+          skippedSources++;
+          byType[rawSource.type].total++;
+          continue;
+        }
+        const detectedType = this.router.detectContentType(rawSource);
+        byType[detectedType].total++;
+        if (!this.router.isExtractable(detectedType)) {
+          this.logger.debug?.(`Skipping non-extractable type: ${detectedType}`);
+          skippedSources++;
+          continue;
+        }
+        const sourceRecord = existingSource ? existingSource : await this.storage.create({
+          sectionId: section.id,
+          sourceType: detectedType,
+          originalUrl: rawSource.url,
+          fileName: rawSource.fileName,
+          mimeType: rawSource.mimeType,
+          fileSize: rawSource.fileSize,
+          status: "PENDING"
+        });
+        await this.storage.markProcessing(sourceRecord.id);
+        let extracted = null;
+        let lastError = null;
+        for (let attempt = 0; attempt <= this.retryAttempts; attempt++) {
+          try {
+            extracted = await this.router.extract(
+              { ...rawSource, type: detectedType },
+              this.defaultOptions
+            );
+            if (extracted.quality.score > 0 || extracted.wordCount > 0) {
+              break;
+            }
+          } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            this.logger.warn(`Extraction attempt ${attempt + 1} failed: ${lastError.message}`);
+            if (attempt < this.retryAttempts) {
+              await this.delay(this.retryDelay * (attempt + 1));
+            }
+          }
+        }
+        if (extracted && (extracted.quality.score > 0 || extracted.wordCount > 0)) {
+          await this.storage.markCompleted(sourceRecord.id, extracted);
+          processedSources++;
+          totalWords += extracted.wordCount;
+          byType[detectedType].processed++;
+          byType[detectedType].words += extracted.wordCount;
+          this.logger.debug?.(`Extracted ${extracted.wordCount} words from ${rawSource.fileName || rawSource.url}`);
+        } else {
+          const errorMsg = lastError?.message || "Extraction produced no content";
+          await this.storage.markFailed(sourceRecord.id, errorMsg);
+          failedSources++;
+          byType[detectedType].failed++;
+          errors.push({
+            sourceId: sourceRecord.id,
+            sourceType: detectedType,
+            error: errorMsg
+          });
+          this.logger.warn(`Failed to extract from ${rawSource.fileName || rawSource.url}: ${errorMsg}`);
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        failedSources++;
+        byType[rawSource.type].failed++;
+        errors.push({
+          sourceId: rawSource.id || "unknown",
+          sourceType: rawSource.type,
+          error: errorMsg,
+          stack: error instanceof Error ? error.stack : void 0
+        });
+        this.logger.error(`Error processing source: ${errorMsg}`);
+      }
+    }
+    return {
+      targetId: section.id,
+      targetType: "section",
+      totalSources,
+      processedSources,
+      failedSources,
+      skippedSources,
+      totalWords,
+      durationMs: Date.now() - startTime,
+      byType,
+      errors
+    };
+  }
+  /**
+   * Reprocess failed content sources for a course
+   */
+  async reprocessFailed(courseId) {
+    this.startIngestion(courseId);
+    const startTime = Date.now();
+    const errors = [];
+    const byType = this.initializeByType();
+    let totalSources = 0;
+    let processedSources = 0;
+    let failedSources = 0;
+    const skippedSources = 0;
+    let totalWords = 0;
+    try {
+      const failedItems = await this.storage.getByStatus("FAILED", 100);
+      const courseFailedItems = failedItems.filter(
+        (item) => item.sectionId
+        // TODO: Filter by courseId via section lookup
+      );
+      totalSources = courseFailedItems.length;
+      this.logger.info(`Reprocessing ${totalSources} failed sources for course ${courseId}`);
+      for (const source of courseFailedItems) {
+        if (this.abortController?.signal.aborted) break;
+        this.currentTarget = source.fileName || source.originalUrl || source.sourceType;
+        byType[source.sourceType].total++;
+        try {
+          const rawSource = {
+            id: source.id,
+            sectionId: source.sectionId,
+            type: source.sourceType,
+            url: source.originalUrl ?? void 0,
+            fileName: source.fileName ?? void 0,
+            mimeType: source.mimeType ?? void 0,
+            fileSize: source.fileSize ?? void 0
+          };
+          await this.storage.update(source.id, { retryCount: 0, status: "PROCESSING" });
+          const extracted = await this.router.extract(rawSource, this.defaultOptions);
+          if (extracted.quality.score > 0 || extracted.wordCount > 0) {
+            await this.storage.markCompleted(source.id, extracted);
+            processedSources++;
+            totalWords += extracted.wordCount;
+            byType[source.sourceType].processed++;
+            byType[source.sourceType].words += extracted.wordCount;
+          } else {
+            await this.storage.markFailed(source.id, "Reprocessing produced no content");
+            failedSources++;
+            byType[source.sourceType].failed++;
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          await this.storage.markFailed(source.id, errorMsg);
+          failedSources++;
+          byType[source.sourceType].failed++;
+          errors.push({
+            sourceId: source.id,
+            sourceType: source.sourceType,
+            error: errorMsg
+          });
+        }
+        this.progress = Math.round(
+          (processedSources + failedSources) / totalSources * 100
+        );
+      }
+      return {
+        targetId: courseId,
+        targetType: "course",
+        totalSources,
+        processedSources,
+        failedSources,
+        skippedSources,
+        totalWords,
+        durationMs: Date.now() - startTime,
+        byType,
+        errors
+      };
+    } finally {
+      this.endIngestion();
+    }
+  }
+  /**
+   * Get ingestion statistics for a course
+   */
+  async getIngestionStats(courseId) {
+    const sources = await this.storage.getByCourseId(courseId);
+    const stats = {
+      total: sources.length,
+      completed: 0,
+      failed: 0,
+      pending: 0,
+      totalWords: 0,
+      byType: this.initializeTypeCount()
+    };
+    for (const source of sources) {
+      stats.byType[source.sourceType]++;
+      switch (source.status) {
+        case "COMPLETED":
+          stats.completed++;
+          stats.totalWords += source.wordCount;
+          break;
+        case "FAILED":
+          stats.failed++;
+          break;
+        case "PENDING":
+        case "PROCESSING":
+          stats.pending++;
+          break;
+      }
+    }
+    return stats;
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // PRIVATE HELPERS
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Start ingestion tracking
+   */
+  startIngestion(targetId) {
+    this.isRunning = true;
+    this.currentTarget = targetId;
+    this.progress = 0;
+    this.startedAt = /* @__PURE__ */ new Date();
+    this.abortController = new AbortController();
+  }
+  /**
+   * End ingestion tracking
+   */
+  endIngestion() {
+    this.isRunning = false;
+    this.currentTarget = null;
+    this.progress = 100;
+    this.abortController = null;
+  }
+  /**
+   * Collect raw content sources from a section
+   */
+  collectSectionSources(section) {
+    const sources = [];
+    if (section.description && section.description.trim().length > 0) {
+      sources.push({
+        sectionId: section.id,
+        type: "TEXT_BLOCK",
+        buffer: Buffer.from(section.description, "utf-8"),
+        fileName: `${section.title}-description.txt`,
+        mimeType: "text/plain"
+      });
+    }
+    if (section.attachments) {
+      for (const attachment of section.attachments) {
+        sources.push({
+          sectionId: section.id,
+          type: "ATTACHMENT",
+          url: attachment.url,
+          fileName: attachment.name
+        });
+      }
+    }
+    if (section.exams) {
+      for (const exam of section.exams) {
+        const quizContent = this.buildQuizContent(exam);
+        sources.push({
+          sectionId: section.id,
+          type: "QUIZ_CONTENT",
+          buffer: Buffer.from(quizContent, "utf-8"),
+          fileName: `${exam.title}-quiz.json`,
+          mimeType: "application/json"
+        });
+      }
+    }
+    return sources;
+  }
+  /**
+   * Build quiz content JSON
+   */
+  buildQuizContent(exam) {
+    const content = {
+      title: exam.title,
+      questions: exam.questions.map((q) => ({
+        text: q.text,
+        type: q.type,
+        options: q.options?.map((o) => o.text),
+        explanation: q.explanation
+      }))
+    };
+    return JSON.stringify(content, null, 2);
+  }
+  /**
+   * Count total sources in sections
+   */
+  countTotalSources(sections) {
+    let count = 0;
+    for (const section of sections) {
+      if (section.description && section.description.trim().length > 0) {
+        count++;
+      }
+      if (section.attachments) {
+        count += section.attachments.length;
+      }
+      if (section.exams) {
+        count += section.exams.length;
+      }
+    }
+    return count;
+  }
+  /**
+   * Initialize byType stats object
+   */
+  initializeByType() {
+    return {
+      VIDEO_TRANSCRIPT: { total: 0, processed: 0, failed: 0, words: 0 },
+      PDF_DOCUMENT: { total: 0, processed: 0, failed: 0, words: 0 },
+      SLIDE_DECK: { total: 0, processed: 0, failed: 0, words: 0 },
+      TEXT_BLOCK: { total: 0, processed: 0, failed: 0, words: 0 },
+      ATTACHMENT: { total: 0, processed: 0, failed: 0, words: 0 },
+      QUIZ_CONTENT: { total: 0, processed: 0, failed: 0, words: 0 },
+      ASSIGNMENT_CONTENT: { total: 0, processed: 0, failed: 0, words: 0 }
+    };
+  }
+  /**
+   * Initialize type count object
+   */
+  initializeTypeCount() {
+    return {
+      VIDEO_TRANSCRIPT: 0,
+      PDF_DOCUMENT: 0,
+      SLIDE_DECK: 0,
+      TEXT_BLOCK: 0,
+      ATTACHMENT: 0,
+      QUIZ_CONTENT: 0,
+      ASSIGNMENT_CONTENT: 0
+    };
+  }
+  /**
+   * Batch array into chunks
+   */
+  batchArray(array, batchSize) {
+    const batches = [];
+    for (let i = 0; i < array.length; i += batchSize) {
+      batches.push(array.slice(i, i + batchSize));
+    }
+    return batches;
+  }
+  /**
+   * Delay for specified milliseconds
+   */
+  delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+};
+function createContentIngestionPipeline(storage, options) {
+  return new ContentIngestionPipeline({
+    storage,
+    extractors: attachmentRouter.getExtractors(),
+    ...options
+  });
+}
+
+// src/ingestion/prisma-content-source-store.ts
+var PrismaContentSourceStore = class {
+  db;
+  constructor(prismaClient) {
+    this.db = prismaClient;
+  }
+  /**
+   * Create a new content source record
+   */
+  async create(input) {
+    const record = await this.db.contentSource.create({
+      data: {
+        sectionId: input.sectionId,
+        sourceType: input.sourceType,
+        originalUrl: input.originalUrl ?? null,
+        fileName: input.fileName ?? null,
+        mimeType: input.mimeType ?? null,
+        fileSize: input.fileSize ?? null,
+        extractedText: input.extractedText ?? null,
+        wordCount: input.wordCount ?? 0,
+        pageCount: input.pageCount ?? null,
+        slideCount: input.slideCount ?? null,
+        duration: input.duration ?? null,
+        metadata: input.metadata ?? null,
+        status: input.status ?? "PENDING"
+      }
+    });
+    return this.mapToData(record);
+  }
+  /**
+   * Update an existing content source
+   */
+  async update(id, input) {
+    const data = {};
+    if (input.extractedText !== void 0) data.extractedText = input.extractedText;
+    if (input.wordCount !== void 0) data.wordCount = input.wordCount;
+    if (input.pageCount !== void 0) data.pageCount = input.pageCount;
+    if (input.slideCount !== void 0) data.slideCount = input.slideCount;
+    if (input.duration !== void 0) data.duration = input.duration;
+    if (input.metadata !== void 0) data.metadata = input.metadata;
+    if (input.status !== void 0) data.status = input.status;
+    if (input.processedAt !== void 0) data.processedAt = input.processedAt;
+    if (input.errorMessage !== void 0) data.errorMessage = input.errorMessage;
+    if (input.retryCount !== void 0) data.retryCount = input.retryCount;
+    if (input.bloomsAnalysis !== void 0) data.bloomsAnalysis = input.bloomsAnalysis;
+    if (input.dokAnalysis !== void 0) data.dokAnalysis = input.dokAnalysis;
+    if (input.analysisVersion !== void 0) data.analysisVersion = input.analysisVersion;
+    if (input.analyzedAt !== void 0) data.analyzedAt = input.analyzedAt;
+    const record = await this.db.contentSource.update({
+      where: { id },
+      data
+    });
+    return this.mapToData(record);
+  }
+  /**
+   * Get content source by ID
+   */
+  async getById(id) {
+    const record = await this.db.contentSource.findUnique({
+      where: { id }
+    });
+    return record ? this.mapToData(record) : null;
+  }
+  /**
+   * Get all content sources for a section
+   */
+  async getBySectionId(sectionId) {
+    const records = await this.db.contentSource.findMany({
+      where: { sectionId },
+      orderBy: { createdAt: "asc" }
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Get all content sources for a course
+   */
+  async getByCourseId(courseId) {
+    const records = await this.db.contentSource.findMany({
+      where: {
+        section: {
+          chapter: {
+            courseId
+          }
+        }
+      },
+      orderBy: { createdAt: "asc" }
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Get content sources by status
+   */
+  async getByStatus(status, limit) {
+    const records = await this.db.contentSource.findMany({
+      where: { status },
+      orderBy: { createdAt: "asc" },
+      take: limit
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Get pending content sources for processing
+   */
+  async getPendingForProcessing(limit) {
+    const records = await this.db.contentSource.findMany({
+      where: {
+        OR: [
+          { status: "PENDING" },
+          {
+            status: "FAILED",
+            retryCount: { lt: 3 }
+          }
+        ]
+      },
+      orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+      take: limit
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Mark content source as processing
+   */
+  async markProcessing(id) {
+    await this.db.contentSource.update({
+      where: { id },
+      data: {
+        status: "PROCESSING",
+        processedAt: null,
+        errorMessage: null
+      }
+    });
+  }
+  /**
+   * Mark content source as completed with extracted content
+   */
+  async markCompleted(id, content) {
+    await this.db.contentSource.update({
+      where: { id },
+      data: {
+        status: "COMPLETED",
+        extractedText: content.text,
+        wordCount: content.wordCount,
+        pageCount: content.metadata.pageCount ?? null,
+        slideCount: content.metadata.slideCount ?? null,
+        duration: content.metadata.duration ?? null,
+        metadata: content.metadata,
+        processedAt: /* @__PURE__ */ new Date(),
+        errorMessage: null
+      }
+    });
+  }
+  /**
+   * Mark content source as failed
+   */
+  async markFailed(id, error) {
+    const current = await this.db.contentSource.findUnique({
+      where: { id }
+    });
+    await this.db.contentSource.update({
+      where: { id },
+      data: {
+        status: "FAILED",
+        errorMessage: error,
+        processedAt: /* @__PURE__ */ new Date(),
+        retryCount: (current?.retryCount ?? 0) + 1
+      }
+    });
+  }
+  /**
+   * Delete content source
+   */
+  async delete(id) {
+    await this.db.contentSource.delete({
+      where: { id }
+    });
+  }
+  /**
+   * Delete all content sources for a section
+   */
+  async deleteBySectionId(sectionId) {
+    const result = await this.db.contentSource.deleteMany({
+      where: { sectionId }
+    });
+    return result.count;
+  }
+  /**
+   * Map database record to ContentSourceData
+   */
+  mapToData(record) {
+    return {
+      id: record.id,
+      sectionId: record.sectionId,
+      sourceType: record.sourceType,
+      originalUrl: record.originalUrl,
+      fileName: record.fileName,
+      mimeType: record.mimeType,
+      fileSize: record.fileSize,
+      extractedText: record.extractedText,
+      wordCount: record.wordCount,
+      pageCount: record.pageCount,
+      slideCount: record.slideCount,
+      duration: record.duration,
+      metadata: record.metadata,
+      status: record.status,
+      processedAt: record.processedAt,
+      errorMessage: record.errorMessage,
+      retryCount: record.retryCount,
+      bloomsAnalysis: record.bloomsAnalysis,
+      dokAnalysis: record.dokAnalysis,
+      analysisVersion: record.analysisVersion,
+      analyzedAt: record.analyzedAt,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt
+    };
+  }
+};
+function createPrismaContentSourceStore(prismaClient) {
+  return new PrismaContentSourceStore(prismaClient);
+}
+
+// src/alignment/alignment-engine.ts
+var ALIGNMENT_ENGINE_VERSION = "1.0.0";
+var BLOOMS_KEYWORDS3 = {
+  REMEMBER: [
+    "recall",
+    "identify",
+    "recognize",
+    "list",
+    "name",
+    "define",
+    "match",
+    "quote",
+    "memorize",
+    "label",
+    "state",
+    "describe",
+    "locate",
+    "retrieve"
+  ],
+  UNDERSTAND: [
+    "explain",
+    "summarize",
+    "interpret",
+    "classify",
+    "compare",
+    "infer",
+    "paraphrase",
+    "discuss",
+    "distinguish",
+    "translate",
+    "illustrate"
+  ],
+  APPLY: [
+    "apply",
+    "implement",
+    "execute",
+    "use",
+    "demonstrate",
+    "solve",
+    "compute",
+    "operate",
+    "practice",
+    "calculate",
+    "employ",
+    "perform"
+  ],
+  ANALYZE: [
+    "analyze",
+    "differentiate",
+    "organize",
+    "attribute",
+    "examine",
+    "investigate",
+    "dissect",
+    "contrast",
+    "categorize",
+    "deconstruct"
+  ],
+  EVALUATE: [
+    "evaluate",
+    "judge",
+    "critique",
+    "assess",
+    "argue",
+    "defend",
+    "justify",
+    "appraise",
+    "prioritize",
+    "validate",
+    "recommend"
+  ],
+  CREATE: [
+    "create",
+    "design",
+    "develop",
+    "produce",
+    "construct",
+    "generate",
+    "compose",
+    "synthesize",
+    "invent",
+    "formulate",
+    "devise",
+    "build"
+  ]
+};
+var DOK_KEYWORDS = {
+  1: ["recall", "identify", "recognize", "list", "name", "define", "match", "memorize", "label"],
+  2: ["summarize", "interpret", "classify", "compare", "organize", "estimate", "predict", "explain"],
+  3: ["analyze", "investigate", "formulate", "differentiate", "conclude", "critique", "assess", "justify"],
+  4: ["design", "create", "synthesize", "connect", "critique across", "prove", "research", "develop"]
+};
+var DEFAULT_OPTIONS = {
+  alignmentThreshold: 0.3,
+  includeAssessments: true,
+  includeEvidence: true,
+  maxKeywords: 50
+};
+var AlignmentEngine = class {
+  options;
+  logger;
+  constructor(options = {}) {
+    this.options = {
+      ...DEFAULT_OPTIONS,
+      ...options
+    };
+    this.logger = options.logger;
+  }
+  /**
+   * Analyze course alignment
+   */
+  async analyzeAlignment(course) {
+    this.logger?.info(`Starting alignment analysis for course: ${course.id}`);
+    const startTime = Date.now();
+    const objectiveAlignments = this.mapObjectivesToSections(course.objectives, course.sections);
+    const sectionAlignments = this.mapSectionsToAssessments(
+      course.sections,
+      course.assessments,
+      objectiveAlignments
+    );
+    const assessmentAlignments = this.options.includeAssessments ? this.mapAssessmentsToObjectives(course.assessments, course.objectives) : [];
+    this.updateObjectiveAssessmentLinks(objectiveAlignments, assessmentAlignments);
+    const coverageScore = this.calculateCoverageScore(objectiveAlignments);
+    const redundancyScore = this.calculateRedundancyScore(objectiveAlignments);
+    const alignmentScore = this.calculateOverallAlignmentScore(coverageScore, redundancyScore);
+    const gaps = this.identifyGaps(objectiveAlignments, sectionAlignments, assessmentAlignments);
+    const criticalGapCount = gaps.filter((g) => g.severity === "critical").length;
+    const summary = this.buildSummary(objectiveAlignments);
+    const durationMs = Date.now() - startTime;
+    this.logger?.info(`Alignment analysis completed in ${durationMs}ms`);
+    return {
+      courseId: course.id,
+      objectiveAlignments,
+      sectionAlignments,
+      assessmentAlignments,
+      coverageScore,
+      redundancyScore,
+      alignmentScore,
+      gaps,
+      criticalGapCount,
+      summary,
+      analysisVersion: ALIGNMENT_ENGINE_VERSION,
+      analyzedAt: /* @__PURE__ */ new Date()
+    };
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // OBJECTIVE TO SECTION MAPPING
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Map objectives to sections based on content similarity
+   */
+  mapObjectivesToSections(objectives, sections) {
+    return objectives.map((objective) => {
+      const objectiveKeywords = this.extractKeywords(objective.text);
+      const objectiveBloomsLevel = objective.bloomsLevel || this.inferBloomsLevel(objective.text);
+      const objectiveDokLevel = objective.dokLevel || this.inferDOKLevel(objective.text);
+      const linkedSections = [];
+      for (const section of sections) {
+        const sectionText = this.getSectionText(section);
+        const matchResult = this.matchText(objectiveKeywords, sectionText);
+        if (matchResult.score >= this.options.alignmentThreshold) {
+          const alignmentType = this.determineAlignmentType(matchResult.score);
+          linkedSections.push({
+            sectionId: section.id,
+            sectionTitle: section.title,
+            alignmentScore: matchResult.score,
+            alignmentType,
+            evidence: this.options.includeEvidence ? [...matchResult.matchedKeywords, ...matchResult.matchedPhrases] : []
+          });
+        }
+      }
+      linkedSections.sort((a, b) => b.alignmentScore - a.alignmentScore);
+      return {
+        objectiveId: objective.id,
+        objectiveText: objective.text,
+        bloomsLevel: objectiveBloomsLevel,
+        dokLevel: objectiveDokLevel,
+        linkedSections,
+        linkedAssessments: [],
+        // Will be populated later
+        hasSectionCoverage: linkedSections.length > 0,
+        hasAssessmentCoverage: false,
+        // Will be updated later
+        isFullyCovered: false,
+        // Will be updated later
+        coverageGaps: []
+      };
+    });
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // SECTION TO ASSESSMENT MAPPING
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Map sections to assessments and analyze coverage
+   */
+  mapSectionsToAssessments(sections, assessments, objectiveAlignments) {
+    return sections.map((section) => {
+      const sectionAssessments = assessments.filter((a) => a.sectionId === section.id);
+      const assessmentIds = sectionAssessments.map((a) => a.id);
+      const coveredObjectives = [];
+      const partialObjectives = [];
+      for (const alignment of objectiveAlignments) {
+        const sectionLink = alignment.linkedSections.find((s) => s.sectionId === section.id);
+        if (sectionLink) {
+          if (sectionLink.alignmentType === "direct") {
+            coveredObjectives.push(alignment.objectiveId);
+          } else {
+            partialObjectives.push(alignment.objectiveId);
+          }
+        }
+      }
+      const bloomsDistribution = section.bloomsDistribution || this.analyzeBloomsDistribution(
+        this.getSectionText(section)
+      );
+      const primaryBloomsLevel = section.primaryBloomsLevel || this.getPrimaryBloomsLevel(bloomsDistribution);
+      const dokLevel = section.dokLevel || this.inferDOKFromBlooms(primaryBloomsLevel);
+      let assessmentBloomsMatch = true;
+      if (sectionAssessments.length > 0) {
+        const assessmentBlooms = this.getAssessmentBloomsLevels(sectionAssessments);
+        assessmentBloomsMatch = this.checkBloomsMatch(primaryBloomsLevel, assessmentBlooms);
+      }
+      return {
+        sectionId: section.id,
+        sectionTitle: section.title,
+        chapterId: section.chapterId,
+        bloomsDistribution,
+        primaryBloomsLevel,
+        dokLevel,
+        coveredObjectives,
+        partialObjectives,
+        hasAssessment: sectionAssessments.length > 0,
+        assessmentIds,
+        assessmentBloomsMatch
+      };
+    });
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // ASSESSMENT TO OBJECTIVE MAPPING
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Map assessments to objectives at question level
+   */
+  mapAssessmentsToObjectives(assessments, objectives) {
+    return assessments.map((assessment) => {
+      const questionAlignments = assessment.questions.map((question) => {
+        const questionKeywords = this.extractKeywords(question.text);
+        const bloomsLevel = question.bloomsLevel || this.inferBloomsLevel(question.text);
+        const dokLevel = question.dokLevel || this.inferDOKLevel(question.text);
+        const linkedObjectives = [];
+        let maxConfidence = 0;
+        for (const objective of objectives) {
+          const objectiveKeywords = this.extractKeywords(objective.text);
+          const matchResult = this.matchKeywords(questionKeywords.keywords, objectiveKeywords.keywords);
+          if (matchResult.score >= this.options.alignmentThreshold) {
+            linkedObjectives.push(objective.id);
+            maxConfidence = Math.max(maxConfidence, matchResult.score);
+          }
+        }
+        return {
+          questionId: question.id,
+          questionText: question.text,
+          bloomsLevel,
+          dokLevel,
+          linkedObjectives,
+          alignmentConfidence: maxConfidence
+        };
+      });
+      const objectivesCovered = [
+        ...new Set(questionAlignments.flatMap((qa) => qa.linkedObjectives))
+      ];
+      const bloomsCoverage = this.calculateBloomsFromQuestions(questionAlignments);
+      const overallAlignmentScore = questionAlignments.length > 0 ? questionAlignments.reduce((sum, qa) => sum + qa.alignmentConfidence, 0) / questionAlignments.length : 0;
+      return {
+        assessmentId: assessment.id,
+        assessmentType: assessment.type,
+        sectionId: assessment.sectionId,
+        questionAlignments,
+        objectivesCovered,
+        bloomsCoverage,
+        overallAlignmentScore
+      };
+    });
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // SCORING METHODS
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Calculate coverage score (0-100)
+   * Percentage of objectives with adequate coverage
+   */
+  calculateCoverageScore(alignments) {
+    if (alignments.length === 0) return 0;
+    const coveredCount = alignments.filter(
+      (a) => a.hasSectionCoverage && a.hasAssessmentCoverage
+    ).length;
+    const partialCount = alignments.filter(
+      (a) => a.hasSectionCoverage || a.hasAssessmentCoverage
+    ).length;
+    const score = (coveredCount * 100 + (partialCount - coveredCount) * 50) / alignments.length;
+    return Math.round(score * 10) / 10;
+  }
+  /**
+   * Calculate redundancy score (0-100)
+   * Higher = more redundancy/overlap
+   */
+  calculateRedundancyScore(alignments) {
+    if (alignments.length === 0) return 0;
+    let totalRedundancy = 0;
+    for (const alignment of alignments) {
+      const directSections = alignment.linkedSections.filter(
+        (s) => s.alignmentType === "direct"
+      ).length;
+      if (directSections > 2) {
+        totalRedundancy += (directSections - 2) * 10;
+      }
+      if (alignment.linkedAssessments.length > 2) {
+        totalRedundancy += (alignment.linkedAssessments.length - 2) * 5;
+      }
+    }
+    const score = Math.min(100, totalRedundancy / alignments.length);
+    return Math.round(score * 10) / 10;
+  }
+  /**
+   * Calculate overall alignment score
+   */
+  calculateOverallAlignmentScore(coverage, redundancy) {
+    const score = coverage * 0.7 + (100 - redundancy) * 0.3;
+    return Math.round(score * 10) / 10;
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // GAP IDENTIFICATION
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Identify gaps in alignment
+   */
+  identifyGaps(objectiveAlignments, sectionAlignments, assessmentAlignments) {
+    const gaps = [];
+    for (const alignment of objectiveAlignments) {
+      if (!alignment.hasSectionCoverage) {
+        gaps.push({
+          type: "objective_no_content",
+          severity: "critical",
+          objectiveId: alignment.objectiveId,
+          description: `Objective "${this.truncate(alignment.objectiveText, 50)}" has no content coverage`,
+          recommendation: "Add course content that addresses this learning objective"
+        });
+      }
+      if (!alignment.hasAssessmentCoverage && this.options.includeAssessments) {
+        gaps.push({
+          type: "objective_no_assessment",
+          severity: "warning",
+          objectiveId: alignment.objectiveId,
+          description: `Objective "${this.truncate(alignment.objectiveText, 50)}" has no assessment coverage`,
+          recommendation: "Add quiz or exam questions that assess this learning objective"
+        });
+      }
+      for (const section of alignment.linkedSections) {
+        const sectionAlignment = sectionAlignments.find((s) => s.sectionId === section.sectionId);
+        if (sectionAlignment && !this.bloomsLevelsCompatible(
+          alignment.bloomsLevel,
+          sectionAlignment.primaryBloomsLevel
+        )) {
+          gaps.push({
+            type: "blooms_mismatch",
+            severity: "warning",
+            objectiveId: alignment.objectiveId,
+            sectionId: section.sectionId,
+            description: `Objective requires ${alignment.bloomsLevel} but section focuses on ${sectionAlignment.primaryBloomsLevel}`,
+            recommendation: `Adjust content to include ${alignment.bloomsLevel}-level activities`
+          });
+        }
+      }
+    }
+    const objectiveCoverageCount = /* @__PURE__ */ new Map();
+    for (const alignment of objectiveAlignments) {
+      const directSectionCount = alignment.linkedSections.filter(
+        (s) => s.alignmentType === "direct"
+      ).length;
+      objectiveCoverageCount.set(alignment.objectiveId, directSectionCount);
+      if (directSectionCount > 3) {
+        gaps.push({
+          type: "redundant_coverage",
+          severity: "info",
+          objectiveId: alignment.objectiveId,
+          description: `Objective covered directly by ${directSectionCount} sections`,
+          recommendation: "Consider consolidating content to reduce redundancy"
+        });
+      }
+    }
+    for (const section of sectionAlignments) {
+      if (!section.hasAssessment && section.coveredObjectives.length > 0) {
+        gaps.push({
+          type: "objective_no_assessment",
+          severity: "warning",
+          sectionId: section.sectionId,
+          description: `Section "${section.sectionTitle}" covers objectives but has no assessment`,
+          recommendation: "Add assessment to verify learning from this section"
+        });
+      }
+    }
+    const severityOrder = { critical: 0, warning: 1, info: 2 };
+    gaps.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+    return gaps;
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // HELPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Update objective alignments with assessment links
+   */
+  updateObjectiveAssessmentLinks(objectiveAlignments, assessmentAlignments) {
+    for (const objective of objectiveAlignments) {
+      const linkedAssessments = [];
+      for (const assessment of assessmentAlignments) {
+        if (assessment.objectivesCovered.includes(objective.objectiveId)) {
+          const linkedQuestionIds = assessment.questionAlignments.filter((qa) => qa.linkedObjectives.includes(objective.objectiveId)).map((qa) => qa.questionId);
+          const coverageScore = linkedQuestionIds.length / Math.max(1, assessment.questionAlignments.length);
+          const questionBlooms = assessment.questionAlignments.filter((qa) => qa.linkedObjectives.includes(objective.objectiveId)).map((qa) => qa.bloomsLevel);
+          const bloomsMatch = questionBlooms.some(
+            (bl) => this.bloomsLevelsCompatible(objective.bloomsLevel, bl)
+          );
+          const questionDoks = assessment.questionAlignments.filter((qa) => qa.linkedObjectives.includes(objective.objectiveId)).map((qa) => qa.dokLevel);
+          const dokMatch = questionDoks.some(
+            (dok) => Math.abs(dok - objective.dokLevel) <= 1
+          );
+          linkedAssessments.push({
+            assessmentId: assessment.assessmentId,
+            assessmentType: assessment.assessmentType,
+            questionIds: linkedQuestionIds,
+            coverageScore,
+            bloomsMatch,
+            dokMatch
+          });
+        }
+      }
+      objective.linkedAssessments = linkedAssessments;
+      objective.hasAssessmentCoverage = linkedAssessments.length > 0;
+      objective.isFullyCovered = objective.hasSectionCoverage && objective.hasAssessmentCoverage;
+      if (!objective.hasSectionCoverage) {
+        objective.coverageGaps.push("No content coverage");
+      }
+      if (!objective.hasAssessmentCoverage) {
+        objective.coverageGaps.push("No assessment coverage");
+      }
+    }
+  }
+  /**
+   * Build alignment summary
+   */
+  buildSummary(alignments) {
+    const totalObjectives = alignments.length;
+    const fullyCoveredObjectives = alignments.filter((a) => a.isFullyCovered).length;
+    const partialObjectives = alignments.filter(
+      (a) => !a.isFullyCovered && (a.hasSectionCoverage || a.hasAssessmentCoverage)
+    ).length;
+    const uncoveredObjectives = alignments.filter(
+      (a) => !a.hasSectionCoverage && !a.hasAssessmentCoverage
+    ).length;
+    const assessmentCoverage = totalObjectives > 0 ? Math.round(alignments.filter((a) => a.hasAssessmentCoverage).length / totalObjectives * 100) : 0;
+    return {
+      totalObjectives,
+      fullyCoveredObjectives,
+      partialObjectives,
+      uncoveredObjectives,
+      assessmentCoverage
+    };
+  }
+  /**
+   * Extract keywords from text
+   */
+  extractKeywords(text) {
+    const normalizedText = text.toLowerCase();
+    const words = normalizedText.split(/\s+/).filter((w) => w.length > 2);
+    const stopWords = /* @__PURE__ */ new Set([
+      "the",
+      "a",
+      "an",
+      "and",
+      "or",
+      "but",
+      "in",
+      "on",
+      "at",
+      "to",
+      "for",
+      "of",
+      "with",
+      "by",
+      "from",
+      "as",
+      "is",
+      "was",
+      "are",
+      "were",
+      "been",
+      "be",
+      "have",
+      "has",
+      "had",
+      "do",
+      "does",
+      "did",
+      "will",
+      "would",
+      "could",
+      "should",
+      "may",
+      "might",
+      "must",
+      "shall",
+      "can",
+      "need",
+      "dare",
+      "ought",
+      "used",
+      "this",
+      "that",
+      "these",
+      "those",
+      "their",
+      "they",
+      "them",
+      "it",
+      "its",
+      "you",
+      "your",
+      "we",
+      "our",
+      "i",
+      "me",
+      "my",
+      "able",
+      "about"
+    ]);
+    const keywords = words.filter((w) => !stopWords.has(w) && !/^\d+$/.test(w)).slice(0, this.options.maxKeywords);
+    const phrases = [];
+    for (let i = 0; i < words.length - 1; i++) {
+      if (!stopWords.has(words[i]) && !stopWords.has(words[i + 1])) {
+        phrases.push(`${words[i]} ${words[i + 1]}`);
+      }
+    }
+    const bloomsIndicators = [];
+    for (const [, verbs] of Object.entries(BLOOMS_KEYWORDS3)) {
+      for (const verb of verbs) {
+        if (normalizedText.includes(verb)) {
+          bloomsIndicators.push(verb);
+        }
+      }
+    }
+    const dokIndicators = [];
+    for (const [, terms] of Object.entries(DOK_KEYWORDS)) {
+      for (const term of terms) {
+        if (normalizedText.includes(term)) {
+          dokIndicators.push(term);
+        }
+      }
+    }
+    return {
+      keywords,
+      phrases: phrases.slice(0, 20),
+      bloomsIndicators,
+      dokIndicators
+    };
+  }
+  /**
+   * Match text using keywords
+   */
+  matchText(extraction, targetText) {
+    const normalizedTarget = targetText.toLowerCase();
+    const matchedKeywords = extraction.keywords.filter(
+      (kw) => normalizedTarget.includes(kw)
+    );
+    const matchedPhrases = extraction.phrases.filter(
+      (phrase) => normalizedTarget.includes(phrase)
+    );
+    const keywordScore = extraction.keywords.length > 0 ? matchedKeywords.length / extraction.keywords.length : 0;
+    const phraseScore = extraction.phrases.length > 0 ? matchedPhrases.length / extraction.phrases.length : 0;
+    const score = keywordScore * 0.4 + phraseScore * 0.6;
+    return {
+      score: Math.min(1, score),
+      matchedKeywords,
+      matchedPhrases
+    };
+  }
+  /**
+   * Match keywords between two keyword sets
+   */
+  matchKeywords(keywords1, keywords2) {
+    const set2 = new Set(keywords2);
+    const matchedKeywords = keywords1.filter((kw) => set2.has(kw));
+    const score = keywords1.length > 0 ? matchedKeywords.length / keywords1.length : 0;
+    return {
+      score,
+      matchedKeywords,
+      matchedPhrases: []
+    };
+  }
+  /**
+   * Get combined text from section
+   */
+  getSectionText(section) {
+    const parts = [section.title];
+    if (section.description) {
+      parts.push(section.description);
+    }
+    if (section.extractedText) {
+      parts.push(section.extractedText);
+    }
+    return parts.join(" ");
+  }
+  /**
+   * Determine alignment type based on score
+   */
+  determineAlignmentType(score) {
+    if (score >= 0.7) return "direct";
+    if (score >= 0.5) return "partial";
+    return "contextual";
+  }
+  /**
+   * Infer Bloom's level from text
+   */
+  inferBloomsLevel(text) {
+    const normalizedText = text.toLowerCase();
+    const scores = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    for (const [level, keywords] of Object.entries(BLOOMS_KEYWORDS3)) {
+      for (const keyword of keywords) {
+        if (normalizedText.includes(keyword)) {
+          scores[level]++;
+        }
+      }
+    }
+    let maxLevel = "UNDERSTAND";
+    let maxScore = 0;
+    for (const [level, score] of Object.entries(scores)) {
+      if (score > maxScore) {
+        maxScore = score;
+        maxLevel = level;
+      }
+    }
+    return maxLevel;
+  }
+  /**
+   * Infer DOK level from text
+   */
+  inferDOKLevel(text) {
+    const normalizedText = text.toLowerCase();
+    const scores = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    for (const [level, keywords] of Object.entries(DOK_KEYWORDS)) {
+      for (const keyword of keywords) {
+        if (normalizedText.includes(keyword)) {
+          scores[parseInt(level)]++;
+        }
+      }
+    }
+    let maxLevel = 2;
+    let maxScore = 0;
+    for (const [level, score] of Object.entries(scores)) {
+      if (score > maxScore) {
+        maxScore = score;
+        maxLevel = parseInt(level);
+      }
+    }
+    return maxLevel;
+  }
+  /**
+   * Analyze Bloom's distribution from text
+   */
+  analyzeBloomsDistribution(text) {
+    const normalizedText = text.toLowerCase();
+    const counts = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    for (const [level, keywords] of Object.entries(BLOOMS_KEYWORDS3)) {
+      for (const keyword of keywords) {
+        const regex = new RegExp(`\\b${keyword}\\b`, "gi");
+        const matches = text.match(regex);
+        if (matches) {
+          counts[level] += matches.length;
+        }
+      }
+    }
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    if (total > 0) {
+      for (const level of Object.keys(counts)) {
+        counts[level] = Math.round(counts[level] / total * 100);
+      }
+    }
+    return counts;
+  }
+  /**
+   * Get primary Bloom's level from distribution
+   */
+  getPrimaryBloomsLevel(distribution) {
+    let maxLevel = "UNDERSTAND";
+    let maxValue = 0;
+    for (const [level, value] of Object.entries(distribution)) {
+      if (value > maxValue) {
+        maxValue = value;
+        maxLevel = level;
+      }
+    }
+    return maxLevel;
+  }
+  /**
+   * Infer DOK level from Bloom's level
+   */
+  inferDOKFromBlooms(bloomsLevel) {
+    const mapping = {
+      REMEMBER: 1,
+      UNDERSTAND: 2,
+      APPLY: 2,
+      ANALYZE: 3,
+      EVALUATE: 3,
+      CREATE: 4
+    };
+    return mapping[bloomsLevel];
+  }
+  /**
+   * Get Bloom's levels from assessments
+   */
+  getAssessmentBloomsLevels(assessments) {
+    const levels = [];
+    for (const assessment of assessments) {
+      for (const question of assessment.questions) {
+        const level = question.bloomsLevel || this.inferBloomsLevel(question.text);
+        levels.push(level);
+      }
+    }
+    return levels;
+  }
+  /**
+   * Check if Bloom's levels match
+   */
+  checkBloomsMatch(sectionLevel, assessmentLevels) {
+    const levelOrder = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+    const sectionIndex = levelOrder.indexOf(sectionLevel);
+    return assessmentLevels.some((level) => {
+      const assessIndex = levelOrder.indexOf(level);
+      return Math.abs(assessIndex - sectionIndex) <= 1;
+    });
+  }
+  /**
+   * Check if two Bloom's levels are compatible
+   */
+  bloomsLevelsCompatible(level1, level2) {
+    const levelOrder = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+    const index1 = levelOrder.indexOf(level1);
+    const index2 = levelOrder.indexOf(level2);
+    return Math.abs(index1 - index2) <= 1;
+  }
+  /**
+   * Calculate Bloom's distribution from question alignments
+   */
+  calculateBloomsFromQuestions(questions) {
+    const counts = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    for (const question of questions) {
+      counts[question.bloomsLevel]++;
+    }
+    const total = questions.length;
+    if (total > 0) {
+      for (const level of Object.keys(counts)) {
+        counts[level] = Math.round(counts[level] / total * 100);
+      }
+    }
+    return counts;
+  }
+  /**
+   * Truncate text for display
+   */
+  truncate(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 3) + "...";
+  }
+};
+function createAlignmentEngine(options) {
+  return new AlignmentEngine(options);
+}
+
+// src/alignment/prisma-alignment-store.ts
+var PrismaAlignmentMatrixStore = class {
+  db;
+  constructor(prismaClient) {
+    this.db = prismaClient;
+  }
+  /**
+   * Create a new alignment matrix record
+   */
+  async create(input) {
+    const record = await this.db.alignmentMatrix.create({
+      data: {
+        courseId: input.courseId,
+        objectiveAlignments: input.objectiveAlignments,
+        sectionAlignments: input.sectionAlignments,
+        assessmentAlignments: input.assessmentAlignments,
+        coverageScore: input.coverageScore,
+        redundancyScore: input.redundancyScore,
+        alignmentScore: input.alignmentScore,
+        gaps: input.gaps ?? null,
+        gapCount: input.gapCount,
+        criticalGapCount: input.criticalGapCount,
+        totalObjectives: input.totalObjectives,
+        fullyCoveredObjectives: input.fullyCoveredObjectives,
+        partialObjectives: input.partialObjectives,
+        uncoveredObjectives: input.uncoveredObjectives,
+        analysisVersion: input.analysisVersion,
+        analyzedAt: /* @__PURE__ */ new Date()
+      }
+    });
+    return this.mapToData(record);
+  }
+  /**
+   * Update an existing alignment matrix
+   */
+  async update(id, input) {
+    const data = {};
+    if (input.objectiveAlignments !== void 0) data.objectiveAlignments = input.objectiveAlignments;
+    if (input.sectionAlignments !== void 0) data.sectionAlignments = input.sectionAlignments;
+    if (input.assessmentAlignments !== void 0) data.assessmentAlignments = input.assessmentAlignments;
+    if (input.coverageScore !== void 0) data.coverageScore = input.coverageScore;
+    if (input.redundancyScore !== void 0) data.redundancyScore = input.redundancyScore;
+    if (input.alignmentScore !== void 0) data.alignmentScore = input.alignmentScore;
+    if (input.gaps !== void 0) data.gaps = input.gaps;
+    if (input.gapCount !== void 0) data.gapCount = input.gapCount;
+    if (input.criticalGapCount !== void 0) data.criticalGapCount = input.criticalGapCount;
+    if (input.totalObjectives !== void 0) data.totalObjectives = input.totalObjectives;
+    if (input.fullyCoveredObjectives !== void 0) data.fullyCoveredObjectives = input.fullyCoveredObjectives;
+    if (input.partialObjectives !== void 0) data.partialObjectives = input.partialObjectives;
+    if (input.uncoveredObjectives !== void 0) data.uncoveredObjectives = input.uncoveredObjectives;
+    if (input.analysisVersion !== void 0) data.analysisVersion = input.analysisVersion;
+    if (input.analyzedAt !== void 0) data.analyzedAt = input.analyzedAt;
+    const record = await this.db.alignmentMatrix.update({
+      where: { id },
+      data
+    });
+    return this.mapToData(record);
+  }
+  /**
+   * Upsert alignment matrix (create or update by courseId)
+   */
+  async upsert(courseId, input) {
+    const record = await this.db.alignmentMatrix.upsert({
+      where: { courseId },
+      create: {
+        courseId: input.courseId,
+        objectiveAlignments: input.objectiveAlignments,
+        sectionAlignments: input.sectionAlignments,
+        assessmentAlignments: input.assessmentAlignments,
+        coverageScore: input.coverageScore,
+        redundancyScore: input.redundancyScore,
+        alignmentScore: input.alignmentScore,
+        gaps: input.gaps ?? null,
+        gapCount: input.gapCount,
+        criticalGapCount: input.criticalGapCount,
+        totalObjectives: input.totalObjectives,
+        fullyCoveredObjectives: input.fullyCoveredObjectives,
+        partialObjectives: input.partialObjectives,
+        uncoveredObjectives: input.uncoveredObjectives,
+        analysisVersion: input.analysisVersion,
+        analyzedAt: /* @__PURE__ */ new Date()
+      },
+      update: {
+        objectiveAlignments: input.objectiveAlignments,
+        sectionAlignments: input.sectionAlignments,
+        assessmentAlignments: input.assessmentAlignments,
+        coverageScore: input.coverageScore,
+        redundancyScore: input.redundancyScore,
+        alignmentScore: input.alignmentScore,
+        gaps: input.gaps ?? null,
+        gapCount: input.gapCount,
+        criticalGapCount: input.criticalGapCount,
+        totalObjectives: input.totalObjectives,
+        fullyCoveredObjectives: input.fullyCoveredObjectives,
+        partialObjectives: input.partialObjectives,
+        uncoveredObjectives: input.uncoveredObjectives,
+        analysisVersion: input.analysisVersion,
+        analyzedAt: /* @__PURE__ */ new Date()
+      }
+    });
+    return this.mapToData(record);
+  }
+  /**
+   * Get alignment matrix by ID
+   */
+  async getById(id) {
+    const record = await this.db.alignmentMatrix.findUnique({
+      where: { id }
+    });
+    return record ? this.mapToData(record) : null;
+  }
+  /**
+   * Get alignment matrix by course ID
+   */
+  async getByCourseId(courseId) {
+    const record = await this.db.alignmentMatrix.findUnique({
+      where: { courseId }
+    });
+    return record ? this.mapToData(record) : null;
+  }
+  /**
+   * Delete alignment matrix
+   */
+  async delete(id) {
+    await this.db.alignmentMatrix.delete({
+      where: { id }
+    });
+  }
+  /**
+   * Delete alignment matrix by course ID
+   */
+  async deleteByCourseId(courseId) {
+    await this.db.alignmentMatrix.delete({
+      where: { courseId }
+    });
+  }
+  /**
+   * Map database record to AlignmentMatrixData
+   */
+  mapToData(record) {
+    return {
+      id: record.id,
+      courseId: record.courseId,
+      objectiveAlignments: record.objectiveAlignments,
+      sectionAlignments: record.sectionAlignments,
+      assessmentAlignments: record.assessmentAlignments,
+      coverageScore: record.coverageScore,
+      redundancyScore: record.redundancyScore,
+      alignmentScore: record.alignmentScore,
+      gaps: record.gaps,
+      gapCount: record.gapCount,
+      criticalGapCount: record.criticalGapCount,
+      totalObjectives: record.totalObjectives,
+      fullyCoveredObjectives: record.fullyCoveredObjectives,
+      partialObjectives: record.partialObjectives,
+      uncoveredObjectives: record.uncoveredObjectives,
+      analysisVersion: record.analysisVersion,
+      analyzedAt: record.analyzedAt,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt
+    };
+  }
+};
+function createPrismaAlignmentMatrixStore(prismaClient) {
+  return new PrismaAlignmentMatrixStore(prismaClient);
+}
+
+// src/evidence/evidence-service.ts
+var EVIDENCE_SERVICE_VERSION = "1.0.0";
+var BLOOMS_KEYWORDS4 = {
+  REMEMBER: {
+    primary: ["recall", "identify", "recognize", "list", "name", "define", "match", "memorize", "label", "state"],
+    secondary: ["describe", "locate", "retrieve", "repeat", "quote", "recite"]
+  },
+  UNDERSTAND: {
+    primary: ["explain", "summarize", "interpret", "classify", "compare", "infer", "paraphrase"],
+    secondary: ["discuss", "distinguish", "translate", "illustrate", "extend", "predict"]
+  },
+  APPLY: {
+    primary: ["apply", "implement", "execute", "use", "demonstrate", "solve", "compute"],
+    secondary: ["operate", "practice", "calculate", "employ", "perform", "show"]
+  },
+  ANALYZE: {
+    primary: ["analyze", "differentiate", "organize", "attribute", "examine", "investigate"],
+    secondary: ["dissect", "contrast", "categorize", "deconstruct", "compare", "diagram"]
+  },
+  EVALUATE: {
+    primary: ["evaluate", "judge", "critique", "assess", "argue", "defend", "justify"],
+    secondary: ["appraise", "prioritize", "validate", "recommend", "rate", "select"]
+  },
+  CREATE: {
+    primary: ["create", "design", "develop", "produce", "construct", "generate", "compose"],
+    secondary: ["synthesize", "invent", "formulate", "devise", "build", "plan"]
+  }
+};
+var CONTEXT_MULTIPLIERS = {
+  instructional: 1,
+  assessment: 1.2,
+  // Assessment context is more definitive
+  activity: 1.1,
+  discussion: 0.9,
+  reflection: 1,
+  project: 1.15,
+  example: 0.85,
+  definition: 0.9
+};
+var POSITION_MULTIPLIERS = {
+  beginning: 1.1,
+  // Key terms at beginning are often important
+  middle: 1,
+  end: 1.05
+  // Conclusions are often at end
+};
+var DEFAULT_CONFIDENCE_OPTIONS = {
+  keywordBaseWeight: 0.6,
+  contextWeight: 0.2,
+  positionWeight: 0.2,
+  minConfidence: 0.1,
+  maxConfidence: 0.95
+};
+var EvidenceService = class {
+  store;
+  logger;
+  constructor(options) {
+    this.store = options.store;
+    this.logger = options.logger;
+  }
+  /**
+   * Store evidence for an analysis
+   */
+  async storeEvidence(analysisId, evidence) {
+    this.logger?.info(`Storing ${evidence.length} evidence items for analysis: ${analysisId}`);
+    const result = await this.store.storeEvidence(analysisId, evidence);
+    this.logger?.info(`Stored ${result.length} evidence items`);
+    return result;
+  }
+  /**
+   * Get all evidence for an analysis
+   */
+  async getEvidenceForAnalysis(analysisId) {
+    return this.store.getEvidenceForAnalysis(analysisId);
+  }
+  /**
+   * Get evidence by classification
+   */
+  async getEvidenceByClassification(analysisId, classification) {
+    return this.store.getEvidenceByClassification(analysisId, classification);
+  }
+  /**
+   * Get evidence for a specific source
+   */
+  async getEvidenceForSource(sourceType, sourceId) {
+    return this.store.getEvidenceForSource(sourceType, sourceId);
+  }
+  /**
+   * Query evidence with filters
+   */
+  async queryEvidence(query) {
+    return this.store.queryEvidence(query);
+  }
+  /**
+   * Get evidence summary for an analysis
+   */
+  async getSummary(analysisId) {
+    return this.store.getSummary(analysisId);
+  }
+  /**
+   * Delete evidence for an analysis
+   */
+  async deleteEvidenceForAnalysis(analysisId) {
+    this.logger?.info(`Deleting evidence for analysis: ${analysisId}`);
+    return this.store.deleteEvidenceForAnalysis(analysisId);
+  }
+  /**
+   * Aggregate evidence for an analysis
+   */
+  async aggregateEvidence(analysisId) {
+    const evidence = await this.store.getEvidenceForAnalysis(analysisId);
+    const byClassification = {};
+    for (const e of evidence) {
+      if (!byClassification[e.classification]) {
+        byClassification[e.classification] = {
+          classification: e.classification,
+          count: 0,
+          averageConfidence: 0,
+          topEvidence: [],
+          commonPatterns: [],
+          sources: []
+        };
+      }
+      const agg = byClassification[e.classification];
+      agg.count++;
+      agg.topEvidence.push(e);
+      agg.sources.push({
+        sourceType: e.sourceType,
+        sourceId: e.sourceId,
+        confidence: e.confidence
+      });
+    }
+    for (const classification of Object.keys(byClassification)) {
+      const agg = byClassification[classification];
+      const totalConfidence = agg.topEvidence.reduce((sum, e) => sum + e.confidence, 0);
+      agg.averageConfidence = totalConfidence / agg.count;
+      agg.topEvidence.sort((a, b) => b.confidence - a.confidence);
+      agg.topEvidence = agg.topEvidence.slice(0, 5);
+      const patternCounts = /* @__PURE__ */ new Map();
+      for (const e of evidence.filter((ev) => ev.classification === classification)) {
+        for (const pattern of e.triggerPatterns) {
+          patternCounts.set(pattern, (patternCounts.get(pattern) || 0) + 1);
+        }
+      }
+      agg.commonPatterns = Array.from(patternCounts.entries()).map(([pattern, count]) => ({ pattern, count })).sort((a, b) => b.count - a.count).slice(0, 10);
+    }
+    const totalEvidence = evidence.length;
+    const weightedConfidence = evidence.reduce((sum, e) => sum + e.confidence, 0);
+    const overallConfidence = totalEvidence > 0 ? weightedConfidence / totalEvidence : 0;
+    const conflicts = this.detectConflicts(evidence);
+    return {
+      byClassification,
+      overallConfidence,
+      conflicts
+    };
+  }
+  /**
+   * Detect conflicting evidence
+   */
+  detectConflicts(evidence) {
+    const conflicts = [];
+    const bySource = /* @__PURE__ */ new Map();
+    for (const e of evidence) {
+      const key = `${e.sourceType}:${e.sourceId}`;
+      if (!bySource.has(key)) {
+        bySource.set(key, []);
+      }
+      bySource.get(key).push(e);
+    }
+    for (const [, sourceEvidence] of bySource) {
+      if (sourceEvidence.length > 1) {
+        const classifications = new Set(sourceEvidence.map((e) => e.classification));
+        if (classifications.size > 1) {
+          const highConfEvidence = sourceEvidence.filter((e) => e.confidence >= 0.7);
+          if (highConfEvidence.length > 1) {
+            const highConfClassifications = new Set(highConfEvidence.map((e) => e.classification));
+            if (highConfClassifications.size > 1) {
+              conflicts.push({
+                evidenceIds: highConfEvidence.map((e) => e.id),
+                description: `Same source has multiple high-confidence classifications: ${Array.from(highConfClassifications).join(", ")}`,
+                severity: this.determineConflictSeverity(highConfEvidence),
+                resolution: "Review source content for primary cognitive level"
+              });
+            }
+          }
+        }
+      }
+    }
+    return conflicts;
+  }
+  /**
+   * Determine conflict severity based on evidence
+   */
+  determineConflictSeverity(evidence) {
+    const maxConfidence = Math.max(...evidence.map((e) => e.confidence));
+    const classifications = new Set(evidence.map((e) => e.classification));
+    const bloomsOrder = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+    const classIndices = Array.from(classifications).map((c) => bloomsOrder.indexOf(c)).filter((i) => i >= 0);
+    if (classIndices.length >= 2) {
+      const maxDiff = Math.max(...classIndices) - Math.min(...classIndices);
+      if (maxDiff > 2 && maxConfidence >= 0.8) {
+        return "major";
+      } else if (maxDiff > 1) {
+        return "moderate";
+      }
+    }
+    return "minor";
+  }
+};
+var ConfidenceCalculator = class {
+  options;
+  constructor(options = {}) {
+    this.options = {
+      ...DEFAULT_CONFIDENCE_OPTIONS,
+      ...options
+    };
+  }
+  /**
+   * Calculate confidence for a classification
+   */
+  calculate(keywordMatches, context, position) {
+    const keywordScore = this.calculateKeywordScore(keywordMatches);
+    const contextMultiplier = CONTEXT_MULTIPLIERS[context] || 1;
+    const contextScore = keywordScore * contextMultiplier;
+    const positionMultiplier = POSITION_MULTIPLIERS[position] || 1;
+    const positionScore = keywordScore * positionMultiplier;
+    const rawConfidence = keywordScore * this.options.keywordBaseWeight + (contextScore - keywordScore) * this.options.contextWeight + (positionScore - keywordScore) * this.options.positionWeight;
+    const confidence = Math.max(
+      this.options.minConfidence,
+      Math.min(this.options.maxConfidence, rawConfidence)
+    );
+    const breakdown = {
+      keywordScore,
+      contextScore: contextScore / keywordScore || 1,
+      // Normalized multiplier
+      positionScore: positionScore / keywordScore || 1
+    };
+    const contributingFactors = [];
+    const reducingFactors = [];
+    if (keywordMatches.length >= 3) {
+      contributingFactors.push("Multiple keyword matches");
+    }
+    if (keywordMatches.some((m) => m.weight >= 0.8)) {
+      contributingFactors.push("High-weight keyword found");
+    }
+    if (contextMultiplier > 1) {
+      contributingFactors.push(`Context boost (${context})`);
+    }
+    if (positionMultiplier > 1) {
+      contributingFactors.push(`Position boost (${position})`);
+    }
+    if (keywordMatches.length === 1) {
+      reducingFactors.push("Single keyword match");
+    }
+    if (contextMultiplier < 1) {
+      reducingFactors.push(`Context reduction (${context})`);
+    }
+    if (keywordMatches.every((m) => m.weight < 0.5)) {
+      reducingFactors.push("Low-weight keywords only");
+    }
+    return {
+      confidence,
+      breakdown,
+      contributingFactors,
+      reducingFactors
+    };
+  }
+  /**
+   * Calculate keyword score
+   */
+  calculateKeywordScore(matches) {
+    if (matches.length === 0) return 0;
+    let score = 0;
+    const sortedMatches = [...matches].sort((a, b) => b.weight - a.weight);
+    for (let i = 0; i < sortedMatches.length; i++) {
+      const diminishingFactor = 1 / (1 + i * 0.3);
+      score += sortedMatches[i].weight * diminishingFactor;
+    }
+    return Math.min(1, score);
+  }
+};
+var KeywordAnalyzer = class {
+  /**
+   * Analyze text for Bloom's keywords
+   */
+  analyzeText(text) {
+    const normalizedText = text.toLowerCase();
+    const matches = [];
+    const levelCounts = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    for (const [level, keywords] of Object.entries(BLOOMS_KEYWORDS4)) {
+      const bloomsLevel = level;
+      for (const keyword of keywords.primary) {
+        const regex = new RegExp(`\\b${keyword}\\b`, "gi");
+        let match;
+        while ((match = regex.exec(normalizedText)) !== null) {
+          matches.push({
+            keyword,
+            weight: 0.8,
+            // Primary keywords have higher weight
+            bloomsLevel,
+            position: match.index
+          });
+          levelCounts[bloomsLevel]++;
+        }
+      }
+      for (const keyword of keywords.secondary) {
+        const regex = new RegExp(`\\b${keyword}\\b`, "gi");
+        let match;
+        while ((match = regex.exec(normalizedText)) !== null) {
+          matches.push({
+            keyword,
+            weight: 0.5,
+            // Secondary keywords have lower weight
+            bloomsLevel,
+            position: match.index
+          });
+          levelCounts[bloomsLevel]++;
+        }
+      }
+    }
+    let primaryLevel = "UNDERSTAND";
+    let maxCount = 0;
+    for (const [level, count] of Object.entries(levelCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        primaryLevel = level;
+      }
+    }
+    const secondaryLevels = Object.entries(levelCounts).filter(([level, count]) => count > 0 && level !== primaryLevel).sort((a, b) => b[1] - a[1]).map(([level]) => level);
+    const totalMatches = matches.length;
+    const primaryMatches = matches.filter((m) => m.bloomsLevel === primaryLevel).length;
+    const keywordConfidence = totalMatches > 0 ? Math.min(0.95, 0.3 + primaryMatches / totalMatches * 0.5 + Math.min(totalMatches, 10) * 0.02) : 0.1;
+    const inferredDOKLevel = this.inferDOKFromBlooms(primaryLevel);
+    return {
+      matches,
+      primaryBloomsLevel: primaryLevel,
+      secondaryLevels,
+      keywordConfidence,
+      inferredDOKLevel
+    };
+  }
+  /**
+   * Infer DOK level from Bloom's level
+   */
+  inferDOKFromBlooms(bloomsLevel) {
+    const mapping = {
+      REMEMBER: 1,
+      UNDERSTAND: 2,
+      APPLY: 2,
+      ANALYZE: 3,
+      EVALUATE: 3,
+      CREATE: 4
+    };
+    return mapping[bloomsLevel];
+  }
+  /**
+   * Extract text position for highlighting
+   */
+  extractTextPosition(text, sentence, paragraphIndex = 0) {
+    const start = text.indexOf(sentence);
+    if (start === -1) return null;
+    return {
+      start,
+      end: start + sentence.length,
+      paragraphIndex
+    };
+  }
+};
+function createEvidenceService(options) {
+  return new EvidenceService(options);
+}
+function createConfidenceCalculator(options) {
+  return new ConfidenceCalculator(options);
+}
+function createKeywordAnalyzer() {
+  return new KeywordAnalyzer();
+}
+
+// src/evidence/prisma-evidence-store.ts
+var PrismaAnalysisEvidenceStore = class {
+  db;
+  constructor(prismaClient) {
+    this.db = prismaClient;
+  }
+  /**
+   * Store multiple evidence records for an analysis
+   */
+  async storeEvidence(analysisId, evidence) {
+    const createdRecords = [];
+    for (const e of evidence) {
+      const record = await this.db.analysisEvidence.create({
+        data: {
+          analysisId,
+          sourceType: e.sourceType,
+          sourceId: e.sourceId,
+          classification: e.classification,
+          confidence: e.confidence,
+          triggerPatterns: e.triggerPatterns,
+          highlightedText: e.highlightedText ?? null,
+          textPosition: e.textPosition ?? null,
+          context: e.context ?? null
+        }
+      });
+      createdRecords.push(this.mapToData(record));
+    }
+    return createdRecords;
+  }
+  /**
+   * Get all evidence for an analysis
+   */
+  async getEvidenceForAnalysis(analysisId) {
+    const records = await this.db.analysisEvidence.findMany({
+      where: { analysisId },
+      orderBy: [
+        { confidence: "desc" },
+        { createdAt: "asc" }
+      ]
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Get evidence by classification
+   */
+  async getEvidenceByClassification(analysisId, classification) {
+    const records = await this.db.analysisEvidence.findMany({
+      where: {
+        analysisId,
+        classification
+      },
+      orderBy: { confidence: "desc" }
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Get evidence for a specific source
+   */
+  async getEvidenceForSource(sourceType, sourceId) {
+    const records = await this.db.analysisEvidence.findMany({
+      where: {
+        sourceType,
+        sourceId
+      },
+      orderBy: { confidence: "desc" }
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Query evidence with filters
+   */
+  async queryEvidence(query) {
+    const where = {};
+    if (query.analysisId) {
+      where.analysisId = query.analysisId;
+    }
+    if (query.sourceType) {
+      where.sourceType = query.sourceType;
+    }
+    if (query.sourceId) {
+      where.sourceId = query.sourceId;
+    }
+    if (query.classification) {
+      where.classification = query.classification;
+    }
+    if (query.minConfidence !== void 0) {
+      where.confidence = { gte: query.minConfidence };
+    }
+    const records = await this.db.analysisEvidence.findMany({
+      where,
+      orderBy: { confidence: "desc" },
+      take: query.limit
+    });
+    return records.map((r) => this.mapToData(r));
+  }
+  /**
+   * Get evidence summary for an analysis
+   */
+  async getSummary(analysisId) {
+    const evidence = await this.getEvidenceForAnalysis(analysisId);
+    const byClassification = {};
+    const bySourceType = {};
+    let totalConfidence = 0;
+    let highConfidenceCount = 0;
+    let lowConfidenceCount = 0;
+    for (const e of evidence) {
+      byClassification[e.classification] = (byClassification[e.classification] || 0) + 1;
+      const sourceType = e.sourceType;
+      bySourceType[sourceType] = (bySourceType[sourceType] || 0) + 1;
+      totalConfidence += e.confidence;
+      if (e.confidence >= 0.8) {
+        highConfidenceCount++;
+      }
+      if (e.confidence < 0.5) {
+        lowConfidenceCount++;
+      }
+    }
+    const totalEvidence = evidence.length;
+    const averageConfidence = totalEvidence > 0 ? totalConfidence / totalEvidence : 0;
+    return {
+      totalEvidence,
+      byClassification,
+      bySourceType,
+      averageConfidence,
+      highConfidenceCount,
+      lowConfidenceCount
+    };
+  }
+  /**
+   * Delete evidence for an analysis
+   */
+  async deleteEvidenceForAnalysis(analysisId) {
+    const result = await this.db.analysisEvidence.deleteMany({
+      where: { analysisId }
+    });
+    return result.count;
+  }
+  /**
+   * Get evidence by ID
+   */
+  async getById(id) {
+    const record = await this.db.analysisEvidence.findUnique({
+      where: { id }
+    });
+    return record ? this.mapToData(record) : null;
+  }
+  /**
+   * Map database record to AnalysisEvidenceData
+   */
+  mapToData(record) {
+    return {
+      id: record.id,
+      analysisId: record.analysisId,
+      sourceType: record.sourceType,
+      sourceId: record.sourceId,
+      classification: record.classification,
+      confidence: record.confidence,
+      triggerPatterns: record.triggerPatterns,
+      highlightedText: record.highlightedText,
+      textPosition: record.textPosition,
+      context: record.context,
+      createdAt: record.createdAt
+    };
+  }
+};
+function createPrismaAnalysisEvidenceStore(prismaClient) {
+  return new PrismaAnalysisEvidenceStore(prismaClient);
+}
+
+// src/frameworks/framework-definitions.ts
+var BLOOMS_LEVELS3 = [
+  {
+    id: "REMEMBER",
+    name: "Remember",
+    weight: 1,
+    description: "Retrieving relevant knowledge from long-term memory",
+    keywords: ["recall", "identify", "recognize", "list", "name", "define", "match", "memorize", "label", "state"],
+    verbs: ["define", "duplicate", "list", "memorize", "recall", "repeat", "reproduce", "state"]
+  },
+  {
+    id: "UNDERSTAND",
+    name: "Understand",
+    weight: 2,
+    description: "Constructing meaning from instructional messages",
+    keywords: ["explain", "summarize", "interpret", "classify", "compare", "infer", "paraphrase", "discuss"],
+    verbs: ["classify", "describe", "discuss", "explain", "identify", "locate", "recognize", "report", "select", "translate"]
+  },
+  {
+    id: "APPLY",
+    name: "Apply",
+    weight: 3,
+    description: "Carrying out or using a procedure in a given situation",
+    keywords: ["apply", "implement", "execute", "use", "demonstrate", "solve", "compute", "operate", "perform"],
+    verbs: ["execute", "implement", "solve", "use", "demonstrate", "interpret", "operate", "schedule", "sketch"]
+  },
+  {
+    id: "ANALYZE",
+    name: "Analyze",
+    weight: 4,
+    description: "Breaking material into parts and determining relationships",
+    keywords: ["analyze", "differentiate", "organize", "attribute", "examine", "investigate", "dissect", "contrast"],
+    verbs: ["differentiate", "organize", "relate", "compare", "contrast", "distinguish", "examine", "experiment", "question"]
+  },
+  {
+    id: "EVALUATE",
+    name: "Evaluate",
+    weight: 5,
+    description: "Making judgments based on criteria and standards",
+    keywords: ["evaluate", "judge", "critique", "assess", "argue", "defend", "justify", "appraise", "prioritize"],
+    verbs: ["appraise", "argue", "defend", "judge", "select", "support", "value", "critique", "weigh"]
+  },
+  {
+    id: "CREATE",
+    name: "Create",
+    weight: 6,
+    description: "Putting elements together to form a coherent whole",
+    keywords: ["create", "design", "develop", "produce", "construct", "generate", "compose", "synthesize", "invent"],
+    verbs: ["design", "assemble", "construct", "conjecture", "develop", "formulate", "author", "investigate"]
+  }
+];
+var BLOOMS_FRAMEWORK = {
+  type: "blooms",
+  name: "Bloom's Taxonomy (Revised)",
+  citation: "Anderson & Krathwohl (2001)",
+  description: "A classification system for educational objectives based on cognitive complexity",
+  levels: BLOOMS_LEVELS3,
+  mappings: [],
+  // Bloom's is often the reference framework
+  idealDistributions: {
+    foundational: { REMEMBER: 30, UNDERSTAND: 35, APPLY: 20, ANALYZE: 10, EVALUATE: 3, CREATE: 2 },
+    intermediate: { REMEMBER: 15, UNDERSTAND: 25, APPLY: 30, ANALYZE: 20, EVALUATE: 7, CREATE: 3 },
+    advanced: { REMEMBER: 5, UNDERSTAND: 15, APPLY: 25, ANALYZE: 30, EVALUATE: 15, CREATE: 10 },
+    professional: { REMEMBER: 5, UNDERSTAND: 15, APPLY: 30, ANALYZE: 25, EVALUATE: 15, CREATE: 10 },
+    creative: { REMEMBER: 5, UNDERSTAND: 10, APPLY: 20, ANALYZE: 25, EVALUATE: 15, CREATE: 25 },
+    technical: { REMEMBER: 10, UNDERSTAND: 20, APPLY: 35, ANALYZE: 25, EVALUATE: 7, CREATE: 3 },
+    theoretical: { REMEMBER: 10, UNDERSTAND: 25, APPLY: 15, ANALYZE: 30, EVALUATE: 15, CREATE: 5 }
+  }
+};
+var DOK_LEVELS = [
+  {
+    id: "1",
+    name: "Recall and Reproduction",
+    weight: 1,
+    description: "Recall of information such as facts, definitions, terms, or simple procedures",
+    keywords: ["recall", "identify", "recognize", "list", "name", "define", "match", "memorize", "label"],
+    verbs: ["define", "identify", "label", "list", "match", "memorize", "name", "recall", "recite"]
+  },
+  {
+    id: "2",
+    name: "Skills and Concepts",
+    weight: 2,
+    description: "Use of information, conceptual knowledge, and procedures",
+    keywords: ["summarize", "interpret", "classify", "compare", "organize", "estimate", "predict", "explain"],
+    verbs: ["classify", "compare", "explain", "interpret", "organize", "predict", "summarize"]
+  },
+  {
+    id: "3",
+    name: "Strategic Thinking",
+    weight: 3,
+    description: "Reasoning, planning, and using evidence to solve problems",
+    keywords: ["analyze", "investigate", "formulate", "differentiate", "conclude", "critique", "assess", "justify"],
+    verbs: ["analyze", "assess", "conclude", "critique", "differentiate", "formulate", "hypothesize", "investigate"]
+  },
+  {
+    id: "4",
+    name: "Extended Thinking",
+    weight: 4,
+    description: "Complex reasoning, planning, developing, and thinking over extended time",
+    keywords: ["design", "create", "synthesize", "connect", "critique across", "prove", "research", "develop"],
+    verbs: ["apply concepts", "connect", "create", "critique", "design", "prove", "synthesize"]
+  }
+];
+var DOK_TO_BLOOMS_MAPPINGS = [
+  { fromLevel: "1", toLevel: "REMEMBER", confidence: 0.95, notes: "Direct mapping for recall tasks" },
+  { fromLevel: "2", toLevel: ["UNDERSTAND", "APPLY"], confidence: 0.85, notes: "Spans understanding and basic application" },
+  { fromLevel: "3", toLevel: ["ANALYZE", "EVALUATE"], confidence: 0.8, notes: "Requires analysis and evaluation" },
+  { fromLevel: "4", toLevel: "CREATE", confidence: 0.85, notes: "Extended thinking maps to creation" }
+];
+var DOK_FRAMEWORK = {
+  type: "dok",
+  name: "Webb's Depth of Knowledge",
+  citation: "Webb (1997)",
+  description: "Measures cognitive demand of standards, activities, and assessments",
+  levels: DOK_LEVELS,
+  mappings: DOK_TO_BLOOMS_MAPPINGS,
+  idealDistributions: {
+    foundational: { "1": 40, "2": 40, "3": 15, "4": 5 },
+    intermediate: { "1": 20, "2": 40, "3": 30, "4": 10 },
+    advanced: { "1": 10, "2": 25, "3": 40, "4": 25 },
+    professional: { "1": 10, "2": 30, "3": 40, "4": 20 },
+    creative: { "1": 5, "2": 20, "3": 35, "4": 40 },
+    technical: { "1": 15, "2": 35, "3": 35, "4": 15 },
+    theoretical: { "1": 10, "2": 30, "3": 40, "4": 20 }
+  }
+};
+var SOLO_LEVELS = [
+  {
+    id: "prestructural",
+    name: "Prestructural",
+    weight: 1,
+    description: "Student misses the point or uses irrelevant information",
+    keywords: ["miss", "irrelevant", "confused", "unrelated"],
+    verbs: ["miss", "fail to understand"]
+  },
+  {
+    id: "unistructural",
+    name: "Unistructural",
+    weight: 2,
+    description: "Student focuses on one relevant aspect",
+    keywords: ["identify", "name", "follow simple procedure"],
+    verbs: ["identify", "name", "follow", "memorize", "define"]
+  },
+  {
+    id: "multistructural",
+    name: "Multistructural",
+    weight: 3,
+    description: "Student focuses on several relevant aspects but treats them independently",
+    keywords: ["describe", "list", "enumerate", "combine", "classify"],
+    verbs: ["describe", "list", "classify", "combine", "outline"]
+  },
+  {
+    id: "relational",
+    name: "Relational",
+    weight: 4,
+    description: "Student integrates aspects into a coherent whole",
+    keywords: ["compare", "contrast", "explain causes", "analyze", "relate", "apply"],
+    verbs: ["compare", "contrast", "explain", "analyze", "relate", "apply"]
+  },
+  {
+    id: "extended_abstract",
+    name: "Extended Abstract",
+    weight: 5,
+    description: "Student generalizes structure beyond what was given, creates new ideas",
+    keywords: ["generalize", "hypothesize", "theorize", "create", "reflect", "generate"],
+    verbs: ["theorize", "generalize", "hypothesize", "reflect", "generate", "create"]
+  }
+];
+var SOLO_TO_BLOOMS_MAPPINGS = [
+  { fromLevel: "prestructural", toLevel: "REMEMBER", confidence: 0.6, notes: "Below basic recall" },
+  { fromLevel: "unistructural", toLevel: "REMEMBER", confidence: 0.85, notes: "Single aspect recall" },
+  { fromLevel: "multistructural", toLevel: "UNDERSTAND", confidence: 0.8, notes: "Multiple aspects, understanding" },
+  { fromLevel: "relational", toLevel: ["APPLY", "ANALYZE"], confidence: 0.85, notes: "Integration requires analysis" },
+  { fromLevel: "extended_abstract", toLevel: ["EVALUATE", "CREATE"], confidence: 0.85, notes: "Generalization and creation" }
+];
+var SOLO_FRAMEWORK = {
+  type: "solo",
+  name: "SOLO Taxonomy",
+  citation: "Biggs & Collis (1982)",
+  description: "Structure of Observed Learning Outcomes - measures quality of learning",
+  levels: SOLO_LEVELS,
+  mappings: SOLO_TO_BLOOMS_MAPPINGS,
+  idealDistributions: {
+    foundational: { prestructural: 0, unistructural: 30, multistructural: 40, relational: 25, extended_abstract: 5 },
+    intermediate: { prestructural: 0, unistructural: 15, multistructural: 30, relational: 40, extended_abstract: 15 },
+    advanced: { prestructural: 0, unistructural: 5, multistructural: 20, relational: 45, extended_abstract: 30 },
+    professional: { prestructural: 0, unistructural: 5, multistructural: 25, relational: 45, extended_abstract: 25 },
+    creative: { prestructural: 0, unistructural: 5, multistructural: 15, relational: 40, extended_abstract: 40 },
+    technical: { prestructural: 0, unistructural: 10, multistructural: 30, relational: 45, extended_abstract: 15 },
+    theoretical: { prestructural: 0, unistructural: 5, multistructural: 25, relational: 45, extended_abstract: 25 }
+  }
+};
+var FINK_LEVELS = [
+  {
+    id: "foundational_knowledge",
+    name: "Foundational Knowledge",
+    weight: 1,
+    description: "Understanding and remembering information and ideas",
+    keywords: ["understand", "remember", "know", "information", "ideas", "concepts"],
+    verbs: ["understand", "remember", "identify", "recognize", "describe"]
+  },
+  {
+    id: "application",
+    name: "Application",
+    weight: 2,
+    description: "Skills, critical/creative/practical thinking, managing projects",
+    keywords: ["apply", "use", "skills", "thinking", "practical", "manage", "project"],
+    verbs: ["apply", "use", "perform", "manage", "think critically", "solve"]
+  },
+  {
+    id: "integration",
+    name: "Integration",
+    weight: 3,
+    description: "Connecting ideas, people, realms of life",
+    keywords: ["connect", "relate", "integrate", "interdisciplinary", "link", "combine"],
+    verbs: ["connect", "relate", "integrate", "combine", "synthesize", "link"]
+  },
+  {
+    id: "human_dimension",
+    name: "Human Dimension",
+    weight: 4,
+    description: "Learning about oneself and others",
+    keywords: ["self", "others", "interact", "personal", "social", "collaborate"],
+    verbs: ["interact", "collaborate", "reflect on self", "understand others"]
+  },
+  {
+    id: "caring",
+    name: "Caring",
+    weight: 5,
+    description: "Developing new feelings, interests, and values",
+    keywords: ["care", "value", "interest", "feeling", "motivation", "ethics"],
+    verbs: ["care about", "value", "become interested", "be motivated"]
+  },
+  {
+    id: "learning_how_to_learn",
+    name: "Learning How to Learn",
+    weight: 6,
+    description: "Becoming a better student, learning about learning",
+    keywords: ["metacognition", "self-directed", "inquiry", "autonomous", "reflect"],
+    verbs: ["self-direct", "inquire", "reflect on learning", "become autonomous"]
+  }
+];
+var FINK_TO_BLOOMS_MAPPINGS = [
+  { fromLevel: "foundational_knowledge", toLevel: ["REMEMBER", "UNDERSTAND"], confidence: 0.9, notes: "Knowledge base" },
+  { fromLevel: "application", toLevel: ["APPLY", "ANALYZE"], confidence: 0.85, notes: "Application of knowledge" },
+  { fromLevel: "integration", toLevel: ["ANALYZE", "CREATE"], confidence: 0.8, notes: "Connecting concepts" },
+  { fromLevel: "human_dimension", toLevel: "EVALUATE", confidence: 0.7, notes: "Personal/social reflection" },
+  { fromLevel: "caring", toLevel: "EVALUATE", confidence: 0.65, notes: "Values and ethics" },
+  { fromLevel: "learning_how_to_learn", toLevel: ["EVALUATE", "CREATE"], confidence: 0.75, notes: "Metacognition" }
+];
+var FINK_FRAMEWORK = {
+  type: "fink",
+  name: "Fink's Significant Learning Taxonomy",
+  citation: "Fink (2003)",
+  description: "Non-hierarchical taxonomy focusing on significant learning experiences",
+  levels: FINK_LEVELS,
+  mappings: FINK_TO_BLOOMS_MAPPINGS,
+  idealDistributions: {
+    foundational: { foundational_knowledge: 35, application: 25, integration: 15, human_dimension: 10, caring: 10, learning_how_to_learn: 5 },
+    intermediate: { foundational_knowledge: 25, application: 30, integration: 20, human_dimension: 10, caring: 5, learning_how_to_learn: 10 },
+    advanced: { foundational_knowledge: 15, application: 25, integration: 25, human_dimension: 15, caring: 5, learning_how_to_learn: 15 },
+    professional: { foundational_knowledge: 15, application: 30, integration: 20, human_dimension: 15, caring: 10, learning_how_to_learn: 10 },
+    creative: { foundational_knowledge: 10, application: 20, integration: 30, human_dimension: 15, caring: 10, learning_how_to_learn: 15 },
+    technical: { foundational_knowledge: 20, application: 35, integration: 20, human_dimension: 10, caring: 5, learning_how_to_learn: 10 },
+    theoretical: { foundational_knowledge: 25, application: 20, integration: 25, human_dimension: 10, caring: 5, learning_how_to_learn: 15 }
+  }
+};
+var MARZANO_LEVELS = [
+  {
+    id: "retrieval",
+    name: "Retrieval",
+    weight: 1,
+    description: "Recalling and recognizing information",
+    keywords: ["recall", "recognize", "execute", "retrieve", "remember"],
+    verbs: ["recall", "recognize", "execute", "identify", "name", "list"]
+  },
+  {
+    id: "comprehension",
+    name: "Comprehension",
+    weight: 2,
+    description: "Integrating and symbolizing knowledge",
+    keywords: ["integrate", "symbolize", "translate", "represent", "summarize"],
+    verbs: ["integrate", "symbolize", "translate", "represent", "summarize", "describe"]
+  },
+  {
+    id: "analysis",
+    name: "Analysis",
+    weight: 3,
+    description: "Matching, classifying, analyzing errors, generalizing, specifying",
+    keywords: ["match", "classify", "error analysis", "generalize", "specify", "analyze"],
+    verbs: ["match", "classify", "analyze", "generalize", "specify", "categorize"]
+  },
+  {
+    id: "knowledge_utilization",
+    name: "Knowledge Utilization",
+    weight: 4,
+    description: "Decision making, problem solving, experimenting, investigating",
+    keywords: ["decide", "problem solve", "experiment", "investigate", "apply"],
+    verbs: ["decide", "solve problems", "experiment", "investigate", "apply", "research"]
+  },
+  {
+    id: "metacognition",
+    name: "Metacognition",
+    weight: 5,
+    description: "Specifying goals, process monitoring, clarity and accuracy",
+    keywords: ["goals", "monitor", "clarity", "accuracy", "reflect", "regulate"],
+    verbs: ["set goals", "monitor", "regulate", "reflect", "evaluate process"]
+  },
+  {
+    id: "self_system",
+    name: "Self-System Thinking",
+    weight: 6,
+    description: "Examining importance, efficacy, emotional response, motivation",
+    keywords: ["importance", "efficacy", "emotional", "motivation", "beliefs", "values"],
+    verbs: ["examine importance", "assess efficacy", "respond emotionally", "be motivated"]
+  }
+];
+var MARZANO_TO_BLOOMS_MAPPINGS = [
+  { fromLevel: "retrieval", toLevel: "REMEMBER", confidence: 0.95, notes: "Direct recall mapping" },
+  { fromLevel: "comprehension", toLevel: "UNDERSTAND", confidence: 0.9, notes: "Understanding and integration" },
+  { fromLevel: "analysis", toLevel: "ANALYZE", confidence: 0.85, notes: "Analysis processes" },
+  { fromLevel: "knowledge_utilization", toLevel: ["APPLY", "EVALUATE"], confidence: 0.8, notes: "Application and decision making" },
+  { fromLevel: "metacognition", toLevel: "EVALUATE", confidence: 0.75, notes: "Self-regulation and evaluation" },
+  { fromLevel: "self_system", toLevel: ["EVALUATE", "CREATE"], confidence: 0.7, notes: "Values and self-direction" }
+];
+var MARZANO_FRAMEWORK = {
+  type: "marzano",
+  name: "Marzano's New Taxonomy",
+  citation: "Marzano & Kendall (2007)",
+  description: "Comprehensive taxonomy including metacognition and self-system thinking",
+  levels: MARZANO_LEVELS,
+  mappings: MARZANO_TO_BLOOMS_MAPPINGS,
+  idealDistributions: {
+    foundational: { retrieval: 30, comprehension: 30, analysis: 20, knowledge_utilization: 10, metacognition: 5, self_system: 5 },
+    intermediate: { retrieval: 15, comprehension: 25, analysis: 25, knowledge_utilization: 20, metacognition: 10, self_system: 5 },
+    advanced: { retrieval: 5, comprehension: 15, analysis: 25, knowledge_utilization: 30, metacognition: 15, self_system: 10 },
+    professional: { retrieval: 5, comprehension: 15, analysis: 25, knowledge_utilization: 30, metacognition: 15, self_system: 10 },
+    creative: { retrieval: 5, comprehension: 10, analysis: 20, knowledge_utilization: 30, metacognition: 15, self_system: 20 },
+    technical: { retrieval: 10, comprehension: 20, analysis: 30, knowledge_utilization: 25, metacognition: 10, self_system: 5 },
+    theoretical: { retrieval: 10, comprehension: 20, analysis: 30, knowledge_utilization: 20, metacognition: 15, self_system: 5 }
+  }
+};
+var FRAMEWORKS = {
+  blooms: BLOOMS_FRAMEWORK,
+  dok: DOK_FRAMEWORK,
+  solo: SOLO_FRAMEWORK,
+  fink: FINK_FRAMEWORK,
+  marzano: MARZANO_FRAMEWORK
+};
+var COURSE_TYPE_FRAMEWORK_WEIGHTS = {
+  foundational: { blooms: 0.5, dok: 0.3, solo: 0.2 },
+  intermediate: { blooms: 0.4, dok: 0.4, solo: 0.2 },
+  advanced: { blooms: 0.3, dok: 0.4, solo: 0.3 },
+  professional: { blooms: 0.3, dok: 0.3, fink: 0.4 },
+  creative: { blooms: 0.4, dok: 0.2, solo: 0.4 },
+  technical: { blooms: 0.3, dok: 0.5, marzano: 0.2 },
+  theoretical: { blooms: 0.4, dok: 0.3, solo: 0.3 }
+};
+function getFramework(type) {
+  return FRAMEWORKS[type];
+}
+function getAllFrameworks() {
+  return Object.values(FRAMEWORKS);
+}
+function getFrameworkWeights(courseType) {
+  return COURSE_TYPE_FRAMEWORK_WEIGHTS[courseType];
+}
+function getIdealDistribution(framework, courseType) {
+  return FRAMEWORKS[framework].idealDistributions?.[courseType];
+}
+function getFrameworkLevel(framework, levelId) {
+  return FRAMEWORKS[framework].levels.find((l) => l.id === levelId);
+}
+function getFrameworkMappings(fromFramework, toFramework) {
+  const framework = FRAMEWORKS[fromFramework];
+  if (toFramework === "blooms") {
+    return framework.mappings;
+  }
+  return [];
+}
+
+// src/frameworks/multi-framework-evaluator.ts
+var EVALUATOR_VERSION = "1.0.0";
+var DEFAULT_OPTIONS2 = {
+  frameworks: ["blooms", "dok"],
+  primaryFramework: "blooms",
+  minConfidence: 0.5
+};
+var FRAMEWORK_KEYWORDS = {
+  blooms: {
+    REMEMBER: ["recall", "identify", "recognize", "list", "name", "define", "match", "memorize"],
+    UNDERSTAND: ["explain", "summarize", "interpret", "classify", "compare", "infer", "paraphrase"],
+    APPLY: ["apply", "implement", "execute", "use", "demonstrate", "solve", "compute"],
+    ANALYZE: ["analyze", "differentiate", "organize", "attribute", "examine", "investigate"],
+    EVALUATE: ["evaluate", "judge", "critique", "assess", "argue", "defend", "justify"],
+    CREATE: ["create", "design", "develop", "produce", "construct", "generate", "compose"]
+  },
+  dok: {
+    "1": ["recall", "identify", "recognize", "list", "name", "define", "match"],
+    "2": ["summarize", "interpret", "classify", "compare", "organize", "estimate"],
+    "3": ["analyze", "investigate", "formulate", "differentiate", "conclude", "critique"],
+    "4": ["design", "create", "synthesize", "connect", "prove", "research"]
+  },
+  solo: {
+    prestructural: ["miss", "irrelevant", "confused"],
+    unistructural: ["identify", "name", "follow"],
+    multistructural: ["describe", "list", "enumerate", "combine"],
+    relational: ["compare", "contrast", "explain causes", "analyze", "relate"],
+    extended_abstract: ["generalize", "hypothesize", "theorize", "create", "reflect"]
+  },
+  fink: {
+    foundational_knowledge: ["understand", "remember", "know", "information"],
+    application: ["apply", "use", "skills", "practical", "manage"],
+    integration: ["connect", "relate", "integrate", "interdisciplinary"],
+    human_dimension: ["self", "others", "interact", "collaborate"],
+    caring: ["care", "value", "interest", "motivation"],
+    learning_how_to_learn: ["metacognition", "self-directed", "inquiry", "autonomous"]
+  },
+  marzano: {
+    retrieval: ["recall", "recognize", "execute", "retrieve"],
+    comprehension: ["integrate", "symbolize", "translate", "represent"],
+    analysis: ["match", "classify", "error analysis", "generalize"],
+    knowledge_utilization: ["decide", "problem solve", "experiment", "investigate"],
+    metacognition: ["goals", "monitor", "clarity", "accuracy"],
+    self_system: ["importance", "efficacy", "emotional", "motivation"]
+  }
+};
+var MultiFrameworkEvaluator = class {
+  options;
+  courseTypeWeights;
+  logger;
+  constructor(options = {}) {
+    this.options = {
+      ...DEFAULT_OPTIONS2,
+      ...options
+    };
+    this.courseTypeWeights = options.courseTypeWeights || COURSE_TYPE_FRAMEWORK_WEIGHTS;
+    this.logger = options.logger;
+  }
+  /**
+   * Evaluate content using multiple frameworks
+   */
+  async evaluate(content) {
+    this.logger?.info(`Starting multi-framework evaluation for course: ${content.courseId}`);
+    const startTime = Date.now();
+    const courseType = content.courseType || this.detectCourseType(content);
+    const weights = this.courseTypeWeights[courseType];
+    const frameworkAnalyses = [];
+    for (const frameworkType of this.options.frameworks) {
+      const analysis = await this.analyzeWithFramework(
+        content.content,
+        frameworkType,
+        courseType,
+        content.existingBloomsAnalysis,
+        content.existingDOKAnalysis
+      );
+      frameworkAnalyses.push(analysis);
+    }
+    const primaryAnalysis = frameworkAnalyses.find(
+      (a) => a.framework === this.options.primaryFramework
+    ) || frameworkAnalyses[0];
+    const secondaryAnalyses = frameworkAnalyses.filter(
+      (a) => a.framework !== primaryAnalysis.framework
+    );
+    const crossFrameworkAlignment = this.calculateCrossFrameworkAlignment(frameworkAnalyses);
+    const recommendations = this.generateRecommendations(
+      frameworkAnalyses,
+      courseType,
+      crossFrameworkAlignment
+    );
+    const compositeScore = this.calculateCompositeScore(frameworkAnalyses, weights);
+    const durationMs = Date.now() - startTime;
+    this.logger?.info(`Multi-framework evaluation completed in ${durationMs}ms`);
+    return {
+      primary: primaryAnalysis,
+      secondary: secondaryAnalyses,
+      crossFrameworkAlignment,
+      recommendations,
+      compositeScore,
+      compositeMethod: "weighted_average",
+      courseType,
+      metadata: {
+        analysisVersion: EVALUATOR_VERSION,
+        analyzedAt: /* @__PURE__ */ new Date(),
+        frameworksUsed: this.options.frameworks,
+        totalContentAnalyzed: content.content.length
+      }
+    };
+  }
+  /**
+   * Analyze content with a specific framework
+   */
+  async analyzeWithFramework(content, frameworkType, courseType, existingBlooms, existingDOK) {
+    const framework = getFramework(frameworkType);
+    const keywords = FRAMEWORK_KEYWORDS[frameworkType];
+    if (frameworkType === "blooms" && existingBlooms) {
+      return this.buildAnalysisFromExisting(
+        frameworkType,
+        existingBlooms.distribution,
+        existingBlooms.dominantLevel,
+        courseType
+      );
+    }
+    if (frameworkType === "dok" && existingDOK) {
+      const dokDist = {
+        "1": existingDOK.distribution.level1,
+        "2": existingDOK.distribution.level2,
+        "3": existingDOK.distribution.level3,
+        "4": existingDOK.distribution.level4
+      };
+      return this.buildAnalysisFromExisting(
+        frameworkType,
+        dokDist,
+        existingDOK.dominantLevel.toString(),
+        courseType
+      );
+    }
+    const distribution = {};
+    for (const level of framework.levels) {
+      distribution[level.id] = 0;
+    }
+    let totalMatches = 0;
+    for (const item of content) {
+      const normalizedText = item.text.toLowerCase();
+      for (const level of framework.levels) {
+        const levelKeywords = keywords[level.id] || [];
+        for (const keyword of levelKeywords) {
+          const regex = new RegExp(`\\b${keyword}\\b`, "gi");
+          const matches = normalizedText.match(regex);
+          if (matches) {
+            distribution[level.id] += matches.length;
+            totalMatches += matches.length;
+          }
+        }
+      }
+    }
+    if (totalMatches > 0) {
+      for (const level of Object.keys(distribution)) {
+        distribution[level] = Math.round(distribution[level] / totalMatches * 100);
+      }
+    } else {
+      const levelCount = framework.levels.length;
+      for (const level of Object.keys(distribution)) {
+        distribution[level] = Math.round(100 / levelCount);
+      }
+    }
+    let dominantLevel = framework.levels[0].id;
+    let maxValue = 0;
+    for (const [level, value] of Object.entries(distribution)) {
+      if (value > maxValue) {
+        maxValue = value;
+        dominantLevel = level;
+      }
+    }
+    return this.buildAnalysisFromExisting(frameworkType, distribution, dominantLevel, courseType);
+  }
+  /**
+   * Build analysis from existing or computed distribution
+   */
+  buildAnalysisFromExisting(frameworkType, distribution, dominantLevel, courseType) {
+    const idealDist = getIdealDistribution(frameworkType, courseType) || {};
+    const balanceScore = this.calculateBalanceScore(distribution);
+    const alignmentWithIdeal = this.calculateAlignmentWithIdeal(distribution, idealDist);
+    const confidence = this.calculateConfidence(distribution);
+    const levelAnalysis = this.buildLevelAnalysis(distribution, idealDist);
+    return {
+      framework: frameworkType,
+      distribution,
+      dominantLevel,
+      balanceScore,
+      alignmentWithIdeal,
+      confidence,
+      levelAnalysis
+    };
+  }
+  /**
+   * Calculate balance score (how evenly distributed)
+   */
+  calculateBalanceScore(distribution) {
+    const values = Object.values(distribution);
+    if (values.length === 0) return 0;
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / values.length;
+    const stdDev = Math.sqrt(variance);
+    const maxStdDev = 50;
+    const balanceScore = Math.max(0, 1 - stdDev / maxStdDev);
+    return Math.round(balanceScore * 100) / 100;
+  }
+  /**
+   * Calculate alignment with ideal distribution
+   */
+  calculateAlignmentWithIdeal(actual, ideal) {
+    const levels = Object.keys(actual);
+    if (levels.length === 0) return 0;
+    let totalDeviation = 0;
+    for (const level of levels) {
+      const actualValue = actual[level] || 0;
+      const idealValue = ideal[level] || 0;
+      totalDeviation += Math.abs(actualValue - idealValue);
+    }
+    const maxDeviation = 200;
+    const alignment = 1 - totalDeviation / maxDeviation;
+    return Math.round(Math.max(0, Math.min(1, alignment)) * 100);
+  }
+  /**
+   * Calculate confidence in the analysis
+   */
+  calculateConfidence(distribution) {
+    const values = Object.values(distribution);
+    const total = values.reduce((a, b) => a + b, 0);
+    if (total < 90 || total > 110) {
+      return 0.5;
+    }
+    const nonZeroCount = values.filter((v) => v > 5).length;
+    const spreadFactor = Math.min(1, nonZeroCount / 3);
+    return Math.round(0.7 + spreadFactor * 0.3);
+  }
+  /**
+   * Build level analysis with deviations and recommendations
+   */
+  buildLevelAnalysis(actual, ideal) {
+    return Object.entries(actual).map(([level, percentage]) => {
+      const idealValue = ideal[level] || 0;
+      const deviation = percentage - idealValue;
+      let status;
+      if (Math.abs(deviation) <= 5) {
+        status = "on-target";
+      } else if (deviation < 0) {
+        status = "under";
+      } else {
+        status = "over";
+      }
+      let recommendation;
+      if (status === "under" && Math.abs(deviation) > 10) {
+        recommendation = `Consider adding more ${level}-level content`;
+      } else if (status === "over" && deviation > 15) {
+        recommendation = `Content may be too heavily weighted toward ${level}`;
+      }
+      return {
+        level,
+        percentage,
+        deviation,
+        status,
+        recommendation
+      };
+    });
+  }
+  /**
+   * Calculate cross-framework alignment
+   */
+  calculateCrossFrameworkAlignment(analyses) {
+    if (analyses.length < 2) return 100;
+    let totalAgreement = 0;
+    let comparisons = 0;
+    for (let i = 0; i < analyses.length; i++) {
+      for (let j = i + 1; j < analyses.length; j++) {
+        const agreement = this.compareFrameworkAnalyses(analyses[i], analyses[j]);
+        totalAgreement += agreement;
+        comparisons++;
+      }
+    }
+    return comparisons > 0 ? Math.round(totalAgreement / comparisons) : 100;
+  }
+  /**
+   * Compare two framework analyses
+   */
+  compareFrameworkAnalyses(a, b) {
+    const scoreA = this.getComplexityScore(a);
+    const scoreB = this.getComplexityScore(b);
+    const diff = Math.abs(scoreA - scoreB);
+    const maxDiff = 5;
+    return Math.round((1 - diff / maxDiff) * 100);
+  }
+  /**
+   * Get average cognitive complexity score for an analysis
+   */
+  getComplexityScore(analysis) {
+    const framework = getFramework(analysis.framework);
+    let weightedSum = 0;
+    let totalPercentage = 0;
+    for (const [levelId, percentage] of Object.entries(analysis.distribution)) {
+      const level = framework.levels.find((l) => l.id === levelId);
+      if (level) {
+        weightedSum += level.weight * percentage;
+        totalPercentage += percentage;
+      }
+    }
+    return totalPercentage > 0 ? weightedSum / totalPercentage : 3;
+  }
+  /**
+   * Generate recommendations based on analysis
+   */
+  generateRecommendations(analyses, courseType, crossAlignment) {
+    const recommendations = [];
+    for (const analysis of analyses) {
+      const framework = getFramework(analysis.framework);
+      if (analysis.alignmentWithIdeal < 60) {
+        recommendations.push({
+          framework: analysis.framework,
+          type: "rebalance",
+          priority: "high",
+          description: `${framework.name} distribution is misaligned with ideal for ${courseType} courses`,
+          actionItems: analysis.levelAnalysis?.filter((la) => la.status !== "on-target" && la.recommendation).map((la) => la.recommendation).slice(0, 3)
+        });
+      }
+      for (const [level, percentage] of Object.entries(analysis.distribution)) {
+        if (percentage > 50) {
+          recommendations.push({
+            framework: analysis.framework,
+            type: "reduce_content",
+            priority: "medium",
+            level,
+            description: `${level} level is over-represented (${percentage}%) in ${framework.name}`,
+            actionItems: ["Consider diversifying cognitive levels in content"]
+          });
+        }
+        const idealDist = getIdealDistribution(analysis.framework, courseType);
+        const idealValue = idealDist?.[level] || 0;
+        if (percentage < 5 && idealValue >= 15) {
+          recommendations.push({
+            framework: analysis.framework,
+            type: "add_content",
+            priority: "medium",
+            level,
+            description: `${level} level is under-represented in ${framework.name}`,
+            actionItems: [`Add content targeting ${level} cognitive processes`]
+          });
+        }
+      }
+    }
+    if (crossAlignment < 70) {
+      recommendations.push({
+        framework: "blooms",
+        // Generic recommendation
+        type: "rebalance",
+        priority: "medium",
+        description: "Framework analyses show inconsistent cognitive level indicators",
+        actionItems: [
+          "Review content for clearer cognitive level targeting",
+          "Ensure objectives, content, and assessments are aligned"
+        ]
+      });
+    }
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    recommendations.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+    return recommendations.slice(0, 10);
+  }
+  /**
+   * Calculate composite score using weighted average
+   */
+  calculateCompositeScore(analyses, weights) {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const analysis of analyses) {
+      const weight = weights[analysis.framework] || 0;
+      if (weight > 0) {
+        weightedSum += analysis.alignmentWithIdeal * weight;
+        totalWeight += weight;
+      }
+    }
+    return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
+  }
+  /**
+   * Detect course type from content
+   */
+  detectCourseType(content) {
+    const allText = content.content.map((c) => c.text).join(" ").toLowerCase();
+    const patterns = {
+      foundational: ["introduction", "basics", "fundamental", "beginner", "overview"],
+      intermediate: ["apply", "practice", "hands-on", "implement", "develop"],
+      advanced: ["advanced", "complex", "expert", "specialized", "research"],
+      professional: ["professional", "career", "industry", "workplace", "leadership"],
+      creative: ["create", "design", "innovate", "creative", "art", "compose"],
+      technical: ["technical", "programming", "engineering", "systems", "architecture"],
+      theoretical: ["theory", "theoretical", "conceptual", "philosophical", "abstract"]
+    };
+    const scores = {
+      foundational: 0,
+      intermediate: 0,
+      advanced: 0,
+      professional: 0,
+      creative: 0,
+      technical: 0,
+      theoretical: 0
+    };
+    for (const [type, keywords] of Object.entries(patterns)) {
+      for (const keyword of keywords) {
+        const regex = new RegExp(`\\b${keyword}\\b`, "gi");
+        const matches = allText.match(regex);
+        if (matches) {
+          scores[type] += matches.length;
+        }
+      }
+    }
+    let maxType = "intermediate";
+    let maxScore = 0;
+    for (const [type, score] of Object.entries(scores)) {
+      if (score > maxScore) {
+        maxScore = score;
+        maxType = type;
+      }
+    }
+    return maxType;
+  }
+  /**
+   * Map a level from one framework to another
+   */
+  mapToFramework(fromFramework, toFramework, level) {
+    const framework = getFramework(fromFramework);
+    const mapping = framework.mappings.find((m) => m.fromLevel === level);
+    if (mapping && toFramework === "blooms") {
+      return mapping.toLevel;
+    }
+    return level;
+  }
+};
+function createMultiFrameworkEvaluator(options) {
+  return new MultiFrameworkEvaluator(options);
+}
+
+// src/llm-adapter/types.ts
+var MODEL_TIER_MAPPING = {
+  openai: {
+    fast: "gpt-4o-mini",
+    balanced: "gpt-4o",
+    powerful: "gpt-4-turbo"
+  },
+  anthropic: {
+    fast: "claude-3-5-haiku-latest",
+    balanced: "claude-sonnet-4-20250514",
+    powerful: "claude-opus-4-20250514"
+  },
+  deepseek: {
+    fast: "deepseek-chat",
+    balanced: "deepseek-chat",
+    powerful: "deepseek-reasoner"
+  },
+  custom: {
+    fast: "default",
+    balanced: "default",
+    powerful: "default"
+  }
+};
+
+// src/llm-adapter/prompts.ts
+var BLOOMS_CLASSIFICATION_PROMPT = `You are an expert in Bloom's Revised Taxonomy. Your task is to classify educational content according to the six cognitive levels.
+
+## Bloom's Taxonomy Levels (from lowest to highest):
+
+1. **Remember** (Knowledge Recall)
+   - Verbs: define, list, recall, identify, name, label, recognize, state, memorize
+   - Focus: Retrieving facts and basic concepts
+
+2. **Understand** (Comprehension)
+   - Verbs: explain, describe, interpret, summarize, paraphrase, classify, discuss
+   - Focus: Explaining ideas and concepts
+
+3. **Apply** (Application)
+   - Verbs: apply, use, implement, solve, demonstrate, execute, illustrate
+   - Focus: Using information in new situations
+
+4. **Analyze** (Analysis)
+   - Verbs: analyze, compare, contrast, differentiate, examine, organize, deconstruct
+   - Focus: Breaking down information into components
+
+5. **Evaluate** (Evaluation)
+   - Verbs: evaluate, judge, assess, critique, justify, defend, argue
+   - Focus: Making judgments based on criteria
+
+6. **Create** (Synthesis)
+   - Verbs: create, design, develop, produce, construct, propose, formulate
+   - Focus: Producing new or original work
+
+## Classification Guidelines:
+
+1. Focus on the ACTION VERB to determine the primary level
+2. Consider the COGNITIVE DEMAND, not just surface features
+3. Look for the HIGHEST level if multiple levels are present
+4. Consider CONTEXT - same verb can indicate different levels based on complexity
+5. A question asking "What is X?" is Remember; "Why does X happen?" may be Understand or Analyze
+
+## Response Format:
+
+Return a JSON object with this structure:
+{
+  "level": "remember" | "understand" | "apply" | "analyze" | "evaluate" | "create",
+  "confidence": 0.0-1.0,
+  "distribution": {
+    "remember": 0.0-1.0,
+    "understand": 0.0-1.0,
+    "apply": 0.0-1.0,
+    "analyze": 0.0-1.0,
+    "evaluate": 0.0-1.0,
+    "create": 0.0-1.0
+  },
+  "evidence": [
+    {
+      "text": "specific text from input",
+      "keywords": ["identified", "keywords"],
+      "supportsLevel": "level name",
+      "weight": 0.0-1.0
+    }
+  ],
+  "alternatives": [
+    {
+      "level": "alternative level",
+      "confidence": 0.0-1.0,
+      "reason": "explanation"
+    }
+  ]
+}`;
+var DOK_CLASSIFICATION_PROMPT = `You are an expert in Webb's Depth of Knowledge (DOK) framework. Your task is to classify educational content according to the four DOK levels.
+
+## Webb's DOK Levels:
+
+1. **Level 1: Recall and Reproduction**
+   - Simple recall of facts, terms, definitions, procedures
+   - One correct answer, no transformation required
+   - Examples: Identify, list, define, recognize, label, match
+
+2. **Level 2: Skills and Concepts**
+   - Requires some mental processing beyond recall
+   - Deciding how to approach a problem
+   - Examples: Classify, organize, estimate, compare, summarize, describe
+
+3. **Level 3: Strategic Thinking**
+   - Requires reasoning, planning, using evidence
+   - Abstract, complex thinking with multiple possible approaches
+   - Examples: Analyze, explain phenomena, draw conclusions, develop argument
+
+4. **Level 4: Extended Thinking**
+   - Complex reasoning, planning, development over time
+   - Investigation, applying concepts to real-world situations
+   - Examples: Design, synthesize, critique, create, prove
+
+## Key Distinction from Bloom's:
+
+- DOK focuses on COMPLEXITY and DEPTH of thinking required
+- Bloom's focuses on TYPE of thinking (cognitive process)
+- A "create" task at DOK 1 might be simple recall (reproduce a known formula)
+- A "remember" task at DOK 3 might require strategic recall across contexts
+
+## Response Format:
+
+Return a JSON object with this structure:
+{
+  "level": "recall" | "skills_concepts" | "strategic_thinking" | "extended_thinking",
+  "confidence": 0.0-1.0,
+  "distribution": {
+    "recall": 0.0-1.0,
+    "skills_concepts": 0.0-1.0,
+    "strategic_thinking": 0.0-1.0,
+    "extended_thinking": 0.0-1.0
+  },
+  "evidence": [
+    {
+      "text": "specific text from input",
+      "indicators": ["identified", "indicators"],
+      "supportsLevel": "level name",
+      "weight": 0.0-1.0
+    }
+  ],
+  "alternatives": [
+    {
+      "level": "alternative level",
+      "confidence": 0.0-1.0,
+      "reason": "explanation"
+    }
+  ]
+}`;
+var MULTI_FRAMEWORK_PROMPT = `You are an expert in multiple educational taxonomy frameworks. Classify the given content using the specified frameworks.
+
+## Available Frameworks:
+
+### 1. Bloom's Revised Taxonomy (blooms)
+Levels: remember, understand, apply, analyze, evaluate, create
+
+### 2. Webb's Depth of Knowledge (dok)
+Levels: recall, skills_concepts, strategic_thinking, extended_thinking
+
+### 3. SOLO Taxonomy (solo) - Structure of Observed Learning Outcome
+Levels:
+- prestructural: No understanding, miss the point
+- unistructural: One relevant aspect understood
+- multistructural: Several relevant aspects, not integrated
+- relational: Aspects integrated into coherent whole
+- extended_abstract: Generalizing beyond what was taught
+
+### 4. Fink's Significant Learning (fink)
+Dimensions:
+- foundational_knowledge: Understanding and remembering
+- application: Skills, critical thinking, managing projects
+- integration: Making connections
+- human_dimension: Learning about self and others
+- caring: Developing feelings, interests, values
+- learning_how_to_learn: Becoming a better learner
+
+### 5. Marzano's New Taxonomy (marzano)
+Levels:
+- retrieval: Recognizing and recalling
+- comprehension: Integrating and symbolizing
+- analysis: Matching, classifying, analyzing errors
+- knowledge_utilization: Decision making, problem solving, investigating
+- metacognition: Specifying goals, monitoring process
+- self_system: Examining motivation, emotional response
+
+## Response Format:
+
+Return a JSON object with this structure:
+{
+  "frameworks": [
+    {
+      "framework": "framework_name",
+      "level": "primary level",
+      "confidence": 0.0-1.0,
+      "distribution": {
+        "level_name": 0.0-1.0
+      },
+      "evidence": [
+        {
+          "text": "evidence text",
+          "indicators": ["indicators"],
+          "level": "level",
+          "weight": 0.0-1.0
+        }
+      ]
+    }
+  ],
+  "crossFrameworkAlignment": 0.0-1.0,
+  "compositeScore": 0.0-1.0
+}`;
+var KEYWORD_EXTRACTION_PROMPT = `You are an expert in educational content analysis. Extract relevant keywords from the given text.
+
+## Keyword Types:
+
+1. **action_verbs**: Verbs that indicate cognitive processes
+   - Remember: define, list, recall, identify, name
+   - Understand: explain, describe, summarize, interpret
+   - Apply: use, implement, solve, demonstrate
+   - Analyze: compare, contrast, differentiate, examine
+   - Evaluate: judge, critique, assess, justify
+   - Create: design, develop, produce, construct
+
+2. **concepts**: Core concepts, theories, principles mentioned
+
+3. **bloom_indicators**: Words/phrases that specifically indicate Bloom's levels
+
+4. **dok_indicators**: Words/phrases that indicate DOK complexity levels
+
+5. **technical_terms**: Domain-specific vocabulary and terminology
+
+6. **learning_objectives**: Phrases that describe what learners should achieve
+
+## Response Format:
+
+Return a JSON object with this structure:
+{
+  "keywords": [
+    {
+      "type": "keyword_type",
+      "keywords": [
+        {
+          "text": "keyword or phrase",
+          "relevance": 0.0-1.0,
+          "position": { "start": 0, "end": 10 },
+          "associatedLevel": "optional level association",
+          "context": "surrounding context"
+        }
+      ]
+    }
+  ],
+  "totalCount": 0
+}`;
+var ALIGNMENT_ANALYSIS_PROMPT = `You are an expert in curriculum alignment and instructional design. Analyze the alignment between learning objectives, content sections, and assessments.
+
+## Alignment Principles:
+
+1. **Constructive Alignment** (Biggs)
+   - Learning objectives should guide both content and assessment
+   - Assessments should directly measure stated objectives
+   - Content should prepare students for assessments
+
+2. **Coverage Analysis**
+   - Each objective should be addressed by content
+   - Each objective should be assessed
+   - No significant content without corresponding objectives
+
+3. **Cognitive Level Alignment**
+   - Assessment cognitive level should match objective level
+   - Content should scaffold toward objective level
+   - Higher objectives require higher-level assessments
+
+## Gap Types:
+
+- **uncovered_objective**: Objective not addressed by content
+- **unassessed_content**: Content not covered by assessment
+- **level_mismatch**: Cognitive level mismatch between objective and assessment
+- **missing_assessment**: No assessment for a stated objective
+
+## Response Format:
+
+Return a JSON object with this structure:
+{
+  "objectiveAlignments": [
+    {
+      "objectiveId": "id",
+      "alignedSections": [
+        { "id": "section_id", "strength": 0.0-1.0, "evidence": "text" }
+      ],
+      "alignmentStrength": 0.0-1.0,
+      "missingCoverage": "description if any"
+    }
+  ],
+  "assessmentAlignments": [
+    {
+      "assessmentId": "id",
+      "alignedSections": [{ "id": "id", "strength": 0.0-1.0, "evidence": "text" }],
+      "alignedObjectives": [{ "id": "id", "strength": 0.0-1.0, "evidence": "text" }],
+      "alignmentStrength": 0.0-1.0
+    }
+  ],
+  "gaps": [
+    {
+      "type": "gap_type",
+      "severity": "low" | "medium" | "high",
+      "description": "description",
+      "affectedItems": ["item_ids"],
+      "recommendation": "how to fix"
+    }
+  ],
+  "overallScore": 0.0-1.0,
+  "summary": {
+    "totalObjectives": 0,
+    "coveredObjectives": 0,
+    "totalSections": 0,
+    "assessedSections": 0,
+    "averageAlignment": 0.0-1.0,
+    "gapsCount": 0
+  }
+}`;
+var RECOMMENDATION_PROMPT = `You are an expert instructional designer. Based on the analysis provided, generate actionable recommendations for improving the course.
+
+## Recommendation Categories:
+
+1. **add_content**: New content needed to fill gaps
+2. **revise_content**: Existing content needs modification
+3. **add_assessment**: New assessments needed
+4. **modify_assessment**: Existing assessments need changes
+5. **rebalance_levels**: Cognitive level distribution needs adjustment
+6. **improve_alignment**: Better alignment between components needed
+
+## Priority Levels:
+
+- **high**: Critical issue affecting learning outcomes
+- **medium**: Important improvement opportunity
+- **low**: Nice-to-have enhancement
+
+## Recommendation Principles:
+
+1. Be SPECIFIC - reference actual content/objectives
+2. Be ACTIONABLE - provide clear steps
+3. Be REALISTIC - consider implementation effort
+4. PRIORITIZE - most impactful recommendations first
+5. JUSTIFY - explain expected impact
+
+## Response Format:
+
+Return a JSON object with this structure:
+{
+  "recommendations": [
+    {
+      "id": "rec_1",
+      "priority": "high" | "medium" | "low",
+      "category": "category_name",
+      "title": "short title",
+      "description": "detailed description",
+      "actionItems": ["specific step 1", "specific step 2"],
+      "expectedImpact": "what will improve",
+      "affectedAreas": ["objective_id", "section_id"]
+    }
+  ],
+  "currentStateSummary": "brief summary of current state"
+}`;
+
+// src/llm-adapter/parsers.ts
+function extractJson2(response) {
+  const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    return jsonMatch[1].trim();
+  }
+  const jsonObjectMatch = response.match(/\{[\s\S]*\}/);
+  if (jsonObjectMatch) {
+    return jsonObjectMatch[0];
+  }
+  return response.trim();
+}
+function safeJsonParse(text, fallback) {
+  try {
+    const json = extractJson2(text);
+    return JSON.parse(json);
+  } catch {
+    console.warn("Failed to parse LLM response as JSON:", text.substring(0, 200));
+    return fallback;
+  }
+}
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+function normalizeDistribution(dist) {
+  const sum = Object.values(dist).reduce((a, b) => a + b, 0);
+  if (sum === 0) return dist;
+  const normalized = {};
+  for (const [key, value] of Object.entries(dist)) {
+    normalized[key] = value / sum;
+  }
+  return normalized;
+}
+var VALID_BLOOMS_LEVELS = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+var BLOOMS_LEVEL_MAP = {
+  remember: "REMEMBER",
+  understand: "UNDERSTAND",
+  apply: "APPLY",
+  analyze: "ANALYZE",
+  evaluate: "EVALUATE",
+  create: "CREATE",
+  knowledge: "REMEMBER",
+  comprehension: "UNDERSTAND",
+  application: "APPLY",
+  analysis: "ANALYZE",
+  synthesis: "CREATE",
+  evaluation: "EVALUATE"
+};
+var DEFAULT_BLOOMS_DISTRIBUTION = {
+  REMEMBER: 0,
+  UNDERSTAND: 0,
+  APPLY: 0,
+  ANALYZE: 0,
+  EVALUATE: 0,
+  CREATE: 0
+};
+function parseBloomsResult(response, model, processingTimeMs) {
+  const raw = safeJsonParse(response, {});
+  const level = parseBloomsLevel(raw.level);
+  const confidence = clamp(raw.confidence ?? 0.8, 0, 1);
+  const distribution = parseBloomsDistribution(raw.distribution, level);
+  const evidence = parseBloomsEvidence(raw.evidence);
+  const alternatives = parseBloomsAlternatives(raw.alternatives);
+  return {
+    level,
+    confidence,
+    distribution,
+    evidence,
+    alternatives,
+    model,
+    processingTimeMs
+  };
+}
+function parseBloomsLevel(level) {
+  if (!level) return "UNDERSTAND";
+  const normalized = level.toLowerCase().trim();
+  if (VALID_BLOOMS_LEVELS.includes(level.toUpperCase())) {
+    return level.toUpperCase();
+  }
+  if (BLOOMS_LEVEL_MAP[normalized]) {
+    return BLOOMS_LEVEL_MAP[normalized];
+  }
+  return "UNDERSTAND";
+}
+function parseBloomsDistribution(dist, primaryLevel) {
+  const result = { ...DEFAULT_BLOOMS_DISTRIBUTION };
+  if (dist) {
+    for (const [key, value] of Object.entries(dist)) {
+      const level = parseBloomsLevel(key);
+      if (VALID_BLOOMS_LEVELS.includes(level)) {
+        result[level] = clamp(value, 0, 1);
+      }
+    }
+  }
+  const sum = Object.values(result).reduce((a, b) => a + b, 0);
+  if (sum === 0 && primaryLevel) {
+    result[primaryLevel] = 1;
+  }
+  return normalizeDistribution(result);
+}
+function parseBloomsEvidence(evidence) {
+  if (!evidence || !Array.isArray(evidence)) return [];
+  return evidence.filter((e) => e.text).map((e) => ({
+    text: e.text ?? "",
+    keywords: e.keywords ?? [],
+    supportsLevel: parseBloomsLevel(e.supportsLevel),
+    weight: clamp(e.weight ?? 0.5, 0, 1)
+  }));
+}
+function parseBloomsAlternatives(alternatives) {
+  if (!alternatives || !Array.isArray(alternatives)) return [];
+  return alternatives.filter((a) => a.level).map((a) => ({
+    level: parseBloomsLevel(a.level),
+    confidence: clamp(a.confidence ?? 0.5, 0, 1),
+    reason: a.reason ?? ""
+  }));
+}
+var VALID_DOK_LEVELS = [1, 2, 3, 4];
+var DOK_LEVEL_MAP = {
+  recall: 1,
+  level1: 1,
+  "1": 1,
+  skills_concepts: 2,
+  skill_concept: 2,
+  level2: 2,
+  "2": 2,
+  strategic_thinking: 3,
+  strategic: 3,
+  level3: 3,
+  "3": 3,
+  extended_thinking: 4,
+  extended: 4,
+  level4: 4,
+  "4": 4
+};
+var DEFAULT_DOK_DISTRIBUTION = {
+  level1: 0,
+  level2: 0,
+  level3: 0,
+  level4: 0
+};
+function parseDOKResult(response, model, processingTimeMs) {
+  const raw = safeJsonParse(response, {});
+  const level = parseDOKLevel(raw.level);
+  const confidence = clamp(raw.confidence ?? 0.8, 0, 1);
+  const distribution = parseDOKDistribution(raw.distribution, level);
+  const evidence = parseDOKEvidence(raw.evidence);
+  const alternatives = parseDOKAlternatives(raw.alternatives);
+  return {
+    level,
+    confidence,
+    distribution,
+    evidence,
+    alternatives,
+    model,
+    processingTimeMs
+  };
+}
+function parseDOKLevel(level) {
+  if (level === void 0 || level === null) return 2;
+  if (typeof level === "number" && VALID_DOK_LEVELS.includes(level)) {
+    return level;
+  }
+  const normalized = String(level).toLowerCase().trim().replace(/\s+/g, "_");
+  if (DOK_LEVEL_MAP[normalized] !== void 0) {
+    return DOK_LEVEL_MAP[normalized];
+  }
+  if (normalized.includes("recall")) return 1;
+  if (normalized.includes("skill") || normalized.includes("concept")) return 2;
+  if (normalized.includes("strategic")) return 3;
+  if (normalized.includes("extended")) return 4;
+  return 2;
+}
+function parseDOKDistribution(dist, primaryLevel) {
+  const result = { ...DEFAULT_DOK_DISTRIBUTION };
+  if (dist) {
+    for (const [key, value] of Object.entries(dist)) {
+      const normalizedKey = key.toLowerCase().replace(/\s+/g, "_");
+      if (normalizedKey === "recall" || normalizedKey === "level1" || normalizedKey === "1") {
+        result.level1 = clamp(value, 0, 1);
+      } else if (normalizedKey === "skills_concepts" || normalizedKey === "level2" || normalizedKey === "2") {
+        result.level2 = clamp(value, 0, 1);
+      } else if (normalizedKey === "strategic_thinking" || normalizedKey === "level3" || normalizedKey === "3") {
+        result.level3 = clamp(value, 0, 1);
+      } else if (normalizedKey === "extended_thinking" || normalizedKey === "level4" || normalizedKey === "4") {
+        result.level4 = clamp(value, 0, 1);
+      }
+    }
+  }
+  const sum = Object.values(result).reduce((a, b) => a + b, 0);
+  if (sum === 0 && primaryLevel) {
+    result[`level${primaryLevel}`] = 1;
+  }
+  return normalizeDistribution(result);
+}
+function parseDOKEvidence(evidence) {
+  if (!evidence || !Array.isArray(evidence)) return [];
+  return evidence.filter((e) => e.text).map((e) => ({
+    text: e.text ?? "",
+    indicators: e.indicators ?? [],
+    supportsLevel: parseDOKLevel(e.supportsLevel),
+    weight: clamp(e.weight ?? 0.5, 0, 1)
+  }));
+}
+function parseDOKAlternatives(alternatives) {
+  if (!alternatives || !Array.isArray(alternatives)) return [];
+  return alternatives.filter((a) => a.level !== void 0).map((a) => ({
+    level: parseDOKLevel(a.level),
+    confidence: clamp(a.confidence ?? 0.5, 0, 1),
+    reason: a.reason ?? ""
+  }));
+}
+function parseMultiFrameworkResult(response, model, processingTimeMs) {
+  const raw = safeJsonParse(response, {});
+  const frameworks = parseFrameworkDetails(raw.frameworks);
+  const crossFrameworkAlignment = clamp(raw.crossFrameworkAlignment ?? 0.8, 0, 1);
+  const compositeScore = clamp(raw.compositeScore ?? 0.5, 0, 1);
+  return {
+    frameworks,
+    crossFrameworkAlignment,
+    compositeScore,
+    model,
+    processingTimeMs
+  };
+}
+function parseFrameworkDetails(frameworks) {
+  if (!frameworks || !Array.isArray(frameworks)) return [];
+  return frameworks.filter((f) => f.framework).map((f) => ({
+    framework: f.framework,
+    level: f.level ?? "unknown",
+    confidence: clamp(f.confidence ?? 0.8, 0, 1),
+    distribution: f.distribution ?? {},
+    evidence: f.evidence?.map((e) => ({
+      text: e.text ?? "",
+      indicators: e.indicators ?? [],
+      level: e.level ?? "",
+      weight: clamp(e.weight ?? 0.5, 0, 1)
+    }))
+  }));
+}
+function parseKeywordResult(response, model, processingTimeMs) {
+  const raw = safeJsonParse(response, {});
+  const keywords = parseKeywordGroups(raw.keywords);
+  const totalCount = raw.totalCount ?? keywords.reduce((sum, g) => sum + g.keywords.length, 0);
+  return {
+    keywords,
+    totalCount,
+    model,
+    processingTimeMs
+  };
+}
+function parseKeywordGroups(groups) {
+  if (!groups || !Array.isArray(groups)) return [];
+  return groups.filter((g) => g.type && g.keywords).map((g) => ({
+    type: g.type,
+    keywords: (g.keywords ?? []).filter((k) => k.text).map((k) => ({
+      text: k.text ?? "",
+      relevance: clamp(k.relevance ?? 0.5, 0, 1),
+      position: k.position ? {
+        start: k.position.start ?? 0,
+        end: k.position.end ?? 0
+      } : void 0,
+      associatedLevel: k.associatedLevel,
+      context: k.context
+    }))
+  }));
+}
+function parseAlignmentResult(response, model, processingTimeMs) {
+  const raw = safeJsonParse(response, {});
+  const objectiveAlignments = parseObjectiveAlignments(raw.objectiveAlignments);
+  const assessmentAlignments = parseAssessmentAlignments(raw.assessmentAlignments);
+  const gaps = parseAlignmentGaps(raw.gaps);
+  const overallScore = clamp(raw.overallScore ?? 0.8, 0, 1);
+  const summary = parseAlignmentSummary(raw.summary, objectiveAlignments, assessmentAlignments, gaps);
+  return {
+    objectiveAlignments,
+    assessmentAlignments,
+    gaps,
+    overallScore,
+    summary,
+    model,
+    processingTimeMs
+  };
+}
+function parseObjectiveAlignments(alignments) {
+  if (!alignments || !Array.isArray(alignments)) return [];
+  return alignments.filter((a) => a.objectiveId).map((a) => ({
+    objectiveId: a.objectiveId ?? "",
+    alignedSections: (a.alignedSections ?? []).map((s) => ({
+      id: s.id ?? "",
+      strength: clamp(s.strength ?? 0.5, 0, 1),
+      evidence: s.evidence ?? ""
+    })),
+    alignmentStrength: clamp(a.alignmentStrength ?? 0.5, 0, 1),
+    missingCoverage: a.missingCoverage
+  }));
+}
+function parseAssessmentAlignments(alignments) {
+  if (!alignments || !Array.isArray(alignments)) return [];
+  return alignments.filter((a) => a.assessmentId).map((a) => ({
+    assessmentId: a.assessmentId ?? "",
+    alignedSections: (a.alignedSections ?? []).map((s) => ({
+      id: s.id ?? "",
+      strength: clamp(s.strength ?? 0.5, 0, 1),
+      evidence: s.evidence ?? ""
+    })),
+    alignedObjectives: (a.alignedObjectives ?? []).map((o) => ({
+      id: o.id ?? "",
+      strength: clamp(o.strength ?? 0.5, 0, 1),
+      evidence: o.evidence ?? ""
+    })),
+    alignmentStrength: clamp(a.alignmentStrength ?? 0.5, 0, 1)
+  }));
+}
+function parseAlignmentGaps(gaps) {
+  if (!gaps || !Array.isArray(gaps)) return [];
+  return gaps.filter((g) => g.type && g.description).map((g) => ({
+    type: g.type,
+    severity: g.severity ?? "medium",
+    description: g.description ?? "",
+    affectedItems: g.affectedItems ?? [],
+    recommendation: g.recommendation ?? ""
+  }));
+}
+function parseAlignmentSummary(summary, objectives, assessments, gaps) {
+  if (summary) {
+    return {
+      totalObjectives: summary.totalObjectives ?? objectives.length,
+      coveredObjectives: summary.coveredObjectives ?? objectives.filter((o) => o.alignedSections.length > 0).length,
+      totalSections: summary.totalSections ?? 0,
+      assessedSections: summary.assessedSections ?? 0,
+      averageAlignment: clamp(summary.averageAlignment ?? 0.8, 0, 1),
+      gapsCount: summary.gapsCount ?? gaps.length
+    };
+  }
+  const coveredObjectives = objectives.filter((o) => o.alignedSections.length > 0).length;
+  const avgStrength = objectives.length > 0 ? objectives.reduce((sum, o) => sum + o.alignmentStrength, 0) / objectives.length : 0;
+  return {
+    totalObjectives: objectives.length,
+    coveredObjectives,
+    totalSections: 0,
+    assessedSections: 0,
+    averageAlignment: avgStrength,
+    gapsCount: gaps.length
+  };
+}
+function parseRecommendationResult(response, model, processingTimeMs) {
+  const raw = safeJsonParse(response, {});
+  const recommendations = parseRecommendations(raw.recommendations);
+  const currentStateSummary = raw.currentStateSummary ?? "Analysis complete.";
+  return {
+    recommendations,
+    currentStateSummary,
+    model,
+    processingTimeMs
+  };
+}
+function parseRecommendations(recs) {
+  if (!recs || !Array.isArray(recs)) return [];
+  return recs.filter((r) => r.title && r.description).map((r, index) => ({
+    id: r.id ?? `rec_${index + 1}`,
+    priority: r.priority ?? "medium",
+    category: r.category ?? "improve_alignment",
+    title: r.title ?? "",
+    description: r.description ?? "",
+    actionItems: r.actionItems ?? [],
+    expectedImpact: r.expectedImpact ?? "",
+    affectedAreas: r.affectedAreas ?? []
+  }));
+}
+
+// src/llm-adapter/depth-analysis-llm-adapter.ts
+var ADAPTER_VERSION = "1.0.0";
+var DEFAULT_OPTIONS3 = {
+  cacheEnabled: true,
+  cacheTTL: 3600,
+  // 1 hour
+  rateLimit: {
+    maxRequests: 60,
+    windowMs: 6e4,
+    delayMs: 100
+  },
+  retry: {
+    maxRetries: 3,
+    initialDelayMs: 1e3,
+    backoffMultiplier: 2,
+    maxDelayMs: 1e4,
+    retryOnCodes: [429, 500, 502, 503, 504]
+  },
+  systemPrompts: {}
+};
+var defaultLogger = {
+  debug: (msg, ...args) => console.debug(`[DepthLLM] ${msg}`, ...args),
+  info: (msg, ...args) => console.info(`[DepthLLM] ${msg}`, ...args),
+  warn: (msg, ...args) => console.warn(`[DepthLLM] ${msg}`, ...args),
+  error: (msg, ...args) => console.error(`[DepthLLM] ${msg}`, ...args)
+};
+var PortableDepthAnalysisLLMAdapter = class {
+  name = "PortableDepthAnalysisLLMAdapter";
+  version = ADAPTER_VERSION;
+  provider;
+  apiKey;
+  baseUrl;
+  model;
+  modelTier;
+  cacheEnabled;
+  cacheTTL;
+  rateLimit;
+  retry;
+  systemPrompts;
+  logger;
+  headers;
+  // Rate limiting state
+  requestTimestamps = [];
+  // Simple in-memory cache
+  cache = /* @__PURE__ */ new Map();
+  constructor(options) {
+    this.provider = options.provider.provider;
+    this.apiKey = this.resolveApiKey(options);
+    this.baseUrl = this.resolveBaseUrl(options);
+    this.modelTier = options.provider.modelTier ?? "balanced";
+    this.model = options.provider.model ?? MODEL_TIER_MAPPING[this.provider][this.modelTier];
+    this.headers = options.provider.headers ?? {};
+    this.cacheEnabled = options.cacheEnabled ?? DEFAULT_OPTIONS3.cacheEnabled;
+    this.cacheTTL = options.cacheTTL ?? DEFAULT_OPTIONS3.cacheTTL;
+    this.rateLimit = { ...DEFAULT_OPTIONS3.rateLimit, ...options.rateLimit };
+    this.retry = { ...DEFAULT_OPTIONS3.retry, ...options.retry };
+    this.systemPrompts = { ...DEFAULT_OPTIONS3.systemPrompts, ...options.systemPrompts };
+    this.logger = options.logger ?? defaultLogger;
+    this.logger.info(`Initialized with provider: ${this.provider}, model: ${this.model}`);
+  }
+  /**
+   * Resolve API key from options or environment
+   */
+  resolveApiKey(options) {
+    if (options.provider.apiKey) {
+      return options.provider.apiKey;
+    }
+    const envVar = options.provider.apiKeyEnvVar ?? this.getDefaultEnvVar(options.provider.provider);
+    const key = process.env[envVar];
+    if (!key) {
+      this.logger.warn(`No API key found for ${options.provider.provider}. Checked: ${envVar}`);
+    }
+    return key ?? "";
+  }
+  /**
+   * Get default environment variable name for provider
+   */
+  getDefaultEnvVar(provider) {
+    switch (provider) {
+      case "openai":
+        return "OPENAI_API_KEY";
+      case "anthropic":
+        return "ANTHROPIC_API_KEY";
+      case "deepseek":
+        return "DEEPSEEK_API_KEY";
+      default:
+        return "LLM_API_KEY";
+    }
+  }
+  /**
+   * Resolve base URL for provider
+   */
+  resolveBaseUrl(options) {
+    if (options.provider.baseUrl) {
+      return options.provider.baseUrl;
+    }
+    switch (options.provider.provider) {
+      case "openai":
+        return "https://api.openai.com/v1";
+      case "anthropic":
+        return "https://api.anthropic.com/v1";
+      case "deepseek":
+        return "https://api.deepseek.com/v1";
+      default:
+        return "";
+    }
+  }
+  /**
+   * Check if adapter is configured
+   */
+  isConfigured() {
+    return Boolean(this.apiKey && this.baseUrl);
+  }
+  /**
+   * Get model information
+   */
+  getModelInfo() {
+    return {
+      provider: this.provider,
+      model: this.model,
+      tier: this.modelTier,
+      maxTokens: this.getMaxTokens(),
+      contextWindow: this.getContextWindow()
+    };
+  }
+  getMaxTokens() {
+    switch (this.provider) {
+      case "anthropic":
+        return 8192;
+      case "openai":
+        return 4096;
+      case "deepseek":
+        return 4096;
+      default:
+        return 4096;
+    }
+  }
+  getContextWindow() {
+    switch (this.provider) {
+      case "anthropic":
+        return 2e5;
+      case "openai":
+        return 128e3;
+      case "deepseek":
+        return 64e3;
+      default:
+        return 32e3;
+    }
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // CLASSIFICATION METHODS
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Classify text according to Bloom's Taxonomy
+   */
+  async classifyBlooms(input) {
+    const startTime = Date.now();
+    const cacheKey = this.getCacheKey("blooms", input);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug("Cache hit for Bloom's classification");
+      return cached;
+    }
+    const systemPrompt = this.systemPrompts.bloomsClassification ?? BLOOMS_CLASSIFICATION_PROMPT;
+    const userPrompt = this.formatBloomsPrompt(input);
+    const response = await this.callLLM(systemPrompt, userPrompt);
+    const result = parseBloomsResult(response, this.model, Date.now() - startTime);
+    this.setCache(cacheKey, result);
+    return result;
+  }
+  /**
+   * Classify text according to Webb's DOK
+   */
+  async classifyDOK(input) {
+    const startTime = Date.now();
+    const cacheKey = this.getCacheKey("dok", input);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug("Cache hit for DOK classification");
+      return cached;
+    }
+    const systemPrompt = this.systemPrompts.dokClassification ?? DOK_CLASSIFICATION_PROMPT;
+    const userPrompt = this.formatDOKPrompt(input);
+    const response = await this.callLLM(systemPrompt, userPrompt);
+    const result = parseDOKResult(response, this.model, Date.now() - startTime);
+    this.setCache(cacheKey, result);
+    return result;
+  }
+  /**
+   * Classify using multiple frameworks
+   */
+  async classifyMultiFramework(input) {
+    const startTime = Date.now();
+    const cacheKey = this.getCacheKey("multiframework", input);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug("Cache hit for multi-framework classification");
+      return cached;
+    }
+    const systemPrompt = this.systemPrompts.multiFramework ?? MULTI_FRAMEWORK_PROMPT;
+    const userPrompt = this.formatMultiFrameworkPrompt(input);
+    const response = await this.callLLM(systemPrompt, userPrompt);
+    const result = parseMultiFrameworkResult(response, this.model, Date.now() - startTime);
+    this.setCache(cacheKey, result);
+    return result;
+  }
+  /**
+   * Extract educational keywords
+   */
+  async extractKeywords(input) {
+    const startTime = Date.now();
+    const cacheKey = this.getCacheKey("keywords", input);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug("Cache hit for keyword extraction");
+      return cached;
+    }
+    const systemPrompt = this.systemPrompts.keywordExtraction ?? KEYWORD_EXTRACTION_PROMPT;
+    const userPrompt = this.formatKeywordPrompt(input);
+    const response = await this.callLLM(systemPrompt, userPrompt);
+    const result = parseKeywordResult(response, this.model, Date.now() - startTime);
+    this.setCache(cacheKey, result);
+    return result;
+  }
+  /**
+   * Analyze alignment between objectives, content, and assessments
+   */
+  async analyzeAlignment(input) {
+    const startTime = Date.now();
+    const cacheKey = this.getCacheKey("alignment", input);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug("Cache hit for alignment analysis");
+      return cached;
+    }
+    const systemPrompt = this.systemPrompts.alignmentAnalysis ?? ALIGNMENT_ANALYSIS_PROMPT;
+    const userPrompt = this.formatAlignmentPrompt(input);
+    const response = await this.callLLM(systemPrompt, userPrompt);
+    const result = parseAlignmentResult(response, this.model, Date.now() - startTime);
+    this.setCache(cacheKey, result);
+    return result;
+  }
+  /**
+   * Generate recommendations
+   */
+  async generateRecommendations(input) {
+    const startTime = Date.now();
+    const cacheKey = this.getCacheKey("recommendations", input);
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug("Cache hit for recommendations");
+      return cached;
+    }
+    const systemPrompt = this.systemPrompts.recommendations ?? RECOMMENDATION_PROMPT;
+    const userPrompt = this.formatRecommendationPrompt(input);
+    const response = await this.callLLM(systemPrompt, userPrompt);
+    const result = parseRecommendationResult(response, this.model, Date.now() - startTime);
+    this.setCache(cacheKey, result);
+    return result;
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // CORE LLM CALL
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Make a call to the LLM with retry and rate limiting
+   */
+  async callLLM(systemPrompt, userPrompt) {
+    await this.applyRateLimit();
+    let lastError = null;
+    let delay = this.retry.initialDelayMs;
+    for (let attempt = 0; attempt <= this.retry.maxRetries; attempt++) {
+      try {
+        const response = await this.makeRequest(systemPrompt, userPrompt);
+        return response;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        const shouldRetry = this.shouldRetry(error, attempt);
+        if (!shouldRetry) {
+          break;
+        }
+        this.logger.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`, lastError.message);
+        await this.sleep(delay);
+        delay = Math.min(delay * this.retry.backoffMultiplier, this.retry.maxDelayMs);
+      }
+    }
+    throw lastError ?? new Error("LLM call failed");
+  }
+  /**
+   * Make the actual HTTP request to the LLM provider
+   */
+  async makeRequest(systemPrompt, userPrompt) {
+    switch (this.provider) {
+      case "anthropic":
+        return this.callAnthropic(systemPrompt, userPrompt);
+      case "openai":
+      case "deepseek":
+        return this.callOpenAICompatible(systemPrompt, userPrompt);
+      default:
+        throw new Error(`Unsupported provider: ${this.provider}`);
+    }
+  }
+  /**
+   * Call Anthropic API
+   */
+  async callAnthropic(systemPrompt, userPrompt) {
+    const response = await fetch(`${this.baseUrl}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": this.apiKey,
+        "anthropic-version": "2023-06-01",
+        ...this.headers
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: this.getMaxTokens(),
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }]
+      })
+    });
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Anthropic API error: ${response.status} - ${errorBody}`);
+    }
+    const data = await response.json();
+    return data.content?.[0]?.text ?? "";
+  }
+  /**
+   * Call OpenAI-compatible API (OpenAI, DeepSeek)
+   */
+  async callOpenAICompatible(systemPrompt, userPrompt) {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.apiKey}`,
+        ...this.headers
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: this.getMaxTokens(),
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" }
+      })
+    });
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content ?? "";
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // PROMPT FORMATTING
+  // ═══════════════════════════════════════════════════════════════
+  formatBloomsPrompt(input) {
+    return JSON.stringify({
+      text: input.text,
+      contentType: input.contentType,
+      context: input.context,
+      courseType: input.courseType,
+      includeConfidence: input.includeConfidence ?? true,
+      includeEvidence: input.includeEvidence ?? true
+    });
+  }
+  formatDOKPrompt(input) {
+    return JSON.stringify({
+      text: input.text,
+      contentType: input.contentType,
+      context: input.context,
+      courseType: input.courseType,
+      includeConfidence: input.includeConfidence ?? true,
+      includeEvidence: input.includeEvidence ?? true
+    });
+  }
+  formatMultiFrameworkPrompt(input) {
+    return JSON.stringify({
+      text: input.text,
+      contentType: input.contentType,
+      frameworks: input.frameworks,
+      courseType: input.courseType,
+      context: input.context,
+      includeCrossFrameworkAlignment: input.includeCrossFrameworkAlignment ?? true
+    });
+  }
+  formatKeywordPrompt(input) {
+    return JSON.stringify({
+      text: input.text,
+      keywordTypes: input.keywordTypes,
+      maxPerType: input.maxPerType ?? 10,
+      context: input.context,
+      includeRelevance: input.includeRelevance ?? true
+    });
+  }
+  formatAlignmentPrompt(input) {
+    return JSON.stringify({
+      objectives: input.objectives,
+      sections: input.sections,
+      assessments: input.assessments,
+      courseType: input.courseType,
+      depth: input.depth ?? "standard"
+    });
+  }
+  formatRecommendationPrompt(input) {
+    return JSON.stringify({
+      bloomsDistribution: input.bloomsDistribution,
+      dokDistribution: input.dokDistribution,
+      alignmentGaps: input.alignmentGaps,
+      courseType: input.courseType,
+      focusAreas: input.focusAreas,
+      maxRecommendations: input.maxRecommendations ?? 5
+    });
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // RATE LIMITING & CACHING
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Apply rate limiting
+   */
+  async applyRateLimit() {
+    const now = Date.now();
+    const windowStart = now - this.rateLimit.windowMs;
+    this.requestTimestamps = this.requestTimestamps.filter((ts) => ts > windowStart);
+    if (this.requestTimestamps.length >= this.rateLimit.maxRequests) {
+      const oldestInWindow = Math.min(...this.requestTimestamps);
+      const waitTime = oldestInWindow + this.rateLimit.windowMs - now;
+      this.logger.debug(`Rate limit reached, waiting ${waitTime}ms`);
+      await this.sleep(waitTime);
+    }
+    if (this.rateLimit.delayMs && this.requestTimestamps.length > 0) {
+      const lastRequest = Math.max(...this.requestTimestamps);
+      const timeSinceLastRequest = now - lastRequest;
+      if (timeSinceLastRequest < this.rateLimit.delayMs) {
+        await this.sleep(this.rateLimit.delayMs - timeSinceLastRequest);
+      }
+    }
+    this.requestTimestamps.push(Date.now());
+  }
+  /**
+   * Generate cache key
+   */
+  getCacheKey(operation, input) {
+    const hash = this.simpleHash(JSON.stringify(input));
+    return `${operation}:${this.model}:${hash}`;
+  }
+  /**
+   * Simple hash function for cache keys
+   */
+  simpleHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+  }
+  /**
+   * Get from cache
+   */
+  getFromCache(key) {
+    if (!this.cacheEnabled) return null;
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.value;
+  }
+  /**
+   * Set cache entry
+   */
+  setCache(key, value) {
+    if (!this.cacheEnabled) return;
+    this.cache.set(key, {
+      value,
+      expiresAt: Date.now() + this.cacheTTL * 1e3
+    });
+    if (this.cache.size > 1e3) {
+      this.cleanupCache();
+    }
+  }
+  /**
+   * Clean up expired cache entries
+   */
+  cleanupCache() {
+    const now = Date.now();
+    for (const [key, entry] of this.cache.entries()) {
+      if (now > entry.expiresAt) {
+        this.cache.delete(key);
+      }
+    }
+  }
+  // ═══════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Check if error is retryable
+   */
+  shouldRetry(error, attempt) {
+    if (attempt >= this.retry.maxRetries) return false;
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+      if (message.includes("429") || message.includes("rate limit")) return true;
+      if (message.includes("500") || message.includes("502") || message.includes("503") || message.includes("504")) return true;
+      if (message.includes("timeout")) return true;
+    }
+    return false;
+  }
+  /**
+   * Sleep utility
+   */
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+};
+function createDepthAnalysisLLMAdapter(options) {
+  return new PortableDepthAnalysisLLMAdapter(options);
+}
+function createQuickAdapter(provider, apiKey) {
+  return new PortableDepthAnalysisLLMAdapter({
+    provider: {
+      provider,
+      apiKey,
+      modelTier: "balanced"
+    }
+  });
+}
+
+// src/engines/multimedia-blooms-engine.ts
+var BLOOMS_LEVEL_ORDER3 = [
+  "REMEMBER",
+  "UNDERSTAND",
+  "APPLY",
+  "ANALYZE",
+  "EVALUATE",
+  "CREATE"
+];
+var MultimediaBloomsEngine = class {
+  videoAnalyzer;
+  imageAnalyzer;
+  config;
+  constructor(contentAnalyzer, config = {}) {
+    const videoConfig = {
+      ...config.videoConfig,
+      logger: config.logger
+    };
+    this.videoAnalyzer = createVideoCognitiveAnalyzer(
+      contentAnalyzer,
+      videoConfig,
+      config.transcriptFetcher
+    );
+    const imageConfig = {
+      ...config.imageConfig,
+      visionProvider: config.visionProvider,
+      logger: config.logger
+    };
+    this.imageAnalyzer = createImageCognitiveAnalyzer(contentAnalyzer, imageConfig);
+    this.config = {
+      enableParallelAnalysis: config.enableParallelAnalysis ?? true,
+      maxParallelImages: config.maxParallelImages ?? 5,
+      ...config
+    };
+  }
+  /**
+   * Analyze multimedia content
+   */
+  async analyze(content, options = {}) {
+    const startTime = Date.now();
+    switch (content.type) {
+      case "video":
+        return this.analyzeVideoContent(content, options, startTime);
+      case "image":
+        return this.analyzeImageContent(content, options, startTime);
+      case "mixed":
+        return this.analyzeMixedContent(content, options, startTime);
+      default:
+        throw new Error(`Unsupported content type: ${content.type}`);
+    }
+  }
+  /**
+   * Analyze video content
+   */
+  async analyzeVideo(videoIdOrUrl, source = "youtube", options = {}) {
+    const content = {
+      type: "video",
+      id: videoIdOrUrl,
+      video: {
+        source,
+        videoId: videoIdOrUrl
+      }
+    };
+    return this.analyze(content, options);
+  }
+  /**
+   * Analyze video with pre-fetched transcript
+   */
+  async analyzeVideoTranscript(transcript, metadata, options = {}) {
+    const content = {
+      type: "video",
+      id: metadata.id,
+      title: metadata.title,
+      video: {
+        source: metadata.source,
+        transcript,
+        metadata
+      }
+    };
+    return this.analyze(content, options);
+  }
+  /**
+   * Analyze image content
+   */
+  async analyzeImage(imageData, metadata = {}, options = {}) {
+    const content = {
+      type: "image",
+      id: metadata.id || `img_${Date.now()}`,
+      title: metadata.caption,
+      image: {
+        data: imageData,
+        metadata
+      }
+    };
+    return this.analyze(content, options);
+  }
+  /**
+   * Analyze multiple images
+   */
+  async analyzeImages(images, options = {}) {
+    const content = {
+      type: "mixed",
+      id: `batch_${Date.now()}`,
+      images
+    };
+    return this.analyze(content, options);
+  }
+  // ============================================================================
+  // PRIVATE METHODS
+  // ============================================================================
+  /**
+   * Analyze video content
+   */
+  async analyzeVideoContent(content, options, startTime) {
+    if (!content.video) {
+      throw new Error("Video data is required for video content");
+    }
+    let videoResult;
+    if (content.video.transcript && content.video.metadata) {
+      videoResult = await this.videoAnalyzer.analyzeTranscript(
+        content.video.transcript,
+        content.video.metadata
+      );
+    } else if (content.video.videoId || content.video.url) {
+      const videoId = content.video.videoId || content.video.url || "";
+      videoResult = await this.videoAnalyzer.analyzeVideo(videoId, content.video.source);
+    } else {
+      throw new Error("Video ID, URL, or transcript is required");
+    }
+    const insights = this.generateVideoInsights(videoResult);
+    const activities = this.generateVideoActivities(videoResult);
+    return {
+      contentId: content.id,
+      contentType: "video",
+      dominantLevel: videoResult.dominantLevel,
+      distribution: videoResult.overallDistribution,
+      cognitiveDepth: videoResult.cognitiveDepth,
+      confidence: videoResult.chunkAnalyses.length > 0 ? videoResult.chunkAnalyses.reduce((sum, c) => sum + c.confidence, 0) / videoResult.chunkAnalyses.length : 0.5,
+      balance: videoResult.balance,
+      videoAnalysis: videoResult,
+      recommendations: videoResult.recommendations,
+      suggestedActivities: activities,
+      cognitiveInsights: insights,
+      metadata: {
+        method: videoResult.processingMetadata.analysisMethod,
+        processingTimeMs: Date.now() - startTime,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        fromCache: false,
+        videoProcessingTimeMs: videoResult.processingMetadata.processingTimeMs
+      }
+    };
+  }
+  /**
+   * Analyze image content
+   */
+  async analyzeImageContent(content, options, startTime) {
+    if (!content.image) {
+      throw new Error("Image data is required for image content");
+    }
+    const imageResult = await this.imageAnalyzer.analyzeImage(
+      content.image.data,
+      content.image.metadata
+    );
+    const insights = this.generateImageInsights([imageResult]);
+    const activities = imageResult.suggestedActivities.map((a) => ({
+      ...a,
+      mediaType: "image"
+    }));
+    return {
+      contentId: content.id,
+      contentType: "image",
+      dominantLevel: imageResult.cognitiveAssessment.primaryLevel,
+      distribution: imageResult.cognitiveAssessment.distribution,
+      cognitiveDepth: imageResult.cognitiveAssessment.cognitiveLoad,
+      confidence: imageResult.cognitiveAssessment.confidence,
+      balance: this.assessBalance(imageResult.cognitiveAssessment.distribution),
+      imageAnalyses: [imageResult],
+      recommendations: imageResult.recommendations,
+      suggestedActivities: activities,
+      cognitiveInsights: insights,
+      metadata: {
+        // Map 'rule-based' to 'keyword' for compatibility with AnalysisMetadata
+        method: imageResult.processingMetadata.analysisMethod === "rule-based" ? "keyword" : imageResult.processingMetadata.analysisMethod,
+        processingTimeMs: Date.now() - startTime,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        fromCache: false,
+        imageProcessingTimeMs: imageResult.processingMetadata.processingTimeMs,
+        imagesAnalyzed: 1
+      }
+    };
+  }
+  /**
+   * Analyze mixed content (video + images or multiple images)
+   */
+  async analyzeMixedContent(content, options, startTime) {
+    const imageAnalyses = [];
+    let videoAnalysis;
+    if (content.video) {
+      const videoContent = {
+        type: "video",
+        id: content.id,
+        video: content.video
+      };
+      const result = await this.analyzeVideoContent(videoContent, options, startTime);
+      videoAnalysis = result.videoAnalysis;
+    }
+    const imagesToAnalyze = content.images || (content.image ? [content.image] : []);
+    if (imagesToAnalyze.length > 0) {
+      if (this.config.enableParallelAnalysis) {
+        const batches = [];
+        for (let i = 0; i < imagesToAnalyze.length; i += this.config.maxParallelImages) {
+          batches.push(imagesToAnalyze.slice(i, i + this.config.maxParallelImages));
+        }
+        for (const batch of batches) {
+          const results = await Promise.all(
+            batch.map((img) => this.imageAnalyzer.analyzeImage(img.data, img.metadata))
+          );
+          imageAnalyses.push(...results);
+        }
+      } else {
+        for (const img of imagesToAnalyze) {
+          const result = await this.imageAnalyzer.analyzeImage(img.data, img.metadata);
+          imageAnalyses.push(result);
+        }
+      }
+    }
+    const combined = this.combineResults(videoAnalysis, imageAnalyses);
+    const insights = [
+      ...this.generateVideoInsights(videoAnalysis),
+      ...this.generateImageInsights(imageAnalyses)
+    ];
+    const activities = this.generateCombinedActivities(videoAnalysis, imageAnalyses);
+    const recommendations = this.generateCombinedRecommendations(videoAnalysis, imageAnalyses);
+    return {
+      contentId: content.id,
+      contentType: "mixed",
+      ...combined,
+      videoAnalysis,
+      imageAnalyses: imageAnalyses.length > 0 ? imageAnalyses : void 0,
+      recommendations,
+      suggestedActivities: activities,
+      cognitiveInsights: insights,
+      metadata: {
+        method: "hybrid",
+        processingTimeMs: Date.now() - startTime,
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        fromCache: false,
+        videoProcessingTimeMs: videoAnalysis?.processingMetadata.processingTimeMs,
+        imageProcessingTimeMs: imageAnalyses.reduce(
+          (sum, r) => sum + r.processingMetadata.processingTimeMs,
+          0
+        ),
+        imagesAnalyzed: imageAnalyses.length
+      }
+    };
+  }
+  /**
+   * Combine video and image analysis results
+   */
+  combineResults(videoAnalysis, imageAnalyses) {
+    const distributions = [];
+    const depths = [];
+    const confidences = [];
+    if (videoAnalysis) {
+      const videoDuration = videoAnalysis.metadata.durationSeconds || 300;
+      distributions.push({
+        distribution: videoAnalysis.overallDistribution,
+        weight: Math.min(videoDuration / 60, 10)
+        // Weight by minutes, max 10
+      });
+      depths.push(videoAnalysis.cognitiveDepth);
+      confidences.push(
+        videoAnalysis.chunkAnalyses.reduce((sum, c) => sum + c.confidence, 0) / Math.max(1, videoAnalysis.chunkAnalyses.length)
+      );
+    }
+    for (const img of imageAnalyses) {
+      distributions.push({
+        distribution: img.cognitiveAssessment.distribution,
+        weight: 1
+        // Each image has weight 1
+      });
+      depths.push(img.cognitiveAssessment.cognitiveLoad);
+      confidences.push(img.cognitiveAssessment.confidence);
+    }
+    const combinedDistribution = {
+      REMEMBER: 0,
+      UNDERSTAND: 0,
+      APPLY: 0,
+      ANALYZE: 0,
+      EVALUATE: 0,
+      CREATE: 0
+    };
+    let totalWeight = 0;
+    for (const { distribution, weight } of distributions) {
+      for (const level of BLOOMS_LEVEL_ORDER3) {
+        combinedDistribution[level] += distribution[level] * weight;
+      }
+      totalWeight += weight;
+    }
+    if (totalWeight > 0) {
+      for (const level of BLOOMS_LEVEL_ORDER3) {
+        combinedDistribution[level] /= totalWeight;
+      }
+    }
+    let dominantLevel = "UNDERSTAND";
+    let maxValue = 0;
+    for (const level of BLOOMS_LEVEL_ORDER3) {
+      if (combinedDistribution[level] > maxValue) {
+        maxValue = combinedDistribution[level];
+        dominantLevel = level;
+      }
+    }
+    const avgDepth = depths.length > 0 ? depths.reduce((a, b) => a + b, 0) / depths.length : 50;
+    const avgConfidence = confidences.length > 0 ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0.5;
+    return {
+      dominantLevel,
+      distribution: combinedDistribution,
+      cognitiveDepth: avgDepth,
+      confidence: avgConfidence,
+      balance: this.assessBalance(combinedDistribution)
+    };
+  }
+  /**
+   * Assess balance of distribution
+   */
+  assessBalance(distribution) {
+    const lower = distribution.REMEMBER + distribution.UNDERSTAND + distribution.APPLY;
+    const higher = distribution.ANALYZE + distribution.EVALUATE + distribution.CREATE;
+    if (Math.abs(lower - higher) < 20) {
+      return "well-balanced";
+    }
+    return lower > higher ? "bottom-heavy" : "top-heavy";
+  }
+  /**
+   * Generate insights from video analysis
+   */
+  generateVideoInsights(videoAnalysis) {
+    if (!videoAnalysis) return [];
+    const insights = [];
+    if (videoAnalysis.cognitiveDepth > 70) {
+      insights.push({
+        type: "complexity_warning",
+        description: "Video contains highly complex cognitive content.",
+        severity: "warning",
+        recommendation: "Consider breaking into shorter segments or providing supplementary materials."
+      });
+    }
+    if (videoAnalysis.balance !== "well-balanced") {
+      insights.push({
+        type: "balance_issue",
+        description: `Video is ${videoAnalysis.balance} in cognitive level distribution.`,
+        severity: "info",
+        recommendation: videoAnalysis.balance === "bottom-heavy" ? "Add analysis or evaluation activities to deepen learning." : "Ensure foundational concepts are covered before advanced material."
+      });
+    }
+    if (videoAnalysis.pausePoints.length > 0) {
+      insights.push({
+        type: "progression_opportunity",
+        description: `${videoAnalysis.pausePoints.length} optimal pause points identified for reflection.`,
+        severity: "info",
+        recommendation: "Use suggested pause points to break learning into manageable chunks."
+      });
+    }
+    return insights;
+  }
+  /**
+   * Generate insights from image analysis
+   */
+  generateImageInsights(imageAnalyses) {
+    const insights = [];
+    const accessibilityIssues = imageAnalyses.flatMap(
+      (img) => img.accessibilityAssessment.issues.filter((i) => i.severity === "critical")
+    );
+    if (accessibilityIssues.length > 0) {
+      insights.push({
+        type: "accessibility_concern",
+        description: `${accessibilityIssues.length} critical accessibility issues found across images.`,
+        severity: "critical",
+        recommendation: "Address alt text and contrast issues for inclusive learning."
+      });
+    }
+    const highLoadImages = imageAnalyses.filter(
+      (img) => img.cognitiveAssessment.cognitiveLoad > 70
+    );
+    if (highLoadImages.length > 0) {
+      insights.push({
+        type: "complexity_warning",
+        description: `${highLoadImages.length} images have high cognitive load.`,
+        severity: "warning",
+        recommendation: "Provide scaffolding or guided viewing for complex visuals."
+      });
+    }
+    return insights;
+  }
+  /**
+   * Generate activities from video analysis
+   */
+  generateVideoActivities(videoAnalysis) {
+    const activities = [];
+    activities.push({
+      bloomsLevel: videoAnalysis.dominantLevel,
+      activity: "Watch and Reflect",
+      description: `Engage with video content at ${videoAnalysis.dominantLevel} level with guided pause points.`,
+      mediaType: "video"
+    });
+    if (videoAnalysis.transitions.length > 0) {
+      const upTransitions = videoAnalysis.transitions.filter((t) => t.direction === "up");
+      if (upTransitions.length > 0) {
+        activities.push({
+          bloomsLevel: upTransitions[0].toLevel,
+          activity: "Progressive Challenge",
+          description: "Follow the video progression to build from foundational to advanced concepts.",
+          mediaType: "video"
+        });
+      }
+    }
+    return activities;
+  }
+  /**
+   * Generate combined activities
+   */
+  generateCombinedActivities(videoAnalysis, imageAnalyses) {
+    const activities = [];
+    if (videoAnalysis) {
+      activities.push(...this.generateVideoActivities(videoAnalysis));
+    }
+    for (const img of imageAnalyses) {
+      activities.push(
+        ...img.suggestedActivities.map((a) => ({
+          ...a,
+          mediaType: "image"
+        }))
+      );
+    }
+    if (videoAnalysis && imageAnalyses.length > 0) {
+      activities.push({
+        bloomsLevel: "ANALYZE",
+        activity: "Cross-Media Analysis",
+        description: "Compare concepts presented in video with visual representations in images.",
+        mediaType: "combined"
+      });
+    }
+    return activities;
+  }
+  /**
+   * Generate combined recommendations
+   */
+  generateCombinedRecommendations(videoAnalysis, imageAnalyses) {
+    const recommendations = [];
+    if (videoAnalysis) {
+      recommendations.push(...videoAnalysis.recommendations);
+    }
+    const imageRecs = /* @__PURE__ */ new Set();
+    for (const img of imageAnalyses) {
+      for (const rec of img.recommendations) {
+        imageRecs.add(rec);
+      }
+    }
+    recommendations.push(...Array.from(imageRecs));
+    if (videoAnalysis && imageAnalyses.length > 0) {
+      recommendations.push(
+        "Use images as reference materials while watching the video for enhanced understanding."
+      );
+    }
+    return recommendations;
+  }
+};
+function createMultimediaBloomsEngine(contentAnalyzer, config) {
+  return new MultimediaBloomsEngine(contentAnalyzer, config);
+}
+function createContentAnalyzerFromEngine(unifiedEngine) {
+  return {
+    async analyze(content, options) {
+      const result = await unifiedEngine.analyze(content, options);
+      return {
+        dominantLevel: result.dominantLevel,
+        distribution: result.distribution,
+        confidence: result.confidence,
+        cognitiveDepth: result.cognitiveDepth,
+        subLevel: result.subLevel
+      };
+    }
+  };
+}
 export {
+  ALIGNMENT_ANALYSIS_PROMPT,
+  AMBIGUOUS_VERBS,
   AchievementEngine,
   AdaptiveContentEngine,
   AdaptiveQuestionResponseSchema,
   AdvancedExamEngine,
+  AlignmentEngine,
   AnalyticsEngine,
   AssessmentQuestionSchema,
   AssessmentQuestionsResponseSchema,
+  AttachmentRouter,
+  BLOOMS_CLASSIFICATION_PROMPT,
+  BLOOMS_FRAMEWORK,
   BloomsAnalysisEngine,
+  BloomsCalibrator,
   BloomsDistributionSchema,
   BloomsLevelSchema,
+  COURSE_TYPE_FRAMEWORK_WEIGHTS,
   CollaborationEngine,
   ComparisonToExpectedSchema,
   CompetencyEngine,
+  ConfidenceCalculator,
   ContentAnalysisResponseSchema,
   ContentGenerationEngine,
+  ContentIngestionPipeline,
   CourseGuideEngine,
   DEFAULT_RETRY_CONFIG,
+  DOK_CLASSIFICATION_PROMPT,
+  DOK_FRAMEWORK,
+  EVALUATOR_VERSION,
+  EVIDENCE_SERVICE_VERSION,
   EnhancedDepthAnalysisEngine,
   SAMEvaluationEngine as EvaluationEngine,
+  EvidenceService,
+  FINK_FRAMEWORK,
+  FRAMEWORKS,
   FinancialEngine,
   GradingAssistanceResponseSchema,
+  ImageCognitiveAnalyzer,
+  InMemorySkillBuildTrackStore,
   InnovationEngine,
   IntegrityEngine,
+  KEYWORD_EXTRACTION_PROMPT,
+  KeywordAnalyzer,
   KnowledgeGraphEngine,
+  ADAPTER_VERSION as LLM_ADAPTER_VERSION,
+  MARZANO_FRAMEWORK,
+  MODEL_TIER_MAPPING,
+  MULTI_FRAMEWORK_PROMPT,
   MarketEngine,
   MemoryEngine,
   MetacognitionEngine,
   MicrolearningEngine,
+  MultiFrameworkEvaluator,
+  MultimediaBloomsEngine,
   MultimediaEngine,
   MultimodalInputEngine,
+  PDFExtractor,
+  PIPELINE_VERSION,
   PeerLearningEngine,
   PersonalizationEngine,
+  PortableDepthAnalysisLLMAdapter,
   PracticeProblemsEngine,
   PredictiveEngine,
+  PrismaAlignmentMatrixStore,
+  PrismaAnalysisEvidenceStore,
+  PrismaContentSourceStore,
   QuestionOptionSchema,
+  RECOMMENDATION_PROMPT,
+  REFERENCE_PHRASES,
   ResearchEngine,
   ResourceEngine,
   RubricAlignmentSchema,
   SAMEvaluationEngine,
+  SOLO_FRAMEWORK,
+  SemanticBloomsClassifier,
+  SkillBuildTrackEngine,
+  SlideExtractor,
   SocialEngine,
   SocraticTeachingEngine,
   SubjectiveEvaluationResponseSchema,
+  TextExtractor,
   TrendsEngine,
   UnifiedBloomsAdapterEngine,
   UnifiedBloomsEngine,
+  VideoCognitiveAnalyzer,
+  attachmentRouter,
+  bloomsLevelToNumber,
+  contentTypeUtils,
   createAchievementEngine,
   createAdaptiveContentEngine,
+  createAlignmentEngine,
   createAnalyticsEngine,
   createBloomsAnalysisEngine,
+  createBloomsCalibrator,
   createCollaborationEngine,
   createCompetencyEngine,
+  createConfidenceCalculator,
+  createContentAnalyzerFromEngine,
   createContentGenerationEngine,
+  createContentIngestionPipeline,
   createCourseGuideEngine,
+  createDepthAnalysisLLMAdapter,
   createEnhancedDepthAnalysisEngine,
   createEvaluationEngine,
+  createEvidenceService,
   createExamEngine,
   createFinancialEngine,
+  createImageCognitiveAnalyzer,
   createInnovationEngine,
   createIntegrityEngine,
+  createKeywordAnalyzer,
   createKnowledgeGraphEngine,
   createMarketEngine,
   createMemoryEngine,
   createMetacognitionEngine,
   createMicrolearningEngine,
+  createMultiFrameworkEvaluator,
+  createMultimediaBloomsEngine,
   createMultimediaEngine,
   createMultimodalInputEngine,
   createPartialSchema,
@@ -26133,21 +35372,46 @@ export {
   createPersonalizationEngine,
   createPracticeProblemsEngine,
   createPredictiveEngine,
+  createPrismaAlignmentMatrixStore,
+  createPrismaAnalysisEvidenceStore,
+  createPrismaContentSourceStore,
+  createQuickAdapter,
   createResearchEngine,
   createResourceEngine,
   createRetryPrompt,
+  createSemanticBloomsClassifier,
+  createSemanticBloomsClassifierWithProvider,
+  createSkillBuildTrackEngine,
   createSocialEngine,
   createSocraticTeachingEngine,
   createTrendsEngine,
   createUnifiedBloomsAdapterEngine,
   createUnifiedBloomsEngine,
+  createVideoCognitiveAnalyzer,
   enhancedDepthEngine,
   executeWithRetry,
   extractJson,
   extractJsonWithOptions,
   fixCommonJsonIssues,
+  getAllFrameworks,
+  getFramework,
+  getFrameworkLevel,
+  getFrameworkMappings,
+  getFrameworkWeights,
+  getIdealDistribution,
+  hashContent,
+  numberToBloomsLevel,
+  parseAlignmentResult,
   parseAndValidate,
+  parseBloomsResult,
+  parseDOKResult,
+  parseKeywordResult,
+  parseMultiFrameworkResult,
+  parseRecommendationResult,
+  pdfExtractor,
   safeParseWithDefaults,
+  slideExtractor,
+  textExtractor,
   validateAdaptiveQuestionResponse,
   validateAssessmentQuestionsResponse,
   validateContentAnalysisResponse,

@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-24T11:16:46.353Z
+// Generated: 2026-01-29T03:57:49.028Z
 // Source: 26 domain files
 // ==========================================
 
@@ -1548,6 +1548,9 @@ model User {
   // SAM Knowledge Graph Engine Relations (added January 2026)
   samConceptMasteries                     SAMConceptMastery[]                  @relation("SAMConceptMasteries")
 
+  // Bloom's Classification Feedback (Phase 5: Calibration Learning Loop)
+  bloomsClassificationFeedback            BloomsClassificationFeedback[]       @relation("BloomsClassificationFeedback")
+
   // Agent Tooling Relations
   agentToolInvocations                    AgentToolInvocation[]
   agentAuditLogs                          AgentAuditLog[]
@@ -1778,6 +1781,9 @@ model User {
   // Marketing & Communications (added January 2026)
   newsletterSubscriptions    NewsletterSubscriber[]
   assignedContactSubmissions ContactSubmission[]           @relation("AssignedContacts")
+
+  // Cognitive Profile (Bloom's Taxonomy Experience - January 2026)
+  cognitiveProfile           UserCognitiveProfile?         @relation("UserCognitiveProfile")
 }
 
 model Account {
@@ -2373,6 +2379,9 @@ model Course {
 
   // Phase 3: Enterprise Payment System - Payment Transaction Relations
   paymentTransactions      PaymentTransaction[]    @relation("CoursePaymentTransactions")
+
+  // Cognitive Quality (Bloom's Taxonomy Experience - January 2026)
+  cognitiveQuality         CourseCognitiveQuality? @relation("CourseCognitiveQuality")
 
   @@index([categoryId])
   @@index([organizationId])
@@ -10326,6 +10335,296 @@ model SAMConceptMastery {
   @@index([conceptId])
   @@index([userId, masteryLevel])
   @@map("sam_concept_masteries")
+}
+
+// ==========================================
+// BLOOM'S CLASSIFICATION FEEDBACK MODELS
+// (Phase 5: Confidence Calibration Learning Loop)
+// ==========================================
+
+enum BloomsFeedbackType {
+  EXPLICIT     // User clicked "wrong level"
+  IMPLICIT     // Inferred from assessment performance
+  EXPERT       // Teacher/admin override
+}
+
+model BloomsClassificationFeedback {
+  id                String            @id @default(cuid())
+  contentHash       String            // SHA-256 of analyzed content
+
+  // Prediction
+  predictedLevel    Int               // 1-6 Bloom's level
+  predictedSubLevel String?           // BASIC, INTERMEDIATE, ADVANCED
+  predictedConfidence Float           @default(0.5)
+
+  // Correction
+  actualLevel       Int?              // User-provided correction (1-6)
+  actualSubLevel    String?           // User-provided sub-level
+  assessmentOutcome Float?            // Score achieved on assessment (0-1)
+
+  // Feedback details
+  feedbackType      BloomsFeedbackType @default(IMPLICIT)
+  userId            String?           // Who provided feedback
+  courseId          String?           // Context: course
+  sectionId         String?           // Context: section
+
+  // Metadata
+  analysisMethod    String?           // keyword, ai, hybrid
+  contentSample     String?           @db.Text // First 500 chars for debugging
+  metadata          Json?
+
+  // Timestamps
+  createdAt         DateTime          @default(now())
+
+  // Relations
+  user              User?             @relation("BloomsClassificationFeedback", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([contentHash])
+  @@index([userId, createdAt])
+  @@index([predictedLevel, actualLevel])
+  @@index([feedbackType, createdAt])
+  @@map("blooms_classification_feedback")
+}
+
+// Aggregated calibration metrics for the Bloom's classifier
+model BloomsCalibrationMetrics {
+  id                   String    @id @default(cuid())
+
+  // Period
+  periodStart          DateTime
+  periodEnd            DateTime
+  periodType           String    @default("daily") // hourly, daily, weekly, monthly
+
+  // Sample size
+  totalSamples         Int       @default(0)
+  explicitFeedback     Int       @default(0)
+  implicitFeedback     Int       @default(0)
+  expertFeedback       Int       @default(0)
+
+  // Accuracy by level (JSON: { "1": { correct: X, total: Y }, ... })
+  accuracyByLevel      Json      @default("{}")
+
+  // Confidence calibration (JSON: { "0.0-0.1": { correct: X, total: Y }, ... })
+  calibrationBuckets   Json      @default("{}")
+
+  // Computed metrics
+  overallAccuracy      Float     @default(0)
+  expectedCalibrationError Float @default(0) // ECE metric
+  maxCalibrationError  Float     @default(0) // MCE metric
+
+  // Adjustment factors (learned from feedback)
+  levelAdjustments     Json      @default("{}") // { "1": 0.05, "2": -0.02, ... }
+  confidenceAdjustment Float     @default(0)    // Global adjustment
+
+  // Timestamps
+  calculatedAt         DateTime  @default(now())
+
+  @@unique([periodType, periodStart])
+  @@index([periodType, periodStart])
+  @@index([calculatedAt])
+  @@map("blooms_calibration_metrics")
+}
+
+// ==========================================
+// USER COGNITIVE PROFILE MODELS
+// (Bloom's Taxonomy Experience - January 2026)
+// ==========================================
+
+// Cognitive Level Names enum
+enum CognitiveLevel {
+  REMEMBERER    // Level 1
+  UNDERSTANDER  // Level 2
+  APPLIER       // Level 3
+  ANALYZER      // Level 4
+  EVALUATOR     // Level 5
+  CREATOR       // Level 6
+}
+
+// User's overall cognitive profile tracking
+model UserCognitiveProfile {
+  id                String          @id @default(cuid())
+  userId            String          @unique
+
+  // Overall cognitive level (1.0 - 6.0 scale)
+  overallLevel      Float           @default(1.0)
+  levelName         CognitiveLevel  @default(REMEMBERER)
+
+  // Distribution across 6 Bloom's levels (percentages 0-100)
+  rememberScore     Float           @default(0)
+  understandScore   Float           @default(0)
+  applyScore        Float           @default(0)
+  analyzeScore      Float           @default(0)
+  evaluateScore     Float           @default(0)
+  createScore       Float           @default(0)
+
+  // Experience points per level (for gamification)
+  rememberXP        Int             @default(0)
+  understandXP      Int             @default(0)
+  applyXP           Int             @default(0)
+  analyzeXP         Int             @default(0)
+  evaluateXP        Int             @default(0)
+  createXP          Int             @default(0)
+
+  // Level thresholds reached (for "level-up" celebrations)
+  rememberLevel     Int             @default(1)
+  understandLevel   Int             @default(0)
+  applyLevel        Int             @default(0)
+  analyzeLevel      Int             @default(0)
+  evaluateLevel     Int             @default(0)
+  createLevel       Int             @default(0)
+
+  // Growth tracking
+  startingLevel     Float?          // Level when first calculated
+  peakLevel         Float?          // Highest level achieved
+  totalGrowth       Float           @default(0)
+
+  // Strengths and growth areas (top 2 + weakest)
+  topStrengths      String[]        @default([])
+  primaryGrowthArea String?
+
+  // Activity tracking
+  totalActivities   Int             @default(0)
+  lastActivityAt    DateTime?
+
+  // Timestamps
+  lastCalculated    DateTime        @default(now())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  user              User            @relation("UserCognitiveProfile", fields: [userId], references: [id], onDelete: Cascade)
+  courseGrowth      UserCourseGrowth[]
+  milestones        CognitiveMilestone[]
+
+  @@index([userId])
+  @@index([overallLevel])
+  @@index([levelName])
+  @@map("user_cognitive_profiles")
+}
+
+// Track cognitive growth per course
+model UserCourseGrowth {
+  id                  String               @id @default(cuid())
+  userId              String
+  courseId            String
+  profileId           String
+
+  // Before/After levels
+  startingLevel       Float                @default(1.0)
+  currentLevel        Float                @default(1.0)
+  levelGrowth         Float                @default(0)
+
+  // Before/After distribution
+  startingDistribution Json?               // { remember: 0, understand: 0, ... }
+  currentDistribution  Json?               // { remember: 0, understand: 0, ... }
+
+  // Key improvements (calculated)
+  topImprovements     Json?                // [{ level: "analyze", growth: 45 }, ...]
+
+  // Progress tracking
+  activitiesCompleted Int                  @default(0)
+  assessmentsTaken    Int                  @default(0)
+  averageScore        Float?
+
+  // Timestamps
+  startedAt           DateTime             @default(now())
+  lastUpdatedAt       DateTime             @default(now())
+  completedAt         DateTime?
+
+  // Relations
+  profile             UserCognitiveProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([profileId])
+  @@map("user_course_growth")
+}
+
+// Cognitive milestones for gamification
+model CognitiveMilestone {
+  id                String               @id @default(cuid())
+  profileId         String
+
+  // Milestone details
+  type              CognitiveMilestoneType
+  level             String               // REMEMBER, UNDERSTAND, APPLY, ANALYZE, EVALUATE, CREATE
+  title             String
+  description       String?
+
+  // Achievement
+  achievedAt        DateTime             @default(now())
+  xpAwarded         Int                  @default(0)
+
+  // Context
+  courseId          String?
+  triggeredBy       String?              // activity_id, assessment_id, etc.
+
+  // Relations
+  profile           UserCognitiveProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([type])
+  @@index([achievedAt])
+  @@map("cognitive_milestones")
+}
+
+enum CognitiveMilestoneType {
+  FIRST_ACTIVITY     // First time completing an activity at a level
+  LEVEL_UP           // Reached a new level threshold
+  STREAK             // Consecutive activities at higher levels
+  MASTERY            // Achieved mastery (100%) at a level
+  BREAKTHROUGH       // Jumped 2+ levels in one course
+  CREATOR_STATUS     // First Create-level activity
+}
+
+// Course Cognitive Quality - Quality grades for courses
+model CourseCognitiveQuality {
+  id                  String           @id @default(cuid())
+  courseId            String           @unique
+
+  // Quality grade (A+, A, B, C, D)
+  cognitiveGrade      String           @default("C")
+  cognitiveScore      Float            @default(50)  // 0-100 score
+
+  // Distribution percentages
+  rememberPercent     Float            @default(0)
+  understandPercent   Float            @default(0)
+  applyPercent        Float            @default(0)
+  analyzePercent      Float            @default(0)
+  evaluatePercent     Float            @default(0)
+  createPercent       Float            @default(0)
+
+  // Quality metrics
+  levelDiversity      Float            @default(0)   // How many levels represented
+  balanceScore        Float            @default(0)   // How balanced the distribution is
+  higherOrderRatio    Float            @default(0)   // % of Apply+ activities
+
+  // Recommendations from AI
+  recommendations     Json?            // Array of improvement suggestions
+  topRecommendation   String?          // Quick win recommendation
+
+  // Benchmark data
+  categoryId          String?          // Course category for comparison
+  categoryRank        Int?             // Rank within category
+  categoryPercentile  Float?           // Percentile within category
+
+  // Publishing status
+  meetsQualityGate    Boolean          @default(false)
+  qualityGateIssues   Json?            // Array of issues blocking publish
+
+  // Timestamps
+  analyzedAt          DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  // Relations
+  course              Course           @relation("CourseCognitiveQuality", fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([cognitiveGrade])
+  @@index([cognitiveScore])
+  @@index([categoryId])
+  @@map("course_cognitive_quality")
 }
 
 // ==========================================

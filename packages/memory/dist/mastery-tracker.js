@@ -24,8 +24,24 @@ export const DEFAULT_MASTERY_TRACKER_CONFIG = {
         EVALUATE: 1.0,
         CREATE: 1.1,
     },
-    decayRatePerDay: 0.5, // 0.5% per day
+    decayRatePerDay: 0.5, // 0.5% per day (deprecated, use bloomsDecayRates)
     decayStartDays: 30,
+    // Phase 6: Enhanced Mastery Decay with Bloom's Weighting
+    // Higher cognitive levels decay faster - complex skills need more practice to maintain
+    bloomsDecayRates: {
+        REMEMBER: 0.2, // Facts stick longer (0.2%/day)
+        UNDERSTAND: 0.3, // Concepts retain well (0.3%/day)
+        APPLY: 0.4, // Procedures need practice (0.4%/day)
+        ANALYZE: 0.5, // Baseline decay (0.5%/day)
+        EVALUATE: 0.6, // Judgment skills fade (0.6%/day)
+        CREATE: 0.7, // Complex skills decay fastest (0.7%/day)
+    },
+    // Sub-level modifiers: ADVANCED decays 20% faster than BASIC
+    subLevelDecayModifiers: {
+        BASIC: 0.85, // 15% slower decay
+        INTERMEDIATE: 1.0, // Baseline
+        ADVANCED: 1.2, // 20% faster decay
+    },
 };
 /**
  * Mastery Tracker
@@ -106,8 +122,14 @@ export class MasteryTracker {
     }
     /**
      * Apply decay to unused topics
+     * Phase 6: Enhanced with Bloom's-weighted decay rates
+     *
+     * @param studentId - Student identifier
+     * @param topicId - Topic identifier
+     * @param currentDate - Current date for decay calculation
+     * @param subLevel - Optional sub-level for more granular decay (BASIC/INTERMEDIATE/ADVANCED)
      */
-    async applyDecay(studentId, topicId, currentDate = new Date()) {
+    async applyDecay(studentId, topicId, currentDate = new Date(), subLevel) {
         const mastery = await this.profileStore.getMastery(studentId, topicId);
         if (!mastery) {
             return null;
@@ -118,7 +140,14 @@ export class MasteryTracker {
             return mastery;
         }
         const decayDays = daysSinceLastAssessment - this.config.decayStartDays;
-        const decayAmount = decayDays * this.config.decayRatePerDay;
+        // Phase 6: Get Bloom's-level specific decay rate
+        const baseDecayRate = this.getBloomsDecayRate(mastery.bloomsLevel);
+        // Apply sub-level modifier if provided
+        const subLevelModifier = subLevel
+            ? this.config.subLevelDecayModifiers[subLevel]
+            : 1.0;
+        const effectiveDecayRate = baseDecayRate * subLevelModifier;
+        const decayAmount = decayDays * effectiveDecayRate;
         const decayedScore = Math.max(0, mastery.score - decayAmount);
         // Only update if score actually changed
         if (decayedScore < mastery.score) {
@@ -132,6 +161,49 @@ export class MasteryTracker {
             return this.profileStore.updateMastery(studentId, update);
         }
         return mastery;
+    }
+    /**
+     * Get the Bloom's-level specific decay rate (Phase 6)
+     * Higher cognitive levels decay faster as they require more practice to maintain
+     *
+     * @param bloomsLevel - The Bloom's taxonomy level
+     * @returns Decay rate per day as a percentage
+     */
+    getBloomsDecayRate(bloomsLevel) {
+        return this.config.bloomsDecayRates[bloomsLevel];
+    }
+    /**
+     * Calculate effective decay rate including sub-level modifier (Phase 6)
+     *
+     * @param bloomsLevel - The Bloom's taxonomy level
+     * @param subLevel - Optional sub-level (BASIC/INTERMEDIATE/ADVANCED)
+     * @returns Effective decay rate per day as a percentage
+     */
+    getEffectiveDecayRate(bloomsLevel, subLevel) {
+        const baseRate = this.getBloomsDecayRate(bloomsLevel);
+        const modifier = subLevel
+            ? this.config.subLevelDecayModifiers[subLevel]
+            : 1.0;
+        return baseRate * modifier;
+    }
+    /**
+     * Estimate days until mastery decays to a target score (Phase 6)
+     *
+     * @param currentScore - Current mastery score
+     * @param targetScore - Target score to decay to
+     * @param bloomsLevel - The Bloom's taxonomy level
+     * @param subLevel - Optional sub-level for more precise estimation
+     * @returns Estimated days until decay reaches target (after grace period)
+     */
+    estimateDaysUntilDecay(currentScore, targetScore, bloomsLevel, subLevel) {
+        if (currentScore <= targetScore) {
+            return 0;
+        }
+        const effectiveRate = this.getEffectiveDecayRate(bloomsLevel, subLevel);
+        const scoreDifference = currentScore - targetScore;
+        const decayDays = Math.ceil(scoreDifference / effectiveRate);
+        // Add grace period
+        return decayDays + this.config.decayStartDays;
     }
     /**
      * Get topics needing review (mastery below threshold)

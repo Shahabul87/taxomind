@@ -11,7 +11,7 @@
  * ```
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { UseFormWatch, FieldValues } from 'react-hook-form';
 import { useFormRegistry } from '@/lib/stores/form-registry-store';
 import { usePathname } from 'next/navigation';
@@ -60,22 +60,40 @@ export function useSAMFormSync<TFieldValues extends FieldValues = FieldValues>(
   const { registerForm, updateFormField, unregisterForm } = useFormRegistry();
   const pathname = usePathname();
 
+  // Store callback/object deps in refs to keep the effect dependency array honest
+  const watchRef = useRef(watch);
+  watchRef.current = watch;
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const registerFormRef = useRef(registerForm);
+  registerFormRef.current = registerForm;
+
+  const updateFormFieldRef = useRef(updateFormField);
+  updateFormFieldRef.current = updateFormField;
+
+  const unregisterFormRef = useRef(unregisterForm);
+  unregisterFormRef.current = unregisterForm;
+
   useEffect(() => {
+    const currentOptions = optionsRef.current;
+
     // Register the form with SAM
-    registerForm(formId, {
-      purpose: options.formName || formId,
+    registerFormRef.current(formId, {
+      purpose: currentOptions.formName || formId,
       pageUrl: pathname,
-      formType: (options.metadata?.formType as string) || 'react-hook-form',
-      ...options.metadata,
+      formType: (currentOptions.metadata?.formType as string) || 'react-hook-form',
+      ...currentOptions.metadata,
     });
 
     logger.info(`[useSAMFormSync] Form registered: ${formId}`);
 
     // Watch all form fields and sync to registry
-    const subscription = watch((data, { name, type }) => {
+    const subscription = watchRef.current((data, { name, type }) => {
       // Update only the changed field for better performance
       if (name && type) {
-        updateFormField(formId, name, {
+        updateFormFieldRef.current(formId, name, {
           value: data[name],
           type: typeof data[name],
           touched: type === 'change',
@@ -87,7 +105,7 @@ export function useSAMFormSync<TFieldValues extends FieldValues = FieldValues>(
         // Initial sync or full form update
         Object.entries(data).forEach(([fieldName, value]) => {
           if (value !== undefined) {
-            updateFormField(formId, fieldName, {
+            updateFormFieldRef.current(formId, fieldName, {
               value,
               type: typeof value,
             });
@@ -101,11 +119,9 @@ export function useSAMFormSync<TFieldValues extends FieldValues = FieldValues>(
     // Cleanup on unmount
     return () => {
       subscription.unsubscribe();
-      unregisterForm(formId);
+      unregisterFormRef.current(formId);
       logger.info(`[useSAMFormSync] Form unregistered: ${formId}`);
     };
-    // Only re-run if formId or pathname changes - options are only used during registration
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId, pathname]);
 }
 
@@ -126,21 +142,38 @@ export function useSAMFormSyncDebounced<TFieldValues extends FieldValues = Field
   const { registerForm, updateMultipleFields, unregisterForm } = useFormRegistry();
   const pathname = usePathname();
 
+  // Store callback/object deps in refs to keep the effect dependency array honest
+  const watchRef = useRef(watch);
+  watchRef.current = watch;
+
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const registerFormRef = useRef(registerForm);
+  registerFormRef.current = registerForm;
+
+  const updateMultipleFieldsRef = useRef(updateMultipleFields);
+  updateMultipleFieldsRef.current = updateMultipleFields;
+
+  const unregisterFormRef = useRef(unregisterForm);
+  unregisterFormRef.current = unregisterForm;
+
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
+    const currentOptions = optionsRef.current;
 
     // Register the form
-    registerForm(formId, {
-      purpose: options.formName || formId,
+    registerFormRef.current(formId, {
+      purpose: currentOptions.formName || formId,
       pageUrl: pathname,
-      formType: (options.metadata?.formType as string) || 'react-hook-form-debounced',
-      ...options.metadata,
+      formType: (currentOptions.metadata?.formType as string) || 'react-hook-form-debounced',
+      ...currentOptions.metadata,
     });
 
     logger.info(`[useSAMFormSyncDebounced] Form registered: ${formId} (debounce: ${debounceMs}ms)`);
 
     // Watch with debouncing
-    const subscription = watch((data) => {
+    const subscription = watchRef.current((data) => {
       clearTimeout(timeoutId);
 
       timeoutId = setTimeout(() => {
@@ -155,7 +188,7 @@ export function useSAMFormSyncDebounced<TFieldValues extends FieldValues = Field
           }
         });
 
-        updateMultipleFields(formId, fields);
+        updateMultipleFieldsRef.current(formId, fields);
         logger.debug(`[useSAMFormSyncDebounced] Batch update: ${Object.keys(fields).length} fields`);
       }, debounceMs);
     });
@@ -163,10 +196,8 @@ export function useSAMFormSyncDebounced<TFieldValues extends FieldValues = Field
     return () => {
       clearTimeout(timeoutId);
       subscription.unsubscribe();
-      unregisterForm(formId);
+      unregisterFormRef.current(formId);
       logger.info(`[useSAMFormSyncDebounced] Form unregistered: ${formId}`);
     };
-    // Only re-run if formId, pathname, or debounceMs changes - options are only used during registration
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId, pathname, debounceMs]);
 }

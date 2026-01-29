@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -61,12 +61,10 @@ export const ChatList = ({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchConversations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, sortBy]);
+  const searchQueryRef = useRef(searchQuery);
+  searchQueryRef.current = searchQuery;
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -137,12 +135,13 @@ export const ChatList = ({
 
       let convList = Array.from(conversationMap.values());
 
-      if (searchQuery) {
+      const currentSearchQuery = searchQueryRef.current;
+      if (currentSearchQuery) {
         convList = convList.filter(
           (conv) =>
-            conv.instructor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            conv.lastMessage.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            conv.course?.title.toLowerCase().includes(searchQuery.toLowerCase())
+            conv.instructor.name?.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
+            conv.lastMessage.content.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
+            conv.course?.title.toLowerCase().includes(currentSearchQuery.toLowerCase())
         );
       }
 
@@ -167,7 +166,11 @@ export const ChatList = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, sortBy]);
+
+  useEffect(() => {
+    fetchConversations();
+  }, [filter, fetchConversations]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
