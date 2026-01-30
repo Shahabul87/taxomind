@@ -3,7 +3,7 @@ import { adminAuth } from "@/auth.admin";
 import { AdminRole } from "@/types/admin-role";
 import { getDbMetrics, checkDatabaseHealth } from "@/lib/db-pooled";
 import { perfMonitor } from "@/lib/monitoring/performance";
-import { getAdapterStatus } from "@/lib/sam/integration-adapters";
+import { getAdapterStatus, getCoreAIAdapter } from "@/lib/sam/integration-adapters";
 import { getRateLimitStats, RATE_LIMIT_CONFIGS } from "@/lib/sam/middleware/rate-limiter";
 import { cache } from "@/lib/cache/simple-cache";
 import { logger } from "@/lib/logger";
@@ -149,7 +149,7 @@ export async function GET() {
           },
         })),
         Promise.resolve(safeGetDbMetrics()),
-        Promise.resolve(safeGetAdapterStatus()),
+        safeGetAdapterStatus(),
         Promise.resolve(safeGetRateLimitStats()),
         Promise.resolve(safeGetCacheStats()),
         safeGetSAMHealth(),
@@ -209,8 +209,7 @@ export async function GET() {
       samStatus,
       errorRate,
       heapUsagePercent,
-      dbMetrics.latency.p95,
-      cacheStats.size
+      dbMetrics.latency.p95
     );
 
     // SAM health recommendations
@@ -342,8 +341,10 @@ function safeGetDbMetrics() {
   }
 }
 
-function safeGetAdapterStatus() {
+async function safeGetAdapterStatus() {
   try {
+    // Eagerly initialize the adapter so the health check reflects real status
+    await getCoreAIAdapter();
     return getAdapterStatus();
   } catch {
     return {
@@ -616,8 +617,7 @@ function generateRecommendations(
   samStatus: ReturnType<typeof getAdapterStatus>,
   errorRate: number,
   heapUsagePercent: number,
-  p95Latency: number,
-  cacheSize: number
+  p95Latency: number
 ): string[] {
   const recommendations: string[] = [];
 
@@ -680,12 +680,6 @@ function generateRecommendations(
   if (p95Latency > 1000) {
     recommendations.push(
       `P95 database latency is ${Math.round(p95Latency)}ms. Investigate slow queries and consider adding indexes.`
-    );
-  }
-
-  if (cacheSize === 0) {
-    recommendations.push(
-      "In-memory cache is empty. This is normal after a restart but may indicate caching is underutilized."
     );
   }
 
