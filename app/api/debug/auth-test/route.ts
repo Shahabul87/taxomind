@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Test if auth is working
     const session = await auth();

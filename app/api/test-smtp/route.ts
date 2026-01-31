@@ -8,8 +8,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySmtpConnection, isSmtpConfigured, sendEmail as sendEmailSMTP } from '@/lib/email/smtp-service';
 import { verifyResendConnection, isResendConfigured, sendEmail as sendEmailResend } from '@/lib/email/resend-service';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Check Resend HTTP API (preferred method)
     const resendConfigured = isResendConfigured();

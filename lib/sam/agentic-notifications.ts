@@ -17,6 +17,7 @@
  */
 
 import { Resend } from 'resend';
+import { z } from 'zod';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { realTimeCacheManager, RealTimeCacheUtils } from '@/lib/redis/realtime-cache';
@@ -212,9 +213,26 @@ const mapRealtimePriority = (
 // SEND NOTIFICATION
 // ============================================================================
 
+let capabilitiesLogged = false;
+
 export async function sendAgenticNotification(
   payload: AgenticNotificationPayload
 ): Promise<AgenticNotificationResult> {
+  if (!capabilitiesLogged) {
+    const caps = getNotificationCapabilities();
+    const available = Object.entries(caps)
+      .filter(([, v]) => v.enabled)
+      .map(([k]) => k);
+    const unavailable = Object.entries(caps)
+      .filter(([, v]) => !v.enabled)
+      .map(([k, v]) => `${k} (${(v as { reason?: string }).reason ?? 'disabled'})`);
+    logger.info('[SAM_NOTIFICATIONS] Channel capabilities:', {
+      available,
+      unavailable: unavailable.length > 0 ? unavailable : 'none',
+    });
+    capabilitiesLogged = true;
+  }
+
   const channels = await resolveChannels(payload);
   const channelsSent: AgenticNotificationChannel[] = [];
   const message = formatMessage(payload.message, payload.actionUrl);
@@ -261,26 +279,33 @@ export async function sendAgenticNotification(
       });
 
       if (user?.email) {
-        const resend = getResendClient();
-        if (resend) {
-          const result = await resend.emails.send({
-            from: 'notifications@taxomind.com',
-            to: user.email,
-            subject: payload.title,
-            html: `
-              <div style="font-family: Arial, sans-serif; padding: 20px;">
-                <h2>${payload.title}</h2>
-                <p>${payload.message}</p>
-                ${payload.actionUrl ? `<p><a href="${payload.actionUrl}">Open in Taxomind</a></p>` : ''}
-              </div>
-            `,
-          });
-          emailId = result.data?.id;
-          channelsSent.push('email');
-        } else {
-          logger.info('[SAM_NOTIFICATIONS] Email channel skipped (RESEND_API_KEY not set)', {
+        const emailValidation = z.string().email().safeParse(user.email);
+        if (!emailValidation.success) {
+          logger.warn('[SAM_NOTIFICATIONS] Invalid email format, skipping email send', {
             userId: payload.userId,
           });
+        } else {
+          const resend = getResendClient();
+          if (resend) {
+            const result = await resend.emails.send({
+              from: 'notifications@taxomind.com',
+              to: emailValidation.data,
+              subject: payload.title,
+              html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                  <h2>${payload.title}</h2>
+                  <p>${payload.message}</p>
+                  ${payload.actionUrl ? `<p><a href="${payload.actionUrl}">Open in Taxomind</a></p>` : ''}
+                </div>
+              `,
+            });
+            emailId = result.data?.id;
+            channelsSent.push('email');
+          } else {
+            logger.info('[SAM_NOTIFICATIONS] Email channel skipped (RESEND_API_KEY not set)', {
+              userId: payload.userId,
+            });
+          }
         }
       }
     } catch (error) {

@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { rateLimitAuth, AuthEndpoint, AUTH_RATE_LIMITS } from '@/lib/rate-limit';
 import { getClientIdentifier } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const { searchParams } = new URL(req.url);
   const endpoint = searchParams.get('endpoint') as AuthEndpoint;
   const testId = searchParams.get('testId') || 'default-test';
@@ -80,6 +84,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await req.json();
     const { endpoint, identifier, requests } = body;

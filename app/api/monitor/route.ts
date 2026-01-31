@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
 import { logger } from '@/lib/logger';
+import { withAdminAuth } from '@/lib/api/with-api-auth';
 
-export async function GET() {
+export const GET = withAdminAuth(async (request, context) => {
   try {
     const startTime = Date.now();
     
@@ -75,4 +76,4 @@ export async function GET() {
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
+}, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });

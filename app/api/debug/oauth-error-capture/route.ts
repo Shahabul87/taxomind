@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Store to capture errors
 let lastOAuthError: any = null;
@@ -22,6 +23,9 @@ export function captureOAuthAttempt(data: any) {
 }
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     lastOAuthError,

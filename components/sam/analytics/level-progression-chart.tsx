@@ -372,6 +372,7 @@ export function LevelProgressionChart({
   className,
 }: LevelProgressionChartProps) {
   // Generate sample data if not provided
+  const isUsingDemoData = !xpHistory;
   const chartData = useMemo(() => xpHistory ?? generateSampleXPHistory(), [xpHistory]);
 
   // Calculate insights
@@ -495,10 +496,15 @@ export function LevelProgressionChart({
       {/* XP Timeline Chart */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-500" />
-            XP Progression Timeline
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-500" />
+              XP Progression Timeline
+            </CardTitle>
+            {isUsingDemoData && (
+              <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+            )}
+          </div>
           <CardDescription>Your experience points growth over time</CardDescription>
         </CardHeader>
         <CardContent>

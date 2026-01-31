@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   successResponse,
@@ -6,21 +6,10 @@ import {
   ErrorCodes,
   HttpStatus,
 } from "@/lib/api-utils";
+import { withAdminAuth } from "@/lib/api/with-api-auth";
 
-export async function POST(req: NextRequest) {
+export const POST = withAdminAuth(async (request, context) => {
   try {
-    // Check for admin authorization (you can add proper auth check here)
-    const authHeader = req.headers.get("authorization");
-    const adminKey = process.env.ADMIN_FIX_KEY || "fix-dashboard-2024";
-
-    if (authHeader !== `Bearer ${adminKey}`) {
-      return errorResponse(
-        ErrorCodes.UNAUTHORIZED,
-        "Admin authorization required",
-        HttpStatus.UNAUTHORIZED
-      );
-    }
-
     console.log("🔧 Starting dashboard_activities table fix...");
 
     // Check if table exists
@@ -213,9 +202,9 @@ export async function POST(req: NextRequest) {
       HttpStatus.INTERNAL_ERROR
     );
   }
-}
+}, { rateLimit: { requests: 5, window: 60000 }, auditLog: true });
 
-export async function GET(req: NextRequest) {
+export const GET = withAdminAuth(async (request, context) => {
   try {
     // Check table status
     const tableCheck = await db.$queryRaw`
@@ -255,4 +244,4 @@ export async function GET(req: NextRequest) {
       HttpStatus.INTERNAL_ERROR
     );
   }
-}
+}, { rateLimit: { requests: 5, window: 60000 }, auditLog: true });

@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 /**
  * Auth Initialization Test
  * Tests each component of the auth system in isolation to find the exact failure point
  */
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     nodeEnv: process.env.NODE_ENV,

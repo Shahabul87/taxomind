@@ -6,9 +6,6 @@ import { CommerceProvider } from '@/components/commerce/commerce-context';
 import { PresenceTrackingProvider } from '@/components/sam/presence';
 import { initAnalyticsDomBridge } from '@/lib/analytics/dom-bridge';
 
-// SAM AI Assistant - Conversational AI Mentor (dynamically loaded to prevent SSR issues)
-import { SAMAssistantWrapper } from '@/components/sam/SAMAssistantWrapper';
-
 // SAM Context Tracker - Automatically syncs page context with SAM
 import { SAMContextTracker } from '@/components/sam/SAMContextTracker';
 
@@ -51,9 +48,6 @@ export default function CourseDetailLayout({
         <div className="min-h-screen">
           {children}
         </div>
-
-        {/* SAM AI Assistant - Always available during course learning */}
-        <SAMAssistantWrapper />
       </PresenceTrackingProvider>
     </CommerceProvider>
   );

@@ -367,6 +367,7 @@ export function WeeklyTrendsChart({
   className,
 }: WeeklyTrendsChartProps) {
   // Generate sample data if not provided
+  const isUsingDemoData = !dailyData;
   const chartDailyData = useMemo(() => dailyData ?? generateSampleDailyData(), [dailyData]);
 
   const chartWeeklyData = useMemo(
@@ -511,10 +512,15 @@ export function WeeklyTrendsChart({
         <TabsContent value="daily" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                Daily Study Time
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  Daily Study Time
+                </CardTitle>
+                {isUsingDemoData && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+                )}
+              </div>
               <CardDescription>Your study activity over the past weeks</CardDescription>
             </CardHeader>
             <CardContent>

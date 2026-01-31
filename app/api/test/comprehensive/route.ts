@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Comprehensive API test endpoint with multiple test scenarios
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const searchParams = req.nextUrl.searchParams;
   const testType = searchParams.get('type') || 'basic';
   
@@ -75,6 +79,9 @@ export async function GET(req: NextRequest) {
 
 // POST endpoint for testing request body handling
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await req.json();
     
@@ -122,6 +129,9 @@ export async function POST(req: NextRequest) {
 
 // PUT endpoint for testing updates
 export async function PUT(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await req.json();
     
@@ -145,6 +155,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE endpoint for testing deletions
 export async function DELETE(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const searchParams = req.nextUrl.searchParams;
   const id = searchParams.get('id');
   
@@ -168,6 +181,9 @@ export async function DELETE(req: NextRequest) {
 
 // PATCH endpoint for testing partial updates
 export async function PATCH(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await req.json();
     

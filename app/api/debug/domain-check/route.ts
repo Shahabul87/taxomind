@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(request: Request) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const url = new URL(request.url);
     const currentDomain = `${url.protocol}//${url.host}`;

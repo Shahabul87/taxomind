@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Get current session
     const session = await auth();
@@ -224,6 +228,9 @@ export async function GET(request: NextRequest) {
 
 // POST endpoint for testing data modifications
 export async function POST(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const session = await auth();
     const isDevelopment = process.env.NODE_ENV === 'development';

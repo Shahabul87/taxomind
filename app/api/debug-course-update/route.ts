@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { debugGuard } from "@/lib/debug-guard";
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export const runtime = 'nodejs';
 
@@ -10,6 +11,9 @@ export const runtime = 'nodejs';
  * This endpoint is for diagnostic purposes and should not be available in production
  */
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   // SECURITY: Gate debug endpoint
   const guardResult = await debugGuard();
   if (guardResult) return guardResult;
@@ -75,6 +79,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   // SECURITY: Gate debug endpoint
   const guardResult = await debugGuard();
   if (guardResult) return guardResult;

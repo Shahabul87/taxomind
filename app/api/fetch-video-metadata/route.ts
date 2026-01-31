@@ -2,6 +2,23 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import { load } from 'cheerio';
 import { logger } from '@/lib/logger';
+import { withAuth } from '@/lib/api/with-api-auth';
+
+const ALLOWED_VIDEO_DOMAINS = [
+  'youtube.com',
+  'www.youtube.com',
+  'youtu.be',
+  'vimeo.com',
+  'www.vimeo.com',
+  'player.vimeo.com',
+  'dailymotion.com',
+  'www.dailymotion.com',
+  'wistia.com',
+  'www.wistia.com',
+  'fast.wistia.com',
+  'loom.com',
+  'www.loom.com',
+];
 
 // Direct function to extract YouTube video ID
 function extractYouTubeId(url: string): string | null {
@@ -32,9 +49,9 @@ const axiosConfig = {
   },
 };
 
-export async function GET(req: Request) {
+export const GET = withAuth(async (request, context) => {
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = new URL(request.url);
     const url = searchParams.get('url');
 
     if (!url) {
@@ -45,11 +62,20 @@ export async function GET(req: Request) {
     }
 
     // Validate URL format
+    let parsedUrl: URL;
     try {
-      new URL(url);
+      parsedUrl = new URL(url);
     } catch {
       return NextResponse.json(
         { error: 'Invalid URL format' },
+        { status: 400 }
+      );
+    }
+
+    // SSRF protection: only allow known video platform domains
+    if (!ALLOWED_VIDEO_DOMAINS.includes(parsedUrl.hostname)) {
+      return NextResponse.json(
+        { error: 'Domain not allowed. Only known video platforms are supported.' },
         { status: 400 }
       );
     }
@@ -76,7 +102,7 @@ export async function GET(req: Request) {
     
     return NextResponse.json(fallbackData, { status: 200 });
   }
-}
+}, { rateLimit: { requests: 30, window: 60000 } });
 
 async function extractVideoMetadata(url: string) {
   // Base metadata object

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import os from 'os';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Health check endpoint with system metrics
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const startTime = Date.now();
   
   try {

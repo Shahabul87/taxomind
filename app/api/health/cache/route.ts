@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { redisCache } from '@/lib/cache/redis-cache';
 import { getQueryPerformanceMetrics } from '@/lib/db/query-optimizer';
 import { logger } from '@/lib/logger';
+import { withAdminAuth } from '@/lib/api/with-api-auth';
 
 export const runtime = 'nodejs';
 
@@ -9,7 +10,7 @@ export const runtime = 'nodejs';
  * Health check endpoint for Redis cache and query optimization
  * GET /api/health/cache
  */
-export async function GET() {
+export const GET = withAdminAuth(async (request, context) => {
   try {
     // Get Redis cache health
     const cacheHealth = await redisCache.healthCheck();
@@ -95,15 +96,15 @@ export async function GET() {
       { status: 503 }
     );
   }
-}
+}, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });
 
 /**
  * Test cache functionality
  * POST /api/health/cache
  */
-export async function POST(req: Request) {
+export const POST = withAdminAuth(async (request, context) => {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const { action, key, value, ttl } = body;
     
     let result: any = {};
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
+}, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });
 
 // Helper function to calculate average performance
 function calculateAveragePerformance(queryMetrics: any): any {

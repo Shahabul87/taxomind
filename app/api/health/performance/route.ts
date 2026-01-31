@@ -3,8 +3,9 @@ import { perfMonitor } from "@/lib/monitoring/performance";
 import { cache } from "@/lib/cache/simple-cache";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { withAdminAuth } from '@/lib/api/with-api-auth';
 
-export async function GET() {
+export const GET = withAdminAuth(async (request, context) => {
   try {
     // Test database connection
     const dbStartTime = Date.now();
@@ -61,7 +62,7 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+}, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });
 
 function calculateHealthScore(avgResponseTime: number, dbResponseTime: number): number {
   let score = 100;

@@ -196,6 +196,7 @@ export function RetentionCurveChart({
   days = 30,
 }: RetentionCurveChartProps) {
   // Generate demo data if not provided
+  const isUsingDemoData = !retentionData?.length;
   const chartData = useMemo(() => {
     if (retentionData?.length) return retentionData;
 
@@ -224,6 +225,11 @@ export function RetentionCurveChart({
 
   return (
     <div className={cn('space-y-6', className)}>
+      {isUsingDemoData && (
+        <div className="flex justify-end">
+          <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+        </div>
+      )}
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>

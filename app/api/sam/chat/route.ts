@@ -1,78 +1,59 @@
-import { auth } from '@/auth';
-import { logger } from '@/lib/logger';
-import {
-  createRouteHandlerFactory,
-  createErrorResponse,
-} from '@sam-ai/api';
-import { getSAMConfig } from '@/lib/adapters/sam-config-factory';
-import { createNextSAMHandler } from '@/lib/sam-api/next-handler';
-import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
+/**
+ * DEPRECATED: /api/sam/chat
+ * All SAM chat traffic now routes through /api/sam/unified.
+ * This proxy exists for backwards compatibility and will be removed in a future release.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 
-function normalizeRole(role?: string): 'teacher' | 'student' {
-  if (!role) return 'student';
-  const upperRole = role.toUpperCase();
-  return ['ADMIN', 'TEACHER', 'INSTRUCTOR'].includes(upperRole) ? 'teacher' : 'student';
-}
-
-const factory = createRouteHandlerFactory({
-  config: getSAMConfig(),
-  authenticate: async () => {
-    const session = await auth();
-    if (!session?.user?.id) return null;
-
-    return {
-      id: session.user.id,
-      role: normalizeRole(session.user.role),
-      name: session.user.name ?? undefined,
-    };
-  },
-  onError: (error) => {
-    logger.error('[SAM-CHAT] Error:', error);
-    return createErrorResponse(
-      500,
-      'INTERNAL_ERROR',
-      'Failed to generate SAM response'
-    );
-  },
-});
-
-const chatHandler = factory.createHandler(factory.handlers.chat, { requireAuth: true });
-const baseHandler = createNextSAMHandler(chatHandler);
-
-// Wrapper to add subscription enforcement
 export async function POST(request: NextRequest) {
-  // First, check authentication
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  logger.warn('[SAM-CHAT] Deprecated route called — forwarding to /api/sam/unified');
 
-  // Check subscription tier and usage limits for chat
-  const accessCheck = await checkAIAccess(session.user.id, "chat");
-  if (!accessCheck.allowed) {
+  try {
+    // Build the internal URL for the unified endpoint
+    const url = new URL('/api/sam/unified', request.nextUrl.origin);
+
+    // Forward the request with cookie passthrough for auth
+    const body = await request.text();
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        cookie: request.headers.get('cookie') || '',
+      },
+      body,
+    });
+
+    // Parse the unified response
+    const data = await response.json();
+
+    // Transform into the legacy { success, data: { message, suggestions, actions } } format
+    // that SAMProvider's defaultParseResponse expects
+    const legacyResponse = {
+      success: data.success ?? true,
+      data: {
+        message: data.response ?? '',
+        suggestions: data.suggestions ?? [],
+        actions: data.actions ?? [],
+      },
+    };
+
+    return NextResponse.json(legacyResponse, { status: response.status });
+  } catch (error) {
+    logger.error('[SAM-CHAT] Proxy error:', error);
     return NextResponse.json(
       {
-        error: accessCheck.reason || "AI access denied",
-        upgradeRequired: accessCheck.upgradeRequired,
-        suggestedTier: accessCheck.suggestedTier,
-        remainingDaily: accessCheck.remainingDaily,
-        remainingMonthly: accessCheck.remainingMonthly,
-        maintenanceMode: accessCheck.maintenanceMode,
+        success: false,
+        data: {
+          message: 'Failed to process request. Please try again.',
+          suggestions: [],
+          actions: [],
+        },
       },
-      { status: accessCheck.maintenanceMode ? 503 : 403 }
+      { status: 500 }
     );
   }
-
-  // Call the original handler
-  const response = await baseHandler(request);
-
-  // Record chat usage on successful response
-  if (response.ok) {
-    await recordAIUsage(session.user.id, "chat", 1);
-  }
-
-  return response;
 }

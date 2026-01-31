@@ -20,7 +20,6 @@ import {
   SAMAgentOrchestrator,
   createSAMConfig,
   createDefaultContext,
-  createAnthropicAdapter,
   createMemoryCache,
   createContextEngine,
   createContentEngine,
@@ -33,6 +32,9 @@ import {
   type SAMFormField,
   type BloomsEngineOutput,
 } from '@sam-ai/core';
+
+// Import getCoreAIAdapter for 3-tier fallback (Anthropic > OpenAI > DeepSeek) with circuit breaker
+import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 
 // Import Unified Blooms Engine from @sam-ai/educational (replaces core keyword-only engine)
 import {
@@ -229,21 +231,16 @@ interface StreamingSubsystems {
 
 let subsystems: StreamingSubsystems | null = null;
 
-function initializeSubsystems(): StreamingSubsystems {
+async function initializeSubsystems(): Promise<StreamingSubsystems> {
   if (subsystems) {
     return subsystems;
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+  // Create AI adapter using 3-tier fallback (Anthropic > OpenAI > DeepSeek) with circuit breaker
+  const aiAdapter = await getCoreAIAdapter();
+  if (!aiAdapter) {
+    throw new Error('No AI adapter available (all providers failed)');
   }
-
-  const aiAdapter = createAnthropicAdapter({
-    apiKey,
-    timeout: 60000,
-    maxRetries: 2,
-  });
 
   const cacheAdapter = createMemoryCache({
     maxSize: 1000,
@@ -368,8 +365,8 @@ function initializeSubsystems(): StreamingSubsystems {
 }
 
 // Keep backward compatible function
-function getOrchestrator(): SAMAgentOrchestrator {
-  return initializeSubsystems().orchestrator;
+async function getOrchestrator(): Promise<SAMAgentOrchestrator> {
+  return (await initializeSubsystems()).orchestrator;
 }
 
 // ============================================================================
@@ -487,7 +484,7 @@ export async function POST(request: NextRequest) {
       agenticCapabilities: agenticBridge.getEnabledCapabilities(),
     });
 
-    const subs = initializeSubsystems();
+    const subs = await initializeSubsystems();
 
     // =========================================================================
     // TUTORING ORCHESTRATION - Plan-Driven Context Preparation

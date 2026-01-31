@@ -2,9 +2,6 @@
 
 import { ReactNode } from 'react';
 
-// SAM AI Assistant - Conversational AI Mentor (dynamically loaded to prevent SSR issues)
-import { SAMAssistantWrapper } from '@/components/sam/SAMAssistantWrapper';
-
 // SAM Context Tracker - Automatically syncs page context with SAM
 import { SAMContextTracker } from '@/components/sam/SAMContextTracker';
 
@@ -24,9 +21,6 @@ export default function GroupsLayout({
 
       {/* Main content */}
       {children}
-
-      {/* SAM AI Assistant - Always available for study buddy recommendations */}
-      <SAMAssistantWrapper />
     </>
   );
 }

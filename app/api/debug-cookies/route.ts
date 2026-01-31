@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
 
     // Get all cookies

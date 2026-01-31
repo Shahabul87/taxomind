@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 /**
  * Returns the last captured auth error from the NextAuth route
  * This bypasses the "Configuration" masking to show the actual error
  */
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Try to import and get the last error
     const { getLastAuthError } = await import('@/app/api/auth/[...nextauth]/route');

@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
 import { currentUser } from '@/lib/auth';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
 
     const user = await currentUser();

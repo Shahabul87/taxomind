@@ -346,6 +346,7 @@ export function SkillTrajectoryChart({
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
   // Generate sample data if not provided
+  const isUsingDemoData = !skills;
   const chartSkills = useMemo(() => skills ?? generateSampleSkills(), [skills]);
 
   // Group skills by category
@@ -418,6 +419,11 @@ export function SkillTrajectoryChart({
 
   return (
     <div className={cn('space-y-6', className)}>
+      {isUsingDemoData && (
+        <div className="flex justify-end">
+          <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+        </div>
+      )}
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>

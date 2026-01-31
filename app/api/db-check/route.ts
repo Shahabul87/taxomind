@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Publicly accessible route to check database connectivity and counts
 export const dynamic = 'force-dynamic';
@@ -8,6 +9,9 @@ export const revalidate = 0;
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
 
   try {
     // Get counts of various tables

@@ -312,19 +312,32 @@ How can I assist you today?`,
     try {
       const startTime = Date.now();
       
-      const response = await fetch('/api/sam/unified-assistant', {
+      const response = await fetch('/api/sam/unified', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageContent,
-          context: {
-            courseId: courseData.id,
-            title: courseData.title,
-            metrics,
-            completionStatus,
-            enterpriseMode: true
+          pageContext: {
+            type: 'course-detail',
+            path: `/teacher/courses/${courseData.id}`,
+            entityId: courseData.id,
+            entityType: 'course',
+            entityData: {
+              title: courseData.title,
+              description: courseData.description,
+              isPublished: courseData.isPublished,
+              chapterCount: courseData.chapters.length,
+              publishedChapters: courseData.chapters.filter(ch => ch.isPublished).length,
+              sectionCount: courseData.chapters.reduce((sum, ch) => sum + ch.sections.length, 0),
+              objectiveCount: courseData.whatYouWillLearn.length,
+              healthScore: metrics.healthScore,
+              completionPercentage: metrics.completionRate,
+            },
           },
-          conversationHistory: messages.slice(-5)
+          conversationHistory: messages.slice(-5).map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
         }),
       });
 
@@ -334,13 +347,19 @@ How can I assist you today?`,
 
       const result = await response.json();
       const processingTime = Date.now() - startTime;
-      
+
+      // Suggestions may be string[] or SAMSuggestion[] objects
+      const rawSuggestions: unknown[] = result.suggestions || [];
+      const suggestions = rawSuggestions.map((s: unknown) =>
+        typeof s === 'string' ? s : (s as { label?: string }).label ?? ''
+      ).filter(Boolean);
+
       const samMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'sam',
         content: result.response,
         timestamp: new Date(),
-        suggestions: result.suggestions || [],
+        suggestions,
         metadata: {
           processingTime,
           confidence: result.confidence || 0.95
@@ -366,7 +385,7 @@ How can I assist you today?`,
     } finally {
       setIsLoading(false);
     }
-  }, [courseData.id, courseData.title, metrics, messages, completionStatus]);
+  }, [courseData.id, courseData.title, courseData.description, courseData.isPublished, courseData.chapters, courseData.whatYouWillLearn.length, metrics, messages]);
 
   const handleQuickAction = useCallback(async (action: string) => {
     const actionPrompts = {

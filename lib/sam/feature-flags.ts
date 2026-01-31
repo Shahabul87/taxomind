@@ -13,6 +13,7 @@
  *   SAM_INTERVENTIONS_ENABLED=false    # Proactive check-ins and behavior monitoring
  *   SAM_OBSERVABILITY=false            # Telemetry and quality tracking
  *   SAM_TOOL_PERMISSIONS=false         # RBAC for tool execution
+ *   SAM_MEMORY_LIFECYCLE=false         # Auto-reindex on content changes (uses stub adapter if no vector DB)
  *
  * ============================================================================
  * INCOMPLETE FEATURES (Disabled by Default)
@@ -21,7 +22,6 @@
  * These features require additional implementation. To enable (experimental):
  *
  *   SAM_WEBSOCKET_ENABLED=true         # 100% complete - requires NEXT_PUBLIC_WS_URL
- *   SAM_MEMORY_LIFECYCLE=true          # 100% complete - auto-reindex on content changes
  *
  * ============================================================================
  * Usage:
@@ -90,9 +90,10 @@ const SAMFeatureFlagsSchema = z.object({
    * - Scheduled knowledge graph refresh via cron
    * - Memory decay for stale data
    * - Background worker for job processing
-   * - Requires: SAM_MEMORY_LIFECYCLE=true
+   * - Enabled by default (uses stub vector adapter when no vector DB configured)
+   * - Disable with: SAM_MEMORY_LIFECYCLE=false
    */
-  MEMORY_LIFECYCLE_ENABLED: z.boolean().default(false),
+  MEMORY_LIFECYCLE_ENABLED: z.boolean().default(true),
 
   /**
    * Phase 6: Observability - Full metrics and quality tracking (100% complete)
@@ -105,6 +106,24 @@ const SAMFeatureFlagsSchema = z.object({
    * - Requires: SAM_OBSERVABILITY=true
    */
   OBSERVABILITY_ENABLED: z.boolean().default(false),
+
+  /**
+   * Phase 7: Multi-Agent Coordination
+   * - Routes complex queries through MultiAgentCoordinator
+   * - Enables safety, quality, and pedagogy agents for collaborative decisions
+   * - Fallback: standard parallel processing if coordinator fails
+   * - Requires: SAM_MULTI_AGENT_COORDINATION=true
+   */
+  MULTI_AGENT_COORDINATION: z.boolean().default(false),
+
+  /**
+   * Phase 8: Real-Time Interventions via SSE
+   * - Chat UI subscribes to /api/sam/realtime/events
+   * - Intervention banners appear in real-time
+   * - Connection status indicator
+   * - Repurposes WEBSOCKET_ENABLED for all real-time features
+   */
+  REALTIME_INTERVENTIONS: z.boolean().default(false),
 });
 
 /**
@@ -141,7 +160,6 @@ function parseEnvFlag(envVar: string | undefined, enableByDefaultInDev: boolean 
  *
  * Incomplete features are DISABLED by default (require explicit opt-in):
  * - WEBSOCKET_ENABLED: Requires NEXT_PUBLIC_WS_URL to be set (100% complete)
- * - MEMORY_LIFECYCLE_ENABLED: Auto-reindex on content changes (100% complete)
  */
 function parseFeatureFlags(): SAMFeatureFlags {
   const envFlags = {
@@ -156,7 +174,11 @@ function parseFeatureFlags(): SAMFeatureFlags {
       process.env.SAM_WEBSOCKET_ENABLED ?? process.env.NEXT_PUBLIC_SAM_WEBSOCKET_ENABLED,
       false
     ),
-    MEMORY_LIFECYCLE_ENABLED: parseEnvFlag(process.env.SAM_MEMORY_LIFECYCLE, false),
+    MEMORY_LIFECYCLE_ENABLED: process.env.SAM_MEMORY_LIFECYCLE !== 'false',
+    // Multi-agent coordination - disabled by default, opt-in
+    MULTI_AGENT_COORDINATION: parseEnvFlag(process.env.SAM_MULTI_AGENT_COORDINATION, false),
+    // Real-time interventions via SSE - disabled by default
+    REALTIME_INTERVENTIONS: parseEnvFlag(process.env.SAM_REALTIME_INTERVENTIONS, false),
   };
 
   // Parse with Zod for validation and defaults
@@ -267,6 +289,8 @@ export const FEATURE_DEPENDENCIES: Record<SAMFeatureKey, SAMFeatureKey[]> = {
   TOOL_PERMISSIONS_ENABLED: [],
   MEMORY_LIFECYCLE_ENABLED: [],
   OBSERVABILITY_ENABLED: [],
+  MULTI_AGENT_COORDINATION: [], // Standalone, falls back to parallel processing
+  REALTIME_INTERVENTIONS: [], // Uses SSE, works independently of WebSocket
 };
 
 /**

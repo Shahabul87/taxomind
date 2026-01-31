@@ -249,16 +249,34 @@ export function SamCourseAssistant({
     try {
       const contextData = context || buildCourseContext();
       
-      const response = await fetch('/api/sam/course-assistant', {
+      const response = await fetch('/api/sam/unified', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: messageContent,
-          courseContext: contextData,
-          conversationHistory: messages.slice(-5), // Last 5 messages for context
-          selectedContext
+          pageContext: {
+            type: 'course-detail',
+            path: `/teacher/courses/${contextData.courseId}`,
+            entityId: contextData.courseId,
+            entityType: 'course',
+            entityData: {
+              title: contextData.title,
+              description: contextData.description,
+              isPublished: contextData.isPublished,
+              chapterCount: contextData.totalChapters,
+              publishedChapters: contextData.publishedChapters,
+              sectionCount: contextData.totalSections,
+              objectiveCount: contextData.objectiveCount,
+              healthScore: contextData.healthScore,
+              completionPercentage: contextData.completionPercentage,
+            },
+          },
+          conversationHistory: messages.slice(-5).map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
         }),
       });
 
@@ -267,15 +285,21 @@ export function SamCourseAssistant({
       }
 
       const result = await response.json();
-      
+
+      // Map unified response: suggestions may be SAMSuggestion objects
+      const rawSuggestions: unknown[] = result.suggestions ?? [];
+      const mappedSuggestions = rawSuggestions.map((s) =>
+        typeof s === 'string' ? s : (s as { label?: string }).label ?? ''
+      ).filter(Boolean);
+
       // Add SAM response
       const samMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'sam',
-        content: result.response,
+        content: result.response ?? '',
         timestamp: new Date(),
-        suggestions: result.suggestions || [],
-        data: result.data
+        suggestions: mappedSuggestions,
+        data: result.insights ?? null
       };
       
       setMessages(prev => [...prev, samMessage]);

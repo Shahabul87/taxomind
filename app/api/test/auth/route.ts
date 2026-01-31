@@ -3,9 +3,13 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Authentication testing endpoint
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const searchParams = req.nextUrl.searchParams;
   const test = searchParams.get('test') || 'session';
   
@@ -199,6 +203,9 @@ export async function GET(req: NextRequest) {
 
 // POST endpoint for auth operations testing
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await req.json();
     const { operation = 'validate' } = body;

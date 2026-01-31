@@ -421,6 +421,7 @@ export function EfficiencyDashboard({
   className,
 }: EfficiencyDashboardProps) {
   // Generate sample data if not provided
+  const isUsingDemoData = !metrics;
   const chartMetrics = useMemo(() => metrics ?? generateSampleMetrics(), [metrics]);
   const chartTopicEfficiency = useMemo(
     () => topicEfficiency ?? generateSampleTopicEfficiency(),
@@ -527,10 +528,15 @@ export function EfficiencyDashboard({
       {/* Efficiency Over Time */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5" />
-            Learning Efficiency Over Time
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Learning Efficiency Over Time
+            </CardTitle>
+            {isUsingDemoData && (
+              <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+            )}
+          </div>
           <CardDescription>
             Track how effectively you&apos;re converting study time into mastery
           </CardDescription>

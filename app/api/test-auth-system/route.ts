@@ -5,6 +5,7 @@
 
 import { NextRequest } from "next/server";
 import { withAuth, ApiResponses, APIAuthContext } from "@/lib/api";
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export const GET = withAuth(
   async (request: NextRequest, context: APIAuthContext) => {

@@ -300,16 +300,35 @@ export function SamFloatingChatbot({
         generatedContent: 'generatedContent' in samContext ? samContext.generatedContent : null
       };
       
-      const response = await fetch('/api/sam/course-assistant-enhanced', {
+      const response = await fetch('/api/sam/unified', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           message: messageContent,
-          courseContext: enhancedContext,
-          conversationHistory: messages.slice(-5),
-          samMemoryContext: samContext
+          pageContext: {
+            type: 'course-detail',
+            path: `/teacher/courses/${baseContext.courseId}`,
+            entityId: baseContext.courseId,
+            entityType: 'course',
+            entityData: {
+              title: baseContext.title,
+              description: baseContext.description,
+              isPublished: baseContext.isPublished,
+              chapterCount: baseContext.totalChapters,
+              publishedChapters: baseContext.publishedChapters,
+              sectionCount: baseContext.totalSections,
+              objectiveCount: baseContext.objectiveCount,
+              healthScore: baseContext.healthScore,
+              completionPercentage: baseContext.completionPercentage,
+              samMemoryContext: enhancedContext.samMemoryContext,
+            },
+          },
+          conversationHistory: messages.slice(-5).map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
         }),
       });
 
@@ -318,29 +337,37 @@ export function SamFloatingChatbot({
       }
 
       const result = await response.json();
-      
+
+      // Map unified response: suggestions may be SAMSuggestion objects
+      const rawSuggestions: unknown[] = result.suggestions ?? [];
+      const mappedSuggestions = rawSuggestions.map((s: unknown) =>
+        typeof s === 'string' ? s : (s as { label?: string }).label ?? ''
+      ).filter(Boolean);
+
+      const responseText: string = result.response ?? '';
+
       const samMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'sam',
-        content: result.response,
+        content: responseText,
         timestamp: new Date(),
-        suggestions: result.suggestions || []
+        suggestions: mappedSuggestions
       };
-      
+
       setMessages(prev => [...prev, samMessage]);
-      
+
       // Save SAM response to memory
       samMemory.addConversation({
         type: 'sam',
-        content: result.response,
+        content: responseText,
         context: 'course-management',
         page: 'course-management',
-        suggestions: result.suggestions,
-        actionsTaken: result.actionsTaken
+        suggestions: mappedSuggestions,
+        actionsTaken: result.actions ?? []
       });
-      
-      // Handle form synchronization if data is provided
-      if (result.data && Object.keys(result.data).length > 0) {
+
+      // Handle form synchronization if insights data is provided
+      if (result.insights && Object.keys(result.insights).length > 0) {
 
         toast.success('Content generated with synchronization data!');
       }

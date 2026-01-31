@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -9,6 +10,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ courseId: string }> }
 ) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const { courseId } = await params;
     const user = await currentUser();

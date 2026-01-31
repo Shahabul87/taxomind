@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
   };

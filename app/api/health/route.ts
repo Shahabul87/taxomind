@@ -109,6 +109,20 @@ export async function GET(req: NextRequest) {
     logger.debug('[HEALTH_CHECK] SAM status unavailable:', error);
   }
 
+  // Notification channel capabilities
+  try {
+    const { getNotificationCapabilities } = await import('@/lib/sam/agentic-notifications');
+    const caps = getNotificationCapabilities();
+    (health as Record<string, unknown>).notifications = {
+      in_app: 'available',
+      email: caps.email.enabled ? 'available' : caps.email.reason,
+      push: caps.push.enabled ? 'available' : caps.push.reason,
+      sms: caps.sms.enabled ? 'available' : caps.sms.reason,
+    };
+  } catch (error) {
+    logger.debug('[HEALTH_CHECK] Notification capabilities unavailable:', error);
+  }
+
   // Database pool metrics
   try {
     const dbPoolMetrics = getDbMetrics();

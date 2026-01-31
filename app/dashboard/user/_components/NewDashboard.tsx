@@ -31,9 +31,6 @@ import { AchievementBadges } from "@/components/sam/AchievementBadges";
 // SAM AI Leaderboard Widget
 import { LeaderboardWidget as SAMLeaderboardWidget } from "@/components/sam/LeaderboardWidget";
 
-// SAM AI Assistant - Conversational AI Mentor (dynamically loaded to prevent SSR issues)
-import { SAMAssistantWrapper } from "@/components/sam/SAMAssistantWrapper";
-
 // SAM Context Tracker - Automatically syncs page context with SAM
 import { SAMContextTracker } from "@/components/sam/SAMContextTracker";
 
@@ -356,9 +353,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
         {/* Learning Tabs Container - Sub-tab navigation for better organization */}
         <LearningTabsContainer user={user} onCreateStudyPlan={onCreateStudyPlan} />
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
-
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
           request={pendingRequest}
@@ -410,9 +404,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
         </div>
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
-
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
           request={pendingRequest}
@@ -443,8 +434,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
 
         <CognitiveProfileDashboard userId={user.id ?? ""} />
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
 
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
@@ -540,8 +529,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
         </div>
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
 
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
@@ -626,8 +613,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
         </div>
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
 
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
@@ -735,8 +720,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
         </div>
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
 
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
@@ -769,8 +752,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           <LearningGapDashboard />
         </div>
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
 
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
@@ -803,8 +784,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           <InnovationDashboard userId={user.id} />
         </div>
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
 
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
@@ -905,8 +884,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           </div>
         </div>
 
-        {/* SAM AI Assistant - Always available conversational mentor */}
-        <SAMAssistantWrapper />
 
         {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
         <ToolApprovalDialog
@@ -1020,9 +997,6 @@ export function NewDashboard({ user, viewMode, activeTab, onCreateStudyPlan, stu
           />
         )}
       </div>
-      {/* SAM AI Assistant - Always available conversational mentor */}
-      <SAMAssistantWrapper />
-
       {/* Gap 3: Tool Approval Dialog for SAM tool executions */}
       <ToolApprovalDialog
         request={pendingRequest}

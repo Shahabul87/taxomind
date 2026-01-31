@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { PrismaAdapter } from '@auth/prisma-adapter';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
   };

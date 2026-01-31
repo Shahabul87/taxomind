@@ -262,14 +262,16 @@ model MindLike {
 }
 
 model Notification {
-  id        String   @id
-  title     String
-  message   String
-  type      String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  userId    String
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id
+  title       String
+  message     String
+  type        String
+  read        Boolean   @default(false)
+  feedback    String?
+  dismissedAt DateTime?
+  createdAt   DateTime  @default(now())
+  userId      String
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const config = {
       hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,

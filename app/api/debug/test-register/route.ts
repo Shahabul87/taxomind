@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import * as bcrypt from 'bcryptjs';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function POST(request: Request) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const logs: string[] = [];
 
   try {
@@ -144,6 +148,9 @@ export async function POST(request: Request) {
 
 // Also add GET endpoint for quick check
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   return NextResponse.json({
     message: 'Test registration endpoint. Use POST with { email, password, name } to test registration flow.',
     example: {

@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const user = await currentUser();
 
@@ -48,6 +52,9 @@ export async function GET() {
 
 // Test role-specific endpoints
 export async function POST() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const user = await currentUser();
 

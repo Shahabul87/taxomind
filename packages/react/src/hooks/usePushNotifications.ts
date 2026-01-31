@@ -231,7 +231,7 @@ export function usePushNotifications(options: UsePushNotificationsOptions = {}):
     // Register service worker and get existing subscription
     const init = async () => {
       try {
-        const registration = await navigator.serviceWorker.register(opts.serviceWorkerPath);
+        const registration = await navigator.serviceWorker.register(opts.serviceWorkerPath || '/sw.js');
         swRegistrationRef.current = registration;
 
         // Get existing subscription

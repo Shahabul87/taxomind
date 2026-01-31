@@ -21,7 +21,6 @@ import {
   SAMAgentOrchestrator,
   createSAMConfig,
   createDefaultContext,
-  createAnthropicAdapter,
   createMemoryCache,
   createContextEngine,
   createContentEngine,
@@ -35,6 +34,9 @@ import {
   type BloomsEngineOutput,
 } from '@sam-ai/core';
 
+// Import getCoreAIAdapter for 3-tier fallback (Anthropic > OpenAI > DeepSeek) with circuit breaker
+import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+
 // Import Unified Blooms Engine from @sam-ai/educational (replaces core keyword-only engine)
 import {
   createUnifiedBloomsAdapterEngine,
@@ -45,6 +47,9 @@ import { buildEntityContext, buildFormSummary } from '@/lib/sam/entity-context';
 
 // Import rate limiter for usage caps
 import { applyRateLimit, samMessagesLimiter } from '@/lib/sam/config/sam-rate-limiter';
+
+// Import subscription enforcement for tier-based access control
+import { checkAIAccess, recordAIUsage } from '@/lib/ai/subscription-enforcement';
 
 // Import Prisma database adapter for SAM
 import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
@@ -164,6 +169,31 @@ const UnifiedRequestSchema = z.object({
     // If true, automatically find the user's active plan
     autoDetectPlan: z.boolean().optional().default(true),
   }).optional(),
+  // Compat: teacher assistant sends 'context' instead of 'pageContext'
+  context: z.object({
+    courseId: z.string().optional(),
+    title: z.string().optional(),
+    chaptersCount: z.number().optional(),
+    objectivesCount: z.number().optional(),
+    isPublished: z.boolean().optional(),
+    healthScore: z.number().optional(),
+    completionStatus: z.record(z.boolean()).optional(),
+    metrics: z.any().optional(),
+    enterpriseMode: z.boolean().optional(),
+  }).optional(),
+  // Compat: course-assistant / chat-enhanced sends 'courseContext' (rich course data)
+  courseContext: z.record(z.unknown()).optional(),
+  // Compat: chat-enhanced sends bare 'courseId'
+  courseId: z.string().nullable().optional(),
+  // Compat: chat-enhanced sends 'conversationId' for threading
+  conversationId: z.string().nullable().optional(),
+  // Compat: SAMProvider may send 'history' in SAMMessage format
+  history: z.array(z.object({
+    role: z.string(),
+    content: z.string(),
+  })).optional(),
+  // Compat: teacher assistant action hint
+  action: z.enum(['structure', 'objectives', 'analytics', 'help', 'general']).optional(),
   pageContext: z.object({
     type: z.string(),
     path: z.string(),
@@ -219,7 +249,7 @@ const UnifiedRequestSchema = z.object({
       videoUrl: z.string().nullable().optional(),
     }).optional(),
     entityType: z.enum(['course', 'chapter', 'section']).optional(),
-  }),
+  }).optional(),
   formContext: z.object({
     formId: z.string().optional(),
     formName: z.string().optional(),
@@ -237,6 +267,111 @@ const UnifiedRequestSchema = z.object({
 });
 
 // ============================================================================
+// REQUEST NORMALIZATION (compat for /api/sam/chat and /api/sam/unified-assistant)
+// ============================================================================
+
+type ValidatedRequest = z.infer<typeof UnifiedRequestSchema>;
+
+interface NormalizedRequest {
+  message: string;
+  sessionId?: string;
+  orchestrationContext?: ValidatedRequest['orchestrationContext'];
+  pageContext: NonNullable<ValidatedRequest['pageContext']>;
+  formContext?: ValidatedRequest['formContext'];
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  options?: ValidatedRequest['options'];
+}
+
+/**
+ * Normalize incoming request from any of the three client shapes into the
+ * standard unified format expected by the orchestrator pipeline.
+ *
+ * - SAMProvider sends: { message, context?, history? }
+ * - Teacher assistants send: { message, context: { courseId, title, ... }, conversationHistory: [{ type: 'user'|'sam' }] }
+ * - Direct unified callers send: { message, pageContext: { ... }, conversationHistory: [{ role, content }] }
+ */
+function normalizeRequest(data: ValidatedRequest): NormalizedRequest {
+  // Build pageContext — use provided or synthesize from compat fields
+  let pageContext: NonNullable<ValidatedRequest['pageContext']> = data.pageContext ?? {
+    type: 'general',
+    path: '/unknown',
+  };
+
+  // If pageContext was missing but teacher 'context' was provided, synthesize
+  if (!data.pageContext && data.context) {
+    pageContext = {
+      type: 'course-detail',
+      path: data.context.courseId ? `/teacher/courses/${data.context.courseId}` : '/teacher/courses',
+      entityId: data.context.courseId,
+      entityType: 'course',
+      entityData: {
+        title: data.context.title,
+        isPublished: data.context.isPublished,
+        chapterCount: data.context.chaptersCount,
+      },
+    };
+  }
+
+  // If pageContext was missing but 'courseContext' was provided (course-assistant clients)
+  if (!data.pageContext && !data.context && data.courseContext) {
+    const cc = data.courseContext as Record<string, unknown>;
+    const courseIdFromCtx = (cc.courseId as string) ?? undefined;
+    pageContext = {
+      type: 'course-detail',
+      path: courseIdFromCtx ? `/teacher/courses/${courseIdFromCtx}` : '/teacher/courses',
+      entityId: courseIdFromCtx,
+      entityType: 'course',
+      entityData: {
+        title: (cc.title as string) ?? undefined,
+        isPublished: (cc.isPublished as boolean) ?? undefined,
+        chapterCount: (cc.totalChapters as number) ?? (cc.chapterCount as number) ?? undefined,
+        description: (cc.description as string) ?? undefined,
+      },
+    };
+  }
+
+  // If pageContext was missing but bare 'courseId' was provided (chat-enhanced clients)
+  if (!data.pageContext && !data.context && !data.courseContext && data.courseId) {
+    pageContext = {
+      type: 'course-detail',
+      path: `/courses/${data.courseId}`,
+      entityId: data.courseId,
+      entityType: 'course',
+    };
+  }
+
+  // Use conversationId as sessionId when no explicit sessionId was provided
+  const sessionId = data.sessionId ?? (data.conversationId ?? undefined);
+
+  // Normalize conversation history from all possible formats
+  let conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> | undefined;
+
+  if (data.conversationHistory?.length) {
+    // Already in { role, content } format — normalize 'sam' type aliases
+    conversationHistory = data.conversationHistory.map((msg) => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }));
+  } else if (data.history?.length) {
+    // SAMProvider sends history in { role, content } format with varying role values
+    conversationHistory = data.history.map((msg) => ({
+      role: (msg.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: msg.content,
+    }));
+  }
+
+  return {
+    message: data.message,
+    sessionId,
+    orchestrationContext: data.orchestrationContext,
+    pageContext,
+    formContext: data.formContext,
+    conversationHistory,
+    options: data.options,
+  };
+}
+
+// ============================================================================
 // ORCHESTRATOR SINGLETON & SUBSYSTEMS
 // ============================================================================
 
@@ -252,7 +387,7 @@ let proactiveSubsystems: ProactiveInterventionSubsystems | null = null;
 /**
  * Initialize all subsystems (orchestrator, quality gates, pedagogy, memory, tutoring)
  */
-function initializeSubsystems(): {
+async function initializeSubsystems(): Promise<{
   orchestrator: SAMAgentOrchestrator;
   config: SAMConfig;
   quality: ContentQualityGatePipeline;
@@ -261,7 +396,7 @@ function initializeSubsystems(): {
   spacedRep: SpacedRepetitionScheduler;
   tutoring: OrchestrationSubsystems | null;
   proactive: ProactiveInterventionSubsystems | null;
-} {
+}> {
   if (orchestrator && samConfig && qualityPipeline && pedagogyPipeline && masteryTracker && spacedRepScheduler) {
     return {
       orchestrator,
@@ -275,17 +410,11 @@ function initializeSubsystems(): {
     };
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+  // Create AI adapter using 3-tier fallback (Anthropic > OpenAI > DeepSeek) with circuit breaker
+  const aiAdapter = await getCoreAIAdapter();
+  if (!aiAdapter) {
+    throw new Error('No AI adapter available (all providers failed)');
   }
-
-  // Create AI adapter
-  const aiAdapter = createAnthropicAdapter({
-    apiKey,
-    timeout: 60000,
-    maxRetries: 2,
-  });
 
   // Create cache adapter
   const cacheAdapter = createMemoryCache({
@@ -429,8 +558,8 @@ function initializeSubsystems(): {
 }
 
 // Keep backward compatible function
-function getOrchestrator(): SAMAgentOrchestrator {
-  return initializeSubsystems().orchestrator;
+async function getOrchestrator(): Promise<SAMAgentOrchestrator> {
+  return (await initializeSubsystems()).orchestrator;
 }
 
 // ============================================================================
@@ -531,6 +660,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check subscription tier and usage limits for chat
+    const accessCheck = await checkAIAccess(user.id, 'chat');
+    if (!accessCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: accessCheck.reason || 'AI access denied',
+          upgradeRequired: accessCheck.upgradeRequired,
+          suggestedTier: accessCheck.suggestedTier,
+          remainingDaily: accessCheck.remainingDaily,
+          remainingMonthly: accessCheck.remainingMonthly,
+          maintenanceMode: accessCheck.maintenanceMode,
+        },
+        { status: accessCheck.maintenanceMode ? 503 : 403 }
+      );
+    }
+
     // Apply rate limiting
     const rateLimitResult = await applyRateLimit(request, samMessagesLimiter, user.id);
     if (!rateLimitResult.success) {
@@ -549,6 +694,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize request from any of the three client shapes
     const {
       message,
       sessionId: requestedSessionId,
@@ -557,7 +703,7 @@ export async function POST(request: NextRequest) {
       formContext,
       conversationHistory,
       options,
-    } = validation.data;
+    } = normalizeRequest(validation.data);
 
     const sessionId = requestedSessionId
       ?? buildSAMSessionId({
@@ -612,7 +758,7 @@ export async function POST(request: NextRequest) {
     logger.debug('[SAM_UNIFIED] Orchestration feature flag:', { enabled: orchestrationEnabled });
 
     try {
-      const subsystems = initializeSubsystems();
+      const subsystems = await initializeSubsystems();
       if (subsystems.tutoring && orchestrationEnabled) {
         // Auto-detect active plan if not explicitly provided
         const autoDetect = orchestrationContext?.autoDetectPlan !== false;
@@ -838,7 +984,7 @@ export async function POST(request: NextRequest) {
     const formSummary = buildFormSummary(formContext?.fields);
 
     // Initialize all subsystems early for memory context
-    const subsystems = initializeSubsystems();
+    const subsystems = await initializeSubsystems();
 
     // Build tool awareness summary for prompt injection
     let toolsSummary: string | undefined;
@@ -1975,6 +2121,9 @@ export async function POST(request: NextRequest) {
       agenticInterventions: interventions.length,
       agenticToolExecution: toolExecution?.toolId,
     });
+
+    // Record chat usage for subscription enforcement
+    await recordAIUsage(user.id, 'chat', 1);
 
     return NextResponse.json(response, {
       headers: rateLimitResult.headers,

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(): Promise<NextResponse> {
   const debugInfo = {

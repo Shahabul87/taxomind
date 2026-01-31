@@ -427,6 +427,7 @@ export class SAMRealtimeServer {
   private readonly presenceTracker: PresenceTracker;
   private readonly pushDispatcher: ProactivePushDispatcher;
   private readonly connectionManager: ServerConnectionManager;
+  private readonly userEventHandlers: Map<string, Set<(event: SAMWebSocketEvent) => void>> = new Map();
   private isRunning = false;
 
   constructor(config: SAMRealtimeConfig = {}) {
@@ -640,6 +641,19 @@ export class SAMRealtimeServer {
       channels?: Array<'websocket' | 'in_app' | 'email' | 'push_notification' | 'sse'>;
     }
   ): Promise<void> {
+    // Emit to SSE/event subscribers (e.g. SSE endpoint listeners)
+    const handlers = this.userEventHandlers.get(userId);
+    if (handlers) {
+      for (const handler of handlers) {
+        try {
+          handler(event);
+        } catch (e) {
+          logger.warn('[SAM_REALTIME] User event handler error:', e);
+        }
+      }
+    }
+
+    // Dispatch via push dispatcher (WebSocket, in-app, etc.)
     await this.pushDispatcher.dispatchEvent(userId, event, {
       priority: options?.priority,
       channels: options?.channels as Array<'websocket' | 'sse' | 'push_notification' | 'email' | 'in_app'>,
@@ -673,6 +687,24 @@ export class SAMRealtimeServer {
 
   onPresenceChange(callback: (change: PresenceStateChange) => void): () => void {
     return this.presenceTracker.onPresenceChange(callback);
+  }
+
+  /**
+   * Subscribe to user-targeted events (interventions, check-ins, etc.)
+   * Used by SSE endpoint to forward events to connected clients.
+   */
+  onUserEvent(userId: string, callback: (event: SAMWebSocketEvent) => void): () => void {
+    if (!this.userEventHandlers.has(userId)) {
+      this.userEventHandlers.set(userId, new Set());
+    }
+    this.userEventHandlers.get(userId)!.add(callback);
+    return () => {
+      const handlers = this.userEventHandlers.get(userId);
+      if (handlers) {
+        handlers.delete(callback);
+        if (handlers.size === 0) this.userEventHandlers.delete(userId);
+      }
+    };
   }
 
   // ---------------------------------------------------------------------------

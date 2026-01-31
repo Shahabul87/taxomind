@@ -102,6 +102,17 @@ export async function GET(request: NextRequest) {
           });
         }
 
+        // Subscribe to user-targeted events (interventions, check-ins, etc.)
+        const unsubscribeUserEvents = realtimeServer.onUserEvent(userId, (event) => {
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
+            );
+          } catch {
+            logger.debug('[SAM_REALTIME_SSE] Stream closed during user event enqueue', { connectionId });
+          }
+        });
+
         // Subscribe to presence changes for this user
         const unsubscribePresence = realtimeServer.onPresenceChange(async (change) => {
           if (change.userId === userId) {
@@ -123,7 +134,7 @@ export async function GET(request: NextRequest) {
                 encoder.encode(`data: ${JSON.stringify(presenceEvent)}\n\n`)
               );
             } catch {
-              // Stream might be closed
+              logger.debug('[SAM_REALTIME_SSE] Stream closed during presence event enqueue', { connectionId });
             }
           }
         });
@@ -147,6 +158,7 @@ export async function GET(request: NextRequest) {
         // Handle stream close
         request.signal.addEventListener('abort', async () => {
           clearInterval(heartbeatInterval);
+          unsubscribeUserEvents();
           unsubscribePresence();
 
           try {

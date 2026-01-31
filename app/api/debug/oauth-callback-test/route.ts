@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 /**
  * OAuth Callback Flow Debug
  * Tests the specific OAuth callback handling to find where Configuration error occurs
  */
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
   };

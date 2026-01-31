@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const provider = searchParams.get('provider') || 'google';

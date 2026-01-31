@@ -268,8 +268,8 @@ export function useSAMPracticeProblems(
   const getNextHint = useCallback((): ProblemHint | null => {
     if (!currentProblem) return null;
 
-    const unusedHints = currentProblem.hints.filter((h) => !hintsUsed.includes(h.id));
-    const sortedHints = unusedHints.sort((a, b) => a.order - b.order);
+    const unusedHints = currentProblem.hints.filter((h: ProblemHint) => !hintsUsed.includes(h.id));
+    const sortedHints = unusedHints.sort((a: ProblemHint, b: ProblemHint) => a.order - b.order);
 
     if (sortedHints.length > 0) {
       const nextHint = sortedHints[0];

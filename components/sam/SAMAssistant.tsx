@@ -801,12 +801,105 @@ function SAMAssistantInner({
     let unsubscribeIntervention: (() => void) | null = null;
     let unsubscribeRecommendation: (() => void) | null = null;
     let pollingInterval: NodeJS.Timeout | null = null;
+    let sseSource: EventSource | null = null;
+
+    // Shared helper: fetch existing pending items (used by WebSocket and SSE paths)
+    const fetchInitialPendingItems = async () => {
+      const [checkInsRes, interventionsRes] = await Promise.all([
+        fetch('/api/sam/agentic/checkins?status=pending'),
+        fetch('/api/sam/agentic/behavior/interventions?pending=true'),
+      ]);
+
+      if (checkInsRes.ok) {
+        const checkInsData = await checkInsRes.json();
+        if (checkInsData.success && checkInsData.data?.checkIns) {
+          setPendingCheckIns(checkInsData.data.checkIns);
+        }
+      }
+
+      if (interventionsRes.ok) {
+        const interventionsData = await interventionsRes.json();
+        if (interventionsData.success && interventionsData.data?.interventions) {
+          setPendingInterventions(interventionsData.data.interventions);
+        }
+      }
+
+      await fetch('/api/sam/agentic/checkins/evaluate', { method: 'POST' });
+    };
+
+    // SSE middle fallback: connects to /api/sam/realtime/events for push delivery
+    const initSSEFallback = async (): Promise<boolean> => {
+      if (typeof EventSource === 'undefined') return false;
+
+      try {
+        const eventSource = new EventSource('/api/sam/realtime/events');
+        sseSource = eventSource;
+
+        return new Promise<boolean>((resolve) => {
+          const timeout = setTimeout(() => {
+            eventSource.close();
+            sseSource = null;
+            resolve(false);
+          }, 5000);
+
+          eventSource.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+
+              // Handle initial connection acknowledgement
+              if (data.type === 'connected') {
+                clearTimeout(timeout);
+                console.log('[SAMAssistant] SSE connected, using SSE for realtime');
+                resolve(true);
+                return;
+              }
+
+              // Handle interventions
+              if (data.type === 'intervention' || data.type === SAMEventType.INTERVENTION) {
+                const intervention = data.payload as ProactiveIntervention;
+                setPendingInterventions((prev) => {
+                  if (prev.some((i) => i.id === intervention.id)) return prev;
+                  return [...prev, intervention];
+                });
+              }
+
+              // Handle check-ins
+              if (data.type === 'checkin' || data.type === SAMEventType.CHECKIN) {
+                const checkIn = data.payload as ProactiveCheckIn;
+                setPendingCheckIns((prev) => {
+                  if (prev.some((c) => c.id === checkIn.id)) return prev;
+                  return [...prev, checkIn];
+                });
+              }
+            } catch {
+              // Ignore unparseable messages (e.g. heartbeats with unexpected format)
+            }
+          };
+
+          eventSource.onerror = () => {
+            clearTimeout(timeout);
+            if (eventSource.readyState === EventSource.CLOSED) {
+              sseSource = null;
+              resolve(false);
+            }
+          };
+        });
+      } catch {
+        return false;
+      }
+    };
 
     const initRealtime = async () => {
       // Check if WebSocket is configured before attempting connection
       if (!isWebSocketEnabled()) {
-        console.log('[SAMAssistant] WebSocket not configured, using REST polling');
-        await initRestPolling();
+        console.log('[SAMAssistant] WebSocket not configured, trying SSE');
+        const sseConnected = await initSSEFallback();
+        if (sseConnected) {
+          await fetchInitialPendingItems();
+        } else {
+          console.log('[SAMAssistant] SSE failed, using REST polling');
+          await initRestPolling();
+        }
         return;
       }
 
@@ -823,7 +916,6 @@ function SAMAssistantInner({
         unsubscribeCheckIn = realtimeClient.on(SAMEventType.CHECKIN, (event: SAMWebSocketEvent) => {
           const checkIn = event.payload as ProactiveCheckIn;
           setPendingCheckIns((prev) => {
-            // Avoid duplicates
             if (prev.some((c) => c.id === checkIn.id)) return prev;
             return [...prev, checkIn];
           });
@@ -833,55 +925,37 @@ function SAMAssistantInner({
         unsubscribeIntervention = realtimeClient.on(SAMEventType.INTERVENTION, (event: SAMWebSocketEvent) => {
           const intervention = event.payload as ProactiveIntervention;
           setPendingInterventions((prev) => {
-            // Avoid duplicates
             if (prev.some((i) => i.id === intervention.id)) return prev;
             return [...prev, intervention];
           });
         });
 
-        // Subscribe to recommendation events (optional enhancement)
+        // Subscribe to recommendation events
         unsubscribeRecommendation = realtimeClient.on(SAMEventType.RECOMMENDATION, (event: SAMWebSocketEvent) => {
           console.log('[SAMAssistant] Received recommendation:', event.payload);
-          // Could be used to show personalized suggestions in the UI
         });
 
-        // Initial fetch of existing pending items (one-time on connect)
-        const [checkInsRes, interventionsRes] = await Promise.all([
-          fetch('/api/sam/agentic/checkins?status=pending'),
-          fetch('/api/sam/agentic/behavior/interventions?pending=true'),
-        ]);
-
-        if (checkInsRes.ok) {
-          const checkInsData = await checkInsRes.json();
-          if (checkInsData.success && checkInsData.data?.checkIns) {
-            setPendingCheckIns(checkInsData.data.checkIns);
-          }
-        }
-
-        if (interventionsRes.ok) {
-          const interventionsData = await interventionsRes.json();
-          if (interventionsData.success && interventionsData.data?.interventions) {
-            setPendingInterventions(interventionsData.data.interventions);
-          }
-        }
-
-        // Evaluate triggers once on connect
-        await fetch('/api/sam/agentic/checkins/evaluate', { method: 'POST' });
+        // Initial fetch of existing pending items
+        await fetchInitialPendingItems();
 
       } catch (error) {
-        // Only log as error if it's not expected WebSocket not configured case
         const errorMessage = error instanceof Error ? error.message : String(error);
         if (errorMessage.includes('WebSocket not configured')) {
-          console.log('[SAMAssistant] WebSocket not configured, using REST polling fallback');
+          console.log('[SAMAssistant] WebSocket not configured, trying SSE fallback');
         } else {
-          console.warn('[SAMAssistant] Failed to initialize realtime:', errorMessage);
+          console.warn('[SAMAssistant] WebSocket failed, trying SSE fallback:', errorMessage);
         }
-        // Fallback to REST polling if WebSocket fails
-        await initRestPolling();
+        // Try SSE before falling back to REST polling
+        const sseConnected = await initSSEFallback();
+        if (sseConnected) {
+          await fetchInitialPendingItems();
+        } else {
+          await initRestPolling();
+        }
       }
     };
 
-    // REST polling fallback function
+    // REST polling fallback function (final tier)
     const initRestPolling = async () => {
       const fetchProactiveData = async () => {
         try {
@@ -927,12 +1001,15 @@ function SAMAssistantInner({
       unsubscribeCheckIn?.();
       unsubscribeIntervention?.();
       unsubscribeRecommendation?.();
+      // Close SSE connection if active
+      if (sseSource) {
+        sseSource.close();
+        sseSource = null;
+      }
       // Clear polling interval if active
       if (pollingInterval) {
         clearInterval(pollingInterval);
       }
-      // Note: We don't disconnect the client here since it's a singleton
-      // and may be used by other components. The client handles reconnection automatically.
     };
   }, [isOpen, session?.user?.id]);
 

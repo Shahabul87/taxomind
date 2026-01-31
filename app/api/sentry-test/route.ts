@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Test different types of server errors
     const testType = Math.random() > 0.5 ? 'error' : 'exception';
@@ -29,6 +33,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await request.json();
     

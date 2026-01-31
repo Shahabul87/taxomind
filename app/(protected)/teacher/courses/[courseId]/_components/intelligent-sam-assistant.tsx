@@ -467,33 +467,59 @@ What would you like me to help you with today?`,
       // Detect intent and required action
       const intent = detectIntent(messageContent);
       
-      const response = await fetch('/api/sam/intelligent-assistant', {
+      const response = await fetch('/api/sam/unified', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageContent,
-          intent,
-          context: courseContext,
-          conversationHistory: messages.slice(-5)
+          pageContext: {
+            type: 'course-detail',
+            path: `/teacher/courses/${courseContext.courseId}`,
+            entityId: courseContext.courseId,
+            entityType: 'course',
+            entityData: {
+              title: courseContext.title,
+              description: courseContext.description,
+              isPublished: courseContext.isPublished,
+              chapterCount: courseContext.chapterCount,
+              publishedChapters: courseData.chapters?.filter(ch => ch.isPublished).length ?? 0,
+              sectionCount: courseContext.totalSections,
+              objectiveCount: courseContext.objectiveCount,
+              healthScore: courseContext.healthScore,
+              completionPercentage: courseContext.completionRate,
+              bloomsDistribution: courseContext.bloomsDistribution,
+            },
+            capabilities: [
+              ...(courseContext.canUpdateObjectives ? ['update_objectives'] : []),
+              ...(courseContext.canUpdateChapters ? ['update_chapters'] : []),
+              ...(courseContext.canUpdateTitle ? ['update_title'] : []),
+              ...(courseContext.canUpdateDescription ? ['update_description'] : []),
+              ...(courseContext.canDeleteChapters ? ['delete_chapters'] : []),
+            ],
+          },
+          conversationHistory: messages.slice(-5).map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
         }),
       });
 
       if (!response.ok) throw new Error(`API Error: ${response.status}`);
 
       const result = await response.json();
-      
-      // Handle form updates if action is provided
-      if (result.action) {
-        await handleFormAction(result.action);
-      }
-      
+
+      // Map unified response: suggestions may be SAMSuggestion objects
+      const rawSuggestions: unknown[] = result.suggestions ?? [];
+      const mappedSuggestions = rawSuggestions.map((s: unknown) =>
+        typeof s === 'string' ? s : (s as { label?: string }).label ?? ''
+      ).filter(Boolean);
+
       const samMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'sam',
-        content: result.response,
+        content: result.response ?? '',
         timestamp: new Date(),
-        suggestions: result.suggestions || [],
-        action: result.action
+        suggestions: mappedSuggestions,
       };
       
       setMessages(prev => [...prev, samMessage]);
@@ -515,7 +541,7 @@ What would you like me to help you with today?`,
     } finally {
       setIsLoading(false);
     }
-  }, [courseContext, messages, handleFormAction]);
+  }, [courseContext, courseData.chapters, messages, handleFormAction]);
 
   // Detect user intent
   const detectIntent = (message: string): string => {

@@ -3,11 +3,15 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { randomBytes } from 'crypto';
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ courseId: string }> }
 ) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const user = await currentUser();
     
@@ -128,6 +132,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ courseId: string }> }
 ) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const user = await currentUser();
     

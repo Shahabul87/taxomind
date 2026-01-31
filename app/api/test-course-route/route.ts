@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateDynamicRoute } from "@/lib/auth-dynamic";
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
 
     const user = await authenticateDynamicRoute(request);
@@ -39,6 +43,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
 
     const user = await authenticateDynamicRoute(request);

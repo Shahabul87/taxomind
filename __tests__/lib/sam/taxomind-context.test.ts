@@ -512,8 +512,8 @@ describe('TaxomindContext', () => {
 
       // Based on the TaxomindAgenticStores interface (may grow over time)
       expect(storeCount).toBeGreaterThanOrEqual(48);
-      // Current count is 55 - update if stores are added
-      expect(storeCount).toBe(55);
+      // Current count is 56 - update if stores are added
+      expect(storeCount).toBe(56);
     });
   });
 });

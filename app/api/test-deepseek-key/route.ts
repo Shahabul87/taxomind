@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Get the API key from environment variables
     const apiKey = process.env.DEEPSEEK_API_KEY;

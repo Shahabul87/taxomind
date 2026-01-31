@@ -69,7 +69,7 @@ export function Providers({ children, session }: ProvidersProps) {
           <SAMProvider
             transport="api"
             api={{
-              endpoint: '/api/sam/chat',
+              endpoint: '/api/sam/unified',
               headers: { 'Content-Type': 'application/json' },
             }}
             autoDetectContext={true}

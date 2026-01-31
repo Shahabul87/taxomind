@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { withAdminAuth } from '@/lib/api/with-api-auth';
 
-export async function GET() {
+export const GET = withAdminAuth(async (request, context) => {
   try {
     // Test basic database connectivity
     const dbTest = await db.$queryRaw`SELECT 1 as test`;
@@ -64,4 +65,4 @@ export async function GET() {
       }
     }, { status: 500 });
   }
-}
+}, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });

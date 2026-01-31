@@ -176,27 +176,36 @@ model AIModelPerformance {
 }
 
 model SAMConversation {
-  id            String       @id @default(cuid())
-  userId        String
-  sessionId     String
-  courseId      String?
-  chapterId     String?
-  sectionId     String?
-  context       Json?
-  tutorMode     SAMTutorMode @default(TEACHER)
-  isActive      Boolean      @default(true)
-  startedAt     DateTime     @default(now())
-  endedAt       DateTime?
-  totalMessages Int          @default(0)
-  chapter       Chapter?     @relation("SAMChapterSessions", fields: [chapterId], references: [id], onDelete: Cascade)
-  course        Course?      @relation("SAMCourseSessions", fields: [courseId], references: [id], onDelete: Cascade)
-  section       Section?     @relation("SAMSectionSessions", fields: [sectionId], references: [id], onDelete: Cascade)
-  user          User         @relation("SAMConversations", fields: [userId], references: [id], onDelete: Cascade)
-  messages      SAMMessage[]
+  id                   String            @id @default(cuid())
+  userId               String
+  sessionId            String
+  courseId             String?
+  chapterId            String?
+  sectionId            String?
+  context              Json?
+  tutorMode            SAMTutorMode      @default(TEACHER)
+  isActive             Boolean           @default(true)
+  startedAt            DateTime          @default(now())
+  endedAt              DateTime?
+  totalMessages        Int               @default(0)
+  // Threading support
+  parentConversationId String?
+  threadType           SAMThreadType     @default(MAIN)
+  topic                String?
+  tags                 String[]          @default([])
+  summary              String?
+  chapter              Chapter?          @relation("SAMChapterSessions", fields: [chapterId], references: [id], onDelete: Cascade)
+  course               Course?           @relation("SAMCourseSessions", fields: [courseId], references: [id], onDelete: Cascade)
+  section              Section?          @relation("SAMSectionSessions", fields: [sectionId], references: [id], onDelete: Cascade)
+  user                 User              @relation("SAMConversations", fields: [userId], references: [id], onDelete: Cascade)
+  parentConversation   SAMConversation?  @relation("ConversationThreads", fields: [parentConversationId], references: [id], onDelete: SetNull)
+  childConversations   SAMConversation[] @relation("ConversationThreads")
+  messages             SAMMessage[]
 
   @@index([userId, isActive])
   @@index([sessionId])
   @@index([courseId, userId])
+  @@index([parentConversationId])
   @@map("sam_conversations")
 }
 

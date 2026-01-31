@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Database connection and operations test endpoint
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const searchParams = req.nextUrl.searchParams;
   const operation = searchParams.get('operation') || 'status';
   
@@ -219,6 +223,9 @@ export async function GET(req: NextRequest) {
 
 // POST endpoint for write tests
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await req.json();
     const { test = 'create' } = body;

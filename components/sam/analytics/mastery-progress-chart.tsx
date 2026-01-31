@@ -525,6 +525,7 @@ export function MasteryProgressChart({
   className,
 }: MasteryProgressChartProps) {
   // Generate sample data if not provided
+  const isUsingDemoData = !masteryHistory;
   const chartMasteryHistory = useMemo(
     () => masteryHistory ?? generateSampleMasteryHistory(),
     [masteryHistory]
@@ -627,10 +628,15 @@ export function MasteryProgressChart({
       {/* Mastery Timeline */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Mastery Progress Over Time
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              Mastery Progress Over Time
+            </CardTitle>
+            {isUsingDemoData && (
+              <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+            )}
+          </div>
           <CardDescription>
             Track your overall mastery growth
           </CardDescription>

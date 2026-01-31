@@ -3,11 +3,15 @@ import { withAuth, type APIAuthContext, createSuccessResponse, createErrorRespon
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
 
     // Get courseId from query params

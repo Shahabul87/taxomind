@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Validation schemas for testing
 const schemas = {
@@ -38,6 +39,9 @@ const schemas = {
 
 // Data validation testing endpoint
 export async function POST(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     const body = await req.json();
     const { schema: schemaName = 'user', data, validate = true } = body;
@@ -125,6 +129,9 @@ export async function POST(req: NextRequest) {
 
 // GET endpoint for testing query parameter validation
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   const searchParams = req.nextUrl.searchParams;
   const test = searchParams.get('test') || 'info';
   

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
 import { logger } from '@/lib/logger';
+import { withPublicAPI } from '@/lib/api/with-api-auth';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -55,7 +56,7 @@ interface CourseStatisticsResponse {
  * - Parallel query execution for performance
  * - Type-safe responses
  */
-export async function GET(req: Request): Promise<NextResponse<CourseStatisticsResponse>> {
+export const GET = withPublicAPI(async (request): Promise<NextResponse<CourseStatisticsResponse>> => {
   try {
     const cacheKey = 'platform:statistics';
 
@@ -221,4 +222,4 @@ export async function GET(req: Request): Promise<NextResponse<CourseStatisticsRe
       { status: 500 }
     );
   }
-}
+}, { rateLimit: { requests: 30, window: 60000 } });

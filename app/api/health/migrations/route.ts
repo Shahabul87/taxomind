@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { withAdminAuth } from '@/lib/api/with-api-auth';
 
-export async function GET() {
+export const GET = withAdminAuth(async (request, context) => {
   try {
     // Check if _prisma_migrations table exists
     const migrationTableExists = await db.$queryRaw`
@@ -68,4 +69,4 @@ export async function GET() {
       }
     }, { status: 500 });
   }
-}
+}, { rateLimit: { requests: 20, window: 60000 }, auditLog: true });

@@ -277,10 +277,10 @@ export function useSAMSocraticDialogue(
 
           // Check for new insights
           const newInsights = socraticResponse.discoveredInsights.filter(
-            (i) => !previousInsightsRef.current.includes(i)
+            (i: string) => !previousInsightsRef.current.includes(i)
           );
           if (newInsights.length > 0) {
-            newInsights.forEach((insight) => onInsightDiscovered?.(insight));
+            newInsights.forEach((insight: string) => onInsightDiscovered?.(insight));
             previousInsightsRef.current = socraticResponse.discoveredInsights;
           }
           setDiscoveredInsights(socraticResponse.discoveredInsights);

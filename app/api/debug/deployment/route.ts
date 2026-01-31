@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Check if we can import NextAuth components
     let nextAuthImportStatus = 'UNKNOWN';

@@ -13,6 +13,7 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -40,6 +41,9 @@ const DismissSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    const rateLimitResult = await withRateLimit(req, 'readonly');
+    if (rateLimitResult) return rateLimitResult;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -121,6 +125,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResult = await withRateLimit(req, 'standard');
+    if (rateLimitResult) return rateLimitResult;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -172,6 +179,9 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const rateLimitResult = await withRateLimit(req, 'standard');
+    if (rateLimitResult) return rateLimitResult;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -193,18 +203,16 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
     }
 
-    // Update notification with dismissal - since schema doesn't have data field,
-    // we encode dismissal info in the type field
-    const dismissedType = `${notification.type}:dismissed${validated.feedback ? `:${validated.feedback}` : ''}`;
+    // Update notification with dismissal using dedicated columns
     await db.notification.update({
       where: { id: validated.notificationId },
       data: {
         read: true,
-        type: dismissedType,
+        dismissedAt: new Date(),
+        ...(validated.feedback ? { feedback: validated.feedback } : {}),
       },
     });
 
-    // Track feedback for improving notification quality
     if (validated.feedback) {
       logger.info('Notification feedback received', {
         notificationId: validated.notificationId,
@@ -212,8 +220,6 @@ export async function PATCH(req: NextRequest) {
         feedback: validated.feedback,
         type: notification.type,
       });
-
-      // TODO: Store feedback for analytics and notification tuning
     }
 
     return NextResponse.json({
@@ -246,6 +252,9 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const rateLimitResult = await withRateLimit(req, 'standard');
+    if (rateLimitResult) return rateLimitResult;
+
     const session = await auth();
 
     if (!session?.user?.id) {

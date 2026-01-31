@@ -112,10 +112,10 @@ interface ContextualHelpWidgetProps {
 }
 
 // ============================================================================
-// MOCK DATA (Will be replaced with API calls)
+// DEFAULT HELP DATA
 // ============================================================================
 
-const MOCK_HELP_DATA: ContextualHelpData = {
+const DEFAULT_HELP_DATA: ContextualHelpData = {
   tips: [
     {
       id: '1',
@@ -345,17 +345,10 @@ export function ContextualHelpWidget({
   const [openFAQs, setOpenFAQs] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'tips' | 'faq' | 'docs'>('tips');
 
-  // Fetch help data (mock for now)
+  // Load default help data
   useEffect(() => {
-    const fetchHelpData = async () => {
-      setIsLoading(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setHelpData(MOCK_HELP_DATA);
-      setIsLoading(false);
-    };
-
-    fetchHelpData();
+    setHelpData(DEFAULT_HELP_DATA);
+    setIsLoading(false);
   }, [context]);
 
   // Filter tips based on context

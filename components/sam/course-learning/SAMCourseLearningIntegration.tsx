@@ -42,7 +42,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // SAM AI Components
-import { SAMAssistantWrapper } from "@/components/sam/SAMAssistantWrapper";
+// SAMAssistantWrapper is mounted globally in app/layout.tsx (singleton guard prevents duplicates)
 import { SAMContextTracker } from "@/components/sam/SAMContextTracker";
 import { StruggleDetectionAlert } from "@/components/sam/behavior/StruggleDetectionAlert";
 import { CognitiveLoadMonitor } from "@/components/sam/CognitiveLoadMonitor";
@@ -536,8 +536,7 @@ export function SAMCourseLearningIntegration({
         </div>
       </div>
 
-      {/* SAM AI Assistant - Always available */}
-      <SAMAssistantWrapper />
+      {/* SAM AI Assistant — rendered globally via app/layout.tsx */}
 
       {/* Feedback Collection (appears after section completion) */}
       {context.progress >= 100 && (

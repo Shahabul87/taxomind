@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET() {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
     // Try to manually test the NextAuth route functionality
     let routeTestResult: any = 'UNKNOWN';

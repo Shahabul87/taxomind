@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 // Anthropic API key from environment
 // IMPORTANT: In production, always use environment variables
@@ -8,6 +9,9 @@ const ANTHROPIC_API_VERSION = '2023-06-01';
 const CLAUDE_MODEL = 'claude-sonnet-4-5-20250929';
 
 export async function GET(req: NextRequest) {
+  const blocked = devOnlyGuard();
+  if (blocked) return blocked;
+
   try {
 
     // Check if API key is available

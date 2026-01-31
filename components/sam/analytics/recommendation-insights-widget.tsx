@@ -385,6 +385,7 @@ export function RecommendationInsightsWidget({
   const [activeTab, setActiveTab] = useState('overview');
 
   // Generate sample data if not provided
+  const isUsingDemoData = !insights;
   const chartInsights = useMemo(() => insights ?? generateSampleInsights(), [insights]);
   const chartRecent = useMemo(
     () => recentRecommendations ?? generateSampleRecentRecommendations(),
@@ -422,10 +423,15 @@ export function RecommendationInsightsWidget({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Lightbulb className="w-5 h-5 text-amber-500" />
-              Recommendation Insights
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-amber-500" />
+                Recommendation Insights
+              </CardTitle>
+              {isUsingDemoData && (
+                <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+              )}
+            </div>
             <CardDescription>
               Track how well recommendations are serving your learning
             </CardDescription>

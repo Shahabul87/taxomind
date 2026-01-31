@@ -1278,6 +1278,13 @@ enum SAMPushQueueStatus {
   EXPIRED
 }
 
+// Conversation thread type
+enum SAMThreadType {
+  MAIN
+  BRANCH
+  FOLLOW_UP
+}
+
 // Course skill level (for mapping skills to courses)
 enum CourseSkillLevel {
   BEGINNER

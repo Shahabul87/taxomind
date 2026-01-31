@@ -408,13 +408,35 @@ How can I help you improve your course today?`;
         completionStatus
       };
       
-      const response = await fetch('/api/sam/unified-assistant', {
+      const response = await fetch('/api/sam/unified', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageContent,
-          context,
-          conversationHistory: messages.slice(-5) // Increased to last 5 messages
+          pageContext: {
+            type: 'course-detail',
+            path: `/teacher/courses/${courseData.id}`,
+            entityId: courseData.id,
+            entityType: 'course',
+            entityData: {
+              title: courseData.title,
+              description: courseData.description,
+              isPublished: courseData.isPublished,
+              chapterCount: courseData.chapters.length,
+              publishedChapters: courseData.chapters.filter(ch => ch.isPublished).length,
+              sectionCount: courseData.chapters.reduce((sum, ch) => sum + ch.sections.length, 0),
+              objectiveCount: courseData.whatYouWillLearn.length,
+              healthScore: context.healthScore,
+              completionPercentage: Math.round(
+                Object.values(completionStatus).filter(Boolean).length /
+                Object.keys(completionStatus).length * 100
+              ),
+            },
+          },
+          conversationHistory: messages.slice(-5).map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
         }),
       });
 
@@ -423,14 +445,20 @@ How can I help you improve your course today?`;
       }
 
       const result = await response.json();
-      
+
+      // Suggestions may be string[] or SAMSuggestion[] objects
+      const rawSuggestions: unknown[] = result.suggestions || [];
+      const suggestions = rawSuggestions.map((s: unknown) =>
+        typeof s === 'string' ? s : (s as { label?: string }).label ?? ''
+      ).filter(Boolean);
+
       const samMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'sam',
         content: result.response,
         timestamp: new Date(),
         searchable: result.response.toLowerCase(),
-        suggestions: result.suggestions || []
+        suggestions,
       };
       
       setMessages(prev => [...prev, samMessage]);
@@ -453,7 +481,7 @@ How can I help you improve your course today?`;
     } finally {
       setIsLoading(false);
     }
-  }, [courseData.id, courseData.title, courseData.chapters.length, courseData.whatYouWillLearn.length, courseData.isPublished, healthScore, inputValue, messages, completionStatus]);
+  }, [courseData.id, courseData.title, courseData.description, courseData.chapters, courseData.whatYouWillLearn.length, courseData.isPublished, healthScore, inputValue, messages, completionStatus]);
 
   const handleQuickAction = useCallback(async (action: string) => {
     const actionPrompts = {

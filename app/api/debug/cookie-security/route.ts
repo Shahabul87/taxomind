@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auditCookieSecurity, generateSecurityReport } from '@/lib/security/cookie-test';
 import { getSecureCookieConfig } from '@/lib/security/cookie-config';
+import { devOnlyGuard } from '@/lib/api/dev-only-guard';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   // Only allow in non-production environments for security
