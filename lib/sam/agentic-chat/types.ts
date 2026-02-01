@@ -79,12 +79,54 @@ export interface ConfidenceContext {
   verificationStatus: 'verified' | 'unverified' | 'failed' | null;
 }
 
+export interface RecommendationItem {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  priority: 'high' | 'medium' | 'low';
+  estimatedMinutes: number;
+  skillId?: string;
+}
+
+export interface SkillUpdateData {
+  skillId: string;
+  skillName: string;
+  previousLevel: string;
+  newLevel: string;
+  score: number;
+  source: string;
+}
+
+export interface OrchestrationData {
+  hasActivePlan: boolean;
+  currentStep?: {
+    title: string;
+    description?: string;
+    order: number;
+    totalSteps: number;
+  };
+  stepProgress?: {
+    completedSteps: number;
+    totalSteps: number;
+    percentComplete: number;
+  };
+  transition?: {
+    from: string;
+    to: string;
+    reason: string;
+  };
+}
+
 export interface AgenticChatData {
   intent: ClassifiedIntent;
   toolResults: AgenticToolResult[];
   goalContext: GoalContext | null;
   interventionContext: InterventionContext | null;
   confidence: ConfidenceContext | null;
+  recommendations: RecommendationItem[] | null;
+  skillUpdate: SkillUpdateData | null;
+  orchestration: OrchestrationData | null;
   processingTimeMs: number;
   /** Content from multi-agent coordinator (when MULTI_AGENT_COORDINATION is enabled) */
   coordinatorContent?: string | null;
@@ -165,6 +207,113 @@ export function toConfidenceContext(
     score: score.overallScore,
     shouldVerify: score.shouldVerify,
     verificationStatus: verificationStatus ?? null,
+  };
+}
+
+// =============================================================================
+// INTENT CLASSIFIER (lightweight keyword-based, no LLM call)
+// =============================================================================
+
+const INTENT_PATTERNS: Array<{
+  intent: IntentType;
+  patterns: RegExp[];
+  shouldUseTool: boolean;
+  shouldCheckGoals: boolean;
+  shouldCheckInterventions: boolean;
+  toolHints: string[];
+}> = [
+  {
+    intent: IntentType.GREETING,
+    patterns: [/^(hi|hello|hey|howdy|good\s+(morning|afternoon|evening))\b/i, /^(what'?s up|sup)\b/i],
+    shouldUseTool: false,
+    shouldCheckGoals: false,
+    shouldCheckInterventions: false,
+    toolHints: [],
+  },
+  {
+    intent: IntentType.GOAL_QUERY,
+    patterns: [/\b(goal|objective|target|milestone|progress|how am i doing)\b/i],
+    shouldUseTool: false,
+    shouldCheckGoals: true,
+    shouldCheckInterventions: false,
+    toolHints: [],
+  },
+  {
+    intent: IntentType.PROGRESS_CHECK,
+    patterns: [/\b(progress|score|grade|performance|status|standing|rank)\b/i, /\bhow (am i|did i)\b/i],
+    shouldUseTool: false,
+    shouldCheckGoals: true,
+    shouldCheckInterventions: true,
+    toolHints: [],
+  },
+  {
+    intent: IntentType.TOOL_REQUEST,
+    patterns: [/\b(generate|create|make|build|run|execute|calculate|compute)\b/i],
+    shouldUseTool: true,
+    shouldCheckGoals: false,
+    shouldCheckInterventions: false,
+    toolHints: ['content_generator', 'quiz_generator'],
+  },
+  {
+    intent: IntentType.CONTENT_GENERATE,
+    patterns: [/\b(write|draft|compose|summarize|explain|outline|format)\b/i],
+    shouldUseTool: true,
+    shouldCheckGoals: false,
+    shouldCheckInterventions: false,
+    toolHints: ['content_generator'],
+  },
+  {
+    intent: IntentType.ASSESSMENT,
+    patterns: [/\b(quiz|test|exam|assess|evaluate|check my|practice)\b/i],
+    shouldUseTool: true,
+    shouldCheckGoals: true,
+    shouldCheckInterventions: false,
+    toolHints: ['quiz_generator', 'assessment_tool'],
+  },
+  {
+    intent: IntentType.FEEDBACK,
+    patterns: [/\b(feedback|review|critique|improve|suggestion|opinion)\b/i],
+    shouldUseTool: false,
+    shouldCheckGoals: false,
+    shouldCheckInterventions: true,
+    toolHints: [],
+  },
+  {
+    intent: IntentType.QUESTION,
+    patterns: [/\?$/, /\b(what|why|how|when|where|which|who|can you|could you|explain|tell me)\b/i],
+    shouldUseTool: false,
+    shouldCheckGoals: false,
+    shouldCheckInterventions: true,
+    toolHints: [],
+  },
+];
+
+export function classifyIntent(message: string): ClassifiedIntent {
+  const trimmed = message.trim();
+
+  for (const entry of INTENT_PATTERNS) {
+    for (const pattern of entry.patterns) {
+      if (pattern.test(trimmed)) {
+        return {
+          intent: entry.intent,
+          shouldUseTool: entry.shouldUseTool,
+          shouldCheckGoals: entry.shouldCheckGoals,
+          shouldCheckInterventions: entry.shouldCheckInterventions,
+          toolHints: entry.toolHints,
+          confidence: 0.8,
+        };
+      }
+    }
+  }
+
+  // Default: treat as question
+  return {
+    intent: IntentType.QUESTION,
+    shouldUseTool: false,
+    shouldCheckGoals: false,
+    shouldCheckInterventions: true,
+    toolHints: [],
+    confidence: 0.5,
   };
 }
 

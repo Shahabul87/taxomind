@@ -15123,8 +15123,9 @@ var UnifiedBloomsEngine = class {
   confidenceThreshold;
   enableCache;
   cacheTTL;
-  // In-memory cache for AI analysis results
+  // LRU cache for AI analysis results (bounded to prevent OOM)
   cache = /* @__PURE__ */ new Map();
+  maxCacheEntries;
   cacheHits = 0;
   cacheMisses = 0;
   // Sub-level analyzer for granular Bloom's classification (Phase 1)
@@ -15143,6 +15144,7 @@ var UnifiedBloomsEngine = class {
     this.confidenceThreshold = config.confidenceThreshold ?? 0.7;
     this.enableCache = config.enableCache ?? true;
     this.cacheTTL = (config.cacheTTL ?? 3600) * 1e3;
+    this.maxCacheEntries = config.maxCacheEntries ?? 500;
     this.subLevelAnalyzer = createSubLevelAnalyzer();
     this.enableSemanticDisambiguation = config.enableSemanticDisambiguation ?? false;
     this.semanticClassifier = createSemanticBloomsClassifier({
@@ -16397,12 +16399,15 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
       this.cacheMisses++;
       return null;
     }
+    this.cache.delete(key);
+    entry.timestamp = Date.now();
+    this.cache.set(key, entry);
     this.cacheHits++;
     return entry.data;
   }
   setCache(key, data) {
-    if (this.cache.size > 1e3) {
-      this.evictOldestEntries(100);
+    if (this.cache.size >= this.maxCacheEntries) {
+      this.evictLRUEntries(Math.max(1, Math.floor(this.maxCacheEntries * 0.1)));
     }
     this.cache.set(key, {
       data,
@@ -16411,11 +16416,12 @@ Please provide a more thorough semantic analysis to confirm or correct this asse
       key
     });
   }
-  evictOldestEntries(count) {
-    const entries = Array.from(this.cache.entries());
-    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-    for (let i = 0; i < count && i < entries.length; i++) {
-      this.cache.delete(entries[i][0]);
+  evictLRUEntries(count) {
+    let evicted = 0;
+    for (const key of this.cache.keys()) {
+      if (evicted >= count) break;
+      this.cache.delete(key);
+      evicted++;
     }
   }
   // ============================================================================

@@ -101,7 +101,8 @@ import {
   getSAMCapabilityRegistry,
 } from '@/lib/sam/integration-profile';
 import { buildSAMSessionId } from '@/lib/sam/session-utils';
-import type { VerificationResult, SessionContext } from '@sam-ai/agentic';
+import type { VerificationResult, SessionContext, SkillAssessment, RecommendationBatch } from '@sam-ai/agentic';
+import { classifyIntent, toGoalContext, type RecommendationItem, type SkillUpdateData } from '@/lib/sam/agentic-chat/types';
 import {
   ensureToolingInitialized,
   ensureDefaultToolPermissions,
@@ -115,6 +116,9 @@ import {
   recordConceptInteraction,
 } from '@/lib/sam/services/knowledge-graph-builder';
 import { queueMemoryIngestion } from '@/lib/sam/memory-ingestion';
+
+// Import SAM Mode System for mode-based engine routing
+import { SAM_MODE_IDS, resolveModeEngines, resolveModeSystemPrompt, resolveModeToolAllowlist } from '@/lib/sam/modes';
 
 // Import Orchestration Integration for plan-driven tutoring
 import {
@@ -162,6 +166,8 @@ export const runtime = 'nodejs';
 const UnifiedRequestSchema = z.object({
   message: z.string().min(1, 'Message is required'),
   sessionId: z.string().optional(),
+  // SAM Mode for mode-based engine routing (defaults to general-assistant)
+  mode: z.enum(SAM_MODE_IDS).optional().default('general-assistant'),
   // Orchestration context for plan-driven tutoring
   orchestrationContext: z.object({
     planId: z.string().optional(),
@@ -714,6 +720,20 @@ export async function POST(request: NextRequest) {
 
     const hasClientEntityData = !!pageContext.entityData?.title;
 
+    // Resolve SAM mode (defaults to general-assistant for backward compat)
+    const modeId = validation.data.mode ?? 'general-assistant';
+
+    // =========================================================================
+    // INTENT CLASSIFICATION (lightweight, pre-pipeline)
+    // =========================================================================
+    const classifiedIntent = classifyIntent(message);
+    logger.debug('[SAM_UNIFIED] Intent classified:', {
+      intent: classifiedIntent.intent,
+      confidence: classifiedIntent.confidence,
+      shouldUseTool: classifiedIntent.shouldUseTool,
+      shouldCheckGoals: classifiedIntent.shouldCheckGoals,
+    });
+
     const integrationProfile = getSAMIntegrationProfile({
       goalPlanning: true, // Enable goal planning for autonomous learning
       toolExecution: true,
@@ -1116,6 +1136,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Inject mode-specific system prompt into memory summary
+    const modePromptAddition = resolveModeSystemPrompt(modeId, '');
+    if (modePromptAddition) {
+      const modeContext = `Active Mode: ${modeId}\n${modePromptAddition}`;
+      memorySummary = memorySummary
+        ? `${memorySummary}\n\n${modeContext}`
+        : modeContext;
+    }
+
     // Inject tools summary into memory summary so SAM knows its available tools
     if (toolsSummary) {
       memorySummary = memorySummary
@@ -1188,9 +1217,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Determine which engines to run based on message intent
+    // Determine which engines to run based on mode or message intent
     const hasForm = !!formContext && Object.keys(formContext.fields || {}).length > 0;
-    const defaultEngines = getEnginePreset(pageContext.type, hasForm, message);
+    const defaultEngines = modeId === 'general-assistant'
+      ? getEnginePreset(pageContext.type, hasForm, message) // preserve existing keyword-based behavior
+      : resolveModeEngines(modeId, message, { type: pageContext.type, hasForm });
     const enginesToRun = options?.engines || defaultEngines;
 
     logger.debug('[SAM_UNIFIED] Running engines:', { engines: enginesToRun, messageLength: message.length });
@@ -1515,10 +1546,13 @@ export async function POST(request: NextRequest) {
         deprecated: false,
       });
 
+      // Phase 2d: Filter tools to those allowed by the current mode
+      const modeFilteredTools = resolveModeToolAllowlist(modeId, availableTools);
+
       const plan = await planToolInvocation({
         ai: subsystems.config.ai,
         message,
-        tools: availableTools,
+        tools: modeFilteredTools,
         context: {
           pageType: pageContext.type,
           pagePath: pageContext.path,
@@ -1777,6 +1811,103 @@ export async function POST(request: NextRequest) {
       // Continue without recording - non-blocking
     }
 
+    // =========================================================================
+    // AGENTIC INTEGRATION - Goal Context, Skill Assessment, Recommendations
+    // =========================================================================
+
+    // 1a. Fetch active goals and build goal context
+    let agenticGoalContext: ReturnType<typeof toGoalContext> | null = null;
+    if (classifiedIntent.shouldCheckGoals || classifiedIntent.intent !== 'greeting') {
+      try {
+        const activeGoals = await agenticBridge.getActiveGoals();
+        if (activeGoals.length > 0) {
+          agenticGoalContext = toGoalContext(activeGoals, message);
+          logger.debug('[SAM_UNIFIED] Goal context built:', {
+            activeGoals: activeGoals.length,
+            relevantGoal: agenticGoalContext.relevantGoal?.title ?? 'none',
+          });
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Goal context retrieval failed:', error);
+      }
+    }
+
+    // 1b. Assess skill from Bloom's analysis
+    let agenticSkillUpdate: SkillUpdateData | null = null;
+    if (bloomsAnalysis?.dominantLevel && responseText.length > 0) {
+      try {
+        const topicName = entityContext.section?.title
+          ?? entityContext.chapter?.title
+          ?? entityContext.course?.title
+          ?? 'general';
+        const skillId = topicName.toLowerCase().replace(/\s+/g, '-').slice(0, 50);
+
+        // Map Bloom's confidence (0-1) to a score out of 100
+        const bloomsScore = Math.round((bloomsAnalysis.confidence ?? 0.5) * 100);
+
+        const assessment: SkillAssessment = await agenticBridge.assessSkill(
+          skillId,
+          bloomsScore,
+          100,
+          'self_assessment'
+        );
+
+        agenticSkillUpdate = {
+          skillId,
+          skillName: topicName,
+          previousLevel: assessment.previousLevel ?? 'unknown',
+          newLevel: assessment.level,
+          score: assessment.score,
+          source: 'chat_blooms_analysis',
+        };
+
+        logger.debug('[SAM_UNIFIED] Skill assessed from chat:', {
+          skillId,
+          level: assessment.level,
+          score: assessment.score,
+        });
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Skill assessment from chat failed:', error);
+      }
+    }
+
+    // 1c. Generate recommendations
+    let agenticRecommendations: RecommendationItem[] | null = null;
+    if (classifiedIntent.shouldCheckGoals || classifiedIntent.intent === 'progress_check') {
+      try {
+        const recBatch: RecommendationBatch = await agenticBridge.getRecommendations({
+          availableTime: 30,
+        });
+
+        if (recBatch.recommendations.length > 0) {
+          agenticRecommendations = recBatch.recommendations.slice(0, 3).map((rec) => {
+            // Map priority: 'critical' -> 'high' for UI compatibility
+            const priorityMap: Record<string, 'high' | 'medium' | 'low'> = {
+              critical: 'high',
+              high: 'high',
+              medium: 'medium',
+              low: 'low',
+            };
+            return {
+              id: rec.id,
+              title: rec.title,
+              description: rec.description,
+              type: rec.type,
+              priority: priorityMap[rec.priority] ?? 'medium',
+              estimatedMinutes: rec.estimatedDuration ?? 15,
+              skillId: rec.targetSkillId,
+            };
+          });
+
+          logger.debug('[SAM_UNIFIED] Recommendations generated:', {
+            count: agenticRecommendations.length,
+          });
+        }
+      } catch (error) {
+        logger.warn('[SAM_UNIFIED] Recommendation generation failed:', error);
+      }
+    }
+
     // Check for proactive interventions (via agentic bridge)
     let interventions: Array<{ type: string; reason: string; priority: string }> = [];
     let interventionResults: Intervention[] = [];
@@ -1963,6 +2094,7 @@ export async function POST(request: NextRequest) {
     const response = {
       success: result.success,
       response: responseText,
+      mode: modeId,
       suggestions: result.response.suggestions || [],
       actions: result.response.actions || [],
       insights: {
@@ -2034,6 +2166,7 @@ export async function POST(request: NextRequest) {
         } : undefined,
         // NEW: Agentic AI capabilities
         agentic: {
+          intent: classifiedIntent,
           confidence: agenticConfidence ? {
             level: agenticConfidence.level,
             score: agenticConfidence.score,
@@ -2051,6 +2184,9 @@ export async function POST(request: NextRequest) {
           sessionRecorded,
           interventions: interventions.length > 0 ? interventions : undefined,
           toolExecution: toolExecution ?? undefined,
+          goalContext: agenticGoalContext ?? undefined,
+          recommendations: agenticRecommendations ?? undefined,
+          skillUpdate: agenticSkillUpdate ?? undefined,
         },
         // NEW: Tutoring Orchestration (Plan-Driven Learning)
         orchestration: orchestrationData ? {
@@ -2090,6 +2226,10 @@ export async function POST(request: NextRequest) {
           agenticSession: sessionRecorded,
           agenticInterventions: interventions.length > 0,
           agenticToolExecution: !!toolExecution,
+          agenticGoalContext: !!agenticGoalContext,
+          agenticSkillAssessment: !!agenticSkillUpdate,
+          agenticRecommendations: !!agenticRecommendations,
+          intentClassified: true,
           // NEW: Tutoring Orchestration subsystems
           tutoringOrchestration: !!orchestrationData,
           tutoringContext: !!tutoringContext,

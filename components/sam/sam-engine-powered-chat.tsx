@@ -24,12 +24,15 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import type { AgenticChatData } from '@/lib/sam/agentic-chat/types';
+import type { AgenticChatData, RecommendationItem } from '@/lib/sam/agentic-chat/types';
 import {
   ToolResultCard,
   GoalProgressBadge,
   InterventionBanner,
   ConfidenceBadge,
+  OrchestrationProgress,
+  RecommendationCards,
+  SkillUpdateBadge,
 } from '@/components/sam/agentic';
 import { useRealtimeInterventions } from '@/hooks/sam/useRealtimeInterventions';
 import { OfflineIndicator } from '@/components/sam/offline-indicator';
@@ -220,11 +223,25 @@ export function SAMEnginePoweredChat({
               courseGuide: insights.context ?? null,
               learningProfile: insights.personalization ?? null,
             },
-            agenticData: agentic.confidence ? {
-              confidence: agentic.confidence,
+            agenticData: (agentic.confidence || agentic.goalContext || agentic.intent) ? {
+              intent: agentic.intent ?? { intent: 'question', confidence: 0 },
+              confidence: agentic.confidence ?? null,
               toolResults: metadata.toolExecution ? [metadata.toolExecution] : [],
-              goalContext: null,
-              interventionContext: agentic.interventions ?? null,
+              goalContext: agentic.goalContext ?? null,
+              interventionContext: agentic.interventions
+                ? { interventions: agentic.interventions }
+                : null,
+              recommendations: agentic.recommendations ?? null,
+              skillUpdate: agentic.skillUpdate ?? null,
+              orchestration: insights.orchestration
+                ? {
+                    hasActivePlan: insights.orchestration.hasActivePlan,
+                    currentStep: insights.orchestration.currentStep,
+                    stepProgress: insights.orchestration.stepProgress,
+                    transition: insights.orchestration.transition,
+                  }
+                : null,
+              processingTimeMs: metadata.requestTime ?? 0,
             } as AgenticChatData : null,
             conversationId: metadata.sessionId ?? currentConversationId ?? `chat-${Date.now()}`,
             memoryContext: { hasMemory: !!insights.memoryContext },
@@ -371,6 +388,26 @@ export function SAMEnginePoweredChat({
           {/* Goal progress badge */}
           {!isUser && msg.agenticData?.goalContext && (
             <GoalProgressBadge goalContext={msg.agenticData.goalContext} />
+          )}
+
+          {/* Orchestration progress */}
+          {!isUser && msg.agenticData?.orchestration && (
+            <OrchestrationProgress orchestration={msg.agenticData.orchestration} />
+          )}
+
+          {/* Skill update badge */}
+          {!isUser && msg.agenticData?.skillUpdate && (
+            <SkillUpdateBadge skillUpdate={msg.agenticData.skillUpdate} />
+          )}
+
+          {/* Recommendations */}
+          {!isUser && msg.agenticData?.recommendations && msg.agenticData.recommendations.length > 0 && (
+            <RecommendationCards
+              recommendations={msg.agenticData.recommendations}
+              onSelect={(rec: RecommendationItem) => {
+                sendMessage(`Tell me more about: ${rec.title}`);
+              }}
+            />
           )}
 
           {/* Engine Insights */}

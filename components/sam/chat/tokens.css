@@ -1,0 +1,231 @@
+/* =============================================================================
+   SAM Chat Design Tokens
+   CSS custom properties for the glassmorphism chat window.
+   Import in ChatWindow.tsx or the root layout.
+   ============================================================================= */
+
+/* ---------- Light mode (default) ---------- */
+:root {
+  --sam-accent: #7c3aed;
+  --sam-accent-light: #a78bfa;
+  --sam-accent-hover: #6d28d9;
+  --sam-surface: rgba(255, 255, 255, 0.97);
+  --sam-surface-hover: rgba(255, 255, 255, 0.99);
+  --sam-surface-solid: #ffffff;
+  --sam-text: #1e1b4b;
+  --sam-text-secondary: #6b7280;
+  --sam-text-muted: #9ca3af;
+  --sam-border: rgba(124, 58, 237, 0.12);
+  --sam-border-strong: rgba(124, 58, 237, 0.24);
+  --sam-blur: blur(28px) saturate(1.2);
+  --sam-shadow: 0 25px 60px -12px rgba(124, 58, 237, 0.25);
+  --sam-shadow-sm: 0 4px 12px -2px rgba(124, 58, 237, 0.12);
+  --sam-radius: 20px;
+  --sam-radius-sm: 12px;
+  --sam-radius-xs: 8px;
+
+  /* Message bubbles */
+  --sam-bubble-user: #7c3aed;
+  --sam-bubble-user-text: #ffffff;
+  --sam-bubble-assistant: rgba(243, 241, 255, 0.95);
+  --sam-bubble-assistant-text: #1e1b4b;
+
+  /* Input area */
+  --sam-input-bg: rgba(255, 255, 255, 0.92);
+  --sam-input-border: rgba(124, 58, 237, 0.15);
+  --sam-input-focus: rgba(124, 58, 237, 0.3);
+
+  /* Status colors */
+  --sam-success: #10b981;
+  --sam-warning: #f59e0b;
+  --sam-error: #ef4444;
+  --sam-info: #3b82f6;
+
+  /* Floating button glow */
+  --sam-glow: 0 0 20px rgba(124, 58, 237, 0.4),
+    0 0 60px rgba(124, 58, 237, 0.15);
+}
+
+/* ---------- Dark mode ---------- */
+[data-sam-theme="dark"] {
+  --sam-accent: #a78bfa;
+  --sam-accent-light: #c4b5fd;
+  --sam-accent-hover: #8b5cf6;
+  --sam-surface: rgba(15, 10, 40, 0.97);
+  --sam-surface-hover: rgba(25, 18, 60, 0.99);
+  --sam-surface-solid: #0f0a28;
+  --sam-text: #f1f0ff;
+  --sam-text-secondary: #a5b4fc;
+  --sam-text-muted: #6366a0;
+  --sam-border: rgba(167, 139, 250, 0.15);
+  --sam-border-strong: rgba(167, 139, 250, 0.3);
+  --sam-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.5);
+  --sam-shadow-sm: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+
+  /* Message bubbles */
+  --sam-bubble-user: #7c3aed;
+  --sam-bubble-user-text: #ffffff;
+  --sam-bubble-assistant: rgba(30, 20, 70, 0.92);
+  --sam-bubble-assistant-text: #f1f0ff;
+
+  /* Input area */
+  --sam-input-bg: rgba(15, 10, 40, 0.9);
+  --sam-input-border: rgba(167, 139, 250, 0.2);
+  --sam-input-focus: rgba(167, 139, 250, 0.4);
+
+  /* Floating button glow */
+  --sam-glow: 0 0 20px rgba(167, 139, 250, 0.5),
+    0 0 60px rgba(167, 139, 250, 0.2);
+}
+
+/* =============================================================================
+   Animations
+   ============================================================================= */
+
+@keyframes sam-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sam-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sam-gentle-glow {
+  0%,
+  100% {
+    box-shadow: var(--sam-glow);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.6),
+      0 0 80px rgba(124, 58, 237, 0.25);
+  }
+}
+
+@keyframes sam-typing-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sam-slide-down {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 400px;
+  }
+}
+
+@keyframes sam-slide-up {
+  from {
+    opacity: 1;
+    max-height: 400px;
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+  }
+}
+
+/* =============================================================================
+   Utility classes
+   ============================================================================= */
+
+.sam-glass {
+  backdrop-filter: var(--sam-blur);
+  -webkit-backdrop-filter: var(--sam-blur);
+  background: var(--sam-surface);
+  border: 1px solid var(--sam-border);
+}
+
+.sam-glass-strong {
+  backdrop-filter: blur(40px) saturate(1.2);
+  -webkit-backdrop-filter: blur(40px) saturate(1.2);
+  background: var(--sam-surface-hover);
+  border: 1px solid var(--sam-border-strong);
+}
+
+.sam-animate-in {
+  animation: sam-fade-in-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.sam-scale-in {
+  animation: sam-scale-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.sam-glow {
+  animation: sam-gentle-glow 3s ease-in-out infinite;
+}
+
+.sam-typing-dot {
+  animation: sam-typing-pulse 1.4s ease-in-out infinite;
+}
+
+.sam-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.sam-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.sam-slide-down {
+  animation: sam-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  overflow: hidden;
+}
+
+/* =============================================================================
+   Resize handle cursors
+   ============================================================================= */
+
+.sam-resize-n { cursor: n-resize; }
+.sam-resize-ne { cursor: ne-resize; }
+.sam-resize-e { cursor: e-resize; }
+.sam-resize-se { cursor: se-resize; }
+.sam-resize-s { cursor: s-resize; }
+.sam-resize-sw { cursor: sw-resize; }
+.sam-resize-w { cursor: w-resize; }
+.sam-resize-nw { cursor: nw-resize; }
+
+/* =============================================================================
+   Scrollbar styling
+   ============================================================================= */
+
+.sam-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sam-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sam-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--sam-border-strong);
+  border-radius: 3px;
+}
+
+.sam-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--sam-accent-light);
+}

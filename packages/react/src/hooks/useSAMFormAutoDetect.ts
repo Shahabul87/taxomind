@@ -156,38 +156,59 @@ export function useSAMFormAutoDetect(
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
+  // Track context.form and updateContext via refs to keep detectAndSync stable
+  const contextFormRef = useRef(context.form);
+  contextFormRef.current = context.form;
+  const updateContextRef = useRef(updateContext);
+  updateContextRef.current = updateContext;
+
+  // Track last synced formId to avoid redundant updates
+  const lastSyncedFormIdRef = useRef<string | null>(null);
+
   const detectAndSync = useCallback(() => {
-    if (options.enabled === false) return;
+    const opts = optionsRef.current;
+    if (opts.enabled === false) return;
     if (typeof document === 'undefined') return;
 
-    const selector = options.selector ?? 'form';
+    const selector = opts.selector ?? 'form';
     const forms = Array.from(document.querySelectorAll<HTMLFormElement>(selector));
 
     if (!forms.length) return;
 
-    const primaryForm = detectPrimaryForm(forms, options.preferFocused !== false);
+    const primaryForm = detectPrimaryForm(forms, opts.preferFocused !== false);
     if (!primaryForm) return;
 
-    const fields = extractFormFields(primaryForm, options);
-    const nextContext = buildFormContext(primaryForm, fields, options);
+    const fields = extractFormFields(primaryForm, opts);
+    const nextContext = buildFormContext(primaryForm, fields, opts);
+
+    // Only update state when formId or field values actually changed
+    const fieldsKey = Object.entries(fields)
+      .map(([k, v]) => `${k}:${String(v.value ?? '')}`)
+      .join('|');
+    const syncKey = `${nextContext.formId}::${fieldsKey}`;
+
+    if (lastSyncedFormIdRef.current === syncKey) return;
+    lastSyncedFormIdRef.current = syncKey;
+
     setFormContext(nextContext);
 
+    const currentForm = contextFormRef.current;
     const shouldUpdate =
-      options.overrideExisting ||
-      !context.form ||
-      context.form.formId === nextContext.formId;
+      opts.overrideExisting ||
+      !currentForm ||
+      currentForm.formId === nextContext.formId;
 
     if (shouldUpdate) {
-      updateContext({ form: nextContext });
+      updateContextRef.current({ form: nextContext });
     }
-  }, [context.form, options, updateContext]);
+  }, []); // Stable — reads everything from refs
 
   useEffect(() => {
-    if (options.enabled === false) return;
+    if (optionsRef.current.enabled === false) return;
     if (typeof document === 'undefined') return;
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const debounceMs = options.debounceMs ?? 300;
+    const debounceMs = optionsRef.current.debounceMs ?? 300;
 
     const schedule = () => {
       if (timeoutId) clearTimeout(timeoutId);
@@ -210,7 +231,18 @@ export function useSAMFormAutoDetect(
       window.removeEventListener('focusin', onFocus, true);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [detectAndSync, options.debounceMs, options.enabled]);
+  }, [detectAndSync]);
+
+  // Re-run detection when enabled changes
+  const enabledRef = useRef(options.enabled);
+  useEffect(() => {
+    if (enabledRef.current !== options.enabled) {
+      enabledRef.current = options.enabled;
+      if (options.enabled) {
+        detectAndSync();
+      }
+    }
+  }, [options.enabled, detectAndSync]);
 
   return { formContext, refresh: detectAndSync };
 }
