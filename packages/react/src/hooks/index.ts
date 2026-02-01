@@ -188,6 +188,11 @@ export type {
   StorageQuota,
 } from './useMultimodal';
 
+// Context Gathering Hooks
+export { useContextGathering } from './useContextGathering';
+export { useContextMemorySync } from './useContextMemorySync';
+export type { UseContextMemorySyncOptions, UseContextMemorySyncReturn } from './useContextMemorySync';
+
 // Phase 1-6: Enhanced Bloom's Taxonomy Analysis Hook
 export { useEnhancedBloomsAnalysis } from './useEnhancedBloomsAnalysis';
 export type {

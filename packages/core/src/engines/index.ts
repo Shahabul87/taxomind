@@ -44,3 +44,5 @@ export type {
 
 export { ResponseEngine, createResponseEngine } from './response';
 export type { ResponseEngineOutput } from './response';
+
+export { ContextGatheringEngine, createContextGatheringEngine } from './context-gathering';

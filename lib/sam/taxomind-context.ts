@@ -39,6 +39,9 @@ import type {
 } from '@sam-ai/agentic';
 
 // Import all store factories from local stores
+import { createPrismaContextSnapshotStore } from './stores/context-snapshot-store';
+import type { PrismaContextSnapshotStore } from './stores/context-snapshot-store';
+
 import {
   createPrismaGoalStore,
   createPrismaSubGoalStore,
@@ -268,6 +271,9 @@ export interface TaxomindAgenticStores {
 
   // Memory Lifecycle: Reindex Job Store
   reindexJob: PrismaReindexJobStore;
+
+  // Context Gathering
+  contextSnapshot: PrismaContextSnapshotStore;
 }
 
 /**
@@ -426,6 +432,9 @@ function createLazyStores(): TaxomindAgenticStores {
 
     // Memory Lifecycle: Reindex Job Store
     reindexJob: () => createPrismaReindexJobStore(),
+
+    // Context Gathering
+    contextSnapshot: () => createPrismaContextSnapshotStore(),
   };
 
   logger.info('[TaxomindContext] Lazy store proxy created', {

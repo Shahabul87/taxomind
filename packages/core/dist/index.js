@@ -7,7 +7,9 @@
 // Type constants
 export { BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER } from './types';
 // Context factories
-export { createDefaultUserContext, createDefaultPageContext, createDefaultConversationContext, createDefaultGamificationContext, createDefaultUIContext, createDefaultContext, createSAMConfig, } from './types';
+export { createDefaultUserContext, createDefaultPageContext, createDefaultConversationContext, createDefaultGamificationContext, createDefaultUIContext, createDefaultContext, createSAMConfig, 
+// Context snapshot factories
+CONTEXT_SNAPSHOT_VERSION, createDefaultPageState, createDefaultContentSnapshot, createDefaultNavigationSnapshot, createDefaultInteractionSnapshot, createDefaultPageContextSnapshot, } from './types';
 // ============================================================================
 // STATE MACHINE
 // ============================================================================
@@ -27,7 +29,9 @@ ContextEngine, createContextEngine, BloomsEngine, createBloomsEngine, ResponseEn
 // Content & Assessment engines
 ContentEngine, createContentEngine, AssessmentEngine, createAssessmentEngine, 
 // Personalization engine
-PersonalizationEngine, createPersonalizationEngine, } from './engines';
+PersonalizationEngine, createPersonalizationEngine, 
+// Context gathering engine
+ContextGatheringEngine, createContextGatheringEngine, } from './engines';
 // ============================================================================
 // ADAPTERS
 // ============================================================================
@@ -39,6 +43,10 @@ export { NoopDatabaseAdapter, createNoopDatabaseAdapter, InMemoryDatabaseAdapter
 // ERRORS
 // ============================================================================
 export { SAMError, ConfigurationError, InitializationError, EngineError, OrchestrationError, AIError, StorageError, CacheError, ValidationError, TimeoutError, RateLimitError, DependencyError, isSAMError, wrapError, createTimeoutPromise, withTimeout, withRetry, } from './errors';
+// ============================================================================
+// MEMORY
+// ============================================================================
+export { ContextMemoryHydrator, InMemoryContextMemoryAdapter, createContextMemoryHydrator, createInMemoryContextMemoryAdapter, } from './memory';
 // ============================================================================
 // VERSION
 // ============================================================================

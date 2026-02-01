@@ -32,6 +32,8 @@ useRealtime,
 useInterventions, 
 // Tutoring Orchestration Hook & Provider
 useTutoringOrchestration, useCurrentStep, useStepProgress, useStepCelebration, TutoringOrchestrationProvider, useTutoringOrchestrationContext, 
+// Context Gathering Hooks
+useContextGathering, useContextMemorySync, 
 // Phase 6 Hooks - Educational Engines
 useExamEngine, useQuestionBank, useInnovationFeatures, useMultimodal, } from './hooks';
 // ============================================================================

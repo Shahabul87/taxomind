@@ -236,6 +236,8 @@ function detectContextFromPath(path: string): Partial<SAMContext['page']> {
       return {
         type,
         path,
+        capabilities: getCapabilitiesForType(type),
+        breadcrumb: buildBreadcrumbsFromPath(path),
         ...extracted,
       };
     }
@@ -244,7 +246,53 @@ function detectContextFromPath(path: string): Partial<SAMContext['page']> {
   return {
     type: 'other',
     path,
+    capabilities: getCapabilitiesForType('other'),
+    breadcrumb: buildBreadcrumbsFromPath(path),
   };
+}
+
+// ============================================================================
+// ENRICHMENT HELPERS
+// ============================================================================
+
+function getCapabilitiesForType(pageType: string): string[] {
+  const capabilities: Record<string, string[]> = {
+    'courses-list': ['view-courses', 'create-course', 'search-courses'],
+    'course-detail': ['edit-course', 'add-chapters', 'generate-content', 'publish-course'],
+    'chapter-detail': ['edit-chapter', 'add-sections', 'generate-content', 'publish-chapter'],
+    'section-detail': ['edit-section', 'add-content', 'add-video', 'add-quiz', 'generate-content'],
+    'course-create': ['create-course', 'use-template', 'ai-suggestions'],
+    'dashboard': ['view-overview', 'quick-actions'],
+    'user-dashboard': ['view-overview', 'quick-actions'],
+    'admin-dashboard': ['view-overview', 'manage-users', 'system-settings'],
+    'user-analytics': ['view-metrics', 'export-data'],
+    'analytics': ['view-metrics', 'export-data'],
+    'teacher-dashboard': ['view-overview', 'manage-courses'],
+    'course-learning': ['view-content', 'ask-questions', 'take-quiz'],
+    'chapter-learning': ['view-content', 'ask-questions', 'take-quiz'],
+    'section-learning': ['view-content', 'ask-questions', 'take-quiz'],
+    'exam': ['take-exam', 'view-instructions'],
+    'exam-results': ['view-results', 'review-answers'],
+    'settings': ['update-profile', 'change-preferences'],
+    'other': ['general-help', 'navigation'],
+  };
+  return capabilities[pageType] || capabilities.other;
+}
+
+function buildBreadcrumbsFromPath(path: string): string[] {
+  const segments = path.split('/').filter(Boolean);
+  const breadcrumbs: string[] = [];
+
+  for (const segment of segments) {
+    // Skip UUID-like segments
+    if (/^[a-f0-9-]{8,}$/i.test(segment)) continue;
+    const formatted = segment
+      .replace(/-/g, ' ')
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+    breadcrumbs.push(formatted);
+  }
+
+  return breadcrumbs;
 }
 
 /**

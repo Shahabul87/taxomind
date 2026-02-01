@@ -15,4 +15,5 @@ export { PersonalizationEngine, createPersonalizationEngine } from './personaliz
 export type { PersonalizationEngineOutput, LearningStyleProfile, EmotionalProfile, EmotionalState, CognitiveLoadProfile, CognitiveLoad, MotivationProfile, ContentAdaptation, PersonalizedLearningPath, LearningPathNode, } from './personalization';
 export { ResponseEngine, createResponseEngine } from './response';
 export type { ResponseEngineOutput } from './response';
+export { ContextGatheringEngine, createContextGatheringEngine } from './context-gathering';
 //# sourceMappingURL=index.d.ts.map

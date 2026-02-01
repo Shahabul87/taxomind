@@ -23,8 +23,8 @@ export { MemoryPanel } from './panels/MemoryPanel';
 // Hooks
 export { useDragResize } from './hooks/use-drag-resize';
 export { useChatWindow } from './hooks/use-chat-window';
-export { usePageContext } from './hooks/use-page-context';
-export { useEntityContext } from './hooks/use-entity-context';
+// Page utilities (pure functions, no hooks)
+export { detectPageName, getPageCapabilities, buildBreadcrumbs } from './utils/page-utils';
 export { useSendMessage } from './hooks/use-send-message';
 export { useOrchestration } from './hooks/use-orchestration';
 export { useChatTools } from './hooks/use-tools';

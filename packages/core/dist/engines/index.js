@@ -8,4 +8,5 @@ export { ContentEngine, createContentEngine } from './content';
 export { AssessmentEngine, createAssessmentEngine } from './assessment';
 export { PersonalizationEngine, createPersonalizationEngine } from './personalization';
 export { ResponseEngine, createResponseEngine } from './response';
+export { ContextGatheringEngine, createContextGatheringEngine } from './context-gathering';
 //# sourceMappingURL=index.js.map

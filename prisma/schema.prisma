@@ -1791,6 +1791,9 @@ model User {
 
   // Cognitive Profile (Bloom's Taxonomy Experience - January 2026)
   cognitiveProfile           UserCognitiveProfile?         @relation("UserCognitiveProfile")
+
+  // Context Gathering (February 2026)
+  samPageContextSnapshots    SAMPageContextSnapshot[]      @relation("SAMPageContextSnapshots")
 }
 
 model Account {
@@ -10643,6 +10646,29 @@ model CourseCognitiveQuality {
   @@index([cognitiveScore])
   @@index([categoryId])
   @@map("course_cognitive_quality")
+}
+
+// ==========================================
+// CONTEXT GATHERING
+// ==========================================
+
+model SAMPageContextSnapshot {
+  id          String   @id @default(cuid())
+  userId      String
+  pageType    String
+  pagePath    String
+  contentHash String
+  snapshot    Json
+  summary     String   @default("")
+  confidence  Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  user        User     @relation("SAMPageContextSnapshots", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, pagePath])
+  @@index([contentHash])
+  @@map("sam_page_context_snapshots")
 }
 
 // ==========================================

@@ -1473,3 +1473,11 @@ export {
   type PreWarmStatus,
   type ServicePreWarmResult,
 } from './middleware/pre-warm';
+
+// Context Gathering Integration
+export {
+  processContextSnapshot,
+  getLatestContextSnapshot,
+  getContextSummaryForRoute,
+  type ProcessContextOptions,
+} from './context-gathering-integration';

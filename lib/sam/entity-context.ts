@@ -59,7 +59,7 @@ export interface SectionContext {
 }
 
 export interface EntityContext {
-  type: 'course' | 'chapter' | 'section' | 'none';
+  type: 'course' | 'chapter' | 'section' | 'course-list' | 'none';
   course?: CourseContext;
   chapter?: ChapterContext;
   section?: SectionContext;
@@ -205,13 +205,66 @@ export async function fetchSectionContext(sectionId: string): Promise<SectionCon
 // ============================================================================
 
 /**
+ * Fetch user's course list summary for list pages
+ */
+async function fetchUserCoursesListContext(userId: string): Promise<EntityContext> {
+  try {
+    const courses = await db.course.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        title: true,
+        isPublished: true,
+        _count: { select: { chapters: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    });
+
+    if (courses.length === 0) {
+      return {
+        type: 'course-list',
+        summary: 'You have no courses yet. You can create your first course from this page.',
+      };
+    }
+
+    const published = courses.filter(c => c.isPublished);
+    const drafts = courses.filter(c => !c.isPublished);
+
+    const parts: string[] = [
+      `You have ${courses.length} course${courses.length !== 1 ? 's' : ''} total.`,
+      `Published: ${published.length}, Drafts: ${drafts.length}.`,
+      '',
+      'Your courses:',
+    ];
+
+    for (const course of courses) {
+      const status = course.isPublished ? 'Published' : 'Draft';
+      parts.push(`- "${course.title}" (${status}, ${course._count.chapters} chapter${course._count.chapters !== 1 ? 's' : ''})`);
+    }
+
+    return {
+      type: 'course-list',
+      summary: parts.join('\n'),
+    };
+  } catch (error) {
+    console.error('[EntityContext] Error fetching user courses list:', error);
+    return {
+      type: 'none',
+      summary: 'Unable to load course list data.',
+    };
+  }
+}
+
+/**
  * Build entity context based on page type and IDs
  */
 export async function buildEntityContext(
   pageType: string,
   entityId?: string,
   parentEntityId?: string,
-  grandParentEntityId?: string
+  grandParentEntityId?: string,
+  userId?: string
 ): Promise<EntityContext> {
   let context: EntityContext = {
     type: 'none',
@@ -219,8 +272,12 @@ export async function buildEntityContext(
   };
 
   try {
+    // Courses list page - show user's course inventory
+    if (pageType === 'courses-list' && userId) {
+      context = await fetchUserCoursesListContext(userId);
+    }
     // Section detail page
-    if (pageType === 'section-detail' && entityId) {
+    else if (pageType === 'section-detail' && entityId) {
       const section = await fetchSectionContext(entityId);
       if (section) {
         const chapter = await fetchChapterContext(section.chapterId);

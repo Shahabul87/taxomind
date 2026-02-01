@@ -101,3 +101,49 @@ export type {
 } from './config';
 
 export { createSAMConfig } from './config';
+
+// Context snapshot types
+export type {
+  ValidationState,
+  ValidationRule,
+  FieldDependency,
+  FormFieldSnapshot,
+  FieldGroup,
+  FormPurpose,
+  FormSnapshot,
+  PageState,
+  PageSnapshot,
+  ContentHeading,
+  ContentTable,
+  ContentCodeBlock,
+  ContentImage,
+  ContentSnapshot,
+  LinkCategory,
+  NavigationLink,
+  PaginationState,
+  TabItem,
+  SidebarItem,
+  NavigationSnapshot,
+  InteractionSnapshot,
+  PageContextSnapshot,
+  EntityContextData,
+  UserProfileData,
+  RelatedEntity,
+  ContextGatheringInput,
+  MemoryDirectives,
+  ContextGatheringOutput,
+  ContextDiff,
+  HydrationResult,
+  ContextProvider,
+  UseContextGatheringOptions,
+  UseContextGatheringReturn,
+} from './context-snapshot';
+
+export {
+  CONTEXT_SNAPSHOT_VERSION,
+  createDefaultPageState,
+  createDefaultContentSnapshot,
+  createDefaultNavigationSnapshot,
+  createDefaultInteractionSnapshot,
+  createDefaultPageContextSnapshot,
+} from './context-snapshot';

@@ -440,6 +440,9 @@ model User {
   // Cognitive Profile (Bloom's Taxonomy Experience - January 2026)
   cognitiveProfile           UserCognitiveProfile?         @relation("UserCognitiveProfile")
 
+  // Context Gathering (February 2026)
+  samPageContextSnapshots    SAMPageContextSnapshot[]      @relation("SAMPageContextSnapshots")
+
   // PERFORMANCE: Composite indexes for frequent query patterns
   @@index([subscriptionTier, hasAIAccess])   // AI access control queries
   @@index([isPremium, premiumExpiresAt])     // Premium expiry checks

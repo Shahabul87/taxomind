@@ -45,7 +45,11 @@ import {
 import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 
 // Import entity context service for REAL context awareness
-import { buildEntityContext, buildFormSummary } from '@/lib/sam/entity-context';
+import { buildFormSummary } from '@/lib/sam/entity-context';
+import { gatherPageContext } from '@/lib/sam/page-context-engine';
+
+// Import context gathering for enriched snapshot summaries
+import { getContextSummaryForRoute } from '@/lib/sam/context-gathering-integration';
 
 // Import rate limiter for usage caps
 import { applyRateLimit, samMessagesLimiter } from '@/lib/sam/config/sam-rate-limiter';
@@ -397,7 +401,15 @@ function getEnginePreset(pageType: string, hasForm: boolean): string[] {
       return ENGINE_PRESETS.content;
     case 'learning':
     case 'exam':
+    case 'course-learning':
+    case 'section-learning':
+    case 'chapter-learning':
       return ENGINE_PRESETS.learning;
+    case 'courses-list':
+    case 'teacher-dashboard':
+    case 'user-dashboard':
+    case 'dashboard':
+      return ENGINE_PRESETS.quick;
     default:
       return ENGINE_PRESETS.quick;
   }
@@ -628,91 +640,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Build entity context - use client data if available, otherwise fetch from database
-    const hasClientEntityData = !!pageContext.entityData?.title;
-    let entityContext: Awaited<ReturnType<typeof buildEntityContext>>;
-
-    if (hasClientEntityData && pageContext.entityData) {
-      // Client provided entity data - use it directly (faster, no DB call needed)
-      const clientData = pageContext.entityData;
-      const entityType = pageContext.entityType || 'course';
-
-      logger.debug('[SAM_STREAM] Using client-provided entity data:', {
-        type: entityType,
-        title: clientData.title,
-        hasChapters: !!clientData.chapters?.length,
-      });
-
-      // Build entity context from client data
-      entityContext = {
-        type: entityType as 'course' | 'chapter' | 'section' | 'none',
-        course: entityType === 'course' || clientData.courseTitle ? {
-          id: pageContext.entityId || '',
-          title: clientData.title || clientData.courseTitle || '',
-          description: clientData.description || null,
-          subtitle: null,
-          courseGoals: null,
-          whatYouWillLearn: clientData.whatYouWillLearn || clientData.learningObjectives || [],
-          prerequisites: null,
-          difficulty: null,
-          categoryName: null,
-          isPublished: clientData.isPublished ?? false,
-          chapterCount: clientData.chapterCount || clientData.chapters?.length || 0,
-          chapters: clientData.chapters?.map(ch => ({
-            id: ch.id,
-            title: ch.title,
-            position: ch.position || 0,
-            sectionCount: ch.sectionCount || ch.sections?.length || 0,
-          })) || [],
-        } : undefined,
-        chapter: entityType === 'chapter' ? {
-          id: pageContext.entityId || '',
-          title: clientData.title || '',
-          description: clientData.description || null,
-          position: 0,
-          courseTitle: clientData.courseTitle || '',
-          courseId: clientData.courseId || '',
-          sections: clientData.sections?.map(s => ({
-            id: s.id,
-            title: s.title,
-            position: 0,
-            contentType: null,
-          })) || [],
-        } : undefined,
-        section: entityType === 'section' ? {
-          id: pageContext.entityId || '',
-          title: clientData.title || '',
-          description: clientData.description || null,
-          content: clientData.content || null,
-          position: 0,
-          chapterTitle: clientData.chapterTitle || '',
-          chapterId: clientData.chapterId || '',
-          courseTitle: clientData.courseTitle || '',
-          courseId: clientData.courseId || '',
-          videoUrl: clientData.videoUrl || null,
-          contentType: clientData.contentType || null,
-        } : undefined,
-        summary: buildClientEntitySummary(clientData, entityType),
-      };
-    } else {
-      // No client data - fetch from database (fallback)
-      entityContext = await buildEntityContext(
-        pageContext.type,
-        pageContext.entityId,
-        pageContext.parentEntityId,
-        pageContext.grandParentEntityId
-      );
-    }
-
-    logger.debug('[SAM_STREAM] Entity context ready:', {
-      type: entityContext.type,
-      hasEntity: entityContext.type !== 'none',
-      summaryLength: entityContext.summary.length,
-      source: hasClientEntityData ? 'client' : 'database',
+    // Build entity context via Page Context Engine (single responsibility, fail-loud)
+    const pageContextResult = await gatherPageContext({
+      pageType: pageContext.type,
+      entityId: pageContext.entityId,
+      parentEntityId: pageContext.parentEntityId,
+      grandParentEntityId: pageContext.grandParentEntityId,
+      userId: user.id,
+      clientEntityData: pageContext.entityData as unknown as Record<string, unknown> | undefined,
+      clientEntityType: pageContext.entityType,
     });
+    const entityContext = pageContextResult.entityContext;
+
+    logger.info('[SAM_STREAM] Page context gathered:', pageContextResult.diagnostics);
 
     // Build form summary for context
     const formSummary = buildFormSummary(formContext?.fields);
+
+    // Fetch enriched context snapshot summary (from context gathering engine)
+    let contextSnapshotSummary: { pageSummary: string; formSummary: string } | null = null;
+    try {
+      contextSnapshotSummary = await getContextSummaryForRoute(user.id);
+    } catch {
+      // Non-critical — continue without snapshot context
+    }
 
     // Build SAMContext with REAL entity data
     const samContext: SAMContext = createDefaultContext({
@@ -735,18 +686,20 @@ export async function POST(request: NextRequest) {
         // CRITICAL: Pass actual entity data in metadata for context awareness
         metadata: {
           entityContext,
-          entitySummary: entityContext.summary,
+          entitySummary: pageContextResult.entitySummary,
+          entityConfidence: pageContextResult.contextConfidence,
           formSummary,
-          memorySummary,
+          memorySummary, // Clean: learning state only, no entity/form data mixed in
           reviewSummary,
-          toolsSummary, // Available mentor tools
-          // Include specific entity data for easy access
+          toolsSummary,
+          // Enriched snapshot context (from context gathering engine)
+          contextSnapshotPageSummary: contextSnapshotSummary?.pageSummary,
+          contextSnapshotFormSummary: contextSnapshotSummary?.formSummary,
           courseTitle: entityContext.course?.title,
           courseDescription: entityContext.course?.description,
           chapterTitle: entityContext.chapter?.title,
           sectionTitle: entityContext.section?.title,
           sectionContent: entityContext.section?.content,
-          // Include page links for navigation context
           pageLinks: pageContext.links?.slice(0, 20),
           pageLinkCount: pageContext.linkCount,
         },
@@ -1471,75 +1424,3 @@ function transformFormFields(fields: Record<string, unknown>): Record<string, SA
   return result;
 }
 
-/**
- * Build a human-readable summary from client-provided entity data
- */
-function buildClientEntitySummary(
-  entityData: NonNullable<(typeof StreamRequestSchema)['_output']['pageContext']['entityData']>,
-  entityType: string
-): string {
-  const parts: string[] = [];
-
-  if (entityType === 'course') {
-    if (entityData.title) {
-      parts.push(`Course: "${entityData.title}"`);
-    }
-    if (entityData.description) {
-      parts.push(`Description: ${entityData.description.substring(0, 300)}${entityData.description.length > 300 ? '...' : ''}`);
-    }
-    if (entityData.whatYouWillLearn?.length) {
-      parts.push(`Learning objectives: ${entityData.whatYouWillLearn.slice(0, 3).join('; ')}${entityData.whatYouWillLearn.length > 3 ? '...' : ''}`);
-    }
-    if (entityData.chapterCount !== undefined) {
-      parts.push(`Chapters: ${entityData.chapterCount}`);
-    }
-    if (entityData.chapters?.length) {
-      const chapterTitles = entityData.chapters.slice(0, 5).map(ch => ch.title).join(', ');
-      parts.push(`Chapter titles: ${chapterTitles}${entityData.chapters.length > 5 ? '...' : ''}`);
-    }
-    parts.push(`Status: ${entityData.isPublished ? 'Published' : 'Draft'}`);
-  } else if (entityType === 'chapter') {
-    if (entityData.title) {
-      parts.push(`Chapter: "${entityData.title}"`);
-    }
-    if (entityData.courseTitle) {
-      parts.push(`Part of course: "${entityData.courseTitle}"`);
-    }
-    if (entityData.description) {
-      parts.push(`Description: ${entityData.description.substring(0, 200)}${entityData.description.length > 200 ? '...' : ''}`);
-    }
-    if (entityData.sectionCount !== undefined) {
-      parts.push(`Sections: ${entityData.sectionCount}`);
-    }
-    if (entityData.sections?.length) {
-      const sectionTitles = entityData.sections.slice(0, 5).map(s => s.title).join(', ');
-      parts.push(`Section titles: ${sectionTitles}${entityData.sections.length > 5 ? '...' : ''}`);
-    }
-  } else if (entityType === 'section') {
-    if (entityData.title) {
-      parts.push(`Section: "${entityData.title}"`);
-    }
-    if (entityData.chapterTitle) {
-      parts.push(`Part of chapter: "${entityData.chapterTitle}"`);
-    }
-    if (entityData.courseTitle) {
-      parts.push(`Part of course: "${entityData.courseTitle}"`);
-    }
-    if (entityData.description) {
-      parts.push(`Description: ${entityData.description.substring(0, 200)}${entityData.description.length > 200 ? '...' : ''}`);
-    }
-    if (entityData.contentType) {
-      parts.push(`Content type: ${entityData.contentType}`);
-    }
-    if (entityData.content) {
-      // Strip HTML and truncate
-      const stripped = entityData.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-      parts.push(`Content preview: ${stripped.substring(0, 300)}${stripped.length > 300 ? '...' : ''}`);
-    }
-    if (entityData.videoUrl) {
-      parts.push('Has video: Yes');
-    }
-  }
-
-  return parts.length > 0 ? parts.join('\n') : 'No specific entity context available.';
-}

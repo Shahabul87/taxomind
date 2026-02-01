@@ -57,6 +57,9 @@ export {
   useStepCelebration,
   TutoringOrchestrationProvider,
   useTutoringOrchestrationContext,
+  // Context Gathering Hooks
+  useContextGathering,
+  useContextMemorySync,
   // Phase 6 Hooks - Educational Engines
   useExamEngine,
   useQuestionBank,
@@ -279,6 +282,21 @@ export type {
   BatchProcessingResult,
   StorageQuota,
 } from './hooks';
+
+// Context Gathering types
+export type {
+  UseContextMemorySyncOptions,
+  UseContextMemorySyncReturn,
+} from './hooks';
+
+// Re-export core context snapshot types
+export type {
+  PageContextSnapshot,
+  ContextGatheringOutput,
+  UseContextGatheringOptions,
+  UseContextGatheringReturn,
+  ContextProvider,
+} from '@sam-ai/core';
 
 // ============================================================================
 // RE-EXPORT CORE TYPES (for convenience)

@@ -195,6 +195,63 @@ function getDefaultCapabilities() {
   };
 }
 
+// src/types/context-snapshot.ts
+var CONTEXT_SNAPSHOT_VERSION = "1.0.0";
+function createDefaultPageState() {
+  return {
+    isEditing: false,
+    isDraft: false,
+    isPublished: false,
+    hasUnsavedChanges: false,
+    permissions: []
+  };
+}
+function createDefaultContentSnapshot() {
+  return {
+    headings: [],
+    tables: [],
+    codeBlocks: [],
+    images: [],
+    textSummary: "",
+    wordCount: 0,
+    readingTimeMinutes: 0
+  };
+}
+function createDefaultNavigationSnapshot() {
+  return {
+    links: []
+  };
+}
+function createDefaultInteractionSnapshot() {
+  return {
+    scrollPosition: 0,
+    viewportHeight: 0,
+    timeOnPage: 0
+  };
+}
+function createDefaultPageContextSnapshot(partial) {
+  return {
+    version: CONTEXT_SNAPSHOT_VERSION,
+    timestamp: Date.now(),
+    contentHash: "",
+    page: {
+      type: "unknown",
+      path: "",
+      title: "",
+      capabilities: [],
+      breadcrumb: [],
+      state: createDefaultPageState(),
+      meta: {}
+    },
+    forms: [],
+    content: createDefaultContentSnapshot(),
+    navigation: createDefaultNavigationSnapshot(),
+    interaction: createDefaultInteractionSnapshot(),
+    custom: {},
+    ...partial
+  };
+}
+
 // src/state-machine.ts
 var SAMStateMachine = class {
   state = "idle";
@@ -3580,6 +3637,11 @@ var ResponseEngine = class extends BaseEngine {
   }
   async generateAIResponse(query, context, contextResult, bloomsResult) {
     const systemPrompt = this.buildSystemPrompt(context, contextResult, bloomsResult);
+    this.logger.info("[ResponseEngine] System prompt built:", {
+      totalLength: systemPrompt.length,
+      hasEntityContext: systemPrompt.includes("Database-Verified Information"),
+      pageType: context.page.type
+    });
     try {
       const response = await this.callAI({
         systemPrompt,
@@ -3604,28 +3666,30 @@ var ResponseEngine = class extends BaseEngine {
     const memorySummary = metadata.memorySummary;
     const reviewSummary = metadata.reviewSummary;
     let prompt = `You are ${name}, an intelligent AI tutor assistant for an educational platform. Be ${tone}.
-
-## Current Context
-- Page Type: ${context.page.type}
-- User Role: ${context.user.role}
-- Path: ${context.page.path}
 `;
-    if (entitySummary && entitySummary !== "No specific entity context available.") {
+    prompt += `
+## PAGE CONTEXT \u2014 VERIFIED DATA
+`;
+    prompt += `You are currently on: ${context.page.type} page
+`;
+    prompt += `Path: ${context.page.path}
+`;
+    prompt += `User role: ${context.user.role}
+`;
+    const hasEntityData = entitySummary && entitySummary !== "No specific entity context available." && entitySummary.length > 0;
+    if (hasEntityData) {
       prompt += `
-## Entity Information (ACTUAL DATA FROM DATABASE)
+### Database-Verified Information
 ${entitySummary}
 `;
     } else if (courseTitle) {
-      prompt += `- Course: ${courseTitle}
-`;
-    }
-    if (contextResult?.enrichedContext) {
-      prompt += `- Capabilities: ${contextResult.enrichedContext.capabilities.join(", ")}
+      prompt += `
+Course: ${courseTitle}
 `;
     }
     if (context.form && Object.keys(context.form.fields).length > 0) {
       prompt += `
-## Form Fields (CURRENT PAGE)
+### Form Fields (Current Page)
 `;
       for (const [fieldName, field] of Object.entries(context.form.fields)) {
         const currentValue = field.value ? `"${String(field.value).substring(0, 200)}${String(field.value).length > 200 ? "..." : ""}"` : "(empty)";
@@ -3635,51 +3699,66 @@ ${entitySummary}
       }
     } else if (formSummary && formSummary !== "No form data available on this page.") {
       prompt += `
-## Form Fields
+### Form Fields
 ${formSummary}
 `;
     }
-    if (memorySummary) {
+    if (hasEntityData) {
       prompt += `
-## Student Memory Summary
-${memorySummary}
+IMPORTANT: The information above comes directly from the database. When the user asks about their courses, chapters, or content, USE THIS DATA. Do NOT say "I don't have access to that information" \u2014 you DO have access, the data is above.
 `;
     }
-    if (reviewSummary) {
+    const hasLearningState = memorySummary || reviewSummary || bloomsResult?.analysis;
+    if (hasLearningState) {
       prompt += `
-## Review Schedule
-${reviewSummary}
+## Learning State
 `;
-    }
-    if (bloomsResult?.analysis) {
-      prompt += `
-## Bloom's Taxonomy Analysis
-- Dominant Level: ${bloomsResult.analysis.dominantLevel}
-- Cognitive Depth: ${bloomsResult.analysis.cognitiveDepth}%
-- Balance: ${bloomsResult.analysis.balance}
-`;
-      if (bloomsResult.recommendations?.length > 0) {
-        prompt += `- Recommendations: ${bloomsResult.recommendations.slice(0, 2).join("; ")}
+      if (memorySummary) {
+        prompt += `${memorySummary}
 `;
       }
+      if (reviewSummary) {
+        prompt += `
+### Review Schedule
+${reviewSummary}
+`;
+      }
+      if (bloomsResult?.analysis) {
+        prompt += `
+### Bloom's Taxonomy
+`;
+        prompt += `- Dominant Level: ${bloomsResult.analysis.dominantLevel}
+`;
+        prompt += `- Cognitive Depth: ${bloomsResult.analysis.cognitiveDepth}%
+`;
+        if (bloomsResult.analysis.balance !== "well-balanced") {
+          prompt += `- Balance: ${bloomsResult.analysis.balance}
+`;
+        }
+        if (bloomsResult.recommendations?.length > 0) {
+          prompt += `- Suggestion: ${bloomsResult.recommendations[0]}
+`;
+        }
+      }
     }
-    if (contextResult?.queryAnalysis) {
+    if (contextResult?.enrichedContext?.capabilities?.length) {
       prompt += `
-## Query Analysis
-- Intent: ${contextResult.queryAnalysis.intent}
-- Keywords: ${contextResult.queryAnalysis.keywords.join(", ")}
+Capabilities: ${contextResult.enrichedContext.capabilities.join(", ")}
 `;
     }
     prompt += `
 ## Response Guidelines
-1. **USE THE ENTITY INFORMATION ABOVE** - You know the course title, description, chapters, etc.
-2. For GENERATION requests: Create content SPECIFIC to this course/chapter/section
-3. For learning objectives: Use Bloom's Taxonomy verbs (Remember, Understand, Apply, Analyze, Evaluate, Create)
-4. Reference actual course details in your responses
-5. Be specific and actionable
-6. Use markdown formatting
-7. If generating form content, provide the content directly without preamble
 `;
+    prompt += `1. **USE THE ENTITY DATA ABOVE** \u2014 reference actual course/chapter/section details
+`;
+    prompt += `2. For GENERATION requests: create content SPECIFIC to the current context
+`;
+    prompt += `3. Be specific and actionable, use markdown formatting
+`;
+    if (context.form && Object.keys(context.form.fields).length > 0) {
+      prompt += `4. If generating form content, provide the content directly without preamble
+`;
+    }
     return prompt;
   }
   generateLocalResponse(context, contextResult, bloomsResult) {
@@ -3869,6 +3948,382 @@ Quick actions: ${topActions.join(", ")}`;
 };
 function createResponseEngine(config) {
   return new ResponseEngine(config);
+}
+
+// src/engines/context-gathering.ts
+var PAGE_TYPE_INTENTS = {
+  "course-detail": "Viewing course overview to understand structure and enroll",
+  "chapter-detail": "Studying chapter content and reviewing material",
+  "section-detail": "Actively learning section content in depth",
+  "courses-list": "Browsing available courses and comparing options",
+  "teacher-courses": "Managing courses as an instructor",
+  "teacher-course-edit": "Editing course content and settings",
+  "teacher-chapter-edit": "Editing chapter structure or content",
+  "teacher-section-edit": "Creating or editing section learning material",
+  "exam-detail": "Taking or reviewing an examination",
+  "exam-edit": "Creating or editing exam questions",
+  "assignment-detail": "Working on or reviewing an assignment",
+  "dashboard": "Reviewing overall learning progress",
+  "study-plan": "Reviewing study plan and scheduled tasks",
+  "settings": "Managing account or application settings",
+  "profile": "Viewing or editing user profile"
+};
+var PAGE_TYPE_ACTIONS = {
+  "course-detail": ["explain-course", "suggest-study-plan", "preview-chapters", "analyze-difficulty"],
+  "chapter-detail": ["explain-chapter", "quiz-on-chapter", "summarize-content", "suggest-exercises"],
+  "section-detail": ["explain-section", "analyze-bloom-level", "generate-practice", "simplify-content", "suggest-next-steps"],
+  "courses-list": ["recommend-course", "compare-courses", "filter-by-level"],
+  "teacher-courses": ["suggest-improvements", "analyze-engagement"],
+  "teacher-course-edit": ["fill-form", "suggest-description", "review-objectives", "optimize-structure"],
+  "teacher-chapter-edit": ["fill-form", "suggest-title", "review-order"],
+  "teacher-section-edit": ["fill-form", "suggest-content", "analyze-bloom-level", "check-alignment"],
+  "exam-detail": ["explain-question", "provide-hint", "check-answer"],
+  "exam-edit": ["generate-questions", "analyze-bloom-coverage", "suggest-distractors"],
+  "assignment-detail": ["explain-assignment", "provide-guidance", "check-progress"],
+  "dashboard": ["summarize-progress", "suggest-next-study", "identify-gaps"],
+  "study-plan": ["explain-plan", "adjust-schedule", "mark-complete"],
+  "settings": ["explain-setting", "suggest-configuration"],
+  "profile": ["update-preferences", "review-achievements"]
+};
+var ContextGatheringEngine = class extends BaseEngine {
+  constructor(config) {
+    super({
+      config,
+      name: "context-gathering",
+      version: "1.0.0",
+      dependencies: [],
+      cacheEnabled: false
+    });
+  }
+  async process(input) {
+    const { snapshot, enrichmentData } = input;
+    const enrichedSnapshot = this.enrichSnapshot(snapshot, enrichmentData);
+    const pageSummary = this.buildPageSummary(enrichedSnapshot.page, enrichmentData?.entityContext);
+    const formSummary = this.buildFormSummary(enrichedSnapshot.forms);
+    const contentSummary = this.buildContentSummary(enrichedSnapshot.content);
+    const navigationSummary = this.buildNavigationSummary(enrichedSnapshot.navigation);
+    const pageIntent = this.inferPageIntent(enrichedSnapshot, enrichmentData);
+    const availableActions = this.determineAvailableActions(enrichedSnapshot);
+    const contextConfidence = this.calculateConfidence(enrichedSnapshot, enrichmentData);
+    const memoryDirectives = this.produceMemoryDirectives(enrichedSnapshot, enrichmentData);
+    return {
+      snapshot: enrichedSnapshot,
+      pageSummary,
+      formSummary,
+      contentSummary,
+      navigationSummary,
+      pageIntent,
+      availableActions,
+      contextConfidence,
+      memoryDirectives
+    };
+  }
+  getCacheKey() {
+    return "context-gathering:no-cache";
+  }
+  // ==========================================================================
+  // ENRICHMENT
+  // ==========================================================================
+  enrichSnapshot(snapshot, enrichmentData) {
+    if (!enrichmentData) return snapshot;
+    const enrichedPage = { ...snapshot.page };
+    if (enrichmentData.entityContext) {
+      const entity = enrichmentData.entityContext;
+      if (entity.entityId && !enrichedPage.entityId) {
+        enrichedPage.entityId = entity.entityId;
+      }
+      if (entity.title && !enrichedPage.title) {
+        enrichedPage.title = entity.title;
+      }
+    }
+    return {
+      ...snapshot,
+      page: enrichedPage
+    };
+  }
+  // ==========================================================================
+  // SUMMARY BUILDERS
+  // ==========================================================================
+  buildPageSummary(page, entityContext) {
+    const parts = [];
+    parts.push(`Page: ${page.title || page.path}`);
+    parts.push(`Type: ${page.type}`);
+    if (page.entityId) {
+      parts.push(`Entity ID: ${page.entityId}`);
+    }
+    if (entityContext) {
+      parts.push(`Entity: ${entityContext.title} (${entityContext.entityType})`);
+      if (entityContext.description) {
+        parts.push(`Description: ${entityContext.description.slice(0, 200)}`);
+      }
+    }
+    if (page.breadcrumb.length > 0) {
+      parts.push(`Breadcrumb: ${page.breadcrumb.join(" > ")}`);
+    }
+    if (page.capabilities.length > 0) {
+      parts.push(`Capabilities: ${page.capabilities.join(", ")}`);
+    }
+    const stateFlags = [];
+    if (page.state.isEditing) stateFlags.push("editing");
+    if (page.state.isDraft) stateFlags.push("draft");
+    if (page.state.isPublished) stateFlags.push("published");
+    if (page.state.hasUnsavedChanges) stateFlags.push("unsaved changes");
+    if (page.state.step != null && page.state.totalSteps != null) {
+      stateFlags.push(`step ${page.state.step}/${page.state.totalSteps}`);
+    }
+    if (stateFlags.length > 0) {
+      parts.push(`State: ${stateFlags.join(", ")}`);
+    }
+    return parts.join("\n");
+  }
+  buildFormSummary(forms) {
+    if (forms.length === 0) return "No forms on this page.";
+    const parts = [`${forms.length} form(s) on page:`];
+    for (const form of forms) {
+      parts.push(`
+Form: ${form.formName || form.formId} (purpose: ${form.purpose})`);
+      parts.push(
+        `  Status: ${form.state.completionPercent}% complete, ${form.state.errorCount} error(s), ${form.state.isDirty ? "modified" : "clean"}`
+      );
+      const requiredFields = form.fields.filter((f) => f.required);
+      const filledRequired = requiredFields.filter(
+        (f) => f.value != null && f.value !== ""
+      );
+      if (requiredFields.length > 0) {
+        parts.push(
+          `  Required fields: ${filledRequired.length}/${requiredFields.length} filled`
+        );
+      }
+      for (const field of form.fields) {
+        const valueStr = field.value != null && field.value !== "" ? `"${String(field.value).slice(0, 50)}"` : "(empty)";
+        const flags = [];
+        if (field.required) flags.push("required");
+        if (field.disabled) flags.push("disabled");
+        if (field.validationState === "invalid") flags.push("invalid");
+        const flagStr = flags.length > 0 ? ` [${flags.join(", ")}]` : "";
+        parts.push(
+          `  - ${field.label || field.name} (${field.type}): ${valueStr}${flagStr}`
+        );
+        if (field.errors.length > 0) {
+          parts.push(`    Errors: ${field.errors.join("; ")}`);
+        }
+        if (field.options && field.options.length > 0 && field.options.length <= 10) {
+          const optStr = field.options.map((o) => o.label).join(", ");
+          parts.push(`    Options: ${optStr}`);
+        }
+      }
+      if (form.fieldGroups.length > 0) {
+        parts.push(
+          `  Groups: ${form.fieldGroups.map((g) => g.label || g.name).join(", ")}`
+        );
+      }
+    }
+    return parts.join("\n");
+  }
+  buildContentSummary(content) {
+    if (content.wordCount === 0 && content.headings.length === 0) {
+      return "No visible content detected.";
+    }
+    const parts = [];
+    if (content.headings.length > 0) {
+      parts.push("Headings:");
+      for (const h of content.headings.slice(0, 10)) {
+        parts.push(`  ${"#".repeat(h.level)} ${h.text}`);
+      }
+      if (content.headings.length > 10) {
+        parts.push(`  ...and ${content.headings.length - 10} more`);
+      }
+    }
+    if (content.wordCount > 0) {
+      parts.push(
+        `Content: ${content.wordCount} words (~${content.readingTimeMinutes} min read)`
+      );
+    }
+    if (content.tables.length > 0) {
+      parts.push(`Tables: ${content.tables.length}`);
+      for (const t of content.tables.slice(0, 3)) {
+        const caption = t.caption ? ` "${t.caption}"` : "";
+        parts.push(`  - ${t.rowCount} rows, columns: ${t.headers.join(", ")}${caption}`);
+      }
+    }
+    if (content.codeBlocks.length > 0) {
+      parts.push(`Code blocks: ${content.codeBlocks.length}`);
+      for (const cb of content.codeBlocks.slice(0, 3)) {
+        const lang = cb.language ? ` (${cb.language})` : "";
+        parts.push(`  - ${cb.preview.slice(0, 60)}...${lang}`);
+      }
+    }
+    if (content.images.length > 0) {
+      parts.push(`Images: ${content.images.length}`);
+    }
+    if (content.textSummary) {
+      parts.push(`
+Text preview: ${content.textSummary.slice(0, 500)}`);
+    }
+    return parts.join("\n");
+  }
+  buildNavigationSummary(navigation) {
+    const parts = [];
+    if (navigation.tabs && navigation.tabs.length > 0) {
+      const activeTab = navigation.tabs.find((t) => t.isActive);
+      parts.push(
+        `Tabs: ${navigation.tabs.map((t) => t.label).join(", ")}${activeTab ? ` (active: ${activeTab.label})` : ""}`
+      );
+    }
+    if (navigation.pagination) {
+      const p = navigation.pagination;
+      parts.push(`Pagination: page ${p.current}/${p.total}`);
+    }
+    if (navigation.sidebar && navigation.sidebar.length > 0) {
+      const activeSidebar = navigation.sidebar.find((s) => s.isActive);
+      parts.push(
+        `Sidebar: ${navigation.sidebar.length} items${activeSidebar ? `, active: ${activeSidebar.label}` : ""}`
+      );
+    }
+    const actionLinks = navigation.links.filter((l) => l.category === "action");
+    if (actionLinks.length > 0) {
+      parts.push(`Action links: ${actionLinks.map((l) => l.text).join(", ")}`);
+    }
+    if (parts.length === 0) {
+      return "No notable navigation elements.";
+    }
+    return parts.join("\n");
+  }
+  // ==========================================================================
+  // INTENT INFERENCE
+  // ==========================================================================
+  inferPageIntent(snapshot, enrichmentData) {
+    const { page, forms, content } = snapshot;
+    const knownIntent = PAGE_TYPE_INTENTS[page.type];
+    if (forms.length > 0 && page.state.isEditing) {
+      const primaryForm = forms[0];
+      if (primaryForm.purpose === "create") {
+        return `Creating new ${page.type.replace("teacher-", "").replace("-edit", "")} content via form`;
+      }
+      if (primaryForm.purpose === "edit") {
+        return `Editing existing ${page.type.replace("teacher-", "").replace("-edit", "")} content`;
+      }
+    }
+    if (enrichmentData?.entityContext) {
+      const entity = enrichmentData.entityContext;
+      if (knownIntent) {
+        return `${knownIntent} \u2014 "${entity.title}"`;
+      }
+      return `Working with ${entity.entityType} "${entity.title}"`;
+    }
+    if (knownIntent) return knownIntent;
+    if (content.wordCount > 500) {
+      return "Reading detailed content on this page";
+    }
+    if (forms.length > 0) {
+      return "Filling out a form on this page";
+    }
+    return `Viewing ${page.type || "unknown"} page`;
+  }
+  // ==========================================================================
+  // AVAILABLE ACTIONS
+  // ==========================================================================
+  determineAvailableActions(snapshot) {
+    const { page, forms } = snapshot;
+    const actions = [];
+    const typeActions = PAGE_TYPE_ACTIONS[page.type];
+    if (typeActions) {
+      actions.push(...typeActions);
+    }
+    if (forms.length > 0) {
+      actions.push("fill-form", "validate-form", "explain-form-fields");
+      for (const form of forms) {
+        if (form.state.errorCount > 0) {
+          actions.push("fix-form-errors");
+        }
+        if (form.state.completionPercent < 100) {
+          actions.push("suggest-missing-fields");
+        }
+      }
+    }
+    if (snapshot.content.wordCount > 100) {
+      actions.push("summarize-content", "analyze-content");
+    }
+    if (snapshot.content.codeBlocks.length > 0) {
+      actions.push("explain-code", "review-code");
+    }
+    return [...new Set(actions)];
+  }
+  // ==========================================================================
+  // CONFIDENCE
+  // ==========================================================================
+  calculateConfidence(snapshot, enrichmentData) {
+    let score = 0;
+    const weights = {
+      pageType: 0.2,
+      title: 0.1,
+      entityId: 0.15,
+      entityContext: 0.2,
+      forms: 0.1,
+      content: 0.1,
+      breadcrumb: 0.05,
+      capabilities: 0.05,
+      userProfile: 0.05
+    };
+    if (snapshot.page.type && snapshot.page.type !== "unknown") score += weights.pageType;
+    if (snapshot.page.title) score += weights.title;
+    if (snapshot.page.entityId) score += weights.entityId;
+    if (enrichmentData?.entityContext) score += weights.entityContext;
+    if (snapshot.forms.length > 0) score += weights.forms;
+    if (snapshot.content.wordCount > 0) score += weights.content;
+    if (snapshot.page.breadcrumb.length > 0) score += weights.breadcrumb;
+    if (snapshot.page.capabilities.length > 0) score += weights.capabilities;
+    if (enrichmentData?.userProfile) score += weights.userProfile;
+    return Math.min(1, Math.round(score * 100) / 100);
+  }
+  // ==========================================================================
+  // MEMORY DIRECTIVES
+  // ==========================================================================
+  produceMemoryDirectives(snapshot, enrichmentData) {
+    const contentForIngestion = [];
+    const entitiesForGraph = [];
+    const sessionContextUpdates = {};
+    const shouldIngestContent = snapshot.content.wordCount > 50;
+    if (shouldIngestContent && snapshot.content.textSummary) {
+      contentForIngestion.push(snapshot.content.textSummary);
+    }
+    sessionContextUpdates.currentPage = {
+      type: snapshot.page.type,
+      path: snapshot.page.path,
+      title: snapshot.page.title,
+      entityId: snapshot.page.entityId
+    };
+    if (snapshot.forms.length > 0) {
+      sessionContextUpdates.currentForm = {
+        formId: snapshot.forms[0].formId,
+        purpose: snapshot.forms[0].purpose,
+        completionPercent: snapshot.forms[0].state.completionPercent,
+        fieldCount: snapshot.forms[0].fields.length
+      };
+    }
+    const shouldUpdateKnowledgeGraph = !!enrichmentData?.entityContext;
+    if (enrichmentData?.entityContext) {
+      const entity = enrichmentData.entityContext;
+      entitiesForGraph.push({
+        name: entity.title,
+        type: entity.entityType,
+        relationships: enrichmentData.relatedEntities ? enrichmentData.relatedEntities.map(
+          (r) => `${r.relationship}:${r.title}`
+        ) : []
+      });
+    }
+    return {
+      shouldIngestContent,
+      shouldUpdateSessionContext: true,
+      shouldUpdateKnowledgeGraph,
+      contentForIngestion,
+      entitiesForGraph,
+      sessionContextUpdates
+    };
+  }
+};
+function createContextGatheringEngine(config) {
+  return new ContextGatheringEngine(config);
 }
 
 // src/adapters/anthropic.ts
@@ -4116,7 +4571,7 @@ var DeepSeekAdapter = class {
       throw new ConfigurationError("DeepSeek API key is required");
     }
     this.apiKey = options.apiKey;
-    this.model = options.model ?? "deepseek-reasoner";
+    this.model = options.model ?? "deepseek-chat";
     this.baseURL = options.baseURL ?? "https://api.deepseek.com";
     this.maxRetries = options.maxRetries ?? 2;
     this.timeout = options.timeout ?? 6e4;
@@ -5275,6 +5730,203 @@ function createInMemoryDatabase(options = {}) {
   return new InMemoryDatabaseAdapter(options);
 }
 
+// src/memory/context-memory.ts
+function computeContextDiff(previous, current) {
+  if (!previous) {
+    return {
+      hasChanges: true,
+      changedSections: ["page", "forms", "content", "navigation", "interaction"],
+      newFormFields: current.forms.flatMap((f) => f.fields),
+      changedFormValues: [],
+      newContent: current.content.textSummary ? [current.content.textSummary] : [],
+      removedContent: []
+    };
+  }
+  const changedSections = [];
+  if (previous.page.path !== current.page.path || previous.page.type !== current.page.type) {
+    changedSections.push("page");
+  }
+  const prevFormIds = new Set(previous.forms.map((f) => f.formId));
+  const newFormFields = [];
+  const changedFormValues = [];
+  for (const form of current.forms) {
+    if (!prevFormIds.has(form.formId)) {
+      newFormFields.push(...form.fields);
+      changedSections.push("forms");
+    } else {
+      const prevForm = previous.forms.find((f) => f.formId === form.formId);
+      if (prevForm) {
+        for (const field of form.fields) {
+          const prevField = prevForm.fields.find((f) => f.name === field.name);
+          if (!prevField) {
+            newFormFields.push(field);
+          } else if (JSON.stringify(prevField.value) !== JSON.stringify(field.value)) {
+            changedFormValues.push({
+              field: field.name,
+              oldValue: prevField.value,
+              newValue: field.value
+            });
+          }
+        }
+        if (changedFormValues.length > 0 || newFormFields.length > 0) {
+          changedSections.push("forms");
+        }
+      }
+    }
+  }
+  const newContent = [];
+  const removedContent = [];
+  if (previous.content.textSummary !== current.content.textSummary) {
+    changedSections.push("content");
+    if (current.content.textSummary) newContent.push(current.content.textSummary);
+    if (previous.content.textSummary) removedContent.push(previous.content.textSummary);
+  }
+  if (previous.navigation.links.length !== current.navigation.links.length) {
+    changedSections.push("navigation");
+  }
+  if (Math.abs(previous.interaction.scrollPosition - current.interaction.scrollPosition) > 10 || previous.interaction.focusedElement !== current.interaction.focusedElement) {
+    changedSections.push("interaction");
+  }
+  const uniqueSections = [...new Set(changedSections)];
+  return {
+    hasChanges: uniqueSections.length > 0,
+    changedSections: uniqueSections,
+    newFormFields,
+    changedFormValues,
+    newContent,
+    removedContent
+  };
+}
+var ContextMemoryHydrator = class {
+  adapter;
+  vectorStore;
+  knowledgeGraph;
+  sessionContext;
+  logger;
+  constructor(options) {
+    this.adapter = options.adapter;
+    this.vectorStore = options.vectorStore;
+    this.knowledgeGraph = options.knowledgeGraph;
+    this.sessionContext = options.sessionContext;
+    this.logger = options.logger;
+  }
+  async hydrate(userId, snapshot, directives) {
+    const sectionsUpdated = [];
+    let vectorsQueued = 0;
+    let graphEntitiesAdded = 0;
+    let sessionUpdated = false;
+    const previousSnapshot = await this.adapter.getLatestSnapshot(userId);
+    const diff = computeContextDiff(previousSnapshot, snapshot);
+    if (!diff.hasChanges && previousSnapshot?.contentHash === snapshot.contentHash) {
+      this.logger?.info("No context changes detected, skipping hydration", {
+        userId,
+        contentHash: snapshot.contentHash
+      });
+      return {
+        sectionsUpdated: [],
+        vectorsQueued: 0,
+        graphEntitiesAdded: 0,
+        sessionUpdated: false,
+        snapshotId: ""
+      };
+    }
+    const snapshotId = await this.adapter.storeSnapshot(userId, snapshot);
+    this.logger?.info("Stored context snapshot", { userId, snapshotId });
+    if (directives.shouldIngestContent && this.vectorStore && directives.contentForIngestion.length > 0) {
+      try {
+        vectorsQueued = await this.vectorStore.ingest(
+          userId,
+          directives.contentForIngestion,
+          {
+            source: "context-snapshot",
+            pageType: snapshot.page.type,
+            pagePath: snapshot.page.path,
+            snapshotId
+          }
+        );
+        sectionsUpdated.push("vectors");
+        this.logger?.info("Queued vectors for ingestion", { userId, count: vectorsQueued });
+      } catch (err) {
+        this.logger?.error("Vector ingestion failed", {
+          userId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+    if (directives.shouldUpdateSessionContext && this.sessionContext) {
+      try {
+        await this.sessionContext.update(userId, directives.sessionContextUpdates);
+        sessionUpdated = true;
+        sectionsUpdated.push("session");
+        this.logger?.info("Updated session context", { userId });
+      } catch (err) {
+        this.logger?.error("Session context update failed", {
+          userId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+    if (directives.shouldUpdateKnowledgeGraph && this.knowledgeGraph && directives.entitiesForGraph.length > 0) {
+      try {
+        graphEntitiesAdded = await this.knowledgeGraph.addEntities(
+          userId,
+          directives.entitiesForGraph
+        );
+        sectionsUpdated.push("knowledge-graph");
+        this.logger?.info("Updated knowledge graph", {
+          userId,
+          count: graphEntitiesAdded
+        });
+      } catch (err) {
+        this.logger?.error("Knowledge graph update failed", {
+          userId,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+    return {
+      sectionsUpdated,
+      vectorsQueued,
+      graphEntitiesAdded,
+      sessionUpdated,
+      snapshotId
+    };
+  }
+  /**
+   * Get diff between current snapshot and the last stored one.
+   */
+  async getDiff(userId, newSnapshot) {
+    const previousSnapshot = await this.adapter.getLatestSnapshot(userId);
+    return computeContextDiff(previousSnapshot, newSnapshot);
+  }
+};
+var InMemoryContextMemoryAdapter = class {
+  snapshots = /* @__PURE__ */ new Map();
+  idCounter = 0;
+  async storeSnapshot(userId, snapshot) {
+    const existing = this.snapshots.get(userId) ?? [];
+    existing.push(snapshot);
+    this.snapshots.set(userId, existing);
+    this.idCounter += 1;
+    return `snap_${this.idCounter}`;
+  }
+  async getLatestSnapshot(userId) {
+    const existing = this.snapshots.get(userId);
+    if (!existing || existing.length === 0) return null;
+    return existing[existing.length - 1];
+  }
+  async getSnapshotHistory(userId, limit = 10) {
+    const existing = this.snapshots.get(userId) ?? [];
+    return existing.slice(-limit);
+  }
+};
+function createContextMemoryHydrator(options) {
+  return new ContextMemoryHydrator(options);
+}
+function createInMemoryContextMemoryAdapter() {
+  return new InMemoryContextMemoryAdapter();
+}
+
 // src/index.ts
 var VERSION = "0.1.0";
 export {
@@ -5285,13 +5937,17 @@ export {
   BLOOMS_LEVEL_ORDER,
   BaseEngine,
   BloomsEngine,
+  CONTEXT_SNAPSHOT_VERSION,
   CacheError,
   ConfigurationError,
   ContentEngine,
   ContextEngine,
+  ContextGatheringEngine,
+  ContextMemoryHydrator,
   DeepSeekAdapter,
   DependencyError,
   EngineError,
+  InMemoryContextMemoryAdapter,
   InMemoryDatabaseAdapter,
   InitializationError,
   MemoryCacheAdapter,
@@ -5313,13 +5969,21 @@ export {
   createBloomsEngine,
   createContentEngine,
   createContextEngine,
+  createContextGatheringEngine,
+  createContextMemoryHydrator,
   createDeepSeekAdapter,
+  createDefaultContentSnapshot,
   createDefaultContext,
   createDefaultConversationContext,
   createDefaultGamificationContext,
+  createDefaultInteractionSnapshot,
+  createDefaultNavigationSnapshot,
   createDefaultPageContext,
+  createDefaultPageContextSnapshot,
+  createDefaultPageState,
   createDefaultUIContext,
   createDefaultUserContext,
+  createInMemoryContextMemoryAdapter,
   createInMemoryDatabase,
   createMemoryCache,
   createNoopDatabaseAdapter,

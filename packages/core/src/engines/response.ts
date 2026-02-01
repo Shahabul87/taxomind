@@ -140,6 +140,13 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
   ): Promise<{ content: string }> {
     const systemPrompt = this.buildSystemPrompt(context, contextResult, bloomsResult);
 
+    // Observable: Log what the LLM receives so we can diagnose context issues
+    this.logger.info('[ResponseEngine] System prompt built:', {
+      totalLength: systemPrompt.length,
+      hasEntityContext: systemPrompt.includes('Database-Verified Information'),
+      pageType: context.page.type,
+    });
+
     try {
       const response = await this.callAI({
         systemPrompt,
@@ -164,7 +171,7 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     const name = personality?.name ?? 'SAM';
     const tone = personality?.tone ?? 'friendly and professional';
 
-    // Extract entity context from page metadata
+    // Extract context from page metadata
     const metadata = context.page.metadata || {};
     const entitySummary = metadata.entitySummary as string | undefined;
     const formSummary = metadata.formSummary as string | undefined;
@@ -172,34 +179,29 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     const memorySummary = metadata.memorySummary as string | undefined;
     const reviewSummary = metadata.reviewSummary as string | undefined;
 
-    let prompt = `You are ${name}, an intelligent AI tutor assistant for an educational platform. Be ${tone}.
+    // ---- Section 1: Identity ----
+    let prompt = `You are ${name}, an intelligent AI tutor assistant for an educational platform. Be ${tone}.\n`;
 
-## Current Context
-- Page Type: ${context.page.type}
-- User Role: ${context.user.role}
-- Path: ${context.page.path}
-`;
+    // ---- Section 2: PAGE CONTEXT (highest priority — entity data at top) ----
+    prompt += `\n## PAGE CONTEXT \u2014 VERIFIED DATA\n`;
+    prompt += `You are currently on: ${context.page.type} page\n`;
+    prompt += `Path: ${context.page.path}\n`;
+    prompt += `User role: ${context.user.role}\n`;
 
-    // CRITICAL: Include ACTUAL entity data - this is what makes SAM context-aware!
-    if (entitySummary && entitySummary !== 'No specific entity context available.') {
-      prompt += `
-## Entity Information (ACTUAL DATA FROM DATABASE)
-${entitySummary}
-`;
+    // Entity information — placed FIRST for maximum LLM attention
+    const hasEntityData = entitySummary
+      && entitySummary !== 'No specific entity context available.'
+      && entitySummary.length > 0;
+
+    if (hasEntityData) {
+      prompt += `\n### Database-Verified Information\n${entitySummary}\n`;
     } else if (courseTitle) {
-      prompt += `- Course: ${courseTitle}\n`;
+      prompt += `\nCourse: ${courseTitle}\n`;
     }
 
-    if (contextResult?.enrichedContext) {
-      prompt += `- Capabilities: ${contextResult.enrichedContext.capabilities.join(', ')}
-`;
-    }
-
-    // Include form context with actual values
+    // Form fields — part of page context
     if (context.form && Object.keys(context.form.fields).length > 0) {
-      prompt += `
-## Form Fields (CURRENT PAGE)
-`;
+      prompt += `\n### Form Fields (Current Page)\n`;
       for (const [fieldName, field] of Object.entries(context.form.fields)) {
         const currentValue = field.value
           ? `"${String(field.value).substring(0, 200)}${String(field.value).length > 200 ? '...' : ''}"`
@@ -208,56 +210,54 @@ ${entitySummary}
         prompt += `- ${label}: ${currentValue}\n`;
       }
     } else if (formSummary && formSummary !== 'No form data available on this page.') {
-      prompt += `
-## Form Fields
-${formSummary}
-`;
+      prompt += `\n### Form Fields\n${formSummary}\n`;
     }
 
-    if (memorySummary) {
-      prompt += `
-## Student Memory Summary
-${memorySummary}
-`;
+    // Critical instruction: prevent "I don't have access" responses
+    if (hasEntityData) {
+      prompt += `\nIMPORTANT: The information above comes directly from the database. When the user asks about their courses, chapters, or content, USE THIS DATA. Do NOT say "I don't have access to that information" \u2014 you DO have access, the data is above.\n`;
     }
 
-    if (reviewSummary) {
-      prompt += `
-## Review Schedule
-${reviewSummary}
-`;
-    }
+    // ---- Section 3: Learning State (optional, only if data exists) ----
+    const hasLearningState = memorySummary || reviewSummary || bloomsResult?.analysis;
 
-    if (bloomsResult?.analysis) {
-      prompt += `
-## Bloom's Taxonomy Analysis
-- Dominant Level: ${bloomsResult.analysis.dominantLevel}
-- Cognitive Depth: ${bloomsResult.analysis.cognitiveDepth}%
-- Balance: ${bloomsResult.analysis.balance}
-`;
-      if (bloomsResult.recommendations?.length > 0) {
-        prompt += `- Recommendations: ${bloomsResult.recommendations.slice(0, 2).join('; ')}\n`;
+    if (hasLearningState) {
+      prompt += `\n## Learning State\n`;
+
+      if (memorySummary) {
+        prompt += `${memorySummary}\n`;
+      }
+
+      if (reviewSummary) {
+        prompt += `\n### Review Schedule\n${reviewSummary}\n`;
+      }
+
+      if (bloomsResult?.analysis) {
+        prompt += `\n### Bloom's Taxonomy\n`;
+        prompt += `- Dominant Level: ${bloomsResult.analysis.dominantLevel}\n`;
+        prompt += `- Cognitive Depth: ${bloomsResult.analysis.cognitiveDepth}%\n`;
+        if (bloomsResult.analysis.balance !== 'well-balanced') {
+          prompt += `- Balance: ${bloomsResult.analysis.balance}\n`;
+        }
+        if (bloomsResult.recommendations?.length > 0) {
+          prompt += `- Suggestion: ${bloomsResult.recommendations[0]}\n`;
+        }
       }
     }
 
-    if (contextResult?.queryAnalysis) {
-      prompt += `
-## Query Analysis
-- Intent: ${contextResult.queryAnalysis.intent}
-- Keywords: ${contextResult.queryAnalysis.keywords.join(', ')}
-`;
+    // Capabilities (brief)
+    if (contextResult?.enrichedContext?.capabilities?.length) {
+      prompt += `\nCapabilities: ${contextResult.enrichedContext.capabilities.join(', ')}\n`;
     }
 
-    prompt += `
-## Response Guidelines
-1. **USE THE ENTITY INFORMATION ABOVE** - You know the course title, description, chapters, etc.
-2. For GENERATION requests: Create content SPECIFIC to this course/chapter/section
-3. For learning objectives: Use Bloom's Taxonomy verbs (Remember, Understand, Apply, Analyze, Evaluate, Create)
-4. Reference actual course details in your responses
-5. Be specific and actionable
-6. Use markdown formatting
-7. If generating form content, provide the content directly without preamble
-`;
+    // ---- Section 4: Guidelines ----
+    prompt += `\n## Response Guidelines\n`;
+    prompt += `1. **USE THE ENTITY DATA ABOVE** \u2014 reference actual course/chapter/section details\n`;
+    prompt += `2. For GENERATION requests: create content SPECIFIC to the current context\n`;
+    prompt += `3. Be specific and actionable, use markdown formatting\n`;
+    if (context.form && Object.keys(context.form.fields).length > 0) {
+      prompt += `4. If generating form content, provide the content directly without preamble\n`;
+    }
 
     return prompt;
   }

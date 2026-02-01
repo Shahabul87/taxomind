@@ -13,6 +13,8 @@ import {
   useSAMPageLinks,
   usePresence,
   useSAMAutoContext,
+  useSAMContext,
+  useContextMemorySync,
 } from '@sam-ai/react';
 import type { SAMContext, SAMFormContext, SAMFormField, SAMMessage, SAMPageType } from '@sam-ai/core';
 import { cn } from '@/lib/utils';
@@ -29,8 +31,6 @@ import { ToolExecutionPanel } from './panels/ToolExecutionPanel';
 // Hooks
 import { useDragResize } from './hooks/use-drag-resize';
 import { useChatWindow } from './hooks/use-chat-window';
-import { usePageContext } from './hooks/use-page-context';
-import { useEntityContext } from './hooks/use-entity-context';
 import { useGamification } from './hooks/use-gamification';
 import { useSelfCritique } from './hooks/use-self-critique';
 import { useBehaviorTracking } from './hooks/use-behavior-tracking';
@@ -52,8 +52,11 @@ import { CheckInModal } from '@/components/sam/CheckInModal';
 import type { CheckInAction } from '@/components/sam/CheckInModal';
 
 // Types
-import type { ChatMessage, SAMSuggestion, SAMAction, SAMInsights, SAMAssistantProps, ResizeHandle, ToolResultData } from './types';
+import type { ChatMessage, SAMSuggestion, SAMAction, SAMInsights, SAMAssistantProps, ResizeHandle, ToolResultData, PageContext, EntityContextState, WindowCourseContext } from './types';
 import { MOBILE_BREAKPOINT } from './types';
+
+// Page context utilities (pure functions, no hooks)
+import { detectPageName, getPageCapabilities, buildBreadcrumbs } from './utils/page-utils';
 
 // CSS tokens
 import './tokens.css';
@@ -287,10 +290,60 @@ function ChatWindowInner({
   useSAMPageLinks({ enabled: true, maxLinks: 120, throttleMs: 1000 });
   useSAMFormDataEvents({ enabled: true });
 
+  // --- SAM SDK context (single source of truth for page detection) ---
+  const { context: samCtx } = useSAMContext();
+
+  // Derive routing state from pathname directly (replaces usePageContext for these flags)
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const isHiddenRoute = ['/auth', '/login', '/register', '/admin/auth'].some(r => pathname.startsWith(r));
+  const isAdminPage = pathname.startsWith('/dashboard/admin');
+
+  // Build PageContext from SDK-detected data for hooks that still need the shape
+  const pageContext = useMemo((): PageContext => ({
+    pageName: detectPageName(samCtx.page.type),
+    pageType: samCtx.page.type,
+    path: samCtx.page.path,
+    breadcrumbs: samCtx.page.breadcrumb ?? buildBreadcrumbs(samCtx.page.path),
+    capabilities: samCtx.page.capabilities ?? getPageCapabilities(samCtx.page.type),
+    entityId: samCtx.page.entityId,
+    parentEntityId: samCtx.page.parentEntityId,
+    grandParentEntityId: samCtx.page.grandParentEntityId,
+  }), [
+    samCtx.page.type,
+    samCtx.page.path,
+    samCtx.page.breadcrumb,
+    samCtx.page.capabilities,
+    samCtx.page.entityId,
+    samCtx.page.parentEntityId,
+    samCtx.page.grandParentEntityId,
+  ]);
+
+  // Read entity data from window context (replaces useEntityContext)
+  const getWindowEntityContext = useCallback((): EntityContextState => {
+    if (typeof window === 'undefined') return {};
+    if ((window as Window & { sectionContext?: WindowCourseContext }).sectionContext?.entityData) {
+      return {
+        entityType: 'section',
+        entityData: (window as Window & { sectionContext?: WindowCourseContext }).sectionContext!.entityData,
+      };
+    }
+    if ((window as Window & { chapterContext?: WindowCourseContext }).chapterContext?.entityData) {
+      return {
+        entityType: 'chapter',
+        entityData: (window as Window & { chapterContext?: WindowCourseContext }).chapterContext!.entityData,
+      };
+    }
+    if ((window as Window & { courseContext?: WindowCourseContext }).courseContext?.entityData) {
+      return {
+        entityType: 'course',
+        entityData: (window as Window & { courseContext?: WindowCourseContext }).courseContext!.entityData,
+      };
+    }
+    return {};
+  }, []);
+
   // --- Custom hooks ---
   const { windowState, theme, resolvedTheme, isOpen, isMinimized, isMaximized, open, close, minimize, maximize, restore, toggleTheme } = useChatWindow();
-  const { pageContext, isHiddenRoute, isAdminPage } = usePageContext();
-  const { entityContext, getWindowEntityContext } = useEntityContext({ pathname: pageContext.path });
   const { position, size, isDragging, isResizing, isMobile, dragHandlers, resizeHandlers, resetPosition } = useDragResize({ enabled: isOpen && !isMaximized });
   const gamification = useGamification({ enabled: enableGamification, userId });
   const selfCritique = useSelfCritique({ userId });
@@ -319,14 +372,11 @@ function ChatWindowInner({
     pageContext,
   });
 
-  // Build context update function
+  // Build context update function (reads window context on demand)
   const buildContextUpdate = useCallback(() => {
-    const effectiveEntityContext = entityContext.entityData
-      ? entityContext
-      : getWindowEntityContext();
-
+    const effectiveEntityContext = getWindowEntityContext();
     return { effectiveEntityContext };
-  }, [entityContext, getWindowEntityContext]);
+  }, [getWindowEntityContext]);
 
   // Insights from last result
   const insights = useMemo(() => {
@@ -341,7 +391,7 @@ function ChatWindowInner({
     isOpen,
     sessionId: samContext?.metadata?.sessionId,
     pageContext,
-    entityContext,
+    entityContext: getWindowEntityContext(),
     buildContextUpdate,
   });
 
@@ -352,7 +402,7 @@ function ChatWindowInner({
     isOpen,
     pathname: pageContext.path,
     pageContext,
-    entityContext,
+    entityContext: getWindowEntityContext(),
     messageCount: messages.length,
   });
 
@@ -390,29 +440,30 @@ function ChatWindowInner({
     recordActivity,
   });
 
-  // Context update effect
+  // Context enrichment effect — adds entity metadata and form context.
+  // Does NOT overwrite page.type/path/entityId (SDK handles those via useSAMAutoContext).
   const lastContextKeyRef = useRef<string>('');
   useEffect(() => {
-    const contextKey = `${pageContext.pageType}:${pageContext.path}:${pageContext.entityId}:${pageContext.parentEntityId}`;
+    const contextKey = `${samCtx.page.type}:${samCtx.page.path}:${samCtx.page.entityId}:${samCtx.page.parentEntityId}`;
     if (lastContextKeyRef.current === contextKey) return;
     lastContextKeyRef.current = contextKey;
 
-    const { effectiveEntityContext } = buildContextUpdate();
+    const windowEntity = getWindowEntityContext();
     const nextMetadata = {
-      entityData: effectiveEntityContext.entityData,
-      entityType: effectiveEntityContext.entityType,
+      entityData: windowEntity.entityData,
+      entityType: windowEntity.entityType,
     };
 
     const samFormFields: Record<string, SAMFormField> = {};
     const detectedForms = formDetection.detectedForms;
-    if (Object.keys(detectedForms).length > 0 || effectiveEntityContext.entityData) {
+    if (Object.keys(detectedForms).length > 0 || windowEntity.entityData) {
       const fields = {
         ...detectedForms,
-        ...(effectiveEntityContext.entityData?.title && {
-          _courseTitle: { name: '_courseTitle', type: 'text', value: effectiveEntityContext.entityData.title, label: 'Course Title' },
+        ...(windowEntity.entityData?.title && {
+          _courseTitle: { name: '_courseTitle', type: 'text', value: windowEntity.entityData.title, label: 'Course Title' },
         }),
-        ...(effectiveEntityContext.entityData?.description && {
-          _courseDescription: { name: '_courseDescription', type: 'textarea', value: effectiveEntityContext.entityData.description, label: 'Course Description' },
+        ...(windowEntity.entityData?.description && {
+          _courseDescription: { name: '_courseDescription', type: 'textarea', value: windowEntity.entityData.description, label: 'Course Description' },
         }),
       };
 
@@ -443,15 +494,12 @@ function ChatWindowInner({
         }
       : null;
 
+    // Only update enrichment — preserve SDK's page.type/path/entityId
     const contextUpdate: Partial<SAMContext> = {
       page: {
-        type: pageContext.pageType as SAMPageType,
-        path: pageContext.path,
-        entityId: pageContext.entityId,
-        parentEntityId: pageContext.parentEntityId,
-        grandParentEntityId: pageContext.grandParentEntityId,
-        capabilities: pageContext.capabilities,
-        breadcrumb: pageContext.breadcrumbs,
+        ...samCtx.page, // Keep SDK-detected type, path, entityId, etc.
+        capabilities: samCtx.page.capabilities ?? getPageCapabilities(samCtx.page.type),
+        breadcrumb: samCtx.page.breadcrumb ?? buildBreadcrumbs(samCtx.page.path),
         metadata: nextMetadata,
       },
     };
@@ -464,14 +512,8 @@ function ChatWindowInner({
 
     updateContext(contextUpdate);
   }, [
-    buildContextUpdate,
-    pageContext.pageType,
-    pageContext.path,
-    pageContext.entityId,
-    pageContext.parentEntityId,
-    pageContext.grandParentEntityId,
-    pageContext.capabilities,
-    pageContext.breadcrumbs,
+    samCtx.page,
+    getWindowEntityContext,
     updateContext,
     formDetection.detectedForms,
   ]);
@@ -817,6 +859,8 @@ function ChatWindowInner({
 
 function SAMContextTracker() {
   useSAMAutoContext(true);
+  // Auto-sync page context snapshots to server memory
+  useContextMemorySync({ enabled: true });
   return null;
 }
 

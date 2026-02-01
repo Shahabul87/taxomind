@@ -43,7 +43,10 @@ import {
 } from '@sam-ai/educational';
 
 // Import entity context service for REAL context awareness
-import { buildEntityContext, buildFormSummary } from '@/lib/sam/entity-context';
+import { buildEntityContext, buildFormSummary, type EntityContext } from '@/lib/sam/entity-context';
+
+// Import context gathering for enriched snapshot summaries
+import { getContextSummaryForRoute } from '@/lib/sam/context-gathering-integration';
 
 // Import rate limiter for usage caps
 import { applyRateLimit, samMessagesLimiter } from '@/lib/sam/config/sam-rate-limiter';
@@ -934,7 +937,7 @@ export async function POST(request: NextRequest) {
 
       // Build entity context from client data
       entityContext = {
-        type: entityType as 'course' | 'chapter' | 'section' | 'none',
+        type: entityType as EntityContext['type'],
         course: entityType === 'course' || clientData.courseTitle ? {
           id: pageContext.entityId || '',
           title: clientData.title || clientData.courseTitle || '',
@@ -989,7 +992,8 @@ export async function POST(request: NextRequest) {
         pageContext.type,
         pageContext.entityId,
         pageContext.parentEntityId,
-        pageContext.grandParentEntityId
+        pageContext.grandParentEntityId,
+        user.id
       );
     }
 
@@ -1002,6 +1006,14 @@ export async function POST(request: NextRequest) {
 
     // Build form summary for context
     const formSummary = buildFormSummary(formContext?.fields);
+
+    // Fetch enriched context snapshot summary (from context gathering engine)
+    let contextSnapshotSummary: { pageSummary: string; formSummary: string } | null = null;
+    try {
+      contextSnapshotSummary = await getContextSummaryForRoute(user.id);
+    } catch {
+      // Non-critical — continue without snapshot context
+    }
 
     // Initialize all subsystems early for memory context
     const subsystems = await initializeSubsystems();
@@ -1136,6 +1148,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Inject page/entity context so SAM knows what's on the current page
+    if (entityContext.summary && entityContext.type !== 'none') {
+      const entityContextBlock = `Current Page Context:\n${entityContext.summary}`;
+      memorySummary = memorySummary
+        ? `${memorySummary}\n\n${entityContextBlock}`
+        : entityContextBlock;
+
+      logger.debug('[SAM_UNIFIED] Entity context injected into prompt:', {
+        type: entityContext.type,
+        summaryLength: entityContext.summary.length,
+      });
+    }
+
+    // Inject form field summary so SAM knows about form fields and their values
+    if (formSummary && !formSummary.startsWith('No form')) {
+      memorySummary = memorySummary
+        ? `${memorySummary}\n\n${formSummary}`
+        : formSummary;
+
+      logger.debug('[SAM_UNIFIED] Form summary injected into prompt');
+    }
+
     // Inject mode-specific system prompt into memory summary
     const modePromptAddition = resolveModeSystemPrompt(modeId, '');
     if (modePromptAddition) {
@@ -1178,6 +1212,9 @@ export async function POST(request: NextRequest) {
           memorySummary,
           reviewSummary,
           toolsSummary, // Available mentor tools
+          // Enriched snapshot context (from context gathering engine)
+          contextSnapshotPageSummary: contextSnapshotSummary?.pageSummary,
+          contextSnapshotFormSummary: contextSnapshotSummary?.formSummary,
           // Include specific entity data for easy access
           courseTitle: entityContext.course?.title,
           courseDescription: entityContext.course?.description,

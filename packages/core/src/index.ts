@@ -92,6 +92,43 @@ export type {
   SAMConfigInput,
 } from './types';
 
+// Context snapshot types
+export type {
+  ValidationState,
+  ValidationRule,
+  FieldDependency,
+  FormFieldSnapshot,
+  FieldGroup,
+  FormPurpose,
+  FormSnapshot,
+  PageState,
+  PageSnapshot,
+  ContentHeading,
+  ContentTable,
+  ContentCodeBlock,
+  ContentImage,
+  ContentSnapshot,
+  LinkCategory,
+  NavigationLink,
+  PaginationState,
+  TabItem,
+  SidebarItem,
+  NavigationSnapshot,
+  InteractionSnapshot,
+  PageContextSnapshot,
+  EntityContextData,
+  UserProfileData,
+  RelatedEntity,
+  ContextGatheringInput,
+  MemoryDirectives,
+  ContextGatheringOutput,
+  ContextDiff,
+  HydrationResult,
+  ContextProvider,
+  UseContextGatheringOptions,
+  UseContextGatheringReturn,
+} from './types';
+
 // Type constants
 export { BLOOMS_LEVELS, BLOOMS_LEVEL_ORDER } from './types';
 
@@ -104,6 +141,13 @@ export {
   createDefaultUIContext,
   createDefaultContext,
   createSAMConfig,
+  // Context snapshot factories
+  CONTEXT_SNAPSHOT_VERSION,
+  createDefaultPageState,
+  createDefaultContentSnapshot,
+  createDefaultNavigationSnapshot,
+  createDefaultInteractionSnapshot,
+  createDefaultPageContextSnapshot,
 } from './types';
 
 // ============================================================================
@@ -163,6 +207,9 @@ export {
   // Personalization engine
   PersonalizationEngine,
   createPersonalizationEngine,
+  // Context gathering engine
+  ContextGatheringEngine,
+  createContextGatheringEngine,
 } from './engines';
 
 export type {
@@ -275,6 +322,26 @@ export {
 } from './errors';
 
 export type { SAMErrorCode, SAMErrorDetails } from './errors';
+
+// ============================================================================
+// MEMORY
+// ============================================================================
+
+export {
+  ContextMemoryHydrator,
+  InMemoryContextMemoryAdapter,
+  createContextMemoryHydrator,
+  createInMemoryContextMemoryAdapter,
+} from './memory';
+
+export type {
+  ContextMemoryAdapter,
+  VectorStoreInterface,
+  KnowledgeGraphInterface,
+  SessionContextInterface,
+  ContextMemoryLogger,
+  ContextMemoryHydratorOptions,
+} from './memory';
 
 // ============================================================================
 // VERSION
