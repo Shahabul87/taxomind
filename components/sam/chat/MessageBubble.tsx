@@ -6,15 +6,12 @@ import {
   ClipboardCheck,
   ArrowDownToLine,
   Check,
-  Brain,
-  Loader2,
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
-import { ConfidenceIndicator } from '@/components/sam/confidence';
 import { ToolResultCard } from './panels/ToolResultCard';
-import type { ChatMessage, AgenticInsight, SelfCritiqueData } from './types';
+import type { ChatMessage } from './types';
 import type { FormFieldInfo } from '@/lib/sam/form-actions';
 
 interface MessageBubbleProps {
@@ -23,7 +20,6 @@ interface MessageBubbleProps {
   isLastMessage: boolean;
   isStreaming: boolean;
   sessionId?: string;
-  confidence?: AgenticInsight['confidence'];
   // Copy/Insert
   copiedMessageId: string | null;
   insertedMessageId: string | null;
@@ -34,12 +30,6 @@ interface MessageBubbleProps {
   detectTargetField: (userQuery: string, detectedForms: Record<string, FormFieldInfo>) => string | null;
   detectedForms: Record<string, FormFieldInfo>;
   getUserQuery: (messageIndex: number) => string | undefined;
-  // Self-critique
-  selfCritiqueData?: SelfCritiqueData | null;
-  showSelfCritique?: boolean;
-  isLoadingSelfCritique?: boolean;
-  onFetchSelfCritique?: (content: string) => void;
-  onDismissSelfCritique?: () => void;
   className?: string;
 }
 
@@ -49,7 +39,6 @@ export function MessageBubble({
   isLastMessage,
   isStreaming,
   sessionId,
-  confidence,
   copiedMessageId,
   insertedMessageId,
   onCopy,
@@ -58,11 +47,6 @@ export function MessageBubble({
   detectTargetField: detectTarget,
   detectedForms,
   getUserQuery,
-  selfCritiqueData,
-  showSelfCritique,
-  isLoadingSelfCritique,
-  onFetchSelfCritique,
-  onDismissSelfCritique,
   className,
 }: MessageBubbleProps) {
   const isUser = message.role === 'user';
@@ -125,117 +109,73 @@ export function MessageBubble({
           </p>
         )}
 
-        {/* Copy/Insert Actions */}
-        {showActions && (
+        {/* Actions row: Copy, Insert, Feedback — all on one line */}
+        {isAssistant && !isMessageStreaming && (
           <div className="flex items-center gap-1 mt-2">
-            <button
-              onClick={() => onCopy(message.id, message.content)}
-              className={cn(
-                'flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200',
-                copiedMessageId === message.id
-                  ? 'bg-[var(--sam-success)]/20 text-[var(--sam-success)]'
-                  : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20'
-              )}
-              title="Copy to clipboard"
-            >
-              {copiedMessageId === message.id ? (
-                <>
-                  <ClipboardCheck className="h-3 w-3" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-3 w-3" />
-                  <span>Copy</span>
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={() =>
-                onInsert(message.id, message.content, targetField ?? undefined)
-              }
-              className={cn(
-                'flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200',
-                insertedMessageId === message.id
-                  ? 'bg-[var(--sam-success)]/20 text-[var(--sam-success)]'
-                  : 'bg-[var(--sam-accent)]/10 text-[var(--sam-accent)] hover:bg-[var(--sam-accent)]/20'
-              )}
-              title={
-                targetField
-                  ? `Insert into ${targetField} field`
-                  : 'Insert into form field'
-              }
-            >
-              {insertedMessageId === message.id ? (
-                <>
-                  <Check className="h-3 w-3" />
-                  <span>Inserted!</span>
-                </>
-              ) : (
-                <>
-                  <ArrowDownToLine className="h-3 w-3" />
-                  <span>
-                    {targetField ? `Insert to ${targetField}` : 'Insert'}
-                  </span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* Feedback Buttons */}
-        {isAssistant && !isMessageStreaming && sessionId && (
-          <FeedbackButtons
-            messageId={message.id}
-            sessionId={sessionId}
-            className="mt-1.5"
-            size="sm"
-          />
-        )}
-
-        {/* Confidence Indicator */}
-        {isAssistant && !isMessageStreaming && confidence && (
-          <ConfidenceIndicator
-            confidence={confidence.score}
-            mode="badge"
-            showPercentage={true}
-            size="sm"
-            className="mt-1"
-          />
-        )}
-
-        {/* Self-Critique (only on last assistant message) */}
-        {isAssistant && !isMessageStreaming && isLastMessage && onFetchSelfCritique && (
-          <div className="mt-2">
-            {!showSelfCritique && !selfCritiqueData && (
-              <button
-                onClick={() => onFetchSelfCritique(message.content)}
-                disabled={isLoadingSelfCritique}
-                className="flex items-center gap-1.5 px-2 py-1 text-xs opacity-60 hover:opacity-100 transition-opacity"
-              >
-                {isLoadingSelfCritique ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    <span>Analyzing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Brain className="h-3 w-3" />
-                    <span>View AI Self-Assessment</span>
-                  </>
-                )}
-              </button>
-            )}
-            {showSelfCritique && selfCritiqueData && onDismissSelfCritique && (
-              <div className="mt-2">
+            {showActions && (
+              <>
                 <button
-                  onClick={onDismissSelfCritique}
-                  className="text-xs opacity-50 hover:opacity-100"
+                  onClick={() => onCopy(message.id, message.content)}
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200',
+                    copiedMessageId === message.id
+                      ? 'bg-[var(--sam-success)]/20 text-[var(--sam-success)]'
+                      : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20'
+                  )}
+                  title="Copy to clipboard"
                 >
-                  Hide assessment
+                  {copiedMessageId === message.id ? (
+                    <>
+                      <ClipboardCheck className="h-3 w-3" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
                 </button>
-              </div>
+
+                <button
+                  onClick={() =>
+                    onInsert(message.id, message.content, targetField ?? undefined)
+                  }
+                  className={cn(
+                    'flex items-center gap-1 px-2 py-1 text-xs rounded-md transition-all duration-200',
+                    insertedMessageId === message.id
+                      ? 'bg-[var(--sam-success)]/20 text-[var(--sam-success)]'
+                      : 'bg-[var(--sam-accent)]/10 text-[var(--sam-accent)] hover:bg-[var(--sam-accent)]/20'
+                  )}
+                  title={
+                    targetField
+                      ? `Insert into ${targetField} field`
+                      : 'Insert into form field'
+                  }
+                >
+                  {insertedMessageId === message.id ? (
+                    <>
+                      <Check className="h-3 w-3" />
+                      <span>Inserted!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownToLine className="h-3 w-3" />
+                      <span>
+                        {targetField ? `Insert to ${targetField}` : 'Insert'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+            {sessionId && (
+              <FeedbackButtons
+                messageId={message.id}
+                sessionId={sessionId}
+                size="sm"
+              />
             )}
           </div>
         )}

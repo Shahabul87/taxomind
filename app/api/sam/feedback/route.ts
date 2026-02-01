@@ -16,6 +16,10 @@ const FeedbackSchema = z.object({
     errorMap: () => ({ message: 'Rating must be either "helpful" or "not_helpful"' }),
   }),
   comment: z.string().max(1000, 'Comment must be 1000 characters or less').optional(),
+  // Mode effectiveness feedback (optional)
+  modeId: z.string().optional(),
+  modeFeedback: z.enum(['EFFECTIVE', 'SOMEWHAT', 'NOT_EFFECTIVE', 'WRONG_MODE']).optional(),
+  modeSuggestion: z.string().optional(),
 });
 
 type FeedbackInput = z.infer<typeof FeedbackSchema>;
@@ -124,6 +128,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<F
         sessionId: feedbackData.sessionId,
         rating: feedbackData.rating === 'helpful' ? 'HELPFUL' : 'NOT_HELPFUL',
         comment: feedbackData.comment,
+        modeId: feedbackData.modeId,
+        modeFeedback: feedbackData.modeFeedback,
+        modeSuggestion: feedbackData.modeSuggestion,
       },
     });
 

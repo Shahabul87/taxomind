@@ -24,19 +24,21 @@ import { ChatHeader } from './ChatHeader';
 
 import { MessageArea } from './MessageArea';
 import { SuggestionChips } from './SuggestionChips';
+import { ModeSuggestionChip } from './ModeSuggestionChip';
 import { ChatInput } from './ChatInput';
 import { FloatingButton } from './FloatingButton';
 import { ToolExecutionPanel } from './panels/ToolExecutionPanel';
+import { PlanProgressPanel } from './panels/PlanProgressPanel';
 
 // Hooks
 import { useDragResize } from './hooks/use-drag-resize';
 import { useChatWindow } from './hooks/use-chat-window';
 import { useGamification } from './hooks/use-gamification';
-import { useSelfCritique } from './hooks/use-self-critique';
 import { useBehaviorTracking } from './hooks/use-behavior-tracking';
 import { useProactiveFeatures } from './hooks/use-proactive-features';
 import { useChatTools } from './hooks/use-tools';
 import { useFormDetection } from './hooks/use-form-detection';
+import { useDegradedMode } from './hooks/use-degraded-mode';
 import { useMessageActions } from './hooks/use-message-actions';
 import { useOrchestration, updateOrchestrationState, clearOrchestrationState, getOrchestrationContext } from './hooks/use-orchestration';
 import { useSendMessage } from './hooks/use-send-message';
@@ -46,6 +48,7 @@ import { getModeById } from '@/lib/sam/modes';
 import type { SAMModeId } from '@/lib/sam/modes';
 
 // External components
+import { ModeFeedbackPanel } from '@/components/sam/ModeFeedbackPanel';
 import { ToolApprovalDialog } from '@/components/sam/ToolApprovalDialog';
 import { CelebrationOverlay } from '@/components/sam/CelebrationOverlay';
 import { CheckInModal } from '@/components/sam/CheckInModal';
@@ -261,14 +264,28 @@ function ChatWindowInner({
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const localMsgIdRef = useRef(0);
 
-  // Keep module-level mode in sync for the request builder
+  // Keep ref-based mode in sync for the request builder
   useEffect(() => {
-    setCurrentMode(activeMode);
+    activeModeRef.current = activeMode;
   }, [activeMode]);
+
+  // Mode feedback state
+  const [showModeFeedback, setShowModeFeedback] = useState(false);
+  const [feedbackModeId, setFeedbackModeId] = useState<string>('');
+  const [feedbackModeLabel, setFeedbackModeLabel] = useState<string>('');
 
   const handleModeChange = useCallback(
     (newMode: SAMModeId) => {
       if (newMode === activeMode) return;
+
+      // Show feedback panel if 3+ messages were exchanged in current mode
+      if (messages.length >= 3) {
+        const oldMode = getModeById(activeMode);
+        setFeedbackModeId(activeMode);
+        setFeedbackModeLabel(oldMode?.label ?? activeMode);
+        setShowModeFeedback(true);
+      }
+
       setActiveMode(newMode);
       const mode = getModeById(newMode);
       if (mode) {
@@ -283,7 +300,26 @@ function ChatWindowInner({
         setLocalMessages((prev) => [...prev, greetingMsg]);
       }
     },
-    [activeMode]
+    [activeMode, messages.length]
+  );
+
+  const handleModeFeedbackSubmit = useCallback(
+    (feedback: { modeId: string; rating: string; suggestion?: string; comment?: string }) => {
+      // Fire and forget — non-blocking
+      fetch('/api/sam/feedback/mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modeId: feedback.modeId,
+          rating: feedback.rating,
+          suggestion: feedback.suggestion,
+          comment: feedback.comment,
+          sessionId: samContext?.metadata?.sessionId,
+          messageCount: messages.length,
+        }),
+      }).catch(() => { /* ignore network errors for feedback */ });
+    },
+    [samContext?.metadata?.sessionId, messages.length]
   );
 
   // Auto-detect hooks
@@ -346,7 +382,6 @@ function ChatWindowInner({
   const { windowState, theme, resolvedTheme, isOpen, isMinimized, isMaximized, open, close, minimize, maximize, restore, toggleTheme } = useChatWindow();
   const { position, size, isDragging, isResizing, isMobile, dragHandlers, resizeHandlers, resetPosition } = useDragResize({ enabled: isOpen && !isMaximized });
   const gamification = useGamification({ enabled: enableGamification, userId });
-  const selfCritique = useSelfCritique({ userId });
 
   const formAutoDetectOptions = useMemo(() => ({
     enabled: isOpen,
@@ -365,6 +400,8 @@ function ChatWindowInner({
     trackVisibility: true,
     trackActivity: isOpen,
   });
+
+  const degradedMode = useDegradedMode();
 
   const formDetection = useFormDetection({
     isOpen,
@@ -385,6 +422,35 @@ function ChatWindowInner({
   }, [lastResult]);
 
   const orchestration = useOrchestration({ insights });
+
+  // Plan panel state
+  const [showPlanPanel, setShowPlanPanel] = useState(false);
+  const togglePlanPanel = useCallback(() => setShowPlanPanel((p) => !p), []);
+
+  const planData = useMemo(() => {
+    const orch = orchestration.orchestration;
+    if (!orch?.hasActivePlan || !orch.allSteps?.length) return null;
+    return {
+      planTitle: orch.planTitle ?? 'Learning Plan',
+      steps: orch.allSteps.map((s) => ({
+        id: s.id,
+        title: s.title,
+        status: s.status === 'completed' ? 'completed' as const
+          : s.status === 'in_progress' ? 'in_progress' as const
+          : 'pending' as const,
+      })),
+      currentStepId: orch.currentStep?.id,
+      progressPercent: orch.planProgress ?? 0,
+    };
+  }, [orchestration.orchestration]);
+
+  // Mode suggestion from API insights
+  const modeSuggestion = useMemo(() => {
+    const suggestion = insights?.modeSuggestion as
+      | { suggestedMode: string; suggestedModeLabel?: string; reason?: string }
+      | undefined;
+    return suggestion ?? null;
+  }, [insights]);
 
   const tools = useChatTools({
     userId,
@@ -414,6 +480,10 @@ function ChatWindowInner({
   const { input, setInput, error, setError, sendMessage, handleKeyPress, clearError } = useSendMessage({
     samSendMessage,
     buildContextUpdate,
+    mode: activeMode,
+    pageType: pageContext.pageType,
+    onDegradedFailure: degradedMode.recordFailure,
+    onDegradedSuccess: degradedMode.recordSuccess,
     onError: () => {
       trackEvent('frustration_signal', { reason: 'message_failed' });
     },
@@ -589,6 +659,18 @@ function ChatWindowInner({
     }
   }, [pageContext.pageType]);
 
+  // Handle mode suggestion accept
+  const handleModeSuggestionAccept = useCallback(
+    (modeId: SAMModeId) => {
+      handleModeChange(modeId);
+    },
+    [handleModeChange]
+  );
+
+  const handleModeSuggestionDismiss = useCallback(() => {
+    // No-op — ModeSuggestionChip tracks dismissed modes internally
+  }, []);
+
   // Handle CheckInModal action
   const handleCheckInActionClick = useCallback(
     (action: CheckInAction) => {
@@ -755,8 +837,34 @@ function ChatWindowInner({
         userProgress={gamification.userProgress}
         enableGamification={enableGamification}
         confidenceScore={insights?.agentic?.confidence?.score}
+        hasPlan={!!planData}
+        showPlanPanel={showPlanPanel}
+        onTogglePlanPanel={togglePlanPanel}
         dragHandlers={isMobile || isMaximized ? undefined : dragHandlers}
       />
+
+      {/* Plan Progress Panel */}
+      {showPlanPanel && planData && (
+        <PlanProgressPanel
+          planTitle={planData.planTitle}
+          steps={planData.steps}
+          currentStepId={planData.currentStepId}
+          progressPercent={planData.progressPercent}
+        />
+      )}
+
+      {/* Degraded Mode Banner */}
+      {degradedMode.isDegraded && (
+        <div className="flex items-center gap-2 px-3 py-1.5 text-xs bg-amber-500/10 border-b border-amber-500/20 text-amber-600 dark:text-amber-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+          <span className="flex-1">Limited connectivity — cached responses may be used</span>
+          {degradedMode.queuedMessageCount > 0 && (
+            <span className="text-[10px] opacity-70">
+              {degradedMode.queuedMessageCount} queued
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Tool Execution Panel OR Message Area */}
       {tools.selectedTool ? (
@@ -780,7 +888,6 @@ function ChatWindowInner({
             error={error}
             onDismissError={clearError}
             sessionId={samContext?.metadata?.sessionId}
-            confidence={insights?.agentic?.confidence}
             copiedMessageId={messageActions.copiedMessageId}
             insertedMessageId={messageActions.insertedMessageId}
             onCopy={messageActions.handleCopyContent}
@@ -788,13 +895,6 @@ function ChatWindowInner({
             isInsertableContent={messageActions.isInsertableContent}
             detectTargetField={messageActions.detectTargetField}
             detectedForms={formDetection.detectedForms}
-            selfCritiqueData={selfCritique.selfCritiqueData}
-            showSelfCritique={selfCritique.showSelfCritique}
-            isLoadingSelfCritique={selfCritique.isLoadingSelfCritique}
-            onFetchSelfCritique={(content) =>
-              selfCritique.fetchSelfCritique(content, messages)
-            }
-            onDismissSelfCritique={selfCritique.dismissSelfCritique}
             quickActions={getQuickActions()}
             onQuickAction={sendMessage}
           />
@@ -807,7 +907,29 @@ function ChatWindowInner({
               className="border-t border-[var(--sam-border)]"
             />
           )}
+
+          {/* Mode Suggestion */}
+          {modeSuggestion && !isProcessing && (
+            <ModeSuggestionChip
+              suggestedMode={modeSuggestion.suggestedMode}
+              suggestedModeLabel={modeSuggestion.suggestedModeLabel}
+              reason={modeSuggestion.reason}
+              onAccept={handleModeSuggestionAccept}
+              onDismiss={handleModeSuggestionDismiss}
+            />
+          )}
         </>
+      )}
+
+      {/* Mode Feedback Panel */}
+      {showModeFeedback && feedbackModeId && (
+        <ModeFeedbackPanel
+          modeId={feedbackModeId}
+          modeLabel={feedbackModeLabel}
+          sessionId={samContext?.metadata?.sessionId}
+          onSubmit={handleModeFeedbackSubmit}
+          onDismiss={() => setShowModeFeedback(false)}
+        />
       )}
 
       {/* Chat Input */}
@@ -865,19 +987,20 @@ function SAMContextTracker() {
 }
 
 // =============================================================================
-// MODE STATE (module-level for access by request builder)
+// MODE STATE (ref-based, accessed via activeModeRef)
 // =============================================================================
 
-let _currentMode: string = 'general-assistant';
+/** Ref to the active mode, shared across request builder and component */
+const activeModeRef = { current: 'general-assistant' as string };
 
-/** Update the active mode (called by ChatWindowInner) */
+/** Update the active mode ref */
 export function setCurrentMode(mode: string) {
-  _currentMode = mode;
+  activeModeRef.current = mode;
 }
 
 /** Get the current active mode */
 export function getCurrentMode(): string {
-  return _currentMode;
+  return activeModeRef.current;
 }
 
 // =============================================================================
@@ -890,7 +1013,8 @@ function buildUnifiedRequest(
     context: SAMContext;
     history: SAMMessage[];
   },
-  orchestrationContext?: { planId?: string; goalId?: string; autoDetectPlan?: boolean }
+  orchestrationContext?: { planId?: string; goalId?: string; autoDetectPlan?: boolean },
+  modeId?: string,
 ) {
   const { message, context, history } = input;
   const metadata = context.page.metadata ?? {} as Record<string, unknown>;
@@ -902,7 +1026,7 @@ function buildUnifiedRequest(
 
   return {
     message,
-    mode: _currentMode,
+    mode: modeId ?? activeModeRef.current,
     pageContext: {
       type: context.page.type,
       path: context.page.path,
@@ -937,7 +1061,7 @@ function buildUnifiedRequestWithOrchestration(input: {
   context: SAMContext;
   history: SAMMessage[];
 }) {
-  return buildUnifiedRequest(input, getOrchestrationContext());
+  return buildUnifiedRequest(input, getOrchestrationContext(), activeModeRef.current);
 }
 
 // =============================================================================

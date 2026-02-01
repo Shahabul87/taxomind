@@ -18,6 +18,7 @@ import type { GeneratedContent, ValidationResult as QualityValidationResult } fr
 import type { PedagogicalPipelineResult } from '@sam-ai/pedagogy';
 import type { EvaluationOutcome } from '@sam-ai/memory';
 import { transformFormFields } from './context-gathering-stage';
+import { recordPresetUsage } from './preset-tracker';
 import type { SubsystemBundle } from './subsystem-init';
 import type { PipelineContext } from './types';
 
@@ -258,6 +259,13 @@ export async function runOrchestrationStage(
 
   const enginesToRun = ctx.options?.engines || defaultEngines;
 
+  // Record preset usage for effectiveness tracking
+  recordPresetUsage(
+    modeAnalytics?.enginePresetUsed ?? 'unknown',
+    ctx.modeId,
+    ctx.pageContext.type,
+  );
+
   logger.debug('[SAM_UNIFIED] Running engines:', {
     engines: enginesToRun,
     messageLength: ctx.message.length,
@@ -265,7 +273,7 @@ export async function runOrchestrationStage(
   });
 
   // ----- 3. Run orchestrator -----
-  const result = await subsystems.orchestrator.orchestrate(samContext, ctx.message, {
+  let result = await subsystems.orchestrator.orchestrate(samContext, ctx.message, {
     engines: enginesToRun,
   });
 
@@ -300,6 +308,61 @@ export async function runOrchestrationStage(
       score: qualityResult.overallScore,
       failedGates: qualityResult.failedGates,
     });
+
+    // ----- 4b. Quality Gate Feedback Loop (single retry) -----
+    if (qualityResult && !qualityResult.passed && (qualityResult.overallScore ?? 100) < 60) {
+      try {
+        const failedGateContext = (qualityResult.failedGates ?? [])
+          .map((g) => {
+            const gateResult = (qualityResult as Record<string, unknown>).gateResults as
+              | Record<string, { feedback?: string }>
+              | undefined;
+            return `- ${g}: ${gateResult?.[g]?.feedback ?? 'Failed'}`;
+          })
+          .join('\n');
+
+        const improvementPrompt =
+          `[QUALITY IMPROVEMENT] Your previous response scored ${qualityResult.overallScore}/100.\n` +
+          `Issues:\n${failedGateContext}\n` +
+          `Please improve the response addressing these specific issues.`;
+
+        logger.info('[SAM_UNIFIED] Quality gate retry triggered:', {
+          originalScore: qualityResult.overallScore,
+          failedGates: qualityResult.failedGates,
+        });
+
+        // Re-run orchestrator with improvement context appended to message
+        const retryResult = await subsystems.orchestrator.orchestrate(
+          samContext,
+          `${ctx.message}\n\n${improvementPrompt}`,
+          { engines: enginesToRun },
+        );
+
+        // Re-validate the retry result
+        if (retryResult.response?.message) {
+          const retryContent: GeneratedContent = {
+            type: 'explanation',
+            content: retryResult.response.message,
+            targetBloomsLevel: (bloomsAnalysis?.dominantLevel as string) || 'UNDERSTAND',
+          };
+          const retryQuality = await subsystems.quality.validate(retryContent);
+
+          // Use retry only if it scored better
+          if ((retryQuality.overallScore ?? 0) > (qualityResult.overallScore ?? 0)) {
+            result = retryResult;
+            qualityResult = retryQuality;
+            logger.info('[SAM_UNIFIED] Quality gate retry improved score:', {
+              newScore: retryQuality.overallScore,
+              passed: retryQuality.passed,
+            });
+          } else {
+            logger.info('[SAM_UNIFIED] Quality gate retry did not improve, keeping original');
+          }
+        }
+      } catch (retryError) {
+        logger.warn('[SAM_UNIFIED] Quality gate retry failed:', retryError);
+      }
+    }
   }
 
   // ----- 5. Pedagogy Pipeline -----

@@ -35,29 +35,25 @@ export async function runKnowledgeGraphStage(
         relationshipsCreated: kgResult.relationshipsCreated,
       });
 
-      // Record concept interactions based on orchestration evaluation
-      if (
-        ctx.orchestrationData?.stepProgress?.stepComplete &&
-        ctx.orchestrationData.currentStep?.title
-      ) {
-        await recordConceptInteraction(
-          ctx.user.id,
-          ctx.orchestrationData.currentStep.title,
-          'mastered',
-          courseIdForKg,
-        );
+      // Record concept interactions based on quality + orchestration evaluation
+      const qualityScore = (ctx.qualityResult as Record<string, unknown> | null)?.overallScore as number | undefined ?? 50;
+      const bloomsConfidence = (ctx.bloomsAnalysis as Record<string, unknown> | null)?.confidence as number | undefined ?? 0.5;
+      const stepComplete = ctx.orchestrationData?.stepProgress?.stepComplete;
+      const stepTitle = ctx.orchestrationData?.currentStep?.title;
+
+      if (stepComplete && stepTitle) {
+        // Use quality + blooms confidence to determine mastery level
+        if (qualityScore >= 75 && bloomsConfidence >= 0.7) {
+          await recordConceptInteraction(ctx.user.id, stepTitle, 'mastered', courseIdForKg);
+        } else {
+          await recordConceptInteraction(ctx.user.id, stepTitle, 'practicing', courseIdForKg);
+        }
       } else if (
         ctx.orchestrationData?.stepProgress &&
-        ctx.orchestrationData.stepProgress.progressPercent < 50
+        ctx.orchestrationData.stepProgress.progressPercent < 50 &&
+        stepTitle
       ) {
-        if (ctx.orchestrationData.currentStep?.title) {
-          await recordConceptInteraction(
-            ctx.user.id,
-            ctx.orchestrationData.currentStep.title,
-            'struggled',
-            courseIdForKg,
-          );
-        }
+        await recordConceptInteraction(ctx.user.id, stepTitle, 'struggled', courseIdForKg);
       }
     }
   } catch (kgError) {

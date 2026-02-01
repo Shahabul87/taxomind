@@ -16,6 +16,16 @@ export type SAMModeCategory =
   | 'course-design'
   | 'insights';
 
+export interface ModeEngineConfig {
+  maxResponseLength?: 'short' | 'medium' | 'long';
+  outputFormat?: 'prose' | 'bullet-points' | 'structured' | 'conversational';
+  contentFocus?: 'explanation' | 'examples' | 'resources' | 'relationships' | 'multimedia-suggestions';
+  targetBloomsLevels?: string[];
+  adaptationStrategy?: 'difficulty' | 'style' | 'pace' | 'depth';
+  questionFormat?: 'mcq' | 'open-ended' | 'mixed' | 'practical';
+  custom?: Record<string, string | number | boolean>;
+}
+
 export interface SAMMode {
   id: string;
   label: string;
@@ -28,6 +38,8 @@ export interface SAMMode {
   systemPromptAddition: string;
   /** Tool categories this mode is allowed to invoke */
   allowedToolCategories: string[];
+  /** Optional engine behavior configuration for differentiation */
+  engineConfig?: ModeEngineConfig;
 }
 
 /** Union of all valid mode IDs */

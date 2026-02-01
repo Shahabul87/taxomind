@@ -6,6 +6,8 @@
  */
 
 import { getModeById } from './registry';
+import type { EngineMaturityLevel } from '@sam-ai/educational/engine-maturity';
+import { getModeMaturity, getEngineMaturity } from '@sam-ai/educational/engine-maturity';
 
 /** Base engines always active in every mode */
 const BASE_ENGINES = ['context'];
@@ -15,6 +17,8 @@ export interface ModeEngineResolution {
   engines: string[];
   reason: string;
   augmented: boolean;
+  maturity?: EngineMaturityLevel;
+  engineMaturityMap?: Record<string, EngineMaturityLevel>;
 }
 
 /**
@@ -54,7 +58,14 @@ export function resolveModeEnginesWithMetadata(
     }
   }
 
-  return { engines, reason, augmented };
+  // Compute maturity metadata
+  const engineMaturityMap: Record<string, EngineMaturityLevel> = {};
+  for (const eng of engines) {
+    engineMaturityMap[eng] = getEngineMaturity(eng);
+  }
+  const maturity = getModeMaturity(engines);
+
+  return { engines, reason, augmented, maturity, engineMaturityMap };
 }
 
 /**

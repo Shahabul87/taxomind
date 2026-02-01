@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import type { ValidationResult as QualityValidationResult } from '@sam-ai/quality';
 import type { PedagogicalPipelineResult } from '@sam-ai/pedagogy';
+import { getModeById } from '@/lib/sam/modes';
 import type { PipelineContext } from './types';
 
 export async function buildUnifiedResponse(
@@ -177,6 +178,15 @@ export async function buildUnifiedResponse(
             interventions: ctx.proactiveData.interventions,
             checkIns: ctx.proactiveData.checkIns,
             predictions: ctx.proactiveData.predictions,
+          }
+        : undefined,
+      modeSuggestion: ctx.modeClassification?.shouldSuggestSwitch
+        ? {
+            suggestedMode: ctx.modeClassification.suggestedMode,
+            suggestedModeLabel: ctx.modeClassification.suggestedMode
+              ? getModeById(ctx.modeClassification.suggestedMode)?.label
+              : undefined,
+            reason: ctx.modeClassification.reason,
           }
         : undefined,
     },

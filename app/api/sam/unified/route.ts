@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
+        degraded: true,
         response:
           'I apologize, but I encountered an issue processing your request. Please try again.',
         suggestions: [
@@ -134,7 +135,10 @@ export async function POST(request: NextRequest) {
           error: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
         },
       },
-      { status: 500 },
+      {
+        status: 500,
+        headers: { 'X-SAM-Degraded': 'true' },
+      },
     );
   }
 }

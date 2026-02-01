@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import type { ChatMessage, EntityContextState } from '../types';
+import type { EntityContextState } from '../types';
+import { cacheResponse } from '@/lib/sam/cache/response-cache';
 
 interface UseSendMessageOptions {
   samSendMessage: (content: string) => Promise<unknown>;
@@ -7,6 +8,10 @@ interface UseSendMessageOptions {
   onError?: (error: Error) => void;
   onSuccess?: (content: string, entityContext: EntityContextState) => void;
   recordActivity?: () => void;
+  onDegradedFailure?: () => void;
+  onDegradedSuccess?: () => void;
+  mode?: string;
+  pageType?: string;
 }
 
 interface UseSendMessageReturn {
@@ -20,7 +25,17 @@ interface UseSendMessageReturn {
 }
 
 export function useSendMessage(options: UseSendMessageOptions): UseSendMessageReturn {
-  const { samSendMessage, buildContextUpdate, onError, onSuccess, recordActivity } = options;
+  const {
+    samSendMessage,
+    buildContextUpdate,
+    onError,
+    onSuccess,
+    recordActivity,
+    onDegradedFailure,
+    onDegradedSuccess,
+    mode,
+    pageType,
+  } = options;
 
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -44,21 +59,48 @@ export function useSendMessage(options: UseSendMessageOptions): UseSendMessageRe
 
         if (!result) {
           const err = new Error('Failed to get response');
+          onDegradedFailure?.();
           onError?.(err);
           setError(err.message);
           return;
         }
 
+        onDegradedSuccess?.();
         onSuccess?.(content, effectiveEntityContext);
+
+        // Cache response for degraded mode fallback
+        const resultObj = result as Record<string, unknown> | undefined;
+        const responseText = typeof resultObj?.response === 'string' ? resultObj.response : '';
+        const confidence =
+          (resultObj?.insights as Record<string, unknown> | undefined)?.agentic != null
+            ? ((resultObj?.insights as Record<string, unknown>)?.agentic as Record<string, unknown>)
+                ?.confidence
+              ? (
+                  ((resultObj?.insights as Record<string, unknown>)?.agentic as Record<string, unknown>)
+                    ?.confidence as Record<string, unknown>
+                )?.score
+              : undefined
+            : undefined;
+
+        if (responseText && mode && pageType) {
+          cacheResponse(
+            content.trim(),
+            responseText,
+            mode,
+            pageType,
+            typeof confidence === 'number' ? confidence : 0.8,
+          );
+        }
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
+        onDegradedFailure?.();
         onError?.(error);
         setError(error.message);
       } finally {
         isProcessingRef.current = false;
       }
     },
-    [samSendMessage, buildContextUpdate, onError, onSuccess, recordActivity]
+    [samSendMessage, buildContextUpdate, onError, onSuccess, recordActivity, onDegradedFailure, onDegradedSuccess, mode, pageType]
   );
 
   const handleKeyPress = useCallback(

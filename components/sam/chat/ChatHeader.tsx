@@ -14,13 +14,14 @@ import {
   Moon,
   Monitor,
   Check,
+  ListChecks,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ThemeMode } from './types';
 import type { UserProgress } from '@/lib/sam/gamification';
 import { HEADER_HEIGHT } from './types';
-import { getModeById, getAllModes, MODE_CATEGORIES } from '@/lib/sam/modes';
-import type { SAMModeId } from '@/lib/sam/modes';
+import { getModeById, getAllModes, MODE_CATEGORIES, getModeMaturity } from '@/lib/sam/modes';
+import type { SAMModeId, EngineMaturityLevel } from '@/lib/sam/modes';
 
 interface ChatHeaderProps {
   breadcrumbs: string[];
@@ -42,6 +43,10 @@ interface ChatHeaderProps {
   enableGamification?: boolean;
   // Confidence
   confidenceScore?: number;
+  // Plan panel
+  hasPlan?: boolean;
+  showPlanPanel?: boolean;
+  onTogglePlanPanel?: () => void;
   // Drag handlers
   dragHandlers?: {
     onMouseDown: (e: React.MouseEvent) => void;
@@ -65,6 +70,9 @@ export function ChatHeader({
   userProgress,
   enableGamification = true,
   confidenceScore,
+  hasPlan,
+  showPlanPanel,
+  onTogglePlanPanel,
   dragHandlers,
   className,
 }: ChatHeaderProps) {
@@ -187,6 +195,13 @@ export function ChatHeader({
 
       {/* Right: Controls */}
       <div className="flex items-center gap-0.5">
+        {/* Plan toggle */}
+        {hasPlan && onTogglePlanPanel && (
+          <HeaderButton onClick={onTogglePlanPanel} title={showPlanPanel ? 'Hide plan' : 'Show plan'}>
+            <ListChecks className={cn('h-3 w-3', showPlanPanel && 'text-yellow-300')} />
+          </HeaderButton>
+        )}
+
         {/* Theme toggle */}
         <HeaderButton onClick={onToggleTheme} title={`Theme: ${theme}`}>
           {themeIcon}
@@ -248,6 +263,7 @@ export function ChatHeader({
                           key={mode.id}
                           label={mode.label}
                           isActive={mode.id === activeMode}
+                          maturity={getModeMaturity(mode.enginePreset)}
                           onClick={() => handleModeSelect(mode.id)}
                         />
                       ))}
@@ -273,6 +289,7 @@ export function ChatHeader({
                           key={mode.id}
                           label={mode.label}
                           isActive={mode.id === activeMode}
+                          maturity={getModeMaturity(mode.enginePreset)}
                           onClick={() => handleModeSelect(mode.id)}
                         />
                       ))}
@@ -291,10 +308,12 @@ export function ChatHeader({
 function ModeItem({
   label,
   isActive,
+  maturity,
   onClick,
 }: {
   label: string;
   isActive: boolean;
+  maturity?: EngineMaturityLevel;
   onClick: () => void;
 }) {
   return (
@@ -312,7 +331,20 @@ function ModeItem({
         background: isActive ? 'rgba(124, 58, 237, 0.08)' : undefined,
       }}
     >
-      <span className="truncate">{label}</span>
+      <span className="flex items-center gap-1 truncate">
+        {label}
+        {maturity && maturity !== 'production' && (
+          <span
+            className={cn(
+              'inline-block h-1.5 w-1.5 rounded-full shrink-0',
+              maturity === 'beta' && 'bg-amber-400',
+              maturity === 'experimental' && 'bg-gray-400',
+              maturity === 'scaffold' && 'bg-gray-300',
+            )}
+            title={maturity}
+          />
+        )}
+      </span>
       {isActive && <Check className="h-3 w-3 shrink-0 ml-1" style={{ color: 'var(--sam-accent)' }} />}
     </button>
   );

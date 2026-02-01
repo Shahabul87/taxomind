@@ -31,6 +31,8 @@ export interface PipelineContext {
   // --- Request ---
   message: string;
   sessionId: string;
+  /** Controls whether the response is JSON or SSE stream */
+  outputMode: 'json' | 'sse';
   pageContext: {
     type: string;
     path: string;
@@ -90,6 +92,9 @@ export interface PipelineContext {
     messageSignals?: Record<string, number>;
   };
 
+  // --- Mode classification ---
+  modeClassification?: ModeClassificationResult;
+
   // --- Tutoring ---
   tutoringContext: Record<string, unknown> | null;
   planContextInjection: Record<string, unknown> | null;
@@ -147,3 +152,59 @@ export interface PipelineContext {
 export type StageResult<T = PipelineContext> =
   | { response: Response }
   | { ctx: T };
+
+// =============================================================================
+// VECTOR QUALITY METADATA
+// =============================================================================
+
+export interface VectorQualityMetadata {
+  qualityScore: number | null;
+  qualityPassed: boolean | null;
+  bloomsLevel: string | null;
+  bloomsConfidence: number | null;
+  modeId: string;
+}
+
+// =============================================================================
+// MODE CLASSIFICATION
+// =============================================================================
+
+export interface ModeRelevanceScore {
+  modeId: string;
+  score: number;
+  matchedSignals: string[];
+  confidence: 'high' | 'medium' | 'low';
+}
+
+export interface ModeClassificationResult {
+  currentModeScore: number;
+  suggestedMode: string | null;
+  suggestedModeScore: number;
+  topModes: ModeRelevanceScore[];
+  shouldSuggestSwitch: boolean;
+  reason: string;
+}
+
+// =============================================================================
+// MODE ENGINE CONFIG
+// =============================================================================
+
+export interface ModeEngineConfig {
+  maxResponseLength?: 'short' | 'medium' | 'long';
+  outputFormat?: 'prose' | 'bullet-points' | 'structured' | 'conversational';
+  contentFocus?: 'explanation' | 'examples' | 'resources' | 'relationships' | 'multimedia-suggestions';
+  targetBloomsLevels?: string[];
+  adaptationStrategy?: 'difficulty' | 'style' | 'pace' | 'depth';
+  questionFormat?: 'mcq' | 'open-ended' | 'mixed' | 'practical';
+  custom?: Record<string, string | number | boolean>;
+}
+
+// =============================================================================
+// MODE SUGGESTION (for API response)
+// =============================================================================
+
+export interface ModeSuggestion {
+  suggestedMode: string;
+  suggestedModeLabel?: string;
+  reason: string;
+}

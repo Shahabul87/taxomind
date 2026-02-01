@@ -6,7 +6,15 @@
  */
 
 // Types
-export type { PipelineContext, StageResult } from './types';
+export type {
+  PipelineContext,
+  StageResult,
+  VectorQualityMetadata,
+  ModeClassificationResult,
+  ModeRelevanceScore,
+  ModeEngineConfig,
+  ModeSuggestion,
+} from './types';
 
 // Subsystem initialization (pre-existing)
 export { initializeSubsystems, type SubsystemBundle } from './subsystem-init';
@@ -24,3 +32,4 @@ export { runInterventionStage } from './intervention-stage';
 export { runKnowledgeGraphStage } from './knowledge-graph-stage';
 export { runMemoryPersistenceStage } from './memory-persistence-stage';
 export { buildUnifiedResponse } from './response-builder-stage';
+export { streamAIResponse, emitDeferredSSEEvents } from './streaming-adapter';

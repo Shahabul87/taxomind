@@ -58,6 +58,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Microlearning mode. Create focused, bite-sized learning modules (3-5 min). ' +
       'Each module should cover one concept with a clear objective and a quick check.',
     allowedToolCategories: ['content'],
+    engineConfig: { maxResponseLength: 'short', outputFormat: 'structured', contentFocus: 'explanation' },
   },
   'multimedia': {
     id: 'multimedia',
@@ -69,6 +70,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Multimedia Creator mode. Help design multimedia learning experiences ' +
       'including text, suggested visuals, interactive elements, and assessment activities.',
     allowedToolCategories: ['content', 'external'],
+    engineConfig: { outputFormat: 'structured', contentFocus: 'multimedia-suggestions' },
   },
 
   // =========================================================================
@@ -286,6 +288,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Research Assistant mode. Help find, synthesize, and organize research information. ' +
       'Cite sources, evaluate credibility, and present findings in structured format.',
     allowedToolCategories: ['external', 'content'],
+    engineConfig: { maxResponseLength: 'long', outputFormat: 'prose', contentFocus: 'resources' },
   },
   'resource-finder': {
     id: 'resource-finder',
@@ -297,6 +300,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Resource Finder mode. Help discover and recommend relevant learning resources ' +
       'including articles, videos, courses, and tools matched to learning objectives.',
     allowedToolCategories: ['external'],
+    engineConfig: { outputFormat: 'bullet-points', contentFocus: 'resources' },
   },
   'trends-analyzer': {
     id: 'trends-analyzer',
@@ -334,6 +338,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Knowledge Graph mode. Map conceptual relationships, prerequisites, and ' +
       'learning dependencies. Identify optimal learning sequences based on concept hierarchy.',
     allowedToolCategories: ['external'],
+    engineConfig: { outputFormat: 'structured', contentFocus: 'relationships' },
   },
   'competency-mapper': {
     id: 'competency-mapper',

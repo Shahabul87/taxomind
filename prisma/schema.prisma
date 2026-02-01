@@ -9093,28 +9093,34 @@ enum SAMRecommendationFeedback {
 }
 
 model SAMFeedback {
-  id          String            @id @default(cuid())
-  userId      String
-  messageId   String            // ID of the SAM message being rated
-  sessionId   String            // SAM session ID
-  rating      SAMFeedbackRating
-  comment     String?           @db.Text
+  id              String            @id @default(cuid())
+  userId          String
+  messageId       String            // ID of the SAM message being rated
+  sessionId       String            // SAM session ID
+  rating          SAMFeedbackRating
+  comment         String?           @db.Text
 
   // Context at time of feedback
-  pageUrl     String?
-  courseId    String?
-  topicId     String?
+  pageUrl         String?
+  courseId         String?
+  topicId         String?
+
+  // Mode effectiveness feedback (optional — safe for existing data)
+  modeId          String?           // SAM mode active during feedback
+  modeFeedback    String?           // EFFECTIVE | SOMEWHAT | NOT_EFFECTIVE | WRONG_MODE
+  modeSuggestion  String?           // Alternative mode suggested by user (if WRONG_MODE)
 
   // Timestamps
-  createdAt   DateTime          @default(now())
+  createdAt       DateTime          @default(now())
 
   // Relations
-  user        User              @relation("SAMFeedback", fields: [userId], references: [id], onDelete: Cascade)
+  user            User              @relation("SAMFeedback", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([messageId])
   @@index([sessionId])
   @@index([rating, createdAt])
+  @@index([modeId, modeFeedback])
   @@map("sam_feedback")
 }
 

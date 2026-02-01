@@ -34,8 +34,11 @@ export async function runMemoryPersistenceStage(
       });
     }
 
-    // Queue assistant response
+    // Queue assistant response with quality metadata
     if (ctx.responseText.trim().length > 0) {
+      const qualityMeta = ctx.qualityResult as Record<string, unknown> | null;
+      const bloomsMeta = ctx.bloomsAnalysis as Record<string, unknown> | null;
+
       queueMemoryIngestion({
         content: ctx.responseText,
         sourceId: `answer_${ctx.user.id}_${ctx.startTime}`,
@@ -44,6 +47,13 @@ export async function runMemoryPersistenceStage(
         courseId: courseIdForMemory,
         tags: ['sam', 'assistant-response'],
         enableSummary: false,
+        customMetadata: {
+          qualityScore: (qualityMeta?.overallScore as number) ?? null,
+          qualityPassed: (qualityMeta?.passed as boolean) ?? null,
+          bloomsLevel: (bloomsMeta?.dominantLevel as string) ?? null,
+          bloomsConfidence: (bloomsMeta?.confidence as number) ?? null,
+          modeId: ctx.modeId,
+        },
       });
     }
 

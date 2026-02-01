@@ -226,10 +226,18 @@ export async function runMemoryStage(
         }
       }
 
-      if (agenticMemorySnippets.length > 0) {
+      // Filter out low-quality memory snippets before injection
+      const filteredSnippets = agenticMemorySnippets.filter((snippet: string | { metadata?: { customMetadata?: { qualityScore?: number } } }) => {
+        if (typeof snippet === 'string') return true;
+        const quality = snippet.metadata?.customMetadata?.qualityScore;
+        return quality === null || quality === undefined || quality >= 60;
+      });
+
+      if (filteredSnippets.length > 0) {
         const agenticSummary = [
           'Agentic Memory Context:',
-          ...agenticMemorySnippets.map((snippet: string) => `- ${snippet}`),
+          ...filteredSnippets.map((snippet: string | Record<string, unknown>) =>
+            `- ${typeof snippet === 'string' ? snippet : String(snippet)}`),
         ].join('\n');
         memorySummary = memorySummary
           ? `${memorySummary}\n\n${agenticSummary}`

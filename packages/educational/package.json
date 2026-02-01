@@ -15,6 +15,11 @@
       "types": "./dist/depth-analysis.d.ts",
       "import": "./dist/depth-analysis.mjs",
       "require": "./dist/depth-analysis.js"
+    },
+    "./engine-maturity": {
+      "types": "./dist/engine-maturity.d.ts",
+      "import": "./dist/engine-maturity.mjs",
+      "require": "./dist/engine-maturity.js"
     }
   },
   "files": [
@@ -22,8 +27,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/depth-analysis.ts --format cjs,esm --dts --clean",
-    "dev": "tsup src/index.ts src/depth-analysis.ts --format cjs,esm --dts --watch",
+    "build": "tsup src/index.ts src/depth-analysis.ts src/engine-maturity.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts src/depth-analysis.ts src/engine-maturity.ts --format cjs,esm --dts --watch",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

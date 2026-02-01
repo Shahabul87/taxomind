@@ -5,7 +5,7 @@ import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
-import type { ChatMessage, AgenticInsight, SelfCritiqueData } from './types';
+import type { ChatMessage } from './types';
 import type { FormFieldInfo } from '@/lib/sam/form-actions';
 
 interface MessageAreaProps {
@@ -15,7 +15,6 @@ interface MessageAreaProps {
   error: string | null;
   onDismissError: () => void;
   sessionId?: string;
-  confidence?: AgenticInsight['confidence'];
   // Copy/Insert
   copiedMessageId: string | null;
   insertedMessageId: string | null;
@@ -24,12 +23,6 @@ interface MessageAreaProps {
   isInsertableContent: (content: string, userQuery?: string) => boolean;
   detectTargetField: (userQuery: string, detectedForms: Record<string, FormFieldInfo>) => string | null;
   detectedForms: Record<string, FormFieldInfo>;
-  // Self-critique
-  selfCritiqueData?: SelfCritiqueData | null;
-  showSelfCritique?: boolean;
-  isLoadingSelfCritique?: boolean;
-  onFetchSelfCritique?: (content: string) => void;
-  onDismissSelfCritique?: () => void;
   // Quick actions
   quickActions?: Array<{ label: string; icon: React.ReactNode; action: string; isAnalysis?: boolean }>;
   onQuickAction?: (action: string) => void;
@@ -43,7 +36,6 @@ export function MessageArea({
   error,
   onDismissError,
   sessionId,
-  confidence,
   copiedMessageId,
   insertedMessageId,
   onCopy,
@@ -51,11 +43,6 @@ export function MessageArea({
   isInsertableContent,
   detectTargetField,
   detectedForms,
-  selfCritiqueData,
-  showSelfCritique,
-  isLoadingSelfCritique,
-  onFetchSelfCritique,
-  onDismissSelfCritique,
   quickActions,
   onQuickAction,
   className,
@@ -143,7 +130,6 @@ export function MessageArea({
           isLastMessage={idx === messages.length - 1}
           isStreaming={isStreaming}
           sessionId={sessionId}
-          confidence={confidence}
           copiedMessageId={copiedMessageId}
           insertedMessageId={insertedMessageId}
           onCopy={onCopy}
@@ -152,11 +138,6 @@ export function MessageArea({
           detectTargetField={detectTargetField}
           detectedForms={detectedForms}
           getUserQuery={getUserQuery}
-          selfCritiqueData={idx === messages.length - 1 ? selfCritiqueData : null}
-          showSelfCritique={idx === messages.length - 1 ? showSelfCritique : false}
-          isLoadingSelfCritique={idx === messages.length - 1 ? isLoadingSelfCritique : false}
-          onFetchSelfCritique={idx === messages.length - 1 ? onFetchSelfCritique : undefined}
-          onDismissSelfCritique={idx === messages.length - 1 ? onDismissSelfCritique : undefined}
         />
       ))}
 

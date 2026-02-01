@@ -18,7 +18,7 @@ import {
   getSAMIntegrationProfile,
   getSAMCapabilityRegistry,
 } from '@/lib/sam/integration-profile';
-import { SAM_MODE_IDS } from '@/lib/sam/modes';
+import { SAM_MODE_IDS, classifyModeRelevance } from '@/lib/sam/modes';
 import type { PipelineContext, StageResult } from './types';
 import type { AuthStageResult } from './auth-stage';
 
@@ -156,6 +156,17 @@ export function runValidationStage(
     shouldCheckGoals: classifiedIntent.shouldCheckGoals,
   });
 
+  // Classify mode relevance (heuristic, no LLM call)
+  const modeClassification = classifyModeRelevance(message, modeId, pageContext.type);
+  if (modeClassification.shouldSuggestSwitch) {
+    logger.info('[SAM_UNIFIED] Mode switch suggested:', {
+      currentMode: modeId,
+      suggestedMode: modeClassification.suggestedMode,
+      currentScore: modeClassification.currentModeScore,
+      suggestedScore: modeClassification.suggestedModeScore,
+    });
+  }
+
   // Initialize agentic bridge once — it flows through the whole pipeline
   const integrationProfile = getSAMIntegrationProfile({
     goalPlanning: true,
@@ -192,6 +203,7 @@ export function runValidationStage(
     // Request
     message,
     sessionId,
+    outputMode: 'json',
     pageContext: pageContext as PipelineContext['pageContext'],
     formContext: formContext as PipelineContext['formContext'],
     conversationHistory,
@@ -204,6 +216,7 @@ export function runValidationStage(
     entitySummary: '',
     contextConfidence: 0,
     classifiedIntent,
+    modeClassification,
 
     // Agentic bridge
     agenticBridge,
