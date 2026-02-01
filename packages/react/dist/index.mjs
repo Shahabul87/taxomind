@@ -257,13 +257,15 @@ function SAMProvider({
     }
     return unsubscribe;
   }, [stateMachine, onStateChange, debug]);
+  const pageContextRef = useRef(state.context.page);
+  pageContextRef.current = state.context.page;
   useEffect(() => {
     if (autoDetectContext && typeof window !== "undefined") {
       const path = window.location.pathname;
       const detectedContext = detectContextFromPath(path);
       dispatch({
         type: "UPDATE_CONTEXT",
-        payload: { page: { ...state.context.page, ...detectedContext } }
+        payload: { page: { ...pageContextRef.current, ...detectedContext } }
       });
       if (debug) {
         console.log("[SAM] Auto-detected context:", detectedContext);
@@ -272,11 +274,11 @@ function SAMProvider({
   }, [autoDetectContext, debug]);
   const apiOptions = transport === "api" ? api : void 0;
   const buildApiRequest = useCallback(
-    (message, context, history) => {
+    (message, context, history2) => {
       if (apiOptions?.buildRequest) {
-        return apiOptions.buildRequest({ message, context, history });
+        return apiOptions.buildRequest({ message, context, history: history2 });
       }
-      return { message, context, history };
+      return { message, context, history: history2 };
     },
     [apiOptions]
   );
@@ -312,8 +314,8 @@ function SAMProvider({
       try {
         dispatch({ type: "SET_PROCESSING", payload: true });
         dispatch({ type: "SET_ERROR", payload: null });
-        const history = state.context.conversation.messages;
-        const requestBody = buildApiRequest(content, state.context, history);
+        const history2 = state.context.conversation.messages;
+        const requestBody = buildApiRequest(content, state.context, history2);
         const userMessage = {
           id: `msg-${Date.now()}`,
           role: "user",
@@ -394,8 +396,8 @@ function SAMProvider({
         dispatch({ type: "SET_PROCESSING", payload: true });
         dispatch({ type: "SET_STREAMING", payload: true });
         dispatch({ type: "SET_ERROR", payload: null });
-        const history = state.context.conversation.messages;
-        const requestBody = buildApiRequest(content, state.context, history);
+        const history2 = state.context.conversation.messages;
+        const requestBody = buildApiRequest(content, state.context, history2);
         const userMessage = {
           id: `msg-${Date.now()}`,
           role: "user",
@@ -1000,7 +1002,7 @@ function useSAMPageContext() {
     },
     [context.user, updateContext]
   );
-  const detectPageContext = useCallback3(() => {
+  const detectPageContext2 = useCallback3(() => {
     if (typeof window === "undefined") return;
     const path = window.location.pathname;
     const detected = detectContextFromPath2(path);
@@ -1011,7 +1013,7 @@ function useSAMPageContext() {
     updateContext,
     updatePage,
     updateUser,
-    detectPageContext
+    detectPageContext: detectPageContext2
   };
 }
 function detectContextFromPath2(path) {
@@ -1190,22 +1192,59 @@ function detectContextFromPath2(path) {
       return {
         type,
         path,
+        capabilities: getCapabilitiesForType(type),
+        breadcrumb: buildBreadcrumbsFromPath(path),
         ...extracted
       };
     }
   }
   return {
     type: "other",
-    path
+    path,
+    capabilities: getCapabilitiesForType("other"),
+    breadcrumb: buildBreadcrumbsFromPath(path)
   };
 }
+function getCapabilitiesForType(pageType) {
+  const capabilities = {
+    "courses-list": ["view-courses", "create-course", "search-courses"],
+    "course-detail": ["edit-course", "add-chapters", "generate-content", "publish-course"],
+    "chapter-detail": ["edit-chapter", "add-sections", "generate-content", "publish-chapter"],
+    "section-detail": ["edit-section", "add-content", "add-video", "add-quiz", "generate-content"],
+    "course-create": ["create-course", "use-template", "ai-suggestions"],
+    "dashboard": ["view-overview", "quick-actions"],
+    "user-dashboard": ["view-overview", "quick-actions"],
+    "admin-dashboard": ["view-overview", "manage-users", "system-settings"],
+    "user-analytics": ["view-metrics", "export-data"],
+    "analytics": ["view-metrics", "export-data"],
+    "teacher-dashboard": ["view-overview", "manage-courses"],
+    "course-learning": ["view-content", "ask-questions", "take-quiz"],
+    "chapter-learning": ["view-content", "ask-questions", "take-quiz"],
+    "section-learning": ["view-content", "ask-questions", "take-quiz"],
+    "exam": ["take-exam", "view-instructions"],
+    "exam-results": ["view-results", "review-answers"],
+    "settings": ["update-profile", "change-preferences"],
+    "other": ["general-help", "navigation"]
+  };
+  return capabilities[pageType] || capabilities.other;
+}
+function buildBreadcrumbsFromPath(path) {
+  const segments = path.split("/").filter(Boolean);
+  const breadcrumbs = [];
+  for (const segment of segments) {
+    if (/^[a-f0-9-]{8,}$/i.test(segment)) continue;
+    const formatted = segment.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+    breadcrumbs.push(formatted);
+  }
+  return breadcrumbs;
+}
 function useSAMAutoContext(enabled = true) {
-  const { detectPageContext } = useSAMPageContext();
+  const { detectPageContext: detectPageContext2 } = useSAMPageContext();
   useEffect2(() => {
     if (!enabled || typeof window === "undefined") return;
-    detectPageContext();
+    detectPageContext2();
     const handleRouteChange = () => {
-      detectPageContext();
+      detectPageContext2();
     };
     window.addEventListener("popstate", handleRouteChange);
     let lastUrl = window.location.href;
@@ -1220,7 +1259,7 @@ function useSAMAutoContext(enabled = true) {
       window.removeEventListener("popstate", handleRouteChange);
       observer.disconnect();
     };
-  }, [enabled, detectPageContext]);
+  }, [enabled, detectPageContext2]);
 }
 
 // src/hooks/useSAMAnalysis.ts
@@ -1832,27 +1871,38 @@ function useSAMFormAutoDetect(options = {}) {
   const [formContext, setFormContext] = useState6(null);
   const optionsRef = useRef5(options);
   optionsRef.current = options;
+  const contextFormRef = useRef5(context.form);
+  contextFormRef.current = context.form;
+  const updateContextRef = useRef5(updateContext);
+  updateContextRef.current = updateContext;
+  const lastSyncedFormIdRef = useRef5(null);
   const detectAndSync = useCallback8(() => {
-    if (options.enabled === false) return;
+    const opts = optionsRef.current;
+    if (opts.enabled === false) return;
     if (typeof document === "undefined") return;
-    const selector = options.selector ?? "form";
+    const selector = opts.selector ?? "form";
     const forms = Array.from(document.querySelectorAll(selector));
     if (!forms.length) return;
-    const primaryForm = detectPrimaryForm(forms, options.preferFocused !== false);
+    const primaryForm = detectPrimaryForm(forms, opts.preferFocused !== false);
     if (!primaryForm) return;
-    const fields = extractFormFields2(primaryForm, options);
-    const nextContext = buildFormContext2(primaryForm, fields, options);
+    const fields = extractFormFields2(primaryForm, opts);
+    const nextContext = buildFormContext2(primaryForm, fields, opts);
+    const fieldsKey = Object.entries(fields).map(([k, v]) => `${k}:${String(v.value ?? "")}`).join("|");
+    const syncKey = `${nextContext.formId}::${fieldsKey}`;
+    if (lastSyncedFormIdRef.current === syncKey) return;
+    lastSyncedFormIdRef.current = syncKey;
     setFormContext(nextContext);
-    const shouldUpdate = options.overrideExisting || !context.form || context.form.formId === nextContext.formId;
+    const currentForm = contextFormRef.current;
+    const shouldUpdate = opts.overrideExisting || !currentForm || currentForm.formId === nextContext.formId;
     if (shouldUpdate) {
-      updateContext({ form: nextContext });
+      updateContextRef.current({ form: nextContext });
     }
-  }, [context.form, options, updateContext]);
+  }, []);
   useEffect7(() => {
-    if (options.enabled === false) return;
+    if (optionsRef.current.enabled === false) return;
     if (typeof document === "undefined") return;
     let timeoutId = null;
-    const debounceMs = options.debounceMs ?? 300;
+    const debounceMs = optionsRef.current.debounceMs ?? 300;
     const schedule = () => {
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
@@ -1870,7 +1920,16 @@ function useSAMFormAutoDetect(options = {}) {
       window.removeEventListener("focusin", onFocus, true);
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [detectAndSync, options.debounceMs, options.enabled]);
+  }, [detectAndSync]);
+  const enabledRef = useRef5(options.enabled);
+  useEffect7(() => {
+    if (enabledRef.current !== options.enabled) {
+      enabledRef.current = options.enabled;
+      if (options.enabled) {
+        detectAndSync();
+      }
+    }
+  }, [options.enabled, detectAndSync]);
   return { formContext, refresh: detectAndSync };
 }
 
@@ -3146,7 +3205,7 @@ function useAgentic(options = {}) {
 }
 
 // src/hooks/useRealtime.ts
-import { useState as useState11, useEffect as useEffect10, useCallback as useCallback14, useRef as useRef10 } from "react";
+import { useState as useState11, useEffect as useEffect10, useCallback as useCallback14, useRef as useRef10, useMemo as useMemo4 } from "react";
 var DEFAULT_OPTIONS = {
   url: "/api/sam/ws",
   autoConnect: true,
@@ -3158,7 +3217,37 @@ var DEFAULT_OPTIONS = {
   heartbeatInterval: 3e4
 };
 function useRealtime(options = {}) {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const { url, autoConnect, authToken, userId, sessionId, reconnect, heartbeatInterval } = options;
+  const onConnectRef = useRef10(options.onConnect);
+  onConnectRef.current = options.onConnect;
+  const onDisconnectRef = useRef10(options.onDisconnect);
+  onDisconnectRef.current = options.onDisconnect;
+  const onErrorRef = useRef10(options.onError);
+  onErrorRef.current = options.onError;
+  const onMessageRef = useRef10(options.onMessage);
+  onMessageRef.current = options.onMessage;
+  const reconnectEnabled = reconnect?.enabled;
+  const reconnectMaxAttempts = reconnect?.maxAttempts;
+  const reconnectDelay = reconnect?.delay;
+  const opts = useMemo4(() => ({
+    ...DEFAULT_OPTIONS,
+    url: url ?? DEFAULT_OPTIONS.url,
+    autoConnect: autoConnect ?? DEFAULT_OPTIONS.autoConnect,
+    authToken,
+    userId,
+    sessionId,
+    reconnect: {
+      ...DEFAULT_OPTIONS.reconnect,
+      enabled: reconnectEnabled ?? DEFAULT_OPTIONS.reconnect.enabled,
+      maxAttempts: reconnectMaxAttempts ?? DEFAULT_OPTIONS.reconnect.maxAttempts,
+      delay: reconnectDelay ?? DEFAULT_OPTIONS.reconnect.delay
+    },
+    heartbeatInterval: heartbeatInterval ?? DEFAULT_OPTIONS.heartbeatInterval,
+    onConnect: onConnectRef.current,
+    onDisconnect: onDisconnectRef.current,
+    onError: onErrorRef.current,
+    onMessage: onMessageRef.current
+  }), [url, autoConnect, authToken, userId, sessionId, reconnectEnabled, reconnectMaxAttempts, reconnectDelay, heartbeatInterval]);
   const [connectionState, setConnectionState] = useState11("disconnected");
   const [stats, setStats] = useState11(null);
   const [error, setError] = useState11(null);
@@ -3176,6 +3265,14 @@ function useRealtime(options = {}) {
     reconnectCount: 0,
     latencyMs: 0
   });
+  const sendHeartbeatRef = useRef10(() => {
+  });
+  const connectRef = useRef10(() => {
+  });
+  const disconnectRef = useRef10(() => {
+  });
+  const connectionStateRef = useRef10(connectionState);
+  connectionStateRef.current = connectionState;
   const generateEventId = useCallback14(() => {
     return `evt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }, []);
@@ -3231,7 +3328,7 @@ function useRealtime(options = {}) {
           clearInterval(heartbeatIntervalRef.current);
         }
         heartbeatIntervalRef.current = setInterval(() => {
-          sendHeartbeat();
+          sendHeartbeatRef.current();
         }, opts.heartbeatInterval);
       };
       ws.onclose = (event) => {
@@ -3240,7 +3337,7 @@ function useRealtime(options = {}) {
           clearInterval(heartbeatIntervalRef.current);
           heartbeatIntervalRef.current = null;
         }
-        opts.onDisconnect?.(event.reason || "Connection closed");
+        onDisconnectRef.current?.(event.reason || "Connection closed");
         if (opts.reconnect?.enabled && reconnectAttemptsRef.current < (opts.reconnect?.maxAttempts || 5)) {
           setConnectionState("reconnecting");
           reconnectAttemptsRef.current++;
@@ -3254,7 +3351,7 @@ function useRealtime(options = {}) {
       ws.onerror = () => {
         const err = new Error("WebSocket error");
         setError(err);
-        opts.onError?.(err);
+        onErrorRef.current?.(err);
       };
       ws.onmessage = (event) => {
         try {
@@ -3264,9 +3361,9 @@ function useRealtime(options = {}) {
           setStats({ ...statsRef.current });
           if (data.type === "connected") {
             statsRef.current.connectionId = data.payload.connectionId;
-            opts.onConnect?.(data);
+            onConnectRef.current?.(data);
           }
-          opts.onMessage?.(data);
+          onMessageRef.current?.(data);
           notifySubscribers(data);
         } catch (e) {
           console.error("[useRealtime] Failed to parse message:", e);
@@ -3277,6 +3374,7 @@ function useRealtime(options = {}) {
       setConnectionState("failed");
     }
   }, [opts, generateEventId, notifySubscribers]);
+  connectRef.current = connect;
   const disconnect = useCallback14(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -3292,6 +3390,7 @@ function useRealtime(options = {}) {
     }
     setConnectionState("disconnected");
   }, []);
+  disconnectRef.current = disconnect;
   const send = useCallback14((type, payload) => {
     sendMessage({
       type,
@@ -3321,6 +3420,7 @@ function useRealtime(options = {}) {
       connectionId: statsRef.current.connectionId
     });
   }, [send]);
+  sendHeartbeatRef.current = sendHeartbeat;
   const acknowledge = useCallback14((eventId, action) => {
     send("acknowledge", {
       eventId,
@@ -3336,16 +3436,16 @@ function useRealtime(options = {}) {
   }, [send]);
   useEffect10(() => {
     if (opts.autoConnect) {
-      connect();
+      connectRef.current();
     }
     return () => {
-      disconnect();
+      disconnectRef.current();
     };
   }, [opts.autoConnect]);
   useEffect10(() => {
-    if (connectionState === "connected" && (opts.authToken || opts.userId)) {
-      disconnect();
-      connect();
+    if (connectionStateRef.current === "connected" && (opts.authToken || opts.userId)) {
+      disconnectRef.current();
+      connectRef.current();
     }
   }, [opts.authToken, opts.userId]);
   return {
@@ -3365,7 +3465,7 @@ function useRealtime(options = {}) {
 }
 
 // src/hooks/usePresence.ts
-import { useState as useState12, useEffect as useEffect11, useCallback as useCallback15, useRef as useRef11, useMemo as useMemo4 } from "react";
+import { useState as useState12, useEffect as useEffect11, useCallback as useCallback15, useRef as useRef11, useMemo as useMemo5 } from "react";
 var DEFAULT_OPTIONS2 = {
   sessionId: void 0,
   initialStatus: "online",
@@ -3379,9 +3479,27 @@ var DEFAULT_OPTIONS2 = {
   // 1 second
 };
 function usePresence(options) {
-  const opts = useMemo4(
-    () => ({ ...DEFAULT_OPTIONS2, ...options }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+  const onIdleRef = useRef11(options.onIdle);
+  onIdleRef.current = options.onIdle;
+  const onAwayRef = useRef11(options.onAway);
+  onAwayRef.current = options.onAway;
+  const onActiveRef = useRef11(options.onActive);
+  onActiveRef.current = options.onActive;
+  const sendActivityRef = useRef11(options.sendActivity);
+  sendActivityRef.current = options.sendActivity;
+  const onStatusChangeRef = useRef11(options.onStatusChange);
+  onStatusChangeRef.current = options.onStatusChange;
+  const opts = useMemo5(
+    () => ({
+      userId: options.userId,
+      sessionId: options.sessionId ?? DEFAULT_OPTIONS2.sessionId,
+      initialStatus: options.initialStatus ?? DEFAULT_OPTIONS2.initialStatus,
+      trackVisibility: options.trackVisibility ?? DEFAULT_OPTIONS2.trackVisibility,
+      trackActivity: options.trackActivity ?? DEFAULT_OPTIONS2.trackActivity,
+      idleTimeout: options.idleTimeout ?? DEFAULT_OPTIONS2.idleTimeout,
+      awayTimeout: options.awayTimeout ?? DEFAULT_OPTIONS2.awayTimeout,
+      activityDebounce: options.activityDebounce ?? DEFAULT_OPTIONS2.activityDebounce
+    }),
     [
       options.userId,
       options.sessionId,
@@ -3389,7 +3507,8 @@ function usePresence(options) {
       options.awayTimeout,
       options.trackActivity,
       options.trackVisibility,
-      options.initialStatus
+      options.initialStatus,
+      options.activityDebounce
     ]
   );
   const [status, setStatusState] = useState12(opts.initialStatus);
@@ -3444,31 +3563,33 @@ function usePresence(options) {
     idleTimeoutRef.current = setTimeout(() => {
       if (previousStatusRef.current === "online" || previousStatusRef.current === "studying") {
         setStatusState("idle");
-        opts.onIdle?.();
+        onIdleRef.current?.();
       }
     }, opts.idleTimeout);
     awayTimeoutRef.current = setTimeout(() => {
       if (previousStatusRef.current !== "offline" && previousStatusRef.current !== "do_not_disturb") {
         setStatusState("away");
-        opts.onAway?.();
+        onAwayRef.current?.();
       }
     }, opts.awayTimeout);
-  }, [clearTimers, opts]);
+  }, [clearTimers, opts.idleTimeout, opts.awayTimeout]);
   const setStatus = useCallback15(
     (newStatus) => {
       const prevStatus = previousStatusRef.current;
       if (newStatus !== prevStatus) {
         previousStatusRef.current = newStatus;
         setStatusState(newStatus);
-        opts.onStatusChange?.(newStatus, prevStatus);
-        opts.sendActivity?.({
+        onStatusChangeRef.current?.(newStatus, prevStatus);
+        sendActivityRef.current?.({
           type: "interaction",
           data: { statusChange: { from: prevStatus, to: newStatus } }
         });
       }
     },
-    [opts]
+    []
   );
+  const statusRef = useRef11(status);
+  statusRef.current = status;
   const recordActivity = useCallback15(
     (type = "interaction") => {
       if (activityDebounceRef.current) {
@@ -3478,18 +3599,18 @@ function usePresence(options) {
         activityDebounceRef.current = null;
       }, opts.activityDebounce);
       setLastActivityAt(/* @__PURE__ */ new Date());
-      if (status === "idle" || status === "away") {
+      if (statusRef.current === "idle" || statusRef.current === "away") {
         setStatus("online");
-        opts.onActive?.();
+        onActiveRef.current?.();
       }
       resetTimers();
-      opts.sendActivity?.({
+      sendActivityRef.current?.({
         type,
         data: { timestamp: (/* @__PURE__ */ new Date()).toISOString() },
         pageContext: typeof window !== "undefined" ? { url: window.location.href } : void 0
       });
     },
-    [opts, status, setStatus, resetTimers]
+    [opts.activityDebounce, setStatus, resetTimers]
   );
   const updateMetadata = useCallback15((updates) => {
     setMetadata((prev) => prev ? { ...prev, ...updates } : null);
@@ -3500,7 +3621,7 @@ function usePresence(options) {
       if (document.visibilityState === "visible") {
         recordActivity("focus");
       } else {
-        opts.sendActivity?.({
+        sendActivityRef.current?.({
           type: "blur",
           data: { timestamp: (/* @__PURE__ */ new Date()).toISOString() }
         });
@@ -3510,7 +3631,7 @@ function usePresence(options) {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [opts.trackVisibility, recordActivity, opts.sendActivity]);
+  }, [opts.trackVisibility, recordActivity]);
   useEffect11(() => {
     if (!opts.trackActivity || typeof window === "undefined") return;
     const handleActivity = () => {
@@ -3564,7 +3685,7 @@ function usePresence(options) {
 }
 
 // src/hooks/useInterventions.ts
-import { useState as useState13, useEffect as useEffect12, useCallback as useCallback16, useRef as useRef12, useMemo as useMemo5 } from "react";
+import { useState as useState13, useEffect as useEffect12, useCallback as useCallback16, useRef as useRef12, useMemo as useMemo6 } from "react";
 var DEFAULT_OPTIONS3 = {
   maxVisible: 3,
   autoDismissMs: 1e4,
@@ -3583,16 +3704,29 @@ var DEFAULT_DISPLAY_CONFIG = {
   vibrate: false
 };
 function useInterventions(options = {}) {
-  const opts = useMemo5(
-    () => ({ ...DEFAULT_OPTIONS3, ...options }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+  const onInterventionRef = useRef12(options.onIntervention);
+  onInterventionRef.current = options.onIntervention;
+  const acknowledgeRef = useRef12(options.acknowledge);
+  acknowledgeRef.current = options.acknowledge;
+  const onDismissRef = useRef12(options.onDismiss);
+  onDismissRef.current = options.onDismiss;
+  const dismissEventRef = useRef12(options.dismissEvent);
+  dismissEventRef.current = options.dismissEvent;
+  const onActionRef = useRef12(options.onAction);
+  onActionRef.current = options.onAction;
+  const opts = useMemo6(
+    () => ({
+      ...DEFAULT_OPTIONS3,
+      defaultSurface: options.defaultSurface ?? DEFAULT_OPTIONS3.defaultSurface,
+      autoDismissMs: options.autoDismissMs ?? DEFAULT_OPTIONS3.autoDismissMs,
+      maxVisible: options.maxVisible ?? DEFAULT_OPTIONS3.maxVisible,
+      enableSound: options.enableSound ?? DEFAULT_OPTIONS3.enableSound
+    }),
     [
       options.defaultSurface,
       options.autoDismissMs,
       options.maxVisible,
-      options.enableSound,
-      options.onIntervention,
-      options.acknowledge
+      options.enableSound
     ]
   );
   const [interventions, setInterventions] = useState13(/* @__PURE__ */ new Map());
@@ -3603,6 +3737,8 @@ function useInterventions(options = {}) {
   const [latestGoalProgress, setLatestGoalProgress] = useState13(null);
   const [latestStepCompletion, setLatestStepCompletion] = useState13(null);
   const dismissTimersRef = useRef12(/* @__PURE__ */ new Map());
+  const dismissRef = useRef12(() => {
+  });
   const generateId = useCallback16(() => {
     return `int_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }, []);
@@ -3718,7 +3854,7 @@ function useInterventions(options = {}) {
           });
           if (displayConfig.duration && displayConfig.duration > 0) {
             const timer = setTimeout(() => {
-              dismiss(id, "timeout");
+              dismissRef.current(id, "timeout");
             }, displayConfig.duration);
             dismissTimersRef.current.set(id, timer);
           }
@@ -3726,10 +3862,9 @@ function useInterventions(options = {}) {
         }
         return prev;
       });
-      opts.onIntervention?.(intervention);
-      opts.acknowledge?.(id, "viewed");
+      onInterventionRef.current?.(intervention);
+      acknowledgeRef.current?.(id, "viewed");
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- dismiss is defined after this callback
     [generateId, getDisplayConfig, opts]
   );
   const dismiss = useCallback16(
@@ -3757,8 +3892,8 @@ function useInterventions(options = {}) {
         }
         return next;
       });
-      opts.onDismiss?.(interventionId, reason);
-      opts.dismissEvent?.(interventionId, reason);
+      onDismissRef.current?.(interventionId, reason);
+      dismissEventRef.current?.(interventionId, reason);
       setInterventions((interventions2) => {
         const pending2 = Array.from(interventions2.values()).filter((i) => !i.visible && !i.dismissedAt).sort((a, b) => b.displayConfig.priority - a.displayConfig.priority);
         if (pending2.length > 0) {
@@ -3775,8 +3910,9 @@ function useInterventions(options = {}) {
         return interventions2;
       });
     },
-    [opts]
+    [opts.maxVisible]
   );
+  dismissRef.current = dismiss;
   const dismissAll = useCallback16(() => {
     dismissTimersRef.current.forEach((timer) => clearTimeout(timer));
     dismissTimersRef.current.clear();
@@ -3799,9 +3935,9 @@ function useInterventions(options = {}) {
         }
         return next;
       });
-      opts.acknowledge?.(interventionId, "viewed");
+      acknowledgeRef.current?.(interventionId, "viewed");
     },
-    [opts]
+    []
   );
   const triggerAction = useCallback16(
     (interventionId, action) => {
@@ -3817,10 +3953,10 @@ function useInterventions(options = {}) {
         }
         return next;
       });
-      opts.onAction?.(interventionId, action);
-      opts.acknowledge?.(interventionId, "clicked");
+      onActionRef.current?.(interventionId, action);
+      acknowledgeRef.current?.(interventionId, "clicked");
     },
-    [opts]
+    []
   );
   const hasVisible = useCallback16(
     (type) => {
@@ -3869,7 +4005,7 @@ function useInterventions(options = {}) {
 }
 
 // src/hooks/usePushNotifications.ts
-import { useState as useState14, useEffect as useEffect13, useCallback as useCallback17, useRef as useRef13, useMemo as useMemo6 } from "react";
+import { useState as useState14, useEffect as useEffect13, useCallback as useCallback17, useRef as useRef13, useMemo as useMemo7 } from "react";
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -3897,17 +4033,42 @@ var DEFAULT_OPTIONS4 = {
   applicationServerKey: void 0
 };
 function usePushNotifications(options = {}) {
-  const opts = useMemo6(
-    () => ({ ...DEFAULT_OPTIONS4, ...options }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only recompute when specific options change
+  const onPermissionChangeRef = useRef13(options.onPermissionChange);
+  onPermissionChangeRef.current = options.onPermissionChange;
+  const onSubscriptionChangeRef = useRef13(options.onSubscriptionChange);
+  onSubscriptionChangeRef.current = options.onSubscriptionChange;
+  const onSubscribeRef = useRef13(options.onSubscribe);
+  onSubscribeRef.current = options.onSubscribe;
+  const onUnsubscribeRef = useRef13(options.onUnsubscribe);
+  onUnsubscribeRef.current = options.onUnsubscribe;
+  const onNotificationClickRef = useRef13(options.onNotificationClick);
+  onNotificationClickRef.current = options.onNotificationClick;
+  const onNotificationCloseRef = useRef13(options.onNotificationClose);
+  onNotificationCloseRef.current = options.onNotificationClose;
+  const onErrorRef = useRef13(options.onError);
+  onErrorRef.current = options.onError;
+  const {
+    serviceWorkerPath,
+    vapidPublicKey,
+    applicationServerKey,
+    autoRequestOnMount,
+    autoRequest
+  } = options;
+  const opts = useMemo7(
+    () => ({
+      ...DEFAULT_OPTIONS4,
+      serviceWorkerPath,
+      vapidPublicKey,
+      applicationServerKey,
+      autoRequestOnMount,
+      autoRequest
+    }),
     [
-      options.serviceWorkerPath,
-      options.vapidPublicKey,
-      options.applicationServerKey,
-      options.autoRequestOnMount,
-      options.onPermissionChange,
-      options.onSubscribe,
-      options.onUnsubscribe
+      serviceWorkerPath,
+      vapidPublicKey,
+      applicationServerKey,
+      autoRequestOnMount,
+      autoRequest
     ]
   );
   const [permission, setPermission] = useState14("default");
@@ -3915,6 +4076,23 @@ function usePushNotifications(options = {}) {
   const [isLoading, setIsLoading] = useState14(false);
   const swRegistrationRef = useRef13(null);
   const isSupported = typeof window !== "undefined" && "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+  const requestPermission = useCallback17(async () => {
+    if (!isSupported) {
+      return "unsupported";
+    }
+    try {
+      const result = await Notification.requestPermission();
+      const state = result;
+      setPermission(state);
+      onPermissionChangeRef.current?.(state);
+      return state;
+    } catch (error) {
+      onErrorRef.current?.(error instanceof Error ? error : new Error("Permission request failed"));
+      return "denied";
+    }
+  }, [isSupported]);
+  const requestPermissionRef = useRef13(requestPermission);
+  requestPermissionRef.current = requestPermission;
   useEffect13(() => {
     if (!isSupported) {
       setPermission("unsupported");
@@ -3924,39 +4102,24 @@ function usePushNotifications(options = {}) {
     setPermission(currentPermission);
     const init = async () => {
       try {
-        const registration = await navigator.serviceWorker.register(opts.serviceWorkerPath);
+        const registration = await navigator.serviceWorker.register(opts.serviceWorkerPath || "/sw.js");
         swRegistrationRef.current = registration;
         const existingSub = await registration.pushManager.getSubscription();
         if (existingSub) {
           const subJSON = subscriptionToJSON(existingSub);
           setSubscription(subJSON);
-          opts.onSubscriptionChange?.(subJSON);
+          onSubscriptionChangeRef.current?.(subJSON);
         }
         if (opts.autoRequest && currentPermission === "default") {
-          requestPermission();
+          requestPermissionRef.current();
         }
       } catch (error) {
         console.error("[usePushNotifications] Service worker registration failed:", error);
-        opts.onError?.(error instanceof Error ? error : new Error("Service worker registration failed"));
+        onErrorRef.current?.(error instanceof Error ? error : new Error("Service worker registration failed"));
       }
     };
     init();
-  }, [isSupported]);
-  const requestPermission = useCallback17(async () => {
-    if (!isSupported) {
-      return "unsupported";
-    }
-    try {
-      const result = await Notification.requestPermission();
-      const state = result;
-      setPermission(state);
-      opts.onPermissionChange?.(state);
-      return state;
-    } catch (error) {
-      opts.onError?.(error instanceof Error ? error : new Error("Permission request failed"));
-      return "denied";
-    }
-  }, [isSupported, opts]);
+  }, [isSupported, opts.serviceWorkerPath, opts.autoRequest]);
   const subscribe = useCallback17(async () => {
     if (!isSupported || !swRegistrationRef.current) {
       return null;
@@ -3978,16 +4141,16 @@ function usePushNotifications(options = {}) {
       const pushSubscription = await swRegistrationRef.current.pushManager.subscribe(subscribeOptions);
       const subJSON = subscriptionToJSON(pushSubscription);
       setSubscription(subJSON);
-      opts.onSubscriptionChange?.(subJSON);
+      onSubscriptionChangeRef.current?.(subJSON);
       return subJSON;
     } catch (error) {
       console.error("[usePushNotifications] Subscribe failed:", error);
-      opts.onError?.(error instanceof Error ? error : new Error("Subscribe failed"));
+      onErrorRef.current?.(error instanceof Error ? error : new Error("Subscribe failed"));
       return null;
     } finally {
       setIsLoading(false);
     }
-  }, [isSupported, permission, requestPermission, opts]);
+  }, [isSupported, permission, requestPermission, opts.vapidPublicKey]);
   const unsubscribe = useCallback17(async () => {
     if (!isSupported || !swRegistrationRef.current) {
       return false;
@@ -3999,16 +4162,16 @@ function usePushNotifications(options = {}) {
         await existingSub.unsubscribe();
       }
       setSubscription(null);
-      opts.onSubscriptionChange?.(null);
+      onSubscriptionChangeRef.current?.(null);
       return true;
     } catch (error) {
       console.error("[usePushNotifications] Unsubscribe failed:", error);
-      opts.onError?.(error instanceof Error ? error : new Error("Unsubscribe failed"));
+      onErrorRef.current?.(error instanceof Error ? error : new Error("Unsubscribe failed"));
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [isSupported, opts]);
+  }, [isSupported]);
   const showNotification = useCallback17(
     async (notificationOptions) => {
       if (!isSupported || permission !== "granted") {
@@ -4041,19 +4204,19 @@ function usePushNotifications(options = {}) {
           data: notificationOptions.data
         });
         notification.onclick = () => {
-          opts.onNotificationClick?.(notification);
+          onNotificationClickRef.current?.(notification);
         };
         notification.onclose = () => {
-          opts.onNotificationClose?.(notification);
+          onNotificationCloseRef.current?.(notification);
         };
         return notification;
       } catch (error) {
         console.error("[usePushNotifications] Show notification failed:", error);
-        opts.onError?.(error instanceof Error ? error : new Error("Show notification failed"));
+        onErrorRef.current?.(error instanceof Error ? error : new Error("Show notification failed"));
         return null;
       }
     },
-    [isSupported, permission, opts]
+    [isSupported, permission]
   );
   const isNotificationVisible = useCallback17(
     async (tag) => {
@@ -4095,13 +4258,13 @@ function usePushNotifications(options = {}) {
         return true;
       } catch (error) {
         console.error("[usePushNotifications] Server registration failed:", error);
-        opts.onError?.(error instanceof Error ? error : new Error("Server registration failed"));
+        onErrorRef.current?.(error instanceof Error ? error : new Error("Server registration failed"));
         return false;
       } finally {
         setIsLoading(false);
       }
     },
-    [subscription, opts]
+    [subscription]
   );
   return {
     permission,
@@ -4294,7 +4457,7 @@ function useSAMMemory(options = {}) {
 }
 
 // src/hooks/useTutoringOrchestration.tsx
-import { useState as useState16, useCallback as useCallback19, useMemo as useMemo7, createContext as createContext2, useContext as useContext2 } from "react";
+import { useState as useState16, useCallback as useCallback19, useMemo as useMemo8, createContext as createContext2, useContext as useContext2 } from "react";
 import { jsx as jsx2 } from "react/jsx-runtime";
 var initialState = {
   hasActivePlan: false,
@@ -4325,23 +4488,23 @@ function useTutoringOrchestration() {
   const clearState = useCallback19(() => {
     setState(initialState);
   }, []);
-  const hasStepTransition = useMemo7(
+  const hasStepTransition = useMemo8(
     () => state.transition !== null,
     [state.transition]
   );
-  const isPlanComplete = useMemo7(
+  const isPlanComplete = useMemo8(
     () => state.transition?.planComplete ?? false,
     [state.transition]
   );
-  const hasPendingConfirmations = useMemo7(
+  const hasPendingConfirmations = useMemo8(
     () => state.pendingConfirmations.length > 0,
     [state.pendingConfirmations]
   );
-  const currentStepProgress = useMemo7(
+  const currentStepProgress = useMemo8(
     () => state.stepProgress?.progressPercent ?? 0,
     [state.stepProgress]
   );
-  const shouldShowCelebration = useMemo7(
+  const shouldShowCelebration = useMemo8(
     () => state.transition?.celebration !== null && state.transition !== null,
     [state.transition]
   );
@@ -4358,7 +4521,7 @@ function useTutoringOrchestration() {
 }
 function useCurrentStep() {
   const { state } = useTutoringOrchestration();
-  return useMemo7(
+  return useMemo8(
     () => ({
       step: state.currentStep,
       objectives: state.currentStep?.objectives ?? [],
@@ -4369,7 +4532,7 @@ function useCurrentStep() {
 }
 function useStepProgress() {
   const { state } = useTutoringOrchestration();
-  return useMemo7(
+  return useMemo8(
     () => ({
       progressPercent: state.stepProgress?.progressPercent ?? 0,
       isComplete: state.stepProgress?.stepComplete ?? false,
@@ -4381,7 +4544,7 @@ function useStepProgress() {
 }
 function useStepCelebration() {
   const { state, clearState } = useTutoringOrchestration();
-  return useMemo7(
+  return useMemo8(
     () => ({
       show: state.transition?.celebration !== null && state.transition !== null,
       celebration: state.transition?.celebration ?? null,
@@ -5561,8 +5724,726 @@ function useMultimodal(options = {}) {
   };
 }
 
+// src/hooks/useContextGathering.ts
+import { useState as useState24, useEffect as useEffect17, useCallback as useCallback27, useRef as useRef21 } from "react";
+import { CONTEXT_SNAPSHOT_VERSION } from "@sam-ai/core";
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+function getVisibleText(el, maxLength) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+    acceptNode(node2) {
+      const parent = node2.parentElement;
+      if (!parent) return NodeFilter.FILTER_REJECT;
+      const tag = parent.tagName.toLowerCase();
+      if (tag === "script" || tag === "style" || tag === "noscript") {
+        return NodeFilter.FILTER_REJECT;
+      }
+      if (parent.closest('[data-sam-theme], [role="navigation"], nav.sidebar, aside')) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      const style = window.getComputedStyle(parent);
+      if (style.display === "none" || style.visibility === "hidden") {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+  let text = "";
+  let node = walker.nextNode();
+  while (node && text.length < maxLength) {
+    const content = (node.textContent ?? "").trim();
+    if (content) {
+      text += (text ? " " : "") + content;
+    }
+    node = walker.nextNode();
+  }
+  return text.slice(0, maxLength);
+}
+function getMainContentElement() {
+  return document.querySelector("main") ?? document.querySelector('[role="main"]') ?? document.querySelector("#main-content") ?? document.body;
+}
+function detectPageContext() {
+  const path = window.location.pathname;
+  const title = document.title;
+  const mainEl = document.querySelector("main") ?? document.body;
+  const dataType = mainEl.dataset.pageType ?? mainEl.dataset.samPageType ?? "";
+  const dataEntityId = mainEl.dataset.entityId ?? mainEl.dataset.samEntityId ?? "";
+  const dataParentId = mainEl.dataset.parentEntityId ?? "";
+  const dataGrandParentId = mainEl.dataset.grandParentEntityId ?? "";
+  const pageType = dataType || detectPageTypeFromPath(path);
+  const breadcrumbEls = document.querySelectorAll('[aria-label="breadcrumb"] a, nav.breadcrumb a, [data-breadcrumb] a');
+  const breadcrumb = breadcrumbEls.length > 0 ? Array.from(breadcrumbEls).map((a) => a.textContent?.trim() ?? "") : buildBreadcrumbFromPath(path);
+  const capEl = mainEl.dataset.capabilities ?? mainEl.dataset.samCapabilities;
+  const capabilities = capEl ? capEl.split(",").map((c) => c.trim()) : [];
+  const meta = {};
+  document.querySelectorAll("meta[name], meta[property]").forEach((el) => {
+    const name = el.getAttribute("name") ?? el.getAttribute("property") ?? "";
+    const content = el.getAttribute("content") ?? "";
+    if (name && content) meta[name] = content;
+  });
+  const state = detectPageState();
+  return {
+    type: pageType,
+    path,
+    title,
+    entityId: dataEntityId || void 0,
+    parentEntityId: dataParentId || void 0,
+    grandParentEntityId: dataGrandParentId || void 0,
+    capabilities,
+    breadcrumb,
+    state,
+    meta
+  };
+}
+function detectPageTypeFromPath(path) {
+  const segments = path.split("/").filter(Boolean);
+  if (segments[0] === "teacher") {
+    if (segments.length >= 4 && segments[2] === "sections") return "teacher-section-edit";
+    if (segments.length >= 4 && segments[2] === "chapters") return "teacher-chapter-edit";
+    if (segments.length >= 2 && segments[1] === "courses") {
+      return segments.length > 2 ? "teacher-course-edit" : "teacher-courses";
+    }
+    if (segments[1] === "analytics") return "teacher-analytics";
+    return "teacher-dashboard";
+  }
+  if (segments[0] === "courses") {
+    if (segments.length === 1) return "courses-list";
+    if (segments.length >= 4 && segments[2] === "sections") return "section-detail";
+    if (segments.length >= 4 && segments[2] === "chapters") return "chapter-detail";
+    return "course-detail";
+  }
+  if (segments[0] === "exams") {
+    return segments.length > 1 ? "exam-detail" : "exams-list";
+  }
+  if (segments[0] === "study-plan") return "study-plan";
+  if (segments[0] === "dashboard") return "dashboard";
+  if (segments[0] === "settings") return "settings";
+  if (segments[0] === "profile") return "profile";
+  return "unknown";
+}
+function buildBreadcrumbFromPath(path) {
+  return path.split("/").filter(Boolean).filter((seg) => !/^[0-9a-f-]{20,}$/i.test(seg) && !/^c[a-z0-9]{20,}$/i.test(seg)).map(
+    (seg) => seg.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+function detectPageState() {
+  const mainEl = document.querySelector("main") ?? document.body;
+  const isEditing = !!document.querySelector('[contenteditable="true"]') || mainEl.dataset.editing === "true" || !!document.querySelector("form [data-editing]");
+  const statusEl = mainEl.dataset.status ?? "";
+  const isDraft = statusEl === "draft" || !!document.querySelector('[data-status="draft"]');
+  const isPublished = statusEl === "published" || !!document.querySelector('[data-status="published"]');
+  const hasUnsavedChanges = mainEl.dataset.unsaved === "true" || !!document.querySelector('form.dirty, [data-dirty="true"]');
+  const permStr = mainEl.dataset.permissions ?? "";
+  const permissions = permStr ? permStr.split(",").map((p) => p.trim()) : [];
+  const stepEl = document.querySelector("[data-step]");
+  const step = stepEl ? parseInt(stepEl.getAttribute("data-step") ?? "", 10) : void 0;
+  const totalStepsEl = document.querySelector("[data-total-steps]");
+  const totalSteps = totalStepsEl ? parseInt(totalStepsEl.getAttribute("data-total-steps") ?? "", 10) : void 0;
+  return {
+    isEditing,
+    isDraft,
+    isPublished,
+    hasUnsavedChanges,
+    permissions,
+    step: Number.isFinite(step) ? step : void 0,
+    totalSteps: Number.isFinite(totalSteps) ? totalSteps : void 0
+  };
+}
+function scanForms(maxForms) {
+  const formEls = document.querySelectorAll("form");
+  const snapshots = [];
+  for (let i = 0; i < Math.min(formEls.length, maxForms); i++) {
+    const form = formEls[i];
+    const snapshot = scanSingleForm(form, i);
+    if (snapshot) snapshots.push(snapshot);
+  }
+  return snapshots;
+}
+function scanSingleForm(form, index) {
+  const formId = form.id || form.dataset.formId || form.name || `form-${index}`;
+  const formName = form.dataset.formName || form.getAttribute("aria-label") || form.name || formId;
+  const fields = [];
+  const fieldGroups = [];
+  const validationRules = {};
+  form.querySelectorAll("fieldset").forEach((fieldset, gi) => {
+    const legend = fieldset.querySelector("legend");
+    const groupName = fieldset.dataset.group || legend?.textContent?.trim() || `group-${gi}`;
+    const fieldNames = [];
+    fieldset.querySelectorAll("input, select, textarea").forEach((el) => {
+      const name = el.name;
+      if (name) fieldNames.push(name);
+    });
+    fieldGroups.push({
+      name: groupName,
+      label: legend?.textContent?.trim(),
+      fields: fieldNames,
+      order: gi
+    });
+  });
+  const elements = form.querySelectorAll("input, select, textarea");
+  elements.forEach((el, order) => {
+    const field = scanFormField(el, order);
+    if (field) {
+      fields.push(field);
+      const rules = extractValidationRules(el);
+      if (rules.length > 0) {
+        validationRules[field.name] = rules;
+      }
+    }
+  });
+  if (fields.length === 0) return null;
+  const purpose = inferFormPurpose(form, fields);
+  const requiredFields = fields.filter((f) => f.required);
+  const filledRequired = requiredFields.filter(
+    (f) => f.value != null && f.value !== ""
+  );
+  const errorFields = fields.filter((f) => f.validationState === "invalid");
+  const dirtyFields = fields.filter(
+    (f) => f.value != null && f.value !== "" && f.validationState !== "untouched"
+  );
+  return {
+    formId,
+    formName,
+    purpose,
+    action: form.action || void 0,
+    method: form.method || void 0,
+    fields,
+    fieldGroups,
+    state: {
+      isDirty: dirtyFields.length > 0,
+      isValid: errorFields.length === 0,
+      isSubmitting: form.dataset.submitting === "true",
+      completionPercent: requiredFields.length > 0 ? Math.round(filledRequired.length / requiredFields.length * 100) : 100,
+      errorCount: errorFields.length
+    },
+    validation: {
+      rules: validationRules,
+      dependencies: []
+    }
+  };
+}
+function scanFormField(el, order) {
+  const name = el.name || el.id;
+  if (!name) return null;
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "hidden" || el.type === "submit" || el.type === "button") {
+      return null;
+    }
+  }
+  const type = el instanceof HTMLSelectElement ? "select" : el instanceof HTMLTextAreaElement ? "textarea" : el.type || "text";
+  const value = getFieldValue3(el);
+  const label = resolveFieldLabel(el);
+  let options;
+  if (el instanceof HTMLSelectElement) {
+    options = Array.from(el.options).map((opt) => ({
+      value: opt.value,
+      label: opt.textContent?.trim() ?? opt.value,
+      selected: opt.selected
+    }));
+  }
+  const dataAttributes = {};
+  for (const attr of Array.from(el.attributes)) {
+    if (attr.name.startsWith("data-")) {
+      dataAttributes[attr.name] = attr.value;
+    }
+  }
+  const validationState = detectValidationState(el);
+  const errors = extractFieldErrors(el);
+  const describedBy = el.getAttribute("aria-describedby");
+  let helpText;
+  if (describedBy) {
+    const helpEl = document.getElementById(describedBy);
+    if (helpEl && !helpEl.classList.contains("error")) {
+      helpText = helpEl.textContent?.trim();
+    }
+  }
+  if (!helpText) {
+    helpText = el.title || void 0;
+  }
+  return {
+    name,
+    type,
+    value,
+    label,
+    placeholder: "placeholder" in el ? el.placeholder || void 0 : void 0,
+    helpText,
+    required: el.required,
+    disabled: el.disabled,
+    readOnly: el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement ? el.readOnly : false,
+    hidden: el.type === "hidden" || el.hidden,
+    validationState,
+    errors,
+    options,
+    min: el instanceof HTMLInputElement ? el.min || void 0 : void 0,
+    max: el instanceof HTMLInputElement ? el.max || void 0 : void 0,
+    minLength: el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement ? el.minLength > 0 ? el.minLength : void 0 : void 0,
+    maxLength: el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement ? el.maxLength > 0 && el.maxLength < 524288 ? el.maxLength : void 0 : void 0,
+    pattern: el instanceof HTMLInputElement ? el.pattern || void 0 : void 0,
+    step: el instanceof HTMLInputElement && el.step ? parseFloat(el.step) : void 0,
+    group: el.closest("fieldset")?.dataset.group ?? el.closest("fieldset")?.querySelector("legend")?.textContent?.trim(),
+    order,
+    dataAttributes
+  };
+}
+function getFieldValue3(el) {
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "checkbox") return el.checked;
+    if (el.type === "number" || el.type === "range") {
+      return el.value ? parseFloat(el.value) : null;
+    }
+    if (el.type === "file") return el.files ? Array.from(el.files).map((f) => f.name) : null;
+    return el.value || null;
+  }
+  if (el instanceof HTMLSelectElement) {
+    if (el.multiple) {
+      return Array.from(el.selectedOptions).map((o) => o.value);
+    }
+    return el.value || null;
+  }
+  return el.value || null;
+}
+function resolveFieldLabel(el) {
+  const id = el.id;
+  if (id) {
+    const labelEl = document.querySelector(`label[for="${id}"]`);
+    if (labelEl?.textContent?.trim()) return labelEl.textContent.trim();
+  }
+  const ariaLabel = el.getAttribute("aria-label");
+  if (ariaLabel) return ariaLabel;
+  const labelledBy = el.getAttribute("aria-labelledby");
+  if (labelledBy) {
+    const refEl = document.getElementById(labelledBy);
+    if (refEl?.textContent?.trim()) return refEl.textContent.trim();
+  }
+  const parentLabel = el.closest("label");
+  if (parentLabel) {
+    const clone = parentLabel.cloneNode(true);
+    clone.querySelectorAll("input, select, textarea").forEach((c) => c.remove());
+    const text = clone.textContent?.trim();
+    if (text) return text;
+  }
+  const prev = el.previousElementSibling;
+  if (prev?.tagName === "LABEL") {
+    const text = prev.textContent?.trim();
+    if (text) return text;
+  }
+  const name = el.name || el.id || "";
+  return name.replace(/([A-Z])/g, " $1").replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).trim();
+}
+function detectValidationState(el) {
+  if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+    if (!el.value && !el.required) return "untouched";
+    if (el.validity && !el.validity.valid) return "invalid";
+  }
+  if (el.getAttribute("aria-invalid") === "true") return "invalid";
+  if (el.classList.contains("error") || el.classList.contains("is-invalid")) return "invalid";
+  if (el.dataset.valid === "false" || el.dataset.error) return "invalid";
+  if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+    if (el.value) return "valid";
+  }
+  return "untouched";
+}
+function extractFieldErrors(el) {
+  const errors = [];
+  if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+    if (el.validationMessage) errors.push(el.validationMessage);
+  }
+  const describedBy = el.getAttribute("aria-describedby");
+  if (describedBy) {
+    const errorEl = document.getElementById(describedBy);
+    if (errorEl && (errorEl.classList.contains("error") || errorEl.getAttribute("role") === "alert")) {
+      const text = errorEl.textContent?.trim();
+      if (text) errors.push(text);
+    }
+  }
+  const nextEl = el.nextElementSibling;
+  if (nextEl && (nextEl.classList.contains("error-message") || nextEl.getAttribute("role") === "alert")) {
+    const text = nextEl.textContent?.trim();
+    if (text) errors.push(text);
+  }
+  return errors;
+}
+function extractValidationRules(el) {
+  const rules = [];
+  if (el.required) rules.push({ type: "required" });
+  if (el.minLength > 0) rules.push({ type: "minLength", value: el.minLength });
+  if (el.maxLength > 0 && el.maxLength < 524288) rules.push({ type: "maxLength", value: el.maxLength });
+  if (el.min) rules.push({ type: "min", value: el.min });
+  if (el.max) rules.push({ type: "max", value: el.max });
+  if (el.pattern) rules.push({ type: "pattern", value: el.pattern });
+  return rules;
+}
+function inferFormPurpose(form, fields) {
+  const action = (form.action ?? "").toLowerCase();
+  const method = (form.method ?? "get").toLowerCase();
+  const dataRole = form.dataset.purpose ?? form.dataset.role ?? "";
+  if (dataRole) {
+    const normalized = dataRole.toLowerCase();
+    if (["create", "edit", "search", "filter", "settings"].includes(normalized)) {
+      return normalized;
+    }
+  }
+  if (method === "get" || action.includes("search") || fields.some((f) => f.name === "q" || f.name === "query" || f.name === "search")) {
+    return "search";
+  }
+  if (fields.some((f) => f.name.includes("filter") || f.type === "select") && fields.length <= 5) {
+    return "filter";
+  }
+  if (action.includes("settings") || action.includes("preferences") || action.includes("config")) {
+    return "settings";
+  }
+  const path = window.location.pathname;
+  if (path.includes("/new") || path.includes("/create")) return "create";
+  if (path.includes("/edit") || path.includes("/update")) return "edit";
+  if (path.includes("/settings") || path.includes("/preferences")) return "settings";
+  const textFields = fields.filter((f) => ["text", "textarea", "email", "url"].includes(f.type));
+  if (textFields.length >= 3) return method === "post" ? "create" : "edit";
+  return "unknown";
+}
+function extractContent() {
+  const mainEl = getMainContentElement();
+  const headings = [];
+  mainEl.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach((el) => {
+    if (el.closest("[data-sam-theme]")) return;
+    const text = el.textContent?.trim();
+    if (text) {
+      headings.push({
+        level: parseInt(el.tagName[1], 10),
+        text,
+        id: el.id || void 0
+      });
+    }
+  });
+  const tables = [];
+  mainEl.querySelectorAll("table").forEach((table) => {
+    if (table.closest("[data-sam-theme]")) return;
+    const caption = table.querySelector("caption")?.textContent?.trim();
+    const headers = Array.from(table.querySelectorAll("thead th, tr:first-child th")).map(
+      (th) => th.textContent?.trim() ?? ""
+    );
+    const rows = table.querySelectorAll("tbody tr").length || table.querySelectorAll("tr").length;
+    tables.push({ caption, headers, rowCount: rows });
+  });
+  const codeBlocks = [];
+  mainEl.querySelectorAll('pre code, code[class*="language-"]').forEach((el) => {
+    if (el.closest("[data-sam-theme]")) return;
+    const langClass = Array.from(el.classList).find((c) => c.startsWith("language-"));
+    const language = langClass ? langClass.replace("language-", "") : void 0;
+    const preview = (el.textContent ?? "").slice(0, 200).trim();
+    if (preview) codeBlocks.push({ language, preview });
+  });
+  const images = [];
+  mainEl.querySelectorAll("img[alt]").forEach((el) => {
+    if (el.closest("[data-sam-theme]")) return;
+    const img = el;
+    if (img.alt && img.src) {
+      images.push({ alt: img.alt, src: img.src });
+    }
+  });
+  const textSummary = getVisibleText(mainEl, 5e3);
+  const wordCount = textSummary.split(/\s+/).filter(Boolean).length;
+  const readingTimeMinutes = Math.ceil(wordCount / 200);
+  return {
+    headings,
+    tables,
+    codeBlocks,
+    images,
+    textSummary,
+    wordCount,
+    readingTimeMinutes
+  };
+}
+function extractNavigation(maxLinks) {
+  const links = [];
+  const currentPath = window.location.pathname;
+  const allLinks = document.querySelectorAll("a[href]");
+  const seen = /* @__PURE__ */ new Set();
+  for (const el of Array.from(allLinks).slice(0, maxLinks * 2)) {
+    const anchor = el;
+    const href = anchor.getAttribute("href") ?? "";
+    if (!href || href === "#" || href.startsWith("javascript:")) continue;
+    if (seen.has(href)) continue;
+    seen.add(href);
+    const text = anchor.textContent?.trim() ?? "";
+    if (!text) continue;
+    const category = categorizeLink(anchor, href);
+    const isActive = href === currentPath || anchor.classList.contains("active") || anchor.getAttribute("aria-current") === "page";
+    links.push({
+      href,
+      text,
+      category,
+      ariaLabel: anchor.getAttribute("aria-label") ?? void 0,
+      isActive
+    });
+    if (links.length >= maxLinks) break;
+  }
+  const tabEls = document.querySelectorAll('[role="tab"], [data-tab]');
+  const tabs = tabEls.length > 0 ? Array.from(tabEls).map((el) => ({
+    label: el.textContent?.trim() ?? "",
+    isActive: el.getAttribute("aria-selected") === "true" || el.classList.contains("active"),
+    href: el.href || void 0
+  })) : void 0;
+  const paginationEl = document.querySelector('[aria-label="pagination"], nav.pagination, [data-pagination]');
+  let pagination;
+  if (paginationEl) {
+    const currentEl = paginationEl.querySelector('[aria-current="page"], .active, [data-current]');
+    const current = currentEl ? parseInt(currentEl.textContent?.trim() ?? "1", 10) : 1;
+    const allPages = Array.from(paginationEl.querySelectorAll("a, button")).map((el) => parseInt(el.textContent?.trim() ?? "", 10)).filter((n) => !isNaN(n));
+    const total = allPages.length > 0 ? Math.max(...allPages) : 1;
+    pagination = {
+      current: Number.isFinite(current) ? current : 1,
+      total: Number.isFinite(total) ? total : 1,
+      hasNext: !!paginationEl.querySelector('[aria-label*="next"], [rel="next"], .next'),
+      hasPrev: !!paginationEl.querySelector('[aria-label*="prev"], [rel="prev"], .prev')
+    };
+  }
+  const sidebarEl = document.querySelector('aside nav, [role="navigation"][aria-label*="sidebar"], [data-sidebar]');
+  const sidebar = sidebarEl ? Array.from(sidebarEl.querySelectorAll("a")).map((el) => {
+    const anchor = el;
+    const depth = countParentListDepth(anchor);
+    return {
+      label: anchor.textContent?.trim() ?? "",
+      href: anchor.href,
+      isActive: anchor.getAttribute("aria-current") === "page" || anchor.classList.contains("active"),
+      depth
+    };
+  }) : void 0;
+  return { links, pagination, tabs, sidebar };
+}
+function categorizeLink(anchor, href) {
+  if (anchor.closest('[aria-label="breadcrumb"], nav.breadcrumb')) return "breadcrumb";
+  if (anchor.closest('[aria-label="pagination"], nav.pagination')) return "pagination";
+  try {
+    const url = new URL(href, window.location.origin);
+    if (url.origin !== window.location.origin) return "external";
+  } catch {
+  }
+  if (/\.(pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|csv)$/i.test(href)) return "resource";
+  if (anchor.closest('[role="button"]') || anchor.classList.contains("btn") || anchor.classList.contains("button")) {
+    return "action";
+  }
+  return "navigation";
+}
+function countParentListDepth(el) {
+  let depth = 0;
+  let current = el;
+  while (current) {
+    if (current.tagName === "UL" || current.tagName === "OL") depth++;
+    current = current.parentElement;
+  }
+  return Math.max(0, depth - 1);
+}
+function captureInteraction(pageLoadTime) {
+  const docEl = document.documentElement;
+  const scrollHeight = docEl.scrollHeight - docEl.clientHeight;
+  const scrollPosition = scrollHeight > 0 ? Math.round(docEl.scrollTop / scrollHeight * 100) : 0;
+  const focusedEl = document.activeElement;
+  const focusedElement = focusedEl && focusedEl !== document.body ? describeElement(focusedEl) : void 0;
+  const selection = window.getSelection();
+  const selectedText = selection && selection.toString().trim() ? selection.toString().trim().slice(0, 500) : void 0;
+  return {
+    scrollPosition,
+    viewportHeight: window.innerHeight,
+    focusedElement,
+    selectedText,
+    timeOnPage: Math.round((Date.now() - pageLoadTime) / 1e3)
+  };
+}
+function describeElement(el) {
+  const tag = el.tagName.toLowerCase();
+  const id = el.id ? `#${el.id}` : "";
+  const name = el.name ? `[name="${el.name}"]` : "";
+  return `${tag}${id}${name}`;
+}
+function useContextGathering(options = {}) {
+  const {
+    enabled = true,
+    debounceMs = 500,
+    includeContent = true,
+    includeInteraction = true,
+    maxForms = 5,
+    maxLinks = 100,
+    customProviders: initialProviders = []
+  } = options;
+  const [snapshot, setSnapshot] = useState24(null);
+  const [isGathering, setIsGathering] = useState24(false);
+  const [lastUpdated, setLastUpdated] = useState24(null);
+  const optionsRef = useRef21(options);
+  optionsRef.current = options;
+  const providersRef = useRef21(initialProviders);
+  const pageLoadTimeRef = useRef21(Date.now());
+  const lastHashRef = useRef21("");
+  const timerRef = useRef21(null);
+  const gather = useCallback27(async () => {
+    if (!enabled) return;
+    if (typeof document === "undefined") return;
+    setIsGathering(true);
+    try {
+      const page = detectPageContext();
+      const forms = scanForms(maxForms);
+      const content = includeContent ? extractContent() : {
+        headings: [],
+        tables: [],
+        codeBlocks: [],
+        images: [],
+        textSummary: "",
+        wordCount: 0,
+        readingTimeMinutes: 0
+      };
+      const navigation = extractNavigation(maxLinks);
+      const interaction = includeInteraction ? captureInteraction(pageLoadTimeRef.current) : { scrollPosition: 0, viewportHeight: 0, timeOnPage: 0 };
+      let custom = {};
+      for (const provider of providersRef.current) {
+        try {
+          const result = await provider.gather();
+          custom = { ...custom, [provider.name]: result };
+        } catch {
+        }
+      }
+      const hashInput = `${page.path}:${page.type}:${page.title}:${forms.length}:${content.wordCount}:${JSON.stringify(forms.map((f) => f.fields.map((fi) => `${fi.name}=${String(fi.value ?? "")}`)))}`;
+      const contentHash = simpleHash(hashInput);
+      if (contentHash === lastHashRef.current) {
+        setIsGathering(false);
+        return;
+      }
+      lastHashRef.current = contentHash;
+      const newSnapshot = {
+        version: CONTEXT_SNAPSHOT_VERSION,
+        timestamp: Date.now(),
+        contentHash,
+        page,
+        forms,
+        content,
+        navigation,
+        interaction,
+        custom
+      };
+      setSnapshot(newSnapshot);
+      setLastUpdated(/* @__PURE__ */ new Date());
+      optionsRef.current.onSnapshotReady?.(newSnapshot);
+    } finally {
+      setIsGathering(false);
+    }
+  }, [enabled, maxForms, maxLinks, includeContent, includeInteraction]);
+  const debouncedGather = useCallback27(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      gather();
+    }, debounceMs);
+  }, [gather, debounceMs]);
+  const refresh = useCallback27(() => {
+    lastHashRef.current = "";
+    gather();
+  }, [gather]);
+  const registerProvider = useCallback27((provider) => {
+    providersRef.current = [...providersRef.current.filter((p) => p.name !== provider.name), provider];
+  }, []);
+  useEffect17(() => {
+    if (!enabled || typeof document === "undefined") return;
+    pageLoadTimeRef.current = Date.now();
+    gather();
+    const observer = new MutationObserver(() => {
+      debouncedGather();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    const onNav = () => {
+      pageLoadTimeRef.current = Date.now();
+      lastHashRef.current = "";
+      debouncedGather();
+    };
+    window.addEventListener("popstate", onNav);
+    const origPush = history.pushState.bind(history);
+    const origReplace = history.replaceState.bind(history);
+    history.pushState = (...args) => {
+      origPush(...args);
+      onNav();
+    };
+    history.replaceState = (...args) => {
+      origReplace(...args);
+      onNav();
+    };
+    const onInput = () => debouncedGather();
+    document.addEventListener("input", onInput, true);
+    document.addEventListener("change", onInput, true);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("popstate", onNav);
+      document.removeEventListener("input", onInput, true);
+      document.removeEventListener("change", onInput, true);
+      history.pushState = origPush;
+      history.replaceState = origReplace;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [enabled, gather, debouncedGather]);
+  return {
+    snapshot,
+    isGathering,
+    lastUpdated,
+    refresh,
+    registerProvider
+  };
+}
+
+// src/hooks/useContextMemorySync.ts
+import { useEffect as useEffect18, useRef as useRef22, useCallback as useCallback28 } from "react";
+function useContextMemorySync(options = {}) {
+  const {
+    syncDebounceMs = 2e3,
+    apiEndpoint = "/api/sam/context",
+    enabled = true,
+    ...gatheringOptions
+  } = options;
+  const { snapshot, isGathering, refresh } = useContextGathering({ enabled, ...gatheringOptions });
+  const lastSyncedHashRef = useRef22("");
+  const syncTimerRef = useRef22(null);
+  const syncCountRef = useRef22(0);
+  const lastSyncedStateRef = useRef22(null);
+  const syncSnapshot = useCallback28(
+    async (snap) => {
+      if (snap.contentHash === lastSyncedHashRef.current) return;
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ snapshot: snap })
+        });
+        if (response.ok) {
+          lastSyncedHashRef.current = snap.contentHash;
+          lastSyncedStateRef.current = /* @__PURE__ */ new Date();
+          syncCountRef.current += 1;
+        }
+      } catch {
+      }
+    },
+    [apiEndpoint]
+  );
+  useEffect18(() => {
+    if (!snapshot || !enabled) return;
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      syncSnapshot(snapshot);
+    }, syncDebounceMs);
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [snapshot, enabled, syncDebounceMs, syncSnapshot]);
+  return {
+    snapshot,
+    isGathering,
+    lastSynced: lastSyncedStateRef.current,
+    syncCount: syncCountRef.current,
+    refresh
+  };
+}
+
 // src/hooks/useEnhancedBloomsAnalysis.ts
-import { useState as useState24, useCallback as useCallback27, useRef as useRef21 } from "react";
+import { useState as useState25, useCallback as useCallback29, useRef as useRef23 } from "react";
 
 // src/utils/contextDetector.ts
 var DEFAULT_ROUTE_PATTERNS = [
@@ -5761,6 +6642,8 @@ export {
   hasCapability,
   useAgentic,
   useBehaviorPatterns,
+  useContextGathering,
+  useContextMemorySync,
   useCurrentStep,
   useExamEngine,
   useInnovationFeatures,

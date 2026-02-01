@@ -1008,7 +1008,12 @@ export async function POST(request: NextRequest) {
     const formSummary = buildFormSummary(formContext?.fields);
 
     // Fetch enriched context snapshot summary (from context gathering engine)
-    let contextSnapshotSummary: { pageSummary: string; formSummary: string } | null = null;
+    let contextSnapshotSummary: {
+      pageSummary: string;
+      formSummary: string;
+      contentSummary: string;
+      navigationSummary: string;
+    } | null = null;
     try {
       contextSnapshotSummary = await getContextSummaryForRoute(user.id);
     } catch {
@@ -1215,6 +1220,8 @@ export async function POST(request: NextRequest) {
           // Enriched snapshot context (from context gathering engine)
           contextSnapshotPageSummary: contextSnapshotSummary?.pageSummary,
           contextSnapshotFormSummary: contextSnapshotSummary?.formSummary,
+          contextSnapshotContentSummary: contextSnapshotSummary?.contentSummary,
+          contextSnapshotNavigationSummary: contextSnapshotSummary?.navigationSummary,
           // Include specific entity data for easy access
           courseTitle: entityContext.course?.title,
           courseDescription: entityContext.course?.description,

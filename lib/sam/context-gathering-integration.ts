@@ -189,6 +189,12 @@ export async function processContextSnapshot(
     );
   }
 
+  // 5. Stack management — prune old snapshots from the bottom
+  // Keep only the last 20 snapshots per user (newest on top, oldest pruned)
+  store.cleanupOldSnapshots(userId, 20).catch(() => {
+    // Non-blocking — cleanup failure shouldn't affect the main flow
+  });
+
   return output;
 }
 
@@ -204,20 +210,100 @@ export async function getLatestContextSnapshot(
 
 /**
  * Get the latest enriched context summary for a user's current page.
+ * Includes full content from the snapshot so the AI has real page data.
  */
 export async function getContextSummaryForRoute(
   userId: string,
-): Promise<{ pageSummary: string; formSummary: string } | null> {
+): Promise<{ pageSummary: string; formSummary: string; contentSummary: string; navigationSummary: string } | null> {
   const store = getSnapshotStore();
   const snapshot = await store.getLatestSnapshot(userId);
   if (!snapshot) return null;
 
-  // Build lightweight summaries without running the full engine
-  const pageSummary = `Page: ${snapshot.page.title || snapshot.page.path} (${snapshot.page.type})`;
-  const formCount = snapshot.forms?.length ?? 0;
-  const formSummary = formCount > 0
-    ? `${formCount} form(s) on page. Fields: ${snapshot.forms.flatMap((f) => f.fields.map((fi) => fi.label || fi.name)).join(', ')}`
-    : 'No forms on this page.';
+  // ---- Page Summary ----
+  const pageParts: string[] = [];
+  pageParts.push(`Page: ${snapshot.page.title || snapshot.page.path} (${snapshot.page.type})`);
+  if (snapshot.page.entityId) {
+    pageParts.push(`Entity ID: ${snapshot.page.entityId}`);
+  }
+  if (snapshot.page.breadcrumb?.length > 0) {
+    pageParts.push(`Breadcrumb: ${snapshot.page.breadcrumb.join(' > ')}`);
+  }
+  const stateFlags: string[] = [];
+  if (snapshot.page.state?.isEditing) stateFlags.push('editing');
+  if (snapshot.page.state?.isDraft) stateFlags.push('draft');
+  if (snapshot.page.state?.isPublished) stateFlags.push('published');
+  if (stateFlags.length > 0) {
+    pageParts.push(`State: ${stateFlags.join(', ')}`);
+  }
+  const pageSummary = pageParts.join('\n');
 
-  return { pageSummary, formSummary };
+  // ---- Content Summary (the actual visible text on the page) ----
+  const contentParts: string[] = [];
+  if (snapshot.content?.headings?.length > 0) {
+    contentParts.push('Headings on page:');
+    for (const h of snapshot.content.headings.slice(0, 20)) {
+      contentParts.push(`  ${'#'.repeat(h.level)} ${h.text}`);
+    }
+    if (snapshot.content.headings.length > 20) {
+      contentParts.push(`  ...and ${snapshot.content.headings.length - 20} more`);
+    }
+  }
+  if (snapshot.content?.tables?.length > 0) {
+    contentParts.push(`Tables: ${snapshot.content.tables.length}`);
+    for (const t of snapshot.content.tables.slice(0, 3)) {
+      const caption = t.caption ? ` "${t.caption}"` : '';
+      contentParts.push(`  - ${t.rowCount} rows, columns: ${t.headers.join(', ')}${caption}`);
+    }
+  }
+  if (snapshot.content?.textSummary) {
+    contentParts.push(`\nVisible text on page:\n${snapshot.content.textSummary}`);
+  }
+  if (snapshot.content?.wordCount > 0) {
+    contentParts.push(`Word count: ${snapshot.content.wordCount}`);
+  }
+  const contentSummary = contentParts.length > 0
+    ? contentParts.join('\n')
+    : 'No visible content captured.';
+
+  // ---- Form Summary ----
+  const formParts: string[] = [];
+  const formCount = snapshot.forms?.length ?? 0;
+  if (formCount > 0) {
+    formParts.push(`${formCount} form(s) on page:`);
+    for (const form of snapshot.forms) {
+      formParts.push(`Form: ${form.formName || form.formId} (purpose: ${form.purpose})`);
+      formParts.push(`  Status: ${form.state.completionPercent}% complete, ${form.state.errorCount} error(s)`);
+      for (const field of form.fields) {
+        const valueStr = field.value != null && field.value !== ''
+          ? `"${String(field.value).slice(0, 80)}"`
+          : '(empty)';
+        const flags: string[] = [];
+        if (field.required) flags.push('required');
+        if (field.disabled) flags.push('disabled');
+        const flagStr = flags.length > 0 ? ` [${flags.join(', ')}]` : '';
+        formParts.push(`  - ${field.label || field.name} (${field.type}): ${valueStr}${flagStr}`);
+      }
+    }
+  }
+  const formSummary = formParts.length > 0 ? formParts.join('\n') : 'No forms on this page.';
+
+  // ---- Navigation Summary ----
+  const navParts: string[] = [];
+  if (snapshot.navigation?.tabs?.length) {
+    const activeTab = snapshot.navigation.tabs.find((t) => t.isActive);
+    navParts.push(`Tabs: ${snapshot.navigation.tabs.map((t) => t.label).join(', ')}${activeTab ? ` (active: ${activeTab.label})` : ''}`);
+  }
+  if (snapshot.navigation?.links?.length) {
+    const actionLinks = snapshot.navigation.links.filter((l) => l.category === 'action');
+    if (actionLinks.length > 0) {
+      navParts.push(`Action links: ${actionLinks.slice(0, 10).map((l) => l.text).join(', ')}`);
+    }
+    const navLinks = snapshot.navigation.links.filter((l) => l.category === 'navigation');
+    if (navLinks.length > 0) {
+      navParts.push(`Navigation links: ${navLinks.slice(0, 15).map((l) => l.text).join(', ')}`);
+    }
+  }
+  const navigationSummary = navParts.length > 0 ? navParts.join('\n') : '';
+
+  return { pageSummary, formSummary, contentSummary, navigationSummary };
 }

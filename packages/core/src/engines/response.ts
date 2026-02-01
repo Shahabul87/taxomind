@@ -144,6 +144,7 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     this.logger.info('[ResponseEngine] System prompt built:', {
       totalLength: systemPrompt.length,
       hasEntityContext: systemPrompt.includes('Database-Verified Information'),
+      hasSnapshotContext: systemPrompt.includes('Visible Page Content'),
       pageType: context.page.type,
     });
 
@@ -179,6 +180,15 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     const memorySummary = metadata.memorySummary as string | undefined;
     const reviewSummary = metadata.reviewSummary as string | undefined;
 
+    // Extract snapshot context (auto-gathered from page DOM)
+    const snapshotPageSummary = metadata.contextSnapshotPageSummary as string | undefined;
+    const snapshotContentSummary = metadata.contextSnapshotContentSummary as string | undefined;
+    const snapshotFormSummary = metadata.contextSnapshotFormSummary as string | undefined;
+    const snapshotNavigationSummary = metadata.contextSnapshotNavigationSummary as string | undefined;
+    const hasSnapshotContext = !!(snapshotContentSummary
+      && snapshotContentSummary !== 'No visible content captured.'
+      && snapshotContentSummary.length > 0);
+
     // ---- Section 1: Identity ----
     let prompt = `You are ${name}, an intelligent AI tutor assistant for an educational platform. Be ${tone}.\n`;
 
@@ -199,7 +209,20 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
       prompt += `\nCourse: ${courseTitle}\n`;
     }
 
-    // Form fields — part of page context
+    // ---- Snapshot context (auto-captured page content from DOM) ----
+    // Primary context source for ANY page — captures actual visible text,
+    // headings, forms, and navigation. Works without hardcoded page-type logic.
+    if (hasSnapshotContext) {
+      if (snapshotPageSummary) {
+        prompt += `\n### Current Page Info\n${snapshotPageSummary}\n`;
+      }
+      prompt += `\n### Visible Page Content\n${snapshotContentSummary}\n`;
+      if (snapshotNavigationSummary) {
+        prompt += `\n### Available Navigation\n${snapshotNavigationSummary}\n`;
+      }
+    }
+
+    // Form fields: inline form context > snapshot forms > legacy formSummary
     if (context.form && Object.keys(context.form.fields).length > 0) {
       prompt += `\n### Form Fields (Current Page)\n`;
       for (const [fieldName, field] of Object.entries(context.form.fields)) {
@@ -209,13 +232,15 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
         const label = field.label || fieldName;
         prompt += `- ${label}: ${currentValue}\n`;
       }
+    } else if (snapshotFormSummary && snapshotFormSummary !== 'No forms on this page.') {
+      prompt += `\n### Form Fields\n${snapshotFormSummary}\n`;
     } else if (formSummary && formSummary !== 'No form data available on this page.') {
       prompt += `\n### Form Fields\n${formSummary}\n`;
     }
 
     // Critical instruction: prevent "I don't have access" responses
-    if (hasEntityData) {
-      prompt += `\nIMPORTANT: The information above comes directly from the database. When the user asks about their courses, chapters, or content, USE THIS DATA. Do NOT say "I don't have access to that information" \u2014 you DO have access, the data is above.\n`;
+    if (hasEntityData || hasSnapshotContext) {
+      prompt += `\nIMPORTANT: The information above comes from the database and the actual page content visible to the user. When the user asks about their courses, content, pages, or anything on their screen, USE THIS DATA. Do NOT say "I don't have access to that information" \u2014 you DO have access, the data is above.\n`;
     }
 
     // ---- Section 3: Learning State (optional, only if data exists) ----
@@ -252,7 +277,7 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
 
     // ---- Section 4: Guidelines ----
     prompt += `\n## Response Guidelines\n`;
-    prompt += `1. **USE THE ENTITY DATA ABOVE** \u2014 reference actual course/chapter/section details\n`;
+    prompt += `1. **USE THE PAGE DATA ABOVE** \u2014 reference actual visible content, courses, chapters, or section details\n`;
     prompt += `2. For GENERATION requests: create content SPECIFIC to the current context\n`;
     prompt += `3. Be specific and actionable, use markdown formatting\n`;
     if (context.form && Object.keys(context.form.fields).length > 0) {

@@ -3640,6 +3640,7 @@ var ResponseEngine = class extends BaseEngine {
     this.logger.info("[ResponseEngine] System prompt built:", {
       totalLength: systemPrompt.length,
       hasEntityContext: systemPrompt.includes("Database-Verified Information"),
+      hasSnapshotContext: systemPrompt.includes("Visible Page Content"),
       pageType: context.page.type
     });
     try {
@@ -3665,6 +3666,11 @@ var ResponseEngine = class extends BaseEngine {
     const courseTitle = metadata.courseTitle;
     const memorySummary = metadata.memorySummary;
     const reviewSummary = metadata.reviewSummary;
+    const snapshotPageSummary = metadata.contextSnapshotPageSummary;
+    const snapshotContentSummary = metadata.contextSnapshotContentSummary;
+    const snapshotFormSummary = metadata.contextSnapshotFormSummary;
+    const snapshotNavigationSummary = metadata.contextSnapshotNavigationSummary;
+    const hasSnapshotContext = !!(snapshotContentSummary && snapshotContentSummary !== "No visible content captured." && snapshotContentSummary.length > 0);
     let prompt = `You are ${name}, an intelligent AI tutor assistant for an educational platform. Be ${tone}.
 `;
     prompt += `
@@ -3687,6 +3693,24 @@ ${entitySummary}
 Course: ${courseTitle}
 `;
     }
+    if (hasSnapshotContext) {
+      if (snapshotPageSummary) {
+        prompt += `
+### Current Page Info
+${snapshotPageSummary}
+`;
+      }
+      prompt += `
+### Visible Page Content
+${snapshotContentSummary}
+`;
+      if (snapshotNavigationSummary) {
+        prompt += `
+### Available Navigation
+${snapshotNavigationSummary}
+`;
+      }
+    }
     if (context.form && Object.keys(context.form.fields).length > 0) {
       prompt += `
 ### Form Fields (Current Page)
@@ -3697,15 +3721,20 @@ Course: ${courseTitle}
         prompt += `- ${label}: ${currentValue}
 `;
       }
+    } else if (snapshotFormSummary && snapshotFormSummary !== "No forms on this page.") {
+      prompt += `
+### Form Fields
+${snapshotFormSummary}
+`;
     } else if (formSummary && formSummary !== "No form data available on this page.") {
       prompt += `
 ### Form Fields
 ${formSummary}
 `;
     }
-    if (hasEntityData) {
+    if (hasEntityData || hasSnapshotContext) {
       prompt += `
-IMPORTANT: The information above comes directly from the database. When the user asks about their courses, chapters, or content, USE THIS DATA. Do NOT say "I don't have access to that information" \u2014 you DO have access, the data is above.
+IMPORTANT: The information above comes from the database and the actual page content visible to the user. When the user asks about their courses, content, pages, or anything on their screen, USE THIS DATA. Do NOT say "I don't have access to that information" \u2014 you DO have access, the data is above.
 `;
     }
     const hasLearningState = memorySummary || reviewSummary || bloomsResult?.analysis;
@@ -3749,7 +3778,7 @@ Capabilities: ${contextResult.enrichedContext.capabilities.join(", ")}
     prompt += `
 ## Response Guidelines
 `;
-    prompt += `1. **USE THE ENTITY DATA ABOVE** \u2014 reference actual course/chapter/section details
+    prompt += `1. **USE THE PAGE DATA ABOVE** \u2014 reference actual visible content, courses, chapters, or section details
 `;
     prompt += `2. For GENERATION requests: create content SPECIFIC to the current context
 `;

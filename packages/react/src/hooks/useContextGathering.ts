@@ -60,6 +60,11 @@ function getVisibleText(el: Element, maxLength: number): string {
       if (tag === 'script' || tag === 'style' || tag === 'noscript') {
         return NodeFilter.FILTER_REJECT;
       }
+      // Exclude SAM chat widget (portalled to body with data-sam-theme)
+      // and sidebar/nav chrome so we only capture actual page content
+      if (parent.closest('[data-sam-theme], [role="navigation"], nav.sidebar, aside')) {
+        return NodeFilter.FILTER_REJECT;
+      }
       const style = window.getComputedStyle(parent);
       if (style.display === 'none' || style.visibility === 'hidden') {
         return NodeFilter.FILTER_REJECT;
@@ -78,6 +83,16 @@ function getVisibleText(el: Element, maxLength: number): string {
     node = walker.nextNode();
   }
   return text.slice(0, maxLength);
+}
+
+/** Find the main content area, excluding sidebars and nav chrome */
+function getMainContentElement(): Element {
+  return (
+    document.querySelector('main') ??
+    document.querySelector('[role="main"]') ??
+    document.querySelector('#main-content') ??
+    document.body
+  );
 }
 
 // ============================================================================
@@ -566,8 +581,13 @@ function inferFormPurpose(form: HTMLFormElement, fields: FormFieldSnapshot[]): F
 // ============================================================================
 
 function extractContent(): ContentSnapshot {
+  // Use main content area to avoid capturing sidebar, nav, and SAM chat text
+  const mainEl = getMainContentElement();
+
   const headings: ContentSnapshot['headings'] = [];
-  document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((el) => {
+  mainEl.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((el) => {
+    // Skip headings inside the SAM chat widget
+    if (el.closest('[data-sam-theme]')) return;
     const text = el.textContent?.trim();
     if (text) {
       headings.push({
@@ -579,7 +599,8 @@ function extractContent(): ContentSnapshot {
   });
 
   const tables: ContentSnapshot['tables'] = [];
-  document.querySelectorAll('table').forEach((table) => {
+  mainEl.querySelectorAll('table').forEach((table) => {
+    if (table.closest('[data-sam-theme]')) return;
     const caption = table.querySelector('caption')?.textContent?.trim();
     const headers = Array.from(table.querySelectorAll('thead th, tr:first-child th')).map(
       (th) => th.textContent?.trim() ?? '',
@@ -589,7 +610,8 @@ function extractContent(): ContentSnapshot {
   });
 
   const codeBlocks: ContentSnapshot['codeBlocks'] = [];
-  document.querySelectorAll('pre code, code[class*="language-"]').forEach((el) => {
+  mainEl.querySelectorAll('pre code, code[class*="language-"]').forEach((el) => {
+    if (el.closest('[data-sam-theme]')) return;
     const langClass = Array.from(el.classList).find((c) => c.startsWith('language-'));
     const language = langClass ? langClass.replace('language-', '') : undefined;
     const preview = (el.textContent ?? '').slice(0, 200).trim();
@@ -597,14 +619,16 @@ function extractContent(): ContentSnapshot {
   });
 
   const images: ContentSnapshot['images'] = [];
-  document.querySelectorAll('img[alt]').forEach((el) => {
+  mainEl.querySelectorAll('img[alt]').forEach((el) => {
+    if (el.closest('[data-sam-theme]')) return;
     const img = el as HTMLImageElement;
     if (img.alt && img.src) {
       images.push({ alt: img.alt, src: img.src });
     }
   });
 
-  const textSummary = getVisibleText(document.body, 2000);
+  // Extract visible text from main content area (not sidebar/chat), with 5000 char limit
+  const textSummary = getVisibleText(mainEl, 5000);
   const wordCount = textSummary.split(/\s+/).filter(Boolean).length;
   const readingTimeMinutes = Math.ceil(wordCount / 200);
 
