@@ -81,6 +81,15 @@ export interface PipelineContext {
   memoryUpdate: { masteryUpdated: boolean; spacedRepScheduled: boolean } | null;
   enginesToRun: string[];
 
+  // --- Pipeline diagnostics ---
+  stageErrors?: Array<{ stage: string; error: string; timestamp: number }>;
+  modeAnalytics?: {
+    modeId: string;
+    enginePresetUsed: string;
+    engineSelectionReason: string;
+    messageSignals?: Record<string, number>;
+  };
+
   // --- Tutoring ---
   tutoringContext: Record<string, unknown> | null;
   planContextInjection: Record<string, unknown> | null;

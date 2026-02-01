@@ -33,10 +33,16 @@ export async function buildUnifiedResponse(
   const qualityResult = ctx.qualityResult as QualityValidationResult | null;
   const pedagogyResult = ctx.pedagogyResult as PedagogicalPipelineResult | null;
 
+  // Build warnings from any non-critical stage failures
+  const warnings: string[] = (ctx.stageErrors || []).map(
+    (e) => `Stage '${e.stage}' encountered an issue`,
+  );
+
   const response = {
     success: (orchResult?.success as boolean) ?? true,
     response: ctx.responseText,
     mode: ctx.modeId,
+    warnings: warnings.length > 0 ? warnings : undefined,
     suggestions: (resultResponse.suggestions as unknown[]) || [],
     actions: (resultResponse.actions as unknown[]) || [],
     insights: {
@@ -209,6 +215,10 @@ export async function buildUnifiedResponse(
         strugglePrediction: !!ctx.proactiveData?.predictions?.struggleRisk,
       },
       toolExecution: ctx.toolExecution ?? undefined,
+      modeAnalytics: ctx.modeAnalytics ?? undefined,
+      stageErrors: ctx.stageErrors?.length
+        ? ctx.stageErrors.map((e) => ({ stage: e.stage, error: e.error }))
+        : undefined,
     },
   };
 

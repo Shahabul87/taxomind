@@ -13,7 +13,7 @@ import {
   type SAMFormField,
   type BloomsEngineOutput,
 } from '@sam-ai/core';
-import { resolveModeEngines } from '@/lib/sam/modes';
+import { resolveModeEngines, resolveModeEnginesWithMetadata } from '@/lib/sam/modes';
 import type { GeneratedContent, ValidationResult as QualityValidationResult } from '@sam-ai/quality';
 import type { PedagogicalPipelineResult } from '@sam-ai/pedagogy';
 import type { EvaluationOutcome } from '@sam-ai/memory';
@@ -35,46 +35,115 @@ const ENGINE_PRESETS: Record<string, string[]> = {
   exam: ['context', 'blooms', 'assessment', 'personalization', 'response'],
 };
 
-function getEnginePreset(pageType: string, hasForm: boolean, message?: string): string[] {
+interface EnginePresetSelection {
+  engines: string[];
+  presetName: string;
+  reason: string;
+  signals: Record<string, number>;
+}
+
+function selectEnginePreset(
+  pageType: string,
+  hasForm: boolean,
+  message?: string,
+): EnginePresetSelection {
   const lowerMessage = (message || '').toLowerCase();
+  const signals: Record<string, number> = {};
 
-  const isSimpleQuery =
-    lowerMessage.length < 50 &&
-    !lowerMessage.includes('generate') &&
-    !lowerMessage.includes('create') &&
-    !lowerMessage.includes('analyze') &&
-    !lowerMessage.includes('improve') &&
-    !lowerMessage.includes('quiz') &&
-    !lowerMessage.includes('question') &&
-    !lowerMessage.includes('exam') &&
-    !lowerMessage.includes('test');
+  // Score each preset based on weighted signals
+  const scores: Record<string, number> = {
+    quick: 0,
+    standard: 0,
+    full: 0,
+    content: 0,
+    learning: 0,
+    assessment: 0,
+    exam: 0,
+  };
 
-  if (isSimpleQuery) return ENGINE_PRESETS.quick;
+  // Signal: short message favors quick
+  if (lowerMessage.length < 30) {
+    scores.quick += 3;
+    signals.shortMessage = 3;
+  }
 
-  const isAssessmentRequest =
-    lowerMessage.includes('quiz') ||
-    lowerMessage.includes('question') ||
-    lowerMessage.includes('exam') ||
-    lowerMessage.includes('test me') ||
-    lowerMessage.includes('assessment') ||
-    lowerMessage.includes('evaluate');
-  if (isAssessmentRequest) return ENGINE_PRESETS.assessment;
+  // Signal: question mark favors quick
+  if (lowerMessage.endsWith('?')) {
+    scores.quick += 1;
+    signals.questionMark = 1;
+  }
 
-  const isGenerationRequest =
-    lowerMessage.includes('generate') ||
-    lowerMessage.includes('create') ||
-    lowerMessage.includes('write') ||
-    lowerMessage.includes('draft');
-  if (isGenerationRequest) return ENGINE_PRESETS.content;
+  // Signal: assessment keywords (with negative pattern for "have a test")
+  const assessmentNegative = /\b(have a|taking a|studied for|preparing for|tomorrow|next week)\s+(test|exam|quiz)\b/i;
+  if (!assessmentNegative.test(lowerMessage)) {
+    if (/\b(quiz|exam|assess|evaluate|check my|practice)\b/i.test(lowerMessage)) {
+      scores.assessment += 4;
+      signals.assessmentKeyword = 4;
+    }
+    if (/\btest me\b/i.test(lowerMessage)) {
+      scores.assessment += 4;
+      signals.testMeExplicit = 4;
+    }
+  }
 
-  const isAnalysisRequest =
-    lowerMessage.includes('analyze') ||
-    lowerMessage.includes('review') ||
-    lowerMessage.includes('check') ||
-    lowerMessage.includes('improve');
-  if (isAnalysisRequest) return ENGINE_PRESETS.standard;
+  // Signal: generation keywords (with word boundary)
+  const generationNegative = /\b(create|make)\s+(sure|sense|it|time|progress)\b/i;
+  if (!generationNegative.test(lowerMessage)) {
+    if (/\b(generate|create|make|build|write|draft)\b/i.test(lowerMessage)) {
+      scores.content += 4;
+      signals.generationKeyword = 4;
+    }
+  }
 
-  return ENGINE_PRESETS.quick;
+  // Signal: analysis keywords
+  if (/\b(analyze|review|check|improve|compare|contrast)\b/i.test(lowerMessage)) {
+    scores.standard += 3;
+    signals.analysisKeyword = 3;
+  }
+
+  // Signal: page context type
+  const learningPages = ['learning', 'course-learning', 'chapter-learning', 'section-learning'];
+  if (learningPages.includes(pageType)) {
+    scores.learning += 2;
+    signals.learningPage = 2;
+  }
+  if (pageType === 'exam' || pageType === 'exam-results') {
+    scores.exam += 2;
+    signals.examPage = 2;
+  }
+
+  // Signal: form presence
+  if (hasForm) {
+    scores.full += 2;
+    signals.formPresent = 2;
+  }
+
+  // Find highest scoring preset
+  let bestPreset = 'quick';
+  let bestScore = scores.quick;
+  for (const [preset, score] of Object.entries(scores)) {
+    if (score > bestScore) {
+      bestPreset = preset;
+      bestScore = score;
+    }
+  }
+
+  const reasons: string[] = [];
+  if (signals.shortMessage) reasons.push('short message');
+  if (signals.assessmentKeyword || signals.testMeExplicit) reasons.push('assessment keywords');
+  if (signals.generationKeyword) reasons.push('generation keywords');
+  if (signals.analysisKeyword) reasons.push('analysis keywords');
+  if (signals.learningPage) reasons.push('learning page');
+  if (signals.examPage) reasons.push('exam page');
+  if (signals.formPresent) reasons.push('form present');
+  if (signals.questionMark) reasons.push('question');
+
+  return {
+    engines: ENGINE_PRESETS[bestPreset],
+    presetName: bestPreset,
+    reason: reasons.length > 0 ? reasons.join(', ') : 'default fallback',
+    signals,
+  };
 }
 
 // =============================================================================
@@ -161,15 +230,38 @@ export async function runOrchestrationStage(
 
   // ----- 2. Select engines -----
   const hasForm = !!ctx.formContext && Object.keys(formFields || {}).length > 0;
-  const defaultEngines =
-    ctx.modeId === 'general-assistant'
-      ? getEnginePreset(ctx.pageContext.type, hasForm, ctx.message)
-      : resolveModeEngines(ctx.modeId, ctx.message, { type: ctx.pageContext.type, hasForm });
+
+  let defaultEngines: string[];
+  let modeAnalytics: PipelineContext['modeAnalytics'];
+
+  if (ctx.modeId === 'general-assistant') {
+    const selection = selectEnginePreset(ctx.pageContext.type, hasForm, ctx.message);
+    defaultEngines = selection.engines;
+    modeAnalytics = {
+      modeId: ctx.modeId,
+      enginePresetUsed: selection.presetName,
+      engineSelectionReason: selection.reason,
+      messageSignals: selection.signals,
+    };
+  } else {
+    const resolution = resolveModeEnginesWithMetadata(ctx.modeId, ctx.message, {
+      type: ctx.pageContext.type,
+      hasForm,
+    });
+    defaultEngines = resolution.engines;
+    modeAnalytics = {
+      modeId: ctx.modeId,
+      enginePresetUsed: `mode:${ctx.modeId}`,
+      engineSelectionReason: resolution.reason,
+    };
+  }
+
   const enginesToRun = ctx.options?.engines || defaultEngines;
 
   logger.debug('[SAM_UNIFIED] Running engines:', {
     engines: enginesToRun,
     messageLength: ctx.message.length,
+    modeAnalytics,
   });
 
   // ----- 3. Run orchestrator -----
@@ -193,8 +285,9 @@ export async function runOrchestrationStage(
     enginesToRun.includes('content') ||
     ctx.message.toLowerCase().includes('generate') ||
     ctx.message.toLowerCase().includes('create');
+  const isSubstantiveResponse = (result.response?.message?.length ?? 0) > 100;
 
-  if (isContentGeneration && result.response?.message) {
+  if ((isContentGeneration || isSubstantiveResponse) && result.response?.message) {
     const generatedContent: GeneratedContent = {
       type: 'explanation',
       content: result.response.message,
@@ -239,6 +332,12 @@ export async function runOrchestrationStage(
     'section-view',
     'section-edit',
     'learning',
+    'course-learning',
+    'chapter-learning',
+    'section-learning',
+    'chapter-detail',
+    'exam',
+    'exam-results',
   ]);
 
   if (
@@ -291,6 +390,7 @@ export async function runOrchestrationStage(
     pedagogyResult: pedagogyResult as unknown as Record<string, unknown>,
     memoryUpdate,
     enginesToRun,
+    modeAnalytics,
     responseText: result.response?.message || '',
   };
 }

@@ -12,4 +12,5 @@ export { SAM_MODE_IDS, MODE_CATEGORIES } from './types';
 export { getModeById, getAllModes, getModesByCategory } from './registry';
 
 // Resolver
-export { resolveModeEngines, resolveModeSystemPrompt, resolveModeToolAllowlist } from './resolver';
+export { resolveModeEngines, resolveModeEnginesWithMetadata, resolveModeSystemPrompt, resolveModeToolAllowlist } from './resolver';
+export type { ModeEngineResolution } from './resolver';

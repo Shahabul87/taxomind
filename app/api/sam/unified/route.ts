@@ -47,6 +47,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
+  let failedStages: string[] = [];
 
   try {
     // 0. Initialize subsystems (singleton, cached after first call)
@@ -62,16 +63,40 @@ export async function POST(request: NextRequest) {
     if ('response' in valid) return valid.response;
 
     // 3-11. Run pipeline stages sequentially, each enriching PipelineContext
+    //        Non-critical stages are wrapped in error boundaries for graceful degradation
     let ctx = valid.ctx;
-    ctx = await runContextGatheringStage(ctx);
-    ctx = await runMemoryStage(ctx, subsystems);
-    ctx = await runOrchestrationStage(ctx, subsystems);
-    ctx = await runTutoringStage(ctx);
-    ctx = await runToolExecutionStage(ctx, subsystems);
-    ctx = await runAgenticStage(ctx);
-    ctx = await runInterventionStage(ctx);
-    ctx = await runKnowledgeGraphStage(ctx);
-    ctx = await runMemoryPersistenceStage(ctx);
+    ctx.stageErrors = [];
+
+    const stages: Array<{
+      name: string;
+      run: () => Promise<typeof ctx>;
+      critical: boolean;
+    }> = [
+      { name: 'context-gathering', run: () => runContextGatheringStage(ctx), critical: false },
+      { name: 'memory', run: () => runMemoryStage(ctx, subsystems), critical: false },
+      { name: 'orchestration', run: () => runOrchestrationStage(ctx, subsystems), critical: true },
+      { name: 'tutoring', run: () => runTutoringStage(ctx), critical: false },
+      { name: 'tool-execution', run: () => runToolExecutionStage(ctx, subsystems), critical: false },
+      { name: 'agentic', run: () => runAgenticStage(ctx), critical: false },
+      { name: 'intervention', run: () => runInterventionStage(ctx), critical: false },
+      { name: 'knowledge-graph', run: () => runKnowledgeGraphStage(ctx), critical: false },
+      { name: 'memory-persistence', run: () => runMemoryPersistenceStage(ctx), critical: false },
+    ];
+
+    for (const stage of stages) {
+      try {
+        ctx = await stage.run();
+      } catch (stageError: unknown) {
+        const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
+        logger.error(`[SAM_UNIFIED] Stage '${stage.name}' failed:`, errorMsg);
+        ctx.stageErrors = [
+          ...(ctx.stageErrors || []),
+          { stage: stage.name, error: errorMsg, timestamp: Date.now() },
+        ];
+        failedStages = [...failedStages, stage.name];
+        if (stage.critical) throw stageError;
+      }
+    }
 
     // 12. Build and return the final response
     return buildUnifiedResponse(ctx);
@@ -102,7 +127,7 @@ export async function POST(request: NextRequest) {
         insights: {},
         metadata: {
           enginesRun: [],
-          enginesFailed: ['orchestrator'],
+          enginesFailed: failedStages.length > 0 ? failedStages : ['orchestrator'],
           enginesCached: [],
           totalTime: Date.now() - startTime,
           requestTime: Date.now() - startTime,

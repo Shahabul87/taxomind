@@ -217,10 +217,12 @@ export function toConfidenceContext(
 const INTENT_PATTERNS: Array<{
   intent: IntentType;
   patterns: RegExp[];
+  negativePatterns?: RegExp[];
   shouldUseTool: boolean;
   shouldCheckGoals: boolean;
   shouldCheckInterventions: boolean;
   toolHints: string[];
+  baseConfidence?: number;
 }> = [
   {
     intent: IntentType.GREETING,
@@ -229,6 +231,7 @@ const INTENT_PATTERNS: Array<{
     shouldCheckGoals: false,
     shouldCheckInterventions: false,
     toolHints: [],
+    baseConfidence: 0.9,
   },
   {
     intent: IntentType.GOAL_QUERY,
@@ -248,7 +251,11 @@ const INTENT_PATTERNS: Array<{
   },
   {
     intent: IntentType.TOOL_REQUEST,
-    patterns: [/\b(generate|create|make|build|run|execute|calculate|compute)\b/i],
+    patterns: [
+      /\b(generate|run|execute|calculate|compute)\b/i,
+      /\b(create|make|build)\s+\w/i,
+    ],
+    negativePatterns: [/\b(create|make)\s+(sure|sense|it|time|progress)\b/i],
     shouldUseTool: true,
     shouldCheckGoals: false,
     shouldCheckInterventions: false,
@@ -264,7 +271,13 @@ const INTENT_PATTERNS: Array<{
   },
   {
     intent: IntentType.ASSESSMENT,
-    patterns: [/\b(quiz|test|exam|assess|evaluate|check my|practice)\b/i],
+    patterns: [
+      /\b(quiz|exam|assess|evaluate|check my|practice)\b/i,
+      /\btest me\b/i,
+    ],
+    negativePatterns: [
+      /\b(have a|taking a|studied for|preparing for|tomorrow|next week)\s+(test|exam|quiz)\b/i,
+    ],
     shouldUseTool: true,
     shouldCheckGoals: true,
     shouldCheckInterventions: false,
@@ -292,15 +305,27 @@ export function classifyIntent(message: string): ClassifiedIntent {
   const trimmed = message.trim();
 
   for (const entry of INTENT_PATTERNS) {
+    // Check negative patterns first — if any match, skip this intent
+    if (entry.negativePatterns) {
+      const negativeMatch = entry.negativePatterns.some((np) => np.test(trimmed));
+      if (negativeMatch) continue;
+    }
+
     for (const pattern of entry.patterns) {
       if (pattern.test(trimmed)) {
+        // Variable confidence based on message length and pattern specificity
+        const base = entry.baseConfidence ?? 0.8;
+        const lengthFactor = Math.min(trimmed.length / 100, 1);
+        const specificityFactor = Math.min(pattern.source.length / 40, 1);
+        const confidence = Math.min(base * (0.7 + 0.15 * lengthFactor + 0.15 * specificityFactor), 0.95);
+
         return {
           intent: entry.intent,
           shouldUseTool: entry.shouldUseTool,
           shouldCheckGoals: entry.shouldCheckGoals,
           shouldCheckInterventions: entry.shouldCheckInterventions,
           toolHints: entry.toolHints,
-          confidence: 0.8,
+          confidence,
         };
       }
     }
