@@ -3,7 +3,7 @@ import {
   createCoreAIAdapterFromIntegration,
   createEmbeddingProviderFromIntegration,
 } from '@sam-ai/integration';
-import type { AIAdapter as CoreAIAdapter } from '@sam-ai/core';
+import type { AIAdapter as CoreAIAdapter, AIChatParams, AIChatStreamChunk } from '@sam-ai/core';
 import type { EmbeddingProvider } from '@sam-ai/agentic';
 import { getAdapterFactory } from '@/lib/sam/taxomind-context';
 import { getDefaultAdapter } from '@/lib/sam/providers/ai-factory';
@@ -211,4 +211,38 @@ async function tryFallbackAdapter(): Promise<CoreAIAdapter | null> {
     });
   }
   return null;
+}
+
+// ============================================================================
+// STREAMING
+// ============================================================================
+
+/**
+ * Stream a chat completion through the resolved AI adapter.
+ *
+ * Yields `AIChatStreamChunk` objects. The final chunk will have `done: true`.
+ * If the adapter does not support streaming, falls back to a non-streaming call
+ * and yields the full response as a single chunk.
+ *
+ * @throws SAMServiceUnavailableError if the circuit breaker is open
+ * @throws Error if no AI adapter is available
+ */
+export async function* streamChat(
+  params: AIChatParams,
+): AsyncGenerator<AIChatStreamChunk> {
+  const adapter = await getCoreAIAdapter();
+  if (!adapter) {
+    throw new Error('No AI adapter available for streaming');
+  }
+
+  // Prefer native streaming
+  if (adapter.chatStream) {
+    yield* adapter.chatStream(params);
+    return;
+  }
+
+  // Fallback: non-streaming call emitted as a single chunk
+  logger.warn('[SAM Integration] Adapter does not support streaming, falling back to non-streaming');
+  const response = await adapter.chat(params);
+  yield { content: response.content, done: true };
 }

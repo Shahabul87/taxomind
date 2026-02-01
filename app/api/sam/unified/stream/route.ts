@@ -17,32 +17,12 @@ import { z } from 'zod';
 
 // Import from @sam-ai/core package
 import {
-  SAMAgentOrchestrator,
-  createSAMConfig,
   createDefaultContext,
-  createMemoryCache,
-  createContextEngine,
-  createContentEngine,
-  createPersonalizationEngine,
-  createAssessmentEngine,
-  createResponseEngine,
-  type SAMConfig,
   type SAMContext,
   type SAMPageType,
   type SAMFormField,
   type BloomsEngineOutput,
 } from '@sam-ai/core';
-
-// Import getCoreAIAdapter for 3-tier fallback (Anthropic > OpenAI > DeepSeek) with circuit breaker
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
-
-// Import Unified Blooms Engine from @sam-ai/educational (replaces core keyword-only engine)
-import {
-  createUnifiedBloomsAdapterEngine,
-} from '@sam-ai/educational';
-
-// Import Prisma database adapter for SAM
-import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 
 // Import entity context service for REAL context awareness
 import { buildFormSummary } from '@/lib/sam/entity-context';
@@ -56,26 +36,18 @@ import { applyRateLimit, samMessagesLimiter } from '@/lib/sam/config/sam-rate-li
 
 // Import Quality Gates Pipeline for content validation
 import {
-  createQualityGatePipeline,
-  type ContentQualityGatePipeline,
   type GeneratedContent,
   type ValidationResult as QualityValidationResult,
 } from '@sam-ai/quality';
 
 // Import Pedagogy Pipeline for educational effectiveness
 import {
-  createPedagogicalPipeline,
-  type PedagogicalPipeline,
   type PedagogicalPipelineResult,
 } from '@sam-ai/pedagogy';
 
 // Import Memory Integration for mastery tracking
 import {
-  createSpacedRepetitionScheduler,
-  createMasteryTracker,
   buildMemorySummary,
-  type SpacedRepetitionScheduler,
-  type MasteryTracker,
   type EvaluationOutcome,
 } from '@sam-ai/memory';
 
@@ -101,25 +73,20 @@ import {
   ConfidenceLevel,
   type Intervention,
 } from '@/lib/sam/agentic-bridge';
+// True streaming adapter
+import { streamChat } from '@/lib/sam/integration-adapters';
+import { TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   getSAMIntegrationProfile,
   getSAMCapabilityRegistry,
 } from '@/lib/sam/integration-profile';
 import {
-  initializeOrchestration,
   prepareTutoringContext,
   injectPlanContext,
   processTutoringLoop,
   formatOrchestrationResponse,
-  type OrchestrationSubsystems,
   type OrchestrationResponseData,
 } from '@/lib/sam/orchestration-integration';
-import {
-  getGoalStores,
-  getStore,
-  getStudentProfileStore,
-  getReviewScheduleStore,
-} from '@/lib/sam/taxomind-context';
 import type { VerificationResult } from '@sam-ai/agentic';
 import {
   extractConceptsFromResponse,
@@ -216,162 +183,10 @@ const StreamRequestSchema = z.object({
 });
 
 // ============================================================================
-// SUBSYSTEM TYPES
+// SHARED SUBSYSTEM INITIALIZATION
 // ============================================================================
 
-interface StreamingSubsystems {
-  orchestrator: SAMAgentOrchestrator;
-  config: SAMConfig;
-  quality: ContentQualityGatePipeline;
-  pedagogy: PedagogicalPipeline;
-  mastery: MasteryTracker;
-  spacedRep: SpacedRepetitionScheduler;
-  tutoring: OrchestrationSubsystems | null;
-}
-
-// ============================================================================
-// ORCHESTRATOR SINGLETON
-// ============================================================================
-
-let subsystems: StreamingSubsystems | null = null;
-
-async function initializeSubsystems(): Promise<StreamingSubsystems> {
-  if (subsystems) {
-    return subsystems;
-  }
-
-  // Create AI adapter using 3-tier fallback (Anthropic > OpenAI > DeepSeek) with circuit breaker
-  const aiAdapter = await getCoreAIAdapter();
-  if (!aiAdapter) {
-    throw new Error('No AI adapter available (all providers failed)');
-  }
-
-  const cacheAdapter = createMemoryCache({
-    maxSize: 1000,
-    defaultTTL: 300,
-  });
-
-  // Create database adapter for Prisma
-  const databaseAdapter = createPrismaSAMAdapter({ prisma: db });
-
-  const samConfig = createSAMConfig({
-    ai: aiAdapter,
-    cache: cacheAdapter,
-    database: databaseAdapter,
-    logger: {
-      debug: (msg, ...args) => logger.debug(msg, ...args),
-      info: (msg, ...args) => logger.info(msg, ...args),
-      warn: (msg, ...args) => logger.warn(msg, ...args),
-      error: (msg, ...args) => logger.error(msg, ...args),
-    },
-    features: {
-      gamification: true,
-      formSync: true,
-      autoContext: true,
-      emotionDetection: true,
-      learningStyleDetection: true,
-      streaming: true,
-      analytics: true,
-    },
-    model: {
-      name: 'claude-sonnet-4-20250514',
-      temperature: 0.7,
-      maxTokens: 4096,
-    },
-    engine: {
-      timeout: 30000,
-      retries: 2,
-      concurrency: 3,
-      cacheEnabled: true,
-      cacheTTL: 300,
-    },
-    maxConversationHistory: 20,
-    personality: {
-      name: 'SAM',
-      greeting: 'Hello! I\'m SAM, your intelligent learning assistant.',
-      tone: 'friendly and professional',
-    },
-  });
-
-  const orchestrator = new SAMAgentOrchestrator(samConfig);
-
-  // Register core engines + Unified Blooms Adapter (AI-powered analysis)
-  orchestrator.registerEngine(createContextEngine(samConfig));
-  orchestrator.registerEngine(createContentEngine(samConfig));
-  orchestrator.registerEngine(createPersonalizationEngine(samConfig));
-  orchestrator.registerEngine(createAssessmentEngine(samConfig));
-  orchestrator.registerEngine(createResponseEngine(samConfig));
-  orchestrator.registerEngine(createUnifiedBloomsAdapterEngine({
-    samConfig,
-    database: databaseAdapter,
-    defaultMode: 'standard',
-    confidenceThreshold: 0.7,
-    enableCache: true,
-    cacheTTL: 3600,
-  }));
-
-  // Initialize Quality Gates Pipeline for content validation
-  const qualityPipeline = createQualityGatePipeline({
-    threshold: 70,
-    parallel: true,
-    enableEnhancement: true,
-    maxIterations: 2,
-    timeoutMs: 30000,
-  });
-
-  // Initialize Pedagogy Pipeline for educational effectiveness
-  const pedagogyPipeline = createPedagogicalPipeline({});
-
-  // Initialize Memory Tracking for mastery and spaced repetition (using centralized context)
-  // Note: Type casts required due to type drift between adapter-prisma and memory packages
-  const profileStore = getStudentProfileStore();
-  const reviewStore = getReviewScheduleStore();
-  const masteryTracker = createMasteryTracker(profileStore as unknown as Parameters<typeof createMasteryTracker>[0]);
-  const spacedRepScheduler = createSpacedRepetitionScheduler(reviewStore as unknown as Parameters<typeof createSpacedRepetitionScheduler>[0]);
-
-  let tutoringOrchestration: OrchestrationSubsystems | null = null;
-  try {
-    // Get stores from centralized context instead of creating new instances
-    const goalStores = getGoalStores();
-    const toolStore = getStore('tool');
-
-    tutoringOrchestration = initializeOrchestration({
-      goalStore: goalStores.goal,
-      planStore: goalStores.plan,
-      toolStore,
-    });
-
-    logger.info('[SAM_STREAM] Tutoring orchestration initialized');
-  } catch (error) {
-    logger.warn('[SAM_STREAM] Failed to initialize tutoring orchestration:', error);
-    tutoringOrchestration = null;
-  }
-
-  logger.info('[SAM_STREAM] All subsystems initialized:', {
-    engines: ['context', 'blooms', 'content', 'personalization', 'assessment', 'response'],
-    qualityGates: true,
-    pedagogyPipeline: true,
-    memoryTracking: true,
-    tutoringOrchestration: !!tutoringOrchestration,
-  });
-
-  subsystems = {
-    orchestrator,
-    config: samConfig,
-    quality: qualityPipeline,
-    pedagogy: pedagogyPipeline,
-    mastery: masteryTracker,
-    spacedRep: spacedRepScheduler,
-    tutoring: tutoringOrchestration,
-  };
-
-  return subsystems;
-}
-
-// Keep backward compatible function
-async function getOrchestrator(): Promise<SAMAgentOrchestrator> {
-  return (await initializeSubsystems()).orchestrator;
-}
+import { initializeSubsystems } from '@/lib/sam/pipeline/subsystem-init';
 
 // ============================================================================
 // ENGINE PRESETS
@@ -759,11 +574,98 @@ export async function POST(request: NextRequest) {
             engines: enginesToRun,
             subsystems: ['unifiedBlooms', 'qualityGates', 'pedagogy', 'memory', 'tutoring'],
             timestamp: new Date().toISOString(),
+            streaming: true,
           })}\n\n`));
 
-          // Run orchestrator (non-streaming for engine analysis first)
+          // =====================================================================
+          // PHASE 1: TRUE STREAMING — pipe real AI tokens to the client
+          // =====================================================================
+
+          const systemPrompt = buildStreamingSystemPrompt({
+            entityContext,
+            memorySummary,
+            reviewSummary,
+            formSummary,
+            toolsSummary,
+            contextSnapshotSummary,
+            planContextInjection,
+            pageContext,
+            userName: user.name ?? undefined,
+          });
+
+          const chatMessages = [
+            ...(conversationHistory ?? []).map(m => ({
+              role: m.role as 'user' | 'assistant',
+              content: m.content,
+            })),
+            { role: 'user' as const, content: message },
+          ];
+
+          let responseText = '';
+          let streamErrored = false;
+
+          try {
+            const totalTimeout = setTimeout(() => {
+              if (!streamErrored) {
+                streamErrored = true;
+                logger.warn('[SAM_STREAM] Stream total timeout reached');
+              }
+            }, TIMEOUT_DEFAULTS.STREAM_TOTAL);
+
+            for await (const chunk of streamChat({
+              messages: chatMessages,
+              systemPrompt,
+              temperature: 0.7,
+              maxTokens: 4096,
+            })) {
+              if (streamErrored) break;
+              if (chunk.content) {
+                responseText += chunk.content;
+                controller.enqueue(encoder.encode(
+                  `event: content\ndata: ${JSON.stringify({ text: chunk.content })}\n\n`
+                ));
+              }
+              if (chunk.done) break;
+            }
+
+            clearTimeout(totalTimeout);
+          } catch (streamError) {
+            streamErrored = true;
+            logger.error('[SAM_STREAM] Streaming failed, using fallback:', streamError);
+
+            // Fallback: run orchestrator for full response
+            if (responseText.length === 0) {
+              const fallbackResult = await subs.orchestrator.orchestrate(samContext, message, {
+                engines: enginesToRun,
+              });
+              responseText = fallbackResult.response?.message ?? '';
+
+              // Send accumulated fallback as a single content event
+              if (responseText) {
+                controller.enqueue(encoder.encode(
+                  `event: content\ndata: ${JSON.stringify({ text: responseText })}\n\n`
+                ));
+              }
+            } else {
+              // Partial content — notify client
+              controller.enqueue(encoder.encode(
+                `event: error\ndata: ${JSON.stringify({
+                  error: 'Stream interrupted',
+                  partialContent: true,
+                  recoverable: true,
+                })}\n\n`
+              ));
+            }
+          }
+
+          // =====================================================================
+          // PHASE 2: DEFERRED ANALYSIS — runs after all tokens are sent
+          // =====================================================================
+
+          // Run orchestrator for analysis engines only (skip 'response')
+          const analysisEngines = enginesToRun.filter(e => e !== 'response');
           const result = await subs.orchestrator.orchestrate(samContext, message, {
-            engines: enginesToRun,
+            engines: analysisEngines.length > 0 ? analysisEngines : ['context'],
           });
 
           const bloomsOutput = result.results.blooms?.data as unknown as BloomsEngineOutput | undefined;
@@ -842,8 +744,8 @@ export async function POST(request: NextRequest) {
           // AGENTIC TOOL CALLING - LLM-DRIVEN EXECUTION
           // =========================================================================
 
-          const baseResponse = result.response?.message || '';
-          let responseText = baseResponse;
+          // responseText already holds the streamed AI response from Phase 1.
+          // The analysis-only orchestration has no 'response' engine output.
           let toolExecution: {
             toolId: string;
             toolName: string;
@@ -945,13 +847,13 @@ export async function POST(request: NextRequest) {
           // =========================================================================
 
           let orchestrationData: OrchestrationResponseData | null = null;
-          if (tutoringContext && baseResponse) {
+          if (tutoringContext && responseText) {
             try {
               const loopResult = await processTutoringLoop(
                 user.id,
                 sessionId,
                 message,
-                baseResponse,
+                responseText,
                 {
                   planId: pageContext.entityId,
                   goalId: undefined,
@@ -1049,13 +951,21 @@ export async function POST(request: NextRequest) {
               safetyResult = { passed: isSafe, suggestions };
               if (!isSafe) {
                 responseGated = true;
-                responseText = "I can't provide that response safely. Please rephrase or ask a different question.";
+                responseText = 'I cannot provide that response safely. Please rephrase or ask a different question.';
                 logger.warn('[SAM_STREAM] Safety check flagged issues:', { suggestionCount: suggestions.length });
               }
             } catch (safetyError) {
               logger.warn('[SAM_STREAM] Safety validation failed:', safetyError);
               safetyResult = { passed: true, suggestions: [] }; // Fail open
             }
+          }
+
+          // If response was gated (verification or safety), notify client to replace
+          // the already-streamed content with the safe fallback message.
+          if (responseGated) {
+            controller.enqueue(encoder.encode(
+              `event: content-replace\ndata: ${JSON.stringify({ text: responseText })}\n\n`
+            ));
           }
 
           // Record session for learning analytics
@@ -1313,16 +1223,6 @@ export async function POST(request: NextRequest) {
 
           controller.enqueue(encoder.encode(`event: insights\ndata: ${JSON.stringify(insights)}\n\n`));
 
-          // Stream the response content in chunks
-          const chunkSize = 20; // Characters per chunk for smooth streaming effect
-
-          for (let i = 0; i < responseText.length; i += chunkSize) {
-            const chunk = responseText.slice(i, i + chunkSize);
-            controller.enqueue(encoder.encode(`event: content\ndata: ${JSON.stringify({ text: chunk })}\n\n`));
-            // Small delay for streaming effect
-            await new Promise(resolve => setTimeout(resolve, 30));
-          }
-
           // Send suggestions
           if (result.response.suggestions && result.response.suggestions.length > 0) {
             controller.enqueue(encoder.encode(`event: suggestions\ndata: ${JSON.stringify(result.response.suggestions)}\n\n`));
@@ -1429,5 +1329,130 @@ function transformFormFields(fields: Record<string, unknown>): Record<string, SA
   }
 
   return result;
+}
+
+/**
+ * Build a system prompt for the streaming path.
+ *
+ * Mirrors the ResponseEngine's `buildSystemPrompt()` so the streamed AI
+ * response has the same context awareness as the orchestrated path. Sections:
+ *   1. Identity & page context (entity data, breadcrumb)
+ *   2. Snapshot context (auto-captured DOM content, navigation)
+ *   3. Form context (inline form fields)
+ *   4. Learning state (memory, review schedule, plan context)
+ *   5. Tool awareness
+ *   6. Response guidelines
+ */
+function buildStreamingSystemPrompt(opts: {
+  entityContext: {
+    summary?: string;
+    course?: { title?: string; description?: string | null };
+    chapter?: { title?: string };
+    section?: { title?: string; content?: string | null };
+  };
+  memorySummary?: string;
+  reviewSummary?: string;
+  formSummary?: string;
+  toolsSummary?: string;
+  contextSnapshotSummary: {
+    pageSummary: string;
+    formSummary: string;
+    contentSummary: string;
+    navigationSummary: string;
+  } | null;
+  planContextInjection: { systemPromptAdditions?: string[] } | null;
+  pageContext: { type: string; path: string; links?: Array<{ href: string; text?: string }> };
+  userName?: string;
+}): string {
+  const {
+    entityContext,
+    memorySummary,
+    reviewSummary,
+    formSummary,
+    toolsSummary,
+    contextSnapshotSummary,
+    pageContext,
+    userName,
+  } = opts;
+
+  // ---- Section 1: Identity & page context ----
+  const parts: string[] = [
+    'You are SAM, an intelligent AI tutor assistant for an educational platform. Be friendly and professional.',
+    '',
+    '## PAGE CONTEXT \u2014 VERIFIED DATA',
+    `You are currently on: ${pageContext.type} page`,
+    `Path: ${pageContext.path}`,
+  ];
+
+  if (userName) {
+    parts.push(`Student name: ${userName}`);
+  }
+
+  // Entity data (highest priority — placed first for maximum LLM attention)
+  const entitySummary = entityContext.summary;
+  const hasEntityData = entitySummary
+    && entitySummary !== 'No specific entity context available.'
+    && entitySummary.length > 0;
+
+  if (hasEntityData) {
+    parts.push('', '### Database-Verified Information', entitySummary);
+  } else if (entityContext.course?.title) {
+    parts.push(`Course: ${entityContext.course.title}`);
+  }
+
+  // ---- Section 2: Snapshot context (auto-captured page content) ----
+  const hasSnapshotContent = contextSnapshotSummary?.contentSummary
+    && contextSnapshotSummary.contentSummary !== 'No visible content captured.'
+    && contextSnapshotSummary.contentSummary.length > 0;
+
+  if (hasSnapshotContent) {
+    if (contextSnapshotSummary?.pageSummary) {
+      parts.push('', '### Current Page Info', contextSnapshotSummary.pageSummary);
+    }
+    parts.push('', '### Visible Page Content', contextSnapshotSummary!.contentSummary);
+    if (contextSnapshotSummary?.navigationSummary) {
+      parts.push('', '### Available Navigation', contextSnapshotSummary.navigationSummary);
+    }
+  }
+
+  // ---- Section 3: Form context ----
+  const snapshotForm = contextSnapshotSummary?.formSummary;
+  if (snapshotForm && snapshotForm !== 'No forms on this page.') {
+    parts.push('', '### Form Fields', snapshotForm);
+  } else if (formSummary && formSummary !== 'No form data available on this page.') {
+    parts.push('', '### Form Fields', formSummary);
+  }
+
+  // Critical instruction: prevent "I don't have access" responses
+  if (hasEntityData || hasSnapshotContent) {
+    parts.push(
+      '',
+      'IMPORTANT: The information above comes from the database and the actual page content visible to the user. When the user asks about their courses, content, pages, or anything on their screen, USE THIS DATA. Do NOT say "I don\'t have access to that information" \u2014 you DO have access, the data is above.',
+    );
+  }
+
+  // ---- Section 4: Learning state ----
+  if (memorySummary || reviewSummary) {
+    parts.push('', '## Learning State');
+    if (memorySummary) parts.push(memorySummary);
+    if (reviewSummary) parts.push('', '### Review Schedule', reviewSummary);
+  }
+
+  // ---- Section 5: Tool awareness ----
+  if (toolsSummary) {
+    parts.push('', '## Tools', toolsSummary);
+  }
+
+  // ---- Section 6: Response guidelines ----
+  parts.push(
+    '',
+    '## Response Guidelines',
+    '1. **USE THE PAGE DATA ABOVE** \u2014 reference actual visible content, courses, chapters, or section details',
+    '2. For GENERATION requests: create content SPECIFIC to the current context',
+    '3. Be specific and actionable, use markdown formatting',
+    '4. Respond concisely — the student is reading this in a chat panel',
+  );
+
+  return parts.join('\n');
 }
 

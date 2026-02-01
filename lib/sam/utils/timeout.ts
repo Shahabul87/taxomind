@@ -124,4 +124,12 @@ export const TIMEOUT_DEFAULTS = {
   DB_QUERY: 15_000,
   /** External API calls */
   EXTERNAL_API: 20_000,
+  /** Max wait for first token from streaming AI response */
+  STREAM_FIRST_TOKEN: 15_000,
+  /** Max gap between consecutive tokens during streaming */
+  STREAM_INTER_TOKEN: 10_000,
+  /** Total wall-clock limit for an entire streaming response */
+  STREAM_TOTAL: 120_000,
+  /** Max time for deferred analysis after streaming completes */
+  DEFERRED_ANALYSIS: 30_000,
 } as const;

@@ -15,6 +15,9 @@ import {
   ChevronDown,
   Check,
   Brain,
+  Briefcase,
+  Users,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
@@ -29,7 +32,10 @@ export type DashboardView =
   | 'goals'
   | 'gaps'
   | 'innovation'
-  | 'create';
+  | 'create'
+  | 'career'
+  | 'social'
+  | 'insights';
 
 interface TabConfig {
   id: DashboardView;
@@ -121,6 +127,30 @@ const tabs: TabConfig[] = [
     icon: Wand2,
     gradient: 'from-violet-500 to-purple-500',
     description: 'Creator studio',
+  },
+  {
+    id: 'career',
+    label: 'Career',
+    shortLabel: 'Career',
+    icon: Briefcase,
+    gradient: 'from-cyan-500 to-blue-500',
+    description: 'Career growth & certifications',
+  },
+  {
+    id: 'social',
+    label: 'Social',
+    shortLabel: 'Social',
+    icon: Users,
+    gradient: 'from-pink-500 to-rose-500',
+    description: 'Collaborative learning',
+  },
+  {
+    id: 'insights',
+    label: 'Insights',
+    shortLabel: 'Insights',
+    icon: Sparkles,
+    gradient: 'from-teal-500 to-emerald-500',
+    description: 'Personalized insights & safety',
   },
 ];
 

@@ -14,42 +14,48 @@ export async function getAgenticMemorySystem(): Promise<MemorySystem> {
     return memorySystemPromise;
   }
 
-  memorySystemPromise = (async () => {
-    const embeddingProvider = await getEmbeddingProvider();
-    if (!embeddingProvider) {
-      throw new Error('Embedding adapter not available for agentic memory system');
-    }
+  memorySystemPromise = initializeMemorySystem();
+  try {
+    return await memorySystemPromise;
+  } catch (error) {
+    memorySystemPromise = null; // Allow retry on next call
+    throw error;
+  }
+}
 
-    // Get memory stores from TaxomindContext singleton (consistent store access)
-    const {
-      vector: vectorAdapter,
-      knowledgeGraph: graphStore,
-      sessionContext: contextStore,
-    } = getMemoryStores();
+async function initializeMemorySystem(): Promise<MemorySystem> {
+  const embeddingProvider = await getEmbeddingProvider();
+  if (!embeddingProvider) {
+    throw new Error('Embedding adapter not available for agentic memory system');
+  }
 
-    return createMemorySystem({
+  // Get memory stores from TaxomindContext singleton (consistent store access)
+  const {
+    vector: vectorAdapter,
+    knowledgeGraph: graphStore,
+    sessionContext: contextStore,
+  } = getMemoryStores();
+
+  return createMemorySystem({
+    embeddingProvider,
+    vectorStore: {
       embeddingProvider,
-      vectorStore: {
-        embeddingProvider,
-        persistenceAdapter: vectorAdapter,
-        cacheEnabled: true,
-        cacheMaxSize: 2000,
-        cacheTTLSeconds: 600,
-        logger,
-      },
-      knowledgeGraph: {
-        graphStore,
-        logger,
-      },
-      sessionContext: {
-        contextStore,
-        logger,
-      },
+      persistenceAdapter: vectorAdapter,
+      cacheEnabled: true,
+      cacheMaxSize: 2000,
+      cacheTTLSeconds: 600,
       logger,
-    });
-  })();
-
-  return memorySystemPromise;
+    },
+    knowledgeGraph: {
+      graphStore,
+      logger,
+    },
+    sessionContext: {
+      contextStore,
+      logger,
+    },
+    logger,
+  });
 }
 
 export function buildMemoryMetadata(input: {
@@ -64,9 +70,14 @@ export function buildMemoryMetadata(input: {
   language?: string;
   customMetadata?: Record<string, unknown>;
 }) {
+  const sourceType = EmbeddingSourceType[input.sourceType];
+  if (sourceType === undefined) {
+    throw new Error(`Invalid EmbeddingSourceType: ${input.sourceType}`);
+  }
+
   return {
     sourceId: input.sourceId,
-    sourceType: EmbeddingSourceType[input.sourceType],
+    sourceType,
     userId: input.userId,
     courseId: input.courseId,
     chapterId: input.chapterId,

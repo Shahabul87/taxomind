@@ -68,7 +68,7 @@ interface DashboardClientProps {
 }
 
 // Valid tab values for URL param validation
-const validTabs: DashboardView[] = ['learning', 'analytics', 'skills', 'practice', 'gamification', 'goals', 'gaps', 'innovation', 'create'];
+const validTabs: DashboardView[] = ['learning', 'analytics', 'cognitive', 'skills', 'practice', 'gamification', 'goals', 'gaps', 'innovation', 'create', 'career', 'social', 'insights'];
 
 export function DashboardClient({ user }: DashboardClientProps) {
   const searchParams = useSearchParams();

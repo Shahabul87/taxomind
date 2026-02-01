@@ -649,6 +649,15 @@ export function SAMProvider({
                 }
                 break;
               }
+              case 'content-replace': {
+                // Safety gating rejected the streamed content — replace it entirely
+                const replacementText = toRecord(payload)?.text;
+                if (typeof replacementText === 'string') {
+                  assistantContent = replacementText;
+                  updateAssistantContent();
+                }
+                break;
+              }
               case 'done': {
                 if (payload && typeof payload === 'object') {
                   const donePayload = payload as Record<string, unknown>;
