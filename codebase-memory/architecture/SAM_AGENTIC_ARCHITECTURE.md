@@ -335,6 +335,7 @@ lib/sam/
 ├── agentic-tooling.ts       # Tool registry integration (11KB)
 ├── agentic-memory.ts        # Memory system integration
 ├── agentic-notifications.ts # Push notifications (14KB)
+├── context-gathering-integration.ts  # Context Gathering Engine wiring (see SAM_CONTEXT_GATHERING_ARCHITECTURE.md)
 ├── agentic-proactive-scheduler.ts  # Proactive interventions (22KB)
 ├── agentic-vector-search.ts # Vector search integration
 ├── agentic-knowledge-graph.ts # Knowledge graph (15KB)
@@ -348,8 +349,9 @@ lib/sam/
 ├── gamification.ts          # Gamification engine (26KB)
 ├── utils/
 │   └── blooms-normalizer.ts # Blooms level normalization utilities
-└── stores/                  # 33 Prisma store adapters
+└── stores/                  # 34 Prisma store adapters
     ├── index.ts             # Store exports
+    ├── context-snapshot-store.ts  # Context Gathering snapshot persistence
     ├── prisma-goal-store.ts
     ├── prisma-plan-store.ts
     ├── prisma-behavior-store.ts
@@ -638,9 +640,10 @@ The main dashboard (`app/dashboard/user/_components/NewDashboard.tsx`) integrate
 
 ```
 app/api/sam/
+├── context/route.ts           # Context Gathering snapshot submission
 ├── unified/
-│   ├── route.ts              # Main unified SAM endpoint
-│   └── stream/route.ts       # Streaming responses
+│   ├── route.ts              # Main unified SAM endpoint (uses context snapshots)
+│   └── stream/route.ts       # Streaming responses (uses context snapshots)
 ├── agentic/
 │   ├── goals/                # Goal management
 │   ├── plans/                # Plan management
@@ -891,6 +894,8 @@ export function useExample() {
 | `lib/sam/orchestration-integration.ts` | Tutoring orchestration | 20KB |
 | `lib/sam/memory-lifecycle-service.ts` | Memory reindexing | 28KB |
 | `lib/sam/progress-recorder.ts` | Blooms progress recording | 13KB |
+| `lib/sam/context-gathering-integration.ts` | Context Gathering Engine wiring | 10KB |
+| `lib/sam/stores/context-snapshot-store.ts` | Prisma store for page snapshots | 3KB |
 | `lib/sam/utils/blooms-normalizer.ts` | Blooms level normalization | 10KB |
 | `lib/adapters/adaptive-content-adapter.ts` | AdaptiveContentEngine database adapter | 6KB |
 | `lib/adapters/social-engine-adapter.ts` | SocialEngine database adapter | 7KB |
@@ -1236,9 +1241,10 @@ The teacher SAM analysis page (`app/(protected)/teacher/courses/[courseId]/sam-a
 | 2.2.0 | 2026-01-17 | Added AdaptiveContentEngine full integration with portable adapter pattern, 7 new API routes, VARK learning style detection |
 | 2.3.0 | 2026-01-17 | Added SocialEngine full integration with portable adapter pattern, 6 new API routes (effectiveness, engagement, knowledge-sharing, mentor-matching, dynamics) |
 | 2.4.0 | 2026-01-17 | Added KnowledgeGraphEngine full integration with portable adapter pattern, 7 new API routes (extract-concepts, analyze-course, prerequisites, learning-path, mastery, graph), 4 new Prisma models |
+| 2.5.0 | 2026-02-01 | Added Context Gathering Engine references (integration file, snapshot store, context API route). See SAM_CONTEXT_GATHERING_ARCHITECTURE.md for full details |
 
 ---
 
-**Last Updated**: January 17, 2026
+**Last Updated**: February 1, 2026
 **Maintainer**: Taxomind Development Team
 **Build Status**: ✅ Passing

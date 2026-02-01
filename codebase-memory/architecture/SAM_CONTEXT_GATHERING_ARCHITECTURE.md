@@ -3,8 +3,8 @@
 > How SAM automatically knows what page you're on, what forms are visible,
 > what content is displayed, and what actions it can help with.
 
-**Version**: 1.0.0
-**Last Updated**: February 2025
+**Version**: 1.1.0
+**Last Updated**: February 2026
 **Status**: ACTIVE
 
 ---
@@ -25,8 +25,10 @@
 12. [Consuming Context in Routes](#consuming-context-in-routes)
 13. [Confidence Scoring](#confidence-scoring)
 14. [Page Intent & Action Mapping](#page-intent--action-mapping)
-15. [File Reference Map](#file-reference-map)
-16. [Sequence Diagram](#sequence-diagram)
+15. [Stack Management](#stack-management)
+16. [Response Engine Prompt Injection](#response-engine-prompt-injection)
+17. [File Reference Map](#file-reference-map)
+18. [Sequence Diagram](#sequence-diagram)
 
 ---
 
@@ -214,12 +216,13 @@ useContextGathering()
   |     - Inferred purpose: create, edit, search, filter, settings
   |
   +-- extractContent()
-  |     - Headings h1-h6 with text and id
-  |     - Tables with headers and row count
-  |     - Code blocks with language detection
-  |     - Images with alt text
-  |     - Visible text (first 2000 chars via TreeWalker)
+  |     - Headings h1-h6 with text and id (excludes SAM widget)
+  |     - Tables with headers and row count (excludes SAM widget)
+  |     - Code blocks with language detection (excludes SAM widget)
+  |     - Images with alt text (excludes SAM widget)
+  |     - Visible text (first 5000 chars via TreeWalker on <main>)
   |     - Word count and reading time estimate
+  |     - EXCLUSIONS: [data-sam-theme], nav.sidebar, aside, [role="navigation"]
   |
   +-- analyzeNavigation()
   |     - All <a> links categorized:
@@ -560,45 +563,85 @@ processContextSnapshot(clientSnapshot, { samConfig, userId, userRole })
 
 ### getContextSummaryForRoute()
 
-Lightweight function for the unified chat route:
+Rich function that rebuilds structured summaries from the stored snapshot for the unified chat route. Returns **four** separate summary dimensions:
 
 ```typescript
-// Called by /api/sam/unified/ when user sends a message
+// Called by /api/sam/unified/ and /api/sam/unified/stream when user sends a message
 const context = await getContextSummaryForRoute(userId);
-// Returns: { pageSummary, formSummary }
-// These strings are injected into the AI prompt
+// Returns: { pageSummary, formSummary, contentSummary, navigationSummary }
+// All four strings are forwarded to the Response Engine as metadata
+```
+
+The four summaries:
+
+| Summary | Content |
+|---------|---------|
+| `pageSummary` | Page title, type, entityId, breadcrumb, state flags (editing/draft/published) |
+| `contentSummary` | Headings hierarchy, table structure, visible text (from snapshot), word count |
+| `formSummary` | Form names, purposes, completion %, errors, per-field values with labels and flags |
+| `navigationSummary` | Active tabs, action links, navigation links |
+
+### getLatestContextSnapshot()
+
+Returns the raw `PageContextSnapshot` JSON from the latest stored record:
+
+```typescript
+const snapshot = await getLatestContextSnapshot(userId);
+// Returns: PageContextSnapshot | null
+```
+
+### Stack Cleanup (LIFO)
+
+After each snapshot is stored, `processContextSnapshot` non-blockingly prunes old snapshots:
+
+```typescript
+// Keep only the last 20 snapshots per user (newest on top, oldest pruned)
+store.cleanupOldSnapshots(userId, 20).catch(() => {
+  // Non-blocking — cleanup failure does not affect the main flow
+});
 ```
 
 ---
 
 ## Consuming Context in Routes
 
-When a user sends a message to SAM, the unified route retrieves the stored context:
+When a user sends a message to SAM, both routes (`/api/sam/unified/route.ts` and `/api/sam/unified/stream/route.ts`) retrieve stored context and forward it to the Response Engine:
 
 ```
 User sends message
   |
   v
-/api/sam/unified/route.ts
+/api/sam/unified/route.ts  (or /stream/route.ts)
   |
   +-- getContextSummaryForRoute(userId)
   |     - Loads latest SAMPageContextSnapshot from DB
-  |     - Builds lightweight pageSummary + formSummary
+  |     - Rebuilds 4 summary dimensions from stored JSON
+  |     - Returns: { pageSummary, formSummary, contentSummary, navigationSummary }
   |
-  +-- Injects into AI prompt:
-        "The user is currently on: [pageSummary]"
-        "Forms on page: [formSummary]"
+  +-- Forward as metadata to Response Engine:
+  |     contextSnapshotPageSummary: summary.pageSummary,
+  |     contextSnapshotFormSummary: summary.formSummary,
+  |     contextSnapshotContentSummary: summary.contentSummary,
+  |     contextSnapshotNavigationSummary: summary.navigationSummary,
+  |
+  +-- ResponseEngine.buildSystemPrompt() injects into LLM prompt:
+  |     "## PAGE CONTEXT -- VERIFIED DATA"
+  |     "### Current Page Info" (from pageSummary)
+  |     "### Visible Page Content" (from contentSummary)
+  |     "### Available Navigation" (from navigationSummary)
+  |     Form fields rendered inline (from formSummary or snapshot forms)
   |
   v
 AI response with full page awareness
 ```
 
 This means SAM always knows:
-- What page the user is viewing
-- What course/chapter/section they're studying
-- What forms are on the page and their current state
-- What content is visible
-- What actions SAM can help with
+- What page the user is viewing (title, type, path, breadcrumb)
+- What course/chapter/section they're studying (entity data from DB)
+- What forms are on the page and their current field values, labels, errors
+- What content is visible (headings, tables, text up to 5000 chars)
+- What navigation is available (tabs, action links, sidebar)
+- What actions SAM can help with (dynamically derived from context)
 
 ---
 
@@ -674,6 +717,109 @@ teacher-section-edit:
 
 ---
 
+## Stack Management
+
+The system maintains a bounded LIFO stack of snapshots per user. This prevents unbounded DB growth while preserving recent context history.
+
+### Pruning Rules
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| Max snapshots per user | 20 | Enough for cross-page context, bounded growth |
+| Pruning trigger | After every `processContextSnapshot` call | Automatic, no cron required |
+| Pruning strategy | Delete oldest beyond limit (LIFO) | Newest snapshots are most relevant |
+| Failure mode | Non-blocking `.catch()` | Pruning failure never blocks context processing |
+
+### Store Method
+
+```
+PrismaContextSnapshotStore.cleanupOldSnapshots(userId, keepLast = 20)
+  |
+  1. Find all snapshots for user ordered by createdAt DESC
+  2. Skip the first `keepLast` records
+  3. Delete the rest (oldest records beyond the retention window)
+  4. Return count of deleted records
+```
+
+---
+
+## Response Engine Prompt Injection
+
+**File**: `packages/core/src/engines/response.ts`
+**Method**: `ResponseEngine.buildSystemPrompt()`
+
+The Response Engine is where snapshot context enters the LLM. It reads four metadata keys from the page context and injects them into structured sections of the system prompt.
+
+### Prompt Structure
+
+```
+You are SAM, an intelligent AI tutor assistant...
+
+## PAGE CONTEXT -- VERIFIED DATA
+You are currently on: teacher-course-edit page
+Path: /teacher/courses/abc123
+User role: TEACHER
+
+### Database-Verified Information          <-- from entity enrichment
+Course: Python Programming Fundamentals
+Status: Draft, Unpublished
+Chapters: 3, Difficulty: Intermediate
+
+### Current Page Info                      <-- from contextSnapshotPageSummary
+Page: Python Programming Fundamentals (teacher-course-edit)
+Entity ID: abc123
+Breadcrumb: Dashboard > Courses > Python Programming Fundamentals
+State: editing, draft
+
+### Visible Page Content                   <-- from contextSnapshotContentSummary
+Headings on page:
+  # Course Title
+  ## Description
+  ## Chapters
+Visible text on page:
+  Python Programming Fundamentals...
+Word count: 342
+
+### Available Navigation                   <-- from contextSnapshotNavigationSummary
+Tabs: Basic Info, Chapters, Resources (active: Basic Info)
+Action links: Add Chapter, Preview, Publish
+
+### Form Fields (Current Page)             <-- from contextSnapshotFormSummary or inline
+- Course Title (text): "Python Programming Fundamentals" [required]
+- Description (textarea): "Learn Python from scratch..." [required]
+- Price (number): "0" [required]
+```
+
+### Key Implementation Details
+
+```typescript
+// response.ts:183-187 — Extract snapshot metadata
+const snapshotPageSummary = metadata.contextSnapshotPageSummary as string | undefined;
+const snapshotContentSummary = metadata.contextSnapshotContentSummary as string | undefined;
+const snapshotFormSummary = metadata.contextSnapshotFormSummary as string | undefined;
+const snapshotNavigationSummary = metadata.contextSnapshotNavigationSummary as string | undefined;
+
+// Only inject if contentSummary has real data (not "No visible content captured.")
+const hasSnapshotContext = !!(snapshotContentSummary
+  && snapshotContentSummary !== 'No visible content captured.'
+  && snapshotContentSummary.length > 0);
+```
+
+### Observable Logging
+
+The engine logs what the LLM receives for diagnostics:
+
+```typescript
+this.logger.info('[ResponseEngine] System prompt built:', {
+  totalLength: systemPrompt.length,
+  hasEntityContext: systemPrompt.includes('Database-Verified Information'),
+  hasSnapshotContext: systemPrompt.includes('Visible Page Content'),
+  pageType: context.page.type,
+});
+```
+
+---
+
 ## File Reference Map
 
 ### New Files (8)
@@ -689,20 +835,21 @@ teacher-section-edit:
 | 7 | `lib/sam/stores/context-snapshot-store.ts` | Taxomind | Prisma adapter for SAMPageContextSnapshot |
 | 8 | `app/api/sam/context/route.ts` | Taxomind | POST endpoint with Zod validation |
 
-### Modified Files (10)
+### Modified Files (11)
 
 | # | File | Change |
 |---|------|--------|
 | 1 | `packages/core/src/types/index.ts` | Export all context-snapshot types |
 | 2 | `packages/core/src/engines/index.ts` | Export ContextGatheringEngine + factory |
-| 3 | `packages/core/src/index.ts` | Export memory/context-memory |
-| 4 | `packages/react/src/hooks/index.ts` | Export new hooks |
-| 5 | `packages/react/src/hooks/useSAMPageContext.ts` | Import PageContextSnapshot from core |
-| 6 | `lib/sam/entity-context.ts` | Existing entity fetch functions |
-| 7 | `app/api/sam/unified/route.ts` | Import from context-gathering-integration |
-| 8 | `app/api/sam/unified/stream/route.ts` | Import from context-gathering-integration |
-| 9 | `prisma/domains/17-sam-agentic.prisma` | Add SAMPageContextSnapshot model |
-| 10 | `components/sam/chat/ChatWindow.tsx` | Wire useContextMemorySync |
+| 3 | `packages/core/src/engines/response.ts` | **Inject snapshot context into AI system prompt** (buildSystemPrompt) |
+| 4 | `packages/core/src/index.ts` | Export memory/context-memory |
+| 5 | `packages/react/src/hooks/index.ts` | Export new hooks |
+| 6 | `packages/react/src/hooks/useSAMPageContext.ts` | Import PageContextSnapshot from core |
+| 7 | `lib/sam/entity-context.ts` | Existing entity fetch functions |
+| 8 | `app/api/sam/unified/route.ts` | Forward 4 snapshot summaries as metadata to Response Engine |
+| 9 | `app/api/sam/unified/stream/route.ts` | Forward 4 snapshot summaries as metadata to Response Engine |
+| 10 | `prisma/domains/17-sam-agentic.prisma` | Add SAMPageContextSnapshot model |
+| 11 | `components/sam/chat/ChatWindow.tsx` | Wire useContextMemorySync |
 
 ---
 
@@ -752,28 +899,37 @@ User          Browser Hook        API Route          Integration         Databas
  |                |   actions}        |                   |                  |
 ```
 
-### Chat Message (Context Retrieval)
+### Chat Message (Context Retrieval + Prompt Injection)
 
 ```
-User          ChatWindow        Unified Route       Integration         Database
+User          ChatWindow        Unified Route       Integration         Response Engine
  |                |                   |                   |                  |
  |--send msg----->|                   |                   |                  |
  |                |                   |                   |                  |
- |                |   POST /api/sam/unified               |                  |
+ |                |   POST /api/sam/unified/stream        |                  |
  |                |------------------>|                   |                  |
  |                |                   |                   |                  |
  |                |                   |  getContextSummaryForRoute(userId)   |
  |                |                   |------------------>|                  |
- |                |                   |                   |--latest snap---->|
- |                |                   |                   |<--snapshot-------|
- |                |                   |                   |                  |
+ |                |                   |                   |--latest snap from DB
+ |                |                   |                   |--rebuild 4 summaries
  |                |                   |<--{pageSummary,---|                  |
- |                |                   |    formSummary}   |                  |
+ |                |                   |   contentSummary, |                  |
+ |                |                   |   formSummary,    |                  |
+ |                |                   |   navSummary}     |                  |
  |                |                   |                   |                  |
- |                |                   |--inject into AI prompt               |
- |                |                   |--call LLM with context               |
+ |                |                   |--forward metadata to Response Engine |
+ |                |                   |--------------------------------------->|
  |                |                   |                   |                  |
- |                |<--AI response-----|                   |                  |
+ |                |                   |  buildSystemPrompt() injects:        |
+ |                |                   |  - "### Current Page Info"           |
+ |                |                   |  - "### Visible Page Content"        |
+ |                |                   |  - "### Available Navigation"        |
+ |                |                   |  - Form fields inline                |
+ |                |                   |                   |                  |
+ |                |                   |  LLM receives rich page context      |
+ |                |                   |<--AI response with page awareness----|
+ |                |<--SSE stream------|                   |                  |
  |<--display------|                   |                   |                  |
 ```
 

@@ -376,6 +376,8 @@ app/api/sam/agentic/
 | useSAMFormAutoDetect | react | ✅ Used | Active |
 | useSAMFormAutoFill | react | ✅ Used | Active |
 | useSAMPageLinks | react | ✅ Used | Active |
+| useContextGathering | react | ✅ Used | **NEW** - DOM snapshot collection |
+| useContextMemorySync | react | ✅ Used | **NEW** - Auto-sync to /api/sam/context |
 | **Observability** | Multiple | ⚠️ Partial | 60% Utilized |
 | Telemetry | lib/sam/telemetry | ✅ API | Active |
 | Tool Execution Metrics | agentic | ✅ API | Active |
@@ -864,15 +866,18 @@ useLearningPath, useSkillAssessment, useCompetencyFramework
 usePeerLearning, useCollaboration, useAchievements
 useSAMOrchestrator, useSAMPresence, useSAMRealtime
 useSAMPageContext, useSAMPageLinks, useSAMFormAutoDetect, useSAMFormAutoFill
+useContextGathering, useContextMemorySync  // Context Gathering Engine (v1.1)
 ```
 
-**Currently Used (7 hooks):**
+**Currently Used (9 hooks):**
 | Hook | Location | Usage |
 |------|----------|-------|
 | `useSAM` | Multiple components | Core SAM state |
 | `useSAMContext` | SAMProvider areas | Context access |
 | `useSAMAutoContext` | SAMContextTracker | Page detection |
-| `useSAMPageContext` | Learning pages | Page context |
+| `useSAMPageContext` | Learning pages | Page context (legacy, superseded by Context Gathering) |
+| `useContextGathering` | Internal (via useContextMemorySync) | **NEW**: DOM snapshot collection (forms, headings, text, navigation) |
+| `useContextMemorySync` | ChatWindow.tsx | **NEW**: Auto-sync snapshots to /api/sam/context |
 | `useBloomsAnalysis` | Analytics (indirect) | Bloom's data |
 | `useRecommendations` | RecommendationTimeline | Content suggestions |
 | `useSAMPresence` | Limited usage | Presence tracking |
@@ -1259,11 +1264,17 @@ The platform's architecture perfectly supports long-term skill building:
 | Learning Command Center | `app/dashboard/user/_components/learning-command-center/` |
 | SAM API Routes | `app/api/sam/` |
 | Prisma Stores | `lib/sam/stores/` |
+| Context Gathering Integration | `lib/sam/context-gathering-integration.ts` |
+| Context Snapshot Store | `lib/sam/stores/context-snapshot-store.ts` |
+| Context API Endpoint | `app/api/sam/context/route.ts` |
 | React Hooks | `packages/react/src/hooks/` |
+| Context Gathering Hook | `packages/react/src/hooks/useContextGathering.ts` |
+| Context Memory Sync Hook | `packages/react/src/hooks/useContextMemorySync.ts` |
+| Response Engine (prompt injection) | `packages/core/src/engines/response.ts` |
 | Educational Engines | `packages/educational/src/engines/` |
 
 ---
 
-*Document Version: 2.0*
-*Last Updated: January 2025*
+*Document Version: 2.1*
+*Last Updated: February 2026*
 *Status: ACTIVE - Priority Implementation Required*
