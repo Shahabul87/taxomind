@@ -275,48 +275,18 @@ export function RecommendationReasonDisplay({
 }: RecommendationReasonDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
-  // Generate mock reasoning if not provided
-  const displayReasoning = useMemo<RecommendationReasoning>(() => {
-    if (reasoning) return reasoning;
+  const displayReasoning = useMemo<RecommendationReasoning | null>(
+    () => reasoning ?? null,
+    [reasoning]
+  );
 
-    // Generate from recommendation metadata
-    const confidence = recommendation.metadata?.confidence ?? 0.75;
-
-    return {
-      confidence,
-      primaryReason: 'goal_alignment' as ReasonCategory,
-      factors: [
-        {
-          name: 'Goal Progress',
-          category: 'goal_alignment' as ReasonCategory,
-          score: 0.85,
-          description: 'Aligns with your active learning goals',
-          impact: 'high' as const,
-        },
-        {
-          name: 'Time Fit',
-          category: 'optimal_timing' as ReasonCategory,
-          score: 0.9,
-          description: 'Fits your available study time',
-          impact: 'medium' as const,
-        },
-        {
-          name: 'Skill Gap',
-          category: 'knowledge_gap' as ReasonCategory,
-          score: 0.7,
-          description: 'Addresses areas for improvement',
-          impact: 'high' as const,
-        },
-      ],
-      context: {
-        currentGoals: ['Complete course'],
-        recentStrengths: ['Problem solving'],
-        recentStruggles: ['Time management'],
-        timeAvailable: 30,
-        learningStyle: 'Visual',
-      },
-    };
-  }, [reasoning, recommendation.metadata?.confidence]);
+  if (!displayReasoning) {
+    return (
+      <div className={cn('rounded-lg border bg-background p-4 text-sm text-muted-foreground', className)}>
+        Reasoning details are not available for this recommendation yet.
+      </div>
+    );
+  }
 
   const primaryConfig = REASON_CATEGORY_CONFIG[displayReasoning.primaryReason];
   const PrimaryIcon = primaryConfig?.icon || Lightbulb;

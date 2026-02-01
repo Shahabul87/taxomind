@@ -120,34 +120,6 @@ const ACHIEVEMENT_ICONS = {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function generateSampleXPHistory(days: number = 30): XPDataPoint[] {
-  const data: XPDataPoint[] = [];
-  const today = new Date();
-  let totalXP = 0;
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-
-    // Random daily XP with some variance
-    const dailyXP = Math.floor(50 + Math.random() * 100);
-    totalXP += dailyXP;
-
-    // Calculate level from XP
-    const level = calculateLevel(totalXP);
-
-    data.push({
-      date: date.toISOString().split('T')[0],
-      totalXP,
-      level,
-      dailyXP,
-      source: ['quiz', 'lesson', 'practice', 'streak'][Math.floor(Math.random() * 4)],
-    });
-  }
-
-  return data;
-}
-
 function calculateLevel(xp: number): number {
   // Level formula: each level requires progressively more XP
   // Level n requires: 100 * n * (n + 1) / 2 total XP
@@ -361,19 +333,17 @@ function MilestoneTimeline({ milestones, currentLevel }: { milestones: LevelMile
 // ============================================================================
 
 export function LevelProgressionChart({
-  xpHistory,
-  currentLevel = 12,
-  currentXP = 2150,
-  xpToNextLevel = 350,
+  xpHistory = [],
+  currentLevel = 1,
+  currentXP = 0,
+  xpToNextLevel = 0,
   totalXP,
   milestones = DEFAULT_MILESTONES,
   achievements = [],
   dailyXPGoal = 100,
   className,
 }: LevelProgressionChartProps) {
-  // Generate sample data if not provided
-  const isUsingDemoData = !xpHistory;
-  const chartData = useMemo(() => xpHistory ?? generateSampleXPHistory(), [xpHistory]);
+  const chartData = useMemo(() => xpHistory ?? [], [xpHistory]);
 
   // Calculate insights
   const insights = useMemo(() => {
@@ -389,14 +359,6 @@ export function LevelProgressionChart({
     const levelProgress = getLevelProgress(effectiveCurrentXP, effectiveLevel);
     const daysToNextLevel = getDaysToNextLevel(effectiveCurrentXP, effectiveLevel, avgDailyXP);
 
-    // XP breakdown by source (mock data)
-    const xpBySource = {
-      quiz: Math.floor(effectiveCurrentXP * 0.35),
-      lesson: Math.floor(effectiveCurrentXP * 0.30),
-      practice: Math.floor(effectiveCurrentXP * 0.20),
-      streak: Math.floor(effectiveCurrentXP * 0.15),
-    };
-
     // Today's XP
     const todayXP = chartData[chartData.length - 1]?.dailyXP ?? 0;
     const xpGoalProgress = (todayXP / dailyXPGoal) * 100;
@@ -407,7 +369,6 @@ export function LevelProgressionChart({
       avgDailyXP,
       levelProgress,
       daysToNextLevel,
-      xpBySource,
       todayXP,
       xpGoalProgress,
     };
@@ -501,50 +462,56 @@ export function LevelProgressionChart({
               <Zap className="w-5 h-5 text-amber-500" />
               XP Progression Timeline
             </CardTitle>
-            {isUsingDemoData && (
-              <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
+            {chartData.length === 0 && (
+              <Badge variant="outline" className="text-xs text-muted-foreground">No data yet</Badge>
             )}
           </div>
           <CardDescription>Your experience points growth over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="xpGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="date" className="text-xs" />
-                <YAxis className="text-xs" tickFormatter={formatXP} />
-                <Tooltip content={<XPTooltip />} />
-                <Legend />
+          {chartData.length === 0 ? (
+            <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
+              No XP history available yet.
+            </div>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="xpGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="date" className="text-xs" />
+                  <YAxis className="text-xs" tickFormatter={formatXP} />
+                  <Tooltip content={<XPTooltip />} />
+                  <Legend />
 
-                {/* Level milestone lines */}
-                {milestones.map((milestone) => (
-                  <ReferenceLine
-                    key={milestone.level}
-                    y={milestone.xpRequired}
-                    stroke="#8b5cf6"
-                    strokeDasharray="3 3"
-                    label={{ value: `Lv${milestone.level}`, position: 'right', fontSize: 10 }}
+                  {/* Level milestone lines */}
+                  {milestones.map((milestone) => (
+                    <ReferenceLine
+                      key={milestone.level}
+                      y={milestone.xpRequired}
+                      stroke="#8b5cf6"
+                      strokeDasharray="3 3"
+                      label={{ value: `Lv${milestone.level}`, position: 'right', fontSize: 10 }}
+                    />
+                  ))}
+
+                  <Area
+                    type="monotone"
+                    dataKey="totalXP"
+                    name="Total XP"
+                    stroke="#f59e0b"
+                    fill="url(#xpGradient)"
+                    strokeWidth={2}
                   />
-                ))}
-
-                <Area
-                  type="monotone"
-                  dataKey="totalXP"
-                  name="Total XP"
-                  stroke="#f59e0b"
-                  fill="url(#xpGradient)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
 

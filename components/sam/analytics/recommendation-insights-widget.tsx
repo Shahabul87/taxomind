@@ -122,48 +122,6 @@ const CHART_COLORS = [
 // HELPER FUNCTIONS
 // ============================================================================
 
-function generateSampleInsights(): RecommendationInsight[] {
-  const types = ['content', 'practice', 'review', 'course', 'skill', 'study_time'];
-
-  return types.map((type, index) => {
-    const total = Math.floor(20 + Math.random() * 80);
-    const followed = Math.floor(total * (0.3 + Math.random() * 0.5));
-    const followRate = (followed / total) * 100;
-    const avgOutcome = 50 + Math.random() * 40;
-    const effectiveness = (followRate / 100) * avgOutcome;
-
-    return {
-      type,
-      displayName: TYPE_CONFIG[type]?.displayName ?? type,
-      totalRecommendations: total,
-      followedCount: followed,
-      followRate: Math.round(followRate * 10) / 10,
-      avgOutcomeScore: Math.round(avgOutcome * 10) / 10,
-      effectiveness: Math.round(effectiveness * 10) / 10,
-      trend: Math.random() > 0.6 ? 'improving' : Math.random() > 0.3 ? 'stable' : 'declining',
-    };
-  });
-}
-
-function generateSampleRecentRecommendations(): RecentRecommendation[] {
-  const recommendations = [
-    { type: 'content', title: 'Review JavaScript closures concept' },
-    { type: 'practice', title: 'Complete 5 React hook exercises' },
-    { type: 'review', title: 'Revise TypeScript generics' },
-    { type: 'course', title: 'Start Node.js Fundamentals course' },
-    { type: 'skill', title: 'Practice SQL query optimization' },
-  ];
-
-  return recommendations.map((rec, index) => ({
-    id: `rec-${index}`,
-    type: rec.type,
-    title: rec.title,
-    wasFollowed: Math.random() > 0.4,
-    outcomeScore: Math.random() > 0.5 ? Math.round(60 + Math.random() * 35) : undefined,
-    timestamp: new Date(Date.now() - index * 24 * 60 * 60 * 1000),
-  }));
-}
-
 function getEffectivenessColor(effectiveness: number): string {
   if (effectiveness >= 40) return 'text-green-500';
   if (effectiveness >= 25) return 'text-blue-500';
@@ -375,22 +333,17 @@ function RecentRecommendationItem({ recommendation }: { recommendation: RecentRe
 export function RecommendationInsightsWidget({
   insights,
   recentRecommendations,
-  overallFollowRate = 45,
-  overallEffectiveness = 32,
-  totalRecommendations = 156,
+  overallFollowRate = 0,
+  overallEffectiveness = 0,
+  totalRecommendations = 0,
   className,
   onRefresh,
   isLoading = false,
 }: RecommendationInsightsWidgetProps) {
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Generate sample data if not provided
-  const isUsingDemoData = !insights;
-  const chartInsights = useMemo(() => insights ?? generateSampleInsights(), [insights]);
-  const chartRecent = useMemo(
-    () => recentRecommendations ?? generateSampleRecentRecommendations(),
-    [recentRecommendations]
-  );
+  const chartInsights = useMemo(() => insights ?? [], [insights]);
+  const chartRecent = useMemo(() => recentRecommendations ?? [], [recentRecommendations]);
 
   // Prepare chart data
   const barChartData = useMemo(() => {
@@ -418,6 +371,16 @@ export function RecommendationInsightsWidget({
     return chartInsights.filter((i) => i.followRate < 40 || i.avgOutcomeScore < 50);
   }, [chartInsights]);
 
+  const hasData = chartInsights.length > 0 || chartRecent.length > 0;
+
+  if (!hasData) {
+    return (
+      <Card className={cn('p-6 text-center text-sm text-muted-foreground', className)}>
+        No recommendation insights available yet.
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn('', className)}>
       <CardHeader>
@@ -428,9 +391,6 @@ export function RecommendationInsightsWidget({
                 <Lightbulb className="w-5 h-5 text-amber-500" />
                 Recommendation Insights
               </CardTitle>
-              {isUsingDemoData && (
-                <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
-              )}
             </div>
             <CardDescription>
               Track how well recommendations are serving your learning

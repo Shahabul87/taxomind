@@ -99,75 +99,6 @@ const HOURS = Array.from({ length: 24 }, (_, i) => ({
 // HELPER FUNCTIONS
 // ============================================================================
 
-function generateSampleDailyData(weeks: number = 4): DailyData[] {
-  const data: DailyData[] = [];
-  const today = new Date();
-
-  for (let i = weeks * 7 - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dayOfWeek = DAYS_OF_WEEK[date.getDay()];
-
-    // Generate realistic patterns (less activity on weekends)
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-    const baseMinutes = isWeekend ? 30 : 60;
-    const randomVariation = Math.random() * 40 - 20;
-
-    data.push({
-      date: date.toISOString().split('T')[0],
-      dayOfWeek,
-      studyMinutes: Math.max(0, Math.round(baseMinutes + randomVariation)),
-      sessionsCompleted: Math.floor(Math.random() * 3) + 1,
-      questionsAnswered: Math.floor(Math.random() * 20) + 5,
-      accuracy: Math.round(70 + Math.random() * 25),
-      topicsStudied: Math.floor(Math.random() * 4) + 1,
-    });
-  }
-
-  return data;
-}
-
-function generateSampleWeeklyData(weeks: number = 8): WeeklyComparison[] {
-  const data: WeeklyComparison[] = [];
-  const today = new Date();
-
-  for (let w = weeks - 1; w >= 0; w--) {
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - w * 7 - today.getDay());
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 6);
-
-    data.push({
-      week: `Week ${weeks - w}`,
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
-      totalStudyTime: Math.round(200 + Math.random() * 150 + w * 10), // Trend up over time
-      avgAccuracy: Math.round(72 + Math.random() * 15 + w * 1.5),
-      sessionsCompleted: Math.floor(10 + Math.random() * 8),
-      topicsCompleted: Math.floor(5 + Math.random() * 5),
-      streak: Math.floor(Math.random() * 7),
-    });
-  }
-
-  return data;
-}
-
-function generateHourlyActivity(): HourlyActivity[] {
-  return HOURS.map(({ hour, label }) => ({
-    hour,
-    label,
-    // Peak hours around 9-11am and 7-9pm
-    activity:
-      hour >= 9 && hour <= 11
-        ? 60 + Math.random() * 30
-        : hour >= 19 && hour <= 21
-        ? 50 + Math.random() * 30
-        : hour >= 6 && hour <= 22
-        ? 20 + Math.random() * 20
-        : Math.random() * 10,
-  }));
-}
-
 function getActivityColor(value: number): string {
   if (value >= 70) return '#22c55e'; // green-500
   if (value >= 50) return '#3b82f6'; // blue-500
@@ -366,19 +297,9 @@ export function WeeklyTrendsChart({
   currentWeekGoal = 300,
   className,
 }: WeeklyTrendsChartProps) {
-  // Generate sample data if not provided
-  const isUsingDemoData = !dailyData;
-  const chartDailyData = useMemo(() => dailyData ?? generateSampleDailyData(), [dailyData]);
-
-  const chartWeeklyData = useMemo(
-    () => weeklyComparison ?? generateSampleWeeklyData(),
-    [weeklyComparison]
-  );
-
-  const chartHourlyActivity = useMemo(
-    () => hourlyActivity ?? generateHourlyActivity(),
-    [hourlyActivity]
-  );
+  const chartDailyData = useMemo(() => dailyData ?? [], [dailyData]);
+  const chartWeeklyData = useMemo(() => weeklyComparison ?? [], [weeklyComparison]);
+  const chartHourlyActivity = useMemo(() => hourlyActivity ?? [], [hourlyActivity]);
 
   // Calculate insights
   const insights = useMemo(() => {
@@ -388,7 +309,9 @@ export function WeeklyTrendsChart({
     const thisWeekDays = chartDailyData.slice(-7);
     const totalMinutesThisWeek = thisWeekDays.reduce((sum, d) => sum + d.studyMinutes, 0);
     const avgAccuracyThisWeek =
-      thisWeekDays.reduce((sum, d) => sum + d.accuracy, 0) / thisWeekDays.length;
+      thisWeekDays.length > 0
+        ? thisWeekDays.reduce((sum, d) => sum + d.accuracy, 0) / thisWeekDays.length
+        : 0;
     const sessionsThisWeek = thisWeekDays.reduce((sum, d) => sum + d.sessionsCompleted, 0);
     const questionsThisWeek = thisWeekDays.reduce((sum, d) => sum + d.questionsAnswered, 0);
 
@@ -397,10 +320,14 @@ export function WeeklyTrendsChart({
       day,
       total: chartDailyData.filter((d) => d.dayOfWeek === day).reduce((sum, d) => sum + d.studyMinutes, 0),
     }));
-    const mostProductiveDay = dayTotals.sort((a, b) => b.total - a.total)[0];
+    const mostProductiveDay = dayTotals.length > 0
+      ? dayTotals.sort((a, b) => b.total - a.total)[0]
+      : null;
 
     // Find peak hours
-    const peakHour = chartHourlyActivity.sort((a, b) => b.activity - a.activity)[0];
+    const peakHour = chartHourlyActivity.length > 0
+      ? [...chartHourlyActivity].sort((a, b) => b.activity - a.activity)[0]
+      : null;
 
     return {
       currentWeek,
@@ -427,6 +354,14 @@ export function WeeklyTrendsChart({
       };
     });
   }, [chartDailyData]);
+
+  if (chartDailyData.length === 0 && chartWeeklyData.length === 0 && chartHourlyActivity.length === 0) {
+    return (
+      <Card className={cn('p-6 text-center text-sm text-muted-foreground', className)}>
+        No weekly trends data available yet.
+      </Card>
+    );
+  }
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -517,9 +452,6 @@ export function WeeklyTrendsChart({
                   <BookOpen className="w-5 h-5" />
                   Daily Study Time
                 </CardTitle>
-                {isUsingDemoData && (
-                  <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
-                )}
               </div>
               <CardDescription>Your study activity over the past weeks</CardDescription>
             </CardHeader>

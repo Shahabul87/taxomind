@@ -119,13 +119,14 @@ describe('QuestionItem', () => {
 
   it('should handle drag and drop events', () => {
     render(<QuestionItem {...defaultProps} />);
-    
-    const dragHandle = screen.getByTestId('drag-handle') || document.querySelector('[draggable="true"]');
-    
+
+    const dragHandle = document.querySelector('[draggable="true"]');
+    expect(dragHandle).toBeTruthy();
+
     if (dragHandle) {
       fireEvent.dragStart(dragHandle);
       expect(defaultProps.onDragStart).toHaveBeenCalled();
-      
+
       fireEvent.dragEnd(dragHandle);
       expect(defaultProps.onDragEnd).toHaveBeenCalled();
     }

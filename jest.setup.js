@@ -420,6 +420,12 @@ const createMockPrismaClient = () => {
     // Additional models
     'post', 'notification', 'studyPlan', 'studyPlanTask', 'courseCategory',
     'coursePlan',
+    // SAM Conversation models
+    'sAMConversation', 'sAMMessage',
+    // Enterprise/Compliance models
+    'complianceEvent', 'organization', 'sectionBloomsMapping',
+    // Additional Blooms/SAM models
+    'chapterBloomsAnalysis', 'samInteraction',
   ];
   
   const mockClient = {};
@@ -464,9 +470,23 @@ jest.mock('@/lib/db', () => ({
   default: dbMock,
 }));
 
+jest.mock('@/lib/db-pooled', () => ({
+  db: dbMock,
+  getDb: () => dbMock,
+  getDbMetrics: jest.fn(() => ({
+    totalQueries: 0, cacheHits: 0, cacheMisses: 0,
+    averageQueryTime: 0, activeConnections: 1,
+  })),
+  checkDatabaseHealth: jest.fn(() => Promise.resolve({
+    healthy: true, latency: 5, connectionCount: 1,
+  })),
+  getBasePrismaClient: () => dbMock,
+}));
+
 // Also mock the test-db prismaMock to use the same instance
 jest.mock('./__tests__/utils/test-db', () => ({
   prismaMock: dbMock,
+  testDb: { connect: jest.fn(), disconnect: jest.fn(), seed: jest.fn(), cleanup: jest.fn(), getClient: () => dbMock },
   createMockDatabase: () => dbMock,
   TestDatabase: jest.fn().mockImplementation(() => ({
     connect: jest.fn(),
@@ -474,6 +494,132 @@ jest.mock('./__tests__/utils/test-db', () => ({
     seed: jest.fn(),
     cleanup: jest.fn(),
   })),
+  setupTestDatabase: jest.fn().mockResolvedValue({
+    users: {
+      teacher: { id: 'teacher-1', email: 'teacher@test.com', name: 'Test Teacher', role: 'USER' },
+      student: { id: 'student-1', email: 'student@test.com', name: 'Test Student', role: 'USER' },
+      admin: { id: 'admin-1', email: 'admin@test.com', name: 'Test Admin', role: 'ADMIN' },
+    },
+    courses: [
+      { id: 'course-1', title: 'Test Course', userId: 'teacher-1', isPublished: true },
+      { id: 'course-2', title: 'Test Course 2', userId: 'teacher-1', isPublished: true },
+      { id: 'course-3', title: 'Unpublished Course', userId: 'teacher-1', isPublished: false },
+    ],
+    categories: [{ id: 'cat-1', name: 'Programming' }],
+  }),
+  teardownTestDatabase: jest.fn().mockResolvedValue(undefined),
+}));
+
+// ===========================
+// TEST UTILITY MOCKS
+// ===========================
+
+jest.mock('./__tests__/utils/test-helpers', () => {
+  // Build a mock NextRequest class that matches our next/server mock
+  const { NextRequest, NextResponse } = jest.requireMock('next/server');
+
+  return {
+    ApiTestHelpers: {
+      createMockRequest: jest.fn((options = {}) => {
+        const {
+          method = 'GET',
+          url = 'http://localhost:3000/api/test',
+          body,
+          headers = {},
+          searchParams = {},
+        } = options;
+        const request = new NextRequest(url, {
+          method,
+          headers: { 'content-type': 'application/json', ...headers },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        // Add search params
+        if (request.nextUrl && request.nextUrl.searchParams) {
+          Object.entries(searchParams).forEach(([key, value]) => {
+            request.nextUrl.searchParams.set(key, value);
+          });
+        }
+        return request;
+      }),
+      createMockResponse: jest.fn((data, status = 200) => {
+        return NextResponse.json(data, { status });
+      }),
+      testEndpoint: jest.fn(),
+      createAuthenticatedRequest: jest.fn(),
+      createUnauthenticatedRequest: jest.fn(),
+      expectJsonResponse: jest.fn(),
+      expectErrorResponse: jest.fn(),
+    },
+    AuthTestHelpers: {
+      createMockSession: jest.fn((options = {}) => ({
+        user: {
+          id: options.userId || 'user-1',
+          name: options.name || 'Test User',
+          email: options.email || 'test@test.com',
+          role: options.role || 'USER',
+        },
+        expires: new Date(Date.now() + 86400000).toISOString(),
+      })),
+      mockUseSession: jest.fn(),
+      createAuthContext: jest.fn(),
+    },
+    DatabaseTestHelpers: {
+      mockDatabaseOperation: jest.fn((result) => Promise.resolve(result)),
+      mockDatabaseError: jest.fn((msg) => Promise.reject(new Error(msg || 'Database error'))),
+      createMockPrismaClient: jest.fn(() => ({})),
+    },
+    ComponentTestHelpers: {
+      renderWithProviders: jest.fn(),
+      waitForLoading: jest.fn(),
+      fillAndSubmitForm: jest.fn(),
+      testFormValidation: jest.fn(),
+    },
+    PerformanceTestHelpers: {
+      measureExecutionTime: jest.fn(async (fn) => {
+        const start = Date.now();
+        const result = await fn();
+        return { result, timeMs: Date.now() - start };
+      }),
+      measureMemoryUsage: jest.fn(() => ({ finish: jest.fn(() => ({})) })),
+      benchmark: jest.fn(async () => []),
+    },
+    ErrorTestHelpers: {
+      testErrorBoundary: jest.fn(),
+      mockConsole: jest.fn(() => ({ mockConsole: {}, restore: jest.fn() })),
+      testAsyncError: jest.fn(),
+    },
+    AccessibilityTestHelpers: {
+      testKeyboardNavigation: jest.fn(),
+      testAriaAttributes: jest.fn(),
+      testScreenReaderContent: jest.fn(),
+    },
+    WaitUtils: {
+      waitForElement: jest.fn(),
+      waitForCondition: jest.fn(),
+      waitForNetwork: jest.fn(),
+    },
+    TestEnvironmentHelpers: {
+      setupTestEnv: jest.fn(),
+      cleanupTestEnv: jest.fn(),
+      mockExternalServices: jest.fn(),
+    },
+  };
+});
+
+jest.mock('./__tests__/utils/test-factory', () => ({
+  TestDataFactory: {
+    createUser: jest.fn(),
+    createCourse: jest.fn(),
+    createEnrollment: jest.fn(),
+  },
+}));
+
+jest.mock('./__tests__/utils/mock-providers', () => ({
+  setupMockProviders: jest.fn(),
+  resetMockProviders: jest.fn(),
+  mockAnthropicClient: {
+    messages: { create: jest.fn() },
+  },
 }));
 
 // ===========================
@@ -554,16 +700,22 @@ jest.mock('@/lib/cache/redis-cache', () => ({
     set: jest.fn(() => Promise.resolve(true)),
     delete: jest.fn(() => Promise.resolve(true)),
     flush: jest.fn(() => Promise.resolve(true)),
+    invalidateByTags: jest.fn(() => Promise.resolve(1)),
+    invalidatePattern: jest.fn(() => Promise.resolve(1)),
   },
   CACHE_PREFIXES: {
-    COURSE: 'course',
-    USER: 'user',
-    ENROLLMENT: 'enrollment',
+    COURSE: 'course:',
+    USER: 'user:',
+    ENROLLMENT: 'enrollment:',
+    SESSION: 'session:',
+    ANALYTICS: 'analytics:',
+    LEADERBOARD: 'leaderboard:',
   },
   CACHE_TTL: {
     SHORT: 300,
-    MEDIUM: 3600,
-    LONG: 86400,
+    MEDIUM: 900,
+    LONG: 3600,
+    VERY_LONG: 86400,
   },
 }));
 
@@ -743,9 +895,25 @@ jest.mock('@/actions/new-verification', () => ({
   newVerification: jest.fn().mockResolvedValue({ success: true }),
 }));
 
-// Mock logout action  
+// Mock logout action
 jest.mock('@/actions/logout', () => ({
   logout: jest.fn().mockResolvedValue({ success: true }),
+}));
+
+// Mock auth audit helpers
+jest.mock('@/lib/audit/auth-audit', () => ({
+  authAuditHelpers: {
+    logSignIn: jest.fn().mockResolvedValue(undefined),
+    logSignOut: jest.fn().mockResolvedValue(undefined),
+    logFailedLogin: jest.fn().mockResolvedValue(undefined),
+    logSignInFailed: jest.fn().mockResolvedValue(undefined),
+    logSignInSuccess: jest.fn().mockResolvedValue(undefined),
+    logTwoFactorFailed: jest.fn().mockResolvedValue(undefined),
+    logTwoFactorVerified: jest.fn().mockResolvedValue(undefined),
+    logSuspiciousActivity: jest.fn().mockResolvedValue(undefined),
+    logPasswordChange: jest.fn().mockResolvedValue(undefined),
+    logAccountLock: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 // Register action will be mocked in individual tests as needed
@@ -806,6 +974,22 @@ jest.mock('@/actions/get-courses-optimized', () => ({
 
 jest.mock('@/actions/get-all-courses-optimized', () => ({
   getAllCoursesOptimized: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock('@/actions/get-section', () => ({
+  getSection: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock('@/actions/get-course', () => ({
+  getCourse: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock('@/actions/get-chapter', () => ({
+  getChapter: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock('@/actions/admin-secure', () => ({
+  isAdminSecure: jest.fn().mockResolvedValue({ isAdmin: false, user: null }),
 }));
 
 // Mock tokens functions

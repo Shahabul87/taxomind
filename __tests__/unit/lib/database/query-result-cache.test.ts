@@ -1,17 +1,10 @@
 /**
  * Unit Tests for Query Result Cache
  * Tests the database query result caching functionality from Phase 3
+ *
+ * NOTE: @/lib/cache/redis-cache is globally mocked via jest.setup.js.
+ * We do NOT re-mock it here; instead we configure per-test return values.
  */
-
-import { QueryResultCache } from '@/lib/database/query-result-cache';
-
-// Mock redis cache
-const mockRedisCache = {
-  set: jest.fn().mockResolvedValue(true),
-  get: jest.fn().mockResolvedValue({ hit: false, value: null }),
-  delete: jest.fn().mockResolvedValue(true),
-  invalidateByTags: jest.fn().mockResolvedValue(1),
-};
 
 // Mock logger
 jest.mock('@/lib/logger', () => ({
@@ -22,26 +15,30 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-// Mock redis cache module
-jest.mock('@/lib/cache/redis-cache', () => ({
-  redisCache: mockRedisCache,
-  CACHE_PREFIXES: {
-    COURSE: 'course:',
-    USER: 'user:',
-  },
-  CACHE_TTL: {
-    SHORT: 300,
-    MEDIUM: 900,
-    LONG: 3600,
-    VERY_LONG: 86400,
-  },
-}));
+import { QueryResultCache } from '@/lib/database/query-result-cache';
+import { redisCache, CACHE_PREFIXES, CACHE_TTL } from '@/lib/cache/redis-cache';
+
+// Alias for convenience - the global mock already provides jest.fn() methods
+const mockCache = redisCache as Record<string, jest.Mock>;
 
 describe('QueryResultCache', () => {
   let cache: QueryResultCache;
 
   beforeEach(() => {
+    // Reset the singleton to avoid cross-test contamination
+    (QueryResultCache as any).instance = undefined;
+
     jest.clearAllMocks();
+    // Re-apply default implementations after clearAllMocks strips them
+    mockCache.set.mockImplementation(() => Promise.resolve(true));
+    mockCache.get.mockImplementation(() => Promise.resolve({ hit: false, value: null }));
+    mockCache.delete.mockImplementation(() => Promise.resolve(true));
+    if (mockCache.invalidateByTags) {
+      mockCache.invalidateByTags.mockImplementation(() => Promise.resolve(1));
+    }
+    if (mockCache.invalidatePattern) {
+      mockCache.invalidatePattern.mockImplementation(() => Promise.resolve(1));
+    }
     cache = QueryResultCache.getInstance();
   });
 
@@ -61,12 +58,9 @@ describe('QueryResultCache', () => {
       const params = { where: { role: 'ADMIN' } };
       const result = [{ id: 'user-1', name: 'Admin User' }];
 
-      // Mock cache miss then set
-      mockRedisCache.get.mockResolvedValueOnce({ hit: false, value: null });
-      
       await cache.cacheQueryResult(operation, model, params, result);
-      
-      expect(mockRedisCache.set).toHaveBeenCalled();
+
+      expect(mockCache.set).toHaveBeenCalled();
     });
 
     it('should return cached query results', async () => {
@@ -76,12 +70,12 @@ describe('QueryResultCache', () => {
       const cachedResult = [{ id: 'user-1', name: 'Admin User' }];
 
       // Mock cache hit
-      mockRedisCache.get.mockResolvedValueOnce({ hit: true, value: cachedResult });
+      mockCache.get.mockResolvedValueOnce({ hit: true, value: cachedResult });
 
       const result = await cache.getCachedQueryResult(operation, model, params);
-      
+
       expect(result).toEqual(cachedResult);
-      expect(mockRedisCache.get).toHaveBeenCalled();
+      expect(mockCache.get).toHaveBeenCalled();
     });
 
     it('should return null for cache miss', async () => {
@@ -90,7 +84,7 @@ describe('QueryResultCache', () => {
       const params = { where: { id: 'nonexistent' } };
 
       // Mock cache miss
-      mockRedisCache.get.mockResolvedValueOnce({ hit: false, value: null });
+      mockCache.get.mockResolvedValueOnce({ hit: false, value: null });
 
       const result = await cache.getCachedQueryResult(operation, model, params);
       
@@ -106,7 +100,7 @@ describe('QueryResultCache', () => {
       const result = await cache.getCachedQueryResult(operation, model, params, config);
       
       expect(result).toBeNull();
-      expect(mockRedisCache.get).not.toHaveBeenCalled();
+      expect(mockCache.get).not.toHaveBeenCalled();
     });
   });
 
@@ -147,7 +141,7 @@ describe('QueryResultCache', () => {
       const queryResult = [{ id: 'course-1', title: 'Test Course' }];
 
       // Mock cache miss
-      mockRedisCache.get.mockResolvedValueOnce({ hit: false, value: null });
+      mockCache.get.mockResolvedValueOnce({ hit: false, value: null });
       
       const queryFn = jest.fn().mockResolvedValue(queryResult);
 
@@ -158,7 +152,7 @@ describe('QueryResultCache', () => {
       expect(result.cached).toBe(false);
       expect(result.cacheHit).toBe(false);
       expect(typeof result.executionTime).toBe('number');
-      expect(mockRedisCache.set).toHaveBeenCalled();
+      expect(mockCache.set).toHaveBeenCalled();
     });
 
     it('should return cached result without executing function on cache hit', async () => {
@@ -168,8 +162,8 @@ describe('QueryResultCache', () => {
       const cachedResult = [{ id: 'course-1', title: 'Test Course' }];
 
       // Mock cache hit
-      mockRedisCache.get.mockResolvedValueOnce({ hit: true, value: cachedResult });
-      
+      mockCache.get.mockResolvedValueOnce({ hit: true, value: cachedResult });
+
       const queryFn = jest.fn();
 
       const result = await cache.executeWithCache(operation, model, params, queryFn);
@@ -189,7 +183,7 @@ describe('QueryResultCache', () => {
       const error = new Error('Database connection failed');
 
       // Mock cache miss
-      mockRedisCache.get.mockResolvedValueOnce({ hit: false, value: null });
+      mockCache.get.mockResolvedValueOnce({ hit: false, value: null });
       
       const queryFn = jest.fn().mockRejectedValue(error);
 
@@ -205,7 +199,7 @@ describe('QueryResultCache', () => {
     it('should invalidate cache by model', async () => {
       const deleted = await cache.invalidateModel('User');
 
-      expect(mockRedisCache.invalidateByTags).toHaveBeenCalledWith(['model:user']);
+      expect(mockCache.invalidateByTags).toHaveBeenCalledWith(['model:user']);
       expect(typeof deleted).toBe('number');
     });
 
@@ -216,14 +210,14 @@ describe('QueryResultCache', () => {
 
       const deleted = await cache.invalidateQuery(operation, model, params);
 
-      expect(mockRedisCache.delete).toHaveBeenCalled();
+      expect(mockCache.delete).toHaveBeenCalled();
       expect(typeof deleted).toBe('boolean');
     });
 
     it('should invalidate cache by operation', async () => {
       const deleted = await cache.invalidateOperation('findMany');
 
-      expect(mockRedisCache.invalidateByTags).toHaveBeenCalledWith(['operation:findMany']);
+      expect(mockCache.invalidateByTags).toHaveBeenCalledWith(['operation:findMany']);
       expect(typeof deleted).toBe('number');
     });
   });
@@ -295,7 +289,7 @@ describe('QueryResultCache', () => {
 
   describe('Error Handling', () => {
     it('should handle cache get errors gracefully', async () => {
-      mockRedisCache.get.mockRejectedValueOnce(new Error('Redis connection failed'));
+      mockCache.get.mockRejectedValueOnce(new Error('Redis connection failed'));
 
       const result = await cache.getCachedQueryResult('findMany', 'User', {});
       
@@ -303,7 +297,7 @@ describe('QueryResultCache', () => {
     });
 
     it('should handle cache set errors gracefully', async () => {
-      mockRedisCache.set.mockRejectedValueOnce(new Error('Redis write failed'));
+      mockCache.set.mockRejectedValueOnce(new Error('Redis write failed'));
 
       // Should not throw error
       await expect(

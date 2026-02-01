@@ -14,6 +14,7 @@ import { SimilarCoursesSection } from './_components/similar-courses-section';
 import { MobileEnrollBar } from './_components/mobile-enroll-bar';
 import { StickyMiniHeader } from './_components/sticky-mini-header';
 import { HeroWrapper } from './_components/hero-wrapper';
+import { CourseSamContext } from './_components/course-sam-context';
 
 type Props = {
   params: Promise<{ courseId: string }>;
@@ -69,8 +70,33 @@ const CourseIdPage = async (props: { params: Promise<{ courseId: string }> }): P
     }
   };
 
+  const samCourseContext = {
+    id: course.id,
+    title: course.title,
+    description: course.description ?? null,
+    whatYouWillLearn: course.whatYouWillLearn ?? [],
+    isPublished: course.isPublished ?? false,
+    categoryId: course.categoryId ?? null,
+    price: course.price ?? null,
+    imageUrl: course.imageUrl ?? null,
+    chapters: (course.chapters || []).map((chapter: any, index: number) => ({
+      id: chapter.id,
+      title: chapter.title || `Chapter ${index + 1}`,
+      description: chapter.description ?? null,
+      isPublished: chapter.isPublished ?? false,
+      isFree: chapter.isFree ?? false,
+      position: chapter.position ?? index,
+      sections: (chapter.sections || []).map((section: any) => ({
+        id: section.id,
+        title: section.title,
+        isPublished: section.isPublished ?? false,
+      })),
+    })),
+  };
+
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 overflow-x-hidden">
+      <CourseSamContext course={samCourseContext} />
       {/* JSON-LD Structured Data for SEO */}
       <script
         type="application/ld+json"

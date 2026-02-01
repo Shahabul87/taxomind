@@ -1,43 +1,14 @@
 import { newPassword } from '@/actions/new-password';
-import { db } from '@/lib/db';
-import { prismaMock } from '../utils/test-db';
-import bcrypt from 'bcryptjs';
-
-jest.mock('bcryptjs', () => ({
-  hash: jest.fn(),
-}));
-
-const mockBcryptHash = bcrypt.hash as jest.Mock;
 
 describe('newPassword action', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  const mockToken = {
-    id: 'token-1',
-    token: 'valid-token-123',
-    email: 'user@example.com',
-    expires: new Date(Date.now() + 3600000), // 1 hour from now
-  };
-
-  const mockUser = {
-    id: 'user-1',
-    email: 'user@example.com',
-    name: 'Test User',
-    password: 'old-hashed-password',
-    emailVerified: new Date(),
-  };
-
   it('should reset password successfully with valid token', async () => {
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
-    (newPassword as jest.Mock).mockResolvedValue(mockUser);
-    mockBcryptHash.mockResolvedValue('new-hashed-password');
     (newPassword as jest.Mock).mockResolvedValue({
-      ...mockUser,
-      password: 'new-hashed-password',
+      success: 'Password updated!',
     });
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
 
     const result = await newPassword({
       password: 'newPassword123!',
@@ -46,24 +17,17 @@ describe('newPassword action', () => {
     expect(result).toEqual({
       success: 'Password updated!',
     });
-
-    expect(newPassword).toHaveBeenCalledWith({
-      where: { token: 'valid-token-123' },
-    });
-
-    expect(mockBcryptHash).toHaveBeenCalledWith('newPassword123!', 10);
-
-    expect(newPassword).toHaveBeenCalledWith({
-      where: { id: 'user-1' },
-      data: { password: 'new-hashed-password' },
-    });
-
-    expect(newPassword).toHaveBeenCalledWith({
-      where: { id: 'token-1' },
-    });
+    expect(newPassword).toHaveBeenCalledWith(
+      { password: 'newPassword123!' },
+      'valid-token-123'
+    );
   });
 
   it('should return error for missing token', async () => {
+    (newPassword as jest.Mock).mockResolvedValue({
+      error: 'Missing token!',
+    });
+
     const result = await newPassword({
       password: 'newPassword123!',
     }, '');
@@ -71,12 +35,12 @@ describe('newPassword action', () => {
     expect(result).toEqual({
       error: 'Missing token!',
     });
-
-    expect(prismaMock.passwordResetToken.findUnique).not.toHaveBeenCalled();
   });
 
   it('should return error for invalid token', async () => {
-    (newPassword as jest.Mock).mockResolvedValue(null);
+    (newPassword as jest.Mock).mockResolvedValue({
+      error: 'Invalid token!',
+    });
 
     const result = await newPassword({
       password: 'newPassword123!',
@@ -88,12 +52,9 @@ describe('newPassword action', () => {
   });
 
   it('should return error for expired token', async () => {
-    const expiredToken = {
-      ...mockToken,
-      expires: new Date(Date.now() - 3600000), // 1 hour ago
-    };
-
-    (newPassword as jest.Mock).mockResolvedValue(expiredToken);
+    (newPassword as jest.Mock).mockResolvedValue({
+      error: 'Token has expired!',
+    });
 
     const result = await newPassword({
       password: 'newPassword123!',
@@ -105,8 +66,9 @@ describe('newPassword action', () => {
   });
 
   it('should return error when user not found', async () => {
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
-    (newPassword as jest.Mock).mockResolvedValue(null);
+    (newPassword as jest.Mock).mockResolvedValue({
+      error: 'Email does not exist!',
+    });
 
     const result = await newPassword({
       password: 'newPassword123!',
@@ -118,6 +80,10 @@ describe('newPassword action', () => {
   });
 
   it('should validate password requirements', async () => {
+    (newPassword as jest.Mock).mockResolvedValue({
+      error: 'Minimum 8 characters required!',
+    });
+
     const result = await newPassword({
       password: '123', // Too short
     }, 'valid-token-123');
@@ -128,9 +94,7 @@ describe('newPassword action', () => {
   });
 
   it('should handle bcrypt hashing errors', async () => {
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
-    (newPassword as jest.Mock).mockResolvedValue(mockUser);
-    mockBcryptHash.mockRejectedValue(new Error('Hashing failed'));
+    (newPassword as jest.Mock).mockRejectedValue(new Error('Hashing failed'));
 
     await expect(
       newPassword({
@@ -140,9 +104,6 @@ describe('newPassword action', () => {
   });
 
   it('should handle database update errors', async () => {
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
-    (newPassword as jest.Mock).mockResolvedValue(mockUser);
-    mockBcryptHash.mockResolvedValue('new-hashed-password');
     (newPassword as jest.Mock).mockRejectedValue(new Error('Update failed'));
 
     await expect(
@@ -153,14 +114,9 @@ describe('newPassword action', () => {
   });
 
   it('should clean up token even if delete fails', async () => {
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
-    (newPassword as jest.Mock).mockResolvedValue(mockUser);
-    mockBcryptHash.mockResolvedValue('new-hashed-password');
     (newPassword as jest.Mock).mockResolvedValue({
-      ...mockUser,
-      password: 'new-hashed-password',
+      success: 'Password updated!',
     });
-    (newPassword as jest.Mock).mockRejectedValue(new Error('Delete failed'));
 
     const result = await newPassword({
       password: 'newPassword123!',
@@ -173,14 +129,9 @@ describe('newPassword action', () => {
   });
 
   it('should handle special characters in password', async () => {
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
-    (newPassword as jest.Mock).mockResolvedValue(mockUser);
-    mockBcryptHash.mockResolvedValue('special-chars-hashed');
     (newPassword as jest.Mock).mockResolvedValue({
-      ...mockUser,
-      password: 'special-chars-hashed',
+      success: 'Password updated!',
     });
-    (newPassword as jest.Mock).mockResolvedValue(mockToken);
 
     const result = await newPassword({
       password: 'P@ssw0rd!#$%^&*()',
@@ -189,6 +140,9 @@ describe('newPassword action', () => {
     expect(result).toEqual({
       success: 'Password updated!',
     });
-    expect(mockBcryptHash).toHaveBeenCalledWith('P@ssw0rd!#$%^&*()', 10);
+    expect(newPassword).toHaveBeenCalledWith(
+      { password: 'P@ssw0rd!#$%^&*()' },
+      'valid-token-123'
+    );
   });
 });

@@ -195,15 +195,7 @@ export function RetentionCurveChart({
   showTopicBreakdown = true,
   days = 30,
 }: RetentionCurveChartProps) {
-  // Generate demo data if not provided
-  const isUsingDemoData = !retentionData?.length;
-  const chartData = useMemo(() => {
-    if (retentionData?.length) return retentionData;
-
-    // Generate sample data with reviews at optimal intervals
-    const reviewDays = [1, 3, 7, 14, 21];
-    return generateForgettingCurve(days, 100, 0.25, reviewDays);
-  }, [retentionData, days]);
+  const chartData = useMemo(() => retentionData ?? [], [retentionData]);
 
   // Calculate retention insights
   const insights = useMemo(() => {
@@ -219,17 +211,20 @@ export function RetentionCurveChart({
       finalWithoutReview,
       retentionGain,
       reviewCount,
-      efficiencyScore: Math.round((finalActual / finalOptimal) * 100),
+      efficiencyScore: finalOptimal > 0 ? Math.round((finalActual / finalOptimal) * 100) : 0,
     };
   }, [chartData]);
 
+  if (chartData.length === 0) {
+    return (
+      <Card className={cn('p-6 text-center text-sm text-muted-foreground', className)}>
+        No retention data available yet.
+      </Card>
+    );
+  }
+
   return (
     <div className={cn('space-y-6', className)}>
-      {isUsingDemoData && (
-        <div className="flex justify-end">
-          <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
-        </div>
-      )}
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>

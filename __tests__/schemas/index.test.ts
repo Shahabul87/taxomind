@@ -40,8 +40,9 @@ describe('Schemas', () => {
         email: 'new@example.com',
         password: 'Password123!', // Complex password with uppercase, lowercase, number, and special char
         name: 'Test User',
+        acceptTermsAndPrivacy: true,
       };
-      
+
       const result = RegisterSchema.safeParse(validData);
       expect(result.success).toBe(true);
     });

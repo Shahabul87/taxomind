@@ -1,3 +1,5 @@
+jest.unmock('@/actions/logout');
+
 import { logout } from '@/actions/logout';
 import { signOut } from '@/auth';
 import { currentUser } from '@/lib/auth';

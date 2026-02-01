@@ -75,211 +75,7 @@ interface OverviewMetric {
   color: string;
 }
 
-// Generate mock data for demo purposes
-function generateMockCourseInsights(): CourseInsightData[] {
-  const courses: CourseInsightData[] = [
-    {
-      id: 'course-1',
-      title: 'Advanced Machine Learning',
-      description: 'Deep dive into neural networks, transformers, and modern ML techniques',
-      imageUrl: '/placeholder.svg',
-      progress: 68,
-      totalSections: 24,
-      completedSections: 16,
-      studyTimeMinutes: 1840,
-      lastStudied: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      masteryLevel: 72,
-      bloomsLevel: 'analyze',
-      currentStreak: 7,
-      averageQuizScore: 85,
-      engagementScore: 88,
-      learningVelocity: 3.2,
-      predictedCompletionDays: 12,
-      insights: [
-        {
-          id: '1',
-          type: 'strength',
-          title: 'Strong conceptual understanding',
-          description: 'Your quiz scores show excellent grasp of core ML concepts',
-          priority: 'high',
-        },
-        {
-          id: '2',
-          type: 'recommendation',
-          title: 'Practice more coding exercises',
-          description: 'Implementation skills could benefit from more hands-on practice',
-          priority: 'medium',
-          actionable: true,
-          action: { label: 'Start Practice', href: '/practice' },
-        },
-        {
-          id: '3',
-          type: 'achievement',
-          title: 'Week streak achieved!',
-          description: 'You&apos;ve maintained a 7-day learning streak',
-          priority: 'low',
-        },
-      ],
-      metrics: [
-        { label: 'Velocity', value: '3.2x', trend: 'up', change: '+0.5' },
-        { label: 'Mastery', value: '72%', trend: 'up', change: '+8%' },
-        { label: 'Engagement', value: '88%', trend: 'stable' },
-        { label: 'Est. Completion', value: '12d', color: 'text-emerald-600' },
-      ],
-      strengths: ['Neural network fundamentals', 'Backpropagation understanding', 'Loss function selection'],
-      areasToImprove: ['Hyperparameter tuning', 'Model deployment'],
-      nextMilestone: {
-        title: 'Complete Chapter 5: Transformers',
-        progress: 2,
-        target: 4,
-      },
-    },
-    {
-      id: 'course-2',
-      title: 'Full-Stack Web Development',
-      description: 'Build modern web applications with React, Node.js, and databases',
-      imageUrl: '/placeholder.svg',
-      progress: 45,
-      totalSections: 32,
-      completedSections: 14,
-      studyTimeMinutes: 960,
-      lastStudied: new Date(Date.now() - 1000 * 60 * 60 * 24),
-      masteryLevel: 58,
-      bloomsLevel: 'apply',
-      currentStreak: 3,
-      averageQuizScore: 78,
-      engagementScore: 72,
-      learningVelocity: 2.1,
-      predictedCompletionDays: 28,
-      insights: [
-        {
-          id: '1',
-          type: 'warning',
-          title: 'Learning pace slowing',
-          description: 'Your study frequency has decreased over the past week',
-          priority: 'high',
-          actionable: true,
-          action: { label: 'Schedule Study', href: '/schedule' },
-        },
-        {
-          id: '2',
-          type: 'improvement',
-          title: 'Focus on React hooks',
-          description: 'Recent assessments show gaps in advanced React patterns',
-          priority: 'medium',
-        },
-      ],
-      metrics: [
-        { label: 'Velocity', value: '2.1x', trend: 'down', change: '-0.3' },
-        { label: 'Mastery', value: '58%', trend: 'stable' },
-        { label: 'Engagement', value: '72%', trend: 'down', change: '-5%' },
-        { label: 'Est. Completion', value: '28d', color: 'text-amber-600' },
-      ],
-      strengths: ['HTML/CSS fundamentals', 'JavaScript basics'],
-      areasToImprove: ['React hooks', 'State management', 'API integration'],
-      nextMilestone: {
-        title: 'Build First Full-Stack App',
-        progress: 1,
-        target: 3,
-      },
-    },
-    {
-      id: 'course-3',
-      title: 'Data Structures & Algorithms',
-      description: 'Master fundamental CS concepts for technical interviews',
-      imageUrl: '/placeholder.svg',
-      progress: 92,
-      totalSections: 20,
-      completedSections: 18,
-      studyTimeMinutes: 2400,
-      lastStudied: new Date(Date.now() - 1000 * 60 * 30),
-      masteryLevel: 89,
-      bloomsLevel: 'evaluate',
-      currentStreak: 14,
-      averageQuizScore: 92,
-      engagementScore: 95,
-      learningVelocity: 4.5,
-      predictedCompletionDays: 3,
-      insights: [
-        {
-          id: '1',
-          type: 'achievement',
-          title: 'Near completion!',
-          description: 'You&apos;re about to finish this course with excellent performance',
-          priority: 'high',
-        },
-        {
-          id: '2',
-          type: 'strength',
-          title: 'Exceptional problem-solving',
-          description: 'Your algorithm complexity analysis skills are top-tier',
-          priority: 'medium',
-        },
-      ],
-      metrics: [
-        { label: 'Velocity', value: '4.5x', trend: 'up', change: '+1.2', color: 'text-emerald-600' },
-        { label: 'Mastery', value: '89%', trend: 'up', change: '+5%' },
-        { label: 'Engagement', value: '95%', trend: 'up', change: '+3%' },
-        { label: 'Est. Completion', value: '3d', color: 'text-emerald-600' },
-      ],
-      strengths: ['Time complexity analysis', 'Tree algorithms', 'Dynamic programming'],
-      areasToImprove: ['Graph algorithms (advanced)'],
-      nextMilestone: {
-        title: 'Complete Final Project',
-        progress: 4,
-        target: 5,
-      },
-    },
-    {
-      id: 'course-4',
-      title: 'Cloud Architecture with AWS',
-      description: 'Design scalable cloud solutions using Amazon Web Services',
-      imageUrl: '/placeholder.svg',
-      progress: 15,
-      totalSections: 28,
-      completedSections: 4,
-      studyTimeMinutes: 320,
-      lastStudied: new Date(Date.now() - 1000 * 60 * 60 * 72),
-      masteryLevel: 22,
-      bloomsLevel: 'understand',
-      currentStreak: 0,
-      averageQuizScore: 65,
-      engagementScore: 45,
-      learningVelocity: 0.8,
-      predictedCompletionDays: 90,
-      insights: [
-        {
-          id: '1',
-          type: 'warning',
-          title: 'Course at risk',
-          description: 'You haven&apos;t studied this course in 3 days',
-          priority: 'high',
-          actionable: true,
-          action: { label: 'Resume Now', href: '/courses/course-4' },
-        },
-        {
-          id: '2',
-          type: 'recommendation',
-          title: 'Set a study schedule',
-          description: 'Regular study sessions will help build momentum',
-          priority: 'medium',
-          actionable: true,
-          action: { label: 'Create Schedule', href: '/schedule' },
-        },
-      ],
-      metrics: [
-        { label: 'Velocity', value: '0.8x', trend: 'down', change: '-0.5', color: 'text-red-500' },
-        { label: 'Mastery', value: '22%', trend: 'stable' },
-        { label: 'Engagement', value: '45%', trend: 'down', change: '-15%' },
-        { label: 'Est. Completion', value: '90d', color: 'text-red-500' },
-      ],
-      strengths: ['EC2 basics'],
-      areasToImprove: ['VPC networking', 'IAM policies', 'S3 storage patterns'],
-    },
-  ];
 
-  return courses;
-}
 
 export function CourseInsights({
   className,
@@ -298,6 +94,7 @@ export function CourseInsights({
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Fetch courses on mount
   useEffect(() => {
@@ -311,17 +108,18 @@ export function CourseInsights({
             const data = await response.json();
             if (data.success && data.data) {
               setCourses(data.data);
+              setLoadError(null);
             } else {
-              // Use mock data as fallback
-              setCourses(generateMockCourseInsights());
+              setCourses([]);
+              setLoadError('No course insights available yet.');
             }
           } else {
-            // Use mock data as fallback
-            setCourses(generateMockCourseInsights());
+            setCourses([]);
+            setLoadError('Failed to load course insights.');
           }
         } catch {
-          // Use mock data on error
-          setCourses(generateMockCourseInsights());
+          setCourses([]);
+          setLoadError('Failed to load course insights.');
         } finally {
           setIsLoading(false);
         }
@@ -340,10 +138,11 @@ export function CourseInsights({
         const data = await response.json();
         if (data.success && data.data) {
           setCourses(data.data);
+          setLoadError(null);
         }
       }
     } catch {
-      // Keep existing data on error
+      setLoadError('Failed to refresh course insights.');
     } finally {
       setIsRefreshing(false);
     }
@@ -714,9 +513,11 @@ export function CourseInsights({
               No courses found
             </h3>
             <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
-              {searchQuery || filterBy !== 'all'
-                ? 'Try adjusting your search or filters'
-                : 'Start learning by enrolling in a course'}
+              {loadError
+                ? loadError
+                : searchQuery || filterBy !== 'all'
+                  ? 'Try adjusting your search or filters'
+                  : 'Start learning by enrolling in a course'}
             </p>
             <Link href="/courses">
               <Button className="mt-4 gap-2">

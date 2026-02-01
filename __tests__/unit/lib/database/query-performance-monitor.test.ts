@@ -78,14 +78,15 @@ describe('QueryPerformanceMonitor', () => {
     });
 
     it('should return original client when monitoring is disabled', () => {
-      (process.env as any).NODE_ENV = 'production';
-      (process.env as any).ENABLE_QUERY_MONITORING = 'false';
-      
-      // Create new instance to test disabled state
-      const disabledMonitor = QueryPerformanceMonitor.getInstance();
-      const wrappedClient = disabledMonitor.wrapPrismaClient(mockPrismaClient as any);
-      
+      // Directly disable monitoring on the singleton (env vars are read once at construction)
+      (monitor as any).isEnabled = false;
+
+      const wrappedClient = monitor.wrapPrismaClient(mockPrismaClient as any);
+
       expect(wrappedClient).toBe(mockPrismaClient);
+
+      // Restore for other tests
+      (monitor as any).isEnabled = true;
     });
   });
 

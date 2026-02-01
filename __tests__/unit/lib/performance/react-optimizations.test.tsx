@@ -7,7 +7,17 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 // Mock utility functions and components that don't exist
-const withMemoization = (Component: React.ComponentType<any>) => React.memo(Component);
+// Use custom comparator to shallow-compare non-function props (mimics production memo HOC)
+const withMemoization = (Component: React.ComponentType<any>) =>
+  React.memo(Component, (prevProps, nextProps) => {
+    const prevKeys = Object.keys(prevProps);
+    const nextKeys = Object.keys(nextProps);
+    if (prevKeys.length !== nextKeys.length) return false;
+    return prevKeys.every((key) => {
+      if (typeof prevProps[key] === 'function' && typeof nextProps[key] === 'function') return true;
+      return Object.is(prevProps[key], nextProps[key]);
+    });
+  });
 const withOptimizedMemo = (Component: React.ComponentType<any>) => React.memo(Component);
 
 // Mock components

@@ -1,3 +1,5 @@
+jest.unmock('@/data/user');
+
 import { getUserByEmail, getUserById } from '@/data/user';
 import { db } from '@/lib/db';
 
@@ -28,7 +30,6 @@ describe('User Data Functions', () => {
           name: true,
           email: true,
           password: true,
-          role: true,
           isTwoFactorEnabled: true,
           emailVerified: true,
           image: true,
@@ -82,12 +83,12 @@ describe('User Data Functions', () => {
           id: true,
           name: true,
           email: true,
-          role: true,
           emailVerified: true,
           image: true,
           isTwoFactorEnabled: true,
           totpEnabled: true,
-          totpVerified: true
+          totpVerified: true,
+          createdAt: true
         }
       });
     });

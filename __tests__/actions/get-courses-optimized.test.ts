@@ -1,34 +1,8 @@
-import { db } from '@/lib/db';
-import { prismaMock } from '../utils/test-db';
-
-// Mock the action module
+// Mock the module explicitly to ensure we have jest.fn() functions
 jest.mock('@/actions/get-courses-optimized', () => ({
-  getAllCoursesOptimized: jest.fn().mockImplementation(async ({ userId, ...params } = {}) => {
-    const courses = await prismaMock.course.findMany({
-      where: {
-        isPublished: true,
-        ...params.where,
-      },
-    });
-    
-    // Add progress calculation and return paginated response
-    const coursesWithProgress = courses.map((course: any) => ({
-      ...course,
-      progress: userId ? 50 : null, // Mock progress
-    }));
-
-    return {
-      courses: coursesWithProgress,
-      pagination: {
-        page: 1,
-        limit: 10,
-        total: coursesWithProgress.length,
-        totalPages: 1,
-        hasNext: false,
-        hasPrev: false,
-      },
-    };
-  }),
+  getAllCoursesOptimized: jest.fn(),
+  getCoursesOptimized: jest.fn(),
+  invalidateCourseCache: jest.fn(),
 }));
 
 import { getAllCoursesOptimized } from '@/actions/get-courses-optimized';
@@ -66,7 +40,11 @@ describe('getAllCoursesOptimized action', () => {
   ];
 
   it('should return courses with progress for authenticated user', async () => {
-    (getAllCoursesOptimized as jest.Mock).mockResolvedValue(mockCourses);
+    const coursesWithProgress = mockCourses.map(c => ({ ...c, progress: 50 }));
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue({
+      courses: coursesWithProgress,
+      pagination: { page: 1, limit: 10, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+    });
 
     const result = await getAllCoursesOptimized({ userId: 'user-1' });
 
@@ -76,7 +54,11 @@ describe('getAllCoursesOptimized action', () => {
   });
 
   it('should return courses without progress for guest', async () => {
-    (getAllCoursesOptimized as jest.Mock).mockResolvedValue(mockCourses);
+    const coursesNoProgress = mockCourses.map(c => ({ ...c, progress: null }));
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue({
+      courses: coursesNoProgress,
+      pagination: { page: 1, limit: 10, total: 2, totalPages: 1, hasNext: false, hasPrev: false },
+    });
 
     const result = await getAllCoursesOptimized({});
 
@@ -85,8 +67,10 @@ describe('getAllCoursesOptimized action', () => {
   });
 
   it('should filter by title search', async () => {
-    const searchResults = [mockCourses[0]];
-    (getAllCoursesOptimized as jest.Mock).mockResolvedValue(searchResults);
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue({
+      courses: [{ ...mockCourses[0], progress: null }],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1, hasNext: false, hasPrev: false },
+    });
 
     const result = await getAllCoursesOptimized({ title: 'Fast Course 1' });
 
@@ -95,7 +79,10 @@ describe('getAllCoursesOptimized action', () => {
   });
 
   it('should handle empty results', async () => {
-    (getAllCoursesOptimized as jest.Mock).mockResolvedValue([]);
+    (getAllCoursesOptimized as jest.Mock).mockResolvedValue({
+      courses: [],
+      pagination: { page: 1, limit: 10, total: 0, totalPages: 0, hasNext: false, hasPrev: false },
+    });
 
     const result = await getAllCoursesOptimized({ userId: 'user-1' });
 

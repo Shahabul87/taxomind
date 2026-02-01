@@ -10,6 +10,7 @@ const mockPool = {
   connect: jest.fn(),
   query: jest.fn(),
   end: jest.fn(),
+  on: jest.fn(),
   totalCount: 10,
   idleCount: 5,
   waitingCount: 0,
@@ -22,6 +23,13 @@ const mockClient = {
 
 jest.mock('pg', () => ({
   Pool: jest.fn().mockImplementation(() => mockPool),
+}));
+
+jest.mock('@prisma/client', () => ({
+  PrismaClient: jest.fn().mockImplementation(() => ({
+    $connect: jest.fn(),
+    $disconnect: jest.fn(),
+  })),
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -210,10 +218,10 @@ describe('DatabaseConnectionPool', () => {
 
     it('should provide health status', () => {
       const health = pool.getHealthStatus();
-      
-      expect(health).toHaveProperty('healthy');
-      expect(health).toHaveProperty('uptime');
-      expect(health).toHaveProperty('connections');
+
+      expect(health).toHaveProperty('status');
+      expect(health).toHaveProperty('details');
+      expect(['healthy', 'degraded', 'unhealthy']).toContain(health.status);
     });
   });
 
@@ -267,13 +275,13 @@ describe('DatabaseConnectionPool', () => {
 
   describe('Error Handling', () => {
     it('should handle pool connection errors', async () => {
-      mockPool.connect.mockRejectedValueOnce(new Error('Pool connection failed'));
-      
+      process.env.DATABASE_URL = 'postgres://user:pass@localhost:5432/testdb';
       await pool.initialize();
-      
-      await expect(
-        pool.query('SELECT 1')
-      ).rejects.toThrow('Pool connection failed');
+
+      // After initialization succeeds, make subsequent connect fail
+      mockPool.connect.mockRejectedValueOnce(new Error('Pool connection failed'));
+
+      await expect(pool.query('SELECT 1')).rejects.toThrow('Pool connection failed');
     });
 
     it('should handle uninitialized pool queries', async () => {

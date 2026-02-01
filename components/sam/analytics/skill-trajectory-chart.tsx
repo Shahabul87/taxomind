@@ -117,63 +117,6 @@ const SKILL_COLORS = [
 // HELPER FUNCTIONS
 // ============================================================================
 
-function generateSampleSkills(): Skill[] {
-  const skillNames = [
-    { name: 'JavaScript', category: 'Programming' },
-    { name: 'React', category: 'Frontend' },
-    { name: 'TypeScript', category: 'Programming' },
-    { name: 'CSS', category: 'Frontend' },
-    { name: 'Node.js', category: 'Backend' },
-    { name: 'SQL', category: 'Database' },
-    { name: 'Git', category: 'Tools' },
-    { name: 'Testing', category: 'Quality' },
-  ];
-
-  return skillNames.map((skill, index) => {
-    const history = generateSkillHistory(30);
-    const currentMastery = history[history.length - 1]?.mastery ?? 50;
-    const previousMastery = history[history.length - 8]?.mastery ?? currentMastery;
-    const velocity = (currentMastery - previousMastery) / 7; // per week
-
-    return {
-      id: `skill-${index}`,
-      name: skill.name,
-      category: skill.category,
-      currentMastery,
-      targetMastery: 80,
-      history,
-      trend: velocity > 1 ? 'improving' : velocity < -1 ? 'declining' : 'stable',
-      velocity: Math.round(velocity * 10) / 10,
-      hoursSpent: Math.floor(20 + Math.random() * 80),
-      lastPracticed: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-    };
-  });
-}
-
-function generateSkillHistory(days: number): SkillDataPoint[] {
-  const data: SkillDataPoint[] = [];
-  const today = new Date();
-  let mastery = 20 + Math.random() * 30; // Start between 20-50
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-
-    // Random progression with slight upward trend
-    const delta = Math.random() * 4 - 1; // -1 to +3
-    mastery = Math.max(0, Math.min(100, mastery + delta));
-
-    data.push({
-      date: date.toISOString().split('T')[0],
-      mastery: Math.round(mastery * 10) / 10,
-      practiceCount: Math.floor(Math.random() * 5),
-      accuracy: Math.round(60 + Math.random() * 35),
-    });
-  }
-
-  return data;
-}
-
 function getMasteryLevel(mastery: number): typeof MASTERY_LEVELS[0] {
   return MASTERY_LEVELS.find((l) => mastery >= l.min && mastery < l.max) ?? MASTERY_LEVELS[0];
 }
@@ -345,9 +288,7 @@ export function SkillTrajectoryChart({
 }: SkillTrajectoryChartProps) {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
-  // Generate sample data if not provided
-  const isUsingDemoData = !skills;
-  const chartSkills = useMemo(() => skills ?? generateSampleSkills(), [skills]);
+  const chartSkills = useMemo(() => skills ?? [], [skills]);
 
   // Group skills by category
   const skillCategories = useMemo(() => {
@@ -406,6 +347,14 @@ export function SkillTrajectoryChart({
     );
   }, [chartSkills]);
 
+  if (chartSkills.length === 0) {
+    return (
+      <Card className={cn('p-6 text-center text-sm text-muted-foreground', className)}>
+        No skill trajectory data available yet.
+      </Card>
+    );
+  }
+
   // Toggle skill selection
   const toggleSkill = (skillId: string) => {
     setSelectedSkills((prev) =>
@@ -419,11 +368,6 @@ export function SkillTrajectoryChart({
 
   return (
     <div className={cn('space-y-6', className)}>
-      {isUsingDemoData && (
-        <div className="flex justify-end">
-          <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
-        </div>
-      )}
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>

@@ -541,7 +541,7 @@ What would you like me to help you with today?`,
     } finally {
       setIsLoading(false);
     }
-  }, [courseContext, courseData.chapters, messages, handleFormAction]);
+  }, [courseContext, courseData.chapters, messages]);
 
   // Detect user intent
   const detectIntent = (message: string): string => {

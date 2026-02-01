@@ -2,19 +2,11 @@
  * Tests for ConversationThreadingService (Gap 1)
  *
  * Verifies thread creation, topic detection, and topic drift detection.
+ *
+ * NOTE: @/lib/db is globally mocked via moduleNameMapper -> __mocks__/db.js.
+ * We do NOT call jest.mock('@/lib/db') here; instead we configure per-test
+ * return values on the already-mocked db.sAMConversation methods.
  */
-
-jest.mock('@/lib/db', () => ({
-  db: {
-    sAMConversation: {
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-    },
-  },
-}));
 
 jest.mock('@/lib/logger', () => ({
   logger: {
@@ -40,7 +32,9 @@ import {
   getConversationThreadingService,
 } from '@/lib/sam/services/conversation-threading';
 
-const mockDb = db as jest.Mocked<typeof db>;
+// The global mock (from __mocks__/db.js) already provides db.sAMConversation
+// with jest.fn() methods. We cast for type safety:
+const mockConversation = db.sAMConversation as Record<string, jest.Mock>;
 
 describe('ConversationThreadingService', () => {
   let service: ConversationThreadingService;
@@ -135,7 +129,7 @@ describe('ConversationThreadingService', () => {
 
   describe('createThread', () => {
     it('should create a thread linked to the parent conversation', async () => {
-      (mockDb.sAMConversation.findFirst as jest.Mock).mockResolvedValue({
+      mockConversation.findFirst.mockResolvedValue({
         id: 'parent-1',
         userId: 'user-1',
         courseId: 'course-1',
@@ -144,7 +138,7 @@ describe('ConversationThreadingService', () => {
         tutorMode: 'SOCRATIC',
       });
 
-      (mockDb.sAMConversation.create as jest.Mock).mockResolvedValue({
+      mockConversation.create.mockResolvedValue({
         id: 'thread-1',
         parentConversationId: 'parent-1',
         threadType: 'BRANCH',
@@ -159,7 +153,7 @@ describe('ConversationThreadingService', () => {
 
       expect(result).toBeDefined();
       expect(result.id).toBe('thread-1');
-      expect(mockDb.sAMConversation.create).toHaveBeenCalledWith(
+      expect(mockConversation.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             parentConversationId: 'parent-1',
@@ -171,7 +165,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should throw if parent conversation not found', async () => {
-      (mockDb.sAMConversation.findFirst as jest.Mock).mockResolvedValue(null);
+      mockConversation.findFirst.mockResolvedValue(null);
 
       await expect(
         service.createThread('nonexistent', 'user-1')
@@ -179,8 +173,8 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should throw if user does not own the conversation', async () => {
-      // findFirst with where: { id, userId } returns null when userId doesn't match
-      (mockDb.sAMConversation.findFirst as jest.Mock).mockResolvedValue(null);
+      // findFirst with where: { id, userId } returns null when userId does not match
+      mockConversation.findFirst.mockResolvedValue(null);
 
       await expect(
         service.createThread('parent-1', 'user-1')
@@ -188,7 +182,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should default to BRANCH thread type', async () => {
-      (mockDb.sAMConversation.findFirst as jest.Mock).mockResolvedValue({
+      mockConversation.findFirst.mockResolvedValue({
         id: 'parent-1',
         userId: 'user-1',
         courseId: null,
@@ -197,14 +191,14 @@ describe('ConversationThreadingService', () => {
         tutorMode: 'DIRECT',
       });
 
-      (mockDb.sAMConversation.create as jest.Mock).mockResolvedValue({
+      mockConversation.create.mockResolvedValue({
         id: 'thread-2',
         topic: null,
       });
 
       await service.createThread('parent-1', 'user-1');
 
-      expect(mockDb.sAMConversation.create).toHaveBeenCalledWith(
+      expect(mockConversation.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             threadType: 'BRANCH',
@@ -216,7 +210,7 @@ describe('ConversationThreadingService', () => {
 
   describe('hasTopicDrifted', () => {
     it('should detect drift when topic changes significantly', async () => {
-      (mockDb.sAMConversation.findUnique as jest.Mock).mockResolvedValue({
+      mockConversation.findUnique.mockResolvedValue({
         id: 'conv-1',
         messages: [
           { content: 'How do I solve this practice problem?', messageType: 'USER_MESSAGE' },
@@ -242,7 +236,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should not drift when same topic continues', async () => {
-      (mockDb.sAMConversation.findUnique as jest.Mock).mockResolvedValue({
+      mockConversation.findUnique.mockResolvedValue({
         id: 'conv-1',
         messages: [
           { content: 'Help me study this concept', messageType: 'USER_MESSAGE' },
@@ -262,7 +256,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should return false when fewer than 3 messages exist', async () => {
-      (mockDb.sAMConversation.findUnique as jest.Mock).mockResolvedValue({
+      mockConversation.findUnique.mockResolvedValue({
         id: 'conv-1',
         messages: [
           { content: 'Hello', messageType: 'USER_MESSAGE' },
@@ -278,7 +272,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should return false when conversation not found', async () => {
-      (mockDb.sAMConversation.findUnique as jest.Mock).mockResolvedValue(null);
+      mockConversation.findUnique.mockResolvedValue(null);
 
       const result = await service.hasTopicDrifted('nonexistent', 'Hello');
 
@@ -290,7 +284,7 @@ describe('ConversationThreadingService', () => {
   describe('getThreads', () => {
     it('should return threads with cursor-based pagination', async () => {
       const now = new Date();
-      (mockDb.sAMConversation.findMany as jest.Mock).mockResolvedValue([
+      mockConversation.findMany.mockResolvedValue([
         {
           id: 'thread-1',
           topic: 'Assessment & Testing',
@@ -319,7 +313,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should return empty threads list when none exist', async () => {
-      (mockDb.sAMConversation.findMany as jest.Mock).mockResolvedValue([]);
+      mockConversation.findMany.mockResolvedValue([]);
 
       const result = await service.getThreads('conv-1', 'user-1');
 
@@ -330,7 +324,7 @@ describe('ConversationThreadingService', () => {
 
   describe('autoSummarize', () => {
     it('should use fallback when no AI adapter available', async () => {
-      (mockDb.sAMConversation.findUnique as jest.Mock).mockResolvedValue({
+      mockConversation.findUnique.mockResolvedValue({
         id: 'conv-1',
         messages: [
           { messageType: 'USER_MESSAGE', content: 'I want to learn about recursion in programming', createdAt: new Date() },
@@ -338,7 +332,7 @@ describe('ConversationThreadingService', () => {
         ],
       });
 
-      (mockDb.sAMConversation.update as jest.Mock).mockResolvedValue({
+      mockConversation.update.mockResolvedValue({
         id: 'conv-1',
         summary: 'I want to learn about recursion in programming',
       });
@@ -346,7 +340,7 @@ describe('ConversationThreadingService', () => {
       const summary = await service.autoSummarize('conv-1');
 
       expect(summary).toBe('I want to learn about recursion in programming');
-      expect(mockDb.sAMConversation.update).toHaveBeenCalledWith(
+      expect(mockConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'conv-1' },
           data: expect.objectContaining({
@@ -357,7 +351,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should return fallback message for empty conversations', async () => {
-      (mockDb.sAMConversation.findUnique as jest.Mock).mockResolvedValue({
+      mockConversation.findUnique.mockResolvedValue({
         id: 'conv-1',
         messages: [],
       });
@@ -368,7 +362,7 @@ describe('ConversationThreadingService', () => {
     });
 
     it('should return fallback for missing conversation', async () => {
-      (mockDb.sAMConversation.findUnique as jest.Mock).mockResolvedValue(null);
+      mockConversation.findUnique.mockResolvedValue(null);
 
       const summary = await service.autoSummarize('nonexistent');
 

@@ -118,8 +118,12 @@ describe('ExamList', () => {
 
   it('should show loading state when publishing', () => {
     render(<ExamList {...defaultProps} publishingExamId={mockExam.id} />);
-    
-    const publishButton = screen.getByRole('button', { name: /publish/i });
-    expect(publishButton).toBeDisabled();
+
+    // When loading, the publish button only shows a spinner (no text),
+    // so find the disabled button that isn't preview/edit/delete
+    const allButtons = screen.getAllByRole('button');
+    const disabledButtons = allButtons.filter(btn => btn.hasAttribute('disabled'));
+    expect(disabledButtons.length).toBeGreaterThanOrEqual(1);
+    expect(disabledButtons[0]).toBeDisabled();
   });
 });

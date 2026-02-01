@@ -121,129 +121,6 @@ const DEPTH_COLORS = {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function generateSampleMasteryHistory(days: number = 30): MasteryDataPoint[] {
-  const data: MasteryDataPoint[] = [];
-  const today = new Date();
-  let mastery = 20;
-  let topicsMastered = 0;
-  let totalHours = 0;
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-
-    // Gradual mastery improvement
-    mastery = Math.min(100, mastery + Math.random() * 2);
-    const hoursToday = Math.random() * 2;
-    totalHours += hoursToday;
-
-    // Occasionally master a topic
-    if (Math.random() > 0.8) {
-      topicsMastered += 1;
-    }
-
-    data.push({
-      date: date.toISOString().split('T')[0],
-      overallMastery: Math.round(mastery * 10) / 10,
-      courseMastery: Math.round((mastery - 5 + Math.random() * 10) * 10) / 10,
-      topicsMastered,
-      hoursSpent: Math.round(totalHours * 10) / 10,
-    });
-  }
-
-  return data;
-}
-
-function generateSampleCourseMastery(): CourseMastery[] {
-  const courses = [
-    { name: 'JavaScript Fundamentals', topics: 15 },
-    { name: 'React Development', topics: 20 },
-    { name: 'TypeScript Mastery', topics: 12 },
-    { name: 'Node.js Backend', topics: 18 },
-    { name: 'Database Design', topics: 10 },
-  ];
-
-  return courses.map((course, index) => {
-    const mastery = 30 + Math.random() * 60;
-    const topicsMastered = Math.floor((mastery / 100) * course.topics);
-
-    return {
-      courseId: `course-${index}`,
-      courseName: course.name,
-      mastery: Math.round(mastery * 10) / 10,
-      topicsTotal: course.topics,
-      topicsMastered,
-      hoursSpent: Math.round(5 + Math.random() * 20),
-      lastActivity: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-      completionRate: Math.round((topicsMastered / course.topics) * 100),
-    };
-  });
-}
-
-function generateSampleTopicMastery(): TopicMastery[] {
-  const topics = [
-    { name: 'Variables & Types', course: 'JavaScript', mastery: 95 },
-    { name: 'Functions', course: 'JavaScript', mastery: 85 },
-    { name: 'Arrays & Objects', course: 'JavaScript', mastery: 78 },
-    { name: 'Async/Await', course: 'JavaScript', mastery: 62 },
-    { name: 'React Hooks', course: 'React', mastery: 75 },
-    { name: 'State Management', course: 'React', mastery: 55 },
-    { name: 'Component Design', course: 'React', mastery: 70 },
-    { name: 'TypeScript Basics', course: 'TypeScript', mastery: 80 },
-    { name: 'Generics', course: 'TypeScript', mastery: 45 },
-    { name: 'REST APIs', course: 'Node.js', mastery: 72 },
-    { name: 'Authentication', course: 'Node.js', mastery: 58 },
-    { name: 'SQL Queries', course: 'Database', mastery: 68 },
-  ];
-
-  return topics.map((topic, index) => ({
-    topicId: `topic-${index}`,
-    topicName: topic.name,
-    courseName: topic.course,
-    mastery: topic.mastery,
-    size: topic.mastery,
-    depth: topic.mastery >= 75 ? 'deep' : topic.mastery >= 50 ? 'intermediate' : 'surface',
-  }));
-}
-
-function generateSampleMilestones(): MasteryMilestone[] {
-  return [
-    {
-      id: '1',
-      title: 'JavaScript Expert',
-      description: 'Master all JavaScript fundamentals',
-      type: 'course',
-      achievedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      progress: 15,
-      target: 15,
-    },
-    {
-      id: '2',
-      title: 'React Developer',
-      description: 'Complete React Development course',
-      type: 'course',
-      progress: 16,
-      target: 20,
-    },
-    {
-      id: '3',
-      title: '100 Topics Mastered',
-      description: 'Master 100 different topics',
-      type: 'achievement',
-      progress: 67,
-      target: 100,
-    },
-    {
-      id: '4',
-      title: 'Full Stack Ready',
-      description: 'Achieve 70% mastery across all courses',
-      type: 'skill',
-      progress: 58,
-      target: 70,
-    },
-  ];
-}
-
 function getMasteryLevel(mastery: number) {
   return MASTERY_LEVELS.find((l) => mastery >= l.min && mastery < l.max) ?? MASTERY_LEVELS[0];
 }
@@ -517,31 +394,17 @@ function CustomTreemapContent({ x, y, width, height, depth, name, mastery }: Tre
 // ============================================================================
 
 export function MasteryProgressChart({
-  masteryHistory,
-  courseMastery,
-  topicMastery,
-  milestones,
-  overallMastery = 62,
+  masteryHistory = [],
+  courseMastery = [],
+  topicMastery = [],
+  milestones = [],
+  overallMastery = 0,
   className,
 }: MasteryProgressChartProps) {
-  // Generate sample data if not provided
-  const isUsingDemoData = !masteryHistory;
-  const chartMasteryHistory = useMemo(
-    () => masteryHistory ?? generateSampleMasteryHistory(),
-    [masteryHistory]
-  );
-  const chartCourseMastery = useMemo(
-    () => courseMastery ?? generateSampleCourseMastery(),
-    [courseMastery]
-  );
-  const chartTopicMastery = useMemo(
-    () => topicMastery ?? generateSampleTopicMastery(),
-    [topicMastery]
-  );
-  const chartMilestones = useMemo(
-    () => milestones ?? generateSampleMilestones(),
-    [milestones]
-  );
+  const chartMasteryHistory = useMemo(() => masteryHistory ?? [], [masteryHistory]);
+  const chartCourseMastery = useMemo(() => courseMastery ?? [], [courseMastery]);
+  const chartTopicMastery = useMemo(() => topicMastery ?? [], [topicMastery]);
+  const chartMilestones = useMemo(() => milestones ?? [], [milestones]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -568,6 +431,17 @@ export function MasteryProgressChart({
       distribution,
     };
   }, [chartMasteryHistory, chartTopicMastery, chartCourseMastery, overallMastery]);
+
+  const hasData =
+    chartMasteryHistory.length > 0 || chartCourseMastery.length > 0 || chartTopicMastery.length > 0;
+
+  if (!hasData) {
+    return (
+      <Card className={cn('p-6 text-center text-sm text-muted-foreground', className)}>
+        No mastery data available yet.
+      </Card>
+    );
+  }
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -633,9 +507,6 @@ export function MasteryProgressChart({
               <TrendingUp className="w-5 h-5" />
               Mastery Progress Over Time
             </CardTitle>
-            {isUsingDemoData && (
-              <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
-            )}
           </div>
           <CardDescription>
             Track your overall mastery growth

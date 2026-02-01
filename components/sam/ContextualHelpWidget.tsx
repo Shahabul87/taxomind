@@ -97,6 +97,10 @@ interface ContextualHelpWidgetProps {
   className?: string;
   /** Current page context for relevance */
   context?: string;
+  /** Optional preloaded help data */
+  data?: ContextualHelpData;
+  /** Allow demo help data in non-production environments */
+  allowDemoData?: boolean;
   /** Show search input */
   showSearch?: boolean;
   /** Show keyboard shortcuts */
@@ -332,6 +336,8 @@ function FAQItem({
 export function ContextualHelpWidget({
   className,
   context = 'dashboard',
+  data,
+  allowDemoData = false,
   showSearch = true,
   showShortcuts = true,
   maxItems = 5,
@@ -345,11 +351,23 @@ export function ContextualHelpWidget({
   const [openFAQs, setOpenFAQs] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'tips' | 'faq' | 'docs'>('tips');
 
-  // Load default help data
+  // Load help data
   useEffect(() => {
-    setHelpData(DEFAULT_HELP_DATA);
+    if (data) {
+      setHelpData(data);
+      setIsLoading(false);
+      return;
+    }
+
+    if (allowDemoData && process.env.NODE_ENV !== 'production') {
+      setHelpData(DEFAULT_HELP_DATA);
+      setIsLoading(false);
+      return;
+    }
+
+    setHelpData({ tips: [], faqs: [], docLinks: [], shortcuts: [] });
     setIsLoading(false);
-  }, [context]);
+  }, [context, data, allowDemoData]);
 
   // Filter tips based on context
   const filteredTips = useMemo(() => {

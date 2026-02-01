@@ -16,10 +16,17 @@ jest.mock('@/lib/logger', () => ({
 // Mock @noble/hashes
 jest.mock('@noble/hashes/scrypt', () => ({
   scrypt: jest.fn((password: string, salt: Uint8Array) => {
-    // Return a mock hash based on password and salt
+    // Return a deterministic hash based on full password content and salt
+    // Use a simple but collision-resistant approach: hash the full password string
     const mockHash = new Uint8Array(32);
+    // Seed from full password to avoid collisions between 'foo' and 'foobar'
+    let seed = password.length * 31;
+    for (let i = 0; i < password.length; i++) {
+      seed = (seed * 37 + password.charCodeAt(i)) & 0xffffffff;
+    }
     for (let i = 0; i < 32; i++) {
-      mockHash[i] = (password.charCodeAt(i % password.length) + salt[i % salt.length]) % 256;
+      seed = (seed * 1103515245 + 12345) & 0xffffffff;
+      mockHash[i] = ((seed >>> 16) + (salt[i % salt.length] || 0)) & 0xff;
     }
     return mockHash;
   }),

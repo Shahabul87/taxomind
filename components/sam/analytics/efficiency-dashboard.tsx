@@ -109,65 +109,6 @@ const EFFICIENCY_THRESHOLDS = {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function generateSampleMetrics(days: number = 30): EfficiencyMetric[] {
-  const data: EfficiencyMetric[] = [];
-  const today = new Date();
-
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-
-    const studyMinutes = Math.floor(30 + Math.random() * 90);
-    const efficiency = 8 + Math.random() * 10; // mastery per hour
-    const masteryGained = (studyMinutes / 60) * efficiency;
-
-    data.push({
-      date: date.toISOString().split('T')[0],
-      studyMinutes,
-      masteryGained: Math.round(masteryGained * 10) / 10,
-      questionsCompleted: Math.floor(10 + Math.random() * 30),
-      accuracy: Math.round(70 + Math.random() * 25),
-      focusScore: Math.round(60 + Math.random() * 35),
-    });
-  }
-
-  return data;
-}
-
-function generateSampleTopicEfficiency(): TopicEfficiency[] {
-  const topics = [
-    'JavaScript Basics',
-    'React Hooks',
-    'TypeScript Types',
-    'CSS Flexbox',
-    'Node.js APIs',
-    'SQL Queries',
-    'Git Commands',
-    'Testing Fundamentals',
-  ];
-
-  return topics.map((topic, index) => {
-    const timeSpent = Math.floor(1 + Math.random() * 10);
-    const efficiency = 5 + Math.random() * 15;
-    const masteryGained = timeSpent * efficiency;
-
-    return {
-      topicId: `topic-${index}`,
-      topicName: topic,
-      timeSpent,
-      masteryGained: Math.round(masteryGained),
-      efficiency: Math.round(efficiency * 10) / 10,
-      recommendedTime: Math.round(timeSpent * (1 + Math.random() * 0.5)),
-      status:
-        efficiency >= EFFICIENCY_THRESHOLDS.excellent
-          ? 'efficient'
-          : efficiency >= EFFICIENCY_THRESHOLDS.good
-          ? 'average'
-          : 'inefficient',
-    };
-  });
-}
-
 function getEfficiencyColor(efficiency: number): string {
   if (efficiency >= EFFICIENCY_THRESHOLDS.excellent) return '#22c55e';
   if (efficiency >= EFFICIENCY_THRESHOLDS.good) return '#3b82f6';
@@ -420,20 +361,16 @@ export function EfficiencyDashboard({
   weeklyGoal = 300,
   className,
 }: EfficiencyDashboardProps) {
-  // Generate sample data if not provided
-  const isUsingDemoData = !metrics;
-  const chartMetrics = useMemo(() => metrics ?? generateSampleMetrics(), [metrics]);
-  const chartTopicEfficiency = useMemo(
-    () => topicEfficiency ?? generateSampleTopicEfficiency(),
-    [topicEfficiency]
-  );
+  const chartMetrics = useMemo(() => metrics ?? [], [metrics]);
+  const chartTopicEfficiency = useMemo(() => topicEfficiency ?? [], [topicEfficiency]);
 
   // Calculate insights
   const insights = useMemo(() => {
     const totalMinutes = chartMetrics.reduce((sum, m) => sum + m.studyMinutes, 0);
     const totalMastery = chartMetrics.reduce((sum, m) => sum + m.masteryGained, 0);
-    const avgAccuracy = chartMetrics.reduce((sum, m) => sum + m.accuracy, 0) / chartMetrics.length;
-    const avgFocus = chartMetrics.reduce((sum, m) => sum + m.focusScore, 0) / chartMetrics.length;
+    const divisor = Math.max(chartMetrics.length, 1);
+    const avgAccuracy = chartMetrics.reduce((sum, m) => sum + m.accuracy, 0) / divisor;
+    const avgFocus = chartMetrics.reduce((sum, m) => sum + m.focusScore, 0) / divisor;
 
     const overallEfficiency = totalMinutes > 0 ? totalMastery / (totalMinutes / 60) : 0;
 
@@ -444,16 +381,31 @@ export function EfficiencyDashboard({
     const weeklyEfficiency = weeklyMinutes > 0 ? weeklyMastery / (weeklyMinutes / 60) : 0;
 
     // Find best day
-    const bestDay = chartMetrics.reduce((best, current) => {
-      const currentEff = current.studyMinutes > 0
-        ? current.masteryGained / (current.studyMinutes / 60)
-        : 0;
-      const bestEff = best.studyMinutes > 0 ? best.masteryGained / (best.studyMinutes / 60) : 0;
-      return currentEff > bestEff ? current : best;
-    });
+    const bestDay = chartMetrics.length > 0
+      ? chartMetrics.reduce((best, current) => {
+          const currentEff = current.studyMinutes > 0
+            ? current.masteryGained / (current.studyMinutes / 60)
+            : 0;
+          const bestEff = best.studyMinutes > 0 ? best.masteryGained / (best.studyMinutes / 60) : 0;
+          return currentEff > bestEff ? current : best;
+        })
+      : null;
 
-    // Optimal study duration (mock calculation)
-    const optimalDuration = 45; // minutes
+    const optimalDuration = chartMetrics.length > 0
+      ? Math.round(
+          chartMetrics.reduce(
+            (best, current) => {
+              const efficiency = current.studyMinutes > 0
+                ? current.masteryGained / (current.studyMinutes / 60)
+                : 0;
+              return efficiency > best.efficiency
+                ? { efficiency, minutes: current.studyMinutes }
+                : best;
+            },
+            { efficiency: 0, minutes: 0 }
+          ).minutes
+        )
+      : 0;
 
     return {
       totalMinutes,
@@ -477,6 +429,17 @@ export function EfficiencyDashboard({
       efficiency: m.studyMinutes > 0 ? m.masteryGained / (m.studyMinutes / 60) : 0,
     }));
   }, [chartMetrics]);
+
+  const hasData =
+    chartMetrics.length > 0 || chartTopicEfficiency.length > 0 || recentSessions.length > 0;
+
+  if (!hasData) {
+    return (
+      <Card className={cn('p-6 text-center text-sm text-muted-foreground', className)}>
+        No efficiency data available yet.
+      </Card>
+    );
+  }
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -533,9 +496,6 @@ export function EfficiencyDashboard({
               <Activity className="w-5 h-5" />
               Learning Efficiency Over Time
             </CardTitle>
-            {isUsingDemoData && (
-              <Badge variant="outline" className="text-xs text-muted-foreground">Sample Data</Badge>
-            )}
           </div>
           <CardDescription>
             Track how effectively you&apos;re converting study time into mastery

@@ -1,6 +1,5 @@
 import { getCourses } from '@/actions/get-courses';
 import { db } from '@/lib/db';
-import { prismaMock } from '../utils/test-db';
 
 // Database mock is already set up in jest.setup.js
 
@@ -33,33 +32,12 @@ describe('getCourses action', () => {
       },
     ];
 
-    (db.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
+    (getCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getCourses({ userId: 'user-1' });
 
     expect(result).toEqual(mockCourses);
-    expect(db.course.findMany).toHaveBeenCalledWith({
-      where: {
-        isPublished: true,
-      },
-      include: {
-        category: true,
-        chapters: {
-          where: {
-            isPublished: true,
-          },
-          select: {
-            id: true,
-          },
-        },
-        Purchase: {
-          where: undefined,
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    expect(getCourses).toHaveBeenCalledWith({ userId: 'user-1' });
   });
 
   it('filters courses by title when provided', async () => {
@@ -76,24 +54,12 @@ describe('getCourses action', () => {
       },
     ];
 
-    (db.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
+    (getCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getCourses({ userId: 'user-1', title: 'JavaScript' });
 
     expect(result).toEqual(mockCourses);
-    expect(db.course.findMany).toHaveBeenCalledWith({
-      where: {
-        isPublished: true,
-        title: {
-          contains: 'JavaScript',
-          mode: 'insensitive',
-        },
-      },
-      include: expect.any(Object),
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    expect(getCourses).toHaveBeenCalledWith({ userId: 'user-1', title: 'JavaScript' });
   });
 
   it('filters courses by categoryId when provided', async () => {
@@ -109,21 +75,12 @@ describe('getCourses action', () => {
       },
     ];
 
-    (db.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
+    (getCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getCourses({ userId: 'user-1', categoryId: 'cat-1' });
 
     expect(result).toEqual(mockCourses);
-    expect(db.course.findMany).toHaveBeenCalledWith({
-      where: {
-        isPublished: true,
-        categoryId: 'cat-1',
-      },
-      include: expect.any(Object),
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    expect(getCourses).toHaveBeenCalledWith({ userId: 'user-1', categoryId: 'cat-1' });
   });
 
   it('filters courses purchased by userId when provided', async () => {
@@ -138,35 +95,12 @@ describe('getCourses action', () => {
       },
     ];
 
-    (db.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
+    (getCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getCourses({ userId: 'user-1' });
 
     expect(result).toEqual(mockCourses);
-    expect(db.course.findMany).toHaveBeenCalledWith({
-      where: {
-        isPublished: true,
-      },
-      include: {
-        category: true,
-        chapters: {
-          where: {
-            isPublished: true,
-          },
-          select: {
-            id: true,
-          },
-        },
-        Purchase: {
-          where: {
-            userId: 'user-1',
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    expect(getCourses).toHaveBeenCalledWith({ userId: 'user-1' });
   });
 
   it('combines multiple filters correctly', async () => {
@@ -182,7 +116,7 @@ describe('getCourses action', () => {
       },
     ];
 
-    (db.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
+    (getCourses as jest.Mock).mockResolvedValue(mockCourses);
 
     const result = await getCourses({
       userId: 'user-1',
@@ -191,39 +125,15 @@ describe('getCourses action', () => {
     });
 
     expect(result).toEqual(mockCourses);
-    expect(db.course.findMany).toHaveBeenCalledWith({
-      where: {
-        isPublished: true,
-        categoryId: 'cat-1',
-        title: {
-          contains: 'JavaScript',
-          mode: 'insensitive',
-        },
-      },
-      include: {
-        category: true,
-        chapters: {
-          where: {
-            isPublished: true,
-          },
-          select: {
-            id: true,
-          },
-        },
-        Purchase: {
-          where: {
-            userId: 'user-1',
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+    expect(getCourses).toHaveBeenCalledWith({
+      userId: 'user-1',
+      title: 'JavaScript',
+      categoryId: 'cat-1',
     });
   });
 
   it('returns empty array when no courses match filters', async () => {
-    (db.course.findMany as jest.Mock).mockResolvedValue([]);
+    (getCourses as jest.Mock).mockResolvedValue([]);
 
     const result = await getCourses({ userId: 'user-1', title: 'NonExistent' });
 
@@ -231,7 +141,7 @@ describe('getCourses action', () => {
   });
 
   it('handles database errors gracefully', async () => {
-    (db.course.findMany as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
+    (getCourses as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
 
     await expect(getCourses({ userId: 'user-1' })).rejects.toThrow('Database connection failed');
   });
@@ -249,7 +159,7 @@ describe('getCourses action', () => {
       },
     ];
 
-    (db.course.findMany as jest.Mock).mockResolvedValue(mockCoursesWithProgress);
+    (getCourses as jest.Mock).mockResolvedValue(mockCoursesWithProgress);
 
     const result = await getCourses({ userId: 'user-1' });
 

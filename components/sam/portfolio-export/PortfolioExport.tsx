@@ -86,6 +86,7 @@ export function PortfolioExport({
   const [exportSuccess, setExportSuccess] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [sections, setSections] = useState<ExportSections>({
     profile: true,
@@ -106,15 +107,18 @@ export function PortfolioExport({
           const data = await response.json();
           if (data.success && data.data) {
             setPortfolio(data.data);
+            setLoadError(null);
           } else {
-            // Use mock data
-            setPortfolio(generateMockPortfolio());
+            setPortfolio(null);
+            setLoadError('No portfolio data available yet.');
           }
         } else {
-          setPortfolio(generateMockPortfolio());
+          setPortfolio(null);
+          setLoadError('Failed to load portfolio data.');
         }
       } catch {
-        setPortfolio(generateMockPortfolio());
+        setPortfolio(null);
+        setLoadError('Failed to load portfolio data.');
       } finally {
         setIsLoading(false);
       }
@@ -131,6 +135,7 @@ export function PortfolioExport({
         const data = await response.json();
         if (data.success && data.data) {
           setPortfolio(data.data);
+          setLoadError(null);
           toast.success('Portfolio refreshed');
         }
       }
@@ -244,7 +249,9 @@ export function PortfolioExport({
               </p>
             </div>
           ) : (
-            <p className="text-center text-sm text-slate-500">No portfolio data available</p>
+            <p className="text-center text-sm text-slate-500">
+              {loadError ?? 'No portfolio data available'}
+            </p>
           )}
         </CardContent>
 
@@ -853,82 +860,4 @@ function downloadFile(blob: Blob, filename: string): void {
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
-}
-
-// Mock data generator
-function generateMockPortfolio(): PortfolioData {
-  return {
-    userId: 'user-123',
-    userName: 'Alex Developer',
-    userImage: undefined,
-    settings: {
-      isPublic: true,
-      title: 'Alex&apos;s Learning Portfolio',
-      bio: 'Full-stack developer passionate about AI and machine learning. Building the future one line of code at a time.',
-      headline: 'Software Engineer | AI Enthusiast | Lifelong Learner',
-      socialLinks: {
-        linkedin: 'https://linkedin.com/in/alexdev',
-        github: 'https://github.com/alexdev',
-        website: 'https://alexdev.io',
-      },
-      theme: 'professional',
-      featuredProjectIds: [],
-      featuredSkillIds: [],
-    },
-    projects: [
-      {
-        id: 'proj-1',
-        title: 'AI-Powered Task Manager',
-        description: 'A smart task management app that uses AI to prioritize and categorize tasks automatically.',
-        type: 'personal',
-        skills: ['React', 'TypeScript', 'OpenAI API'],
-        technologies: ['Next.js', 'TypeScript', 'Tailwind CSS', 'Prisma'],
-        url: 'https://taskmanager.dev',
-        repositoryUrl: 'https://github.com/alexdev/taskmanager',
-        highlights: ['10k+ users', 'Featured on Product Hunt'],
-        isPublic: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: 'proj-2',
-        title: 'E-Commerce Platform',
-        description: 'Full-stack e-commerce solution with payment processing and inventory management.',
-        type: 'professional',
-        skills: ['Node.js', 'PostgreSQL', 'Stripe'],
-        technologies: ['Express.js', 'React', 'PostgreSQL', 'Stripe'],
-        highlights: ['$100k+ processed', 'Enterprise clients'],
-        isPublic: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ],
-    skills: [
-      { skillId: 'skill-1', skillName: 'TypeScript', proficiencyLevel: 'EXPERT', compositeScore: 92, category: 'TECHNICAL', projectCount: 5, certificationCount: 1, verificationStatus: 'certified' },
-      { skillId: 'skill-2', skillName: 'React', proficiencyLevel: 'EXPERT', compositeScore: 88, category: 'TECHNICAL', projectCount: 8, certificationCount: 0, verificationStatus: 'course_verified' },
-      { skillId: 'skill-3', skillName: 'Node.js', proficiencyLevel: 'ADVANCED', compositeScore: 78, category: 'TECHNICAL', projectCount: 4, certificationCount: 1, verificationStatus: 'certified' },
-      { skillId: 'skill-4', skillName: 'Python', proficiencyLevel: 'ADVANCED', compositeScore: 75, category: 'TECHNICAL', projectCount: 3, certificationCount: 0, verificationStatus: 'course_verified' },
-      { skillId: 'skill-5', skillName: 'Machine Learning', proficiencyLevel: 'PROFICIENT', compositeScore: 65, category: 'DATA_SCIENCE', projectCount: 2, certificationCount: 0, verificationStatus: 'self_assessed' },
-    ],
-    certifications: [
-      { certificationId: 'cert-1', certificationName: 'AWS Solutions Architect', provider: 'Amazon Web Services', status: 'COMPLETED', completedDate: new Date('2024-06-15') },
-      { certificationId: 'cert-2', certificationName: 'Google Cloud Professional', provider: 'Google', status: 'COMPLETED', completedDate: new Date('2024-03-20') },
-      { certificationId: 'cert-3', certificationName: 'Meta React Developer', provider: 'Meta', status: 'IN_PROGRESS' },
-    ],
-    achievements: [
-      { id: 'ach-1', type: 'streak', title: '30 Day Streak', description: 'Maintained a 30-day learning streak', earnedAt: new Date() },
-      { id: 'ach-2', type: 'completion', title: 'Course Master', description: 'Completed 10 courses', earnedAt: new Date() },
-      { id: 'ach-3', type: 'score', title: 'Perfect Score', description: 'Achieved 100% on an exam', earnedAt: new Date() },
-      { id: 'ach-4', type: 'cognitive', title: 'Deep Thinker', description: 'Reached Analyze level in Bloom&apos;s Taxonomy', earnedAt: new Date() },
-    ],
-    stats: {
-      totalProjects: 2,
-      totalSkills: 5,
-      totalCertifications: 2,
-      totalAchievements: 4,
-      totalStudyHours: 248,
-      coursesCompleted: 12,
-      avgSkillScore: 80,
-    },
-  };
 }

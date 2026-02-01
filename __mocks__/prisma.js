@@ -26,7 +26,9 @@ const mockPrismaClient = () => {
     'samGoal', 'samSubGoal', 'samPlan', 'samToolExecution', 'samMemory',
     'samBehaviorEvent', 'samPattern', 'samIntervention', 'samCheckIn',
     // Study plan models
-    'studyPlan', 'studyPlanTask', 'coursePlan', 'post', 'courseCategory'
+    'studyPlan', 'studyPlanTask', 'coursePlan', 'post', 'courseCategory',
+    // SAM Conversation models
+    'sAMConversation', 'sAMMessage'
   ];
   
   const client = {};
