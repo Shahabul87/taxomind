@@ -1,0 +1,25 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json ./
+COPY prisma ./prisma/
+RUN npm ci --production
+
+# Copy server and lib code
+COPY server ./server/
+COPY lib ./lib/
+COPY tsconfig.json ./
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build
+RUN npx tsc --project tsconfig.json --outDir dist || true
+
+EXPOSE 4000
+
+ENV NODE_ENV=production
+ENV SAM_API_PORT=4000
+
+CMD ["node", "dist/server/sam-api-server.js"]

@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  sam-api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile.sam
+    ports:
+      - '4000:4000'
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@sam-db:5432/sam_db
+      SAM_API_PORT: '4000'
+      SAM_API_SECRET: ${SAM_API_SECRET:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    depends_on:
+      sam-db:
+        condition: service_healthy
+
+  sam-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sam_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - sam-data:/var/lib/postgresql/data
+    ports:
+      - '5434:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  sam-data:

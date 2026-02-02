@@ -1,0 +1,1 @@
+{"version":3,"file":"useSAMFormDataSync.d.ts","sourceRoot":"","sources":["../../src/hooks/useSAMFormDataSync.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAOH,OAAO,KAAK,EAAE,yBAAyB,EAAE,wBAAwB,EAAE,MAAM,UAAU,CAAC;AA2IpF,wBAAgB,kBAAkB,CAAC,CAAC,GAAG,MAAM,CAAC,MAAM,EAAE,OAAO,CAAC,EAC5D,MAAM,EAAE,MAAM,EACd,QAAQ,EAAE,CAAC,EACX,OAAO,GAAE,yBAA8B,GACtC,wBAAwB,CAiE1B"}

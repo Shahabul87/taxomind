@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SAM AI Mentor — Chat Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --sam-accent: #7c5cfc;
+    --sam-accent-hover: #6a4aee;
+    --sam-accent-soft: rgba(124,92,252,0.08);
+    --sam-accent-mid: rgba(124,92,252,0.25);
+    --sam-accent-glow: rgba(124,92,252,0.35);
+    --sam-surface: #ffffff;
+    --sam-surface-2: #f8f7fc;
+    --sam-surface-3: #f0eef8;
+    --sam-text: #1a1625;
+    --sam-text-2: #6b6580;
+    --sam-text-3: #9d96ad;
+    --sam-border: #e8e5f0;
+    --sam-border-subtle: #f0eef8;
+    --sam-glass: rgba(255,255,255,0.78);
+    --sam-glass-border: rgba(124,92,252,0.1);
+    --sam-shadow: 0 8px 40px rgba(26,22,37,0.06), 0 2px 12px rgba(26,22,37,0.03);
+    --sam-shadow-lg: 0 20px 60px rgba(26,22,37,0.1), 0 4px 20px rgba(26,22,37,0.05);
+    --sam-radius: 16px;
+    --sam-font: 'DM Sans', system-ui, sans-serif;
+    --sam-mono: 'JetBrains Mono', monospace;
+  }
+  .dark {
+    --sam-accent: #9b82fc;
+    --sam-accent-hover: #b09dfd;
+    --sam-accent-soft: rgba(155,130,252,0.1);
+    --sam-accent-mid: rgba(155,130,252,0.3);
+    --sam-accent-glow: rgba(155,130,252,0.4);
+    --sam-surface: #161221;
+    --sam-surface-2: #1e1930;
+    --sam-surface-3: #262040;
+    --sam-text: #eae8f0;
+    --sam-text-2: #9d96ad;
+    --sam-text-3: #6b6580;
+    --sam-border: #2d2840;
+    --sam-border-subtle: #231e35;
+    --sam-glass: rgba(22,18,33,0.82);
+    --sam-glass-border: rgba(155,130,252,0.12);
+    --sam-shadow: 0 8px 40px rgba(0,0,0,0.25), 0 2px 12px rgba(0,0,0,0.15);
+    --sam-shadow-lg: 0 20px 60px rgba(0,0,0,0.35), 0 4px 20px rgba(0,0,0,0.2);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--sam-font);
+    background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 40%, #e0e7ff 100%);
+    min-height: 100vh;
+    color: var(--sam-text);
+    transition: background 0.5s, color 0.3s;
+    overflow: hidden;
+  }
+  .dark body, body.dark-bg {
+    background: linear-gradient(145deg, #0f0b1a 0%, #161221 40%, #1a1530 100%);
+  }
+
+  /* Scrollbar */
+  .sam-scroll::-webkit-scrollbar { width: 5px; }
+  .sam-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sam-scroll::-webkit-scrollbar-thumb { background: var(--sam-border); border-radius: 5px; }
+  .sam-scroll::-webkit-scrollbar-thumb:hover { background: var(--sam-text-3); }
+
+  /* Resize handles */
+  .resize-handle { position: absolute; z-index: 20; }
+  .resize-n { top: -4px; left: 16px; right: 16px; height: 8px; cursor: n-resize; }
+  .resize-s { bottom: -4px; left: 16px; right: 16px; height: 8px; cursor: s-resize; }
+  .resize-e { right: -4px; top: 16px; bottom: 16px; width: 8px; cursor: e-resize; }
+  .resize-w { left: -4px; top: 16px; bottom: 16px; width: 8px; cursor: w-resize; }
+  .resize-ne { top: -5px; right: -5px; width: 14px; height: 14px; cursor: ne-resize; border-radius: 0 var(--sam-radius) 0 0; }
+  .resize-nw { top: -5px; left: -5px; width: 14px; height: 14px; cursor: nw-resize; border-radius: var(--sam-radius) 0 0 0; }
+  .resize-se { bottom: -5px; right: -5px; width: 14px; height: 14px; cursor: se-resize; border-radius: 0 0 var(--sam-radius) 0; }
+  .resize-sw { bottom: -5px; left: -5px; width: 14px; height: 14px; cursor: sw-resize; border-radius: 0 0 0 var(--sam-radius); }
+
+  /* Animations */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  @keyframes slideDown { from { max-height: 0; opacity: 0; } to { max-height: 350px; opacity: 1; } }
+  @keyframes slideUp { from { max-height: 350px; opacity: 1; } to { max-height: 0; opacity: 0; } }
+  @keyframes gentleGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(124,92,252,0.25), 0 4px 16px rgba(0,0,0,0.08); }
+    50% { box-shadow: 0 0 32px rgba(124,92,252,0.45), 0 6px 20px rgba(0,0,0,0.12); }
+  }
+  @keyframes typingPulse {
+    0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+  }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+
+  .animate-fadeInUp { animation: fadeInUp 0.3s cubic-bezier(0.4,0,0.2,1) forwards; }
+  .animate-scaleIn { animation: scaleIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+  .animate-fadeIn { animation: fadeIn 0.2s ease forwards; }
+
+  .typing-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--sam-accent);
+    animation: typingPulse 1.4s infinite;
+    display: inline-block;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  .no-select { user-select: none !important; -webkit-user-select: none !important; }
+
+  /* Message styles */
+  .msg-user {
+    background: var(--sam-accent);
+    color: white;
+    border-radius: 18px 18px 6px 18px;
+  }
+  .msg-ai {
+    background: var(--sam-surface-2);
+    color: var(--sam-text);
+    border-radius: 18px 18px 18px 6px;
+    border: 1px solid var(--sam-border-subtle);
+  }
+
+  /* Button reset */
+  .btn-reset {
+    border: none; background: none; cursor: pointer;
+    font-family: var(--sam-font); display: flex;
+    align-items: center; justify-content: center;
+  }
+
+  /* Header button hover */
+  .hdr-btn {
+    width: 28px; height: 28px; border-radius: 8px;
+    transition: all 0.15s; color: var(--sam-text-3);
+  }
+  .hdr-btn:hover { background: var(--sam-surface-3); color: var(--sam-text-2); }
+  .hdr-btn.close-btn:hover { background: #fee2e230; color: #ef4444; }
+
+  /* Suggestion chip */
+  .suggestion-chip {
+    padding: 5px 12px; border-radius: 20px;
+    background: var(--sam-surface-3); border: 1px solid var(--sam-border-subtle);
+    font-size: 11.5px; font-weight: 500; color: var(--sam-text-2);
+    font-family: var(--sam-font); white-space: nowrap;
+    transition: all 0.15s; cursor: pointer;
+  }
+  .suggestion-chip:hover {
+    border-color: var(--sam-accent-mid);
+    color: var(--sam-accent);
+    background: var(--sam-accent-soft);
+  }
+
+  /* Info tab */
+  .info-tab {
+    padding: 5px 10px; border-radius: 8px;
+    font-size: 11.5px; font-weight: 500;
+    font-family: var(--sam-font); transition: all 0.2s;
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+  }
+  .info-tab.active { background: var(--sam-accent-soft); color: var(--sam-accent); }
+  .info-tab:not(.active) { color: var(--sam-text-3); }
+  .info-tab:not(.active):hover { color: var(--sam-text-2); background: var(--sam-surface-3); }
+
+  /* Tool card */
+  .tool-card {
+    padding: 8px 10px; border-radius: 10px;
+    background: var(--sam-surface-3); border: 1px solid var(--sam-border-subtle);
+    text-align: left; font-family: var(--sam-font);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .tool-card:hover { border-color: var(--sam-accent-mid); background: var(--sam-accent-soft); }
+
+  /* Copy button */
+  .copy-btn {
+    border: none; background: none; cursor: pointer; padding: 2px;
+    color: var(--sam-text-3); transition: color 0.2s; display: flex;
+  }
+  .copy-btn:hover { color: var(--sam-accent); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useRef, useCallback, useEffect } = React;
+
+/* ── SVG Icons ────────────────────────────────────────────────── */
+const Ic = ({d, size=16, stroke="currentColor", fill="none", className="", style={}}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke}
+    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    className={className} style={style}>
+    {(Array.isArray(d) ? d : [d]).map((p,i) => <path key={i} d={p}/>)}
+  </svg>
+);
+
+const ic = {
+  sparkle: (p={}) => <Ic {...p} d={["M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3","M19 3v3","M21 4.5h-3","M19 18v3","M21 19.5h-3"]} />,
+  send: (p={}) => <Ic {...p} d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />,
+  x: (p={}) => <Ic {...p} d={["M18 6L6 18","M6 6l12 12"]} />,
+  maximize: (p={}) => <Ic {...p} d={["M8 3H5a2 2 0 0 0-2 2v3","M21 8V5a2 2 0 0 0-2-2h-3","M3 16v3a2 2 0 0 0 2 2h3","M16 21h3a2 2 0 0 0 2-2v-3"]} />,
+  minimize: (p={}) => <Ic {...p} d={["M4 14h6v6","M20 10h-6V4","M14 10l7-7","M3 21l7-7"]} />,
+  wrench: (p={}) => <Ic {...p} d={["M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"]} />,
+  history: (p={}) => <Ic {...p} d={["M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8","M3 3v5h5","M12 7v5l4 2"]} />,
+  moon: (p={}) => <Ic {...p} d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />,
+  sun: (p={}) => <Ic {...p} d={["M12 1v2","M12 21v2","M4.22 4.22l1.42 1.42","M18.36 18.36l1.42 1.42","M1 12h2","M21 12h2","M4.22 19.78l1.42-1.42","M18.36 5.64l1.42-1.42","M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"]} />,
+  star: (p={}) => <Ic {...p} d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />,
+  brain: (p={}) => <Ic {...p} d={["M9.5 2A5.5 5.5 0 0 0 5 7.5c0 .96.25 1.87.68 2.66C4.06 11.16 3 12.99 3 15a5 5 0 0 0 5 5h1","M14.5 2A5.5 5.5 0 0 1 19 7.5c0 .96-.25 1.87-.68 2.66C19.94 11.16 21 12.99 21 15a5 5 0 0 1-5 5h-1","M12 2v20"]} />,
+  copy: (p={}) => <Ic {...p} d={["M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z","M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"]} />,
+  refresh: (p={}) => <Ic {...p} d={["M23 4v6h-6","M1 20v-6h6","M3.51 9a9 9 0 0 1 14.85-3.36L23 10","M1 14l4.64 4.36A9 9 0 0 0 20.49 15"]} />,
+  chevDown: (p={}) => <Ic {...p} d="M6 9l6 6 6-6" />,
+  zap: (p={}) => <Ic {...p} d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />,
+  check: (p={}) => <Ic {...p} d="M20 6L9 17l-5-5" />,
+};
+
+/* ── Mock Data ────────────────────────────────────────────────── */
+const mockMsgs = [
+  { id:1, role:"ai", text:"Hey! I\u2019m SAM, your AI learning mentor. I can help with course recommendations, study strategies, and progress tracking. What are you working on today?", time:"2:30 PM" },
+  { id:2, role:"user", text:"Hey SAM, can you tell me how many courses I need to complete to become expert in ML?", time:"2:31 PM" },
+  { id:3, role:"ai", text:"Great question! Based on your current learning path:\n\n\u2022 **Foundation** (3 courses) \u2014 Python, Statistics, Linear Algebra\n\u2022 **Core ML** (4 courses) \u2014 Supervised Learning, Neural Networks, Deep Learning, NLP\n\u2022 **Advanced** (3 courses) \u2014 Reinforcement Learning, MLOps, Research Methods\n\nYou\u2019ve completed 2 of 10. At your current pace, you\u2019re on track. Want me to create a study plan?", time:"2:31 PM" },
+  { id:4, role:"user", text:"Yes, create a study plan for me", time:"2:32 PM" },
+];
+const mockTools = [
+  { name:"Study Planner", desc:"Personalized study schedules" },
+  { name:"Quiz Generator", desc:"Practice assessments" },
+  { name:"Progress Analyzer", desc:"Learning data insights" },
+  { name:"Concept Mapper", desc:"Topic relationships" },
+  { name:"Note Summarizer", desc:"Condense notes" },
+  { name:"Flashcard Builder", desc:"Spaced repetition" },
+];
+
+/* ── Floating Button ──────────────────────────────────────────── */
+function FloatingBtn({ onClick, hasUnread }) {
+  return (
+    <button onClick={onClick} className="animate-scaleIn" style={{
+      position:"fixed", bottom:28, right:28, width:56, height:56,
+      borderRadius:"50%", border:"none", cursor:"pointer",
+      background:"linear-gradient(135deg, var(--sam-accent) 0%, #6246ea 100%)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      color:"white", animation:"gentleGlow 3s ease-in-out infinite",
+      zIndex:9999, transition:"transform 0.2s",
+    }}
+    onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
+    onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+    aria-label="Open SAM AI Mentor"
+    >
+      {ic.sparkle({ size:22, stroke:"white" })}
+      {hasUnread && <span style={{
+        position:"absolute", top:-1, right:-1, width:13, height:13,
+        borderRadius:"50%", background:"#ef4444",
+        border:"2.5px solid var(--sam-surface)",
+      }} />}
+    </button>
+  );
+}
+
+/* ── Info Drawer ──────────────────────────────────────────────── */
+function InfoDrawer({ isOpen, tab, setTab }) {
+  if (!isOpen) return null;
+  return (
+    <div className="animate-fadeIn" style={{
+      borderBottom:"1px solid var(--sam-border-subtle)",
+      padding:"10px 14px 12px", overflow:"hidden",
+    }}>
+      {/* Tabs */}
+      <div style={{ display:"flex", gap:3, marginBottom:10 }}>
+        {[
+          { id:"progress", label:"Progress", icon:ic.star },
+          { id:"tools", label:"Tools", icon:ic.wrench },
+          { id:"memory", label:"Memory", icon:ic.history },
+        ].map(t => (
+          <button key={t.id} className={`btn-reset info-tab ${tab===t.id?"active":""}`}
+            onClick={() => setTab(tab===t.id ? null : t.id)}>
+            {t.icon({ size:12 })} {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Progress */}
+      {tab === "progress" && (
+        <div className="animate-fadeInUp" style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontSize:12, color:"var(--sam-text-2)", fontWeight:500 }}>Level 1 &mdash; Novice Learner</span>
+            <span style={{ fontSize:11, fontFamily:"var(--sam-mono)", color:"var(--sam-accent)", fontWeight:500 }}>30 / 100 XP</span>
+          </div>
+          <div style={{ height:4, background:"var(--sam-surface-3)", borderRadius:4, overflow:"hidden" }}>
+            <div style={{ width:"30%", height:"100%", background:"var(--sam-accent)", borderRadius:4, transition:"width 0.6s cubic-bezier(0.4,0,0.2,1)" }} />
+          </div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+            <span style={{ display:"inline-flex", alignItems:"center", gap:3, padding:"3px 8px", borderRadius:6, background:"var(--sam-surface-3)", fontSize:10.5, color:"var(--sam-text-2)" }}>
+              {ic.zap({ size:10 })} 3-day streak
+            </span>
+            <span style={{ padding:"3px 8px", borderRadius:6, background:"var(--sam-surface-3)", fontSize:10.5, color:"var(--sam-text-2)" }}>
+              2/10 courses
+            </span>
+            <span style={{ padding:"3px 8px", borderRadius:6, background:"var(--sam-accent-soft)", fontSize:10.5, color:"var(--sam-accent)", fontWeight:500 }}>
+              Top 20%
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Tools */}
+      {tab === "tools" && (
+        <div className="animate-fadeInUp" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5 }}>
+          {mockTools.map((t,i) => (
+            <button key={i} className="btn-reset tool-card">
+              <div style={{ fontSize:12, fontWeight:600, color:"var(--sam-text)" }}>{t.name}</div>
+              <div style={{ fontSize:10, color:"var(--sam-text-3)", lineHeight:1.3, marginTop:2 }}>{t.desc}</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Memory */}
+      {tab === "memory" && (
+        <div className="animate-fadeInUp" style={{ display:"flex", flexDirection:"column", gap:6 }}>
+          {[
+            { icon: ic.brain, label:"Active Context", sub:"ML Learning Path \u00b7 Chapter 3", accent:true },
+            { icon: ic.history, label:"Last Session", sub:"Python basics review \u00b7 2h ago", accent:false },
+          ].map((item,i) => (
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", borderRadius:8, background:"var(--sam-surface-3)" }}>
+              {item.icon({ size:13, stroke: item.accent ? "var(--sam-accent)" : "var(--sam-text-3)" })}
+              <div>
+                <div style={{ fontSize:11.5, fontWeight:600, color:"var(--sam-text)" }}>{item.label}</div>
+                <div style={{ fontSize:10, color:"var(--sam-text-3)" }}>{item.sub}</div>
+              </div>
+            </div>
+          ))}
+          <div style={{ display:"flex", gap:4, marginTop:2 }}>
+            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4, background:"var(--sam-accent-soft)", color:"var(--sam-accent)", fontWeight:500 }}>12 memories</span>
+            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4, background:"var(--sam-surface-3)", color:"var(--sam-text-3)" }}>5 sessions</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Message ──────────────────────────────────────────────────── */
+function Msg({ m, idx }) {
+  const [copied, setCopied] = useState(false);
+  const isUser = m.role === "user";
+
+  const renderText = (text) => {
+    return text.split(/(\*\*.*?\*\*)/g).map((part,i) =>
+      part.startsWith("**") && part.endsWith("**")
+        ? <strong key={i} style={{ fontWeight:600 }}>{part.slice(2,-2)}</strong>
+        : part
+    );
+  };
+
+  return (
+    <div className="animate-fadeInUp" style={{
+      display:"flex", flexDirection:"column",
+      alignItems: isUser ? "flex-end" : "flex-start",
+      gap:3, animationDelay: `${idx * 40}ms`,
+    }}>
+      <div className={isUser ? "msg-user" : "msg-ai"} style={{
+        padding:"10px 14px", maxWidth:"85%",
+        fontSize:13.5, lineHeight:1.55,
+        whiteSpace:"pre-wrap", wordBreak:"break-word",
+      }}>
+        {renderText(m.text)}
+      </div>
+      <div style={{ display:"flex", alignItems:"center", gap:6, padding:"0 4px" }}>
+        <span style={{ fontSize:10, color:"var(--sam-text-3)" }}>{m.time}</span>
+        {!isUser && (
+          <button className="copy-btn" onClick={() => {
+            navigator.clipboard.writeText(m.text);
+            setCopied(true); setTimeout(() => setCopied(false), 1500);
+          }} title="Copy">
+            {copied
+              ? <span style={{ fontSize:10, fontWeight:500, color:"var(--sam-accent)" }}>Copied</span>
+              : ic.copy({ size:11 })
+            }
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Chat ────────────────────────────────────────────────── */
+function SAMChat() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMax, setIsMax] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const [msgs, setMsgs] = useState(mockMsgs);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoTab, setInfoTab] = useState(null);
+  const [unread, setUnread] = useState(true);
+  const endRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // Position & size
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [sz, setSz] = useState({ w: 400, h: 580 });
+  const posRef = useRef(pos);
+  const szRef = useRef(sz);
+  posRef.current = pos;
+  szRef.current = sz;
+
+  const MIN_W = 320, MIN_H = 380, MAX_W = 900, MAX_H = 900;
+
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior:"smooth" }); }, [msgs, typing]);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark);
+    document.body.classList.toggle("dark-bg", isDark);
+  }, [isDark]);
+
+  // Keep in viewport on resize
+  useEffect(() => {
+    const h = () => setPos(p => ({
+      x: Math.min(p.x, window.innerWidth - 80),
+      y: Math.min(p.y, window.innerHeight - 80),
+    }));
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+
+  /* ── Drag ───────────────────────────────────────────── */
+  const startDrag = useCallback((e) => {
+    if (isMax) return;
+    // Don't drag from buttons
+    if (e.target.closest('button')) return;
+    e.preventDefault();
+    const sx = e.clientX || e.touches?.[0]?.clientX || 0;
+    const sy = e.clientY || e.touches?.[0]?.clientY || 0;
+    const sp = { ...posRef.current };
+    document.body.classList.add("no-select");
+
+    const onMove = (ev) => {
+      const cx = ev.clientX || ev.touches?.[0]?.clientX || 0;
+      const cy = ev.clientY || ev.touches?.[0]?.clientY || 0;
+      setPos({
+        x: Math.max(-50, Math.min(window.innerWidth - 80, sp.x + cx - sx)),
+        y: Math.max(-20, Math.min(window.innerHeight - 40, sp.y + cy - sy)),
+      });
+    };
+    const onEnd = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onEnd);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.body.classList.remove("no-select");
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onEnd);
+    document.addEventListener("touchmove", onMove, { passive:false });
+    document.addEventListener("touchend", onEnd);
+  }, [isMax]);
+
+  /* ── Resize ─────────────────────────────────────────── */
+  const startResize = useCallback((e, dir) => {
+    if (isMax) return;
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, sy = e.clientY;
+    const ss = { ...szRef.current };
+    const sp = { ...posRef.current };
+    document.body.classList.add("no-select");
+
+    const onMove = (ev) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      let nw = ss.w, nh = ss.h, nx = sp.x, ny = sp.y;
+      if (dir.includes("e")) nw = Math.max(MIN_W, Math.min(MAX_W, ss.w + dx));
+      if (dir.includes("w")) { nw = Math.max(MIN_W, Math.min(MAX_W, ss.w - dx)); nx = sp.x + (ss.w - nw); }
+      if (dir.includes("s")) nh = Math.max(MIN_H, Math.min(MAX_H, ss.h + dy));
+      if (dir.includes("n")) { nh = Math.max(MIN_H, Math.min(MAX_H, ss.h - dy)); ny = sp.y + (ss.h - nh); }
+      setSz({ w:nw, h:nh });
+      setPos({ x:nx, y:ny });
+    };
+    const onEnd = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onEnd);
+      document.body.classList.remove("no-select");
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onEnd);
+  }, [isMax]);
+
+  /* ── Send ───────────────────────────────────────────── */
+  const send = () => {
+    if (!input.trim()) return;
+    const nm = { id: msgs.length+1, role:"user", text:input, time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) };
+    setMsgs(p => [...p, nm]);
+    setInput("");
+    setTyping(true);
+    // Reset textarea height
+    if (inputRef.current) inputRef.current.style.height = "auto";
+    setTimeout(() => {
+      setTyping(false);
+      setMsgs(p => [...p, {
+        id: p.length+1, role:"ai",
+        text:"I\u2019ll create a personalized study plan based on your progress and available time. Give me a moment to analyze your learning data and build your custom ML mastery roadmap!",
+        time: new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
+      }]);
+    }, 2000);
+  };
+
+  const handleOpen = () => {
+    setIsOpen(true); setUnread(false);
+    if (window.innerWidth < 640) {
+      setPos({ x:0, y:0 }); setSz({ w:window.innerWidth, h:window.innerHeight }); setIsMax(true);
+    } else {
+      const w = Math.min(420, window.innerWidth - 40);
+      const h = Math.min(600, window.innerHeight - 40);
+      setPos({ x: window.innerWidth - w - 20, y: window.innerHeight - h - 20 });
+      setSz({ w, h });
+    }
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const toggleMax = () => {
+    if (isMax) {
+      setSz({ w:400, h:580 });
+      setPos({ x: window.innerWidth - 420, y: window.innerHeight - 620 });
+    } else {
+      setPos({ x:12, y:12 });
+      setSz({ w: window.innerWidth - 24, h: window.innerHeight - 24 });
+    }
+    setIsMax(!isMax);
+  };
+
+  const toggleInfo = () => {
+    if (infoOpen) { setInfoOpen(false); setInfoTab(null); }
+    else { setInfoOpen(true); setInfoTab("progress"); }
+  };
+
+  const confVal = 72;
+  const confColor = confVal >= 80 ? "#22c55e" : confVal >= 60 ? "var(--sam-accent)" : "#eab308";
+  const suggestions = ["Create study plan", "Quiz me on ML", "Show progress"];
+
+  return (
+    <>
+      {/* Demo background */}
+      <div style={{ position:"fixed", inset:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16, padding:40 }}>
+        <div style={{ fontSize:38, fontWeight:700, color:"var(--sam-text)", letterSpacing:-1.5, textAlign:"center", opacity:0.4 }}>Taxomind LMS</div>
+        <div style={{ fontSize:14, color:"var(--sam-text-3)", textAlign:"center", maxWidth:420, lineHeight:1.6 }}>
+          Click the floating button to open the redesigned SAM chat.<br/>
+          Drag the header to move &middot; Drag edges to resize.
+        </div>
+      </div>
+
+      {/* Theme toggle */}
+      <button className="btn-reset" onClick={() => setIsDark(!isDark)} style={{
+        position:"fixed", top:20, right:20, zIndex:10000,
+        width:38, height:38, borderRadius:10,
+        background:"var(--sam-surface)", border:"1px solid var(--sam-border)",
+        color:"var(--sam-text-2)", boxShadow:"var(--sam-shadow)",
+      }} aria-label="Toggle theme">
+        {isDark ? ic.sun({ size:15 }) : ic.moon({ size:15 })}
+      </button>
+
+      {/* Floating button */}
+      {!isOpen && <FloatingBtn onClick={handleOpen} hasUnread={unread} />}
+
+      {/* Chat window */}
+      {isOpen && (
+        <div className="animate-scaleIn" style={{
+          position:"fixed",
+          left: pos.x, top: pos.y,
+          width: sz.w, height: sz.h,
+          zIndex:9999,
+          display:"flex", flexDirection:"column",
+          borderRadius: isMax ? 10 : "var(--sam-radius)",
+          overflow:"visible",
+          background:"var(--sam-glass)",
+          backdropFilter:"blur(28px) saturate(1.5)",
+          WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+          border:"1px solid var(--sam-glass-border)",
+          boxShadow:"var(--sam-shadow-lg)",
+          transition: isMax ? "left 0.3s, top 0.3s, width 0.3s, height 0.3s" : "none",
+        }}>
+          {/* Resize handles */}
+          {!isMax && <>
+            {["n","s","e","w","ne","nw","se","sw"].map(d => (
+              <div key={d} className={`resize-handle resize-${d}`} onMouseDown={e => startResize(e, d)} />
+            ))}
+          </>}
+
+          {/* ── Header ──────────────────────────────────── */}
+          <div onMouseDown={startDrag} onTouchStart={startDrag} style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"9px 10px 9px 14px",
+            cursor: isMax ? "default" : "grab",
+            borderBottom:"1px solid var(--sam-border-subtle)",
+            background:"var(--sam-surface)",
+            borderRadius: isMax ? "10px 10px 0 0" : "var(--sam-radius) var(--sam-radius) 0 0",
+            flexShrink:0, userSelect:"none",
+          }}>
+            {/* Left: avatar + name */}
+            <div style={{ display:"flex", alignItems:"center", gap:9 }}>
+              <div style={{
+                position:"relative", width:30, height:30, borderRadius:9,
+                background:"linear-gradient(135deg, var(--sam-accent), #6246ea)",
+                display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0,
+              }}>
+                {ic.sparkle({ size:14, stroke:"white" })}
+                <span style={{
+                  position:"absolute", bottom:-1, right:-1,
+                  width:8, height:8, borderRadius:"50%",
+                  background:"#22c55e", border:"2px solid var(--sam-surface)",
+                }} />
+              </div>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600, color:"var(--sam-text)", letterSpacing:-0.2, lineHeight:1.2 }}>SAM</div>
+                <div style={{ fontSize:10, color:"var(--sam-text-3)", letterSpacing:0.1 }}>AI Learning Mentor</div>
+              </div>
+            </div>
+
+            {/* Right: indicators + controls */}
+            <div style={{ display:"flex", alignItems:"center", gap:2 }}>
+              {/* Confidence + expand toggle */}
+              <button className="btn-reset" onClick={e => { e.stopPropagation(); toggleInfo(); }} style={{
+                display:"flex", alignItems:"center", gap:4,
+                padding:"4px 8px", borderRadius:7,
+                background: infoOpen ? "var(--sam-accent-soft)" : "transparent",
+                color:"var(--sam-text-2)", fontSize:11, fontWeight:500,
+                transition:"all 0.2s",
+              }} title="Toggle info panels">
+                <span style={{
+                  width:7, height:7, borderRadius:"50%", background:confColor,
+                  boxShadow:`0 0 6px ${confColor}50`, flexShrink:0,
+                }} />
+                <span style={{ fontFamily:"var(--sam-mono)", fontSize:10 }}>{confVal}%</span>
+                {ic.chevDown({ size:11, style:{ transform:infoOpen?"rotate(180deg)":"rotate(0)", transition:"transform 0.25s" } })}
+              </button>
+
+              {/* Level */}
+              <div style={{
+                display:"flex", alignItems:"center", gap:3,
+                padding:"3px 7px", borderRadius:6,
+                background:"var(--sam-surface-3)",
+                fontSize:10, fontWeight:600, color:"var(--sam-text-2)",
+                fontFamily:"var(--sam-mono)",
+              }}>
+                {ic.star({ size:9, stroke:"#eab308", fill:"#eab30830" })}
+                Lv.1
+              </div>
+
+              <div style={{ width:1, height:16, background:"var(--sam-border)", margin:"0 2px" }} />
+
+              {/* Controls */}
+              <button className="btn-reset hdr-btn" onClick={e => { e.stopPropagation(); setMsgs([]); }} title="New conversation">{ic.refresh({ size:12 })}</button>
+              <button className="btn-reset hdr-btn" onClick={e => { e.stopPropagation(); toggleMax(); }} title={isMax?"Restore":"Maximize"}>
+                {isMax ? ic.minimize({ size:12 }) : ic.maximize({ size:12 })}
+              </button>
+              <button className="btn-reset hdr-btn close-btn" onClick={e => { e.stopPropagation(); setIsOpen(false); setIsMax(false); }} title="Close">
+                {ic.x({ size:12 })}
+              </button>
+            </div>
+          </div>
+
+          {/* ── Info Drawer ─────────────────────────────── */}
+          <InfoDrawer isOpen={infoOpen} tab={infoTab} setTab={setInfoTab} />
+
+          {/* ── Messages ────────────────────────────────── */}
+          <div className="sam-scroll" style={{
+            flex:1, overflowY:"auto", overflowX:"hidden",
+            padding:"14px 12px", display:"flex", flexDirection:"column", gap:12,
+            borderRadius:0,
+          }}>
+            {msgs.length === 0 && (
+              <div style={{
+                flex:1, display:"flex", flexDirection:"column",
+                alignItems:"center", justifyContent:"center", gap:14,
+                padding:"40px 20px", textAlign:"center",
+              }}>
+                <div style={{
+                  width:48, height:48, borderRadius:14,
+                  background:"var(--sam-accent-soft)",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                }}>
+                  {ic.sparkle({ size:22, stroke:"var(--sam-accent)" })}
+                </div>
+                <div>
+                  <div style={{ fontSize:15, fontWeight:600, color:"var(--sam-text)", marginBottom:4 }}>Start a conversation</div>
+                  <div style={{ fontSize:13, color:"var(--sam-text-3)", lineHeight:1.5 }}>
+                    Ask about courses, get study tips,<br/>or explore your learning path.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {msgs.map((m, i) => <Msg key={m.id} m={m} idx={i} />)}
+
+            {typing && (
+              <div className="animate-fadeIn" style={{ display:"flex", alignItems:"flex-start" }}>
+                <div className="msg-ai" style={{ padding:"12px 16px", display:"inline-flex", gap:4 }}>
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                  <span className="typing-dot" />
+                </div>
+              </div>
+            )}
+            <div ref={endRef} />
+          </div>
+
+          {/* ── Suggestions ─────────────────────────────── */}
+          {msgs.length > 0 && !typing && (
+            <div style={{ padding:"4px 12px 0", display:"flex", gap:5, flexWrap:"wrap", flexShrink:0 }}>
+              {suggestions.map((s,i) => (
+                <button key={i} className="btn-reset suggestion-chip" onClick={() => setInput(s)}>{s}</button>
+              ))}
+            </div>
+          )}
+
+          {/* ── Input ───────────────────────────────────── */}
+          <div style={{ padding:"8px 10px 10px", flexShrink:0 }}>
+            <div style={{
+              display:"flex", alignItems:"flex-end", gap:6,
+              padding:"7px 7px 7px 13px", borderRadius:13,
+              background:"var(--sam-surface-2)",
+              border:"1px solid var(--sam-border)",
+              transition:"border-color 0.2s, box-shadow 0.2s",
+            }}
+            onFocus={e => { e.currentTarget.style.borderColor = "var(--sam-accent-mid)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--sam-accent-soft)"; }}
+            onBlur={e => { e.currentTarget.style.borderColor = "var(--sam-border)"; e.currentTarget.style.boxShadow = "none"; }}
+            >
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => { if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+                placeholder="Message SAM..."
+                rows={1}
+                style={{
+                  flex:1, border:"none", background:"transparent",
+                  resize:"none", outline:"none",
+                  fontSize:13.5, lineHeight:1.5,
+                  color:"var(--sam-text)", fontFamily:"var(--sam-font)",
+                  maxHeight:100, minHeight:20,
+                }}
+                onInput={e => { e.target.style.height="auto"; e.target.style.height=Math.min(e.target.scrollHeight,100)+"px"; }}
+              />
+              <button className="btn-reset" onClick={send} disabled={!input.trim()} style={{
+                width:32, height:32, borderRadius:9, flexShrink:0,
+                background: input.trim() ? "var(--sam-accent)" : "var(--sam-surface-3)",
+                color: input.trim() ? "white" : "var(--sam-text-3)",
+                transition:"all 0.2s",
+                cursor: input.trim() ? "pointer" : "default",
+              }}>
+                {ic.send({ size:14 })}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<SAMChat />);
+</script>
+</body>
+</html>
