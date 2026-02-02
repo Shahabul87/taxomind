@@ -91,6 +91,14 @@ export interface PipelineContext {
     engineSelectionReason: string;
     messageSignals?: Record<string, number>;
   };
+  /** True when AI provider is unavailable and degraded responses are being used */
+  degradedMode?: boolean;
+  /** Number of quality gate retry attempts */
+  qualityAttempts?: number;
+  /** Score progression across quality gate retries */
+  qualityScoreProgression?: number[];
+  /** User's preferred locale for i18n */
+  locale?: string;
 
   // --- Mode classification ---
   modeClassification?: ModeClassificationResult;
@@ -174,6 +182,8 @@ export interface ModeRelevanceScore {
   score: number;
   matchedSignals: string[];
   confidence: 'high' | 'medium' | 'low';
+  /** Number of natural language pattern matches (from expanded vocabularies) */
+  naturalLanguageMatches?: number;
 }
 
 export interface ModeClassificationResult {
@@ -183,6 +193,8 @@ export interface ModeClassificationResult {
   topModes: ModeRelevanceScore[];
   shouldSuggestSwitch: boolean;
   reason: string;
+  /** True when AI-powered classification was used (Tier 2) */
+  aiClassified?: boolean;
 }
 
 // =============================================================================

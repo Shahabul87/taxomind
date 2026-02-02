@@ -59,46 +59,78 @@ export async function POST(request: NextRequest) {
 
     // 2. Validate request body, classify intent, create agentic bridge
     const body = await request.json();
-    const valid = runValidationStage(body, auth.ctx, startTime);
+    const valid = await runValidationStage(body, auth.ctx, startTime);
     if ('response' in valid) return valid.response;
 
-    // 3-11. Run pipeline stages sequentially, each enriching PipelineContext
-    //        Non-critical stages are wrapped in error boundaries for graceful degradation
+    // 3-11. Pipeline stages split into critical path (sequential) and background (parallel)
     let ctx = valid.ctx;
     ctx.stageErrors = [];
 
-    const stages: Array<{
+    // Critical path: must complete sequentially before response
+    const criticalStages: Array<{
       name: string;
       run: () => Promise<typeof ctx>;
-      critical: boolean;
     }> = [
-      { name: 'context-gathering', run: () => runContextGatheringStage(ctx), critical: false },
-      { name: 'memory', run: () => runMemoryStage(ctx, subsystems), critical: false },
-      { name: 'orchestration', run: () => runOrchestrationStage(ctx, subsystems), critical: true },
-      { name: 'tutoring', run: () => runTutoringStage(ctx), critical: false },
-      { name: 'tool-execution', run: () => runToolExecutionStage(ctx, subsystems), critical: false },
-      { name: 'agentic', run: () => runAgenticStage(ctx), critical: false },
-      { name: 'intervention', run: () => runInterventionStage(ctx), critical: false },
-      { name: 'knowledge-graph', run: () => runKnowledgeGraphStage(ctx), critical: false },
-      { name: 'memory-persistence', run: () => runMemoryPersistenceStage(ctx), critical: false },
+      { name: 'context-gathering', run: () => runContextGatheringStage(ctx) },
+      { name: 'memory', run: () => runMemoryStage(ctx, subsystems) },
+      { name: 'orchestration', run: () => runOrchestrationStage(ctx, subsystems) },
     ];
 
-    for (const stage of stages) {
+    for (const stage of criticalStages) {
       try {
         ctx = await stage.run();
       } catch (stageError: unknown) {
         const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
-        logger.error(`[SAM_UNIFIED] Stage '${stage.name}' failed:`, errorMsg);
+        logger.error(`[SAM_UNIFIED] Critical stage '${stage.name}' failed:`, errorMsg);
         ctx.stageErrors = [
           ...(ctx.stageErrors || []),
           { stage: stage.name, error: errorMsg, timestamp: Date.now() },
         ];
         failedStages = [...failedStages, stage.name];
-        if (stage.critical) throw stageError;
+        // Orchestration is truly critical — must throw
+        if (stage.name === 'orchestration') throw stageError;
       }
     }
 
-    // 12. Build and return the final response
+    // Background stages: run in parallel with 5-second timeout
+    const BACKGROUND_TIMEOUT_MS = 5000;
+    const backgroundStages: Array<{
+      name: string;
+      run: () => Promise<typeof ctx>;
+    }> = [
+      { name: 'tutoring', run: () => runTutoringStage(ctx) },
+      { name: 'tool-execution', run: () => runToolExecutionStage(ctx, subsystems) },
+      { name: 'agentic', run: () => runAgenticStage(ctx) },
+      { name: 'intervention', run: () => runInterventionStage(ctx) },
+      { name: 'knowledge-graph', run: () => runKnowledgeGraphStage(ctx) },
+      { name: 'memory-persistence', run: () => runMemoryPersistenceStage(ctx) },
+    ];
+
+    const bgPromises = backgroundStages.map(async (stage) => {
+      try {
+        const result = await stage.run();
+        // Merge non-conflicting fields from completed background stage
+        Object.assign(ctx, result);
+        return { name: stage.name, status: 'fulfilled' as const };
+      } catch (stageError: unknown) {
+        const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
+        logger.warn(`[SAM_UNIFIED] Background stage '${stage.name}' failed:`, errorMsg);
+        ctx.stageErrors = [
+          ...(ctx.stageErrors || []),
+          { stage: stage.name, error: errorMsg, timestamp: Date.now() },
+        ];
+        failedStages = [...failedStages, stage.name];
+        return { name: stage.name, status: 'rejected' as const };
+      }
+    });
+
+    const bgTimeout = new Promise<void>((resolve) => setTimeout(resolve, BACKGROUND_TIMEOUT_MS));
+    await Promise.race([
+      Promise.allSettled(bgPromises),
+      bgTimeout,
+    ]);
+
+    // 12. Build and return the final response (with whatever background stages completed)
     return buildUnifiedResponse(ctx);
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

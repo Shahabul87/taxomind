@@ -38,7 +38,7 @@ export async function GET() {
       }),
 
       // Total reviews (social proof)
-      db.review.count(),
+      db.courseReview.count(),
     ]);
 
     // Calculate success rate (completion rate)

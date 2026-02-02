@@ -19,5 +19,7 @@ export type { ModeEngineResolution } from './resolver';
 export { getEngineMaturity, getModeMaturity, getEnginesByMaturity } from '@sam-ai/educational/engine-maturity';
 export type { EngineMaturityLevel } from '@sam-ai/educational/engine-maturity';
 
-// Intent classifier
+// Intent classifier (client-safe synchronous variant only)
 export { classifyModeRelevance } from './intent-classifier';
+// NOTE: classifyModeRelevanceAsync is server-only (uses AI adapter).
+// Import it directly: import { classifyModeRelevanceAsync } from '@/lib/sam/modes/intent-classifier';

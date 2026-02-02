@@ -69,6 +69,9 @@ export function ModeSuggestionChip({
 
   if (!visible || !suggestedMode) return null;
 
+  // Map technical reasons to human-readable descriptions
+  const friendlyReason = mapToFriendlyReason(reason);
+
   return (
     <div className="px-4 py-1.5 border-t border-[var(--sam-border)]">
       <div
@@ -80,7 +83,7 @@ export function ModeSuggestionChip({
         <ArrowRight className="h-3 w-3 shrink-0 text-[var(--sam-accent)]" />
         <span className="text-[var(--sam-text-secondary)] flex-1 truncate">
           Switch to <strong className="text-[var(--sam-accent)]">{suggestedModeLabel ?? suggestedMode}</strong>
-          {reason ? ` — ${reason}` : ''}?
+          {friendlyReason ? ` — ${friendlyReason}` : ''}?
         </span>
         <button
           onClick={handleAccept}
@@ -102,4 +105,47 @@ export function ModeSuggestionChip({
       </div>
     </div>
   );
+}
+
+// =============================================================================
+// FRIENDLY REASON MAPPING
+// =============================================================================
+
+const REASON_TEMPLATES: Record<string, string> = {
+  'assessment keywords': 'Your message looks like you want to practice or be tested',
+  'generation keywords': 'It seems like you want to create or generate content',
+  'analysis keywords': 'This looks like an analysis request',
+  'learning page': "Since you're on a learning page",
+  'exam page': "Since you're working on an exam",
+  'educational vocabulary': 'This seems like a learning-focused question',
+  'complex message': 'Your question has multiple parts',
+  'conversation continuity': 'Based on your recent conversation',
+  'recent assessment context': 'Following up on assessment activity',
+};
+
+function mapToFriendlyReason(reason?: string): string | undefined {
+  if (!reason) return undefined;
+
+  // Check for pattern matches in the technical reason string
+  for (const [pattern, friendly] of Object.entries(REASON_TEMPLATES)) {
+    if (reason.toLowerCase().includes(pattern.toLowerCase())) {
+      return friendly;
+    }
+  }
+
+  // If the reason contains a mode match percentage, simplify it
+  const percentMatch = reason.match(/matches?\s+"([^"]+)"\s+\((\d+)%\)/);
+  if (percentMatch) {
+    return `This looks like a ${percentMatch[1].replace(/-/g, ' ')} question`;
+  }
+
+  // AI classification reason
+  if (reason.toLowerCase().includes('ai classification')) {
+    const aiMatch = reason.match(/"([^"]+)"/);
+    if (aiMatch) {
+      return `This seems best suited for ${aiMatch[1].replace(/-/g, ' ')}`;
+    }
+  }
+
+  return reason;
 }

@@ -594,6 +594,7 @@ export function SAMProvider({
         let metadata: Partial<OrchestrationMetadata> | undefined;
         let blooms: BloomsAnalysis | undefined;
         let doneReceived = false;
+        const completedStages: string[] = [];
 
         const updateAssistantContent = () => {
           dispatch({
@@ -658,6 +659,19 @@ export function SAMProvider({
                 }
                 break;
               }
+              case 'stage-complete': {
+                // Track incremental pipeline stage completions
+                const stageData = toRecord(payload);
+                const stageName = stageData?.stage;
+                if (typeof stageName === 'string') {
+                  completedStages.push(stageName);
+                }
+                // Merge any partial insights data carried by the stage
+                if (stageData?.data && typeof stageData.data === 'object') {
+                  insights = { ...(insights ?? {}), ...(stageData.data as Record<string, unknown>) };
+                }
+                break;
+              }
               case 'done': {
                 if (payload && typeof payload === 'object') {
                   const donePayload = payload as Record<string, unknown>;
@@ -704,7 +718,10 @@ export function SAMProvider({
           actions,
           insights,
           blooms,
-          metadata,
+          metadata: {
+            ...(metadata ?? {}),
+            ...(completedStages.length > 0 ? { completedStages } : {}),
+          } as Partial<OrchestrationMetadata>,
         };
         const result = buildResultFromApi(parsed);
 

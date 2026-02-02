@@ -31,6 +31,9 @@ import { getIntegrationProfile, getStore } from '@/lib/sam/taxomind-context';
 import { createToolRepositories } from '@/lib/sam/tool-repositories';
 import { createExternalAPITools } from '@/lib/sam/agentic-external-api-tools';
 import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { registerAdapter } from '@/lib/sam/tools/adapters/tool-adapter-interface';
+import { createWikipediaAdapter } from '@/lib/sam/tools/adapters/wikipedia-adapter';
+import { createDictionaryAdapter } from '@/lib/sam/tools/adapters/dictionary-adapter';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -379,6 +382,10 @@ export async function ensureToolingInitialized(): Promise<ToolingSystem> {
     await registerExternalAPITools(system.toolRegistry);
     logger.info('[Tooling] External API tools registered');
 
+    // Register adapter-based external tools for discovery
+    registerExternalAdapters();
+    logger.info('[Tooling] External adapters registered for discovery');
+
     return system;
   } catch (error) {
     logger.error('[Tooling] Error during initialization:', error);
@@ -411,6 +418,42 @@ export function mapUserToToolRole(user: { role?: string; isTeacher?: boolean } |
 
 export function getRolePermissions(role: UserRole) {
   return DEFAULT_ROLE_PERMISSIONS.find((entry) => entry.role === role);
+}
+
+// =============================================================================
+// EXTERNAL ADAPTER REGISTRATION
+// =============================================================================
+
+let adaptersRegistered = false;
+
+/**
+ * Register external tool adapters for the discovery endpoint.
+ * These adapters provide metadata about available external services.
+ * Actual tool execution still goes through the ToolRegistry/ToolExecutor pipeline.
+ */
+function registerExternalAdapters(): void {
+  if (adaptersRegistered) return;
+
+  try {
+    // Register free, no-key-required adapters
+    registerAdapter(createWikipediaAdapter());
+    registerAdapter(createDictionaryAdapter());
+
+    // Future: Register adapters that check environment variables
+    // if (process.env.WOLFRAM_API_KEY) {
+    //   registerAdapter(createWolframAdapter(process.env.WOLFRAM_API_KEY));
+    // }
+
+    adaptersRegistered = true;
+    logger.info('[Tooling] External adapters registered', {
+      wikipedia: true,
+      dictionary: true,
+    });
+  } catch (error) {
+    logger.warn('[Tooling] Failed to register external adapters:', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 // Re-export external API tools utilities

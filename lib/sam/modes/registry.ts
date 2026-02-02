@@ -7,6 +7,7 @@
  */
 
 import type { SAMMode, SAMModeId } from './types';
+import { getTranslation } from '@/lib/sam/i18n';
 
 const MODES: Record<SAMModeId, SAMMode> = {
   // =========================================================================
@@ -414,4 +415,22 @@ export function getAllModes(): SAMMode[] {
 /** Get modes by category */
 export function getModesByCategory(category: string): SAMMode[] {
   return Object.values(MODES).filter((m) => m.category === category);
+}
+
+/**
+ * Get a localized greeting for a mode.
+ *
+ * Resolution:
+ * 1. i18n translation via greetingKey (if locale loaded)
+ * 2. i18n translation via convention `mode.{modeId}.greeting`
+ * 3. Fallback to mode.greeting (English hardcoded string)
+ */
+export function getLocalizedGreeting(modeId: string, locale?: string): string {
+  const mode = MODES[modeId as SAMModeId];
+  if (!mode) return '';
+
+  // Try explicit greetingKey first, then convention-based key
+  const key = mode.greetingKey ?? `mode.${modeId}.greeting`;
+  const translated = getTranslation(key, locale, mode.greeting);
+  return translated;
 }

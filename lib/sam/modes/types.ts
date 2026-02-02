@@ -32,6 +32,8 @@ export interface SAMMode {
   category: SAMModeCategory;
   /** Formal message posted in chat when mode activates */
   greeting: string;
+  /** i18n key for greeting — used by getLocalizedGreeting() */
+  greetingKey?: string;
   /** Engine pipeline to activate (appended to base 'context' engine) */
   enginePreset: string[];
   /** Additional system prompt instructions for this mode */

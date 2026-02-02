@@ -18,7 +18,8 @@ import {
   getSAMIntegrationProfile,
   getSAMCapabilityRegistry,
 } from '@/lib/sam/integration-profile';
-import { SAM_MODE_IDS, classifyModeRelevance } from '@/lib/sam/modes';
+import { SAM_MODE_IDS } from '@/lib/sam/modes';
+import { classifyModeRelevanceAsync } from '@/lib/sam/modes/intent-classifier-async';
 import type { PipelineContext, StageResult } from './types';
 import type { AuthStageResult } from './auth-stage';
 
@@ -108,11 +109,11 @@ export const UnifiedRequestSchema = z.object({
 // VALIDATION STAGE
 // =============================================================================
 
-export function runValidationStage(
+export async function runValidationStage(
   body: unknown,
   auth: AuthStageResult,
   startTime: number,
-): StageResult<PipelineContext> {
+): Promise<StageResult<PipelineContext>> {
   const validation = UnifiedRequestSchema.safeParse(body);
 
   if (!validation.success) {
@@ -156,8 +157,16 @@ export function runValidationStage(
     shouldCheckGoals: classifiedIntent.shouldCheckGoals,
   });
 
-  // Classify mode relevance (heuristic, no LLM call)
-  const modeClassification = classifyModeRelevance(message, modeId, pageContext.type);
+  // Classify mode relevance (Tier 1 heuristic + Tier 2 AI fallback for ambiguous scores)
+  const modeClassification = await classifyModeRelevanceAsync(
+    message,
+    modeId,
+    pageContext.type,
+    {
+      conversationHistory: conversationHistory as Array<{ role: string; content: string }>,
+      enableAIFallback: true,
+    },
+  );
   if (modeClassification.shouldSuggestSwitch) {
     logger.info('[SAM_UNIFIED] Mode switch suggested:', {
       currentMode: modeId,

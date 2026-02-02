@@ -72,6 +72,8 @@ export interface SubsystemBundle {
   spacedRep: SpacedRepetitionScheduler;
   tutoring: OrchestrationSubsystems | null;
   proactive: ProactiveInterventionSubsystems | null;
+  /** True when AI adapter initialization failed (degraded mode) */
+  degradedMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------

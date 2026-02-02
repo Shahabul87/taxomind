@@ -226,6 +226,8 @@ export async function buildUnifiedResponse(
       },
       toolExecution: ctx.toolExecution ?? undefined,
       modeAnalytics: ctx.modeAnalytics ?? undefined,
+      enginePresetUsed: ctx.modeAnalytics?.enginePresetUsed,
+      degraded: ctx.degradedMode || undefined,
       stageErrors: ctx.stageErrors?.length
         ? ctx.stageErrors.map((e) => ({ stage: e.stage, error: e.error }))
         : undefined,
@@ -250,7 +252,10 @@ export async function buildUnifiedResponse(
   // Record chat usage for subscription enforcement
   await recordAIUsage(ctx.user.id, 'chat', 1);
 
-  return NextResponse.json(response, {
-    headers: ctx.rateLimitHeaders,
-  });
+  const headers: Record<string, string> = { ...ctx.rateLimitHeaders };
+  if (ctx.degradedMode) {
+    headers['X-SAM-Degraded'] = 'true';
+  }
+
+  return NextResponse.json(response, { headers });
 }

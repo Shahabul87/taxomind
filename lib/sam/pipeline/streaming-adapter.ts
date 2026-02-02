@@ -18,6 +18,8 @@
 import { logger } from '@/lib/logger';
 import { streamChat } from '@/lib/sam/integration-adapters';
 import { TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { isDegraded, getDegradedResponse } from '@/lib/sam/degraded-responses';
+import { SAMServiceUnavailableError } from '@/lib/sam/utils/error-handler';
 import type { PipelineContext } from './types';
 import type { SubsystemBundle } from './subsystem-init';
 
@@ -131,6 +133,18 @@ export async function streamAIResponse(
   subsystems: SubsystemBundle,
   controller: ReadableStreamDefaultController<Uint8Array>,
 ): Promise<string> {
+  // Check for degraded mode before attempting to stream
+  if (isDegraded()) {
+    logger.warn('[SAM_STREAM] Degraded mode active — emitting cached response');
+    const degraded = getDegradedResponse(
+      ctx.classifiedIntent.intent,
+      ctx.modeId,
+      ctx.entityContext.summary || undefined,
+    );
+    controller.enqueue(sseEvent('content', { text: degraded.message }));
+    return degraded.message;
+  }
+
   const systemPrompt = buildStreamingSystemPrompt(ctx);
 
   const chatMessages = [
@@ -170,6 +184,18 @@ export async function streamAIResponse(
   } catch (streamError) {
     streamErrored = true;
     logger.error('[SAM_STREAM] Streaming failed, using fallback:', streamError);
+
+    // Circuit breaker / service unavailable — return degraded response
+    if (streamError instanceof SAMServiceUnavailableError) {
+      logger.warn('[SAM_STREAM] Circuit breaker open — emitting degraded response');
+      const degraded = getDegradedResponse(
+        ctx.classifiedIntent.intent,
+        ctx.modeId,
+        ctx.entityContext.summary || undefined,
+      );
+      controller.enqueue(sseEvent('content', { text: degraded.message }));
+      return degraded.message;
+    }
 
     // Fallback: run orchestrator for full response
     if (responseText.length === 0) {
@@ -359,6 +385,8 @@ export function emitDeferredSSEEvents(
         enginesCached: (resultMetadata.enginesCached as string[]) ?? [],
         totalTime: (resultMetadata.totalExecutionTime as number) ?? 0,
         requestTime: Date.now() - ctx.startTime,
+        degraded: ctx.degradedMode || undefined,
+        enginePresetUsed: ctx.modeAnalytics?.enginePresetUsed,
         subsystems: {
           unifiedBlooms: !!bloomsAnalysis,
           qualityGates: !!qualityResult,

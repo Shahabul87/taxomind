@@ -1,17 +1,23 @@
 /**
  * Mode-Aware Intent Classifier
  *
- * Heuristic-based mode relevance scoring. No LLM calls —
- * uses keyword vocabularies and page context signals to score
- * each mode against the current message.
+ * Heuristic-based mode relevance scoring (Tier 1) with optional
+ * AI-powered fallback (Tier 2) for ambiguous messages.
+ *
+ * Uses keyword vocabularies, natural language patterns, page context signals,
+ * and conversation history to score each mode against the current message.
  *
  * Used by the validation stage to determine if a mode switch
  * should be suggested to the user.
  */
 
+import { logger } from '@/lib/logger';
 import type { ModeClassificationResult, ModeRelevanceScore } from '@/lib/sam/pipeline/types';
 import { SAM_MODE_IDS } from './types';
 import type { SAMModeId } from './types';
+import { NATURAL_LANGUAGE_VOCABULARIES } from './natural-language-patterns';
+// NOTE: The async AI-powered variant (classifyModeRelevanceAsync) lives in
+// ./intent-classifier-async.ts to avoid pulling server-only deps into client bundles.
 
 // =============================================================================
 // KEYWORD VOCABULARIES (weighted)
@@ -140,7 +146,7 @@ const PAGE_TYPE_BONUSES: Record<string, Partial<Record<SAMModeId, number>>> = {
 };
 
 // =============================================================================
-// CLASSIFIER
+// CLASSIFIER (TIER 1 — SYNCHRONOUS)
 // =============================================================================
 
 /**
@@ -148,31 +154,51 @@ const PAGE_TYPE_BONUSES: Record<string, Partial<Record<SAMModeId, number>>> = {
  *
  * Algorithm:
  * 1. Score each mode via keyword vocabulary hits
- * 2. Apply page context bonus
- * 3. If current mode scores < 0.4 AND another mode scores > 0.7, suggest switch
+ * 2. Score each mode via natural language pattern hits (expanded dictionaries)
+ * 3. Apply page context bonus
+ * 4. Apply conversation history boost
+ * 5. If current mode scores < 0.4 AND another mode scores > 0.7, suggest switch
  */
 export function classifyModeRelevance(
   message: string,
   currentModeId: string,
   pageType: string,
+  options?: {
+    conversationHistory?: Array<{ role: string; content: string }>;
+  },
 ): ModeClassificationResult {
   const scores: ModeRelevanceScore[] = [];
   const lowerMessage = message.toLowerCase();
 
+  // Conversation history mode boost: detect repeated patterns
+  const historyBoosts = computeConversationHistoryBoosts(options?.conversationHistory);
+
   for (const modeId of SAM_MODE_IDS) {
     const vocabulary = MODE_VOCABULARIES[modeId];
-    if (!vocabulary) {
-      scores.push({ modeId, score: 0, matchedSignals: [], confidence: 'low' });
-      continue;
-    }
+    const naturalLangVocab = NATURAL_LANGUAGE_VOCABULARIES[modeId];
 
     let totalScore = 0;
+    let naturalLanguageMatches = 0;
     const matchedSignals: string[] = [];
 
-    for (const kw of vocabulary) {
-      if (kw.pattern.test(lowerMessage)) {
-        totalScore += kw.weight;
-        matchedSignals.push(kw.pattern.source);
+    // Tier 1a: Keyword vocabulary scoring
+    if (vocabulary) {
+      for (const kw of vocabulary) {
+        if (kw.pattern.test(lowerMessage)) {
+          totalScore += kw.weight;
+          matchedSignals.push(kw.pattern.source);
+        }
+      }
+    }
+
+    // Tier 1b: Natural language pattern scoring (expanded dictionaries)
+    if (naturalLangVocab) {
+      for (const kw of naturalLangVocab) {
+        if (kw.pattern.test(message)) {
+          totalScore += kw.weight;
+          naturalLanguageMatches++;
+          matchedSignals.push(`nl:${kw.pattern.source.substring(0, 30)}`);
+        }
       }
     }
 
@@ -183,12 +209,25 @@ export function classifyModeRelevance(
       matchedSignals.push(`page:${pageType}`);
     }
 
-    // Normalize score to 0-1 range (max reasonable total ~8)
-    const normalizedScore = Math.min(totalScore / 8, 1);
+    // Conversation history boost
+    const historyBoost = historyBoosts.get(modeId) ?? 0;
+    if (historyBoost > 0) {
+      totalScore += historyBoost;
+      matchedSignals.push(`history:+${historyBoost}`);
+    }
+
+    // Normalize score to 0-1 range (max reasonable total ~10 with NL patterns)
+    const normalizedScore = Math.min(totalScore / 10, 1);
     const confidence: 'high' | 'medium' | 'low' =
       normalizedScore >= 0.7 ? 'high' : normalizedScore >= 0.4 ? 'medium' : 'low';
 
-    scores.push({ modeId, score: normalizedScore, matchedSignals, confidence });
+    scores.push({
+      modeId,
+      score: normalizedScore,
+      matchedSignals,
+      confidence,
+      naturalLanguageMatches,
+    });
   }
 
   // Sort by score descending
@@ -216,4 +255,63 @@ export function classifyModeRelevance(
         ? `Current mode "${currentModeId}" is relevant (${(currentModeScore * 100).toFixed(0)}%)`
         : 'No strong mode match detected',
   };
+}
+
+// =============================================================================
+// CONVERSATION HISTORY ANALYSIS
+// =============================================================================
+
+/**
+ * Analyze recent conversation history to detect repeated patterns
+ * that indicate a mode preference. If the last 3 user messages
+ * consistently match a mode, boost that mode's score.
+ */
+function computeConversationHistoryBoosts(
+  history?: Array<{ role: string; content: string }>,
+): Map<string, number> {
+  const boosts = new Map<string, number>();
+  if (!history || history.length < 3) return boosts;
+
+  // Take last 3 user messages
+  const recentUserMessages = history
+    .filter((m) => m.role === 'user')
+    .slice(-3);
+
+  if (recentUserMessages.length < 3) return boosts;
+
+  // Score each mode against recent messages
+  const modeHits = new Map<string, number>();
+
+  for (const msg of recentUserMessages) {
+    for (const modeId of SAM_MODE_IDS) {
+      const vocab = MODE_VOCABULARIES[modeId];
+      const nlVocab = NATURAL_LANGUAGE_VOCABULARIES[modeId];
+      if (!vocab && !nlVocab) continue;
+
+      let hasMatch = false;
+      for (const kw of (vocab ?? [])) {
+        if (kw.pattern.test(msg.content)) { hasMatch = true; break; }
+      }
+      if (!hasMatch) {
+        for (const kw of (nlVocab ?? [])) {
+          if (kw.pattern.test(msg.content)) { hasMatch = true; break; }
+        }
+      }
+
+      if (hasMatch) {
+        modeHits.set(modeId, (modeHits.get(modeId) ?? 0) + 1);
+      }
+    }
+  }
+
+  // Boost modes that appeared in all 3 recent messages
+  for (const [modeId, hits] of modeHits.entries()) {
+    if (hits >= 3) {
+      boosts.set(modeId, 2); // Strong history boost
+    } else if (hits >= 2) {
+      boosts.set(modeId, 1); // Moderate history boost
+    }
+  }
+
+  return boosts;
 }

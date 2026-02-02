@@ -22,6 +22,10 @@ import {
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 import { resolveModeSystemPrompt } from '@/lib/sam/modes';
+import {
+  loadCrossSessionHistory,
+  buildCrossSessionSummary,
+} from '@/lib/sam/conversation-memory';
 import type { SubsystemBundle } from './subsystem-init';
 import type { PipelineContext } from './types';
 
@@ -166,6 +170,39 @@ export async function runMemoryStage(
     }
   } catch (error) {
     logger.warn('[SAM_UNIFIED] Failed to prepare tutoring context:', error);
+  }
+
+  // ========================================================================
+  // 1b. Cross-Session Conversation Memory
+  // ========================================================================
+
+  try {
+    if (ctx.user.id) {
+      const courseId =
+        ctx.entityContext.course?.id ??
+        ctx.entityContext.chapter?.courseId ??
+        ctx.entityContext.section?.courseId ??
+        (ctx.pageContext.entityType === 'course' ? ctx.pageContext.entityId : undefined);
+
+      const crossSessionHistory = await loadCrossSessionHistory(ctx.user.id, courseId);
+
+      if (crossSessionHistory.messages.length > 0) {
+        const crossSessionSummary = buildCrossSessionSummary(crossSessionHistory.messages);
+        if (crossSessionSummary) {
+          memorySummary = memorySummary
+            ? `${memorySummary}\n\n${crossSessionSummary}`
+            : crossSessionSummary;
+
+          logger.debug('[SAM_UNIFIED] Cross-session context injected:', {
+            sessionCount: crossSessionHistory.sessionCount,
+            messageCount: crossSessionHistory.messages.length,
+          });
+        }
+      }
+    }
+  } catch (crossSessionError) {
+    // Non-blocking — log and continue
+    logger.warn('[SAM_UNIFIED] Failed to load cross-session memory:', crossSessionError);
   }
 
   // ========================================================================

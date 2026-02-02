@@ -7,6 +7,7 @@
 
 import { logger } from '@/lib/logger';
 import { queueMemoryIngestion } from '@/lib/sam/memory-ingestion';
+import { persistConversationTurn } from '@/lib/sam/conversation-memory';
 import type { PipelineContext } from './types';
 
 export async function runMemoryPersistenceStage(
@@ -100,6 +101,28 @@ export async function runMemoryPersistenceStage(
         enableSummary: true,
         enableKnowledgeGraph: true,
       });
+    }
+
+    // Persist conversation turns for cross-session memory
+    try {
+      // Persist user message
+      await persistConversationTurn(ctx.user.id, ctx.sessionId, 'USER', ctx.message, {
+        intent: ctx.classifiedIntent?.intent,
+        courseId: courseIdForMemory,
+      });
+
+      // Persist assistant response
+      if (ctx.responseText) {
+        const bloomsMeta = ctx.bloomsAnalysis as Record<string, unknown> | null;
+        const qualityMeta = ctx.qualityResult as Record<string, unknown> | null;
+        await persistConversationTurn(ctx.user.id, ctx.sessionId, 'ASSISTANT', ctx.responseText, {
+          modeId: ctx.modeId,
+          bloomsLevel: (bloomsMeta?.dominantLevel as string) ?? undefined,
+          qualityScore: (qualityMeta?.overallScore as number) ?? undefined,
+        });
+      }
+    } catch (convError) {
+      logger.warn('[SAM_UNIFIED] Conversation turn persistence failed:', convError);
     }
   } catch (error) {
     logger.warn('[SAM_UNIFIED] Agentic memory persistence failed:', error);

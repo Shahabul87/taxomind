@@ -136,3 +136,112 @@ export function comparePresetEffectiveness(presetA: string, presetB: string): nu
   const scoreB = getPresetEffectivenessScore(presetB);
   return scoreA - scoreB;
 }
+
+// =============================================================================
+// MODE + PRESET COMBINATION TRACKING (W2/W5)
+// =============================================================================
+
+/** Track mode+preset combinations for contextual effectiveness scoring */
+const modePresetStore = new Map<string, { positive: number; negative: number; total: number }>();
+
+function modePresetKey(modeId: string, preset: string): string {
+  return `${modeId}:${preset}`;
+}
+
+function contextKey(preset: string, modeId: string, pageType: string): string {
+  return `${preset}:${modeId}:${pageType}`;
+}
+
+/** Context-specific effectiveness: keyed by preset:modeId:pageType */
+const contextualStore = new Map<string, { positive: number; negative: number; total: number }>();
+
+/**
+ * Record mode+preset usage for combination tracking.
+ */
+export function recordModePresetUsage(modeId: string, preset: string, pageType: string): void {
+  const mpKey = modePresetKey(modeId, preset);
+  const existing = modePresetStore.get(mpKey) ?? { positive: 0, negative: 0, total: 0 };
+  existing.total += 1;
+  modePresetStore.set(mpKey, existing);
+
+  const cKey = contextKey(preset, modeId, pageType);
+  const ctxExisting = contextualStore.get(cKey) ?? { positive: 0, negative: 0, total: 0 };
+  ctxExisting.total += 1;
+  contextualStore.set(cKey, ctxExisting);
+}
+
+/**
+ * Record user feedback for a mode+preset combination.
+ */
+export function recordModeFeedback(modeId: string, preset: string, thumbsUp: boolean): void {
+  const mpKey = modePresetKey(modeId, preset);
+  const existing = modePresetStore.get(mpKey) ?? { positive: 0, negative: 0, total: 0 };
+  if (thumbsUp) {
+    existing.positive += 1;
+  } else {
+    existing.negative += 1;
+  }
+  modePresetStore.set(mpKey, existing);
+
+  logger.debug('[SAM_PRESET_TRACKER] Mode feedback recorded:', {
+    modeId,
+    preset,
+    thumbsUp,
+    score: computeBayesianScore(existing.positive, existing.negative).toFixed(3),
+  });
+}
+
+/**
+ * Get effectiveness score for a specific mode+preset combination.
+ * Falls back to global preset score if insufficient mode-specific data.
+ */
+export function getModePresetEffectivenessScore(modeId: string, preset: string): number {
+  const mpKey = modePresetKey(modeId, preset);
+  const data = modePresetStore.get(mpKey);
+  const totalFeedback = data ? data.positive + data.negative : 0;
+
+  // Need at least 5 feedback points for mode-specific scoring
+  if (totalFeedback >= 5 && data) {
+    return computeBayesianScore(data.positive, data.negative);
+  }
+
+  return getPresetEffectivenessScore(preset);
+}
+
+/**
+ * Get context-aware effectiveness score: preset + mode + pageType.
+ * Falls back through: context → mode+preset → global preset.
+ */
+export function getContextualEffectivenessScore(
+  preset: string,
+  modeId: string,
+  pageType: string,
+): number {
+  const cKey = contextKey(preset, modeId, pageType);
+  const ctxData = contextualStore.get(cKey);
+  const ctxFeedback = ctxData ? ctxData.positive + ctxData.negative : 0;
+
+  // Use context-specific data if we have enough
+  if (ctxFeedback >= 5 && ctxData) {
+    return computeBayesianScore(ctxData.positive, ctxData.negative);
+  }
+
+  // Fall back to mode+preset
+  return getModePresetEffectivenessScore(modeId, preset);
+}
+
+/**
+ * Get all mode effectiveness scores (for analytics endpoint).
+ */
+export function getModeEffectivenessScores(): Record<string, { score: number; usageCount: number; positiveCount: number; negativeCount: number }> {
+  const result: Record<string, { score: number; usageCount: number; positiveCount: number; negativeCount: number }> = {};
+  for (const [key, data] of modePresetStore.entries()) {
+    result[key] = {
+      score: computeBayesianScore(data.positive, data.negative),
+      usageCount: data.total,
+      positiveCount: data.positive,
+      negativeCount: data.negative,
+    };
+  }
+  return result;
+}

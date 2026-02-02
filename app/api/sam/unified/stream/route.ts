@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Validate request body, classify intent, create agentic bridge (shared stage)
     const body = await request.json();
-    const valid = runValidationStage(body, auth.ctx, startTime);
+    const valid = await runValidationStage(body, auth.ctx, startTime);
     if ('response' in valid) return valid.response;
 
     // Mark context as SSE output
@@ -110,36 +110,30 @@ export async function POST(request: NextRequest) {
           const responseText = await streamAIResponse(ctx, subsystems, controller);
           ctx = { ...ctx, responseText };
 
-          // PHASE 2: Run deferred pipeline stages (analysis + post-processing)
+          // PHASE 2: Run deferred pipeline stages with incremental SSE events
           const deferredStages: Array<{
             name: string;
             run: () => Promise<typeof ctx>;
-            critical: boolean;
           }> = [
-            {
-              name: 'orchestration',
-              run: () => runOrchestrationStage(ctx, subsystems),
-              critical: false,
-            },
-            { name: 'tutoring', run: () => runTutoringStage(ctx), critical: false },
-            {
-              name: 'tool-execution',
-              run: () => runToolExecutionStage(ctx, subsystems),
-              critical: false,
-            },
-            { name: 'agentic', run: () => runAgenticStage(ctx), critical: false },
-            { name: 'intervention', run: () => runInterventionStage(ctx), critical: false },
-            { name: 'knowledge-graph', run: () => runKnowledgeGraphStage(ctx), critical: false },
-            {
-              name: 'memory-persistence',
-              run: () => runMemoryPersistenceStage(ctx),
-              critical: false,
-            },
+            { name: 'orchestration', run: () => runOrchestrationStage(ctx, subsystems) },
+            { name: 'tutoring', run: () => runTutoringStage(ctx) },
+            { name: 'tool-execution', run: () => runToolExecutionStage(ctx, subsystems) },
+            { name: 'agentic', run: () => runAgenticStage(ctx) },
+            { name: 'intervention', run: () => runInterventionStage(ctx) },
+            { name: 'knowledge-graph', run: () => runKnowledgeGraphStage(ctx) },
+            { name: 'memory-persistence', run: () => runMemoryPersistenceStage(ctx) },
           ];
 
           for (const stage of deferredStages) {
             try {
               ctx = await stage.run();
+              // Emit incremental stage-complete event
+              controller.enqueue(
+                sseEvent('stage-complete', {
+                  stage: stage.name,
+                  timestamp: Date.now(),
+                }),
+              );
             } catch (stageError: unknown) {
               const errorMsg =
                 stageError instanceof Error ? stageError.message : 'Unknown error';

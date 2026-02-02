@@ -10,11 +10,13 @@ import {
   Star,
   Flame,
   ChevronDown,
+  ChevronRight,
   Sun,
   Moon,
   Monitor,
   Check,
   ListChecks,
+  Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ThemeMode } from './types';
@@ -22,6 +24,8 @@ import type { UserProgress } from '@/lib/sam/gamification';
 import { HEADER_HEIGHT } from './types';
 import { getModeById, getAllModes, MODE_CATEGORIES, getModeMaturity } from '@/lib/sam/modes';
 import type { SAMModeId, EngineMaturityLevel } from '@/lib/sam/modes';
+import { useModePreferences } from './hooks/use-mode-preferences';
+import { ModeSearch } from './ModeSearch';
 
 interface ChatHeaderProps {
   breadcrumbs: string[];
@@ -77,8 +81,11 @@ export function ChatHeader({
   className,
 }: ChatHeaderProps) {
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
+  const [modeSearch, setModeSearch] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const { recentModes, isFavorite, recordModeUsage, toggleFavorite } = useModePreferences();
 
   const activeModeDef = getModeById(activeMode);
   const activeModeLabel = activeModeDef?.label ?? 'General Assistant';
@@ -105,10 +112,24 @@ export function ChatHeader({
   const handleModeSelect = useCallback(
     (modeId: string) => {
       onModeChange(modeId as SAMModeId);
+      recordModeUsage(modeId as SAMModeId);
       setModeDropdownOpen(false);
+      setModeSearch('');
     },
-    [onModeChange]
+    [onModeChange, recordModeUsage]
   );
+
+  const toggleCategory = useCallback((catId: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) {
+        next.delete(catId);
+      } else {
+        next.add(catId);
+      }
+      return next;
+    });
+  }, []);
 
   const toggleModeDropdown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -125,8 +146,6 @@ export function ChatHeader({
     );
 
   const allModes = getAllModes();
-  const leftCategories = MODE_CATEGORIES.filter((c) => c.column === 'left');
-  const rightCategories = MODE_CATEGORIES.filter((c) => c.column === 'right');
 
   return (
     <div
@@ -227,7 +246,7 @@ export function ChatHeader({
         </HeaderButton>
       </div>
 
-      {/* Mode Dropdown */}
+      {/* Mode Dropdown — Enhanced with search, recents, favorites, collapsible categories */}
       {modeDropdownOpen && (
         <div
           ref={dropdownRef}
@@ -240,64 +259,169 @@ export function ChatHeader({
               background: 'var(--sam-surface-solid)',
               border: '1px solid var(--sam-border)',
               borderTop: 'none',
-              maxHeight: '360px',
+              maxHeight: '400px',
               overflowY: 'auto',
             }}
           >
-            <div className="grid grid-cols-2 gap-0 p-1.5">
-              {/* Left column */}
-              <div className="pr-1 border-r" style={{ borderColor: 'var(--sam-border)' }}>
-                {leftCategories.map((cat) => {
-                  const catModes = allModes.filter((m) => m.category === cat.id);
-                  if (catModes.length === 0) return null;
-                  return (
-                    <div key={cat.id} className="mb-1.5 last:mb-0">
-                      <div
-                        className="text-[9px] uppercase tracking-wider px-2 py-0.5"
-                        style={{ color: 'var(--sam-text-muted)' }}
-                      >
-                        {cat.label}
-                      </div>
-                      {catModes.map((mode) => (
-                        <ModeItem
-                          key={mode.id}
-                          label={mode.label}
-                          isActive={mode.id === activeMode}
-                          maturity={getModeMaturity(mode.enginePreset)}
-                          onClick={() => handleModeSelect(mode.id)}
-                        />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Right column */}
-              <div className="pl-1">
-                {rightCategories.map((cat) => {
-                  const catModes = allModes.filter((m) => m.category === cat.id);
-                  if (catModes.length === 0) return null;
-                  return (
-                    <div key={cat.id} className="mb-1.5 last:mb-0">
-                      <div
-                        className="text-[9px] uppercase tracking-wider px-2 py-0.5"
-                        style={{ color: 'var(--sam-text-muted)' }}
-                      >
-                        {cat.label}
-                      </div>
-                      {catModes.map((mode) => (
-                        <ModeItem
-                          key={mode.id}
-                          label={mode.label}
-                          isActive={mode.id === activeMode}
-                          maturity={getModeMaturity(mode.enginePreset)}
-                          onClick={() => handleModeSelect(mode.id)}
-                        />
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
+            {/* Smart Auto button */}
+            <div className="px-1.5 pt-1.5">
+              <button
+                onClick={() => handleModeSelect('general-assistant')}
+                className={cn(
+                  'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[11px]',
+                  'transition-colors duration-100',
+                  activeMode === 'general-assistant'
+                    ? 'font-medium'
+                    : 'hover:bg-[var(--sam-accent)]/10',
+                )}
+                style={{
+                  color: activeMode === 'general-assistant' ? 'var(--sam-accent)' : 'var(--sam-text)',
+                  background: activeMode === 'general-assistant' ? 'rgba(124, 58, 237, 0.08)' : undefined,
+                }}
+              >
+                <Zap className="h-3.5 w-3.5 shrink-0" />
+                <span className="flex-1 text-left">Smart Auto</span>
+                {activeMode === 'general-assistant' && (
+                  <Check className="h-3 w-3 shrink-0" style={{ color: 'var(--sam-accent)' }} />
+                )}
+              </button>
             </div>
+
+            {/* Divider */}
+            <div className="mx-2 my-1 h-px" style={{ background: 'var(--sam-border)' }} />
+
+            {/* Recent modes */}
+            {recentModes.length > 0 && !modeSearch && (
+              <>
+                <div className="px-1.5">
+                  <div
+                    className="text-[9px] uppercase tracking-wider px-2 py-0.5"
+                    style={{ color: 'var(--sam-text-muted)' }}
+                  >
+                    Recent
+                  </div>
+                  {recentModes.slice(0, 3).map((modeId) => {
+                    const mode = getModeById(modeId);
+                    if (!mode || modeId === 'general-assistant') return null;
+                    return (
+                      <ModeItem
+                        key={`recent-${mode.id}`}
+                        label={mode.label}
+                        isActive={mode.id === activeMode}
+                        maturity={getModeMaturity(mode.enginePreset)}
+                        isFavorite={isFavorite(mode.id as SAMModeId)}
+                        onToggleFavorite={() => toggleFavorite(mode.id as SAMModeId)}
+                        onClick={() => handleModeSelect(mode.id)}
+                      />
+                    );
+                  })}
+                </div>
+                <div className="mx-2 my-1 h-px" style={{ background: 'var(--sam-border)' }} />
+              </>
+            )}
+
+            {/* Favorite modes */}
+            {!modeSearch && (() => {
+              const favModes = allModes.filter((m) => isFavorite(m.id as SAMModeId) && m.id !== 'general-assistant');
+              if (favModes.length === 0) return null;
+              return (
+                <>
+                  <div className="px-1.5">
+                    <div
+                      className="text-[9px] uppercase tracking-wider px-2 py-0.5"
+                      style={{ color: 'var(--sam-text-muted)' }}
+                    >
+                      Favorites
+                    </div>
+                    {favModes.map((mode) => (
+                      <ModeItem
+                        key={`fav-${mode.id}`}
+                        label={mode.label}
+                        isActive={mode.id === activeMode}
+                        maturity={getModeMaturity(mode.enginePreset)}
+                        isFavorite
+                        onToggleFavorite={() => toggleFavorite(mode.id as SAMModeId)}
+                        onClick={() => handleModeSelect(mode.id)}
+                      />
+                    ))}
+                  </div>
+                  <div className="mx-2 my-1 h-px" style={{ background: 'var(--sam-border)' }} />
+                </>
+              );
+            })()}
+
+            {/* Search */}
+            <ModeSearch query={modeSearch} onQueryChange={setModeSearch} />
+
+            {/* Filtered flat list when searching */}
+            {modeSearch ? (
+              <div className="px-1.5 pb-1.5">
+                {allModes
+                  .filter((m) =>
+                    m.label.toLowerCase().includes(modeSearch.toLowerCase()) ||
+                    m.id.toLowerCase().includes(modeSearch.toLowerCase())
+                  )
+                  .map((mode) => (
+                    <ModeItem
+                      key={mode.id}
+                      label={mode.label}
+                      isActive={mode.id === activeMode}
+                      maturity={getModeMaturity(mode.enginePreset)}
+                      isFavorite={isFavorite(mode.id as SAMModeId)}
+                      onToggleFavorite={() => toggleFavorite(mode.id as SAMModeId)}
+                      onClick={() => handleModeSelect(mode.id)}
+                    />
+                  ))}
+              </div>
+            ) : (
+              /* Collapsible categories */
+              <div className="px-1.5 pb-1.5">
+                {MODE_CATEGORIES.map((cat) => {
+                  const catModes = allModes.filter((m) => m.category === cat.id && m.id !== 'general-assistant');
+                  if (catModes.length === 0) return null;
+                  const isExpanded = expandedCategories.has(cat.id);
+                  return (
+                    <div key={cat.id} className="mb-0.5 last:mb-0">
+                      <button
+                        onClick={() => toggleCategory(cat.id)}
+                        className="w-full flex items-center gap-1 px-2 py-0.5 rounded hover:bg-[var(--sam-accent)]/5 transition-colors"
+                      >
+                        <ChevronRight
+                          className={cn(
+                            'h-2.5 w-2.5 shrink-0 transition-transform duration-150',
+                            isExpanded && 'rotate-90',
+                          )}
+                          style={{ color: 'var(--sam-text-muted)' }}
+                        />
+                        <span
+                          className="text-[9px] uppercase tracking-wider"
+                          style={{ color: 'var(--sam-text-muted)' }}
+                        >
+                          {cat.label}
+                        </span>
+                        <span
+                          className="text-[9px] ml-auto"
+                          style={{ color: 'var(--sam-text-muted)' }}
+                        >
+                          {catModes.length}
+                        </span>
+                      </button>
+                      {isExpanded && catModes.map((mode) => (
+                        <ModeItem
+                          key={mode.id}
+                          label={mode.label}
+                          isActive={mode.id === activeMode}
+                          maturity={getModeMaturity(mode.enginePreset)}
+                          isFavorite={isFavorite(mode.id as SAMModeId)}
+                          onToggleFavorite={() => toggleFavorite(mode.id as SAMModeId)}
+                          onClick={() => handleModeSelect(mode.id)}
+                        />
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -309,18 +433,22 @@ function ModeItem({
   label,
   isActive,
   maturity,
+  isFavorite: isFav,
+  onToggleFavorite,
   onClick,
 }: {
   label: string;
   isActive: boolean;
   maturity?: EngineMaturityLevel;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
   onClick: () => void;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center justify-between px-2 py-1 rounded-md text-[11px] text-left',
+        'w-full flex items-center justify-between px-2 py-1 rounded-md text-[11px] text-left group',
         'transition-colors duration-100',
         isActive
           ? 'font-medium'
@@ -345,7 +473,24 @@ function ModeItem({
           />
         )}
       </span>
-      {isActive && <Check className="h-3 w-3 shrink-0 ml-1" style={{ color: 'var(--sam-accent)' }} />}
+      <span className="flex items-center gap-0.5 shrink-0 ml-1">
+        {onToggleFavorite && (
+          <span
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            className={cn(
+              'h-4 w-4 flex items-center justify-center rounded',
+              isFav
+                ? 'text-yellow-500'
+                : 'text-transparent group-hover:text-[var(--sam-text-muted)] hover:text-yellow-500',
+              'transition-colors cursor-pointer',
+            )}
+            title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Star className="h-2.5 w-2.5" fill={isFav ? 'currentColor' : 'none'} />
+          </span>
+        )}
+        {isActive && <Check className="h-3 w-3 shrink-0" style={{ color: 'var(--sam-accent)' }} />}
+      </span>
     </button>
   );
 }

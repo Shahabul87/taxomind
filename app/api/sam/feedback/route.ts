@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';
+import { recordModeFeedback, recordPresetFeedback } from '@/lib/sam/pipeline/preset-tracker';
 
 // ============================================================================
 // VALIDATION SCHEMA
@@ -20,6 +21,10 @@ const FeedbackSchema = z.object({
   modeId: z.string().optional(),
   modeFeedback: z.enum(['EFFECTIVE', 'SOMEWHAT', 'NOT_EFFECTIVE', 'WRONG_MODE']).optional(),
   modeSuggestion: z.string().optional(),
+  metadata: z.object({
+    enginePresetUsed: z.string().optional(),
+    modeId: z.string().optional(),
+  }).optional(),
 });
 
 type FeedbackInput = z.infer<typeof FeedbackSchema>;
@@ -156,6 +161,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<ApiResponse<F
       logger.debug('[Telemetry] Recorded confidence outcome from user feedback');
     } catch (telemetryError) {
       logger.warn('[Telemetry] Failed to record confidence outcome:', telemetryError);
+    }
+
+    // Record mode+preset effectiveness feedback
+    try {
+      const preset = feedbackData.metadata?.enginePresetUsed ?? 'unknown';
+      const modeIdForTracking = feedbackData.metadata?.modeId ?? feedbackData.modeId ?? 'general-assistant';
+      const isPositive = feedbackData.rating === 'helpful';
+
+      recordPresetFeedback(preset, isPositive);
+      recordModeFeedback(modeIdForTracking, preset, isPositive);
+    } catch (trackingError) {
+      logger.warn('[SAM_FEEDBACK] Preset tracker recording failed:', trackingError);
     }
 
     const responseData: FeedbackResponse = {
