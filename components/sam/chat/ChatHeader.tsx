@@ -17,6 +17,7 @@ import {
   Check,
   ListChecks,
   Zap,
+  Cpu,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ThemeMode } from './types';
@@ -51,6 +52,9 @@ interface ChatHeaderProps {
   hasPlan?: boolean;
   showPlanPanel?: boolean;
   onTogglePlanPanel?: () => void;
+  // Engine details
+  showEngineDetails?: boolean;
+  onToggleEngineDetails?: () => void;
   // Drag handlers
   dragHandlers?: {
     onMouseDown: (e: React.MouseEvent) => void;
@@ -77,6 +81,8 @@ export function ChatHeader({
   hasPlan,
   showPlanPanel,
   onTogglePlanPanel,
+  showEngineDetails,
+  onToggleEngineDetails,
   dragHandlers,
   className,
 }: ChatHeaderProps) {
@@ -221,6 +227,16 @@ export function ChatHeader({
           </HeaderButton>
         )}
 
+        {/* Engine details toggle */}
+        {onToggleEngineDetails && (
+          <HeaderButton
+            onClick={onToggleEngineDetails}
+            title={showEngineDetails ? 'Hide engine details' : 'Show engine details'}
+          >
+            <Cpu className={cn('h-3 w-3', showEngineDetails && 'text-yellow-300')} />
+          </HeaderButton>
+        )}
+
         {/* Theme toggle */}
         <HeaderButton onClick={onToggleTheme} title={`Theme: ${theme}`}>
           {themeIcon}
@@ -306,6 +322,7 @@ export function ChatHeader({
                     return (
                       <ModeItem
                         key={`recent-${mode.id}`}
+                        modeId={mode.id}
                         label={mode.label}
                         isActive={mode.id === activeMode}
                         maturity={getModeMaturity(mode.enginePreset)}
@@ -336,6 +353,7 @@ export function ChatHeader({
                     {favModes.map((mode) => (
                       <ModeItem
                         key={`fav-${mode.id}`}
+                        modeId={mode.id}
                         label={mode.label}
                         isActive={mode.id === activeMode}
                         maturity={getModeMaturity(mode.enginePreset)}
@@ -364,6 +382,7 @@ export function ChatHeader({
                   .map((mode) => (
                     <ModeItem
                       key={mode.id}
+                      modeId={mode.id}
                       label={mode.label}
                       isActive={mode.id === activeMode}
                       maturity={getModeMaturity(mode.enginePreset)}
@@ -409,6 +428,7 @@ export function ChatHeader({
                       {isExpanded && catModes.map((mode) => (
                         <ModeItem
                           key={mode.id}
+                          modeId={mode.id}
                           label={mode.label}
                           isActive={mode.id === activeMode}
                           maturity={getModeMaturity(mode.enginePreset)}
@@ -429,8 +449,22 @@ export function ChatHeader({
   );
 }
 
+type ModeDifferentiation = 'deep' | 'configured' | 'prompt-only';
+
+function getModeDifferentiation(modeId: string): ModeDifferentiation {
+  const mode = getModeById(modeId);
+  if (!mode) return 'prompt-only';
+  const hasSpecializedEngines = mode.enginePreset.some(
+    (e: string) => !['context', 'response'].includes(e),
+  );
+  if (hasSpecializedEngines && mode.engineConfig) return 'deep';
+  if (mode.engineConfig) return 'configured';
+  return 'prompt-only';
+}
+
 function ModeItem({
   label,
+  modeId,
   isActive,
   maturity,
   isFavorite: isFav,
@@ -438,12 +472,15 @@ function ModeItem({
   onClick,
 }: {
   label: string;
+  modeId: string;
   isActive: boolean;
   maturity?: EngineMaturityLevel;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   onClick: () => void;
 }) {
+  const differentiation = getModeDifferentiation(modeId);
+
   return (
     <button
       onClick={onClick}
@@ -461,6 +498,22 @@ function ModeItem({
     >
       <span className="flex items-center gap-1 truncate">
         {label}
+        {/* Mode differentiation indicator */}
+        <span
+          className={cn(
+            'inline-block h-1.5 w-1.5 rounded-full shrink-0',
+            differentiation === 'deep' && 'bg-green-400',
+            differentiation === 'configured' && 'bg-blue-400',
+            differentiation === 'prompt-only' && 'bg-gray-300',
+          )}
+          title={
+            differentiation === 'deep'
+              ? 'Deep integration (unique engine pipeline)'
+              : differentiation === 'configured'
+                ? 'Configured (engine config + prompt)'
+                : 'Prompt-only mode'
+          }
+        />
         {maturity && maturity !== 'production' && (
           <span
             className={cn(

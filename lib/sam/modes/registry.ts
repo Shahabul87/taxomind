@@ -21,6 +21,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
     enginePreset: ['response'],
     systemPromptAddition: '',
     allowedToolCategories: ['external', 'content', 'system', 'communication'],
+    engineConfig: { adaptationStrategy: 'auto', outputFormat: 'conversational', contentFocus: 'general' },
   },
 
   // =========================================================================
@@ -37,6 +38,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'Apply Bloom\'s Taxonomy to ensure appropriate cognitive levels. ' +
       'Structure content with clear learning objectives and assessments.',
     allowedToolCategories: ['content', 'external'],
+    engineConfig: { outputFormat: 'structured', bloomsAlignment: true, contentFocus: 'creation' },
   },
   'adaptive-content': {
     id: 'adaptive-content',
@@ -48,6 +50,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Adaptive Content mode. Tailor all content to the learner\'s current level, ' +
       'preferences, and learning style. Adjust complexity dynamically.',
     allowedToolCategories: ['content', 'external'],
+    engineConfig: { adaptationStrategy: 'learner-level', contentFocus: 'personalized', adjustDifficulty: true },
   },
   'microlearning': {
     id: 'microlearning',
@@ -88,6 +91,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'Bloom\'s six cognitive levels (Remember, Understand, Apply, Analyze, Evaluate, Create). ' +
       'Provide detailed distribution analysis and recommendations for cognitive balance.',
     allowedToolCategories: ['external'],
+    engineConfig: { analysisDepth: 'comprehensive', outputFormat: 'structured', showDistribution: true },
   },
   'depth-analysis': {
     id: 'depth-analysis',
@@ -100,6 +104,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'using Bloom\'s Taxonomy, Webb\'s Depth of Knowledge, and SOLO Taxonomy. ' +
       'Compare findings across frameworks for actionable insights.',
     allowedToolCategories: ['external'],
+    engineConfig: { multiFramework: true, frameworks: ['blooms', 'webbs', 'solo'], showComparison: true },
   },
   'cognitive-load': {
     id: 'cognitive-load',
@@ -111,6 +116,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Cognitive Load Analyzer mode. Evaluate intrinsic, extraneous, and germane ' +
       'cognitive load in learning materials. Suggest restructuring to optimize cognitive resources.',
     allowedToolCategories: ['external'],
+    engineConfig: { splitAttention: true, redundancy: true, optimizeSuggestions: true },
   },
   'alignment-checker': {
     id: 'alignment-checker',
@@ -122,6 +128,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Alignment Checker mode. Verify constructive alignment between learning objectives, ' +
       'instructional activities, and assessment tasks. Identify misalignments and suggest corrections.',
     allowedToolCategories: ['external'],
+    engineConfig: { checkAlignment: true, showMatrix: true, suggestCorrections: true },
   },
   'scaffolding': {
     id: 'scaffolding',
@@ -133,6 +140,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Scaffolding Evaluator mode. Analyze instructional scaffolding: ' +
       'prerequisite support, guided practice, gradual release of responsibility, and differentiation.',
     allowedToolCategories: ['external'],
+    engineConfig: { evaluatePrerequisites: true, gradualRelease: true, differentiationLevel: 'adaptive' },
   },
   'zpd-evaluator': {
     id: 'zpd-evaluator',
@@ -144,6 +152,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Zone of Proximal Development (ZPD) Evaluator mode. Assess whether content ' +
       'falls within the learner\'s ZPD. Identify what support is needed to bridge skill gaps.',
     allowedToolCategories: ['external'],
+    engineConfig: { zpdMapping: true, supportSuggestions: true, difficultyCalibration: true },
   },
 
   // =========================================================================
@@ -159,6 +168,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Learning Coach mode. Provide personalized guidance based on the learner\'s ' +
       'current progress, strengths, and areas for improvement. Be encouraging but honest.',
     allowedToolCategories: ['content', 'external', 'system'],
+    engineConfig: { adaptationStrategy: 'pace', encouragementLevel: 'high', includeReflection: true },
   },
   'socratic-tutor': {
     id: 'socratic-tutor',
@@ -171,6 +181,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'Use the Socratic method: ask probing questions, challenge assumptions, and help learners ' +
       'discover understanding through their own reasoning.',
     allowedToolCategories: ['external'],
+    engineConfig: { questioningStyle: 'guided', maxDirectAnswers: 0, scaffoldingLevel: 'adaptive' },
   },
   'study-planner': {
     id: 'study-planner',
@@ -182,6 +193,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Study Planner mode. Help create structured, time-bound study plans. ' +
       'Consider available time, learning goals, difficulty levels, and optimal session lengths.',
     allowedToolCategories: ['system', 'communication'],
+    engineConfig: { planFormat: 'weekly', includeBreaks: true, adaptToSchedule: true },
   },
   'mastery-tracker': {
     id: 'mastery-tracker',
@@ -193,6 +205,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Mastery Tracker mode. Monitor and report on skill mastery levels. ' +
       'Track progress toward competency thresholds and recommend focused practice areas.',
     allowedToolCategories: ['system'],
+    engineConfig: { showProgressChart: true, identifyGaps: true, suggestReview: true },
   },
   'spaced-repetition': {
     id: 'spaced-repetition',
@@ -204,6 +217,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Spaced Repetition mode. Apply evidence-based spacing algorithms to optimize ' +
       'review timing. Schedule reviews at increasing intervals based on retention strength.',
     allowedToolCategories: ['system', 'communication'],
+    engineConfig: { algorithm: 'sm2', showSchedule: true, adaptDifficulty: true },
   },
   'metacognition': {
     id: 'metacognition',
@@ -215,6 +229,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Metacognition Coach mode. Help learners develop self-awareness about their ' +
       'learning processes. Guide reflection on strategies, self-monitoring, and self-regulation.',
     allowedToolCategories: ['external'],
+    engineConfig: { reflectionPrompts: true, selfAssessment: true, strategyCoaching: true },
   },
   'skill-tracker': {
     id: 'skill-tracker',
@@ -226,6 +241,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Skill Tracker mode. Map and track skill development across competency frameworks. ' +
       'Identify skill gaps and recommend learning paths to fill them.',
     allowedToolCategories: ['system'],
+    engineConfig: { showCompetencyMap: true, identifyStrengths: true, careerAlignment: true },
   },
 
   // =========================================================================
@@ -241,6 +257,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Exam Builder mode. Create well-structured assessments with questions targeting ' +
       'specific Bloom\'s levels. Include rubrics, answer keys, and difficulty distribution.',
     allowedToolCategories: ['content'],
+    engineConfig: { rubricGeneration: true, bloomsAlignment: true, difficultySpread: true },
   },
   'practice-problems': {
     id: 'practice-problems',
@@ -252,6 +269,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Practice Problems mode. Generate progressive practice problems that build ' +
       'from basic recall to higher-order thinking. Include worked examples and hints.',
     allowedToolCategories: ['content'],
+    engineConfig: { adaptiveDifficulty: true, hintSystem: true, stepByStep: true },
   },
   'evaluation': {
     id: 'evaluation',
@@ -263,6 +281,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Answer Evaluator mode. Assess student responses against rubrics and learning objectives. ' +
       'Provide constructive feedback with specific improvement suggestions.',
     allowedToolCategories: ['external'],
+    engineConfig: { detailedFeedback: true, rubricBased: true, improvementSuggestions: true },
   },
   'integrity-checker': {
     id: 'integrity-checker',
@@ -274,6 +293,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Integrity Checker mode. Analyze content for potential academic integrity concerns ' +
       'including originality, proper attribution, and assessment security.',
     allowedToolCategories: ['external'],
+    engineConfig: { checkPatterns: true, sourceSuggestions: true, educationalGuidance: true },
   },
 
   // =========================================================================
@@ -313,6 +333,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Trends Analyzer mode. Identify and analyze trends in education, technology, ' +
       'and learning methodologies. Provide data-driven insights.',
     allowedToolCategories: ['external'],
+    engineConfig: { timeRange: 'yearly', visualize: true, predictive: true },
   },
 
   // =========================================================================
@@ -328,6 +349,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Course Architect mode. Design comprehensive course structures with aligned ' +
       'objectives, content sequences, assessments, and learning activities. Apply backward design.',
     allowedToolCategories: ['content', 'external'],
+    engineConfig: { backwardDesign: true, alignmentMatrix: true, pacing: true },
   },
   'knowledge-graph': {
     id: 'knowledge-graph',
@@ -351,6 +373,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Competency Mapper mode. Map competencies, skills, and outcomes to curriculum ' +
       'elements. Ensure comprehensive coverage with no gaps in skill development.',
     allowedToolCategories: ['content'],
+    engineConfig: { frameworkAlignment: true, careerMapping: true, progressTracking: true },
   },
 
   // =========================================================================
@@ -366,6 +389,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Learning Analytics mode. Analyze learning data to identify patterns, trends, ' +
       'and insights. Provide actionable recommendations based on data analysis.',
     allowedToolCategories: ['external'],
+    engineConfig: { showCharts: true, comparativeAnalysis: true, trendDetection: true },
   },
   'predictive': {
     id: 'predictive',
@@ -377,6 +401,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Predictive Outcomes mode. Use available data to predict learning outcomes, ' +
       'identify at-risk learners, and recommend early interventions.',
     allowedToolCategories: ['external'],
+    engineConfig: { riskAssessment: true, earlyWarning: true, interventionSuggestions: true },
   },
   'market-analysis': {
     id: 'market-analysis',
@@ -388,6 +413,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Market Analysis mode. Analyze educational market trends, competition, ' +
       'and opportunities for course positioning and content strategy.',
     allowedToolCategories: ['external'],
+    engineConfig: { jobMarketData: true, skillDemand: true, salaryInsights: true },
   },
   'collaboration': {
     id: 'collaboration',
@@ -399,6 +425,7 @@ const MODES: Record<SAMModeId, SAMMode> = {
       'You are in Collaboration Insights mode. Analyze collaborative learning patterns, ' +
       'group dynamics, and social learning effectiveness. Suggest improvements for group work.',
     allowedToolCategories: ['external'],
+    engineConfig: { groupMetrics: true, peerMatching: true, contributionTracking: true },
   },
 };
 

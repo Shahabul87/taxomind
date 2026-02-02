@@ -189,6 +189,14 @@ export async function buildUnifiedResponse(
             reason: ctx.modeClassification.reason,
           }
         : undefined,
+      engineSelection: ctx.modeAnalytics?.engineSelection
+        ? {
+            preset: ctx.modeAnalytics.engineSelection.preset,
+            reason: ctx.modeAnalytics.engineSelection.reason,
+            signals: ctx.modeAnalytics.engineSelection.signals,
+            alternativePresets: ctx.modeAnalytics.engineSelection.alternativePresets,
+          }
+        : undefined,
     },
     metadata: {
       enginesRun: (resultMetadata.enginesExecuted as string[]) ?? [],

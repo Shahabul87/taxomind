@@ -34,6 +34,11 @@ import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 import { registerAdapter } from '@/lib/sam/tools/adapters/tool-adapter-interface';
 import { createWikipediaAdapter } from '@/lib/sam/tools/adapters/wikipedia-adapter';
 import { createDictionaryAdapter } from '@/lib/sam/tools/adapters/dictionary-adapter';
+import { createFlashcardGeneratorTool } from '@/lib/sam/tools/flashcard-generator';
+import { createQuizGraderTool } from '@/lib/sam/tools/quiz-grader';
+import { createProgressExporterTool } from '@/lib/sam/tools/progress-exporter';
+import { createDiagramGeneratorTool } from '@/lib/sam/tools/diagram-generator';
+import { createStudyTimerTool } from '@/lib/sam/tools/study-timer';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -236,6 +241,53 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry): Promise<void> 
     registered: registeredCount,
     updated: updatedCount,
     total: tools.length,
+  });
+
+  // ---- Register standalone SAM tools (no AI adapter required) ----
+  const standaloneTools: ToolDefinition[] = [
+    createFlashcardGeneratorTool(),
+    createQuizGraderTool(),
+    createProgressExporterTool(),
+    createDiagramGeneratorTool(),
+    createStudyTimerTool(),
+  ];
+
+  let standaloneRegistered = 0;
+  let standaloneUpdated = 0;
+
+  for (const tool of standaloneTools) {
+    applyToolConfig(tool, toolConfigMap.get(tool.id));
+    const existing = await db.agentTool.findUnique({ where: { id: tool.id } });
+    if (!existing) {
+      await toolRegistry.register(tool);
+      standaloneRegistered++;
+    } else {
+      toolCache.set(tool.id, tool);
+      await toolRegistry.update(tool.id, {
+        name: tool.name,
+        description: tool.description,
+        version: tool.version,
+        category: tool.category,
+        confirmationType: tool.confirmationType,
+        requiredPermissions: tool.requiredPermissions,
+        timeoutMs: tool.timeoutMs,
+        maxRetries: tool.maxRetries,
+        rateLimit: tool.rateLimit,
+        tags: tool.tags,
+        examples: tool.examples,
+        metadata: tool.metadata,
+        enabled: tool.enabled,
+        deprecated: tool.deprecated,
+        deprecationMessage: tool.deprecationMessage,
+      });
+      standaloneUpdated++;
+    }
+  }
+
+  logger.info('[Tooling] Standalone tools registration complete', {
+    registered: standaloneRegistered,
+    updated: standaloneUpdated,
+    total: standaloneTools.length,
   });
 }
 

@@ -1357,6 +1357,140 @@ Return JSON:
     this.conceptCache.clear();
     this.masteryCache.clear();
   }
+
+  // ============================================================================
+  // GRAPH TRAVERSAL ALGORITHMS (No AI calls needed)
+  // ============================================================================
+
+  /**
+   * Find the prerequisite chain for a concept using BFS traversal.
+   * Returns all prerequisite concepts in topological order (deepest prerequisites first).
+   */
+  findPrerequisiteChain(
+    conceptId: string,
+    graph: KnowledgeGraph
+  ): Concept[] {
+    const visited = new Set<string>();
+    const chain: Concept[] = [];
+    const queue: string[] = [conceptId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (!currentId || visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      // Find prerequisite relations where this concept is the target
+      const prereqRelations = graph.relations.filter(
+        (rel) => rel.targetConceptId === currentId && rel.type === 'PREREQUISITE'
+      );
+
+      for (const rel of prereqRelations) {
+        const prereqConcept = graph.concepts.find((c) => c.id === rel.sourceConceptId);
+        if (prereqConcept && !visited.has(prereqConcept.id)) {
+          chain.push(prereqConcept);
+          queue.push(prereqConcept.id);
+        }
+      }
+    }
+
+    // Return in reverse order: deepest prerequisites first
+    return chain.reverse();
+  }
+
+  /**
+   * Find related concepts within a bounded depth using DFS.
+   * Returns concepts reachable within the specified number of hops.
+   */
+  findRelatedConcepts(
+    conceptId: string,
+    graph: KnowledgeGraph,
+    maxDepth: number = 3
+  ): Array<{ concept: Concept; depth: number; relationTypes: string[] }> {
+    const visited = new Set<string>();
+    const results: Array<{ concept: Concept; depth: number; relationTypes: string[] }> = [];
+    const maxTraversalDepth = Math.min(maxDepth, this.maxPrerequisiteDepth);
+
+    const dfs = (currentId: string, depth: number, relationPath: string[]): void => {
+      if (depth > maxTraversalDepth || visited.has(currentId)) return;
+      visited.add(currentId);
+
+      // Find all relations involving this concept
+      const relations = graph.relations.filter(
+        (rel) => rel.sourceConceptId === currentId || rel.targetConceptId === currentId
+      );
+
+      for (const rel of relations) {
+        const neighborId = rel.sourceConceptId === currentId
+          ? rel.targetConceptId
+          : rel.sourceConceptId;
+
+        if (visited.has(neighborId)) continue;
+
+        const neighbor = graph.concepts.find((c) => c.id === neighborId);
+        if (!neighbor) continue;
+
+        const updatedPath = [...relationPath, rel.type];
+        results.push({
+          concept: neighbor,
+          depth: depth + 1,
+          relationTypes: updatedPath,
+        });
+
+        dfs(neighborId, depth + 1, updatedPath);
+      }
+    };
+
+    dfs(conceptId, 0, []);
+    return results;
+  }
+
+  /**
+   * Calculate degree centrality for a concept.
+   * Higher centrality = more connected = more important in the knowledge graph.
+   */
+  calculateConceptCentrality(
+    conceptId: string,
+    graph: KnowledgeGraph
+  ): {
+    inDegree: number;
+    outDegree: number;
+    totalDegree: number;
+    normalizedCentrality: number;
+  } {
+    const totalConcepts = Math.max(graph.concepts.length - 1, 1);
+
+    const inDegree = graph.relations.filter(
+      (rel) => rel.targetConceptId === conceptId
+    ).length;
+
+    const outDegree = graph.relations.filter(
+      (rel) => rel.sourceConceptId === conceptId
+    ).length;
+
+    const totalDegree = inDegree + outDegree;
+
+    return {
+      inDegree,
+      outDegree,
+      totalDegree,
+      normalizedCentrality: totalDegree / (2 * totalConcepts),
+    };
+  }
+
+  /**
+   * Find all concepts sorted by centrality (most connected first).
+   * Useful for identifying key concepts in a course.
+   */
+  rankConceptsByCentrality(
+    graph: KnowledgeGraph
+  ): Array<{ concept: Concept; centrality: number }> {
+    return graph.concepts
+      .map((concept) => ({
+        concept,
+        centrality: this.calculateConceptCentrality(concept.id, graph).normalizedCentrality,
+      }))
+      .sort((a, b) => b.centrality - a.centrality);
+  }
 }
 
 // ============================================================================

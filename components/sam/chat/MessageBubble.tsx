@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
 import { ToolResultCard } from './panels/ToolResultCard';
+import { EngineTransparencyPanel } from './panels/EngineTransparencyPanel';
 import type { ChatMessage } from './types';
 import type { FormFieldInfo } from '@/lib/sam/form-actions';
 
@@ -107,6 +108,11 @@ export function MessageBubble({
               <span className="inline-block w-1.5 h-4 ml-0.5 bg-[var(--sam-accent)] animate-pulse rounded-sm" />
             )}
           </p>
+        )}
+
+        {/* Engine Transparency Panel */}
+        {isAssistant && message.engineInsights && (
+          <EngineTransparencyPanel insights={message.engineInsights} />
         )}
 
         {/* Actions row: Copy, Insert, Feedback — all on one line */}

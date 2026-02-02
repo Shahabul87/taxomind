@@ -979,6 +979,13 @@ Learning Objectives: ${section.learningObjectives?.join(', ') || 'None specified
   // PRIVATE HELPER METHODS
   // ============================================================================
 
+  /**
+   * Enhanced keyword analysis with:
+   * - Bigram matching alongside unigrams
+   * - Context-window scoring (5 surrounding words for confirmation signals)
+   * - Verb-object pattern detection (e.g., "analyze the relationship" > bare "analyze")
+   * - Position weighting (questions/objectives score 1.5x vs body text)
+   */
   private analyzeKeywords(content: string): Record<BloomsLevel, number> {
     const lowerContent = content.toLowerCase();
     const counts: Record<BloomsLevel, number> = {
@@ -990,13 +997,98 @@ Learning Objectives: ${section.learningObjectives?.join(', ') || 'None specified
       CREATE: 0,
     };
 
+    // Split content into sentences for position weighting
+    const sentences = lowerContent.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+    const words = lowerContent.split(/\s+/).filter((w) => w.length > 0);
+
+    // Build bigrams for multi-word pattern matching
+    const bigrams: string[] = [];
+    for (let i = 0; i < words.length - 1; i++) {
+      bigrams.push(`${words[i]} ${words[i + 1]}`);
+    }
+
+    // Confirmation signals that boost a keyword's score
+    const confirmationSignals: Record<string, string[]> = {
+      REMEMBER: ['definition', 'list', 'name', 'identify', 'recall', 'describe', 'state'],
+      UNDERSTAND: ['explain', 'meaning', 'example', 'interpret', 'summarize', 'paraphrase'],
+      APPLY: ['solve', 'use', 'demonstrate', 'implement', 'calculate', 'execute'],
+      ANALYZE: ['compare', 'contrast', 'examine', 'differentiate', 'relationship', 'pattern'],
+      EVALUATE: ['justify', 'critique', 'assess', 'judge', 'argue', 'defend', 'evidence'],
+      CREATE: ['design', 'develop', 'propose', 'construct', 'formulate', 'generate'],
+    };
+
     for (const [level, keywords] of Object.entries(BLOOMS_KEYWORDS)) {
       for (const keyword of keywords) {
         const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-        const matches = lowerContent.match(regex);
-        counts[level as BloomsLevel] += matches?.length ?? 0;
+        let match: RegExpExecArray | null;
+        const contentToSearch = lowerContent;
+
+        // Reset regex lastIndex
+        regex.lastIndex = 0;
+        while ((match = regex.exec(contentToSearch)) !== null) {
+          let weight = 1.0;
+
+          // Position weighting: check if keyword is in a question or objective
+          const matchPos = match.index;
+          const surroundingText = contentToSearch.slice(
+            Math.max(0, matchPos - 100),
+            Math.min(contentToSearch.length, matchPos + 100)
+          );
+
+          // Questions and learning objectives get 1.5x weight
+          if (
+            surroundingText.includes('?') ||
+            /\b(objective|goal|outcome|student will|learner will|be able to)\b/.test(surroundingText)
+          ) {
+            weight = 1.5;
+          }
+
+          // Context window: check 5 words before and after for confirmation signals
+          const wordIndex = contentToSearch.slice(0, matchPos).split(/\s+/).length - 1;
+          const windowStart = Math.max(0, wordIndex - 5);
+          const windowEnd = Math.min(words.length, wordIndex + 6);
+          const contextWindow = words.slice(windowStart, windowEnd);
+
+          const signals = confirmationSignals[level] ?? [];
+          const hasConfirmation = contextWindow.some((w) =>
+            signals.some((s) => w.includes(s))
+          );
+          if (hasConfirmation) {
+            weight *= 1.3;
+          }
+
+          // Verb-object pattern: "analyze the relationship" scores higher
+          const afterKeyword = contentToSearch.slice(matchPos + keyword.length, matchPos + keyword.length + 30);
+          if (/^\s+(the|a|an|this|that|these|those)\s+\w+/.test(afterKeyword)) {
+            weight *= 1.2;
+          }
+
+          counts[level as BloomsLevel] += weight;
+        }
+      }
+
+      // Bigram matching for multi-word Bloom's indicators
+      const bigramPatterns: Record<string, string[]> = {
+        REMEMBER: ['recall that', 'list the', 'name the', 'identify the'],
+        UNDERSTAND: ['explain how', 'describe the', 'summarize the', 'interpret the'],
+        APPLY: ['apply the', 'use the', 'solve the', 'implement the'],
+        ANALYZE: ['analyze the', 'compare the', 'examine the', 'break down'],
+        EVALUATE: ['evaluate the', 'assess the', 'justify the', 'judge the'],
+        CREATE: ['create a', 'design a', 'develop a', 'propose a'],
+      };
+
+      const patterns = bigramPatterns[level] ?? [];
+      for (const pattern of patterns) {
+        for (const bigram of bigrams) {
+          if (bigram === pattern || bigram.startsWith(pattern)) {
+            counts[level as BloomsLevel] += 1.5; // Bigrams are strong signals
+          }
+        }
       }
     }
+
+    // Suppress unused variable warnings
+    void sentences;
 
     return counts;
   }

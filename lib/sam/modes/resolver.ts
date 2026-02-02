@@ -19,6 +19,7 @@ export interface ModeEngineResolution {
   augmented: boolean;
   maturity?: EngineMaturityLevel;
   engineMaturityMap?: Record<string, EngineMaturityLevel>;
+  engineConfig?: Record<string, unknown>;
 }
 
 /**
@@ -65,7 +66,7 @@ export function resolveModeEnginesWithMetadata(
   }
   const maturity = getModeMaturity(engines);
 
-  return { engines, reason, augmented, maturity, engineMaturityMap };
+  return { engines, reason, augmented, maturity, engineMaturityMap, engineConfig: mode.engineConfig };
 }
 
 /**
@@ -78,6 +79,28 @@ export function resolveModeEngines(
   pageContext: { type: string; hasForm: boolean }
 ): string[] {
   return resolveModeEnginesWithMetadata(modeId, message, pageContext).engines;
+}
+
+/**
+ * Resolve the full mode context including engines, config, maturity, and augmentations.
+ */
+export function resolveModeContext(
+  modeId: string,
+  message: string,
+  pageContext: { type: string; hasForm: boolean },
+): {
+  engines: string[];
+  config: Record<string, unknown> | undefined;
+  maturity: EngineMaturityLevel | undefined;
+  augmentations: string[];
+} {
+  const resolution = resolveModeEnginesWithMetadata(modeId, message, pageContext);
+  return {
+    engines: resolution.engines,
+    config: resolution.engineConfig,
+    maturity: resolution.maturity,
+    augmentations: resolution.augmented ? [resolution.reason] : [],
+  };
 }
 
 /**

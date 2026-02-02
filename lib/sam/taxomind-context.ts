@@ -544,6 +544,62 @@ export function isTaxomindContextInitialized(): boolean {
   return contextInstance !== null && contextInstance.isInitialized;
 }
 
+/**
+ * Gracefully shutdown the Taxomind context.
+ * Clears all cached stores, releases resources, and logs the shutdown event.
+ * Registered as a SIGTERM handler for Railway graceful shutdown.
+ */
+export function shutdownTaxomindContext(): void {
+  if (!contextInstance) {
+    logger.info('[TaxomindContext] No context to shut down');
+    return;
+  }
+
+  logger.info('[TaxomindContext] Shutting down context...');
+
+  // Reset the singleton — the lazy Proxy's internal Map is released
+  contextInstance = null;
+
+  logger.info('[TaxomindContext] Context shutdown complete');
+}
+
+/**
+ * Pre-initialize specified stores during server startup to reduce first-request latency.
+ * Call this in your instrumentation or server startup hook.
+ *
+ * @param storeNames - Names of stores to eagerly initialize
+ */
+export function warmupTaxomindContext(storeNames: Array<keyof TaxomindAgenticStores>): void {
+  const ctx = getTaxomindContext();
+  const warmedUp: string[] = [];
+
+  for (const name of storeNames) {
+    try {
+      // Accessing the store through the Proxy triggers lazy creation
+      const store = ctx.stores[name];
+      if (store) {
+        warmedUp.push(name);
+      }
+    } catch (error) {
+      logger.warn(`[TaxomindContext] Failed to warm up store '${name}'`, { error });
+    }
+  }
+
+  logger.info('[TaxomindContext] Warmup complete', {
+    requested: storeNames.length,
+    warmedUp: warmedUp.length,
+    stores: warmedUp,
+  });
+}
+
+// Register SIGTERM handler for graceful shutdown (Railway deploys send SIGTERM)
+if (typeof process !== 'undefined' && process.on) {
+  process.on('SIGTERM', () => {
+    logger.info('[TaxomindContext] SIGTERM received, initiating graceful shutdown');
+    shutdownTaxomindContext();
+  });
+}
+
 // ============================================================================
 // CONVENIENCE EXPORTS
 // ============================================================================

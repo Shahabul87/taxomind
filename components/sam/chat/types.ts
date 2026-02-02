@@ -34,10 +34,26 @@ export interface ToolResultData {
   result: unknown;
 }
 
+export interface EngineInsightsData {
+  enginesRun?: string[];
+  enginesFailed?: string[];
+  enginesCached?: string[];
+  totalTime?: number;
+  engineSelection?: {
+    preset: string;
+    reason: string;
+    signals?: Array<{ name: string; score: number; triggered: boolean }>;
+    alternativePresets?: string[];
+  };
+  bloomsDistribution?: Record<string, number>;
+  qualityScore?: number;
+}
+
 export type ChatMessage = SAMMessage & {
   targetField?: string;
   userQuery?: string;
   toolResult?: ToolResultData;
+  engineInsights?: EngineInsightsData;
 };
 
 export interface SAMSuggestion {
@@ -227,6 +243,12 @@ export interface SAMInsights {
   };
   agentic?: AgenticInsight;
   orchestration?: OrchestrationInsight;
+  engineSelection?: {
+    preset: string;
+    reason: string;
+    signals?: Array<{ name: string; score: number; triggered: boolean }>;
+    alternativePresets?: string[];
+  };
 }
 
 // =============================================================================

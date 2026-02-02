@@ -5,6 +5,7 @@ import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
 import { shouldUseRealNews, isProductionEnvironment } from '@/lib/config/news-config';
 import { getAdapterStatus } from '@/lib/sam/integration-adapters';
 import { logger } from '@/lib/logger';
+import { stageHealthTracker } from '@/lib/sam/pipeline/stage-health-tracker';
 
 interface HealthStatus {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -174,8 +175,35 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // SAM Pipeline Health
+  try {
+    const pipelineHealth = stageHealthTracker.getHealth();
+    (health as Record<string, unknown>).samPipeline = {
+      overallHealth: pipelineHealth.overallHealth,
+      totalRequests: pipelineHealth.totalRequests,
+      stages: Object.fromEntries(
+        Object.entries(pipelineHealth.stages).map(([name, stage]) => [
+          name,
+          {
+            successRate: Math.round(stage.successRate * 100) / 100,
+            avgDurationMs: stage.avgDurationMs,
+            totalRuns: stage.totalRuns,
+            failureCount: stage.failureCount,
+            timeoutCount: stage.timeoutCount,
+          },
+        ])
+      ),
+    };
+    // If pipeline is critical, degrade overall health
+    if (pipelineHealth.overallHealth === 'critical' && health.status === 'healthy') {
+      health.status = 'degraded';
+    }
+  } catch (error) {
+    logger.debug('[HEALTH_CHECK] SAM pipeline metrics unavailable:', error);
+  }
+
   const statusCode = health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 503;
-  
+
   return NextResponse.json(health, { status: statusCode });
 }
 

@@ -37,6 +37,7 @@ import {
   runMemoryPersistenceStage,
   buildUnifiedResponse,
 } from '@/lib/sam/pipeline';
+import { stageHealthTracker } from '@/lib/sam/pipeline/stage-health-tracker';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
     let ctx = valid.ctx;
     ctx.stageErrors = [];
 
+    // Track this request
+    stageHealthTracker.recordRequest();
+
     // Critical path: must complete sequentially before response
     const criticalStages: Array<{
       name: string;
@@ -77,10 +81,13 @@ export async function POST(request: NextRequest) {
     ];
 
     for (const stage of criticalStages) {
+      const stageStart = Date.now();
       try {
         ctx = await stage.run();
+        stageHealthTracker.recordSuccess(stage.name, Date.now() - stageStart);
       } catch (stageError: unknown) {
         const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
+        stageHealthTracker.recordFailure(stage.name, errorMsg, Date.now() - stageStart);
         logger.error(`[SAM_UNIFIED] Critical stage '${stage.name}' failed:`, errorMsg);
         ctx.stageErrors = [
           ...(ctx.stageErrors || []),
@@ -94,6 +101,9 @@ export async function POST(request: NextRequest) {
 
     // Background stages: run in parallel with 5-second timeout
     const BACKGROUND_TIMEOUT_MS = 5000;
+    const CRITICAL_BG_STAGES = ['memory-persistence', 'intervention'];
+    const RETRY_TIMEOUT_MS = 3000;
+
     const backgroundStages: Array<{
       name: string;
       run: () => Promise<typeof ctx>;
@@ -106,14 +116,22 @@ export async function POST(request: NextRequest) {
       { name: 'memory-persistence', run: () => runMemoryPersistenceStage(ctx) },
     ];
 
+    const bgSettled = new Set<string>();
+    const bgFailed = new Set<string>();
+
     const bgPromises = backgroundStages.map(async (stage) => {
+      const stageStart = Date.now();
       try {
         const result = await stage.run();
+        stageHealthTracker.recordSuccess(stage.name, Date.now() - stageStart);
+        bgSettled.add(stage.name);
         // Merge non-conflicting fields from completed background stage
         Object.assign(ctx, result);
         return { name: stage.name, status: 'fulfilled' as const };
       } catch (stageError: unknown) {
         const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
+        stageHealthTracker.recordFailure(stage.name, errorMsg, Date.now() - stageStart);
+        bgFailed.add(stage.name);
         logger.warn(`[SAM_UNIFIED] Background stage '${stage.name}' failed:`, errorMsg);
         ctx.stageErrors = [
           ...(ctx.stageErrors || []),
@@ -129,6 +147,41 @@ export async function POST(request: NextRequest) {
       Promise.allSettled(bgPromises),
       bgTimeout,
     ]);
+
+    // Record timeouts for stages that didn't settle
+    for (const stage of backgroundStages) {
+      if (!bgSettled.has(stage.name) && !bgFailed.has(stage.name)) {
+        stageHealthTracker.recordTimeout(stage.name, BACKGROUND_TIMEOUT_MS);
+      }
+    }
+
+    // Retry critical background stages that failed (fire-and-forget, non-blocking)
+    const criticalBgToRetry = backgroundStages.filter(
+      (s) => CRITICAL_BG_STAGES.includes(s.name) && bgFailed.has(s.name)
+    );
+    if (criticalBgToRetry.length > 0) {
+      // Fire-and-forget retry with shorter timeout
+      void Promise.allSettled(
+        criticalBgToRetry.map(async (stage) => {
+          const retryStart = Date.now();
+          try {
+            const retryResult = await Promise.race([
+              stage.run(),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Retry timeout')), RETRY_TIMEOUT_MS)
+              ),
+            ]);
+            stageHealthTracker.recordSuccess(`${stage.name}:retry`, Date.now() - retryStart);
+            Object.assign(ctx, retryResult);
+            logger.info(`[SAM_UNIFIED] Retry succeeded for '${stage.name}'`);
+          } catch (retryError: unknown) {
+            const msg = retryError instanceof Error ? retryError.message : 'Unknown';
+            stageHealthTracker.recordFailure(`${stage.name}:retry`, msg, Date.now() - retryStart);
+            logger.warn(`[SAM_UNIFIED] Retry also failed for '${stage.name}':`, msg);
+          }
+        })
+      );
+    }
 
     // 12. Build and return the final response (with whatever background stages completed)
     return buildUnifiedResponse(ctx);

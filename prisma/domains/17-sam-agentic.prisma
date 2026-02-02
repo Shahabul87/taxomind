@@ -562,6 +562,10 @@ model SAMVectorEmbedding {
   embedding      Json?
   dimensions     Int      @default(1536)
 
+  // Native pgvector column for O(log n) approximate nearest neighbor search
+  // Managed via raw SQL migration; Prisma reads/writes via $queryRawUnsafe
+  embeddingVector Unsupported("vector(1536)")?
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -607,6 +611,9 @@ model SAMLongTermMemory {
   // Embedding stored as JSON array (compatible with standard PostgreSQL)
   embedding      Json?
   embeddingModel String?  @default("text-embedding-ada-002")
+
+  // Native pgvector column for semantic search
+  embeddingVector Unsupported("vector(1536)")?
 
   // Metadata
   tags           String[] @default([])
@@ -672,6 +679,9 @@ model SAMKnowledgeNode {
   description   String?
   properties    Json?
   embeddings    String[] @default([])
+
+  // Native pgvector column for concept similarity search
+  embeddingVector Unsupported("vector(1536)")?
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

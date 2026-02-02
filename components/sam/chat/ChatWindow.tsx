@@ -55,7 +55,7 @@ import { CheckInModal } from '@/components/sam/CheckInModal';
 import type { CheckInAction } from '@/components/sam/CheckInModal';
 
 // Types
-import type { ChatMessage, SAMSuggestion, SAMAction, SAMInsights, SAMAssistantProps, ResizeHandle, ToolResultData, PageContext, EntityContextState, WindowCourseContext } from './types';
+import type { ChatMessage, SAMSuggestion, SAMAction, SAMInsights, SAMAssistantProps, ResizeHandle, ToolResultData, PageContext, EntityContextState, WindowCourseContext, EngineInsightsData } from './types';
 import { MOBILE_BREAKPOINT } from './types';
 
 // Page context utilities (pure functions, no hooks)
@@ -403,6 +403,19 @@ function ChatWindowInner({
 
   const degradedMode = useDegradedMode();
 
+  // Engine details toggle (user opt-in, persisted in localStorage)
+  const [showEngineDetails, setShowEngineDetails] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('sam-show-engine-details') === 'true';
+  });
+  const toggleEngineDetails = useCallback(() => {
+    setShowEngineDetails((prev) => {
+      const next = !prev;
+      localStorage.setItem('sam-show-engine-details', String(next));
+      return next;
+    });
+  }, []);
+
   const formDetection = useFormDetection({
     isOpen,
     pathname: pageContext.path,
@@ -733,13 +746,47 @@ function ChatWindowInner({
     }
   }, [toolResult, toolStatus, sendMessage]);
 
-  // Enrich messages with tool result data and merge local mode greeting messages
+  // Build engine insights from last API response (for transparency panel)
+  const engineInsightsData = useMemo((): EngineInsightsData | null => {
+    if (!showEngineDetails || !lastResult) return null;
+    const response = lastResult.response;
+    const metadata = response.metadata as Record<string, unknown> | undefined;
+    const responseInsights = response.insights as SAMInsights | undefined;
+    if (!metadata) return null;
+
+    return {
+      enginesRun: (metadata.enginesRun as string[]) ?? [],
+      enginesFailed: (metadata.enginesFailed as string[]) ?? [],
+      enginesCached: (metadata.enginesCached as string[]) ?? [],
+      totalTime: (metadata.totalTime as number) ?? 0,
+      engineSelection: responseInsights?.engineSelection,
+      bloomsDistribution: responseInsights?.blooms?.distribution,
+      qualityScore: responseInsights?.content?.overallScore,
+    };
+  }, [showEngineDetails, lastResult]);
+
+  // Enrich messages with tool result data, engine insights, and merge local mode greeting messages
   const enrichedMessages = useMemo((): ChatMessage[] => {
-    const sdkEnriched = messages.map((msg): ChatMessage => {
-      if (msg.role !== 'user') return msg;
-      const tr = toolResultMap.get(msg.content);
-      if (!tr) return msg;
-      return { ...msg, toolResult: tr };
+    // Find last SDK assistant message index for engine insights attachment
+    let lastAssistantIdx = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant') {
+        lastAssistantIdx = i;
+        break;
+      }
+    }
+
+    const sdkEnriched = messages.map((msg, idx): ChatMessage => {
+      if (msg.role === 'user') {
+        const tr = toolResultMap.get(msg.content);
+        if (!tr) return msg;
+        return { ...msg, toolResult: tr };
+      }
+      // Attach engine insights to the last assistant message
+      if (idx === lastAssistantIdx && engineInsightsData) {
+        return { ...msg, engineInsights: engineInsightsData };
+      }
+      return msg;
     });
 
     // Merge local greeting messages into the timeline
@@ -752,7 +799,7 @@ function ChatWindowInner({
       return ta - tb;
     });
     return combined;
-  }, [messages, toolResultMap, localMessages]);
+  }, [messages, toolResultMap, localMessages, engineInsightsData]);
 
   // Don't render on auth pages
   if (isHiddenRoute) return null;
@@ -840,6 +887,8 @@ function ChatWindowInner({
         hasPlan={!!planData}
         showPlanPanel={showPlanPanel}
         onTogglePlanPanel={togglePlanPanel}
+        showEngineDetails={showEngineDetails}
+        onToggleEngineDetails={toggleEngineDetails}
         dragHandlers={isMobile || isMaximized ? undefined : dragHandlers}
       />
 

@@ -19,6 +19,7 @@ import type {
   SessionContext,
   ContextHistoryEntry,
 } from '@sam-ai/agentic';
+import { isPgvectorAvailable, pgvectorSearch, writeEmbeddingVector } from './pgvector-adapter';
 
 const mapVectorEmbedding = (record: {
   id: string;
@@ -134,6 +135,10 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
         customMetadata: vectorEmbedding.metadata.customMetadata ?? undefined,
       },
     });
+    // Dual-write: also populate the native pgvector column
+    if (vectorEmbedding.vector.length > 0) {
+      await writeEmbeddingVector(vectorEmbedding.id, vectorEmbedding.vector, 'sam_vector_embeddings');
+    }
     clearVectorCache();
   }
 
@@ -173,6 +178,17 @@ export class PrismaVectorAdapter implements VectorPersistenceAdapter {
   }
 
   async searchByVector(vector: number[], options: VectorSearchOptions): Promise<SimilarityResult[]> {
+    // Try native pgvector search first (O(log n) vs O(n*d))
+    const usePgvector = process.env.USE_PGVECTOR !== 'false' && (await isPgvectorAvailable());
+    if (usePgvector) {
+      try {
+        return await pgvectorSearch(vector, options);
+      } catch {
+        // Fall through to in-memory search on pgvector failure
+      }
+    }
+
+    // In-memory fallback: load all embeddings and compute cosine similarity
     const key = cacheKeyForFilter(options.filter);
     let embeddings = shouldUseVectorCache() ? getCachedEmbeddings(key) : null;
 

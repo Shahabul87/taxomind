@@ -90,6 +90,13 @@ export interface PipelineContext {
     enginePresetUsed: string;
     engineSelectionReason: string;
     messageSignals?: Record<string, number>;
+    engineConfig?: Record<string, unknown>;
+    engineSelection?: {
+      preset: string;
+      reason: string;
+      signals?: Array<{ name: string; score: number; triggered: boolean }>;
+      alternativePresets?: string[];
+    };
   };
   /** True when AI provider is unavailable and degraded responses are being used */
   degradedMode?: boolean;
@@ -143,6 +150,13 @@ export interface PipelineContext {
   interventions: Array<{ type: string; reason: string; priority: string }>;
   interventionResults: Intervention[];
   proactiveData: ProactiveResponseData | null;
+
+  // --- Teacher context (multi-user foundation) ---
+  teacherContext?: {
+    teacherId: string;
+    lastViewedAt: Date;
+    notes?: string;
+  };
 
   // --- Timing ---
   startTime: number;

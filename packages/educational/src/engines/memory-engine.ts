@@ -519,20 +519,118 @@ Based on this context, provide a helpful, personalized response that:
       .sort((a, b) => b.relevanceScore - a.relevanceScore);
   }
 
+  /**
+   * BM25 relevance scoring with term frequency, inverse document frequency,
+   * and document length normalization.
+   *
+   * Parameters: k1=1.2, b=0.75 (standard BM25 defaults)
+   */
   private calculateRelevanceScore(
     content: string,
     queryWords: string[]
   ): number {
+    if (queryWords.length === 0) return 0;
+
     const contentLower = content.toLowerCase();
-    let score = 0;
+    const contentWords = contentLower.split(/\s+/).filter((w) => w.length > 0);
+    const docLen = contentWords.length;
+    if (docLen === 0) return 0;
 
-    queryWords.forEach((word) => {
-      if (word.length > 2 && contentLower.includes(word)) {
-        score += 1;
+    // BM25 parameters
+    const k1 = 1.2;
+    const b = 0.75;
+
+    // Compute corpus stats from cached memories
+    const corpus = this.getBM25CorpusStats();
+    const avgDocLen = corpus.avgDocLen || docLen;
+    const totalDocs = corpus.totalDocs || 1;
+
+    let bm25Score = 0;
+
+    // Build term frequency map for the document
+    const tfMap = new Map<string, number>();
+    for (const word of contentWords) {
+      tfMap.set(word, (tfMap.get(word) ?? 0) + 1);
+    }
+
+    for (const queryWord of queryWords) {
+      if (queryWord.length <= 2) continue;
+
+      const freq = tfMap.get(queryWord) ?? 0;
+      if (freq === 0) continue;
+
+      // Document frequency: how many docs contain this term
+      const df = corpus.documentFrequency.get(queryWord) ?? 1;
+
+      // IDF: log((N - df + 0.5) / (df + 0.5) + 1)
+      const idf = Math.log((totalDocs - df + 0.5) / (df + 0.5) + 1);
+
+      // TF with length normalization:
+      // (freq * (k1 + 1)) / (freq + k1 * (1 - b + b * docLen / avgDocLen))
+      const tfNorm =
+        (freq * (k1 + 1)) /
+        (freq + k1 * (1 - b + b * docLen / avgDocLen));
+
+      bm25Score += idf * tfNorm;
+    }
+
+    // Normalize to 0-1 range using sigmoid-like scaling
+    // A raw BM25 score of ~5 maps to ~0.9
+    return bm25Score / (bm25Score + 5);
+  }
+
+  /** Corpus statistics cache for BM25 IDF computation */
+  private bm25CorpusCache: {
+    avgDocLen: number;
+    totalDocs: number;
+    documentFrequency: Map<string, number>;
+    computedAt: number;
+  } | null = null;
+
+  private getBM25CorpusStats(): {
+    avgDocLen: number;
+    totalDocs: number;
+    documentFrequency: Map<string, number>;
+  } {
+    const TTL_MS = 10 * 60 * 1000; // 10-minute TTL
+    if (
+      this.bm25CorpusCache &&
+      Date.now() - this.bm25CorpusCache.computedAt < TTL_MS
+    ) {
+      return this.bm25CorpusCache;
+    }
+
+    // Build stats from the cached memories
+    const allMemories: Array<{ content: string }> = [];
+    for (const [, memories] of this.memoryCache) {
+      for (const m of memories) {
+        allMemories.push(m);
       }
-    });
+    }
 
-    return queryWords.length > 0 ? score / queryWords.length : 0;
+    const totalDocs = Math.max(allMemories.length, 1);
+    let totalWords = 0;
+    const documentFrequency = new Map<string, number>();
+
+    for (const mem of allMemories) {
+      const words = mem.content.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+      totalWords += words.length;
+
+      // Count unique terms per document for DF
+      const uniqueTerms = new Set(words);
+      for (const term of uniqueTerms) {
+        documentFrequency.set(term, (documentFrequency.get(term) ?? 0) + 1);
+      }
+    }
+
+    this.bm25CorpusCache = {
+      avgDocLen: totalDocs > 0 ? totalWords / totalDocs : 50,
+      totalDocs,
+      documentFrequency,
+      computedAt: Date.now(),
+    };
+
+    return this.bm25CorpusCache;
   }
 
   private extractTopicsFromConversations(

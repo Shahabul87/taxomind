@@ -43,6 +43,7 @@ interface EnginePresetSelection {
   presetName: string;
   reason: string;
   signals: Record<string, number>;
+  presetScores: Record<string, number>;
 }
 
 interface ComplexityScore {
@@ -246,6 +247,7 @@ function selectEnginePreset(
     presetName: bestPreset,
     reason: reasons.length > 0 ? reasons.join(', ') : 'default fallback',
     signals,
+    presetScores: scores,
   };
 }
 
@@ -346,11 +348,26 @@ export async function runOrchestrationStage(
       ctx.modeId,
     );
     defaultEngines = selection.engines;
+    const alternativePresets = Object.entries(selection.presetScores)
+      .filter(([p, s]) => p !== selection.presetName && s > 0)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([p]) => p);
     modeAnalytics = {
       modeId: ctx.modeId,
       enginePresetUsed: selection.presetName,
       engineSelectionReason: selection.reason,
       messageSignals: selection.signals,
+      engineSelection: {
+        preset: selection.presetName,
+        reason: selection.reason,
+        signals: Object.entries(selection.signals).map(([name, score]) => ({
+          name,
+          score,
+          triggered: score > 0,
+        })),
+        alternativePresets,
+      },
     };
   } else {
     const resolution = resolveModeEnginesWithMetadata(ctx.modeId, ctx.message, {
@@ -362,6 +379,11 @@ export async function runOrchestrationStage(
       modeId: ctx.modeId,
       enginePresetUsed: `mode:${ctx.modeId}`,
       engineSelectionReason: resolution.reason,
+      engineConfig: resolution.engineConfig,
+      engineSelection: {
+        preset: `mode:${ctx.modeId}`,
+        reason: resolution.reason,
+      },
     };
   }
 
