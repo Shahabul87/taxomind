@@ -14,11 +14,17 @@ import {
 import {
   createMasteryTracker,
   createSpacedRepetitionScheduler,
-  getDefaultStudentProfileStore,
-  getDefaultReviewScheduleStore,
   type MasteryTracker,
   type EvaluationOutcome,
 } from '@sam-ai/memory';
+import {
+  getStudentProfileStore,
+  getReviewScheduleStore,
+} from '@/lib/sam/taxomind-context';
+import {
+  bridgeAssessmentToSkillTrack,
+  bridgeAssessmentToBehaviorMonitor,
+} from '@/lib/sam/cross-feature-bridge';
 
 // Create engine singletons with portable packages
 let evaluationEngine: ReturnType<typeof createEvaluationEngine> | null = null;
@@ -52,16 +58,20 @@ function getUnifiedBloomsEngine() {
 
 function getMasteryTracker() {
   if (!masteryTracker) {
-    const profileStore = getDefaultStudentProfileStore();
-    masteryTracker = createMasteryTracker(profileStore);
+    const profileStore = getStudentProfileStore();
+    masteryTracker = createMasteryTracker(
+      profileStore as unknown as Parameters<typeof createMasteryTracker>[0],
+    );
   }
   return masteryTracker;
 }
 
 function getSpacedRepScheduler() {
   if (!spacedRepScheduler) {
-    const reviewStore = getDefaultReviewScheduleStore();
-    spacedRepScheduler = createSpacedRepetitionScheduler(reviewStore);
+    const reviewStore = getReviewScheduleStore();
+    spacedRepScheduler = createSpacedRepetitionScheduler(
+      reviewStore as unknown as Parameters<typeof createSpacedRepetitionScheduler>[0],
+    );
   }
   return spacedRepScheduler;
 }
@@ -339,6 +349,40 @@ export async function POST(request: Request) {
         attemptId: attempt.id,
       });
     }
+
+    // Cross-feature bridge: forward assessment data to SkillBuildTrack + Behavior Monitor
+    // Fire-and-forget — each bridge function handles its own errors
+    const sectionTitle =
+      attempt.Exam.section.learningObjectiveItems?.[0]?.objective ?? 'Assessment';
+    const courseId = attempt.Exam.section.chapter?.courseId;
+
+    bridgeAssessmentToSkillTrack({
+      userId: user.id,
+      sectionId: attempt.Exam.sectionId,
+      sectionTitle,
+      courseId: courseId ?? undefined,
+      scorePercentage,
+      maxScore: 100,
+      timeSpentMinutes: Math.round((attempt.timeSpent || 0) / 60),
+      isPassed,
+      bloomsLevel: 'APPLY',
+      attemptId: attempt.id,
+    }).catch(() => {}); // Already logged internally
+
+    bridgeAssessmentToBehaviorMonitor({
+      userId: user.id,
+      sessionId: `exam_${attempt.id}`,
+      assessmentId: attempt.Exam.id,
+      passed: isPassed,
+      score: scorePercentage,
+      maxScore: 100,
+      timeSpentMinutes: Math.round((attempt.timeSpent || 0) / 60),
+      pageContext: {
+        path: `/exams/${attempt.Exam.id}`,
+        courseId: courseId ?? undefined,
+        sectionId: attempt.Exam.sectionId,
+      },
+    }).catch(() => {}); // Already logged internally
 
     return NextResponse.json({
       success: true,

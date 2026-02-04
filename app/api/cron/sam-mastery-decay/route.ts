@@ -1,8 +1,15 @@
 /**
- * SAM Mastery Decay Alerts Cron Job
+ * SAM Mastery Decay Cron Job
  *
- * Runs daily to identify skills at risk of decay and sends
- * notifications to users encouraging them to review.
+ * Runs daily to:
+ * 1. Apply Bloom's-weighted decay to CognitiveSkillProgress mastery scores
+ * 2. Apply retention decay to SpacedRepetitionSchedule records
+ * 3. Identify skills at risk and send review notifications
+ *
+ * Decay rates (from mastery-tracker.ts):
+ *   REMEMBER: 0.2%/day, UNDERSTAND: 0.3%/day, APPLY: 0.4%/day,
+ *   ANALYZE: 0.5%/day, EVALUATE: 0.6%/day, CREATE: 0.7%/day
+ * Grace period: 30 days before decay begins
  *
  * Schedule: Runs daily at 8:00 AM
  */
@@ -14,6 +21,32 @@ import { z } from 'zod';
 import { getStore, getPracticeStores } from '@/lib/sam/taxomind-context';
 
 const CRON_SECRET = process.env.CRON_SECRET;
+
+/** Bloom's-weighted decay rates (%/day). Higher cognition = faster decay. */
+const BLOOMS_DECAY_RATES: Record<string, number> = {
+  REMEMBER: 0.2,
+  UNDERSTAND: 0.3,
+  APPLY: 0.4,
+  ANALYZE: 0.5,
+  EVALUATE: 0.6,
+  CREATE: 0.7,
+};
+
+/** Mastery field names keyed by Bloom's level */
+const BLOOMS_MASTERY_FIELDS: Record<string, string> = {
+  REMEMBER: 'rememberMastery',
+  UNDERSTAND: 'understandMastery',
+  APPLY: 'applyMastery',
+  ANALYZE: 'analyzeMastery',
+  EVALUATE: 'evaluateMastery',
+  CREATE: 'createMastery',
+};
+
+/** Days of inactivity before decay starts */
+const DECAY_GRACE_PERIOD_DAYS = 30;
+
+/** Maximum records to process per batch to avoid timeout */
+const DECAY_BATCH_SIZE = 200;
 
 const querySchema = z.object({
   dryRun: z.coerce.boolean().optional().default(false),
@@ -35,6 +68,14 @@ interface DecayAlert {
   recommendedReviewDate?: Date;
 }
 
+interface DecayApplicationResult {
+  cognitiveRecordsDecayed: number;
+  cognitiveRecordsSkipped: number;
+  spacedRepRecordsDecayed: number;
+  spacedRepRecordsSkipped: number;
+  errors: number;
+}
+
 interface CronResult {
   usersProcessed: number;
   alertsSent: number;
@@ -42,6 +83,7 @@ interface CronResult {
   criticalCount: number;
   highCount: number;
   mediumCount: number;
+  decayApplied: DecayApplicationResult;
   durationMs: number;
 }
 
@@ -77,12 +119,18 @@ export async function GET(req: NextRequest) {
 
     const { dryRun, limit, retentionThreshold } = parsed.data;
 
-    logger.info('[SAM_MASTERY_DECAY] Starting mastery decay check', {
+    logger.info('[SAM_MASTERY_DECAY] Starting mastery decay job', {
       dryRun,
       limit,
       retentionThreshold,
     });
 
+    // ---- Phase 1: Apply Bloom's-weighted decay to mastery records ----
+    const decayResult = await applyBloomsWeightedDecay(dryRun);
+
+    logger.info('[SAM_MASTERY_DECAY] Decay application complete', decayResult);
+
+    // ---- Phase 2: Identify at-risk skills and send alerts ----
     // Get all active users with skill profiles
     const activeUsers = await getActiveUsersWithSkills(limit);
 
@@ -178,10 +226,11 @@ export async function GET(req: NextRequest) {
       criticalCount,
       highCount,
       mediumCount,
+      decayApplied: decayResult,
       durationMs: Date.now() - startTime,
     };
 
-    logger.info('[SAM_MASTERY_DECAY] Mastery decay check complete', result);
+    logger.info('[SAM_MASTERY_DECAY] Mastery decay job complete', result);
 
     return NextResponse.json({
       success: true,
@@ -199,6 +248,218 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// ============================================================================
+// DECAY APPLICATION (Phase 3.3 Gap Fix)
+// ============================================================================
+
+/**
+ * Apply Bloom's-weighted decay to CognitiveSkillProgress and
+ * SpacedRepetitionSchedule records that have been inactive past the
+ * grace period.
+ *
+ * For CognitiveSkillProgress:
+ *   - Each Bloom's level mastery field decays at its own rate
+ *   - overallMastery is recalculated as weighted average
+ *   - trend is updated based on direction of change
+ *
+ * For SpacedRepetitionSchedule:
+ *   - retentionEstimate decays based on the record's bloomsLevel
+ *   - priority is recalculated based on new retention
+ */
+async function applyBloomsWeightedDecay(
+  dryRun: boolean
+): Promise<DecayApplicationResult> {
+  const result: DecayApplicationResult = {
+    cognitiveRecordsDecayed: 0,
+    cognitiveRecordsSkipped: 0,
+    spacedRepRecordsDecayed: 0,
+    spacedRepRecordsSkipped: 0,
+    errors: 0,
+  };
+
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const gracePeriodCutoff = new Date(
+    now.getTime() - DECAY_GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
+  );
+
+  // ---- Apply decay to CognitiveSkillProgress ----
+  try {
+    const cognitiveRecords = await db.cognitiveSkillProgress.findMany({
+      where: {
+        lastAttemptDate: {
+          lt: gracePeriodCutoff, // Past grace period
+        },
+        overallMastery: {
+          gt: 0, // Only records with mastery to decay
+        },
+        OR: [
+          { lastDecayAppliedAt: null },
+          { lastDecayAppliedAt: { lt: oneDayAgo } },
+        ],
+      },
+      take: DECAY_BATCH_SIZE,
+    });
+
+    for (const record of cognitiveRecords) {
+      try {
+        const lastAttempt = record.lastAttemptDate ?? record.createdAt;
+        const daysSinceAttempt = Math.floor(
+          (now.getTime() - lastAttempt.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        const decayDays = daysSinceAttempt - DECAY_GRACE_PERIOD_DAYS;
+        if (decayDays <= 0) {
+          result.cognitiveRecordsSkipped++;
+          continue;
+        }
+
+        // Calculate days since last decay application (incremental decay)
+        const lastDecay = record.lastDecayAppliedAt ?? lastAttempt;
+        const daysSinceLastDecay = Math.max(
+          1,
+          Math.floor(
+            (now.getTime() - lastDecay.getTime()) / (1000 * 60 * 60 * 24)
+          )
+        );
+
+        // Apply per-level decay
+        const updates: Record<string, number> = {};
+        let totalWeightedMastery = 0;
+        let totalWeight = 0;
+
+        for (const [level, fieldName] of Object.entries(BLOOMS_MASTERY_FIELDS)) {
+          const currentValue = (record as Record<string, number>)[fieldName] ?? 0;
+          if (currentValue <= 0) continue;
+
+          const decayRate = BLOOMS_DECAY_RATES[level] ?? 0.5;
+          const decayAmount = daysSinceLastDecay * decayRate;
+          const newValue = Math.max(0, Math.round((currentValue - decayAmount) * 100) / 100);
+
+          updates[fieldName] = newValue;
+
+          // Weight for overall: higher levels contribute more
+          const weight = BLOOMS_DECAY_RATES[level] ?? 0.5;
+          totalWeightedMastery += newValue * weight;
+          totalWeight += weight;
+        }
+
+        // Recalculate overall mastery
+        const newOverallMastery =
+          totalWeight > 0
+            ? Math.max(0, Math.round((totalWeightedMastery / totalWeight) * 100) / 100)
+            : 0;
+
+        // Determine trend
+        const previousOverall = record.overallMastery;
+        const trend =
+          newOverallMastery < previousOverall - 2
+            ? 'declining'
+            : newOverallMastery > previousOverall + 2
+              ? 'improving'
+              : 'stable';
+
+        if (!dryRun) {
+          await db.cognitiveSkillProgress.update({
+            where: { id: record.id },
+            data: {
+              ...updates,
+              overallMastery: newOverallMastery,
+              trend,
+              lastDecayAppliedAt: now,
+            },
+          });
+        }
+
+        result.cognitiveRecordsDecayed++;
+      } catch (recordError) {
+        result.errors++;
+        logger.warn('[SAM_MASTERY_DECAY] Failed to decay cognitive record', {
+          recordId: record.id,
+          error: recordError,
+        });
+      }
+    }
+  } catch (queryError) {
+    result.errors++;
+    logger.error('[SAM_MASTERY_DECAY] Failed to query cognitive records', queryError);
+  }
+
+  // ---- Apply retention decay to SpacedRepetitionSchedule ----
+  try {
+    const scheduleRecords = await db.spacedRepetitionSchedule.findMany({
+      where: {
+        retentionEstimate: {
+          gt: 0,
+        },
+        nextReviewDate: {
+          lt: now, // Overdue for review
+        },
+        OR: [
+          { lastDecayAppliedAt: null },
+          { lastDecayAppliedAt: { lt: oneDayAgo } },
+        ],
+      },
+      take: DECAY_BATCH_SIZE,
+    });
+
+    for (const record of scheduleRecords) {
+      try {
+        const lastDecay = record.lastDecayAppliedAt ?? record.nextReviewDate;
+        const daysSinceLastDecay = Math.max(
+          1,
+          Math.floor(
+            (now.getTime() - lastDecay.getTime()) / (1000 * 60 * 60 * 24)
+          )
+        );
+
+        // Use the record's bloomsLevel or default to ANALYZE
+        const bloomsLevel = record.bloomsLevel ?? 'ANALYZE';
+        const decayRate = BLOOMS_DECAY_RATES[bloomsLevel] ?? 0.5;
+        const decayAmount = daysSinceLastDecay * decayRate;
+        const newRetention = Math.max(
+          0,
+          Math.round((record.retentionEstimate - decayAmount) * 100) / 100
+        );
+
+        // Recalculate priority based on new retention
+        const newPriority =
+          newRetention < 30
+            ? 'urgent'
+            : newRetention < 50
+              ? 'high'
+              : newRetention < 70
+                ? 'medium'
+                : 'low';
+
+        if (!dryRun) {
+          await db.spacedRepetitionSchedule.update({
+            where: { id: record.id },
+            data: {
+              retentionEstimate: newRetention,
+              priority: newPriority,
+              lastDecayAppliedAt: now,
+            },
+          });
+        }
+
+        result.spacedRepRecordsDecayed++;
+      } catch (recordError) {
+        result.errors++;
+        logger.warn('[SAM_MASTERY_DECAY] Failed to decay schedule record', {
+          recordId: record.id,
+          error: recordError,
+        });
+      }
+    }
+  } catch (queryError) {
+    result.errors++;
+    logger.error('[SAM_MASTERY_DECAY] Failed to query schedule records', queryError);
+  }
+
+  return result;
 }
 
 // ============================================================================
@@ -343,7 +604,7 @@ async function sendDecayNotifications(
 /**
  * Store decay metrics for monitoring
  */
-async function storeDecayMetrics(metrics: Omit<CronResult, 'durationMs'>): Promise<void> {
+async function storeDecayMetrics(metrics: Omit<CronResult, 'durationMs'> & { decayApplied?: DecayApplicationResult }): Promise<void> {
   try {
     await db.sAMObservabilityMetrics.create({
       data: {
@@ -356,6 +617,8 @@ async function storeDecayMetrics(metrics: Omit<CronResult, 'durationMs'>): Promi
           criticalCount: metrics.criticalCount,
           highCount: metrics.highCount,
           mediumCount: metrics.mediumCount,
+          cognitiveDecayed: metrics.decayApplied?.cognitiveRecordsDecayed ?? 0,
+          spacedRepDecayed: metrics.decayApplied?.spacedRepRecordsDecayed ?? 0,
         },
         timestamp: new Date(),
       },

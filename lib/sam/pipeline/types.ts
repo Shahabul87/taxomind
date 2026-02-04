@@ -97,6 +97,12 @@ export interface PipelineContext {
       signals?: Array<{ name: string; score: number; triggered: boolean }>;
       alternativePresets?: string[];
     };
+    /** Overall maturity level for this engine selection (stable/beta/experimental) */
+    maturity?: string;
+    /** Per-engine maturity levels */
+    engineMaturityMap?: Record<string, string>;
+    /** Bayesian effectiveness score (0-1) from preset feedback tracking */
+    effectivenessScore?: number;
   };
   /** True when AI provider is unavailable and degraded responses are being used */
   degradedMode?: boolean;

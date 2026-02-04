@@ -80,6 +80,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { TemplateSelector } from "./TemplateSelector";
+import type { QuestionTemplate } from "@/lib/sam/self-assessment/templates";
 
 // Types
 interface SelfAssessmentExam {
@@ -172,6 +174,7 @@ export function SelfAssessmentHub({
     timeLimit: 60,
     passingScore: 70,
     generateWithAI: true,
+    enableAdaptive: false,
     totalQuestions: 20,
     bloomsDistribution: { ...DEFAULT_BLOOMS },
   });
@@ -216,6 +219,20 @@ export function SelfAssessmentHub({
     }
   }, [fetchData]);
 
+  // Handle template selection — pre-fill exam form
+  const handleTemplateSelect = useCallback((template: QuestionTemplate) => {
+    setNewExam((prev) => ({
+      ...prev,
+      title: template.name,
+      description: template.description,
+      topic: template.subjectArea,
+      subtopicsInput: template.tags.join(', '),
+      generateWithAI: true,
+      totalQuestions: template.defaultQuestionCount,
+      bloomsDistribution: { ...template.bloomsDistribution },
+    }));
+  }, []);
+
   // Create new exam
   const handleCreateExam = useCallback(async () => {
     if (!newExam.title.trim()) return;
@@ -239,6 +256,7 @@ export function SelfAssessmentHub({
           timeLimit: newExam.timeLimit || undefined,
           passingScore: newExam.passingScore,
           generateWithAI: newExam.generateWithAI,
+          enableAdaptive: newExam.enableAdaptive,
           aiConfig: newExam.generateWithAI
             ? {
                 totalQuestions: newExam.totalQuestions,
@@ -260,6 +278,7 @@ export function SelfAssessmentHub({
           timeLimit: 60,
           passingScore: 70,
           generateWithAI: true,
+          enableAdaptive: false,
           totalQuestions: 20,
           bloomsDistribution: { ...DEFAULT_BLOOMS },
         });
@@ -376,6 +395,11 @@ export function SelfAssessmentHub({
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
+                  {/* Template Selector */}
+                  <TemplateSelector
+                    onSelectTemplate={handleTemplateSelect}
+                  />
+
                   {/* Basic Info */}
                   <div className="space-y-4">
                     <div className="space-y-2">
@@ -458,6 +482,29 @@ export function SelfAssessmentHub({
                       checked={newExam.generateWithAI}
                       onCheckedChange={(checked) =>
                         setNewExam({ ...newExam, generateWithAI: checked })
+                      }
+                    />
+                  </div>
+
+                  {/* Adaptive Testing (CAT) Toggle */}
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                        <Target className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          Adaptive Testing (CAT)
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Dynamically adjust question difficulty based on responses
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={newExam.enableAdaptive}
+                      onCheckedChange={(checked) =>
+                        setNewExam({ ...newExam, enableAdaptive: checked })
                       }
                     />
                   </div>

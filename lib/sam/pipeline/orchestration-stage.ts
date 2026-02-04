@@ -14,6 +14,7 @@ import {
   type BloomsEngineOutput,
 } from '@sam-ai/core';
 import { resolveModeEngines, resolveModeEnginesWithMetadata } from '@/lib/sam/modes';
+import { getModeMaturity, getEngineMaturity } from '@sam-ai/educational/engine-maturity';
 import type { GeneratedContent, ValidationResult as QualityValidationResult } from '@sam-ai/quality';
 import type { PedagogicalPipelineResult } from '@sam-ai/pedagogy';
 import type { EvaluationOutcome } from '@sam-ai/memory';
@@ -353,11 +354,17 @@ export async function runOrchestrationStage(
       .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([p]) => p);
+    const presetEngineMaturityMap: Record<string, string> = {};
+    for (const eng of selection.engines) {
+      presetEngineMaturityMap[eng] = getEngineMaturity(eng);
+    }
     modeAnalytics = {
       modeId: ctx.modeId,
       enginePresetUsed: selection.presetName,
       engineSelectionReason: selection.reason,
       messageSignals: selection.signals,
+      maturity: getModeMaturity(selection.engines),
+      engineMaturityMap: presetEngineMaturityMap,
       engineSelection: {
         preset: selection.presetName,
         reason: selection.reason,
@@ -380,6 +387,9 @@ export async function runOrchestrationStage(
       enginePresetUsed: `mode:${ctx.modeId}`,
       engineSelectionReason: resolution.reason,
       engineConfig: resolution.engineConfig,
+      maturity: resolution.maturity,
+      engineMaturityMap: resolution.engineMaturityMap,
+      effectivenessScore: resolution.effectivenessScore,
       engineSelection: {
         preset: `mode:${ctx.modeId}`,
         reason: resolution.reason,
@@ -625,6 +635,77 @@ export async function runOrchestrationStage(
 
       const masteryResult = await subsystems.mastery.processEvaluation(evaluationOutcome);
       const scheduleResult = await subsystems.spacedRep.scheduleFromEvaluation(evaluationOutcome);
+
+      // --- Persist computed mastery values to database (Phase 3.2 gap fix) ---
+      // The subsystem stores may be in-memory; ensure mastery metadata is persisted.
+      try {
+        const { db: prismaDb } = await import('@/lib/db');
+        const dominantLevel = (bloomsAnalysis.dominantLevel as string) ?? 'REMEMBER';
+        const masteryScore = masteryResult.currentMastery?.score ?? confidence * 100;
+        const previousScore = masteryResult.previousMastery?.score;
+        const trend =
+          previousScore === undefined || previousScore === null
+            ? 'stable'
+            : masteryScore > previousScore + 2
+              ? 'improving'
+              : masteryScore < previousScore - 2
+                ? 'declining'
+                : 'stable';
+
+        // Confidence increases with more assessments (asymptotic to 0.95)
+        const existingProgress = await prismaDb.cognitiveSkillProgress.findUnique({
+          where: { userId_conceptId: { userId: ctx.user.id, conceptId: ctx.pageContext.entityId } },
+          select: { totalAttempts: true, confidence: true },
+        });
+        const totalAttempts = (existingProgress?.totalAttempts ?? 0) + 1;
+        const newConfidence = Math.min(0.95, 1 - 1 / (1 + totalAttempts * 0.3));
+
+        // Map Bloom's level string to the correct mastery field
+        const bloomsFieldMap: Record<string, string> = {
+          REMEMBER: 'rememberMastery',
+          UNDERSTAND: 'understandMastery',
+          APPLY: 'applyMastery',
+          ANALYZE: 'analyzeMastery',
+          EVALUATE: 'evaluateMastery',
+          CREATE: 'createMastery',
+        };
+        const bloomsField = bloomsFieldMap[dominantLevel.toUpperCase()];
+        const bloomsMasteryUpdate = bloomsField ? { [bloomsField]: masteryScore } : {};
+
+        await prismaDb.cognitiveSkillProgress.upsert({
+          where: { userId_conceptId: { userId: ctx.user.id, conceptId: ctx.pageContext.entityId } },
+          update: {
+            overallMastery: masteryScore,
+            currentBloomsLevel: dominantLevel.toUpperCase() as Parameters<typeof prismaDb.cognitiveSkillProgress.update>[0]['data']['currentBloomsLevel'],
+            totalAttempts,
+            lastAttemptDate: new Date(),
+            trend,
+            confidence: newConfidence,
+            ...bloomsMasteryUpdate,
+          },
+          create: {
+            userId: ctx.user.id,
+            conceptId: ctx.pageContext.entityId,
+            overallMastery: masteryScore,
+            currentBloomsLevel: dominantLevel.toUpperCase() as Parameters<typeof prismaDb.cognitiveSkillProgress.create>[0]['data']['currentBloomsLevel'],
+            totalAttempts: 1,
+            lastAttemptDate: new Date(),
+            trend: 'stable',
+            confidence: newConfidence,
+            ...bloomsMasteryUpdate,
+          },
+        });
+
+        logger.debug('[SAM_UNIFIED] Mastery persisted to DB:', {
+          userId: ctx.user.id,
+          conceptId: ctx.pageContext.entityId,
+          masteryScore,
+          trend,
+          confidence: newConfidence,
+        });
+      } catch (persistError) {
+        logger.warn('[SAM_UNIFIED] Mastery DB persistence failed (non-blocking):', persistError);
+      }
 
       memoryUpdate = { masteryUpdated: true, spacedRepScheduled: true };
 

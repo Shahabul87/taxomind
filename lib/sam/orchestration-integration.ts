@@ -92,6 +92,11 @@ export function initializeOrchestration(
 
   // Create stores for session and confirmation management
   // Use Prisma-based session store from TaxomindContext for cross-session persistence
+  //
+  // NOTE: Confirmation store is intentionally in-memory because confirmation
+  // requests are ephemeral (expire within minutes). They represent real-time
+  // interaction flow state, not learning data — if a server restarts
+  // mid-confirmation, the user simply re-triggers the action.
   const confirmationStore = createInMemoryOrchestrationConfirmationStore();
   const sessionStore = getMultiSessionStores().tutoringSession;
 

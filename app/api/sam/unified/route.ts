@@ -89,9 +89,13 @@ function mergeStageResult(
     }
   }
 
-  // Always merge stageErrors if present
+  // Always merge stageErrors if present (use push to avoid race conditions
+  // when multiple background stages settle concurrently)
   if (result.stageErrors && result.stageErrors.length > 0) {
-    ctx.stageErrors = [...(ctx.stageErrors ?? []), ...result.stageErrors];
+    if (!ctx.stageErrors) ctx.stageErrors = [];
+    for (const err of result.stageErrors) {
+      ctx.stageErrors.push(err);
+    }
   }
 
   // Special responseText handling:
@@ -114,7 +118,7 @@ function mergeStageResult(
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  let failedStages: string[] = [];
+  const failedStages: string[] = [];
 
   try {
     // 0. Initialize subsystems (singleton, cached after first call)
@@ -155,11 +159,8 @@ export async function POST(request: NextRequest) {
         const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
         stageHealthTracker.recordFailure(stage.name, errorMsg, Date.now() - stageStart);
         logger.error(`[SAM_UNIFIED] Critical stage '${stage.name}' failed:`, errorMsg);
-        ctx.stageErrors = [
-          ...(ctx.stageErrors || []),
-          { stage: stage.name, error: errorMsg, timestamp: Date.now() },
-        ];
-        failedStages = [...failedStages, stage.name];
+        ctx.stageErrors.push({ stage: stage.name, error: errorMsg, timestamp: Date.now() });
+        failedStages.push(stage.name);
         // Orchestration is truly critical — must throw
         if (stage.name === 'orchestration') throw stageError;
       }
@@ -199,11 +200,8 @@ export async function POST(request: NextRequest) {
         stageHealthTracker.recordFailure(stage.name, errorMsg, Date.now() - stageStart);
         bgFailed.add(stage.name);
         logger.warn(`[SAM_UNIFIED] Background stage '${stage.name}' failed:`, errorMsg);
-        ctx.stageErrors = [
-          ...(ctx.stageErrors || []),
-          { stage: stage.name, error: errorMsg, timestamp: Date.now() },
-        ];
-        failedStages = [...failedStages, stage.name];
+        ctx.stageErrors.push({ stage: stage.name, error: errorMsg, timestamp: Date.now() });
+        failedStages.push(stage.name);
         return { name: stage.name, status: 'rejected' as const };
       }
     });

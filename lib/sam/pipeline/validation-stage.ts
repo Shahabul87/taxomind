@@ -158,6 +158,7 @@ export async function runValidationStage(
   });
 
   // Classify mode relevance (Tier 1 heuristic + Tier 2 AI fallback for ambiguous scores)
+  // sessionId enables per-session budget limiting for Tier 2 AI calls
   const modeClassification = await classifyModeRelevanceAsync(
     message,
     modeId,
@@ -165,6 +166,7 @@ export async function runValidationStage(
     {
       conversationHistory: conversationHistory as Array<{ role: string; content: string }>,
       enableAIFallback: true,
+      sessionId,
     },
   );
   if (modeClassification.shouldSuggestSwitch) {

@@ -16,3 +16,7 @@ export {
   getBloomsLevelForChapter,
   suggestContentType,
 } from './prompts';
+
+// Orchestrator
+export { orchestrateCourseCreation } from './orchestrator';
+export type { OrchestrateOptions } from './orchestrator';

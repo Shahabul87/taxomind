@@ -17,9 +17,9 @@ import {
   Loader2,
   ChevronRight,
   GitBranch,
-  Wifi,
   WifiOff,
   AlertCircle,
+  Square,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
@@ -98,6 +98,58 @@ interface ConversationThread {
 }
 
 // =============================================================================
+// SSE PARSER (for streaming endpoint)
+// =============================================================================
+
+interface SSEEvent {
+  event: string;
+  data: string;
+}
+
+/** Parse raw SSE text buffer into discrete events */
+function parseSSEChunk(buffer: string): { events: SSEEvent[]; remainder: string } {
+  const events: SSEEvent[] = [];
+  const lines = buffer.split('\n');
+  let currentEvent = '';
+  let currentData = '';
+  let remainder = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.startsWith('event: ')) {
+      currentEvent = line.slice(7);
+    } else if (line.startsWith('data: ')) {
+      currentData = line.slice(6);
+    } else if (line === '') {
+      // Empty line = end of SSE message
+      if (currentEvent && currentData) {
+        events.push({ event: currentEvent, data: currentData });
+      }
+      currentEvent = '';
+      currentData = '';
+    } else if (i === lines.length - 1 && line !== '') {
+      // Incomplete line at end — carry over to next chunk
+      remainder = line;
+      if (currentEvent && !currentData) {
+        remainder = `event: ${currentEvent}\n${remainder}`;
+        currentEvent = '';
+      }
+    }
+  }
+
+  // If we have a partial event at the end, carry it over
+  if (currentEvent || currentData) {
+    remainder =
+      (currentEvent ? `event: ${currentEvent}\n` : '') +
+      (currentData ? `data: ${currentData}\n` : '') +
+      remainder;
+  }
+
+  return { events, remainder };
+}
+
+// =============================================================================
 // COMPONENT
 // =============================================================================
 
@@ -106,6 +158,7 @@ interface SAMEnginePoweredChatProps {
   initialMessage?: string;
   conversationId?: string;
   enableRealtime?: boolean;
+  enableStreaming?: boolean;
 }
 
 export function SAMEnginePoweredChat({
@@ -113,6 +166,7 @@ export function SAMEnginePoweredChat({
   initialMessage,
   conversationId: initialConversationId,
   enableRealtime = false,
+  enableStreaming = true,
 }: SAMEnginePoweredChatProps) {
   const { data: session } = useSession();
   const router = useRouter();
@@ -121,6 +175,7 @@ export function SAMEnginePoweredChat({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [activeEngines, setActiveEngines] = useState<string[]>([]);
   const [showEngineInsights, setShowEngineInsights] = useState(true);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(
@@ -129,6 +184,9 @@ export function SAMEnginePoweredChat({
   const [threads, setThreads] = useState<ConversationThread[]>([]);
   const [showThreads, setShowThreads] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+
+  // AbortController for stopping streaming generation
+  const streamAbortRef = useRef<AbortController | null>(null);
 
   // Real-time interventions (Gap 3)
   const {
@@ -171,6 +229,287 @@ export function SAMEnginePoweredChat({
   const isLoadingRef = useRef(isLoading);
   isLoadingRef.current = isLoading;
 
+  // Ref to track streaming preference (stable in callbacks)
+  const enableStreamingRef = useRef(enableStreaming);
+  enableStreamingRef.current = enableStreaming;
+
+  // Ref for currentConversationId (stable in streaming callback)
+  const conversationIdRef = useRef(currentConversationId);
+  conversationIdRef.current = currentConversationId;
+
+  /** Send message via SSE streaming endpoint */
+  const sendStreamingMessage = useCallback(
+    async (_message: string, requestBody: string) => {
+      const abortController = new AbortController();
+      streamAbortRef.current = abortController;
+
+      const response = await fetch('/api/sam/unified/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+        signal: abortController.signal,
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error('Failed to establish streaming connection');
+      }
+
+      const samMessageId = `${Date.now()}-sam`;
+      let streamedContent = '';
+      let streamMetadata: Record<string, unknown> = {};
+
+      // Add placeholder assistant message that we'll update progressively
+      const placeholderMessage: ChatMessage = {
+        id: samMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, placeholderMessage]);
+      setIsStreaming(true);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let sseBuffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          sseBuffer += decoder.decode(value, { stream: true });
+          const { events, remainder } = parseSSEChunk(sseBuffer);
+          sseBuffer = remainder;
+
+          for (const sseEvent of events) {
+            try {
+              const parsed = JSON.parse(sseEvent.data);
+
+              switch (sseEvent.event) {
+                case 'content': {
+                  // Accumulate streaming tokens
+                  streamedContent += parsed.text ?? '';
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === samMessageId ? { ...m, content: streamedContent } : m
+                    )
+                  );
+                  break;
+                }
+                case 'content-replace': {
+                  // Safety/verification gating — replace entire content
+                  streamedContent = parsed.text ?? '';
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === samMessageId ? { ...m, content: streamedContent } : m
+                    )
+                  );
+                  break;
+                }
+                case 'insights': {
+                  // Build engine data and agentic data from insights
+                  const agentic = (parsed.agentic ?? {}) as Record<string, unknown>;
+                  const engineData: EngineData = {
+                    marketAnalysis: parsed.content ?? null,
+                    bloomsAnalysis: parsed.blooms ?? null,
+                    courseGuide: parsed.context ?? null,
+                    learningProfile: parsed.personalization ?? null,
+                  };
+                  const agenticData: AgenticChatData | null =
+                    agentic.confidence || agentic.goalContext
+                      ? ({
+                          intent: (agentic.intent as Record<string, unknown>) ?? {
+                            intent: 'question',
+                            confidence: 0,
+                          },
+                          confidence: agentic.confidence ?? null,
+                          toolResults: agentic.toolExecution
+                            ? [agentic.toolExecution]
+                            : [],
+                          goalContext: agentic.goalContext ?? null,
+                          interventionContext: agentic.interventions
+                            ? { interventions: agentic.interventions }
+                            : null,
+                          recommendations: agentic.recommendations ?? null,
+                          skillUpdate: agentic.skillUpdate ?? null,
+                          orchestration: parsed.orchestration
+                            ? {
+                                hasActivePlan:
+                                  (parsed.orchestration as Record<string, unknown>)
+                                    .hasActivePlan,
+                                currentStep:
+                                  (parsed.orchestration as Record<string, unknown>)
+                                    .currentStep,
+                                stepProgress:
+                                  (parsed.orchestration as Record<string, unknown>)
+                                    .stepProgress,
+                                transition:
+                                  (parsed.orchestration as Record<string, unknown>)
+                                    .transition,
+                              }
+                            : null,
+                          processingTimeMs: 0,
+                        } as AgenticChatData)
+                      : null;
+
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === samMessageId
+                        ? { ...m, engineData, agenticData }
+                        : m
+                    )
+                  );
+
+                  // Update active engines
+                  const engines: string[] = [];
+                  if (engineData.marketAnalysis) engines.push('market');
+                  if (engineData.bloomsAnalysis) engines.push('blooms');
+                  if (engineData.courseGuide) engines.push('guide');
+                  if (engineData.learningProfile) engines.push('profile');
+                  setActiveEngines(engines);
+                  break;
+                }
+                case 'suggestions': {
+                  const suggestions = parsed as (string | ChatSuggestion)[];
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === samMessageId
+                        ? { ...m, suggestions }
+                        : m
+                    )
+                  );
+                  break;
+                }
+                case 'actions': {
+                  const actions = parsed as ChatAction[];
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === samMessageId ? { ...m, actions } : m
+                    )
+                  );
+                  break;
+                }
+                case 'done': {
+                  streamMetadata = parsed.metadata ?? {};
+                  const sessionId =
+                    (streamMetadata.sessionId as string) ??
+                    conversationIdRef.current ??
+                    `chat-${Date.now()}`;
+                  if (sessionId && !conversationIdRef.current) {
+                    setCurrentConversationId(sessionId);
+                  }
+                  break;
+                }
+                case 'error': {
+                  logger.warn('SSE error event:', parsed);
+                  break;
+                }
+              }
+            } catch (parseError) {
+              // Skip malformed SSE events
+              logger.warn('Failed to parse SSE event:', parseError);
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+        setIsStreaming(false);
+        streamAbortRef.current = null;
+      }
+    },
+    [] // Stable: uses refs for mutable values
+  );
+
+  /** Send message via non-streaming POST endpoint (original behavior) */
+  const sendNonStreamingMessage = useCallback(
+    async (_message: string, requestBody: string) => {
+      const response = await fetch('/api/sam/unified', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: requestBody,
+      });
+
+      if (!response.ok) throw new Error('Failed to get response');
+
+      const raw = await response.json();
+
+      // Map unified response to ChatApiResponse shape
+      const insights = raw.insights ?? {};
+      const metadata = raw.metadata ?? {};
+      const agentic = insights.agentic ?? {};
+
+      const data: ChatApiResponse = {
+        success: raw.success ?? true,
+        data: {
+          message: raw.response ?? '',
+          suggestions: raw.suggestions ?? [],
+          actions: raw.actions ?? [],
+          insights: insights,
+          engineData: {
+            marketAnalysis: insights.content ?? null,
+            bloomsAnalysis: insights.blooms ?? null,
+            courseGuide: insights.context ?? null,
+            learningProfile: insights.personalization ?? null,
+          },
+          agenticData: (agentic.confidence || agentic.goalContext || agentic.intent) ? {
+            intent: agentic.intent ?? { intent: 'question', confidence: 0 },
+            confidence: agentic.confidence ?? null,
+            toolResults: metadata.toolExecution ? [metadata.toolExecution] : [],
+            goalContext: agentic.goalContext ?? null,
+            interventionContext: agentic.interventions
+              ? { interventions: agentic.interventions }
+              : null,
+            recommendations: agentic.recommendations ?? null,
+            skillUpdate: agentic.skillUpdate ?? null,
+            orchestration: insights.orchestration
+              ? {
+                  hasActivePlan: insights.orchestration.hasActivePlan,
+                  currentStep: insights.orchestration.currentStep,
+                  stepProgress: insights.orchestration.stepProgress,
+                  transition: insights.orchestration.transition,
+                }
+              : null,
+            processingTimeMs: metadata.requestTime ?? 0,
+          } as AgenticChatData : null,
+          conversationId: metadata.sessionId ?? conversationIdRef.current ?? `chat-${Date.now()}`,
+          memoryContext: { hasMemory: !!insights.memoryContext },
+        },
+      };
+
+      // Track the conversation ID from the server
+      if (data.data.conversationId && !conversationIdRef.current) {
+        setCurrentConversationId(data.data.conversationId);
+      }
+
+      const samMessage: ChatMessage = {
+        id: `${Date.now()}-sam`,
+        role: 'assistant',
+        content: data.data.message,
+        suggestions: data.data.suggestions ?? [],
+        actions: data.data.actions ?? [],
+        insights: Array.isArray(data.data.insights)
+          ? (data.data.insights as EngineInsight[])
+          : [],
+        engineData: data.data.engineData ?? null,
+        agenticData: data.data.agenticData ?? null,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, samMessage]);
+
+      // Update active engines
+      if (data.data.engineData) {
+        const engines: string[] = [];
+        if (data.data.engineData.marketAnalysis) engines.push('market');
+        if (data.data.engineData.bloomsAnalysis) engines.push('blooms');
+        if (data.data.engineData.courseGuide) engines.push('guide');
+        if (data.data.engineData.learningProfile) engines.push('profile');
+        setActiveEngines(engines);
+      }
+    },
+    [] // Stable: uses conversationIdRef
+  );
+
   const sendMessage = useCallback(
     async (message: string) => {
       if (!message.trim() || !session?.user) return;
@@ -185,100 +524,31 @@ export function SAMEnginePoweredChat({
       setInput('');
       setIsLoading(true);
 
+      const requestBody = JSON.stringify({
+        message,
+        pageContext: {
+          type: 'course-detail',
+          path: `/courses/${courseId}`,
+          entityId: courseId,
+          entityType: 'course',
+        },
+        conversationId: conversationIdRef.current,
+      });
+
       try {
-        const response = await fetch('/api/sam/unified', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message,
-            pageContext: {
-              type: 'course-detail',
-              path: `/courses/${courseId}`,
-              entityId: courseId,
-              entityType: 'course',
-            },
-            conversationId: currentConversationId,
-          }),
-        });
-
-        if (!response.ok) throw new Error('Failed to get response');
-
-        const raw = await response.json();
-
-        // Map unified response to ChatApiResponse shape
-        const insights = raw.insights ?? {};
-        const metadata = raw.metadata ?? {};
-        const agentic = insights.agentic ?? {};
-
-        const data: ChatApiResponse = {
-          success: raw.success ?? true,
-          data: {
-            message: raw.response ?? '',
-            suggestions: raw.suggestions ?? [],
-            actions: raw.actions ?? [],
-            insights: insights,
-            engineData: {
-              marketAnalysis: insights.content ?? null,
-              bloomsAnalysis: insights.blooms ?? null,
-              courseGuide: insights.context ?? null,
-              learningProfile: insights.personalization ?? null,
-            },
-            agenticData: (agentic.confidence || agentic.goalContext || agentic.intent) ? {
-              intent: agentic.intent ?? { intent: 'question', confidence: 0 },
-              confidence: agentic.confidence ?? null,
-              toolResults: metadata.toolExecution ? [metadata.toolExecution] : [],
-              goalContext: agentic.goalContext ?? null,
-              interventionContext: agentic.interventions
-                ? { interventions: agentic.interventions }
-                : null,
-              recommendations: agentic.recommendations ?? null,
-              skillUpdate: agentic.skillUpdate ?? null,
-              orchestration: insights.orchestration
-                ? {
-                    hasActivePlan: insights.orchestration.hasActivePlan,
-                    currentStep: insights.orchestration.currentStep,
-                    stepProgress: insights.orchestration.stepProgress,
-                    transition: insights.orchestration.transition,
-                  }
-                : null,
-              processingTimeMs: metadata.requestTime ?? 0,
-            } as AgenticChatData : null,
-            conversationId: metadata.sessionId ?? currentConversationId ?? `chat-${Date.now()}`,
-            memoryContext: { hasMemory: !!insights.memoryContext },
-          },
-        };
-
-        // Track the conversation ID from the server
-        if (data.data.conversationId && !currentConversationId) {
-          setCurrentConversationId(data.data.conversationId);
-        }
-
-        const samMessage: ChatMessage = {
-          id: `${Date.now()}-sam`,
-          role: 'assistant',
-          content: data.data.message,
-          suggestions: data.data.suggestions ?? [],
-          actions: data.data.actions ?? [],
-          insights: Array.isArray(data.data.insights)
-            ? (data.data.insights as EngineInsight[])
-            : [],
-          engineData: data.data.engineData ?? null,
-          agenticData: data.data.agenticData ?? null,
-          timestamp: new Date(),
-        };
-
-        setMessages((prev) => [...prev, samMessage]);
-
-        // Update active engines
-        if (data.data.engineData) {
-          const engines: string[] = [];
-          if (data.data.engineData.marketAnalysis) engines.push('market');
-          if (data.data.engineData.bloomsAnalysis) engines.push('blooms');
-          if (data.data.engineData.courseGuide) engines.push('guide');
-          if (data.data.engineData.learningProfile) engines.push('profile');
-          setActiveEngines(engines);
+        if (enableStreamingRef.current) {
+          await sendStreamingMessage(message, requestBody);
+        } else {
+          await sendNonStreamingMessage(message, requestBody);
         }
       } catch (error: unknown) {
+        // Don't show error toast when user deliberately stops generation
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          logger.info('Streaming generation stopped by user');
+          setIsStreaming(false);
+          return;
+        }
+
         logger.error('Error sending message:', error);
         toast({
           title: 'Error',
@@ -291,7 +561,7 @@ export function SAMEnginePoweredChat({
         setIsLoading(false);
       }
     },
-    [session?.user, courseId, currentConversationId, isOnline, toast]
+    [session?.user, courseId, isOnline, toast, sendStreamingMessage, sendNonStreamingMessage]
   );
 
   useEffect(() => {
@@ -377,7 +647,13 @@ export function SAMEnginePoweredChat({
               isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
             }`}
           >
-            <p className="text-sm">{msg.content}</p>
+            <p className="text-sm">
+              {msg.content}
+              {/* Pulsing cursor during streaming */}
+              {!isUser && isStreaming && msg.id.endsWith('-sam') && msg.content.length > 0 && (
+                <span className="inline-block w-2 h-4 ml-0.5 bg-current animate-pulse rounded-sm opacity-70" />
+              )}
+            </p>
           </div>
 
           {/* Tool results */}
@@ -671,7 +947,7 @@ export function SAMEnginePoweredChat({
         ) : (
           messages.map(renderMessage)
         )}
-        {isLoading && (
+        {isLoading && !messages.some((m) => m.role === 'assistant' && m.content === '' && m.id.endsWith('-sam')) && (
           <div className="flex justify-start mb-4">
             <div className="bg-muted rounded-lg px-4 py-2">
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -688,6 +964,23 @@ export function SAMEnginePoweredChat({
             <span>You are offline. Messages will be queued.</span>
           </div>
         )}
+        {isStreaming && (
+          <div className="flex justify-center mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={() => {
+                if (streamAbortRef.current) {
+                  streamAbortRef.current.abort();
+                }
+              }}
+            >
+              <Square className="w-3 h-3 mr-1.5" />
+              Stop generating
+            </Button>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -699,10 +992,10 @@ export function SAMEnginePoweredChat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={isOnline ? 'Ask SAM anything...' : 'Type a message (will send when online)...'}
-            disabled={isLoading}
+            disabled={isLoading || isStreaming}
             className="flex-1"
           />
-          <Button type="submit" disabled={isLoading || !input.trim()}>
+          <Button type="submit" disabled={isLoading || isStreaming || !input.trim()}>
             {isOnline ? <Send className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
           </Button>
         </form>

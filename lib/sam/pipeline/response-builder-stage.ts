@@ -195,6 +195,9 @@ export async function buildUnifiedResponse(
             reason: ctx.modeAnalytics.engineSelection.reason,
             signals: ctx.modeAnalytics.engineSelection.signals,
             alternativePresets: ctx.modeAnalytics.engineSelection.alternativePresets,
+            maturity: ctx.modeAnalytics.maturity,
+            engineMaturityMap: ctx.modeAnalytics.engineMaturityMap,
+            effectivenessScore: ctx.modeAnalytics.effectivenessScore,
           }
         : undefined,
     },

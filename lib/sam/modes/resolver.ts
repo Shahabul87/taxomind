@@ -8,7 +8,7 @@
 import { getModeById } from './registry';
 import type { EngineMaturityLevel } from '@sam-ai/educational/engine-maturity';
 import { getModeMaturity, getEngineMaturity } from '@sam-ai/educational/engine-maturity';
-import { getPresetEffectivenessScore, getBestPresetForMode } from '@/lib/sam/pipeline/preset-tracker';
+import { getPresetEffectivenessScore, getBestPresetForMode, getContextualEffectivenessScore } from '@/lib/sam/pipeline/preset-tracker';
 import { logger } from '@/lib/logger';
 
 /** Base engines always active in every mode */
@@ -22,6 +22,8 @@ export interface ModeEngineResolution {
   maturity?: EngineMaturityLevel;
   engineMaturityMap?: Record<string, EngineMaturityLevel>;
   engineConfig?: Record<string, unknown>;
+  /** Bayesian effectiveness score (0-1) from feedback tracking. 0.5 = neutral/no data. */
+  effectivenessScore?: number;
 }
 
 /**
@@ -104,7 +106,31 @@ export function resolveModeEnginesWithMetadata(
     }
   }
 
-  // --- Rule 6: Feedback-driven engine boosting (from preset tracker) ---
+  // --- Rule 6: Feedback-driven calibration (from preset tracker) ---
+  // Use contextual effectiveness (preset + mode + pageType) with fallback chain.
+  const presetId = mode.enginePreset.join('+');
+  const effectivenessScore = getContextualEffectivenessScore(
+    presetId,
+    modeId,
+    pageContext.type,
+  );
+
+  // If the preset has consistent negative feedback (score < 0.35 with enough data),
+  // strip non-essential augmentations to reduce risk of low-quality responses.
+  if (effectivenessScore < 0.35 && augmented) {
+    const coreEngines = [...BASE_ENGINES, ...mode.enginePreset];
+    if (engines.length > coreEngines.length) {
+      engines = coreEngines;
+      reason += ' [calibrated: stripped augmentations due to low effectiveness]';
+      logger.info('[MODE_RESOLVER] Low effectiveness score, stripped augmentations', {
+        modeId,
+        effectivenessScore: effectivenessScore.toFixed(3),
+        pageType: pageContext.type,
+      });
+    }
+  }
+
+  // If the preset has strong positive feedback (score > 0.7), log for diagnostics.
   const bestPreset = getBestPresetForMode(modeId);
   if (bestPreset && bestPreset.bayesianScore > 0.7) {
     logger.debug('[MODE_RESOLVER] High-performing preset detected', {
@@ -112,9 +138,6 @@ export function resolveModeEnginesWithMetadata(
       presetId: bestPreset.presetId,
       score: bestPreset.bayesianScore.toFixed(3),
     });
-    // If the best preset suggests specific engines that overlap with the mode's
-    // registered presets, they are already included. This log serves as a
-    // diagnostic hook for future per-preset engine mapping.
   }
 
   // Compute maturity metadata
@@ -124,7 +147,7 @@ export function resolveModeEnginesWithMetadata(
   }
   const maturity = getModeMaturity(engines);
 
-  return { engines, reason, augmented, maturity, engineMaturityMap, engineConfig: mode.engineConfig };
+  return { engines, reason, augmented, maturity, engineMaturityMap, engineConfig: mode.engineConfig, effectivenessScore };
 }
 
 /**

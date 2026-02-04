@@ -89,6 +89,7 @@ export function ChatHeader({
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
   const [modeSearch, setModeSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [showMoreCategories, setShowMoreCategories] = useState<Set<string>>(new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const { recentModes, isFavorite, recordModeUsage, toggleFavorite } = useModePreferences();
@@ -137,6 +138,18 @@ export function ChatHeader({
     });
   }, []);
 
+  const toggleShowMore = useCallback((catId: string) => {
+    setShowMoreCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) {
+        next.delete(catId);
+      } else {
+        next.add(catId);
+      }
+      return next;
+    });
+  }, []);
+
   const toggleModeDropdown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setModeDropdownOpen((prev) => !prev);
@@ -151,7 +164,25 @@ export function ChatHeader({
       <Monitor className="h-3 w-3" />
     );
 
-  const allModes = getAllModes();
+  const HIDDEN_MODES = new Set(['alignment-checker', 'scaffolding', 'zpd-evaluator']);
+  // Essential modes shown by default — rest hidden behind "Show More" per category
+  const ESSENTIAL_MODES = new Set([
+    // Analysis & Taxonomy (1 of 3) — core platform feature
+    'blooms-analyzer',
+    // Learning & Coaching (3 of 7)
+    'learning-coach', 'socratic-tutor', 'study-planner',
+    // Assessment (2 of 4)
+    'exam-builder', 'practice-problems',
+    // Research & Resources (2 of 3)
+    'research-assistant', 'resource-finder',
+    // Course Design (1 of 3)
+    'course-architect',
+    // Insights & Analytics (2 of 4)
+    'analytics', 'predictive',
+  ]);
+  const allModes = getAllModes().filter(
+    (m) => m.category !== 'content' && !HIDDEN_MODES.has(m.id)
+  );
 
   return (
     <div
@@ -167,55 +198,56 @@ export function ChatHeader({
       }}
       {...dragHandlers}
     >
-      {/* Left: Logo + title + mode selector */}
-      <div className="flex items-center gap-2 min-w-0">
+      {/* Left: Logo + title */}
+      <div className="flex items-center gap-2 shrink-0">
         <div className="h-7 w-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
           <Sparkles className="h-4 w-4" />
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-semibold">SAM</span>
-            {/* Confidence dot */}
-            {confidenceScore != null && (
-              <span
-                className={cn(
-                  'h-2 w-2 rounded-full',
-                  confidenceScore >= 0.7 && 'bg-green-400',
-                  confidenceScore >= 0.4 && confidenceScore < 0.7 && 'bg-yellow-400',
-                  confidenceScore < 0.4 && 'bg-red-400'
-                )}
-                title={`Confidence: ${Math.round(confidenceScore * 100)}%`}
-              />
-            )}
-            {/* Level badge */}
-            {enableGamification && userProgress && (
-              <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                <Star className="h-2.5 w-2.5 text-yellow-300" />
-                Lv.{userProgress.level}
-                {userProgress.streak > 0 && (
-                  <>
-                    <Flame className="h-2.5 w-2.5 text-orange-300 ml-0.5" />
-                    {userProgress.streak}
-                  </>
-                )}
-              </span>
-            )}
-          </div>
-          {/* Mode selector trigger (replaces breadcrumbs) */}
-          <button
-            ref={triggerRef}
-            onClick={toggleModeDropdown}
-            className="flex items-center gap-0.5 text-[10px] text-white/60 hover:text-white/90 transition-colors leading-none mt-0.5 max-w-[160px]"
-          >
-            <span className="truncate">{activeModeLabel}</span>
-            <ChevronDown
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-semibold">SAM</span>
+          {/* Confidence dot */}
+          {confidenceScore != null && (
+            <span
               className={cn(
-                'h-2.5 w-2.5 shrink-0 transition-transform duration-150',
-                modeDropdownOpen && 'rotate-180'
+                'h-2 w-2 rounded-full',
+                confidenceScore >= 0.7 && 'bg-green-400',
+                confidenceScore >= 0.4 && confidenceScore < 0.7 && 'bg-yellow-400',
+                confidenceScore < 0.4 && 'bg-red-400'
               )}
+              title={`Confidence: ${Math.round(confidenceScore * 100)}%`}
             />
-          </button>
+          )}
+          {/* Level badge */}
+          {enableGamification && userProgress && (
+            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+              <Star className="h-2.5 w-2.5 text-yellow-300" />
+              Lv.{userProgress.level}
+              {userProgress.streak > 0 && (
+                <>
+                  <Flame className="h-2.5 w-2.5 text-orange-300 ml-0.5" />
+                  {userProgress.streak}
+                </>
+              )}
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* Center: Mode selector */}
+      <div className="flex-1 flex justify-center min-w-0">
+        <button
+          ref={triggerRef}
+          onClick={toggleModeDropdown}
+          className="flex items-center gap-1 text-[11px] text-white/80 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition-colors max-w-[180px]"
+        >
+          <span className="truncate">{activeModeLabel}</span>
+          <ChevronDown
+            className={cn(
+              'h-2.5 w-2.5 shrink-0 transition-transform duration-150',
+              modeDropdownOpen && 'rotate-180'
+            )}
+          />
+        </button>
       </div>
 
       {/* Right: Controls */}
@@ -399,6 +431,11 @@ export function ChatHeader({
                   const catModes = allModes.filter((m) => m.category === cat.id && m.id !== 'general-assistant');
                   if (catModes.length === 0) return null;
                   const isExpanded = expandedCategories.has(cat.id);
+                  const essentialModes = catModes.filter((m) => ESSENTIAL_MODES.has(m.id));
+                  const advancedModes = catModes.filter((m) => !ESSENTIAL_MODES.has(m.id));
+                  const showingMore = showMoreCategories.has(cat.id);
+                  const visibleModes = showingMore ? catModes : essentialModes;
+                  const displayCount = showingMore ? catModes.length : essentialModes.length;
                   return (
                     <div key={cat.id} className="mb-0.5 last:mb-0">
                       <button
@@ -422,21 +459,28 @@ export function ChatHeader({
                           className="text-[9px] ml-auto"
                           style={{ color: 'var(--sam-text-muted)' }}
                         >
-                          {catModes.length}
+                          {displayCount}
                         </span>
                       </button>
-                      {isExpanded && catModes.map((mode) => (
-                        <ModeItem
-                          key={mode.id}
-                          modeId={mode.id}
-                          label={mode.label}
-                          isActive={mode.id === activeMode}
-                          maturity={getModeMaturity(mode.enginePreset)}
-                          isFavorite={isFavorite(mode.id as SAMModeId)}
-                          onToggleFavorite={() => toggleFavorite(mode.id as SAMModeId)}
-                          onClick={() => handleModeSelect(mode.id)}
-                        />
-                      ))}
+                      {isExpanded && (() => {
+                        return (
+                          <>
+                            {visibleModes.map((mode) => (
+                              <ModeItem
+                                key={mode.id}
+                                modeId={mode.id}
+                                label={mode.label}
+                                isActive={mode.id === activeMode}
+                                maturity={getModeMaturity(mode.enginePreset)}
+                                isFavorite={isFavorite(mode.id as SAMModeId)}
+                                onToggleFavorite={() => toggleFavorite(mode.id as SAMModeId)}
+                                onClick={() => handleModeSelect(mode.id)}
+                              />
+                            ))}
+                            {/* "Show more" toggle hidden for now — re-enable later */}
+                          </>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -517,13 +561,21 @@ function ModeItem({
         {maturity && maturity !== 'production' && (
           <span
             className={cn(
-              'inline-block h-1.5 w-1.5 rounded-full shrink-0',
-              maturity === 'beta' && 'bg-amber-400',
-              maturity === 'experimental' && 'bg-gray-400',
-              maturity === 'scaffold' && 'bg-gray-300',
+              'text-[8px] px-1 py-px rounded-sm shrink-0 leading-none font-medium',
+              maturity === 'beta' && 'bg-amber-400/20 text-amber-600 dark:text-amber-400',
+              maturity === 'experimental' && 'bg-gray-400/20 text-gray-500 dark:text-gray-400',
+              maturity === 'scaffold' && 'bg-gray-300/20 text-gray-400 dark:text-gray-500',
             )}
-            title={maturity}
-          />
+            title={
+              maturity === 'beta'
+                ? 'This mode uses engines still in beta testing'
+                : maturity === 'experimental'
+                  ? 'This mode uses experimental engines that may change'
+                  : 'This mode uses early-stage placeholder engines'
+            }
+          >
+            {maturity === 'beta' ? 'Beta' : maturity === 'experimental' ? 'Exp' : 'Early'}
+          </span>
         )}
       </span>
       <span className="flex items-center gap-0.5 shrink-0 ml-1">

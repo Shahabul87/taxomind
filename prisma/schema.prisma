@@ -13982,6 +13982,9 @@ model SelfAssessmentExam {
   generatedByAI   Boolean                @default(false)
   aiConfig        Json?                  // Stores generation config
 
+  // Adaptive Testing (CAT)
+  enableAdaptive  Boolean                @default(false)  // Use CAT item selection during attempts
+
   // Bloom's Taxonomy
   targetBloomsDistribution Json?         // Target distribution
   actualBloomsDistribution Json?         // Actual distribution after questions added

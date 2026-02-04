@@ -40,6 +40,7 @@ export interface ScheduleReviewInput {
   skillId?: string;
   skillName?: string;
   score: number; // 0-100 percentage
+  bloomsLevel?: string; // Bloom's level for decay rate lookup
 }
 
 export interface CompleteReviewInput {
@@ -242,6 +243,8 @@ export class PrismaSpacedRepetitionStore {
 
       const retention = calculateRetention(new Date(), interval, easeFactor);
 
+      const priority = calculatePriority(score, interval);
+
       const updated = await db.spacedRepetitionSchedule.update({
         where: { id: existing.id },
         data: {
@@ -251,6 +254,9 @@ export class PrismaSpacedRepetitionStore {
           repetitions,
           lastScore: score,
           retentionEstimate: retention,
+          quality,
+          priority,
+          bloomsLevel: input.bloomsLevel ?? existing.bloomsLevel ?? undefined,
         },
       });
 
@@ -275,6 +281,8 @@ export class PrismaSpacedRepetitionStore {
 
       const retention = calculateRetention(new Date(), interval, easeFactor);
 
+      const priority = calculatePriority(score, interval);
+
       const created = await db.spacedRepetitionSchedule.create({
         data: {
           userId,
@@ -285,6 +293,9 @@ export class PrismaSpacedRepetitionStore {
           repetitions,
           lastScore: score,
           retentionEstimate: retention,
+          quality,
+          priority,
+          bloomsLevel: input.bloomsLevel ?? undefined,
         },
       });
 

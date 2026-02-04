@@ -11,6 +11,7 @@ import { isFeedbackTextSafe, getFeedbackSuggestions } from '@sam-ai/safety';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 import { toGoalContext, type RecommendationItem, type SkillUpdateData } from '@/lib/sam/agentic-chat/types';
+import { bridgeChatSkillToSkillTrack } from '@/lib/sam/cross-feature-bridge';
 import type { VerificationResult, SkillAssessment, RecommendationBatch } from '@sam-ai/agentic';
 import type { PipelineContext } from './types';
 
@@ -224,6 +225,15 @@ export async function runAgenticStage(
         level: assessment.level,
         score: assessment.score,
       });
+
+      // Cross-feature bridge: forward to SkillBuildTrack for decay prediction
+      bridgeChatSkillToSkillTrack({
+        userId: ctx.user.id,
+        skillId,
+        skillName: topicName,
+        score: bloomsScore,
+        bloomsLevel: bloomsAnalysis.dominantLevel as string,
+      }).catch(() => {}); // Already logged internally
     } catch (error) {
       logger.warn('[SAM_UNIFIED] Skill assessment from chat failed:', error);
     }

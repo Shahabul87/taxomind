@@ -205,7 +205,6 @@ export interface SAMModeCategoryInfo {
 
 export const MODE_CATEGORIES: SAMModeCategoryInfo[] = [
   { id: 'general', label: 'General', column: 'left' },
-  { id: 'content', label: 'Content & Creation', column: 'left' },
   { id: 'analysis', label: 'Analysis & Taxonomy', column: 'left' },
   { id: 'learning', label: 'Learning & Coaching', column: 'left' },
   { id: 'assessment', label: 'Assessment', column: 'right' },

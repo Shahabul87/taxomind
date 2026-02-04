@@ -40,6 +40,8 @@ const CreateExamSchema = z.object({
       difficulty: z.enum(['easy', 'medium', 'hard', 'mixed']).optional(),
     })
     .optional(),
+  // Adaptive Testing (CAT)
+  enableAdaptive: z.boolean().default(false),
 });
 
 const ListExamsSchema = z.object({
@@ -452,6 +454,7 @@ export async function GET(request: NextRequest) {
       totalAttempts: exam._count.attempts,
       avgScore: exam.avgScore,
       generatedByAI: exam.generatedByAI,
+      enableAdaptive: exam.enableAdaptive,
       targetBloomsDistribution: exam.targetBloomsDistribution,
       createdAt: exam.createdAt.toISOString(),
       updatedAt: exam.updatedAt.toISOString(),
@@ -520,6 +523,7 @@ export async function POST(request: NextRequest) {
         maxAttempts: data.maxAttempts,
         generatedByAI: data.generateWithAI,
         aiConfig: data.aiConfig ?? undefined,
+        enableAdaptive: data.enableAdaptive,
         targetBloomsDistribution: data.aiConfig?.bloomsDistribution ?? {
           REMEMBER: 15,
           UNDERSTAND: 20,
@@ -708,6 +712,7 @@ export async function POST(request: NextRequest) {
         status: createdExam?.status,
         totalQuestions: createdExam?._count.questions ?? 0,
         generatedByAI: createdExam?.generatedByAI,
+        enableAdaptive: createdExam?.enableAdaptive,
         createdAt: createdExam?.createdAt.toISOString(),
       },
       generation: generationMetadata,

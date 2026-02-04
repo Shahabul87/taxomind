@@ -59,6 +59,8 @@ import {
   getReviewScheduleStore,
 } from '@/lib/sam/taxomind-context';
 
+import { getAllModes } from '@/lib/sam/modes/registry';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -81,6 +83,55 @@ export interface SubsystemBundle {
 // ---------------------------------------------------------------------------
 
 let bundle: SubsystemBundle | null = null;
+
+// ---------------------------------------------------------------------------
+// Engine Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Cross-reference mode-referenced engine names against engines registered in
+ * the orchestrator. Logs warnings for any engine names used in mode presets
+ * that have no corresponding registration.
+ *
+ * In development, throws to surface configuration errors early.
+ * In production, only warns to avoid crashing on non-critical mismatches.
+ */
+function validateModeEngines(orchestrator: SAMAgentOrchestrator): void {
+  const registeredEngines = new Set(orchestrator.getRegisteredEngines());
+  const modes = getAllModes();
+  const missingEngines = new Map<string, string[]>();
+
+  for (const mode of modes) {
+    for (const engineName of mode.enginePreset) {
+      if (!registeredEngines.has(engineName)) {
+        const modesForEngine = missingEngines.get(engineName) ?? [];
+        modesForEngine.push(mode.id);
+        missingEngines.set(engineName, modesForEngine);
+      }
+    }
+  }
+
+  if (missingEngines.size === 0) {
+    logger.info('[SUBSYSTEM_INIT] Engine validation passed: all mode-referenced engines are registered');
+    return;
+  }
+
+  const summary: Record<string, string[]> = {};
+  for (const [engine, modeIds] of missingEngines) {
+    summary[engine] = modeIds;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    logger.error('[SUBSYSTEM_INIT] Engine validation FAILED — mode presets reference unregistered engines:', summary);
+    // In development, throw so the developer sees it immediately
+    throw new Error(
+      `SAM engine validation failed: engines [${Array.from(missingEngines.keys()).join(', ')}] ` +
+      `referenced in mode presets but not registered. Register these engines or update mode presets.`
+    );
+  }
+
+  logger.warn('[SUBSYSTEM_INIT] Engine validation warning — some mode-referenced engines are not registered:', summary);
+}
 
 // ---------------------------------------------------------------------------
 // Initialization
@@ -220,8 +271,11 @@ export async function initializeSubsystems(): Promise<SubsystemBundle> {
     logger.warn('[SUBSYSTEM_INIT] Failed to initialize proactive interventions:', error);
   }
 
+  // Validate mode-referenced engines against registered engines
+  validateModeEngines(orchestrator);
+
   logger.info('[SUBSYSTEM_INIT] All subsystems initialized:', {
-    engines: ['context', 'blooms', 'content', 'personalization', 'assessment', 'response'],
+    engines: orchestrator.getRegisteredEngines(),
     qualityGates: true,
     pedagogyPipeline: true,
     memoryTracking: true,
