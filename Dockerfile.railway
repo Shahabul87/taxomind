@@ -21,7 +21,8 @@ RUN apk add --no-cache \
     ca-certificates
 
 # Install pnpm directly (corepack has signature verification issues)
-RUN npm install -g pnpm@9
+# Must match local pnpm version to read lockfile v9.0 format
+RUN npm install -g pnpm@10
 
 WORKDIR /app
 
