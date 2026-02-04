@@ -3,7 +3,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  LayoutDashboard,
   Target,
   Timer,
   AlertTriangle,
@@ -19,7 +18,6 @@ import { useViewportHeight } from '@/hooks/useViewportHeight';
 
 export type DashboardView =
   | 'todos'
-  | 'learning'
   | 'analytics'
   | 'skills'
   | 'practice'
@@ -38,7 +36,7 @@ interface TabConfig {
 }
 
 // Hidden tabs (will be re-enabled later):
-// cognitive, gamification, innovation, create, career, social
+// learning, cognitive, gamification, innovation, create, career, social
 const tabs: TabConfig[] = [
   {
     id: 'todos',
@@ -47,14 +45,6 @@ const tabs: TabConfig[] = [
     icon: CheckSquare,
     gradient: 'from-green-500 to-emerald-500',
     description: 'Tasks & daily activities',
-  },
-  {
-    id: 'learning',
-    label: 'Learning',
-    shortLabel: 'Learn',
-    icon: LayoutDashboard,
-    gradient: 'from-blue-500 to-indigo-500',
-    description: 'AI-powered learning hub',
   },
   {
     id: 'analytics',

@@ -5,7 +5,6 @@ import type { DashboardView } from '../components/TabNavigation';
 
 const TAB_ORDER: DashboardView[] = [
   'todos',
-  'learning',
   'analytics',
   'skills',
   'practice',

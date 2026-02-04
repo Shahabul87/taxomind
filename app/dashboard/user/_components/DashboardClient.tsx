@@ -69,7 +69,7 @@ interface DashboardClientProps {
 
 // Valid tab values for URL param validation
 // Hidden tabs (re-enable later): cognitive, gamification, innovation, create, career, social
-const validTabs: DashboardView[] = ['todos', 'learning', 'analytics', 'skills', 'practice', 'goals', 'gaps', 'insights'];
+const validTabs: DashboardView[] = ['todos', 'analytics', 'skills', 'practice', 'goals', 'gaps', 'insights'];
 
 export function DashboardClient({ user }: DashboardClientProps) {
   const searchParams = useSearchParams();

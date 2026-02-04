@@ -5,9 +5,6 @@ import dynamic from "next/dynamic";
 import type { User as NextAuthUser } from "next-auth";
 import { Loader2 } from "lucide-react";
 
-// Learning Tabs Container — not code-split (always visible on default tab)
-import { LearningTabsContainer } from "./learning-tabs";
-
 // ToDos sub-tab promoted to main tab
 import { ToDosSubTab } from "./learning-tabs/tabs/ToDosSubTab";
 
@@ -83,7 +80,6 @@ const InsightsTab = dynamic(
 
 type DashboardView =
   | "todos"
-  | "learning"
   | "analytics"
   | "skills"
   | "practice"
@@ -147,16 +143,6 @@ export function NewDashboard({
             <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
               <ToDosSubTab user={user} onCreateStudyPlan={onCreateStudyPlan} />
             </div>
-          </div>
-        );
-
-      case "learning":
-        return (
-          <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-900/10 dark:to-indigo-900/10">
-            <LearningTabsContainer
-              user={user}
-              onCreateStudyPlan={onCreateStudyPlan}
-            />
           </div>
         );
 
