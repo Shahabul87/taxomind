@@ -10,7 +10,6 @@ const TAB_ORDER: DashboardView[] = [
   'practice',
   'goals',
   'gaps',
-  'insights',
 ];
 
 interface UseTabKeyboardNavOptions {

@@ -11,7 +11,6 @@ import {
   ChevronDown,
   Check,
   CheckSquare,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
@@ -22,8 +21,7 @@ export type DashboardView =
   | 'skills'
   | 'practice'
   | 'goals'
-  | 'gaps'
-  | 'insights';
+  | 'gaps';
 
 interface TabConfig {
   id: DashboardView;
@@ -36,7 +34,7 @@ interface TabConfig {
 }
 
 // Hidden tabs (will be re-enabled later):
-// learning, cognitive, gamification, innovation, create, career, social
+// learning, cognitive, gamification, innovation, create, career, social, insights
 const tabs: TabConfig[] = [
   {
     id: 'todos',
@@ -85,14 +83,6 @@ const tabs: TabConfig[] = [
     icon: AlertTriangle,
     gradient: 'from-red-500 to-rose-500',
     description: 'Knowledge gap analysis',
-  },
-  {
-    id: 'insights',
-    label: 'Insights',
-    shortLabel: 'Insights',
-    icon: Sparkles,
-    gradient: 'from-teal-500 to-emerald-500',
-    description: 'Personalized insights & safety',
   },
 ];
 

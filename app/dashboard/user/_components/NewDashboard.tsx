@@ -67,10 +67,7 @@ const GapsTab = dynamic(
   { ssr: false, loading: TabSkeleton },
 );
 
-const InsightsTab = dynamic(
-  () => import("./tabs/InsightsTab").then((m) => m.InsightsTab),
-  { ssr: false, loading: TabSkeleton },
-);
+// Hidden tab (re-enable later): InsightsTab
 
 // ---------------------------------------------------------------------------
 // Types
@@ -82,8 +79,7 @@ type DashboardView =
   | "skills"
   | "practice"
   | "goals"
-  | "gaps"
-  | "insights";
+  | "gaps";
 
 interface NewDashboardProps {
   user: NextAuthUser;
@@ -168,9 +164,6 @@ export function NewDashboard({
 
       case "gaps":
         return <GapsTab />;
-
-      case "insights":
-        return <InsightsTab userId={userId} />;
 
       default:
         return (
