@@ -18,8 +18,6 @@ import {
   useToolApproval,
 } from "@/components/sam/ToolApprovalDialog";
 
-// Feature Gate for new tabs
-import { FeatureGate } from "@/lib/dashboard/FeatureGate";
 
 // ---------------------------------------------------------------------------
 // Skeleton loading fallback for code-split tabs
@@ -172,14 +170,7 @@ export function NewDashboard({
         return <GapsTab />;
 
       case "insights":
-        return (
-          <FeatureGate
-            feature="INSIGHTS_TAB_ENABLED"
-            fallback={<TabSkeleton />}
-          >
-            <InsightsTab />
-          </FeatureGate>
-        );
+        return <InsightsTab userId={userId} />;
 
       default:
         return (
