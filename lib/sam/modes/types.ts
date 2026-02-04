@@ -17,12 +17,118 @@ export type SAMModeCategory =
   | 'insights';
 
 export interface ModeEngineConfig {
+  // --- Response shape ---
   maxResponseLength?: 'short' | 'medium' | 'long';
   outputFormat?: 'prose' | 'bullet-points' | 'structured' | 'conversational';
-  contentFocus?: 'explanation' | 'examples' | 'resources' | 'relationships' | 'multimedia-suggestions';
+  contentFocus?: 'explanation' | 'examples' | 'resources' | 'relationships' | 'multimedia-suggestions' | 'personalized' | 'creation' | 'general';
+
+  // --- Bloom's & frameworks ---
   targetBloomsLevels?: string[];
-  adaptationStrategy?: 'difficulty' | 'style' | 'pace' | 'depth';
+  bloomsAlignment?: boolean;
+  multiFramework?: boolean;
+  frameworks?: string[];
+  showDistribution?: boolean;
+  showComparison?: boolean;
+  analysisDepth?: 'basic' | 'comprehensive';
+
+  // --- Questioning & interaction ---
+  questioningStyle?: 'guided' | 'direct' | 'mixed';
   questionFormat?: 'mcq' | 'open-ended' | 'mixed' | 'practical';
+  maxDirectAnswers?: number;
+  scaffoldingLevel?: 'fixed' | 'adaptive';
+
+  // --- Adaptation ---
+  adaptationStrategy?: 'difficulty' | 'style' | 'pace' | 'depth' | 'learner-level' | 'auto';
+  adaptiveDifficulty?: boolean;
+  adjustDifficulty?: boolean;
+  differentiationLevel?: 'fixed' | 'adaptive';
+
+  // --- Encouragement & reflection ---
+  encouragementLevel?: 'low' | 'medium' | 'high';
+  includeReflection?: boolean;
+  reflectionPrompts?: boolean;
+  selfAssessment?: boolean;
+  strategyCoaching?: boolean;
+
+  // --- Assessment ---
+  rubricGeneration?: boolean;
+  rubricBased?: boolean;
+  hintSystem?: boolean;
+  stepByStep?: boolean;
+  difficultySpread?: boolean;
+  detailedFeedback?: boolean;
+  improvementSuggestions?: boolean;
+
+  // --- Scaffolding ---
+  evaluatePrerequisites?: boolean;
+  gradualRelease?: boolean;
+
+  // --- ZPD ---
+  zpdMapping?: boolean;
+  supportSuggestions?: boolean;
+  difficultyCalibration?: boolean;
+
+  // --- Cognitive load ---
+  splitAttention?: boolean;
+  redundancy?: boolean;
+  optimizeSuggestions?: boolean;
+
+  // --- Alignment ---
+  checkAlignment?: boolean;
+  showMatrix?: boolean;
+  suggestCorrections?: boolean;
+
+  // --- Study planning ---
+  planFormat?: 'daily' | 'weekly' | 'monthly';
+  includeBreaks?: boolean;
+  adaptToSchedule?: boolean;
+
+  // --- Mastery & tracking ---
+  showProgressChart?: boolean;
+  identifyGaps?: boolean;
+  suggestReview?: boolean;
+  showCompetencyMap?: boolean;
+  identifyStrengths?: boolean;
+  careerAlignment?: boolean;
+
+  // --- Spaced repetition ---
+  algorithm?: 'sm2' | 'leitner' | 'custom';
+  showSchedule?: boolean;
+  adaptDifficulty?: boolean;
+
+  // --- Integrity ---
+  checkPatterns?: boolean;
+  sourceSuggestions?: boolean;
+  educationalGuidance?: boolean;
+
+  // --- Course design ---
+  backwardDesign?: boolean;
+  alignmentMatrix?: boolean;
+  pacing?: boolean;
+  frameworkAlignment?: boolean;
+  careerMapping?: boolean;
+  progressTracking?: boolean;
+
+  // --- Analytics ---
+  showCharts?: boolean;
+  comparativeAnalysis?: boolean;
+  trendDetection?: boolean;
+  riskAssessment?: boolean;
+  earlyWarning?: boolean;
+  interventionSuggestions?: boolean;
+  timeRange?: 'monthly' | 'quarterly' | 'yearly';
+  visualize?: boolean;
+  predictive?: boolean;
+
+  // --- Market & collaboration ---
+  jobMarketData?: boolean;
+  skillDemand?: boolean;
+  salaryInsights?: boolean;
+  groupMetrics?: boolean;
+  peerMatching?: boolean;
+  contributionTracking?: boolean;
+
+  // --- Extensibility ---
   custom?: Record<string, string | number | boolean>;
 }
 

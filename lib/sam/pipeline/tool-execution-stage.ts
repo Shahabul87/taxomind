@@ -72,6 +72,19 @@ export async function runToolExecutionStage(
     });
 
     if (plan) {
+      // Secondary security check: verify tool is still in mode allowlist at execution time
+      const toolCategory = (plan.tool as { category?: string }).category;
+      const secondaryCheck = resolveModeToolAllowlist(ctx.modeId, [{ category: toolCategory }]);
+      if (secondaryCheck.length === 0) {
+        logger.warn('[SAM_UNIFIED] Tool blocked at execution boundary — not in allowlist', {
+          toolId: plan.tool.id,
+          toolName: plan.tool.name,
+          toolCategory,
+          modeId: ctx.modeId,
+        });
+        return { ...ctx, responseText, toolExecution };
+      }
+
       // Telemetry tracking
       let telemetryExecutionId: string | undefined;
       if (SAM_FEATURES.OBSERVABILITY_ENABLED) {

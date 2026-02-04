@@ -128,6 +128,78 @@ export function buildClientEntitySummary(
 }
 
 // =============================================================================
+// ENTITY CONTEXT VALIDATION
+// =============================================================================
+
+/** Timeout for DB-fallback entity context queries (ms) */
+const ENTITY_DB_TIMEOUT_MS = 3_000;
+
+interface EntityValidationResult {
+  valid: boolean;
+  confidence: number;
+  warnings: string[];
+}
+
+/**
+ * Validate entity context data before using it.
+ * Returns a confidence score (0-1) and any warnings.
+ */
+function validateEntityContext(entity: Record<string, unknown>): EntityValidationResult {
+  const warnings: string[] = [];
+  let confidence = 1.0;
+
+  if (!entity.title || typeof entity.title !== 'string') {
+    warnings.push('Missing entity title');
+    confidence -= 0.3;
+  }
+
+  if (!entity.id && !(entity as Record<string, unknown>).entityId) {
+    warnings.push('Missing entity ID');
+    confidence -= 0.2;
+  }
+
+  // Check staleness (if timestamp provided)
+  const updatedAt = entity.updatedAt as string | undefined;
+  if (updatedAt) {
+    const age = Date.now() - new Date(updatedAt).getTime();
+    if (age > 5 * 60 * 1000) {
+      warnings.push('Entity context is stale (>5min old)');
+      confidence -= 0.2;
+    }
+  }
+
+  // Shallow content check
+  const keysWithValues = Object.entries(entity).filter(
+    ([, v]) => v !== null && v !== undefined && v !== '',
+  ).length;
+  if (keysWithValues < 2) {
+    warnings.push('Entity context has very few populated fields');
+    confidence -= 0.2;
+  }
+
+  return {
+    valid: confidence > 0.3,
+    confidence: Math.max(0, Math.min(1, confidence)),
+    warnings,
+  };
+}
+
+/**
+ * Race a promise against a timeout. Returns null if the timeout fires first.
+ */
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+// =============================================================================
 // CONTEXT GATHERING STAGE
 // =============================================================================
 
@@ -137,6 +209,8 @@ export async function runContextGatheringStage(
   const hasClientEntityData = !!(ctx.pageContext.entityData as Record<string, unknown> | undefined)
     && !!(ctx.pageContext.entityData as Record<string, unknown>).title;
 
+  let contextConfidence = ctx.contextConfidence ?? 1.0;
+
   // ----- 1. Build entity context -----
   let entityContext: EntityContext;
 
@@ -145,10 +219,21 @@ export async function runContextGatheringStage(
       const clientData = ctx.pageContext.entityData as Record<string, unknown>;
       const entityType = (ctx.pageContext.entityType as string) || 'course';
 
+      // Validate client-provided entity data
+      const validation = validateEntityContext(clientData);
+      if (validation.warnings.length > 0) {
+        logger.warn('[SAM_UNIFIED] Client entity data validation warnings:', {
+          warnings: validation.warnings,
+          confidence: validation.confidence,
+        });
+      }
+      contextConfidence = Math.min(contextConfidence, validation.confidence);
+
       logger.debug('[SAM_UNIFIED] Using client-provided entity data:', {
         type: entityType,
         title: clientData.title,
         hasChapters: !!(clientData.chapters as unknown[])?.length,
+        contextConfidence,
       });
 
       const chapters = clientData.chapters as Array<{
@@ -226,17 +311,35 @@ export async function runContextGatheringStage(
         summary: buildClientEntitySummary(clientData, entityType),
       };
     } else {
-      entityContext = await buildEntityContext(
-        ctx.pageContext.type,
-        ctx.pageContext.entityId,
-        ctx.pageContext.parentEntityId,
-        ctx.pageContext.grandParentEntityId,
-        ctx.user.id,
+      // DB fallback path — wrap with timeout to avoid slow queries blocking the pipeline
+      const dbResult = await withTimeout(
+        buildEntityContext(
+          ctx.pageContext.type,
+          ctx.pageContext.entityId,
+          ctx.pageContext.parentEntityId,
+          ctx.pageContext.grandParentEntityId,
+          ctx.user.id,
+        ),
+        ENTITY_DB_TIMEOUT_MS,
       );
+
+      if (dbResult) {
+        entityContext = dbResult;
+      } else {
+        logger.warn('[SAM_UNIFIED] Entity context DB query timed out, degrading gracefully');
+        entityContext = { type: 'none', summary: '' };
+        contextConfidence -= 0.3;
+      }
     }
   } catch (error) {
     logger.warn('[SAM_UNIFIED] Entity context gathering failed:', error);
     entityContext = { type: 'none', summary: '' };
+    contextConfidence -= 0.4;
+  }
+
+  // If entity context is 'none', reduce confidence
+  if (entityContext.type === 'none') {
+    contextConfidence = Math.min(contextConfidence, 0.4);
   }
 
   logger.debug('[SAM_UNIFIED] Entity context ready:', {
@@ -305,10 +408,14 @@ export async function runContextGatheringStage(
       : undefined,
   });
 
+  // Clamp confidence to [0, 1]
+  contextConfidence = Math.max(0, Math.min(1, contextConfidence));
+
   return {
     ...ctx,
     entityContext,
     entitySummary: entityContext.summary,
+    contextConfidence,
     formSummary,
     contextSnapshotSummary,
     toolsSummary,

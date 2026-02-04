@@ -215,15 +215,8 @@ export interface ModeClassificationResult {
 // MODE ENGINE CONFIG
 // =============================================================================
 
-export interface ModeEngineConfig {
-  maxResponseLength?: 'short' | 'medium' | 'long';
-  outputFormat?: 'prose' | 'bullet-points' | 'structured' | 'conversational';
-  contentFocus?: 'explanation' | 'examples' | 'resources' | 'relationships' | 'multimedia-suggestions';
-  targetBloomsLevels?: string[];
-  adaptationStrategy?: 'difficulty' | 'style' | 'pace' | 'depth';
-  questionFormat?: 'mcq' | 'open-ended' | 'mixed' | 'practical';
-  custom?: Record<string, string | number | boolean>;
-}
+// Re-export ModeEngineConfig from modes/types for consumers that import from pipeline/types
+export type { ModeEngineConfig } from '@/lib/sam/modes/types';
 
 // =============================================================================
 // MODE SUGGESTION (for API response)

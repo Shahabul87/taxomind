@@ -427,6 +427,7 @@ export async function runOrchestrationStage(
   try {
     result = await subsystems.orchestrator.orchestrate(samContext, ctx.message, {
       engines: enginesToRun,
+      engineConfig: modeAnalytics?.engineConfig,
     });
   } catch (orchError) {
     if (orchError instanceof SAMServiceUnavailableError) {
@@ -520,7 +521,7 @@ export async function runOrchestrationStage(
           const retryResult = await subsystems.orchestrator.orchestrate(
             samContext,
             `${ctx.message}\n\n${prompt}`,
-            { engines: enginesToRun },
+            { engines: enginesToRun, engineConfig: modeAnalytics?.engineConfig },
           );
 
           if (!retryResult.response?.message) continue;

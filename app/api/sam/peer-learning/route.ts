@@ -20,6 +20,7 @@ import {
   type PeerReviewType,
   type ProjectType,
 } from '@sam-ai/educational';
+import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
 // ENGINE SINGLETON
@@ -275,7 +276,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const engine = await getPeerLearningEngine();
 
-    const endpoint = searchParams.get('endpoint') ?? 'profile';
+    // Support both 'action' (frontend) and 'endpoint' param names
+    const endpoint = searchParams.get('endpoint') ?? searchParams.get('action') ?? 'profile';
+    const limit = parseInt(searchParams.get('limit') ?? '10');
 
     switch (endpoint) {
       case 'profile': {
@@ -287,8 +290,84 @@ export async function GET(req: NextRequest) {
         });
       }
 
+      case 'get-stats': {
+        // Aggregate stats from profile and analytics
+        const profile = engine.getPeerProfile(session.user.id);
+        const now = new Date();
+        const startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const analytics = engine.getAnalytics(startDate, now);
+
+        const profileData = (profile ?? {}) as Record<string, unknown>;
+        const analyticsData = (analytics ?? {}) as Record<string, unknown>;
+
+        const stats = {
+          totalPeers: analyticsData?.totalPeers ?? profileData?.connectionsCount ?? 0,
+          groupsJoined: analyticsData?.groupsJoined ?? profileData?.groupsJoined ?? 0,
+          reviewsGiven: analyticsData?.reviewsGiven ?? profileData?.reviewsGiven ?? 0,
+          reviewsReceived: analyticsData?.reviewsReceived ?? profileData?.reviewsReceived ?? 0,
+          collaborationHours: analyticsData?.collaborationHours ?? 0,
+          helpfulnessScore: profileData?.helpfulnessScore ?? profileData?.reputation ?? 0,
+          reputation: profileData?.reputation ?? 0,
+        };
+
+        return NextResponse.json({
+          success: true,
+          data: { stats },
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
+
+      case 'get-matches': {
+        const matches = engine.findPeerMatches({
+          userId: session.user.id,
+          criteria: {
+            matchType: 'STUDY_BUDDY' as MatchType,
+            limit,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: { matches: matches ?? [] },
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
+
+      case 'get-groups': {
+        // Return groups the user belongs to, or public groups
+        const groupId = searchParams.get('groupId');
+        if (groupId) {
+          const group = engine.getStudyGroup(groupId);
+          return NextResponse.json({
+            success: true,
+            data: { groups: group ? [group] : [] },
+            metadata: { timestamp: new Date().toISOString() },
+          });
+        }
+        // Return empty array — engine doesn't have a "list my groups" method
+        return NextResponse.json({
+          success: true,
+          data: { groups: [] },
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
+
+      case 'get-activities': {
+        // Use analytics to derive recent activities
+        const now = new Date();
+        const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const analytics = engine.getAnalytics(startDate, now);
+        const analyticsData = (analytics ?? {}) as Record<string, unknown>;
+
+        return NextResponse.json({
+          success: true,
+          data: { activities: analyticsData?.recentActivities ?? [] },
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
+
       case 'groups': {
-        // Get group by ID if provided, otherwise return empty list
+        // Legacy endpoint: get group by ID if provided, otherwise return empty list
         const groupId = searchParams.get('groupId');
         if (groupId) {
           const group = engine.getStudyGroup(groupId);
@@ -327,7 +406,7 @@ export async function GET(req: NextRequest) {
         const category = searchParams.get('category') as 'overall' | 'helpfulness' | 'sessions' | 'reviews' | undefined;
         const leaderboard = engine.getLeaderboard({
           category,
-          limit: parseInt(searchParams.get('limit') ?? '10'),
+          limit,
         });
         return NextResponse.json({
           success: true,
@@ -390,6 +469,7 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
     const session = await auth();
 
@@ -583,6 +663,16 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
     }
+
+    // Fire-and-forget enrichment
+    void enrichFeatureResponse({
+      userId: session.user.id,
+      featureName: 'peer-learning',
+      action,
+      requestData: (data as Record<string, unknown>) ?? {},
+      responseData: (result as Record<string, unknown>) ?? {},
+      durationMs: Date.now() - startTime,
+    });
 
     return NextResponse.json({
       success: true,

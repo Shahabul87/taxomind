@@ -34,6 +34,170 @@ function sseEvent(event: string, data: unknown): Uint8Array {
 }
 
 // =============================================================================
+// ENGINE CONFIG → BEHAVIORAL INSTRUCTIONS
+// =============================================================================
+
+/**
+ * Transforms mode engineConfig key-value pairs into natural language
+ * AI behavioral instructions that shape the response style, format,
+ * and pedagogical approach.
+ */
+function buildEngineConfigInstructions(
+  engineConfig: Record<string, unknown> | undefined,
+): string | null {
+  if (!engineConfig || Object.keys(engineConfig).length === 0) return null;
+
+  const instructions: string[] = [];
+
+  // --- Response length ---
+  const maxResponseLength = engineConfig.maxResponseLength as string | undefined;
+  if (maxResponseLength === 'short') {
+    instructions.push('Keep responses concise, under 200 words. Use bullet points where possible.');
+  } else if (maxResponseLength === 'long') {
+    instructions.push('Provide comprehensive, detailed responses with examples and thorough explanations.');
+  }
+  // 'medium' is default behavior — no instruction needed
+
+  // --- Output format ---
+  const outputFormat = engineConfig.outputFormat as string | undefined;
+  if (outputFormat === 'structured') {
+    instructions.push('Structure your response with clear headings and organized sections.');
+  } else if (outputFormat === 'bullet-points') {
+    instructions.push('Present information as concise bullet points.');
+  } else if (outputFormat === 'prose') {
+    instructions.push('Write in well-structured prose paragraphs.');
+  }
+  // 'conversational' is default behavior — no instruction needed
+
+  // --- Content focus ---
+  const contentFocus = engineConfig.contentFocus as string | undefined;
+  if (contentFocus === 'explanation') {
+    instructions.push('Focus on clear explanations. Break down concepts step by step.');
+  } else if (contentFocus === 'examples') {
+    instructions.push('Prioritize concrete examples over abstract explanations.');
+  } else if (contentFocus === 'resources') {
+    instructions.push('Focus on recommending useful learning resources and references.');
+  } else if (contentFocus === 'relationships') {
+    instructions.push('Focus on relationships between concepts, prerequisites, and dependencies.');
+  } else if (contentFocus === 'multimedia-suggestions') {
+    instructions.push('Suggest multimedia resources (videos, diagrams, interactive tools) alongside explanations.');
+  } else if (contentFocus === 'personalized') {
+    instructions.push('Tailor content to the learner\u2019s demonstrated level and preferences.');
+  } else if (contentFocus === 'creation') {
+    instructions.push('Focus on creating original educational content aligned with learning objectives.');
+  }
+  // 'general' is default behavior — no instruction needed
+
+  // --- Questioning style ---
+  const questioningStyle = engineConfig.questioningStyle as string | undefined;
+  if (questioningStyle === 'guided') {
+    instructions.push('Use guiding questions to lead the learner to discover answers themselves.');
+  }
+
+  // --- Direct answer limit ---
+  const maxDirectAnswers = engineConfig.maxDirectAnswers;
+  if (maxDirectAnswers === 0) {
+    instructions.push('IMPORTANT: Do NOT give direct answers. Always respond with guiding questions that help the learner think through the problem.');
+  }
+
+  // --- Adaptation strategy ---
+  const adaptationStrategy = engineConfig.adaptationStrategy as string | undefined;
+  if (adaptationStrategy === 'pace') {
+    instructions.push('Adapt the response pace. Check understanding before introducing new concepts.');
+  } else if (adaptationStrategy === 'learner-level') {
+    instructions.push('Adjust complexity to match the learner\u2019s demonstrated level.');
+  } else if (adaptationStrategy === 'depth') {
+    instructions.push('Adjust the depth of explanation based on the learner\u2019s responses.');
+  } else if (adaptationStrategy === 'difficulty') {
+    instructions.push('Adapt difficulty level based on learner performance.');
+  }
+  // 'auto' is default behavior — no instruction needed
+
+  // --- Encouragement ---
+  const encouragementLevel = engineConfig.encouragementLevel as string | undefined;
+  if (encouragementLevel === 'high') {
+    instructions.push('Be encouraging. Acknowledge effort and progress explicitly.');
+  }
+
+  // --- Reflection ---
+  if (engineConfig.includeReflection === true) {
+    instructions.push('Include reflection prompts that encourage the learner to think about their learning process.');
+  }
+
+  // --- Reflection prompts (metacognition) ---
+  if (engineConfig.reflectionPrompts === true) {
+    instructions.push('Include metacognitive reflection prompts (e.g., "What strategies worked for you?", "How confident do you feel about this concept?").');
+  }
+
+  // --- Self-assessment ---
+  if (engineConfig.selfAssessment === true) {
+    instructions.push('Include self-assessment opportunities so the learner can gauge their own understanding.');
+  }
+
+  // --- Rubric generation ---
+  if (engineConfig.rubricGeneration === true) {
+    instructions.push('Include clear rubrics with specific criteria for assessments.');
+  }
+
+  // --- Hint system ---
+  if (engineConfig.hintSystem === true) {
+    instructions.push('Provide graduated hints that scaffold understanding without giving away the answer directly.');
+  }
+
+  // --- Step-by-step ---
+  if (engineConfig.stepByStep === true) {
+    instructions.push('Include step-by-step worked examples to demonstrate problem-solving processes.');
+  }
+
+  // --- Adaptive difficulty ---
+  if (engineConfig.adaptiveDifficulty === true) {
+    instructions.push('Start with easier concepts and gradually increase difficulty based on demonstrated understanding.');
+  }
+
+  // --- Adjust difficulty ---
+  if (engineConfig.adjustDifficulty === true) {
+    instructions.push('Dynamically adjust the difficulty of content based on learner responses.');
+  }
+
+  // --- Bloom's alignment ---
+  if (engineConfig.bloomsAlignment === true) {
+    instructions.push('Align content with Bloom\u2019s Taxonomy levels appropriate to the learning objectives.');
+  }
+
+  // --- Multi-framework analysis ---
+  if (engineConfig.multiFramework === true) {
+    const frameworks = engineConfig.frameworks;
+    if (Array.isArray(frameworks) && frameworks.length > 0) {
+      instructions.push(`Analyze content through multiple frameworks: ${frameworks.join(', ')}.`);
+    } else {
+      instructions.push('Apply multiple pedagogical frameworks in your analysis.');
+    }
+  }
+
+  // --- Scaffolding ---
+  if (engineConfig.gradualRelease === true) {
+    instructions.push('Use a gradual release model: demonstrate first, then guide, then let the learner try independently.');
+  }
+  if (engineConfig.evaluatePrerequisites === true) {
+    instructions.push('Evaluate prerequisite knowledge before introducing new concepts.');
+  }
+
+  // --- Plan format ---
+  const planFormat = engineConfig.planFormat as string | undefined;
+  if (planFormat === 'weekly') {
+    instructions.push('Organize study plans in a weekly format with clear daily goals.');
+  }
+
+  // --- Detailed feedback ---
+  if (engineConfig.detailedFeedback === true) {
+    instructions.push('Provide detailed, constructive feedback on each response or submission.');
+  }
+
+  if (instructions.length === 0) return null;
+  return instructions.join('\n');
+}
+
+// =============================================================================
 // BUILD STREAMING SYSTEM PROMPT
 // =============================================================================
 
@@ -105,6 +269,12 @@ function buildStreamingSystemPrompt(ctx: PipelineContext): string {
   // Tool awareness
   if (ctx.toolsSummary) {
     parts.push('', '## Tools', ctx.toolsSummary);
+  }
+
+  // Mode behavioral instructions (from engineConfig)
+  const configInstructions = buildEngineConfigInstructions(ctx.modeAnalytics?.engineConfig);
+  if (configInstructions) {
+    parts.push('', '## Mode Behavioral Instructions', configInstructions);
   }
 
   // Response guidelines

@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-01-29T03:57:49.028Z
+// Generated: 2026-02-03T03:30:03.134Z
 // Source: 26 domain files
 // ==========================================
 
@@ -1794,6 +1794,11 @@ model User {
 
   // Context Gathering (February 2026)
   samPageContextSnapshots    SAMPageContextSnapshot[]      @relation("SAMPageContextSnapshots")
+
+  // PERFORMANCE: Composite indexes for frequent query patterns
+  @@index([subscriptionTier, hasAIAccess])   // AI access control queries
+  @@index([isPremium, premiumExpiresAt])     // Premium expiry checks
+  @@index([dailyAiUsageResetAt])            // Usage reset batch queries
 }
 
 model Account {
@@ -2877,6 +2882,8 @@ model UserExamAttempt {
   @@unique([userId, examId, attemptNumber])
   @@index([status])
   @@index([userId, examId])
+  @@index([userId, status, startedAt])  // PERFORMANCE: Exam history queries with status filter
+  @@index([examId, status, startedAt])  // PERFORMANCE: Per-exam analytics queries
 }
 
 model CourseBloomsAnalysis {
@@ -8516,6 +8523,10 @@ model SAMVectorEmbedding {
   embedding      Json?
   dimensions     Int      @default(1536)
 
+  // Native pgvector column for O(log n) approximate nearest neighbor search
+  // Managed via raw SQL migration; Prisma reads/writes via $queryRawUnsafe
+  embeddingVector Unsupported("vector(1536)")?
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -8561,6 +8572,9 @@ model SAMLongTermMemory {
   // Embedding stored as JSON array (compatible with standard PostgreSQL)
   embedding      Json?
   embeddingModel String?  @default("text-embedding-ada-002")
+
+  // Native pgvector column for semantic search
+  embeddingVector Unsupported("vector(1536)")?
 
   // Metadata
   tags           String[] @default([])
@@ -8626,6 +8640,9 @@ model SAMKnowledgeNode {
   description   String?
   properties    Json?
   embeddings    String[] @default([])
+
+  // Native pgvector column for concept similarity search
+  embeddingVector Unsupported("vector(1536)")?
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -10675,6 +10692,34 @@ model SAMPageContextSnapshot {
   @@index([userId, pagePath])
   @@index([contentHash])
   @@map("sam_page_context_snapshots")
+}
+
+// ==========================================
+// PRESET EFFECTIVENESS TRACKING
+// Persists preset performance data across serverless cold starts.
+// In-memory Maps act as a write-through cache; this table is
+// hydrated on first access and flushed on a debounced timer.
+// ==========================================
+
+model SAMPresetEffectiveness {
+  id               String   @id @default(cuid())
+  modeId           String
+  presetId         String
+  contextHash      String?  // Optional: for contextual (mode+pageType) tracking
+
+  // Bayesian scoring
+  positiveCount    Int      @default(0)
+  negativeCount    Int      @default(0)
+  totalUsages      Int      @default(0)
+  bayesianScore    Float    @default(0.5)
+
+  // Timestamps
+  lastUpdatedAt    DateTime @default(now()) @updatedAt
+
+  @@unique([modeId, presetId, contextHash])
+  @@index([modeId])
+  @@index([bayesianScore(sort: Desc)])
+  @@map("sam_preset_effectiveness")
 }
 
 // ==========================================

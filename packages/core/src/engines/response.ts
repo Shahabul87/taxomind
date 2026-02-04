@@ -40,7 +40,7 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
   }
 
   protected async process(input: EngineInput): Promise<ResponseEngineOutput> {
-    const { context, query, previousResults } = input;
+    const { context, query, previousResults, options: engineConfig } = input;
 
     // Get results from other engines
     const contextResult = this.getEngineResult<ContextEngineOutput>(previousResults, 'context');
@@ -52,7 +52,7 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     let aiConfidence = 0;
 
     if (needsAI && query) {
-      const aiResponse = await this.generateAIResponse(query, context, contextResult, bloomsResult);
+      const aiResponse = await this.generateAIResponse(query, context, contextResult, bloomsResult, engineConfig);
       message = aiResponse.content;
       aiConfidence = 0.9; // High confidence for AI responses
     } else {
@@ -136,9 +136,10 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     query: string,
     context: EngineInput['context'],
     contextResult?: ContextEngineOutput,
-    bloomsResult?: BloomsEngineOutput
+    bloomsResult?: BloomsEngineOutput,
+    engineConfig?: Record<string, unknown>
   ): Promise<{ content: string }> {
-    const systemPrompt = this.buildSystemPrompt(context, contextResult, bloomsResult);
+    const systemPrompt = this.buildSystemPrompt(context, contextResult, bloomsResult, engineConfig);
 
     // Observable: Log what the LLM receives so we can diagnose context issues
     this.logger.info('[ResponseEngine] System prompt built:', {
@@ -166,7 +167,8 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
   private buildSystemPrompt(
     context: EngineInput['context'],
     contextResult?: ContextEngineOutput,
-    bloomsResult?: BloomsEngineOutput
+    bloomsResult?: BloomsEngineOutput,
+    engineConfig?: Record<string, unknown>
   ): string {
     const personality = this.config.personality;
     const name = personality?.name ?? 'SAM';
@@ -275,7 +277,13 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
       prompt += `\nCapabilities: ${contextResult.enrichedContext.capabilities.join(', ')}\n`;
     }
 
-    // ---- Section 4: Guidelines ----
+    // ---- Section 4: Mode Behavioral Instructions ----
+    const configInstructions = ResponseEngine.buildEngineConfigInstructions(engineConfig);
+    if (configInstructions) {
+      prompt += `\n## Mode Behavioral Instructions\n${configInstructions}\n`;
+    }
+
+    // ---- Section 5: Guidelines ----
     prompt += `\n## Response Guidelines\n`;
     prompt += `1. **USE THE PAGE DATA ABOVE** \u2014 reference actual visible content, courses, chapters, or section details\n`;
     prompt += `2. For GENERATION requests: create content SPECIFIC to the current context\n`;
@@ -285,6 +293,144 @@ export class ResponseEngine extends BaseEngine<unknown, ResponseEngineOutput> {
     }
 
     return prompt;
+  }
+
+  /**
+   * Transforms mode engineConfig into natural language behavioral instructions.
+   * Static so it can be reused without engine instantiation.
+   */
+  private static buildEngineConfigInstructions(
+    engineConfig: Record<string, unknown> | undefined,
+  ): string | null {
+    if (!engineConfig || Object.keys(engineConfig).length === 0) return null;
+
+    const instructions: string[] = [];
+
+    // Response length
+    const maxResponseLength = engineConfig.maxResponseLength as string | undefined;
+    if (maxResponseLength === 'short') {
+      instructions.push('Keep responses concise, under 200 words. Use bullet points where possible.');
+    } else if (maxResponseLength === 'long') {
+      instructions.push('Provide comprehensive, detailed responses with examples and thorough explanations.');
+    }
+
+    // Output format
+    const outputFormat = engineConfig.outputFormat as string | undefined;
+    if (outputFormat === 'structured') {
+      instructions.push('Structure your response with clear headings and organized sections.');
+    } else if (outputFormat === 'bullet-points') {
+      instructions.push('Present information as concise bullet points.');
+    } else if (outputFormat === 'prose') {
+      instructions.push('Write in well-structured prose paragraphs.');
+    }
+
+    // Content focus
+    const contentFocus = engineConfig.contentFocus as string | undefined;
+    if (contentFocus === 'explanation') {
+      instructions.push('Focus on clear explanations. Break down concepts step by step.');
+    } else if (contentFocus === 'examples') {
+      instructions.push('Prioritize concrete examples over abstract explanations.');
+    } else if (contentFocus === 'resources') {
+      instructions.push('Focus on recommending useful learning resources and references.');
+    } else if (contentFocus === 'relationships') {
+      instructions.push('Focus on relationships between concepts, prerequisites, and dependencies.');
+    } else if (contentFocus === 'multimedia-suggestions') {
+      instructions.push('Suggest multimedia resources (videos, diagrams, interactive tools) alongside explanations.');
+    } else if (contentFocus === 'personalized') {
+      instructions.push('Tailor content to the learner\u2019s demonstrated level and preferences.');
+    } else if (contentFocus === 'creation') {
+      instructions.push('Focus on creating original educational content aligned with learning objectives.');
+    }
+
+    // Questioning style
+    const questioningStyle = engineConfig.questioningStyle as string | undefined;
+    if (questioningStyle === 'guided') {
+      instructions.push('Use guiding questions to lead the learner to discover answers themselves.');
+    }
+
+    // Direct answer limit
+    if (engineConfig.maxDirectAnswers === 0) {
+      instructions.push('IMPORTANT: Do NOT give direct answers. Always respond with guiding questions that help the learner think through the problem.');
+    }
+
+    // Adaptation strategy
+    const adaptationStrategy = engineConfig.adaptationStrategy as string | undefined;
+    if (adaptationStrategy === 'pace') {
+      instructions.push('Adapt the response pace. Check understanding before introducing new concepts.');
+    } else if (adaptationStrategy === 'learner-level') {
+      instructions.push('Adjust complexity to match the learner\u2019s demonstrated level.');
+    } else if (adaptationStrategy === 'depth') {
+      instructions.push('Adjust the depth of explanation based on the learner\u2019s responses.');
+    } else if (adaptationStrategy === 'difficulty') {
+      instructions.push('Adapt difficulty level based on learner performance.');
+    }
+
+    // Encouragement
+    if ((engineConfig.encouragementLevel as string) === 'high') {
+      instructions.push('Be encouraging. Acknowledge effort and progress explicitly.');
+    }
+
+    // Reflection
+    if (engineConfig.includeReflection === true) {
+      instructions.push('Include reflection prompts that encourage the learner to think about their learning process.');
+    }
+    if (engineConfig.reflectionPrompts === true) {
+      instructions.push('Include metacognitive reflection prompts (e.g., "What strategies worked for you?").');
+    }
+    if (engineConfig.selfAssessment === true) {
+      instructions.push('Include self-assessment opportunities so the learner can gauge their own understanding.');
+    }
+
+    // Assessment features
+    if (engineConfig.rubricGeneration === true) {
+      instructions.push('Include clear rubrics with specific criteria for assessments.');
+    }
+    if (engineConfig.hintSystem === true) {
+      instructions.push('Provide graduated hints that scaffold understanding without giving away the answer directly.');
+    }
+    if (engineConfig.stepByStep === true) {
+      instructions.push('Include step-by-step worked examples to demonstrate problem-solving processes.');
+    }
+
+    // Difficulty adaptation
+    if (engineConfig.adaptiveDifficulty === true) {
+      instructions.push('Start with easier concepts and gradually increase difficulty based on demonstrated understanding.');
+    }
+    if (engineConfig.adjustDifficulty === true) {
+      instructions.push('Dynamically adjust the difficulty of content based on learner responses.');
+    }
+
+    // Bloom's & frameworks
+    if (engineConfig.bloomsAlignment === true) {
+      instructions.push('Align content with Bloom\u2019s Taxonomy levels appropriate to the learning objectives.');
+    }
+    if (engineConfig.multiFramework === true) {
+      const frameworks = engineConfig.frameworks;
+      if (Array.isArray(frameworks) && frameworks.length > 0) {
+        instructions.push(`Analyze content through multiple frameworks: ${frameworks.join(', ')}.`);
+      }
+    }
+
+    // Scaffolding
+    if (engineConfig.gradualRelease === true) {
+      instructions.push('Use a gradual release model: demonstrate first, then guide, then let the learner try independently.');
+    }
+    if (engineConfig.evaluatePrerequisites === true) {
+      instructions.push('Evaluate prerequisite knowledge before introducing new concepts.');
+    }
+
+    // Study planning
+    if ((engineConfig.planFormat as string) === 'weekly') {
+      instructions.push('Organize study plans in a weekly format with clear daily goals.');
+    }
+
+    // Feedback
+    if (engineConfig.detailedFeedback === true) {
+      instructions.push('Provide detailed, constructive feedback on each response or submission.');
+    }
+
+    if (instructions.length === 0) return null;
+    return instructions.join('\n');
   }
 
   private generateLocalResponse(

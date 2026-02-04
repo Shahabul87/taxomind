@@ -17,6 +17,7 @@ import {
   type DeviceType,
   type MicroModuleStatus,
 } from '@sam-ai/educational';
+import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
 // ENGINE SINGLETON
@@ -86,9 +87,15 @@ const ContentTypeEnum = z.enum([
 
 const DeviceTypeEnum = z.enum(['MOBILE', 'TABLET', 'DESKTOP', 'WATCH']);
 
+// Case-insensitive device type: accept 'desktop' → normalize to 'DESKTOP'
+const DeviceTypeLenient = z.string().transform((val) => val.toUpperCase()).pipe(DeviceTypeEnum);
+
 const ModuleStatusEnum = z.enum([
   'NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'SKIPPED', 'REVIEW_NEEDED'
 ]);
+
+// Case-insensitive module status: accept 'in_progress' → normalize to 'IN_PROGRESS'
+const ModuleStatusLenient = z.string().transform((val) => val.toUpperCase()).pipe(ModuleStatusEnum);
 
 // Schema for chunkContent method
 const ChunkContentSchema = z.object({
@@ -106,10 +113,14 @@ const ChunkContentSchema = z.object({
   }).optional(),
 });
 
-// Schema for generateModules method
+// Schema for generateModules method — relaxed to accept frontend's fields
 const GenerateModulesSchema = z.object({
-  content: z.string().min(10),
-  contentType: ContentTypeEnum,
+  content: z.string().min(10).optional(),
+  contentType: ContentTypeEnum.optional().default('COURSE'),
+  topicId: z.string().optional(),
+  courseId: z.string().optional(),
+  targetDuration: z.number().int().min(1).max(30).optional(),
+  deviceType: DeviceTypeLenient.optional(),
   targetModules: z.number().int().min(1).max(20).optional(),
   moduleTypes: z.array(ModuleTypeEnum).optional(),
   includePractice: z.boolean().optional().default(true),
@@ -122,20 +133,21 @@ const GenerateModulesSchema = z.object({
   }).optional(),
 });
 
-// Schema for createSession method
+// Schema for createSession method — accepts moduleId as alternative to courseId
 const CreateSessionSchema = z.object({
+  moduleId: z.string().optional(),
   courseId: z.string().optional(),
   maxDuration: z.number().int().min(1).max(120).optional(),
   moduleTypes: z.array(ModuleTypeEnum).optional(),
   includeReview: z.boolean().optional().default(false),
-  deviceType: DeviceTypeEnum.optional(),
+  deviceType: DeviceTypeLenient.optional(),
   focusConcepts: z.array(z.string()).optional(),
 });
 
-// Schema for updateProgress method
+// Schema for updateProgress method — accepts case-insensitive status
 const UpdateProgressSchema = z.object({
   moduleId: z.string().min(1),
-  status: ModuleStatusEnum,
+  status: ModuleStatusLenient,
   score: z.number().min(0).max(100).optional(),
   timeSpentSeconds: z.number().int().min(0).optional(),
   selfAssessment: z.number().int().min(1).max(5).optional(),
@@ -167,42 +179,97 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const engine = await getMicrolearningEngine();
 
-    // Get user analytics
-    const timeRange = searchParams.get('timeRange') ?? 'WEEK';
-    const courseId = searchParams.get('courseId') ?? undefined;
-    const includeRecommendations = searchParams.get('includeRecommendations') !== 'false';
+    // Support both 'action' (frontend) and 'endpoint' param names, default to analytics
+    const action = searchParams.get('action') ?? searchParams.get('endpoint') ?? 'analytics';
 
-    // Calculate date range based on timeRange
-    const now = new Date();
-    let startDate: Date | undefined;
-    switch (timeRange) {
-      case 'DAY':
-        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        break;
-      case 'WEEK':
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case 'MONTH':
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case 'ALL':
-      default:
-        startDate = undefined;
+    switch (action) {
+      case 'list-modules': {
+        const topicId = searchParams.get('topicId') ?? undefined;
+        const courseId = searchParams.get('courseId') ?? undefined;
+
+        // Use analytics as a proxy to get module/session data for the user
+        const analytics = await engine.getAnalytics({
+          userId: session.user.id,
+          courseId,
+          includeRecommendations: false,
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            modules: (analytics as Record<string, unknown>)?.modules ?? [],
+            sessions: (analytics as Record<string, unknown>)?.sessions ?? {},
+            topicId,
+          },
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
+
+      case 'learner-profile': {
+        const analytics = await engine.getAnalytics({
+          userId: session.user.id,
+          includeRecommendations: false,
+        });
+
+        // Build a learner profile from analytics data
+        const analyticsData = analytics as Record<string, unknown>;
+        const profile = {
+          totalXp: analyticsData?.totalXp ?? 0,
+          currentStreak: analyticsData?.currentStreak ?? 0,
+          longestStreak: analyticsData?.longestStreak ?? 0,
+          modulesCompleted: analyticsData?.modulesCompleted ?? 0,
+          totalLearningMinutes: analyticsData?.totalLearningMinutes ?? 0,
+          preferredDuration: analyticsData?.preferredDuration ?? 5,
+          preferredDevice: analyticsData?.preferredDevice ?? 'DESKTOP',
+          preferredTypes: analyticsData?.preferredTypes ?? [],
+          lastSessionAt: analyticsData?.lastSessionAt ?? null,
+        };
+
+        return NextResponse.json({
+          success: true,
+          data: { profile },
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
+
+      case 'analytics':
+      default: {
+        const timeRange = searchParams.get('timeRange') ?? 'WEEK';
+        const courseId = searchParams.get('courseId') ?? undefined;
+        const includeRecommendations = searchParams.get('includeRecommendations') !== 'false';
+
+        const now = new Date();
+        let startDate: Date | undefined;
+        switch (timeRange) {
+          case 'DAY':
+            startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            break;
+          case 'WEEK':
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+          case 'MONTH':
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+          case 'ALL':
+          default:
+            startDate = undefined;
+        }
+
+        const analytics = await engine.getAnalytics({
+          userId: session.user.id,
+          courseId,
+          startDate,
+          endDate: now,
+          includeRecommendations,
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: analytics,
+          metadata: { timestamp: new Date().toISOString() },
+        });
+      }
     }
-
-    const analytics = await engine.getAnalytics({
-      userId: session.user.id,
-      courseId,
-      startDate,
-      endDate: now,
-      includeRecommendations,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: analytics,
-      metadata: { timestamp: new Date().toISOString() },
-    });
   } catch (error) {
     logger.error('[Microlearning] GET error:', error);
 
@@ -214,7 +281,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve analytics' } },
+      { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to retrieve microlearning data' } },
       { status: 500 }
     );
   }
@@ -225,6 +292,7 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
     const session = await auth();
 
@@ -247,6 +315,7 @@ export async function POST(req: NextRequest) {
 
     const engine = await getMicrolearningEngine();
     let result: unknown;
+    let responseWrapper: ((r: unknown) => unknown) | null = null;
 
     switch (action) {
       case 'chunk-content': {
@@ -267,39 +336,56 @@ export async function POST(req: NextRequest) {
         break;
       }
 
+      // 'generate-module' alias for frontend compatibility
+      case 'generate-module':
       case 'generate-modules': {
         const validated = GenerateModulesSchema.parse(data);
+        // Build content from topicId/courseId when content is not provided
+        const content = validated.content ?? `Topic: ${validated.topicId ?? 'general'}`;
         result = await engine.generateModules({
-          content: validated.content,
+          content,
           contentType: validated.contentType,
           targetModules: validated.targetModules,
           moduleTypes: validated.moduleTypes as MicroModuleType[] | undefined,
           includePractice: validated.includePractice,
           includeSummaries: validated.includeSummaries,
-          sourceContext: validated.sourceContext,
+          sourceContext: validated.sourceContext ?? {
+            courseId: validated.courseId,
+          },
         });
+        // Frontend expects { module: result } for 'generate-module'
+        if (action === 'generate-module') {
+          responseWrapper = (r) => ({ module: r });
+        }
         logger.info('[Microlearning] Modules generated', {
           userId: session.user.id,
           contentType: validated.contentType,
-          targetModules: validated.targetModules,
+          topicId: validated.topicId,
         });
         break;
       }
 
+      // 'start-session' alias for frontend compatibility
+      case 'start-session':
       case 'create-session': {
         const validated = CreateSessionSchema.parse(data);
         result = await engine.createSession({
           userId: session.user.id,
-          courseId: validated.courseId,
+          courseId: validated.courseId ?? validated.moduleId,
           maxDuration: validated.maxDuration,
           moduleTypes: validated.moduleTypes as MicroModuleType[] | undefined,
           includeReview: validated.includeReview,
           deviceType: validated.deviceType as DeviceType | undefined,
           focusConcepts: validated.focusConcepts,
         });
+        // Frontend expects { session: result } for 'start-session'
+        if (action === 'start-session') {
+          responseWrapper = (r) => ({ session: r });
+        }
         logger.info('[Microlearning] Session created', {
           userId: session.user.id,
           courseId: validated.courseId,
+          moduleId: validated.moduleId,
         });
         break;
       }
@@ -341,10 +427,20 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    // Fire-and-forget enrichment
+    void enrichFeatureResponse({
+      userId: session.user.id,
+      featureName: 'microlearning',
+      action,
+      requestData: (data as Record<string, unknown>) ?? {},
+      responseData: (result as Record<string, unknown>) ?? {},
+      durationMs: Date.now() - startTime,
+    });
+
     return NextResponse.json({
       success: true,
       action,
-      data: result,
+      data: responseWrapper ? responseWrapper(result) : result,
       metadata: { timestamp: new Date().toISOString() },
     });
   } catch (error) {

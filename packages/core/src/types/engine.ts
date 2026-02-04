@@ -130,6 +130,8 @@ export interface OrchestrationOptions {
   timeout?: number;
   includeInsights?: boolean;
   cacheResults?: boolean;
+  /** Mode-specific engine configuration passed through to EngineInput.options */
+  engineConfig?: Record<string, unknown>;
 }
 
 export interface AggregatedResponse {

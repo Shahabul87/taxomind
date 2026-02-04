@@ -2732,3 +2732,31 @@ model SAMPageContextSnapshot {
   @@index([contentHash])
   @@map("sam_page_context_snapshots")
 }
+
+// ==========================================
+// PRESET EFFECTIVENESS TRACKING
+// Persists preset performance data across serverless cold starts.
+// In-memory Maps act as a write-through cache; this table is
+// hydrated on first access and flushed on a debounced timer.
+// ==========================================
+
+model SAMPresetEffectiveness {
+  id               String   @id @default(cuid())
+  modeId           String
+  presetId         String
+  contextHash      String?  // Optional: for contextual (mode+pageType) tracking
+
+  // Bayesian scoring
+  positiveCount    Int      @default(0)
+  negativeCount    Int      @default(0)
+  totalUsages      Int      @default(0)
+  bayesianScore    Float    @default(0.5)
+
+  // Timestamps
+  lastUpdatedAt    DateTime @default(now()) @updatedAt
+
+  @@unique([modeId, presetId, contextHash])
+  @@index([modeId])
+  @@index([bayesianScore(sort: Desc)])
+  @@map("sam_preset_effectiveness")
+}

@@ -21,6 +21,7 @@ import {
   type LearningStrategy,
   type MetacognitiveSkill,
 } from '@sam-ai/educational';
+import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
 // ENGINE SINGLETON
@@ -121,7 +122,8 @@ const MetacognitiveSkillEnum = z.enum([
   'KNOWLEDGE_OF_COGNITION', 'REGULATION_OF_COGNITION'
 ]);
 
-const AnalyzeReflectionSchema = z.object({
+// Full engine format: response + prompt pair
+const AnalyzeReflectionFullSchema = z.object({
   response: z.object({
     promptId: z.string().min(1),
     userId: z.string().min(1),
@@ -147,6 +149,18 @@ const AnalyzeReflectionSchema = z.object({
     }).optional(),
     options: z.array(z.string()).optional(),
   }),
+});
+
+// Simplified frontend format: array of responses
+const AnalyzeReflectionSimpleSchema = z.object({
+  sessionId: z.string().optional(),
+  reflectionType: ReflectionTypeEnum,
+  responses: z.array(z.object({
+    promptId: z.string().min(1),
+    response: z.string().min(1),
+    confidenceRating: z.number().int().min(1).max(5).optional(),
+    timestamp: z.string(),
+  })).min(1),
 });
 
 const RecordStudySessionSchema = z.object({
@@ -322,6 +336,7 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
     const session = await auth();
 
@@ -363,33 +378,83 @@ export async function POST(req: NextRequest) {
       }
 
       case 'analyze-reflection': {
-        const validated = AnalyzeReflectionSchema.parse(data);
-        result = await engine.analyzeReflection({
-          response: {
-            promptId: validated.response.promptId,
-            userId: validated.response.userId,
-            response: validated.response.response,
-            responseTimeSeconds: validated.response.responseTimeSeconds,
-            reflectionConfidence: validated.response.reflectionConfidence as ConfidenceLevel | undefined,
-            timestamp: new Date(validated.response.timestamp),
-          },
-          prompt: {
-            id: validated.prompt.id,
-            type: validated.prompt.type as ReflectionType,
-            depth: validated.prompt.depth as ReflectionDepth,
-            question: validated.prompt.question,
-            followUpQuestions: validated.prompt.followUpQuestions,
-            targetSkill: validated.prompt.targetSkill as MetacognitiveSkill,
-            suggestedTimeMinutes: validated.prompt.suggestedTimeMinutes,
-            responseType: validated.prompt.responseType,
-            context: validated.prompt.context,
-            options: validated.prompt.options,
-          },
-        });
-        logger.info('[Metacognition] Reflection analyzed', {
-          userId: session.user.id,
-          promptId: validated.prompt.id,
-        });
+        // Detect frontend format (has 'responses' array) vs full engine format (has 'response' + 'prompt')
+        const isSimpleFormat = Array.isArray(data?.responses);
+
+        if (isSimpleFormat) {
+          const validated = AnalyzeReflectionSimpleSchema.parse(data);
+
+          // Map numeric confidence (1-5) to ConfidenceLevel enum
+          const mapConfidence = (rating?: number): ConfidenceLevel | undefined => {
+            if (rating === undefined) return undefined;
+            const levels: ConfidenceLevel[] = ['VERY_LOW', 'LOW', 'MODERATE', 'HIGH', 'VERY_HIGH'];
+            return levels[Math.min(Math.max(rating - 1, 0), 4)];
+          };
+
+          // Process each response, aggregate results
+          const analyses = [];
+          for (const resp of validated.responses) {
+            const analysisResult = await engine.analyzeReflection({
+              response: {
+                promptId: resp.promptId,
+                userId: session.user.id,
+                response: resp.response,
+                responseTimeSeconds: 0,
+                reflectionConfidence: mapConfidence(resp.confidenceRating),
+                timestamp: new Date(resp.timestamp),
+              },
+              prompt: {
+                id: resp.promptId,
+                type: validated.reflectionType as ReflectionType,
+                depth: 'MODERATE' as ReflectionDepth,
+                question: resp.response,
+                followUpQuestions: [],
+                targetSkill: 'MONITORING' as MetacognitiveSkill,
+                suggestedTimeMinutes: 5,
+                responseType: 'TEXT',
+                context: validated.sessionId ? { sessionId: validated.sessionId } : undefined,
+              },
+            });
+            analyses.push(analysisResult);
+          }
+
+          // Return aggregated analysis wrapped as frontend expects
+          result = { analysis: analyses.length === 1 ? analyses[0] : analyses };
+          logger.info('[Metacognition] Reflections analyzed (simple format)', {
+            userId: session.user.id,
+            responseCount: validated.responses.length,
+            reflectionType: validated.reflectionType,
+          });
+        } else {
+          const validated = AnalyzeReflectionFullSchema.parse(data);
+          const engineResult = await engine.analyzeReflection({
+            response: {
+              promptId: validated.response.promptId,
+              userId: validated.response.userId,
+              response: validated.response.response,
+              responseTimeSeconds: validated.response.responseTimeSeconds,
+              reflectionConfidence: validated.response.reflectionConfidence as ConfidenceLevel | undefined,
+              timestamp: new Date(validated.response.timestamp),
+            },
+            prompt: {
+              id: validated.prompt.id,
+              type: validated.prompt.type as ReflectionType,
+              depth: validated.prompt.depth as ReflectionDepth,
+              question: validated.prompt.question,
+              followUpQuestions: validated.prompt.followUpQuestions,
+              targetSkill: validated.prompt.targetSkill as MetacognitiveSkill,
+              suggestedTimeMinutes: validated.prompt.suggestedTimeMinutes,
+              responseType: validated.prompt.responseType,
+              context: validated.prompt.context,
+              options: validated.prompt.options,
+            },
+          });
+          result = { analysis: engineResult };
+          logger.info('[Metacognition] Reflection analyzed (full format)', {
+            userId: session.user.id,
+            promptId: validated.prompt.id,
+          });
+        }
         break;
       }
 
@@ -524,6 +589,16 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
     }
+
+    // Fire-and-forget enrichment
+    void enrichFeatureResponse({
+      userId: session.user.id,
+      featureName: 'metacognition',
+      action,
+      requestData: (data as Record<string, unknown>) ?? {},
+      responseData: (result as Record<string, unknown>) ?? {},
+      durationMs: Date.now() - startTime,
+    });
 
     return NextResponse.json({
       success: true,

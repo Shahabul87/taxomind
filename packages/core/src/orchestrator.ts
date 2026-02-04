@@ -120,6 +120,7 @@ export class SAMAgentOrchestrator {
     const results: Record<string, EngineResult> = {};
     const enginesFailed: string[] = [];
     const enginesCached: string[] = [];
+    const engineConfig = options?.engineConfig;
 
     this.logger.debug(`[Orchestrator] Starting orchestration with query: "${query?.substring(0, 50)}..."`);
 
@@ -138,7 +139,7 @@ export class SAMAgentOrchestrator {
       if (tier.parallel) {
         // Execute tier in parallel
         const tierResults = await Promise.all(
-          tierEngines.map((name) => this.executeEngine(name, context, query, results))
+          tierEngines.map((name) => this.executeEngine(name, context, query, results, engineConfig))
         );
 
         // Collect results
@@ -152,7 +153,7 @@ export class SAMAgentOrchestrator {
       } else {
         // Execute tier sequentially
         for (const name of tierEngines) {
-          const result = await this.executeEngine(name, context, query, results);
+          const result = await this.executeEngine(name, context, query, results, engineConfig);
           if (result) {
             results[result.engineName] = result;
             if (!result.success) enginesFailed.push(result.engineName);
@@ -209,7 +210,8 @@ export class SAMAgentOrchestrator {
     name: string,
     context: SAMContext,
     query: string | undefined,
-    previousResults: Record<string, EngineResult>
+    previousResults: Record<string, EngineResult>,
+    engineConfig?: Record<string, unknown>
   ): Promise<EngineResult | null> {
     const registration = this.engines.get(name);
 
@@ -222,6 +224,7 @@ export class SAMAgentOrchestrator {
         context,
         query,
         previousResults,
+        options: engineConfig,
       });
       return result as EngineResult;
     } catch (error) {

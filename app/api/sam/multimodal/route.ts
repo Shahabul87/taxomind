@@ -15,6 +15,7 @@ import {
   type MultimodalConfig,
   type MultimodalInputType,
 } from '@sam-ai/educational';
+import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
 // ENGINE SINGLETON
@@ -204,6 +205,7 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
     const session = await auth();
 
@@ -308,6 +310,16 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
     }
+
+    // Fire-and-forget enrichment
+    void enrichFeatureResponse({
+      userId: session.user.id,
+      featureName: 'multimodal',
+      action,
+      requestData: (data as Record<string, unknown>) ?? {},
+      responseData: (result as Record<string, unknown>) ?? {},
+      durationMs: Date.now() - startTime,
+    });
 
     return NextResponse.json({
       success: true,

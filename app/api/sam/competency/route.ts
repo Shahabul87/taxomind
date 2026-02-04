@@ -18,6 +18,7 @@ import {
   type CareerLevel,
   type PortfolioItemType,
 } from '@sam-ai/educational';
+import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
 // ENGINE SINGLETON
@@ -189,7 +190,42 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const engine = await getCompetencyEngine();
 
-    const endpoint = searchParams.get('endpoint') ?? 'profile';
+    // Support both 'action' (frontend) and 'endpoint' param names
+    const endpoint = searchParams.get('endpoint') ?? searchParams.get('action') ?? 'profile';
+
+    if (endpoint === 'get-assessment') {
+      // Aggregate profile + portfolio + skills into CompetencyAssessment shape
+      const frameworkId = searchParams.get('frameworkId') ?? undefined;
+
+      const profile = engine.getUserCompetency({
+        userId: session.user.id,
+        includeRecommendations: true,
+      });
+      const portfolio = engine.getUserPortfolio(session.user.id);
+      const gapAnalysis = engine.getSkillGapAnalysis({ userId: session.user.id });
+
+      const profileData = profile as Record<string, unknown>;
+      const portfolioData = (portfolio ?? []) as Array<Record<string, unknown>>;
+      const gapData = gapAnalysis as Record<string, unknown>;
+
+      const assessment = {
+        overallScore: profileData?.overallScore ?? 0,
+        levelDistribution: profileData?.levelDistribution ?? {},
+        topCompetencies: profileData?.skills ?? profileData?.competencies ?? [],
+        competencyGaps: gapData?.gaps ?? gapData?.skillGaps ?? [],
+        careerPaths: profileData?.careerPaths ?? [],
+        portfolio: portfolioData,
+        recommendations: profileData?.recommendations ?? [],
+        lastUpdated: new Date().toISOString(),
+        frameworkId,
+      };
+
+      return NextResponse.json({
+        success: true,
+        data: { assessment },
+        metadata: { timestamp: new Date().toISOString() },
+      });
+    }
 
     if (endpoint === 'profile') {
       const includeRecommendations = searchParams.get('includeRecommendations') !== 'false';
@@ -283,6 +319,7 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
     const session = await auth();
 
@@ -429,6 +466,16 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
     }
+
+    // Fire-and-forget enrichment
+    void enrichFeatureResponse({
+      userId: session.user.id,
+      featureName: 'competency',
+      action,
+      requestData: (data as Record<string, unknown>) ?? {},
+      responseData: (result as Record<string, unknown>) ?? {},
+      durationMs: Date.now() - startTime,
+    });
 
     return NextResponse.json({
       success: true,

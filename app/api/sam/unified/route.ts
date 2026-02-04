@@ -38,9 +38,75 @@ import {
   buildUnifiedResponse,
 } from '@/lib/sam/pipeline';
 import { stageHealthTracker } from '@/lib/sam/pipeline/stage-health-tracker';
+import type { PipelineContext } from '@/lib/sam/pipeline/types';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
+
+// =============================================================================
+// PRIORITY-AWARE STAGE MERGE
+// =============================================================================
+
+/**
+ * Whitelist of fields each background stage is allowed to write.
+ * Prevents stages from clobbering each other's outputs (especially responseText).
+ */
+const STAGE_FIELD_WHITELIST: Record<string, (keyof PipelineContext)[]> = {
+  tutoring: ['orchestrationData', 'activePlanId', 'activeGoalId', 'tutoringContext'],
+  'tool-execution': ['toolExecution'],
+  agentic: [
+    'agenticConfidence', 'verificationResult', 'safetyResult',
+    'sessionRecorded', 'agenticGoalContext', 'agenticSkillUpdate',
+    'agenticRecommendations', 'responseGated',
+  ],
+  intervention: ['interventions', 'interventionResults', 'proactiveData'],
+  'knowledge-graph': [],
+  'memory-persistence': [],
+};
+
+/**
+ * Merge a background stage's result into the pipeline context using
+ * per-stage field whitelists and special responseText handling.
+ */
+function mergeStageResult(
+  ctx: PipelineContext,
+  stageName: string,
+  result: PipelineContext,
+): void {
+  const allowedFields = STAGE_FIELD_WHITELIST[stageName];
+
+  if (allowedFields === undefined) {
+    // Unknown stage — fall back to full merge but log a warning
+    logger.warn(`[SAM_UNIFIED] No whitelist for stage '${stageName}', skipping merge`);
+    return;
+  }
+
+  // Merge only whitelisted fields
+  for (const field of allowedFields) {
+    const key = field as string;
+    if ((result as Record<string, unknown>)[key] !== undefined) {
+      (ctx as Record<string, unknown>)[key] = (result as Record<string, unknown>)[key];
+    }
+  }
+
+  // Always merge stageErrors if present
+  if (result.stageErrors && result.stageErrors.length > 0) {
+    ctx.stageErrors = [...(ctx.stageErrors ?? []), ...result.stageErrors];
+  }
+
+  // Special responseText handling:
+  // - agentic can REPLACE if responseGated=true (safety override)
+  // - tool-execution can UPDATE with tool results
+  // - tutoring can UPDATE with tutoring response
+  // - all others: no touch
+  if (stageName === 'agentic' && result.responseGated && result.responseText) {
+    ctx.responseText = result.responseText;
+  } else if (stageName === 'tool-execution' && result.toolExecution && result.responseText) {
+    ctx.responseText = result.responseText;
+  } else if (stageName === 'tutoring' && result.responseText && result.responseText !== ctx.responseText) {
+    ctx.responseText = result.responseText;
+  }
+}
 
 // =============================================================================
 // API HANDLER
@@ -125,8 +191,8 @@ export async function POST(request: NextRequest) {
         const result = await stage.run();
         stageHealthTracker.recordSuccess(stage.name, Date.now() - stageStart);
         bgSettled.add(stage.name);
-        // Merge non-conflicting fields from completed background stage
-        Object.assign(ctx, result);
+        // Merge only whitelisted fields per stage to prevent race conditions
+        mergeStageResult(ctx, stage.name, result);
         return { name: stage.name, status: 'fulfilled' as const };
       } catch (stageError: unknown) {
         const errorMsg = stageError instanceof Error ? stageError.message : 'Unknown error';
@@ -172,7 +238,7 @@ export async function POST(request: NextRequest) {
               ),
             ]);
             stageHealthTracker.recordSuccess(`${stage.name}:retry`, Date.now() - retryStart);
-            Object.assign(ctx, retryResult);
+            mergeStageResult(ctx, stage.name, retryResult);
             logger.info(`[SAM_UNIFIED] Retry succeeded for '${stage.name}'`);
           } catch (retryError: unknown) {
             const msg = retryError instanceof Error ? retryError.message : 'Unknown';
