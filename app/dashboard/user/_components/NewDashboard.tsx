@@ -8,6 +8,9 @@ import { Loader2 } from "lucide-react";
 // Learning Tabs Container — not code-split (always visible on default tab)
 import { LearningTabsContainer } from "./learning-tabs";
 
+// ToDos sub-tab promoted to main tab
+import { ToDosSubTab } from "./learning-tabs/tabs/ToDosSubTab";
+
 // Shared overlays — rendered once at wrapper level (eliminates 10× duplication)
 import {
   CelebrationOverlay,
@@ -47,10 +50,7 @@ const AnalyticsTab = dynamic(
   { ssr: false, loading: TabSkeleton },
 );
 
-const CognitiveTab = dynamic(
-  () => import("./tabs/CognitiveTab").then((m) => m.CognitiveTab),
-  { ssr: false, loading: TabSkeleton },
-);
+// Hidden tabs (re-enable later): CognitiveTab, GamificationTab, InnovationTab, CreateTab, CareerTab, SocialTab
 
 const SkillsTab = dynamic(
   () => import("./tabs/SkillsTab").then((m) => m.SkillsTab),
@@ -59,11 +59,6 @@ const SkillsTab = dynamic(
 
 const PracticeTab = dynamic(
   () => import("./tabs/PracticeTab").then((m) => m.PracticeTab),
-  { ssr: false, loading: TabSkeleton },
-);
-
-const GamificationTab = dynamic(
-  () => import("./tabs/GamificationTab").then((m) => m.GamificationTab),
   { ssr: false, loading: TabSkeleton },
 );
 
@@ -77,26 +72,6 @@ const GapsTab = dynamic(
   { ssr: false, loading: TabSkeleton },
 );
 
-const InnovationTab = dynamic(
-  () => import("./tabs/InnovationTab").then((m) => m.InnovationTab),
-  { ssr: false, loading: TabSkeleton },
-);
-
-const CreateTab = dynamic(
-  () => import("./tabs/CreateTab").then((m) => m.CreateTab),
-  { ssr: false, loading: TabSkeleton },
-);
-
-const CareerTab = dynamic(
-  () => import("./tabs/CareerTab").then((m) => m.CareerTab),
-  { ssr: false, loading: TabSkeleton },
-);
-
-const SocialTab = dynamic(
-  () => import("./tabs/SocialTab").then((m) => m.SocialTab),
-  { ssr: false, loading: TabSkeleton },
-);
-
 const InsightsTab = dynamic(
   () => import("./tabs/InsightsTab").then((m) => m.InsightsTab),
   { ssr: false, loading: TabSkeleton },
@@ -107,18 +82,13 @@ const InsightsTab = dynamic(
 // ---------------------------------------------------------------------------
 
 type DashboardView =
+  | "todos"
   | "learning"
   | "analytics"
-  | "cognitive"
   | "skills"
   | "practice"
-  | "gamification"
   | "goals"
   | "gaps"
-  | "innovation"
-  | "create"
-  | "career"
-  | "social"
   | "insights";
 
 interface NewDashboardProps {
@@ -171,6 +141,15 @@ export function NewDashboard({
   // Render the active tab content
   function renderTab() {
     switch (activeTab) {
+      case "todos":
+        return (
+          <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/30 dark:from-slate-900 dark:via-green-900/10 dark:to-emerald-900/10">
+            <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+              <ToDosSubTab user={user} onCreateStudyPlan={onCreateStudyPlan} />
+            </div>
+          </div>
+        );
+
       case "learning":
         return (
           <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 dark:from-slate-900 dark:via-blue-900/10 dark:to-indigo-900/10">
@@ -184,17 +163,11 @@ export function NewDashboard({
       case "analytics":
         return <AnalyticsTab userId={userId} />;
 
-      case "cognitive":
-        return <CognitiveTab userId={userId} />;
-
       case "skills":
         return <SkillsTab userId={userId} />;
 
       case "practice":
         return <PracticeTab />;
-
-      case "gamification":
-        return <GamificationTab userId={userId} viewMode={viewMode} />;
 
       case "goals":
         return (
@@ -212,26 +185,6 @@ export function NewDashboard({
       case "gaps":
         return <GapsTab />;
 
-      case "innovation":
-        return <InnovationTab userId={userId} />;
-
-      case "create":
-        return <CreateTab userId={userId} />;
-
-      case "career":
-        return (
-          <FeatureGate feature="CAREER_TAB_ENABLED" fallback={<TabSkeleton />}>
-            <CareerTab userId={userId} />
-          </FeatureGate>
-        );
-
-      case "social":
-        return (
-          <FeatureGate feature="SOCIAL_TAB_ENABLED" fallback={<TabSkeleton />}>
-            <SocialTab userId={userId} />
-          </FeatureGate>
-        );
-
       case "insights":
         return (
           <FeatureGate
@@ -243,7 +196,13 @@ export function NewDashboard({
         );
 
       default:
-        return <GamificationTab userId={userId} viewMode={viewMode} />;
+        return (
+          <div className="relative min-h-full overflow-x-hidden bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/30 dark:from-slate-900 dark:via-green-900/10 dark:to-emerald-900/10">
+            <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+              <ToDosSubTab user={user} onCreateStudyPlan={onCreateStudyPlan} />
+            </div>
+          </div>
+        );
     }
   }
 

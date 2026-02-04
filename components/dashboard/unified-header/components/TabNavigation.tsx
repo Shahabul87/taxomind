@@ -6,35 +6,25 @@ import {
   LayoutDashboard,
   Target,
   Timer,
-  Trophy,
   AlertTriangle,
-  Lightbulb,
-  Wand2,
   BarChart3,
   Goal,
   ChevronDown,
   Check,
-  Brain,
-  Briefcase,
-  Users,
+  CheckSquare,
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useViewportHeight } from '@/hooks/useViewportHeight';
 
 export type DashboardView =
+  | 'todos'
   | 'learning'
   | 'analytics'
-  | 'cognitive'
   | 'skills'
   | 'practice'
-  | 'gamification'
   | 'goals'
   | 'gaps'
-  | 'innovation'
-  | 'create'
-  | 'career'
-  | 'social'
   | 'insights';
 
 interface TabConfig {
@@ -47,7 +37,17 @@ interface TabConfig {
   isPrimary?: boolean;
 }
 
+// Hidden tabs (will be re-enabled later):
+// cognitive, gamification, innovation, create, career, social
 const tabs: TabConfig[] = [
+  {
+    id: 'todos',
+    label: 'ToDos',
+    shortLabel: 'ToDos',
+    icon: CheckSquare,
+    gradient: 'from-green-500 to-emerald-500',
+    description: 'Tasks & daily activities',
+  },
   {
     id: 'learning',
     label: 'Learning',
@@ -63,14 +63,6 @@ const tabs: TabConfig[] = [
     icon: BarChart3,
     gradient: 'from-indigo-500 to-purple-500',
     description: 'Learning analytics & insights',
-  },
-  {
-    id: 'cognitive',
-    label: 'Cognitive',
-    shortLabel: 'Cognitive',
-    icon: Brain,
-    gradient: 'from-purple-500 to-pink-500',
-    description: 'Your cognitive growth profile',
   },
   {
     id: 'skills',
@@ -89,14 +81,6 @@ const tabs: TabConfig[] = [
     description: '10,000 hour tracker',
   },
   {
-    id: 'gamification',
-    label: 'Achievements',
-    shortLabel: 'Awards',
-    icon: Trophy,
-    gradient: 'from-amber-500 to-yellow-500',
-    description: 'Badges & leaderboards',
-  },
-  {
     id: 'goals',
     label: 'Goals',
     shortLabel: 'Goals',
@@ -111,38 +95,6 @@ const tabs: TabConfig[] = [
     icon: AlertTriangle,
     gradient: 'from-red-500 to-rose-500',
     description: 'Knowledge gap analysis',
-  },
-  {
-    id: 'innovation',
-    label: 'Innovation',
-    shortLabel: 'New',
-    icon: Lightbulb,
-    gradient: 'from-yellow-500 to-orange-500',
-    description: 'Experimental features',
-  },
-  {
-    id: 'create',
-    label: 'Create',
-    shortLabel: 'Create',
-    icon: Wand2,
-    gradient: 'from-violet-500 to-purple-500',
-    description: 'Creator studio',
-  },
-  {
-    id: 'career',
-    label: 'Career',
-    shortLabel: 'Career',
-    icon: Briefcase,
-    gradient: 'from-cyan-500 to-blue-500',
-    description: 'Career growth & certifications',
-  },
-  {
-    id: 'social',
-    label: 'Social',
-    shortLabel: 'Social',
-    icon: Users,
-    gradient: 'from-pink-500 to-rose-500',
-    description: 'Collaborative learning',
   },
   {
     id: 'insights',

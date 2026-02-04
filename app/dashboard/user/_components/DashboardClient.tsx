@@ -68,7 +68,8 @@ interface DashboardClientProps {
 }
 
 // Valid tab values for URL param validation
-const validTabs: DashboardView[] = ['learning', 'analytics', 'cognitive', 'skills', 'practice', 'gamification', 'goals', 'gaps', 'innovation', 'create', 'career', 'social', 'insights'];
+// Hidden tabs (re-enable later): cognitive, gamification, innovation, create, career, social
+const validTabs: DashboardView[] = ['todos', 'learning', 'analytics', 'skills', 'practice', 'goals', 'gaps', 'insights'];
 
 export function DashboardClient({ user }: DashboardClientProps) {
   const searchParams = useSearchParams();
@@ -101,7 +102,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
     setContextTab(tab);
     // Update URL without full page reload
     const url = new URL(window.location.href);
-    if (tab === 'learning') {
+    if (tab === 'todos') {
       url.searchParams.delete('tab');
     } else {
       url.searchParams.set('tab', tab);
@@ -113,8 +114,8 @@ export function DashboardClient({ user }: DashboardClientProps) {
   useEffect(() => {
     if (initializedRef.current && urlTab && validTabs.includes(urlTab) && urlTab !== activeTab) {
       setContextTab(urlTab);
-    } else if (initializedRef.current && !urlTab && activeTab !== 'learning') {
-      setContextTab('learning');
+    } else if (initializedRef.current && !urlTab && activeTab !== 'todos') {
+      setContextTab('todos');
     }
   }, [urlTab, activeTab, setContextTab]);
 

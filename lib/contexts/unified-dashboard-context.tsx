@@ -186,7 +186,7 @@ type Action =
   | { type: 'RESET_STATE' };
 
 const initialState: UnifiedDashboardState = {
-  activeTab: 'learning',
+  activeTab: 'todos',
   activeAnalyticsSubTab: 'overview',
   overview: null,
   goals: [],
@@ -347,7 +347,7 @@ interface UnifiedDashboardProviderProps {
 
 export function UnifiedDashboardProvider({
   children,
-  initialTab = 'learning',
+  initialTab = 'todos',
 }: UnifiedDashboardProviderProps) {
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
