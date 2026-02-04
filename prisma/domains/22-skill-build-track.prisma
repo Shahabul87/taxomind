@@ -315,6 +315,9 @@ model SkillBuildRoadmapMilestone {
   // Assessment
   assessmentRequired  Boolean             @default(false)
 
+  // Matched platform course IDs for quick lookup
+  matchedCourseIds    String[]            @default([])
+
   // Timestamps
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt

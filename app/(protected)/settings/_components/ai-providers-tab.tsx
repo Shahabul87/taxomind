@@ -8,6 +8,7 @@ import {
   BookOpen,
   BarChart3,
   Code,
+  Map,
   Check,
   AlertCircle,
   Loader2,
@@ -42,6 +43,7 @@ interface AIPreferences {
   preferredCourseProvider: AIProviderType | null;
   preferredAnalysisProvider: AIProviderType | null;
   preferredCodeProvider: AIProviderType | null;
+  preferredSkillRoadmapProvider: AIProviderType | null;
   // Per-provider model selection
   anthropicModel: string | null;
   deepseekModel: string | null;
@@ -63,6 +65,7 @@ const CAPABILITY_ICONS = {
   "course-creation": BookOpen,
   analysis: BarChart3,
   code: Code,
+  "skill-roadmap": Map,
 };
 
 const CAPABILITY_LABELS = {
@@ -70,6 +73,7 @@ const CAPABILITY_LABELS = {
   "course-creation": "Course Creation",
   analysis: "Analysis & Insights",
   code: "Code Assistance",
+  "skill-roadmap": "Skill Roadmap Builder",
 };
 
 const CAPABILITY_DESCRIPTIONS = {
@@ -77,6 +81,7 @@ const CAPABILITY_DESCRIPTIONS = {
   "course-creation": "AI-powered course generation and content creation",
   analysis: "Learning analytics, progress insights, and recommendations",
   code: "Code explanations, debugging, and programming assistance",
+  "skill-roadmap": "AI-powered skill roadmap and learning path generation",
 };
 
 export function AIProvidersTab() {
@@ -86,6 +91,7 @@ export function AIProvidersTab() {
     preferredCourseProvider: null,
     preferredAnalysisProvider: null,
     preferredCodeProvider: null,
+    preferredSkillRoadmapProvider: null,
     // Per-provider model selection
     anthropicModel: null,
     deepseekModel: null,
@@ -118,6 +124,7 @@ export function AIProvidersTab() {
             preferredCourseProvider: data.preferredCourseProvider || "anthropic",
             preferredAnalysisProvider: data.preferredAnalysisProvider || "anthropic",
             preferredCodeProvider: data.preferredCodeProvider || "anthropic",
+            preferredSkillRoadmapProvider: data.preferredSkillRoadmapProvider || "anthropic",
             // Per-provider model selection
             anthropicModel: data.anthropicModel || "claude-sonnet-4-5-20250929",
             deepseekModel: data.deepseekModel || "deepseek-chat",
@@ -171,13 +178,25 @@ export function AIProvidersTab() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const rawText = await response.text().catch(() => "");
+        let errorData: Record<string, unknown> = {};
+        try {
+          errorData = JSON.parse(rawText) as Record<string, unknown>;
+        } catch {
+          // Response is not JSON (e.g. HTML error page)
+        }
         console.error("Save preferences error:", {
           status: response.status,
           statusText: response.statusText,
-          errorData
+          errorData,
+          rawBody: rawText.slice(0, 500),
         });
-        throw new Error(errorData.details || errorData.error || `Failed to save preferences (${response.status})`);
+        const msg = typeof errorData.details === "string"
+          ? errorData.details
+          : typeof errorData.error === "string"
+            ? errorData.error
+            : `Failed to save preferences (${response.status})`;
+        throw new Error(msg);
       }
 
       toast.success("AI provider preferences saved!");
@@ -405,6 +424,7 @@ export function AIProvidersTab() {
               { key: "preferredCourseProvider", capability: "course-creation" },
               { key: "preferredAnalysisProvider", capability: "analysis" },
               { key: "preferredCodeProvider", capability: "code" },
+              { key: "preferredSkillRoadmapProvider", capability: "skill-roadmap" },
             ] as const
           ).map(({ key, capability }) => {
             const Icon = CAPABILITY_ICONS[capability];

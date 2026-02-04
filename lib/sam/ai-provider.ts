@@ -51,7 +51,7 @@ export async function runSAMChat(options: {
  */
 export async function runSAMChatWithPreference(options: {
   userId: string;
-  capability: 'chat' | 'course' | 'analysis' | 'code';
+  capability: 'chat' | 'course' | 'analysis' | 'code' | 'skill-roadmap';
   messages: AIMessage[];
   systemPrompt?: string;
   maxTokens?: number;
@@ -60,6 +60,7 @@ export async function runSAMChatWithPreference(options: {
 }): Promise<string> {
   const result = await aiClient.chat({
     userId: options.userId,
+    capability: options.capability,
     messages: options.messages,
     systemPrompt: options.systemPrompt,
     maxTokens: options.maxTokens ?? 2000,
@@ -85,7 +86,7 @@ export async function runSAMChatWithPreference(options: {
  */
 export async function getUserPreferredProvider(
   userId: string,
-  _capability: 'chat' | 'course' | 'analysis' | 'code'
+  _capability: 'chat' | 'course' | 'analysis' | 'code' | 'skill-roadmap'
 ): Promise<string> {
   return aiClient.getResolvedProvider({ userId });
 }

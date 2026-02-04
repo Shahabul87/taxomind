@@ -70,6 +70,8 @@ export interface AIChatOptions {
   extended?: boolean;
   /** Explicit provider override - bypasses all preference resolution */
   provider?: AIProviderType;
+  /** Capability context for per-task provider resolution (default: 'chat') */
+  capability?: 'chat' | 'course' | 'analysis' | 'code' | 'skill-roadmap';
 }
 
 export interface AIChatResponse {
@@ -181,7 +183,7 @@ export function invalidateAdapterCache(): void {
 async function resolveProvider(options: {
   explicitProvider?: AIProviderType;
   userId?: string;
-  capability?: 'chat' | 'course' | 'analysis' | 'code';
+  capability?: 'chat' | 'course' | 'analysis' | 'code' | 'skill-roadmap';
 }): Promise<AIProviderType> {
   const { explicitProvider, userId, capability = 'chat' } = options;
 
@@ -200,6 +202,7 @@ async function resolveProvider(options: {
           preferredCourseProvider: true,
           preferredAnalysisProvider: true,
           preferredCodeProvider: true,
+          preferredSkillRoadmapProvider: true,
         },
       });
 
@@ -209,6 +212,7 @@ async function resolveProvider(options: {
           course: prefs.preferredCourseProvider,
           analysis: prefs.preferredAnalysisProvider,
           code: prefs.preferredCodeProvider,
+          'skill-roadmap': prefs.preferredSkillRoadmapProvider,
         };
 
         const preferred = providerMap[capability] as AIProviderType | null;
@@ -304,12 +308,14 @@ export const aiClient = {
       temperature = 0.7,
       extended = false,
       provider: explicitProvider,
+      capability,
     } = options;
 
     // Resolve provider
     const resolvedProvider = await resolveProvider({
       explicitProvider,
       userId,
+      capability,
     });
 
     // Get adapter

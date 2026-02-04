@@ -143,10 +143,11 @@ model UserAIPreferences {
   User               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // AI Provider Preferences (Multi-Provider Support - added January 2026)
-  preferredChatProvider     String?  @default("anthropic")  // anthropic, deepseek, openai, gemini, mistral
-  preferredCourseProvider   String?  @default("anthropic")  // Provider for course creation
-  preferredAnalysisProvider String?  @default("anthropic")  // Provider for analysis tasks
-  preferredCodeProvider     String?  @default("anthropic")  // Provider for code-related tasks
+  preferredChatProvider          String?  @default("anthropic")  // anthropic, deepseek, openai, gemini, mistral
+  preferredCourseProvider        String?  @default("anthropic")  // Provider for course creation
+  preferredAnalysisProvider      String?  @default("anthropic")  // Provider for analysis tasks
+  preferredCodeProvider          String?  @default("anthropic")  // Provider for code-related tasks
+  preferredSkillRoadmapProvider  String?  @default("anthropic")  // Provider for skill roadmap generation
 
   // Per-provider model selections (preserved for backward compatibility)
   anthropicModel            String?  @default("claude-sonnet-4-5-20250929")

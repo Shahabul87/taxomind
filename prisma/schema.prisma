@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-02-03T03:30:03.134Z
+// Generated: 2026-02-04T05:43:22.592Z
 // Source: 26 domain files
 // ==========================================
 
@@ -3331,6 +3331,11 @@ model CognitiveSkillProgress {
   totalAttempts   Int       @default(0)
   lastAttemptDate DateTime?
 
+  // Persistence fields for mastery analytics (Phase 3.1 gap fix)
+  trend              String?   @default("stable") // improving / stable / declining
+  confidence         Float?    @default(0)        // 0-1 confidence in mastery score
+  lastDecayAppliedAt DateTime?                     // When Bloom's-weighted decay was last calculated
+
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -3359,6 +3364,12 @@ model SpacedRepetitionSchedule {
   lastScore         Float?
   retentionEstimate Float @default(100)
 
+  // SM-2 metadata persistence (Phase 3.1 gap fix)
+  quality            Int?         // 0-5 SM-2 quality score from last review
+  priority           String?      // urgent / high / medium / low
+  bloomsLevel        BloomsLevel? // For Bloom's-weighted decay rate lookup
+  lastDecayAppliedAt DateTime?    // When retention decay was last calculated
+
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -3367,6 +3378,7 @@ model SpacedRepetitionSchedule {
 
   @@unique([userId, conceptId])
   @@index([userId, nextReviewDate])
+  @@index([priority])
 }
 
 // AI Evaluation Record for subjective questions
@@ -5786,10 +5798,11 @@ model UserAIPreferences {
   User               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // AI Provider Preferences (Multi-Provider Support - added January 2026)
-  preferredChatProvider     String?  @default("anthropic")  // anthropic, deepseek, openai, gemini, mistral
-  preferredCourseProvider   String?  @default("anthropic")  // Provider for course creation
-  preferredAnalysisProvider String?  @default("anthropic")  // Provider for analysis tasks
-  preferredCodeProvider     String?  @default("anthropic")  // Provider for code-related tasks
+  preferredChatProvider          String?  @default("anthropic")  // anthropic, deepseek, openai, gemini, mistral
+  preferredCourseProvider        String?  @default("anthropic")  // Provider for course creation
+  preferredAnalysisProvider      String?  @default("anthropic")  // Provider for analysis tasks
+  preferredCodeProvider          String?  @default("anthropic")  // Provider for code-related tasks
+  preferredSkillRoadmapProvider  String?  @default("anthropic")  // Provider for skill roadmap generation
 
   // Per-provider model selections (preserved for backward compatibility)
   anthropicModel            String?  @default("claude-sonnet-4-5-20250929")
@@ -13274,6 +13287,9 @@ model SkillBuildRoadmapMilestone {
 
   // Assessment
   assessmentRequired  Boolean             @default(false)
+
+  // Matched platform course IDs for quick lookup
+  matchedCourseIds    String[]            @default([])
 
   // Timestamps
   createdAt           DateTime            @default(now())

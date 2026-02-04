@@ -118,6 +118,8 @@ function isTransientError(error: Error): boolean {
 export const TIMEOUT_DEFAULTS = {
   /** AI analysis operations (Bloom's, multimedia, etc.) */
   AI_ANALYSIS: 30_000,
+  /** AI generation tasks (roadmaps, course outlines — produce large structured JSON) */
+  AI_GENERATION: 180_000,
   /** AI adapter initialization */
   AI_ADAPTER_INIT: 10_000,
   /** Database queries */

@@ -15,6 +15,7 @@ const AIPreferencesSchema = z.object({
   preferredCourseProvider: z.string().nullable().optional(),
   preferredAnalysisProvider: z.string().nullable().optional(),
   preferredCodeProvider: z.string().nullable().optional(),
+  preferredSkillRoadmapProvider: z.string().nullable().optional(),
   // Per-provider model selection
   anthropicModel: z.string().nullable().optional(),
   deepseekModel: z.string().nullable().optional(),
@@ -42,6 +43,7 @@ export async function GET() {
         preferredCourseProvider: true,
         preferredAnalysisProvider: true,
         preferredCodeProvider: true,
+        preferredSkillRoadmapProvider: true,
         // Per-provider model selection
         anthropicModel: true,
         deepseekModel: true,
@@ -58,6 +60,7 @@ export async function GET() {
         preferredCourseProvider: "anthropic",
         preferredAnalysisProvider: "anthropic",
         preferredCodeProvider: "anthropic",
+        preferredSkillRoadmapProvider: "anthropic",
         // Default models per provider
         anthropicModel: "claude-sonnet-4-5-20250929",
         deepseekModel: "deepseek-chat",
@@ -114,6 +117,7 @@ export async function PUT(request: Request) {
           preferredCourseProvider: validatedData.preferredCourseProvider,
           preferredAnalysisProvider: validatedData.preferredAnalysisProvider,
           preferredCodeProvider: validatedData.preferredCodeProvider,
+          preferredSkillRoadmapProvider: validatedData.preferredSkillRoadmapProvider,
           // Per-provider model selection
           anthropicModel: validatedData.anthropicModel,
           deepseekModel: validatedData.deepseekModel,
@@ -143,6 +147,7 @@ export async function PUT(request: Request) {
           preferredCourseProvider: validatedData.preferredCourseProvider ?? "anthropic",
           preferredAnalysisProvider: validatedData.preferredAnalysisProvider ?? "anthropic",
           preferredCodeProvider: validatedData.preferredCodeProvider ?? "anthropic",
+          preferredSkillRoadmapProvider: validatedData.preferredSkillRoadmapProvider ?? "anthropic",
           // Per-provider model selection with defaults
           anthropicModel: validatedData.anthropicModel ?? "claude-sonnet-4-5-20250929",
           deepseekModel: validatedData.deepseekModel ?? "deepseek-chat",
@@ -162,6 +167,7 @@ export async function PUT(request: Request) {
         preferredCourseProvider: preferences.preferredCourseProvider,
         preferredAnalysisProvider: preferences.preferredAnalysisProvider,
         preferredCodeProvider: preferences.preferredCodeProvider,
+        preferredSkillRoadmapProvider: preferences.preferredSkillRoadmapProvider,
         // Per-provider model selection
         anthropicModel: preferences.anthropicModel,
         deepseekModel: preferences.deepseekModel,

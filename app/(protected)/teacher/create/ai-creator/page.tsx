@@ -104,13 +104,24 @@ export default function AICreatorPage() {
     resetWizard,
   } = useSamWizard();
 
-  // Pre-fill course title from URL param if provided (from Course Plan "Start Building" button)
+  // Pre-fill course title and overview from URL params
+  // Supports: ?title=... (from Course Plan) and ?overview=... (from Skill Roadmap Journey)
   React.useEffect(() => {
     const titleParam = searchParams.get("title");
+    const overviewParam = searchParams.get("overview");
+    const updates: Partial<typeof formData> = {};
+
     if (titleParam && !formData.courseTitle) {
-      setFormData((prev) => ({ ...prev, courseTitle: titleParam }));
+      updates.courseTitle = titleParam;
     }
-  }, [searchParams, formData.courseTitle, setFormData]);
+    if (overviewParam && !formData.courseShortOverview) {
+      updates.courseShortOverview = overviewParam;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      setFormData((prev) => ({ ...prev, ...updates }));
+    }
+  }, [searchParams, formData.courseTitle, formData.courseShortOverview, setFormData]);
 
   const {
     isGenerating,
