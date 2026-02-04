@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Clock, BookOpen, Wrench, CheckCircle2, Brain } from 'lucide-react';
+import { ChevronDown, Clock, BookOpen, Wrench, Brain } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CourseRecommendationCard } from './CourseRecommendationCard';
@@ -74,21 +74,6 @@ export function PhaseCard({
           isExpanded && style.bg,
         )}
       >
-        {/* Phase Number Circle */}
-        <div className={cn(
-          'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-sm',
-          milestone.status === 'COMPLETED' && 'bg-emerald-500 text-white',
-          milestone.status === 'IN_PROGRESS' && 'bg-gradient-to-br from-violet-500 to-purple-600 text-white animate-pulse',
-          milestone.status === 'AVAILABLE' && 'bg-blue-500 text-white',
-          isLocked && 'bg-slate-200 dark:bg-slate-700 text-slate-500',
-        )}>
-          {milestone.status === 'COMPLETED' ? (
-            <CheckCircle2 className="h-5 w-5" />
-          ) : (
-            milestone.order
-          )}
-        </div>
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className={cn('text-base font-semibold', isLocked ? 'text-slate-400' : 'text-slate-900 dark:text-white')}>
