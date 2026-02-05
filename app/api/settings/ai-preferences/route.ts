@@ -8,20 +8,32 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { AI_PROVIDERS } from "@/lib/sam/providers/ai-registry";
 
-// Validation schema for AI preferences
+// Valid provider values
+const VALID_PROVIDERS = ["anthropic", "deepseek", "openai", "gemini", "mistral"] as const;
+
+// Build valid model arrays from registry (with type assertion for Zod)
+const VALID_ANTHROPIC_MODELS = AI_PROVIDERS.anthropic.models as readonly [string, ...string[]];
+const VALID_DEEPSEEK_MODELS = AI_PROVIDERS.deepseek.models as readonly [string, ...string[]];
+const VALID_OPENAI_MODELS = AI_PROVIDERS.openai.models as readonly [string, ...string[]];
+const VALID_GEMINI_MODELS = AI_PROVIDERS.gemini.models as readonly [string, ...string[]];
+const VALID_MISTRAL_MODELS = AI_PROVIDERS.mistral.models as readonly [string, ...string[]];
+
+// Validation schema for AI preferences with model validation against registry
 const AIPreferencesSchema = z.object({
-  preferredChatProvider: z.string().nullable().optional(),
-  preferredCourseProvider: z.string().nullable().optional(),
-  preferredAnalysisProvider: z.string().nullable().optional(),
-  preferredCodeProvider: z.string().nullable().optional(),
-  preferredSkillRoadmapProvider: z.string().nullable().optional(),
-  // Per-provider model selection
-  anthropicModel: z.string().nullable().optional(),
-  deepseekModel: z.string().nullable().optional(),
-  openaiModel: z.string().nullable().optional(),
-  geminiModel: z.string().nullable().optional(),
-  mistralModel: z.string().nullable().optional(),
+  // Provider selections (validated against known providers)
+  preferredChatProvider: z.enum(VALID_PROVIDERS).nullable().optional(),
+  preferredCourseProvider: z.enum(VALID_PROVIDERS).nullable().optional(),
+  preferredAnalysisProvider: z.enum(VALID_PROVIDERS).nullable().optional(),
+  preferredCodeProvider: z.enum(VALID_PROVIDERS).nullable().optional(),
+  preferredSkillRoadmapProvider: z.enum(VALID_PROVIDERS).nullable().optional(),
+  // Per-provider model selection (validated against registry)
+  anthropicModel: z.enum(VALID_ANTHROPIC_MODELS).nullable().optional(),
+  deepseekModel: z.enum(VALID_DEEPSEEK_MODELS).nullable().optional(),
+  openaiModel: z.enum(VALID_OPENAI_MODELS).nullable().optional(),
+  geminiModel: z.enum(VALID_GEMINI_MODELS).nullable().optional(),
+  mistralModel: z.enum(VALID_MISTRAL_MODELS).nullable().optional(),
 });
 
 export async function GET() {

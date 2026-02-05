@@ -8,6 +8,8 @@ import {
   AI_PROVIDERS,
   type AIProviderType,
 } from "@/lib/sam/providers/ai-registry";
+import { aiClient } from "@/lib/ai/enterprise-client";
+import { refreshPlatformSettingsCache } from "@/lib/ai/subscription-enforcement";
 
 // Mark this route as dynamic to prevent static generation attempts
 export const dynamic = "force-dynamic";
@@ -297,9 +299,14 @@ export async function PUT(request: Request) {
         },
       });
 
+      // Invalidate caches immediately so changes take effect
+      aiClient.invalidateCaches();
+      refreshPlatformSettingsCache();
+
       logger.info("[ADMIN_AI_SETTINGS_UPDATED]", {
         adminId: session.user.id,
         changes: Object.keys(data),
+        cachesInvalidated: true,
       });
 
       return NextResponse.json({

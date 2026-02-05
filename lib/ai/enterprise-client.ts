@@ -38,7 +38,6 @@
 import type { AIAdapter, AIMessage } from '@sam-ai/core';
 import {
   createAIAdapter,
-  getDefaultAdapter,
   getUserModelPreferences,
   getModelForProvider,
   type CreateAdapterOptions,
@@ -50,6 +49,12 @@ import {
 } from '@/lib/sam/providers/ai-registry';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import {
+  checkAIAccess,
+  recordAIUsage,
+  type AIFeatureType,
+  type EnforcementResult,
+} from './subscription-enforcement';
 
 // ============================================================================
 // TYPES
@@ -83,12 +88,56 @@ export interface AIChatResponse {
   model: string;
 }
 
+/**
+ * Error thrown when AI access is denied due to rate limits or subscription restrictions
+ */
+export class AIAccessDeniedError extends Error {
+  public readonly enforcement: EnforcementResult;
+
+  constructor(result: EnforcementResult) {
+    super(result.reason ?? 'AI access denied');
+    this.name = 'AIAccessDeniedError';
+    this.enforcement = result;
+  }
+}
+
+// ============================================================================
+// COST ESTIMATION
+// ============================================================================
+
+/**
+ * Estimate cost for AI request based on token usage.
+ * Prices are per 1M tokens (input/output).
+ */
+function estimateCost(
+  provider: AIProviderType,
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }
+): number | undefined {
+  if (!usage?.inputTokens && !usage?.outputTokens && !usage?.totalTokens) return undefined;
+
+  // Approximate pricing per 1M tokens (as of 2024)
+  const pricing: Record<AIProviderType, { input: number; output: number }> = {
+    anthropic: { input: 3.0, output: 15.0 },   // Claude Sonnet pricing
+    deepseek: { input: 0.14, output: 0.28 },   // DeepSeek chat pricing
+    openai: { input: 2.5, output: 10.0 },      // GPT-4o pricing
+    gemini: { input: 1.25, output: 5.0 },      // Gemini Pro pricing
+    mistral: { input: 2.0, output: 6.0 },      // Mistral Large pricing
+  };
+
+  const prices = pricing[provider] ?? { input: 1.0, output: 3.0 };
+  const inputTokens = usage.inputTokens ?? Math.floor((usage.totalTokens ?? 0) * 0.3);
+  const outputTokens = usage.outputTokens ?? Math.floor((usage.totalTokens ?? 0) * 0.7);
+
+  return (inputTokens * prices.input + outputTokens * prices.output) / 1_000_000;
+}
+
 // ============================================================================
 // PLATFORM SETTINGS CACHE
 // ============================================================================
 
 interface PlatformProviderSettings {
   defaultProvider: AIProviderType | null;
+  fallbackProvider: AIProviderType | null;
   fetchedAt: number;
 }
 
@@ -96,39 +145,48 @@ let platformSettingsCache: PlatformProviderSettings | null = null;
 const PLATFORM_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Get the platform's default provider from PlatformAISettings.
+ * Get the platform's default and fallback providers from PlatformAISettings.
  * Cached for 5 minutes to avoid excessive DB queries.
  */
-async function getPlatformDefaultProvider(): Promise<AIProviderType | null> {
+async function getPlatformSettings(): Promise<PlatformProviderSettings> {
   const now = Date.now();
 
   if (
     platformSettingsCache &&
     now - platformSettingsCache.fetchedAt < PLATFORM_CACHE_TTL_MS
   ) {
-    return platformSettingsCache.defaultProvider;
+    return platformSettingsCache;
   }
 
   try {
     const settings = await db.platformAISettings.findFirst({
       where: { id: 'default' },
-      select: { defaultProvider: true },
+      select: { defaultProvider: true, fallbackProvider: true },
     });
 
-    const provider = (settings?.defaultProvider as AIProviderType) ?? null;
-
-    platformSettingsCache = {
-      defaultProvider: provider,
+    const result: PlatformProviderSettings = {
+      defaultProvider: (settings?.defaultProvider as AIProviderType) ?? null,
+      fallbackProvider: (settings?.fallbackProvider as AIProviderType) ?? null,
       fetchedAt: now,
     };
 
-    return provider;
+    platformSettingsCache = result;
+    return result;
   } catch (error) {
     logger.warn('[Enterprise AI] Failed to fetch platform settings, using factory default', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return null;
+    return { defaultProvider: null, fallbackProvider: null, fetchedAt: now };
   }
+}
+
+/**
+ * Get the platform's default provider from PlatformAISettings.
+ * Cached for 5 minutes to avoid excessive DB queries.
+ */
+async function getPlatformDefaultProvider(): Promise<AIProviderType | null> {
+  const settings = await getPlatformSettings();
+  return settings.defaultProvider;
 }
 
 /**
@@ -298,6 +356,11 @@ export const aiClient = {
    * 2. User preferences (if `userId` provided)
    * 3. Platform default
    * 4. Factory default (DeepSeek > Anthropic > OpenAI)
+   *
+   * Also handles:
+   * - Rate limiting based on subscription tier
+   * - Usage recording with provider metadata
+   * - Automatic fallback to secondary provider on failure
    */
   async chat(options: AIChatOptions): Promise<AIChatResponse> {
     const {
@@ -311,18 +374,30 @@ export const aiClient = {
       capability,
     } = options;
 
+    // Map capability to AIFeatureType for rate limiting
+    const featureMap: Record<string, AIFeatureType> = {
+      'chat': 'chat',
+      'course': 'course',
+      'analysis': 'analysis',
+      'code': 'code',
+      'skill-roadmap': 'chat',
+    };
+    const feature = featureMap[capability ?? 'chat'] as AIFeatureType;
+
+    // Check rate limits for authenticated users
+    if (userId) {
+      const accessCheck = await checkAIAccess(userId, feature);
+
+      if (!accessCheck.allowed) {
+        throw new AIAccessDeniedError(accessCheck);
+      }
+    }
+
     // Resolve provider
     const resolvedProvider = await resolveProvider({
       explicitProvider,
       userId,
       capability,
-    });
-
-    // Get adapter
-    const adapter = await getAdapter({
-      provider: resolvedProvider,
-      userId,
-      extended,
     });
 
     logger.debug('[Enterprise AI] Chat request', {
@@ -333,19 +408,71 @@ export const aiClient = {
       messageCount: messages.length,
     });
 
-    // Execute chat
-    const response = await adapter.chat({
-      maxTokens,
-      temperature,
-      systemPrompt,
-      messages,
-    });
+    // Helper function to execute chat and record usage
+    const executeChat = async (
+      provider: AIProviderType,
+      isFallback = false
+    ): Promise<AIChatResponse> => {
+      const adapter = await getAdapter({
+        provider,
+        userId,
+        extended,
+      });
 
-    return {
-      content: response.content ?? '',
-      provider: resolvedProvider,
-      model: response.model ?? resolvedProvider,
+      const response = await adapter.chat({
+        maxTokens,
+        temperature,
+        systemPrompt,
+        messages,
+      });
+
+      // Record usage with provider metadata (fire-and-forget)
+      if (userId) {
+        recordAIUsage(userId, feature, 1, {
+          provider,
+          model: response.model ?? provider,
+          tokensUsed: response.usage?.totalTokens,
+          cost: estimateCost(provider, response.usage),
+          requestType: isFallback ? `${capability ?? 'chat'}_fallback` : (capability ?? 'chat'),
+        }).catch(err => logger.warn('[Enterprise AI] Usage recording failed', { error: err }));
+      }
+
+      return {
+        content: response.content ?? '',
+        provider,
+        model: response.model ?? provider,
+      };
     };
+
+    // Try primary provider, fall back to secondary on failure
+    try {
+      return await executeChat(resolvedProvider);
+    } catch (primaryError) {
+      // Get fallback provider from platform settings
+      const settings = await getPlatformSettings();
+      const fallbackProvider = settings.fallbackProvider;
+
+      // Only attempt fallback if:
+      // 1. A fallback provider is configured
+      // 2. It's different from the primary provider
+      // 3. It's available (has API key configured)
+      if (
+        fallbackProvider &&
+        fallbackProvider !== resolvedProvider &&
+        isProviderAvailable(fallbackProvider)
+      ) {
+        logger.warn('[Enterprise AI] Primary provider failed, trying fallback', {
+          primary: resolvedProvider,
+          fallback: fallbackProvider,
+          error: primaryError instanceof Error ? primaryError.message : String(primaryError),
+        });
+
+        return await executeChat(fallbackProvider, true);
+      }
+
+      // No valid fallback available, re-throw original error
+      throw primaryError;
+    }
   },
 
   /**

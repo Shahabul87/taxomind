@@ -28,7 +28,9 @@ const mockPrismaClient = () => {
     // Study plan models
     'studyPlan', 'studyPlanTask', 'coursePlan', 'post', 'courseCategory',
     // SAM Conversation models
-    'sAMConversation', 'sAMMessage'
+    'sAMConversation', 'sAMMessage',
+    // Platform settings
+    'platformAISettings', 'userAIPreferences', 'aIUsageMetrics', 'platformAIUsageSummary'
   ];
   
   const client = {};
