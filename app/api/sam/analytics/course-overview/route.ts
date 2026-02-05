@@ -196,6 +196,11 @@ export async function GET(req: NextRequest) {
     });
 
     if (!parsed.success) {
+      logger.error('[COURSE_OVERVIEW] Validation failed:', {
+        courseId: searchParams.get('courseId'),
+        timeRange: searchParams.get('timeRange'),
+        errors: parsed.error.issues,
+      });
       return NextResponse.json(
         { success: false, error: { code: 'INVALID_PARAMS', message: 'Invalid parameters', details: parsed.error.issues } },
         { status: 400 }
