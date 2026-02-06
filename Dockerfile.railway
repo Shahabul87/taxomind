@@ -93,8 +93,7 @@ RUN npx prisma generate
 # Memory flags:
 #   --max-old-space-size=6144: 6GB for old generation (main heap)
 #   --max-semi-space-size=128: 128MB for new generation (young objects)
-#   --optimize-for-size: Optimize V8 for memory usage over speed
-RUN NODE_OPTIONS="--max-old-space-size=6144 --max-semi-space-size=128 --optimize-for-size" \
+RUN NODE_OPTIONS="--max-old-space-size=6144 --max-semi-space-size=128" \
     EXPERIMENTAL_CPUS=2 \
     NEXT_PRIVATE_WORKER_THREADS=2 \
     pnpm run build:railway
