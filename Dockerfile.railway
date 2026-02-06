@@ -89,7 +89,11 @@ RUN npx prisma generate
 # Build Next.js application (creates standalone output)
 # Uses build:railway script which doesn't override NODE_OPTIONS
 # EXPERIMENTAL_CPUS=2 limits "Collecting page data" workers (default = CPU cores = 47!)
-RUN NODE_OPTIONS="--max-old-space-size=3584" EXPERIMENTAL_CPUS=2 pnpm run build:railway
+# Also set NEXT_PRIVATE_WORKER_THREADS to ensure worker limit is respected
+RUN NODE_OPTIONS="--max-old-space-size=3584" \
+    EXPERIMENTAL_CPUS=2 \
+    NEXT_PRIVATE_WORKER_THREADS=2 \
+    pnpm run build:railway
 
 # CRITICAL: Remove any .env files from standalone output
 # Next.js may copy these during build - Railway injects env vars at runtime

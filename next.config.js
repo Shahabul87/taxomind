@@ -106,6 +106,12 @@ const nextConfig = {
     serverSourceMaps: false,
     // Limit worker threads to prevent OOM during page data collection (Railway/Docker)
     workerThreads: false,
+    // CRITICAL: Limit CPU count for "Collecting page data" phase to prevent OOM
+    // Railway reports 47 CPUs but only has ~3.5GB memory - 47 workers exhaust memory
+    // Force 2 CPUs in production/Railway to prevent OOM during builds
+    cpus: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production'
+      ? 2
+      : parseInt(process.env.EXPERIMENTAL_CPUS || '4', 10),
     // Note: optimizeCss disabled - requires 'critters' package to be installed
     // optimizeCss: true,
     // Enable partial prerendering for faster builds
