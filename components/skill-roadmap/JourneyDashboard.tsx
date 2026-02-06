@@ -84,7 +84,9 @@ export function JourneyDashboard({
         <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-1">
           Failed to load roadmap
         </h3>
-        <p className="text-sm text-slate-500 mb-4">Something went wrong. Please try again.</p>
+        <p className="text-sm text-slate-500 mb-4">
+          {error || 'Something went wrong. Please try again.'}
+        </p>
         <Button variant="outline" onClick={refetch} className="rounded-xl">
           <RefreshCw className="h-4 w-4 mr-2" />
           Retry

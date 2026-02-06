@@ -165,7 +165,8 @@ export function useRoadmapList() {
 
 export function useRoadmapDetail(roadmapId: string | null) {
   const [roadmap, setRoadmap] = useState<RoadmapDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start in loading state if we have an ID to fetch (prevents error flash on first render)
+  const [isLoading, setIsLoading] = useState(!!roadmapId);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRoadmap = useCallback(async (id: string) => {
@@ -173,14 +174,20 @@ export function useRoadmapDetail(roadmapId: string | null) {
     setError(null);
     try {
       const res = await fetch(`/api/sam/skill-roadmap?id=${id}`);
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        setError(errorBody.error ?? `Failed to fetch roadmap (${res.status})`);
+        return;
+      }
       const json = await res.json();
       if (json.success) {
         setRoadmap(json.data);
       } else {
         setError(json.error ?? 'Failed to fetch roadmap');
       }
-    } catch {
-      setError('Network error');
+    } catch (err) {
+      console.error('[useRoadmapDetail] Fetch error:', err);
+      setError('Network error - please check your connection');
     } finally {
       setIsLoading(false);
     }
@@ -189,6 +196,11 @@ export function useRoadmapDetail(roadmapId: string | null) {
   useEffect(() => {
     if (roadmapId) {
       fetchRoadmap(roadmapId);
+    } else {
+      // No roadmap ID - not loading, no error
+      setIsLoading(false);
+      setRoadmap(null);
+      setError(null);
     }
   }, [roadmapId, fetchRoadmap]);
 
