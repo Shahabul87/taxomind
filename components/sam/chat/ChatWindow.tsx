@@ -606,6 +606,8 @@ function ChatWindowInner({
     clearSamMessages();
     setLocalMessages([]);
     setError(null);
+    // Clear tool conversation state when clearing chat
+    clearActiveToolConversation();
   }, [clearSamMessages, setError]);
 
   // Handle suggestion click
@@ -765,6 +767,118 @@ function ChatWindowInner({
     };
   }, [showEngineDetails, lastResult]);
 
+  // Extract tool execution from API response (for pipeline-invoked tools like skill-roadmap-generator)
+  const apiToolExecution = useMemo((): ToolResultData | null => {
+    if (!lastResult) return null;
+    const responseInsights = lastResult.response.insights as SAMInsights | undefined;
+    const toolExec = responseInsights?.agentic?.toolExecution as {
+      toolId?: string;
+      toolName?: string;
+      status?: string;
+      result?: unknown;
+    } | undefined;
+    if (!toolExec?.toolId) return null;
+    return {
+      toolId: toolExec.toolId,
+      toolName: toolExec.toolName ?? toolExec.toolId,
+      status: toolExec.status ?? 'completed',
+      result: toolExec.result,
+    };
+  }, [lastResult]);
+
+  // Track tool conversation state for continuation (skill roadmap builder, etc.)
+  useEffect(() => {
+    console.log('[ChatWindow] apiToolExecution changed:', {
+      hasApiToolExecution: !!apiToolExecution,
+      toolId: apiToolExecution?.toolId,
+      result: apiToolExecution?.result,
+    });
+
+    if (!apiToolExecution) {
+      return;
+    }
+
+    // Check if this is a skill roadmap tool result
+    if (apiToolExecution.toolId === 'sam-skill-roadmap-generator') {
+      const toolResult = apiToolExecution.result as { output?: {
+        type?: string;
+        conversationId?: string;
+        // Stateless data for serverless continuation
+        step?: string;
+        collected?: Record<string, unknown>;
+      }} | undefined;
+      const output = toolResult?.output;
+
+      console.log('[ChatWindow] Skill roadmap tool result:', {
+        hasOutput: !!output,
+        type: output?.type,
+        conversationId: output?.conversationId,
+        step: output?.step,
+        collected: output?.collected,
+      });
+
+      if (output?.type === 'conversation' && output.conversationId) {
+        // Active conversation - track it for continuation with stateless data
+        console.log('[ChatWindow] Setting active tool conversation:', {
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          currentStep: output.step,
+          collected: output.collected,
+        });
+        setActiveToolConversation({
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          // Include stateless data for serverless environments
+          currentStep: output.step,
+          collected: output.collected,
+        });
+      } else if (output?.type === 'generate_roadmap') {
+        // Conversation completed - clear tracking
+        clearActiveToolConversation();
+      }
+    }
+
+    // Check if this is a learning analytics tool result
+    if (apiToolExecution.toolId === 'sam-learning-analytics') {
+      const toolResult = apiToolExecution.result as { output?: {
+        type?: string;
+        conversationId?: string;
+        // Stateless data for serverless continuation
+        step?: string;
+        collected?: Record<string, unknown>;
+      }} | undefined;
+      const output = toolResult?.output;
+
+      console.log('[ChatWindow] Learning analytics tool result:', {
+        hasOutput: !!output,
+        type: output?.type,
+        conversationId: output?.conversationId,
+        step: output?.step,
+        collected: output?.collected,
+      });
+
+      if (output?.type === 'conversation' && output.conversationId) {
+        // Active conversation - track it for continuation with stateless data
+        console.log('[ChatWindow] Setting active tool conversation (analytics):', {
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          currentStep: output.step,
+          collected: output.collected,
+        });
+        setActiveToolConversation({
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          // Include stateless data for serverless environments
+          currentStep: output.step,
+          collected: output.collected,
+        });
+      } else if (output?.type === 'generate_analytics') {
+        // Conversation completed - clear tracking
+        clearActiveToolConversation();
+      }
+    }
+  }, [apiToolExecution]);
+
   // Enrich messages with tool result data, engine insights, and merge local mode greeting messages
   const enrichedMessages = useMemo((): ChatMessage[] => {
     // Find last SDK assistant message index for engine insights attachment
@@ -782,9 +896,17 @@ function ChatWindowInner({
         if (!tr) return msg;
         return { ...msg, toolResult: tr };
       }
-      // Attach engine insights to the last assistant message
-      if (idx === lastAssistantIdx && engineInsightsData) {
-        return { ...msg, engineInsights: engineInsightsData };
+      // Attach engine insights and tool execution to the last assistant message
+      if (idx === lastAssistantIdx) {
+        const enriched: ChatMessage = { ...msg };
+        if (engineInsightsData) {
+          enriched.engineInsights = engineInsightsData;
+        }
+        // Attach API-invoked tool execution result (e.g., skill-roadmap-generator)
+        if (apiToolExecution) {
+          enriched.toolResult = apiToolExecution;
+        }
+        return enriched;
       }
       return msg;
     });
@@ -799,7 +921,7 @@ function ChatWindowInner({
       return ta - tb;
     });
     return combined;
-  }, [messages, toolResultMap, localMessages, engineInsightsData]);
+  }, [messages, toolResultMap, localMessages, engineInsightsData, apiToolExecution]);
 
   // Don't render on auth pages
   if (isHiddenRoute) return null;
@@ -944,6 +1066,7 @@ function ChatWindowInner({
             isInsertableContent={messageActions.isInsertableContent}
             detectTargetField={messageActions.detectTargetField}
             detectedForms={formDetection.detectedForms}
+            onSendMessage={sendMessage}
             quickActions={getQuickActions()}
             onQuickAction={sendMessage}
           />
@@ -1045,11 +1168,43 @@ const activeModeRef = { current: 'general-assistant' as string };
 /** Update the active mode ref */
 export function setCurrentMode(mode: string) {
   activeModeRef.current = mode;
+  // Clear tool conversation when mode changes
+  activeToolConversationRef.current = null;
 }
 
 /** Get the current active mode */
 export function getCurrentMode(): string {
   return activeModeRef.current;
+}
+
+// =============================================================================
+// TOOL CONVERSATION STATE (for conversational tools like skill-roadmap-generator)
+// =============================================================================
+
+interface ActiveToolConversation {
+  conversationId: string;
+  toolId: string;
+  // Stateless continuation data (serverless-friendly)
+  currentStep?: string;
+  collected?: Record<string, unknown>;
+}
+
+/** Ref to track active tool conversation for continuation */
+const activeToolConversationRef = { current: null as ActiveToolConversation | null };
+
+/** Update the active tool conversation */
+export function setActiveToolConversation(conversation: ActiveToolConversation | null) {
+  activeToolConversationRef.current = conversation;
+}
+
+/** Get the active tool conversation */
+export function getActiveToolConversation(): ActiveToolConversation | null {
+  return activeToolConversationRef.current;
+}
+
+/** Clear the active tool conversation */
+export function clearActiveToolConversation() {
+  activeToolConversationRef.current = null;
 }
 
 // =============================================================================
@@ -1072,6 +1227,20 @@ function buildUnifiedRequest(
         Object.entries(context.form.fields).map(([name, field]) => [name, field.value])
       )
     : undefined;
+
+  // Include active tool conversation for continuation
+  const toolConversation = activeToolConversationRef.current;
+  const effectiveMode = modeId ?? activeModeRef.current;
+
+  // DEBUG: Log full request data
+  console.log('[ChatWindow] buildUnifiedRequest - FULL DEBUG:', {
+    mode: effectiveMode,
+    modeIdParam: modeId,
+    activeModeRefCurrent: activeModeRef.current,
+    hasToolConversation: !!toolConversation,
+    toolConversation: toolConversation,
+    message: message.slice(0, 50),
+  });
 
   return {
     message,
@@ -1102,6 +1271,8 @@ function buildUnifiedRequest(
       content: msg.content,
     })),
     orchestrationContext: orchestrationContext ?? { autoDetectPlan: true },
+    // Tool conversation context for continuation
+    toolConversation: toolConversation ?? undefined,
   };
 }
 

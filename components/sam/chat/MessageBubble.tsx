@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 import { FeedbackButtons } from '@/components/sam/FeedbackButtons';
 import { ToolResultCard } from './panels/ToolResultCard';
 import { EngineTransparencyPanel } from './panels/EngineTransparencyPanel';
+import { SkillRoadmapToolRenderer } from './SkillRoadmapToolRenderer';
+import { LearningAnalyticsToolRenderer } from './LearningAnalyticsToolRenderer';
 import type { ChatMessage } from './types';
 import type { FormFieldInfo } from '@/lib/sam/form-actions';
 
@@ -31,6 +33,8 @@ interface MessageBubbleProps {
   detectTargetField: (userQuery: string, detectedForms: Record<string, FormFieldInfo>) => string | null;
   detectedForms: Record<string, FormFieldInfo>;
   getUserQuery: (messageIndex: number) => string | undefined;
+  // Conversational tool support
+  onSendMessage?: (message: string) => void;
   className?: string;
 }
 
@@ -48,6 +52,7 @@ export function MessageBubble({
   detectTargetField: detectTarget,
   detectedForms,
   getUserQuery,
+  onSendMessage,
   className,
 }: MessageBubbleProps) {
   const isUser = message.role === 'user';
@@ -95,12 +100,57 @@ export function MessageBubble({
 
         {/* Tool Result Card (rich rendering) */}
         {message.toolResult ? (
-          <ToolResultCard
-            toolId={message.toolResult.toolId}
-            toolName={message.toolResult.toolName}
-            result={message.toolResult.result}
-            status={message.toolResult.status}
-          />
+          // Check for conversational tool results with valid output
+          (() => {
+            const toolId = message.toolResult!.toolId;
+            // Tool execution returns { success, output }, extract the nested output
+            const toolOutput = (message.toolResult!.result as { output?: unknown })?.output as Record<string, unknown> | null;
+
+            // Skill Roadmap Tool
+            if (toolId === 'sam-skill-roadmap-generator') {
+              const skillRoadmapOutput = toolOutput as Parameters<typeof SkillRoadmapToolRenderer>[0]['output'] | null;
+              const hasValidOutput = skillRoadmapOutput?.type === 'conversation' || skillRoadmapOutput?.type === 'generate_roadmap';
+
+              if (hasValidOutput && onSendMessage) {
+                return (
+                  <SkillRoadmapToolRenderer
+                    output={skillRoadmapOutput}
+                    onSendMessage={onSendMessage}
+                    onViewRoadmap={(roadmapId) => {
+                      onSendMessage(`Show me the roadmap ${roadmapId}`);
+                    }}
+                    isInteractive={isLastMessage && !isMessageStreaming}
+                  />
+                );
+              }
+            }
+
+            // Learning Analytics Tool
+            if (toolId === 'sam-learning-analytics') {
+              const analyticsOutput = toolOutput as Parameters<typeof LearningAnalyticsToolRenderer>[0]['output'] | null;
+              const hasValidOutput = analyticsOutput?.type === 'conversation' || analyticsOutput?.type === 'generate_analytics';
+
+              if (hasValidOutput && onSendMessage) {
+                return (
+                  <LearningAnalyticsToolRenderer
+                    output={analyticsOutput}
+                    onSendMessage={onSendMessage}
+                    isInteractive={isLastMessage && !isMessageStreaming}
+                  />
+                );
+              }
+            }
+
+            // Default tool result card for other tools
+            return (
+              <ToolResultCard
+                toolId={message.toolResult!.toolId}
+                toolName={message.toolResult!.toolName}
+                result={message.toolResult!.result}
+                status={message.toolResult!.status}
+              />
+            );
+          })()
         ) : (
           <p className="text-sm whitespace-pre-wrap leading-relaxed">
             {message.content}

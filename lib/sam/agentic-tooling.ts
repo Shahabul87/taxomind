@@ -39,6 +39,8 @@ import { createQuizGraderTool } from '@/lib/sam/tools/quiz-grader';
 import { createProgressExporterTool } from '@/lib/sam/tools/progress-exporter';
 import { createDiagramGeneratorTool } from '@/lib/sam/tools/diagram-generator';
 import { createStudyTimerTool } from '@/lib/sam/tools/study-timer';
+import { createSkillRoadmapGeneratorTool } from '@/lib/sam/tools/skill-roadmap-generator';
+import { createLearningAnalyticsTool } from '@/lib/sam/tools/learning-analytics-tool';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -250,6 +252,8 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry): Promise<void> 
     createProgressExporterTool(),
     createDiagramGeneratorTool(),
     createStudyTimerTool(),
+    createSkillRoadmapGeneratorTool(),
+    createLearningAnalyticsTool(),
   ];
 
   let standaloneRegistered = 0;

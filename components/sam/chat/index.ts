@@ -15,6 +15,12 @@ export { SuggestionChips } from './SuggestionChips';
 export { ChatInput } from './ChatInput';
 export { FloatingButton } from './FloatingButton';
 
+// Conversational Tool Components
+export { ConversationalOptions, InlineOptions } from './ConversationalOptions';
+export { RoadmapGenerationProgress, CompactProgress } from './RoadmapGenerationProgress';
+export { SkillRoadmapToolRenderer } from './SkillRoadmapToolRenderer';
+export { LearningAnalyticsToolRenderer } from './LearningAnalyticsToolRenderer';
+
 // Panels
 export { ProgressPanel } from './panels/ProgressPanel';
 export { ToolsPanel } from './panels/ToolsPanel';
@@ -34,6 +40,12 @@ export { useProactiveFeatures } from './hooks/use-proactive-features';
 export { useBehaviorTracking } from './hooks/use-behavior-tracking';
 export { useFormDetection } from './hooks/use-form-detection';
 export { useMessageActions } from './hooks/use-message-actions';
+export { useSkillRoadmapTool, extractToolOutput, hasSkillRoadmapOutput } from './hooks/useSkillRoadmapTool';
+export {
+  useLearningAnalyticsTool,
+  extractToolOutput as extractAnalyticsToolOutput,
+  hasLearningAnalyticsOutput,
+} from './hooks/useLearningAnalyticsTool';
 
 // Types
 export type {
@@ -62,3 +74,15 @@ export type {
   SelfCritiqueData,
   SAMAssistantProps,
 } from './types';
+
+export type {
+  SkillRoadmapToolOutput,
+  RoadmapResult,
+} from './hooks/useSkillRoadmapTool';
+
+export type {
+  LearningAnalyticsToolOutput,
+  LearningAnalyticsResult,
+} from './hooks/useLearningAnalyticsTool';
+
+export type { ConversationalOption } from './ConversationalOptions';

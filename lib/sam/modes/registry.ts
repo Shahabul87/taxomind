@@ -375,6 +375,38 @@ const MODES: Record<SAMModeId, SAMMode> = {
     allowedToolCategories: ['content'],
     engineConfig: { frameworkAlignment: true, careerMapping: true, progressTracking: true },
   },
+  'skill-roadmap-builder': {
+    id: 'skill-roadmap-builder',
+    label: 'Skill Roadmap Builder',
+    category: 'course-design',
+    greeting:
+      "I'm ready to help you build a personalized skill development roadmap! " +
+      "Tell me what skill you'd like to master, and I'll guide you through creating " +
+      'a structured learning path with courses, projects, and milestones.',
+    enginePreset: ['blooms', 'personalization', 'content', 'response'],
+    systemPromptAddition:
+      'You are in Skill Roadmap Builder mode with access to the sam-skill-roadmap-generator tool. ' +
+      'When a user wants to create a skill roadmap, use the tool to conversationally collect information. ' +
+      'The tool will guide you through gathering: 1) Skill name, 2) Current proficiency level (NOVICE to STRATEGIST), ' +
+      '3) Target level, 4) Hours per week available, 5) Learning style preference (STRUCTURED, PROJECT_BASED, MIXED), ' +
+      '6) Whether to include assessments, 7) Whether to prioritize quick wins. ' +
+      "Present the tool's options in a friendly, conversational way. " +
+      'When the tool returns triggerGeneration: true, inform the user that roadmap generation is starting. ' +
+      "Apply Bloom's Taxonomy principles to explain the learning progression.",
+    allowedToolCategories: ['content', 'external', 'system'],
+    engineConfig: {
+      bloomsAlignment: true,
+      adaptationStrategy: 'learner-level',
+      outputFormat: 'structured',
+      contentFocus: 'creation',
+      scaffoldingLevel: 'adaptive',
+      showProgressChart: true,
+      identifyGaps: true,
+      careerAlignment: true,
+      backwardDesign: true,
+      pacing: true,
+    },
+  },
 
   // =========================================================================
   // INSIGHTS & ANALYTICS
@@ -383,12 +415,20 @@ const MODES: Record<SAMModeId, SAMMode> = {
     id: 'analytics',
     label: 'Learning Analytics',
     category: 'insights',
-    greeting: "I'm in Learning Analytics mode. What learning data should I analyze?",
+    greeting:
+      "I'm in Learning Analytics mode. I can show you detailed insights about your learning progress, " +
+      "study patterns, and skill development. Just say 'show my analytics' or tell me what you'd like to explore!",
     enginePreset: ['personalization', 'response'],
     systemPromptAddition:
-      'You are in Learning Analytics mode. Analyze learning data to identify patterns, trends, ' +
-      'and insights. Provide actionable recommendations based on data analysis.',
-    allowedToolCategories: ['external'],
+      'You are in Learning Analytics mode with access to the sam-learning-analytics tool. ' +
+      'When a user wants to see their analytics, progress, or learning data, use the tool to conversationally collect preferences. ' +
+      'The tool will guide you through gathering: 1) Scope (course, skills, goals, or comprehensive), ' +
+      '2) Specific course (if applicable), 3) Time range (7d, 30d, 90d, or all time), ' +
+      '4) Metric focus (progress, time, mastery, engagement, or all), 5) Whether to include AI recommendations. ' +
+      "Present the tool's options in a friendly, conversational way. " +
+      'When the tool returns triggerGeneration: true, inform the user that analytics generation is starting. ' +
+      'Provide actionable insights and explain trends in an encouraging, supportive manner.',
+    allowedToolCategories: ['external', 'content'],
     engineConfig: { showCharts: true, comparativeAnalysis: true, trendDetection: true },
   },
   'predictive': {
