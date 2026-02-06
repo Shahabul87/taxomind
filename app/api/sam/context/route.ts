@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
     const { snapshot } = parsed.data;
 
     // Build SAM config (lightweight — no AI calls needed for context processing)
-    const aiAdapter = getCoreAIAdapter();
+    const aiAdapter = await getCoreAIAdapter();
     const samConfig = createSAMConfig({ ai: aiAdapter });
 
     // Process the snapshot
