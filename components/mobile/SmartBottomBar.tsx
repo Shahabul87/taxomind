@@ -40,7 +40,7 @@ export function SmartBottomBar({
       id: 'dashboard',
       label: 'Home',
       icon: Home,
-      href: '/dashboard',
+      href: '/dashboard/user',
     },
     {
       id: 'courses',
@@ -52,7 +52,7 @@ export function SmartBottomBar({
       id: 'messages',
       label: 'Chat',
       icon: MessageSquare,
-      href: '/messages',
+      href: '/dashboard/user/messages',
     },
     {
       id: 'menu',
@@ -62,7 +62,7 @@ export function SmartBottomBar({
   ];
 
   const isActiveLink = (href: string) => {
-    if (href === '/dashboard') {
+    if (href === '/dashboard/user' || href === '/dashboard') {
       return pathname === href;
     }
     return pathname.startsWith(href);

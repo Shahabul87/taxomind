@@ -31,7 +31,7 @@ export function AnalyticsNavigation({ variant, className }: AnalyticsNavigationP
 
   return (
     <div className={`flex items-center justify-between mb-6 ${className || ''}`}>
-      <Link href="/dashboard">
+      <Link href="/dashboard/user">
         <Button variant="outline" size="sm" className="gap-2">
           <ArrowLeft className="w-4 h-4" />
           Back to Dashboard

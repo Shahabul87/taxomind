@@ -144,7 +144,7 @@ export function SidebarDemo({ children }: SidebarDemoProps) {
     {
       title: "Message Center",
       icon: <MessageCircle className="w-5 h-5" />,
-      href: "/messages",
+      href: "/dashboard/user/messages",
     },
     {
       title: "Resource Center",

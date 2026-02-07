@@ -298,7 +298,7 @@ export function EnterpriseUnifiedAnalytics({
                 }}
                 secondaryAction={{
                   label: "Go to Dashboard",
-                  href: "/dashboard",
+                  href: "/dashboard/user",
                 }}
                 size="lg"
               />

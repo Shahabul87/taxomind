@@ -187,7 +187,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
     {
       title: "Dashboard",
       icon: <IconDashboard className="w-5 h-5" />,
-      href: user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard",
+      href: user?.role === "ADMIN" ? "/dashboard/admin" : "/dashboard/user",
     },
     {
       title: "Settings",
@@ -239,7 +239,7 @@ export function HomeSidebar({ children }: HomeSidebarProps) {
     {
       title: "Messages",
       icon: <IconMessageCircle className="w-5 h-5" />,
-      href: "/messages",
+      href: "/dashboard/user/messages",
     },
     {
       title: "Resources",

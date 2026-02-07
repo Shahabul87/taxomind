@@ -54,7 +54,7 @@ export const NAV_ITEMS: NavNode[] = [
     key: 'dashboard',
     label: 'Dashboard',
     icon: LayoutDashboard,
-    href: '/dashboard', // Dynamic: /dashboard/admin for ADMIN role
+    href: '/dashboard/user', // Dynamic: /dashboard/admin for ADMIN role
     section: 'main',
   },
   {
@@ -163,7 +163,7 @@ export const NAV_ITEMS: NavNode[] = [
     key: 'messages',
     label: 'Messages',
     icon: MessageCircle,
-    href: '/messages',
+    href: '/dashboard/user/messages',
     section: 'secondary',
   },
   {

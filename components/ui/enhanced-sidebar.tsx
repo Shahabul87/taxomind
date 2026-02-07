@@ -101,7 +101,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
     {
       title: "Dashboard",
       icon: <LayoutDashboard className="w-5 h-5" />,
-      href: user?.role === "ADMIN" ? "/dashboard/admin" : (user ? "/dashboard" : "/"),
+      href: user?.role === "ADMIN" ? "/dashboard/admin" : (user ? "/dashboard/user" : "/"),
     },
     {
       title: "Settings",
@@ -148,7 +148,7 @@ export function EnhancedSidebar({ children, onDashboardTabChange, currentDashboa
     {
       title: "Message Center",
       icon: <MessageCircle className="w-5 h-5" />,
-      href: "/messages",
+      href: "/dashboard/user/messages",
     },
     {
       title: "Resource Center",

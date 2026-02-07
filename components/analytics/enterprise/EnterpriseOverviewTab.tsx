@@ -311,7 +311,7 @@ export function EnterpriseOverviewTab({
                 }}
                 secondaryAction={{
                   label: "View Dashboard",
-                  href: "/dashboard",
+                  href: "/dashboard/user",
                 }}
                 size="lg"
               />

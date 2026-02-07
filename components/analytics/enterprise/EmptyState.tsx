@@ -177,7 +177,7 @@ export const metricEmptyStates = {
     icon: <Activity className="w-full h-full" />,
     title: "No engagement data",
     description: "Complete lessons and interact with course materials to see your engagement metrics.",
-    action: { label: "Continue Learning", href: "/dashboard" },
+    action: { label: "Continue Learning", href: "/dashboard/user" },
   },
   progress: {
     icon: <Target className="w-full h-full" />,
@@ -189,7 +189,7 @@ export const metricEmptyStates = {
     icon: <Zap className="w-full h-full" />,
     title: "Start your streak",
     description: "Learn something today to begin building your daily study streak.",
-    action: { label: "Start Learning", href: "/dashboard" },
+    action: { label: "Start Learning", href: "/dashboard/user" },
   },
   courses: {
     icon: <BookOpen className="w-full h-full" />,
@@ -207,13 +207,13 @@ export const metricEmptyStates = {
     icon: <TrendingUp className="w-full h-full" />,
     title: "No performance data",
     description: "Complete quizzes and assessments to track your performance metrics.",
-    action: { label: "Take a Quiz", href: "/dashboard" },
+    action: { label: "Take a Quiz", href: "/dashboard/user" },
   },
   insights: {
     icon: <Sparkles className="w-full h-full" />,
     title: "Insights coming soon",
     description: "Continue learning to unlock personalized AI-powered insights and recommendations.",
-    action: { label: "Keep Learning", href: "/dashboard" },
+    action: { label: "Keep Learning", href: "/dashboard/user" },
   },
 };
 

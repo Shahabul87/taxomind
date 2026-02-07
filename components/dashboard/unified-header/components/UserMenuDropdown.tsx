@@ -34,7 +34,7 @@ export function UserMenuDropdown({ user, className }: UserMenuDropdownProps) {
   const menuItems = [
     { href: '/profile', icon: User, label: 'My Profile', description: 'View and edit profile' },
     { href: '/settings', icon: Settings, label: 'Settings', description: 'Preferences & privacy' },
-    { href: '/messages', icon: MessageSquare, label: 'Messages', description: 'Inbox and chats' },
+    { href: '/dashboard/user/messages', icon: MessageSquare, label: 'Messages', description: 'Inbox and chats' },
     { href: '/help', icon: HelpCircle, label: 'Help Center', description: 'Get support' },
   ];
 

@@ -119,7 +119,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
         id: 'messages',
         label: 'Messages',
         icon: <MessageCircle className="w-5 h-5" />,
-        href: '/messages',
+        href: '/dashboard/user/messages',
         badge: 2
       },
       {
@@ -412,7 +412,7 @@ export function MobileNavigation({ className = '' }: MobileNavigationProps) {
             { icon: <Home className="w-5 h-5" />, label: 'Home', href: '/' },
             { icon: <BookOpen className="w-5 h-5" />, label: 'Courses', href: '/my-courses' },
             { icon: <Search className="w-5 h-5" />, label: 'Search', href: '/search' },
-            { icon: <MessageSquare className="w-5 h-5" />, label: 'Messages', href: '/messages', badge: 2 },
+            { icon: <MessageSquare className="w-5 h-5" />, label: 'Messages', href: '/dashboard/user/messages', badge: 2 },
           ].map((item, index) => (
             <Link
               key={index}
