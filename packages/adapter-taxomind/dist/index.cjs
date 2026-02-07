@@ -28,8 +28,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.ts
-var src_exports = {};
-__export(src_exports, {
+var index_exports = {};
+__export(index_exports, {
   AnthropicAIAdapter: () => AnthropicAIAdapter,
   DeepSeekEmbeddingAdapter: () => DeepSeekEmbeddingAdapter,
   NextAuthAdapter: () => NextAuthAdapter,
@@ -63,7 +63,7 @@ __export(src_exports, {
   taxomindEntityMappings: () => taxomindEntityMappings,
   taxomindToolConfigurations: () => taxomindToolConfigurations
 });
-module.exports = __toCommonJS(src_exports);
+module.exports = __toCommonJS(index_exports);
 var import_integration3 = require("@sam-ai/integration");
 
 // src/profile/taxomind-profile.ts

@@ -442,6 +442,7 @@ function SAMProvider({
         let metadata;
         let blooms;
         let doneReceived = false;
+        const completedStages = [];
         const updateAssistantContent = () => {
           dispatch({
             type: "UPDATE_MESSAGE",
@@ -489,6 +490,25 @@ function SAMProvider({
                 }
                 break;
               }
+              case "content-replace": {
+                const replacementText = toRecord(payload)?.text;
+                if (typeof replacementText === "string") {
+                  assistantContent = replacementText;
+                  updateAssistantContent();
+                }
+                break;
+              }
+              case "stage-complete": {
+                const stageData = toRecord(payload);
+                const stageName = stageData?.stage;
+                if (typeof stageName === "string") {
+                  completedStages.push(stageName);
+                }
+                if (stageData?.data && typeof stageData.data === "object") {
+                  insights = { ...insights ?? {}, ...stageData.data };
+                }
+                break;
+              }
               case "done": {
                 if (payload && typeof payload === "object") {
                   const donePayload = payload;
@@ -526,7 +546,10 @@ function SAMProvider({
           actions: actions2,
           insights,
           blooms,
-          metadata
+          metadata: {
+            ...metadata ?? {},
+            ...completedStages.length > 0 ? { completedStages } : {}
+          }
         };
         const result = buildResultFromApi(parsed);
         dispatch({

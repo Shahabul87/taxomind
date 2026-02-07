@@ -3094,6 +3094,13 @@ Learning Objectives: ${section.learningObjectives?.join(", ") || "None specified
   // ============================================================================
   // PRIVATE HELPER METHODS
   // ============================================================================
+  /**
+   * Enhanced keyword analysis with:
+   * - Bigram matching alongside unigrams
+   * - Context-window scoring (5 surrounding words for confirmation signals)
+   * - Verb-object pattern detection (e.g., "analyze the relationship" > bare "analyze")
+   * - Position weighting (questions/objectives score 1.5x vs body text)
+   */
   analyzeKeywords(content) {
     const lowerContent = content.toLowerCase();
     const counts = {
@@ -3104,13 +3111,72 @@ Learning Objectives: ${section.learningObjectives?.join(", ") || "None specified
       EVALUATE: 0,
       CREATE: 0
     };
+    const sentences = lowerContent.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+    const words = lowerContent.split(/\s+/).filter((w) => w.length > 0);
+    const bigrams = [];
+    for (let i = 0; i < words.length - 1; i++) {
+      bigrams.push(`${words[i]} ${words[i + 1]}`);
+    }
+    const confirmationSignals = {
+      REMEMBER: ["definition", "list", "name", "identify", "recall", "describe", "state"],
+      UNDERSTAND: ["explain", "meaning", "example", "interpret", "summarize", "paraphrase"],
+      APPLY: ["solve", "use", "demonstrate", "implement", "calculate", "execute"],
+      ANALYZE: ["compare", "contrast", "examine", "differentiate", "relationship", "pattern"],
+      EVALUATE: ["justify", "critique", "assess", "judge", "argue", "defend", "evidence"],
+      CREATE: ["design", "develop", "propose", "construct", "formulate", "generate"]
+    };
     for (const [level, keywords] of Object.entries(BLOOMS_KEYWORDS)) {
       for (const keyword of keywords) {
         const regex = new RegExp(`\\b${keyword}\\b`, "gi");
-        const matches = lowerContent.match(regex);
-        counts[level] += matches?.length ?? 0;
+        let match;
+        const contentToSearch = lowerContent;
+        regex.lastIndex = 0;
+        while ((match = regex.exec(contentToSearch)) !== null) {
+          let weight = 1;
+          const matchPos = match.index;
+          const surroundingText = contentToSearch.slice(
+            Math.max(0, matchPos - 100),
+            Math.min(contentToSearch.length, matchPos + 100)
+          );
+          if (surroundingText.includes("?") || /\b(objective|goal|outcome|student will|learner will|be able to)\b/.test(surroundingText)) {
+            weight = 1.5;
+          }
+          const wordIndex = contentToSearch.slice(0, matchPos).split(/\s+/).length - 1;
+          const windowStart = Math.max(0, wordIndex - 5);
+          const windowEnd = Math.min(words.length, wordIndex + 6);
+          const contextWindow = words.slice(windowStart, windowEnd);
+          const signals = confirmationSignals[level] ?? [];
+          const hasConfirmation = contextWindow.some(
+            (w) => signals.some((s) => w.includes(s))
+          );
+          if (hasConfirmation) {
+            weight *= 1.3;
+          }
+          const afterKeyword = contentToSearch.slice(matchPos + keyword.length, matchPos + keyword.length + 30);
+          if (/^\s+(the|a|an|this|that|these|those)\s+\w+/.test(afterKeyword)) {
+            weight *= 1.2;
+          }
+          counts[level] += weight;
+        }
+      }
+      const bigramPatterns = {
+        REMEMBER: ["recall that", "list the", "name the", "identify the"],
+        UNDERSTAND: ["explain how", "describe the", "summarize the", "interpret the"],
+        APPLY: ["apply the", "use the", "solve the", "implement the"],
+        ANALYZE: ["analyze the", "compare the", "examine the", "break down"],
+        EVALUATE: ["evaluate the", "assess the", "justify the", "judge the"],
+        CREATE: ["create a", "design a", "develop a", "propose a"]
+      };
+      const patterns = bigramPatterns[level] ?? [];
+      for (const pattern of patterns) {
+        for (const bigram of bigrams) {
+          if (bigram === pattern || bigram.startsWith(pattern)) {
+            counts[level] += 1.5;
+          }
+        }
       }
     }
+    void sentences;
     return counts;
   }
   normalizeDistribution(counts) {
@@ -7821,15 +7887,70 @@ Based on this context, provide a helpful, personalized response that:
       relevanceScore: this.calculateRelevanceScore(memory.content, queryWords)
     })).filter((memory) => memory.relevanceScore >= threshold).sort((a, b) => b.relevanceScore - a.relevanceScore);
   }
+  /**
+   * BM25 relevance scoring with term frequency, inverse document frequency,
+   * and document length normalization.
+   *
+   * Parameters: k1=1.2, b=0.75 (standard BM25 defaults)
+   */
   calculateRelevanceScore(content, queryWords) {
+    if (queryWords.length === 0) return 0;
     const contentLower = content.toLowerCase();
-    let score = 0;
-    queryWords.forEach((word) => {
-      if (word.length > 2 && contentLower.includes(word)) {
-        score += 1;
+    const contentWords = contentLower.split(/\s+/).filter((w) => w.length > 0);
+    const docLen = contentWords.length;
+    if (docLen === 0) return 0;
+    const k1 = 1.2;
+    const b = 0.75;
+    const corpus = this.getBM25CorpusStats();
+    const avgDocLen = corpus.avgDocLen || docLen;
+    const totalDocs = corpus.totalDocs || 1;
+    let bm25Score = 0;
+    const tfMap = /* @__PURE__ */ new Map();
+    for (const word of contentWords) {
+      tfMap.set(word, (tfMap.get(word) ?? 0) + 1);
+    }
+    for (const queryWord of queryWords) {
+      if (queryWord.length <= 2) continue;
+      const freq = tfMap.get(queryWord) ?? 0;
+      if (freq === 0) continue;
+      const df = corpus.documentFrequency.get(queryWord) ?? 1;
+      const idf = Math.log((totalDocs - df + 0.5) / (df + 0.5) + 1);
+      const tfNorm = freq * (k1 + 1) / (freq + k1 * (1 - b + b * docLen / avgDocLen));
+      bm25Score += idf * tfNorm;
+    }
+    return bm25Score / (bm25Score + 5);
+  }
+  /** Corpus statistics cache for BM25 IDF computation */
+  bm25CorpusCache = null;
+  getBM25CorpusStats() {
+    const TTL_MS = 10 * 60 * 1e3;
+    if (this.bm25CorpusCache && Date.now() - this.bm25CorpusCache.computedAt < TTL_MS) {
+      return this.bm25CorpusCache;
+    }
+    const allMemories = [];
+    for (const [, memories] of this.memoryCache) {
+      for (const m of memories) {
+        allMemories.push(m);
       }
-    });
-    return queryWords.length > 0 ? score / queryWords.length : 0;
+    }
+    const totalDocs = Math.max(allMemories.length, 1);
+    let totalWords = 0;
+    const documentFrequency = /* @__PURE__ */ new Map();
+    for (const mem of allMemories) {
+      const words = mem.content.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+      totalWords += words.length;
+      const uniqueTerms = new Set(words);
+      for (const term of uniqueTerms) {
+        documentFrequency.set(term, (documentFrequency.get(term) ?? 0) + 1);
+      }
+    }
+    this.bm25CorpusCache = {
+      avgDocLen: totalDocs > 0 ? totalWords / totalDocs : 50,
+      totalDocs,
+      documentFrequency,
+      computedAt: Date.now()
+    };
+    return this.bm25CorpusCache;
   }
   extractTopicsFromConversations(conversations) {
     const topics = [];
@@ -25236,6 +25357,95 @@ Return JSON:
     this.graphCache.clear();
     this.conceptCache.clear();
     this.masteryCache.clear();
+  }
+  // ============================================================================
+  // GRAPH TRAVERSAL ALGORITHMS (No AI calls needed)
+  // ============================================================================
+  /**
+   * Find the prerequisite chain for a concept using BFS traversal.
+   * Returns all prerequisite concepts in topological order (deepest prerequisites first).
+   */
+  findPrerequisiteChain(conceptId, graph) {
+    const visited = /* @__PURE__ */ new Set();
+    const chain = [];
+    const queue = [conceptId];
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (!currentId || visited.has(currentId)) continue;
+      visited.add(currentId);
+      const prereqRelations = graph.relations.filter(
+        (rel) => rel.targetConceptId === currentId && rel.relationType === "PREREQUISITE"
+      );
+      for (const rel of prereqRelations) {
+        const prereqConcept = graph.concepts.find((c) => c.id === rel.sourceConceptId);
+        if (prereqConcept && !visited.has(prereqConcept.id)) {
+          chain.push(prereqConcept);
+          queue.push(prereqConcept.id);
+        }
+      }
+    }
+    return chain.reverse();
+  }
+  /**
+   * Find related concepts within a bounded depth using DFS.
+   * Returns concepts reachable within the specified number of hops.
+   */
+  findRelatedConcepts(conceptId, graph, maxDepth = 3) {
+    const visited = /* @__PURE__ */ new Set();
+    const results = [];
+    const maxTraversalDepth = Math.min(maxDepth, this.maxPrerequisiteDepth);
+    const dfs = (currentId, depth, relationPath) => {
+      if (depth > maxTraversalDepth || visited.has(currentId)) return;
+      visited.add(currentId);
+      const relations = graph.relations.filter(
+        (rel) => rel.sourceConceptId === currentId || rel.targetConceptId === currentId
+      );
+      for (const rel of relations) {
+        const neighborId = rel.sourceConceptId === currentId ? rel.targetConceptId : rel.sourceConceptId;
+        if (visited.has(neighborId)) continue;
+        const neighbor = graph.concepts.find((c) => c.id === neighborId);
+        if (!neighbor) continue;
+        const updatedPath = [...relationPath, rel.relationType];
+        results.push({
+          concept: neighbor,
+          depth: depth + 1,
+          relationTypes: updatedPath
+        });
+        dfs(neighborId, depth + 1, updatedPath);
+      }
+    };
+    dfs(conceptId, 0, []);
+    return results;
+  }
+  /**
+   * Calculate degree centrality for a concept.
+   * Higher centrality = more connected = more important in the knowledge graph.
+   */
+  calculateConceptCentrality(conceptId, graph) {
+    const totalConcepts = Math.max(graph.concepts.length - 1, 1);
+    const inDegree = graph.relations.filter(
+      (rel) => rel.targetConceptId === conceptId
+    ).length;
+    const outDegree = graph.relations.filter(
+      (rel) => rel.sourceConceptId === conceptId
+    ).length;
+    const totalDegree = inDegree + outDegree;
+    return {
+      inDegree,
+      outDegree,
+      totalDegree,
+      normalizedCentrality: totalDegree / (2 * totalConcepts)
+    };
+  }
+  /**
+   * Find all concepts sorted by centrality (most connected first).
+   * Useful for identifying key concepts in a course.
+   */
+  rankConceptsByCentrality(graph) {
+    return graph.concepts.map((concept) => ({
+      concept,
+      centrality: this.calculateConceptCentrality(concept.id, graph).normalizedCentrality
+    })).sort((a, b) => b.centrality - a.centrality);
   }
 };
 function createKnowledgeGraphEngine(config) {

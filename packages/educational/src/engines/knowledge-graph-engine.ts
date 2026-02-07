@@ -1381,7 +1381,7 @@ Return JSON:
 
       // Find prerequisite relations where this concept is the target
       const prereqRelations = graph.relations.filter(
-        (rel) => rel.targetConceptId === currentId && rel.type === 'PREREQUISITE'
+        (rel) => rel.targetConceptId === currentId && rel.relationType === 'PREREQUISITE'
       );
 
       for (const rel of prereqRelations) {
@@ -1429,7 +1429,7 @@ Return JSON:
         const neighbor = graph.concepts.find((c) => c.id === neighborId);
         if (!neighbor) continue;
 
-        const updatedPath = [...relationPath, rel.type];
+        const updatedPath = [...relationPath, rel.relationType];
         results.push({
           concept: neighbor,
           depth: depth + 1,

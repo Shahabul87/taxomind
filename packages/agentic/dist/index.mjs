@@ -21795,7 +21795,8 @@ var DeliveryPriority = {
 var DEFAULT_PUSH_DISPATCHER_CONFIG = {
   maxQueueSize: 1e3,
   batchSize: 50,
-  processingInterval: 100,
+  processingInterval: 2e3,
+  // 2 seconds (was 100ms - too aggressive for DB queries)
   retryAttempts: 3,
   retryDelay: 1e3,
   defaultExpirationMs: 36e5
@@ -25378,7 +25379,7 @@ var AgenticMetricsCollector = class {
     const recentMemory = await this.memoryQualityTracker.getRecentMetrics(5);
     components["memory_quality"] = {
       name: "Memory Quality",
-      status: recentMemory.avgRelevanceScore > 0.5 ? HealthStatus.HEALTHY : recentMemory.avgRelevanceScore > 0.3 ? HealthStatus.DEGRADED : HealthStatus.UNHEALTHY,
+      status: recentMemory.searchCount === 0 ? HealthStatus.HEALTHY : recentMemory.avgRelevanceScore > 0.5 ? HealthStatus.HEALTHY : recentMemory.avgRelevanceScore > 0.3 ? HealthStatus.DEGRADED : HealthStatus.UNHEALTHY,
       lastCheckAt: /* @__PURE__ */ new Date(),
       latencyMs: recentMemory.avgLatencyMs
     };

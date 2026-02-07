@@ -1072,6 +1072,7 @@ var SAMAgentOrchestrator = class {
     const results = {};
     const enginesFailed = [];
     const enginesCached = [];
+    const engineConfig = options?.engineConfig;
     this.logger.debug(`[Orchestrator] Starting orchestration with query: "${query?.substring(0, 50)}..."`);
     const enginesToRun = this.getEnginesToRun(options?.engines);
     await this.initializeEngines(enginesToRun);
@@ -1080,7 +1081,7 @@ var SAMAgentOrchestrator = class {
       if (tierEngines.length === 0) continue;
       if (tier.parallel) {
         const tierResults = await Promise.all(
-          tierEngines.map((name) => this.executeEngine(name, context, query, results))
+          tierEngines.map((name) => this.executeEngine(name, context, query, results, engineConfig))
         );
         for (const result of tierResults) {
           if (result) {
@@ -1091,7 +1092,7 @@ var SAMAgentOrchestrator = class {
         }
       } else {
         for (const name of tierEngines) {
-          const result = await this.executeEngine(name, context, query, results);
+          const result = await this.executeEngine(name, context, query, results, engineConfig);
           if (result) {
             results[result.engineName] = result;
             if (!result.success) enginesFailed.push(result.engineName);
@@ -1130,7 +1131,7 @@ var SAMAgentOrchestrator = class {
   /**
    * Execute a single engine
    */
-  async executeEngine(name, context, query, previousResults) {
+  async executeEngine(name, context, query, previousResults, engineConfig) {
     const registration = this.engines.get(name);
     if (!registration || !registration.enabled) {
       return null;
@@ -1139,7 +1140,8 @@ var SAMAgentOrchestrator = class {
       const result = await registration.engine.execute({
         context,
         query,
-        previousResults
+        previousResults,
+        options: engineConfig
       });
       return result;
     } catch (error) {
@@ -3660,7 +3662,7 @@ function createPersonalizationEngine(config) {
 }
 
 // src/engines/response.ts
-var ResponseEngine = class extends BaseEngine {
+var ResponseEngine = class _ResponseEngine extends BaseEngine {
   constructor(config) {
     super({
       config,
@@ -3673,14 +3675,14 @@ var ResponseEngine = class extends BaseEngine {
     });
   }
   async process(input) {
-    const { context, query, previousResults } = input;
+    const { context, query, previousResults, options: engineConfig } = input;
     const contextResult = this.getEngineResult(previousResults, "context");
     const bloomsResult = this.getEngineResult(previousResults, "blooms");
     const needsAI = this.shouldUseAI(query, contextResult);
     let message;
     let aiConfidence = 0;
     if (needsAI && query) {
-      const aiResponse = await this.generateAIResponse(query, context, contextResult, bloomsResult);
+      const aiResponse = await this.generateAIResponse(query, context, contextResult, bloomsResult, engineConfig);
       message = aiResponse.content;
       aiConfidence = 0.9;
     } else {
@@ -3728,8 +3730,8 @@ var ResponseEngine = class extends BaseEngine {
     if (query.split(/\s+/).length > 5) return true;
     return query.trim().length > 10;
   }
-  async generateAIResponse(query, context, contextResult, bloomsResult) {
-    const systemPrompt = this.buildSystemPrompt(context, contextResult, bloomsResult);
+  async generateAIResponse(query, context, contextResult, bloomsResult, engineConfig) {
+    const systemPrompt = this.buildSystemPrompt(context, contextResult, bloomsResult, engineConfig);
     this.logger.info("[ResponseEngine] System prompt built:", {
       totalLength: systemPrompt.length,
       hasEntityContext: systemPrompt.includes("Database-Verified Information"),
@@ -3749,7 +3751,7 @@ var ResponseEngine = class extends BaseEngine {
       return { content: this.generateFallbackResponse(query, contextResult) };
     }
   }
-  buildSystemPrompt(context, contextResult, bloomsResult) {
+  buildSystemPrompt(context, contextResult, bloomsResult, engineConfig) {
     const personality = this.config.personality;
     const name = personality?.name ?? "SAM";
     const tone = personality?.tone ?? "friendly and professional";
@@ -3868,6 +3870,13 @@ ${reviewSummary}
 Capabilities: ${contextResult.enrichedContext.capabilities.join(", ")}
 `;
     }
+    const configInstructions = _ResponseEngine.buildEngineConfigInstructions(engineConfig);
+    if (configInstructions) {
+      prompt += `
+## Mode Behavioral Instructions
+${configInstructions}
+`;
+    }
     prompt += `
 ## Response Guidelines
 `;
@@ -3882,6 +3891,111 @@ Capabilities: ${contextResult.enrichedContext.capabilities.join(", ")}
 `;
     }
     return prompt;
+  }
+  /**
+   * Transforms mode engineConfig into natural language behavioral instructions.
+   * Static so it can be reused without engine instantiation.
+   */
+  static buildEngineConfigInstructions(engineConfig) {
+    if (!engineConfig || Object.keys(engineConfig).length === 0) return null;
+    const instructions = [];
+    const maxResponseLength = engineConfig.maxResponseLength;
+    if (maxResponseLength === "short") {
+      instructions.push("Keep responses concise, under 200 words. Use bullet points where possible.");
+    } else if (maxResponseLength === "long") {
+      instructions.push("Provide comprehensive, detailed responses with examples and thorough explanations.");
+    }
+    const outputFormat = engineConfig.outputFormat;
+    if (outputFormat === "structured") {
+      instructions.push("Structure your response with clear headings and organized sections.");
+    } else if (outputFormat === "bullet-points") {
+      instructions.push("Present information as concise bullet points.");
+    } else if (outputFormat === "prose") {
+      instructions.push("Write in well-structured prose paragraphs.");
+    }
+    const contentFocus = engineConfig.contentFocus;
+    if (contentFocus === "explanation") {
+      instructions.push("Focus on clear explanations. Break down concepts step by step.");
+    } else if (contentFocus === "examples") {
+      instructions.push("Prioritize concrete examples over abstract explanations.");
+    } else if (contentFocus === "resources") {
+      instructions.push("Focus on recommending useful learning resources and references.");
+    } else if (contentFocus === "relationships") {
+      instructions.push("Focus on relationships between concepts, prerequisites, and dependencies.");
+    } else if (contentFocus === "multimedia-suggestions") {
+      instructions.push("Suggest multimedia resources (videos, diagrams, interactive tools) alongside explanations.");
+    } else if (contentFocus === "personalized") {
+      instructions.push("Tailor content to the learner\u2019s demonstrated level and preferences.");
+    } else if (contentFocus === "creation") {
+      instructions.push("Focus on creating original educational content aligned with learning objectives.");
+    }
+    const questioningStyle = engineConfig.questioningStyle;
+    if (questioningStyle === "guided") {
+      instructions.push("Use guiding questions to lead the learner to discover answers themselves.");
+    }
+    if (engineConfig.maxDirectAnswers === 0) {
+      instructions.push("IMPORTANT: Do NOT give direct answers. Always respond with guiding questions that help the learner think through the problem.");
+    }
+    const adaptationStrategy = engineConfig.adaptationStrategy;
+    if (adaptationStrategy === "pace") {
+      instructions.push("Adapt the response pace. Check understanding before introducing new concepts.");
+    } else if (adaptationStrategy === "learner-level") {
+      instructions.push("Adjust complexity to match the learner\u2019s demonstrated level.");
+    } else if (adaptationStrategy === "depth") {
+      instructions.push("Adjust the depth of explanation based on the learner\u2019s responses.");
+    } else if (adaptationStrategy === "difficulty") {
+      instructions.push("Adapt difficulty level based on learner performance.");
+    }
+    if (engineConfig.encouragementLevel === "high") {
+      instructions.push("Be encouraging. Acknowledge effort and progress explicitly.");
+    }
+    if (engineConfig.includeReflection === true) {
+      instructions.push("Include reflection prompts that encourage the learner to think about their learning process.");
+    }
+    if (engineConfig.reflectionPrompts === true) {
+      instructions.push('Include metacognitive reflection prompts (e.g., "What strategies worked for you?").');
+    }
+    if (engineConfig.selfAssessment === true) {
+      instructions.push("Include self-assessment opportunities so the learner can gauge their own understanding.");
+    }
+    if (engineConfig.rubricGeneration === true) {
+      instructions.push("Include clear rubrics with specific criteria for assessments.");
+    }
+    if (engineConfig.hintSystem === true) {
+      instructions.push("Provide graduated hints that scaffold understanding without giving away the answer directly.");
+    }
+    if (engineConfig.stepByStep === true) {
+      instructions.push("Include step-by-step worked examples to demonstrate problem-solving processes.");
+    }
+    if (engineConfig.adaptiveDifficulty === true) {
+      instructions.push("Start with easier concepts and gradually increase difficulty based on demonstrated understanding.");
+    }
+    if (engineConfig.adjustDifficulty === true) {
+      instructions.push("Dynamically adjust the difficulty of content based on learner responses.");
+    }
+    if (engineConfig.bloomsAlignment === true) {
+      instructions.push("Align content with Bloom\u2019s Taxonomy levels appropriate to the learning objectives.");
+    }
+    if (engineConfig.multiFramework === true) {
+      const frameworks = engineConfig.frameworks;
+      if (Array.isArray(frameworks) && frameworks.length > 0) {
+        instructions.push(`Analyze content through multiple frameworks: ${frameworks.join(", ")}.`);
+      }
+    }
+    if (engineConfig.gradualRelease === true) {
+      instructions.push("Use a gradual release model: demonstrate first, then guide, then let the learner try independently.");
+    }
+    if (engineConfig.evaluatePrerequisites === true) {
+      instructions.push("Evaluate prerequisite knowledge before introducing new concepts.");
+    }
+    if (engineConfig.planFormat === "weekly") {
+      instructions.push("Organize study plans in a weekly format with clear daily goals.");
+    }
+    if (engineConfig.detailedFeedback === true) {
+      instructions.push("Provide detailed, constructive feedback on each response or submission.");
+    }
+    if (instructions.length === 0) return null;
+    return instructions.join("\n");
   }
   generateLocalResponse(context, contextResult, bloomsResult) {
     const pageType = context.page.type;

@@ -65,13 +65,13 @@ async function main() {
 
   if (isClean) {
     log('\n🧹 Cleaning build cache...', colors.yellow);
-    runCommand('tsc --build tsconfig.build.json --clean');
+    runCommand('npx tsc --build tsconfig.build.json --clean');
     log('✅ Cache cleaned', colors.green);
     return;
   }
 
-  const buildArgs = ['--build', 'tsconfig.build.json'];
-  
+  const buildArgs = ['--build', 'tsconfig.build.json', '--noEmit'];
+
   if (isForce) {
     buildArgs.push('--force');
     log('\n⚡ Running FULL type check (forced rebuild)...', colors.yellow);
@@ -84,7 +84,7 @@ async function main() {
   }
 
   const startTime = Date.now();
-  const success = runCommand(`tsc ${buildArgs.join(' ')}`);
+  const success = runCommand(`npx tsc ${buildArgs.join(' ')}`);
   const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
   if (success) {

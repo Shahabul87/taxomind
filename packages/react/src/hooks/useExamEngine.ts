@@ -25,6 +25,7 @@ export interface BloomsDistribution {
   ANALYZE: number;
   EVALUATE: number;
   CREATE: number;
+  [key: string]: number;
 }
 
 /**
