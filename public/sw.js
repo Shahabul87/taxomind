@@ -1,21 +1,16 @@
 // Service Worker for PWA Offline Support
 // ====================================
 
-const CACHE_NAME = 'alam-lms-v1';
-const STATIC_CACHE_NAME = 'alam-lms-static-v1';
-const DYNAMIC_CACHE_NAME = 'alam-lms-dynamic-v1';
+const CACHE_NAME = 'alam-lms-v2';
+const STATIC_CACHE_NAME = 'alam-lms-static-v2';
+const DYNAMIC_CACHE_NAME = 'alam-lms-dynamic-v2';
 
-// Resources to cache immediately
+// Resources to cache immediately (only files that definitely exist)
+// Note: Next.js generates hashed filenames, so we can't cache /_next/static/* directly
 const STATIC_RESOURCES = [
   '/',
   '/manifest.json',
-  '/offline.html',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  '/icons/icon-maskable-192x192.png',
-  '/icons/icon-maskable-512x512.png',
-  '/_next/static/css/app.css',
-  '/_next/static/js/app.js'
+  '/offline.html'
 ];
 
 // Routes that should work offline
@@ -38,12 +33,24 @@ const CACHEABLE_APIS = [
 // Install event - cache static resources
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...');
-  
+
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME)
-      .then((cache) => {
+      .then(async (cache) => {
         console.log('Service Worker: Caching static resources');
-        return cache.addAll(STATIC_RESOURCES);
+        // Cache resources individually to avoid failing on missing files
+        const cachePromises = STATIC_RESOURCES.map(async (url) => {
+          try {
+            const response = await fetch(url);
+            if (response.ok) {
+              await cache.put(url, response);
+              console.log('Service Worker: Cached', url);
+            }
+          } catch (error) {
+            console.warn('Service Worker: Failed to cache', url, error);
+          }
+        });
+        await Promise.all(cachePromises);
       })
       .then(() => {
         console.log('Service Worker: Installation complete');
