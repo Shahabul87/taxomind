@@ -5,6 +5,11 @@ import clsx from "clsx";
 import { Suspense } from 'react';
 import { logger } from '@/lib/logger';
 
+// Force all pages to render dynamically at request time.
+// This skips the "Collecting page data" build phase that OOMs on Railway
+// (all pages need auth + DB anyway, so pre-rendering is pointless).
+export const dynamic = 'force-dynamic';
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
 
 // Organization Schema for Google Knowledge Panel
