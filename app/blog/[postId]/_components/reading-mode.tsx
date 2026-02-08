@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Book, Sun, Moon, Type, AlignLeft, AlignCenter, Minus, Plus, Layout, MinusCircle, PlusCircle, BookOpen, BookMarked, LayoutGrid } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import { Book, Type, Minus, Plus, Layout, BookOpen, BookMarked, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import PostCardModelTwo from "./post-card-model-two";
 import { PostCardFlipBook } from "./post-card-flip-book";
@@ -45,14 +43,10 @@ interface ReadingModesProps {
 }
 
 const ReadingModes = ({ post }: ReadingModesProps) => {
-  const [fontSize, setFontSize] = useState<number>(16);
-  const [alignment, setAlignment] = useState<'left' | 'center'>('left');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [fontSize, setFontSize] = useState<number>(18);
   const [activeMode, setActiveMode] = useState<number>(3);
   const [mounted, setMounted] = useState<boolean>(false);
   const [hoveredTab, setHoveredTab] = useState<number | null>(null);
-
-  const constraintsRef = useRef<HTMLDivElement>(null);
 
   // Get chapters from the correct field
   const chapters = post.PostChapterSection || post.postchapter || [];
@@ -76,12 +70,6 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [activeMode]);
 
-  // Handle font size change from slider
-  const handleFontSizeChange = (value: number[]) => {
-    setFontSize(Math.min(Math.max(value[0], 12), 24)); // Clamp between 12 and 24
-  };
-
-  // Handle increment/decrement
   const incrementFontSize = () => {
     setFontSize(prev => Math.min(prev + 1, 24));
   };
@@ -106,7 +94,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
   return (
     <div className="flex flex-col w-full overflow-visible blog-content-reveal blog-delay-5">
       {/* Reading Controls - Editorial Style */}
-      <div className="sticky top-0 w-full px-2 sm:px-4 py-1.5 sm:py-2 mb-3 sm:mb-6 z-[45] bg-gradient-to-b from-[#FAF6F1]/98 via-[#FAF6F1]/95 to-transparent dark:from-slate-900/98 dark:via-slate-900/95 dark:to-transparent backdrop-blur-md transition-all duration-300">
+      <div className="sticky top-0 w-full px-2 sm:px-4 py-1.5 sm:py-2 mb-3 sm:mb-6 z-[45] bg-gradient-to-b from-blog-bg/98 via-blog-bg/95 to-transparent dark:from-slate-900/98 dark:via-slate-900/95 dark:to-transparent backdrop-blur-md transition-all duration-300">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -225,6 +213,40 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
             </div>
           </div>
 
+          {/* Font Size Controls */}
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-700/50">
+            <Type className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 hidden sm:block" />
+            <button
+              onClick={decrementFontSize}
+              disabled={fontSize <= 12}
+              aria-label="Decrease font size"
+              className={cn(
+                "p-1 sm:p-1.5 rounded-md transition-colors duration-200",
+                fontSize <= 12
+                  ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#C65D3B]"
+              )}
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-300 tabular-nums min-w-[32px] text-center font-blog-ui">
+              {fontSize}px
+            </span>
+            <button
+              onClick={incrementFontSize}
+              disabled={fontSize >= 24}
+              aria-label="Increase font size"
+              className={cn(
+                "p-1 sm:p-1.5 rounded-md transition-colors duration-200",
+                fontSize >= 24
+                  ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-[#C65D3B]"
+              )}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
         </motion.div>
       </div>
 
@@ -256,7 +278,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   transition={{ duration: 0.3 }}
                   className="hidden lg:block w-full"
                 >
-                  <BookModeReading chapters={chapters} />
+                  <BookModeReading chapters={chapters} fontSize={fontSize} />
                 </motion.div>
               )}
               {activeMode === 3 && (
@@ -268,7 +290,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   transition={{ duration: 0.3 }}
                   className="w-full overflow-hidden -mx-1 sm:-mx-2 md:-mx-3 lg:-mx-4 xl:-mx-6"
                 >
-                  <PostCardModelTwo data={chapters} />
+                  <PostCardModelTwo data={chapters} fontSize={fontSize} />
                 </motion.div>
               )}
               {activeMode === 4 && (
@@ -280,7 +302,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   transition={{ duration: 0.3 }}
                   className="w-full"
                 >
-                  <CardModeReading chapters={chapters} />
+                  <CardModeReading chapters={chapters} fontSize={fontSize} />
                 </motion.div>
               )}
               {activeMode === 5 && (
@@ -292,7 +314,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   transition={{ duration: 0.3 }}
                   className="w-full"
                 >
-                  <PostCardFlipBook data={chapters} />
+                  <PostCardFlipBook data={chapters} fontSize={fontSize} />
                 </motion.div>
               )}
               {activeMode === 6 && (
@@ -304,7 +326,7 @@ const ReadingModes = ({ post }: ReadingModesProps) => {
                   transition={{ duration: 0.3 }}
                   className="w-full"
                 >
-                  <AnimatedReadingMode postchapter={chapters} />
+                  <AnimatedReadingMode postchapter={chapters} fontSize={fontSize} />
                 </motion.div>
               )}
             </AnimatePresence>

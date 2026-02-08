@@ -21,9 +21,10 @@ interface ChapterData {
 
 interface CardModeReadingProps {
   chapters: ChapterData[];
+  fontSize?: number;
 }
 
-export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) => {
+export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters, fontSize }) => {
   const placeholderImage = "https://images.unsplash.com/photo-1706885093487-7eda37b48a60?q=80&w=3387&auto=format&fit=crop";
 
   // Handle null/undefined chapters
@@ -79,7 +80,7 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
               "prose-headings:font-bold prose-headings:tracking-tight",
               "prose-headings:font-blog-display",
               "prose-p:text-blog-text dark:prose-p:text-slate-300",
-              "prose-p:leading-[1.8] prose-p:text-base md:prose-p:text-2xl",
+              "prose-p:leading-[1.8]",
               "prose-a:text-blog-primary dark:prose-a:text-blog-primary-light",
               "prose-strong:text-blog-text dark:prose-strong:text-white",
               "prose-strong:font-bold",
@@ -87,11 +88,12 @@ export const CardModeReading: React.FC<CardModeReadingProps> = ({ chapters }) =>
               "prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950",
               "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5"
             )}
+            style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
           >
             {parseHtmlContent(chapter.description)}
           </div>
         ) : (
-          <p className="text-blog-text dark:text-slate-300 text-base md:text-2xl font-blog-body max-w-3xl mx-auto">
+          <p className="text-blog-text dark:text-slate-300 font-blog-body max-w-3xl mx-auto" style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}>
             <span className="font-bold text-blog-text dark:text-white font-blog-display">
               Chapter {chapter.position || 1}: {chapter.title}
             </span>{" "}

@@ -24,9 +24,10 @@ interface PostChapter {
 
 interface PostCardFlipBookProps {
   data: PostChapter[];
+  fontSize?: number;
 }
 
-export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
+export const PostCardFlipBook = ({ data, fontSize }: PostCardFlipBookProps) => {
   const [currentSpread, setCurrentSpread] = useState(0);
   const [direction, setDirection] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -258,7 +259,10 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
                   </div>
                 )}
 
-                <div className="prose prose-sm dark:prose-invert max-w-none font-blog-body prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none font-blog-body prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]"
+                  style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
+                >
                   {parseHtmlContent(data[currentSpread * 2]?.description ?? '')}
                 </div>
               </div>
@@ -310,7 +314,10 @@ export const PostCardFlipBook = ({ data }: PostCardFlipBookProps) => {
                     </div>
                   )}
 
-                  <div className="prose prose-sm dark:prose-invert max-w-none font-blog-body prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]">
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none font-blog-body prose-p:text-blog-text dark:prose-p:text-slate-300 prose-p:leading-[1.8]"
+                    style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
+                  >
                     {parseHtmlContent(data[currentSpread * 2 + 1]?.description ?? '')}
                   </div>
                 </div>

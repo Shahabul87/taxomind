@@ -28,10 +28,12 @@ interface ChapterData {
 
 interface AnimatedReadingModeProps {
   postchapter: ChapterData[];
+  fontSize?: number;
 }
 
 export const AnimatedReadingMode: React.FC<AnimatedReadingModeProps> = ({
   postchapter,
+  fontSize,
 }) => {
   // Handle null/undefined postchapter
   if (!postchapter || !Array.isArray(postchapter) || postchapter.length === 0) {
@@ -64,16 +66,17 @@ export const AnimatedReadingMode: React.FC<AnimatedReadingModeProps> = ({
       {/* Chapter Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {postchapter.map((chapter, index) => (
-          <ChapterCard key={chapter.id} chapter={chapter} index={index} />
+          <ChapterCard key={chapter.id} chapter={chapter} index={index} fontSize={fontSize} />
         ))}
       </div>
     </div>
   );
 };
 
-const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
+const ChapterCard: React.FC<{ chapter: ChapterData; index: number; fontSize?: number }> = ({
   chapter,
   index,
+  fontSize,
 }) => {
   const placeholderImage = "https://via.placeholder.com/400x250";
 
@@ -226,6 +229,7 @@ const ChapterCard: React.FC<{ chapter: ChapterData; index: number }> = ({
               "prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950",
               "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5"
             )}
+            style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
           >
             <div
               dangerouslySetInnerHTML={{

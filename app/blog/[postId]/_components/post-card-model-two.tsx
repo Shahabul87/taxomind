@@ -21,9 +21,10 @@ interface PostChapter {
 
 interface PostCardModelTwoProps {
   data: PostChapter[];
+  fontSize?: number;
 }
 
-export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
+export const PostCardModelTwo = ({ data, fontSize }: PostCardModelTwoProps) => {
   const parseHtmlContent = (htmlString: string) => {
     const isPWrapped = htmlString.trim().startsWith('<p>') && htmlString.trim().endsWith('</p>');
 
@@ -106,7 +107,7 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
 
             {/* Title - Playfair Display */}
             <h2 className={cn(
-              "text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-bold mb-3 sm:mb-4 md:mb-6 lg:mb-8 xl:mb-10",
+              "text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 md:mb-6 lg:mb-8 xl:mb-10",
               "text-blog-text dark:text-white",
               "font-blog-display",
               "tracking-tight leading-[1.2] sm:leading-tight",
@@ -137,32 +138,28 @@ export const PostCardModelTwo = ({ data }: PostCardModelTwoProps) => {
 
             {/* Description - Source Serif 4 Body Font */}
             {chapter.description && (
-              <div className={cn(
-                "prose prose-sm sm:prose-base md:prose-lg lg:prose-xl max-w-none",
-                "dark:prose-invert",
-                "font-blog-body",
-                "prose-p:text-blog-text dark:prose-p:text-slate-300",
-                "prose-p:text-sm sm:prose-p:text-base md:prose-p:text-lg",
-                "prose-p:leading-[1.75] sm:prose-p:leading-[1.8]",
-                "prose-p:mb-3 sm:prose-p:mb-4",
-                "prose-strong:text-blog-text dark:prose-strong:text-white",
-                "prose-strong:text-sm sm:prose-strong:text-base md:prose-strong:text-lg",
-                "prose-headings:text-blog-text dark:prose-headings:text-white",
-                "prose-headings:font-blog-display",
-                "prose-headings:text-base sm:prose-headings:text-lg md:prose-headings:text-xl lg:prose-headings:text-2xl",
-                "prose-headings:mt-4 sm:prose-headings:mt-6",
-                "prose-headings:mb-2 sm:prose-headings:mb-3",
-                "prose-ul:text-sm sm:prose-ul:text-base md:prose-ul:text-lg",
-                "prose-ol:text-sm sm:prose-ol:text-base md:prose-ol:text-lg",
-                "prose-li:text-sm sm:prose-li:text-base md:prose-li:text-lg",
-                "prose-a:text-blog-primary dark:prose-a:text-blog-primary-light",
-                "prose-a:text-sm sm:prose-a:text-base",
-                "prose-blockquote:text-sm sm:prose-blockquote:text-base md:prose-blockquote:text-lg",
-                "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5",
-                "prose-blockquote:pl-4 prose-blockquote:py-2 prose-blockquote:italic",
-                "prose-code:text-xs sm:prose-code:text-sm prose-code:text-blog-accent",
-                "leading-[1.75] sm:leading-[1.8]"
-              )}>
+              <div
+                className={cn(
+                  "prose prose-sm sm:prose-base md:prose-lg lg:prose-xl max-w-none",
+                  "dark:prose-invert",
+                  "font-blog-body",
+                  "prose-p:text-blog-text dark:prose-p:text-slate-300",
+                  "prose-p:leading-[1.75] sm:prose-p:leading-[1.8]",
+                  "prose-p:mb-3 sm:prose-p:mb-4",
+                  "prose-strong:text-blog-text dark:prose-strong:text-white",
+                  "prose-headings:text-blog-text dark:prose-headings:text-white",
+                  "prose-headings:font-blog-display",
+                  "prose-headings:text-lg md:prose-headings:text-xl",
+                  "prose-headings:mt-4 sm:prose-headings:mt-6",
+                  "prose-headings:mb-2 sm:prose-headings:mb-3",
+                  "prose-a:text-blog-primary dark:prose-a:text-blog-primary-light",
+                  "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5",
+                  "prose-blockquote:pl-4 prose-blockquote:py-2 prose-blockquote:italic",
+                  "prose-code:text-xs sm:prose-code:text-sm prose-code:text-blog-accent",
+                  "leading-[1.75] sm:leading-[1.8]"
+                )}
+                style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
+              >
                 {parseHtmlContent(chapter.description)}
               </div>
             )}

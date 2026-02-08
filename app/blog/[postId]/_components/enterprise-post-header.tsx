@@ -276,7 +276,7 @@ export const EnterprisePostHeader = ({
             {title}
           </h1>
           {description && (
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-blog-text-muted dark:text-gray-300 leading-[1.75] sm:leading-[1.8] font-blog-body">
+            <p className="text-base sm:text-lg md:text-xl text-blog-text-muted dark:text-gray-300 leading-[1.75] sm:leading-[1.8] font-blog-body">
               {description}
             </p>
           )}

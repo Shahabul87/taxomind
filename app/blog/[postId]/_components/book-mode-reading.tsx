@@ -17,9 +17,10 @@ interface Chapter {
 
 interface BookModeReadingProps {
   chapters: Chapter[];
+  fontSize?: number;
 }
 
-export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
+export const BookModeReading = ({ chapters, fontSize }: BookModeReadingProps) => {
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const [scrollProgress, setScrollProgress] = useState(0);
   const contentRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -162,7 +163,7 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-blog-primary to-transparent" />
                   </div>
 
-                  <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-blog-text dark:text-white leading-tight mb-6 font-blog-display">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-blog-text dark:text-white leading-tight mb-6 font-blog-display">
                     {chapter.title}
                   </h2>
                 </motion.div>
@@ -187,9 +188,10 @@ export const BookModeReading = ({ chapters }: BookModeReadingProps) => {
                     "prose-blockquote:border-l-blog-primary prose-blockquote:bg-blog-primary/5",
                     "prose-blockquote:pl-4 prose-blockquote:py-2 prose-blockquote:italic"
                   )}
+                  style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
                 >
                   {chapter.description ? (
-                    <div className="text-lg leading-[1.8]">
+                    <div className="leading-[1.8]">
                       {parseHtmlContent(chapter.description)}
                     </div>
                   ) : (
