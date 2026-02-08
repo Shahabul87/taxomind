@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import {
   BLOOMS_TAXONOMY,
   CHAPTER_THINKING_FRAMEWORK,
@@ -66,6 +67,9 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Error generating complete course structure:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

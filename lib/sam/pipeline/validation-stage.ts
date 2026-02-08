@@ -103,6 +103,14 @@ export const UnifiedRequestSchema = z.object({
     engines: z.array(z.string()).optional(),
     stream: z.boolean().optional(),
   }).optional(),
+  // Tool conversation context for continuing conversational tool interactions
+  toolConversation: z.object({
+    conversationId: z.string(),
+    toolId: z.string(),
+    // Stateless continuation data (serverless-friendly)
+    currentStep: z.string().optional(),
+    collected: z.record(z.unknown()).optional(),
+  }).optional(),
 });
 
 // =============================================================================
@@ -134,6 +142,7 @@ export async function runValidationStage(
     formContext,
     conversationHistory,
     options,
+    toolConversation,
   } = validation.data;
 
   const pageContext = rawPageContext ?? { type: 'general' as const, path: '/unknown' };
@@ -221,6 +230,9 @@ export async function runValidationStage(
     orchestrationContext,
     options,
     modeId,
+
+    // Tool conversation for continuation
+    toolConversation,
 
     // Gathered context (populated by later stages)
     entityContext: { type: 'none', summary: '' },

@@ -1,5 +1,6 @@
 import { getCombinedSession } from "@/lib/auth/combined-session";
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -84,6 +85,9 @@ export async function POST(req: Request) {
     return Response.json(refinementResult);
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[BLUEPRINT_REFINEMENT] Error:', error);
     return new Response("Internal Server Error", { status: 500 });
   }
@@ -161,6 +165,8 @@ Format your response as a JSON object with the structure matching the Refinement
 
   try {
     const response = await aiClient.chat({
+      userId,
+      capability: 'course',
       maxTokens: 8000,
       temperature: 0.3,
       messages: [

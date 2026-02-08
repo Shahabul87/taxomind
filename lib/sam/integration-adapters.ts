@@ -7,7 +7,6 @@ import type { AIAdapter as CoreAIAdapter, AIChatParams, AIChatStreamChunk } from
 import type { EmbeddingProvider } from '@sam-ai/agentic';
 import { getAdapterFactory } from '@/lib/sam/taxomind-context';
 import { getDefaultAdapter } from '@/lib/sam/providers/ai-factory';
-import { isProviderAvailable } from '@/lib/sam/providers/ai-registry';
 import {
   SAMServiceUnavailableError,
   CircuitBreaker,
@@ -217,32 +216,36 @@ async function tryFallbackAdapter(): Promise<CoreAIAdapter | null> {
 // STREAMING
 // ============================================================================
 
+/** Params for streamChat — always routes through the enterprise client */
+interface StreamChatParams extends AIChatParams {
+  /** User ID for provider resolution + usage tracking */
+  userId: string;
+  /** AI capability context for rate limiting + provider preferences */
+  capability: 'chat' | 'course' | 'analysis' | 'code' | 'skill-roadmap';
+}
+
 /**
- * Stream a chat completion through the resolved AI adapter.
+ * Stream a chat completion through the enterprise AI client.
+ *
+ * Delegates to `aiClient.stream()` for full provider resolution,
+ * rate limiting, and usage tracking.
  *
  * Yields `AIChatStreamChunk` objects. The final chunk will have `done: true`.
- * If the adapter does not support streaming, falls back to a non-streaming call
- * and yields the full response as a single chunk.
  *
- * @throws SAMServiceUnavailableError if the circuit breaker is open
  * @throws Error if no AI adapter is available
  */
 export async function* streamChat(
-  params: AIChatParams,
+  params: StreamChatParams,
 ): AsyncGenerator<AIChatStreamChunk> {
-  const adapter = await getCoreAIAdapter();
-  if (!adapter) {
-    throw new Error('No AI adapter available for streaming');
-  }
+  const { userId, capability, ...chatParams } = params;
 
-  // Prefer native streaming
-  if (adapter.chatStream) {
-    yield* adapter.chatStream(params);
-    return;
-  }
-
-  // Fallback: non-streaming call emitted as a single chunk
-  logger.warn('[SAM Integration] Adapter does not support streaming, falling back to non-streaming');
-  const response = await adapter.chat(params);
-  yield { content: response.content, done: true };
+  const { aiClient } = await import('@/lib/ai/enterprise-client');
+  yield* aiClient.stream({
+    userId,
+    capability,
+    messages: chatParams.messages,
+    systemPrompt: chatParams.systemPrompt,
+    maxTokens: chatParams.maxTokens,
+    temperature: chatParams.temperature,
+  });
 }

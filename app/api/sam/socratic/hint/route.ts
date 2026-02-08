@@ -9,7 +9,8 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createSocraticTeachingEngine } from '@sam-ai/educational';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 const GetHintSchema = z.object({
   dialogueId: z.string(),
@@ -20,7 +21,7 @@ const GetHintSchema = z.object({
 const dialogueStore = new Map<string, ReturnType<typeof createSocraticTeachingEngine>>();
 
 // Get existing engine for dialogue
-const getEngine = (dialogueId: string) => {
+const getEngine = (dialogueId: string, userId: string) => {
   if (!dialogueStore.has(dialogueId)) {
     // Create a new engine if not found
     const engine = createSocraticTeachingEngine({
@@ -29,7 +30,9 @@ const getEngine = (dialogueId: string) => {
           const systemMessage = messages.find(m => m.role === 'system')?.content || '';
           const userMessage = messages.find(m => m.role === 'user')?.content || '';
 
-          const response = await runSAMChat({
+          const response = await runSAMChatWithPreference({
+            userId,
+            capability: 'chat',
             maxTokens: 1000,
             temperature: 0.5,
             systemPrompt: systemMessage,
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     const { dialogueId, hintIndex } = validatedData;
 
-    const engine = getEngine(dialogueId);
+    const engine = getEngine(dialogueId, user.id);
 
     try {
       const hint = await engine.getHint(dialogueId, hintIndex);
@@ -96,6 +99,8 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Socratic dialogue hint error:', error);
 
     if (error instanceof z.ZodError) {

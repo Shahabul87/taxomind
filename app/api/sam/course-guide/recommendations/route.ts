@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { createCourseGuideEngine } from '@sam-ai/educational';
 import { db } from '@/lib/db';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { createCourseGuideAdapter } from '@/lib/adapters';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // Create course guide engine singleton
 let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Generate detailed recommendations based on focus area
     const recommendations = await generateDetailedRecommendations(
+      user.id,
       course,
       guide,
       focusArea,
@@ -79,6 +81,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Generate recommendations error:', error);
     return NextResponse.json(
       { error: 'Failed to generate recommendations' },
@@ -88,6 +92,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function generateDetailedRecommendations(
+  userId: string,
   course: any,
   guide: any,
   focusArea: string,
@@ -112,6 +117,7 @@ async function generateDetailedRecommendations(
   // Generate specific recommendations based on focus area
   if (focusArea === 'all' || focusArea === 'content') {
     recommendations.content = await generateContentRecommendations(
+      userId,
       course,
       guide.metrics.depth,
       guide.insights,
@@ -213,6 +219,7 @@ async function generatePriorityRecommendations(
 }
 
 async function generateContentRecommendations(
+  userId: string,
   course: any,
   depthMetrics: any,
   insights: any,
@@ -234,7 +241,7 @@ async function generateContentRecommendations(
         'Create practice tests for certification preparation',
       ] : ['Add more assessments'],
       tools: ['Quiz builder', 'Question bank', 'AI question generator'],
-      examples: detailed ? await generateAssessmentExamples(course) : [],
+      examples: detailed ? await generateAssessmentExamples(userId, course) : [],
     });
   }
 
@@ -250,7 +257,7 @@ async function generateContentRecommendations(
         'Include real-world applications',
         'Create bonus modules for deep dives',
       ] : ['Expand content coverage'],
-      suggestedTopics: detailed ? await suggestAdditionalTopics(course) : [],
+      suggestedTopics: detailed ? await suggestAdditionalTopics(userId, course) : [],
     });
   }
 
@@ -388,7 +395,7 @@ async function generateMarketingRecommendations(
   return recommendations;
 }
 
-async function generateAssessmentExamples(course: any): Promise<any[]> {
+async function generateAssessmentExamples(userId: string, course: any): Promise<any[]> {
   const fallbackExamples = [
     {
       type: 'multiple_choice',
@@ -426,7 +433,9 @@ Schema:
 Course description: "${course.description || 'No description provided'}"
 Generate 3 varied assessment examples.`;
 
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'analysis',
       maxTokens: 1000,
       temperature: 0.7,
       systemPrompt,
@@ -446,7 +455,7 @@ Generate 3 varied assessment examples.`;
   return fallbackExamples;
 }
 
-async function suggestAdditionalTopics(course: any): Promise<string[]> {
+async function suggestAdditionalTopics(userId: string, course: any): Promise<string[]> {
   const fallbackTopics = [
     'Advanced techniques and best practices',
     'Industry case studies and examples',
@@ -461,7 +470,9 @@ async function suggestAdditionalTopics(course: any): Promise<string[]> {
 Course description: "${course.description || 'No description provided'}"
 Suggest 5 additional topics or sections to fill gaps.`;
 
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'analysis',
       maxTokens: 600,
       temperature: 0.6,
       systemPrompt,

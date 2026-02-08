@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Target,
-  Timer,
+  // Timer, // Retained for Practice tab (hidden)
   AlertTriangle,
   BarChart3,
   Goal,
@@ -19,7 +19,7 @@ export type DashboardView =
   | 'todos'
   | 'analytics'
   | 'skills'
-  | 'practice'
+  // | 'practice' // Hidden - backend retained for later
   | 'goals'
   | 'gaps';
 
@@ -60,14 +60,15 @@ const tabs: TabConfig[] = [
     gradient: 'from-emerald-500 to-teal-500',
     description: 'Track skill mastery',
   },
-  {
-    id: 'practice',
-    label: 'Practice',
-    shortLabel: 'Practice',
-    icon: Timer,
-    gradient: 'from-orange-500 to-red-500',
-    description: '10,000 hour tracker',
-  },
+  // Practice tab hidden - backend retained for later
+  // {
+  //   id: 'practice',
+  //   label: 'Practice',
+  //   shortLabel: 'Practice',
+  //   icon: Timer,
+  //   gradient: 'from-orange-500 to-red-500',
+  //   description: '10,000 hour tracker',
+  // },
   {
     id: 'goals',
     label: 'Goals',

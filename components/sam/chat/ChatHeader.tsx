@@ -175,8 +175,8 @@ export function ChatHeader({
     'exam-builder', 'practice-problems',
     // Research & Resources (2 of 3)
     'research-assistant', 'resource-finder',
-    // Course Design (1 of 3)
-    'course-architect',
+    // Course Design (2 of 4)
+    'course-architect', 'skill-roadmap-builder',
     // Insights & Analytics (2 of 4)
     'analytics', 'predictive',
   ]);

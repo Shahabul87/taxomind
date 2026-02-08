@@ -18,7 +18,6 @@
 import { NextRequest } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { canAccessSamFeature } from '@/lib/premium/sam-access';
-import { checkAIAccess } from '@/lib/ai/subscription-enforcement';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { orchestrateCourseCreation } from '@/lib/sam/course-creation/orchestrator';
@@ -70,16 +69,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. AI usage check
-    const usageCheck = await checkAIAccess(user.id, 'course');
-    if (!usageCheck.allowed) {
-      return new Response(
-        JSON.stringify({ success: false, error: usageCheck.reason ?? 'Usage limit exceeded' }),
-        { status: 429, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // 4. Validate body
+    // 3. Validate body
     const body = await request.json();
     const parseResult = OrchestrateRequestSchema.safeParse(body);
     if (!parseResult.success) {
@@ -94,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
     const config = parseResult.data;
 
-    // 5. Set up SSE stream
+    // 4. Set up SSE stream
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {

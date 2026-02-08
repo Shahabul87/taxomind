@@ -259,6 +259,7 @@ export async function checkAIAccess(
       where: { id: userId },
       select: {
         id: true,
+        hasAIAccess: true,
         subscriptionTier: true,
         dailyAiUsageCount: true,
         dailyAiUsageResetAt: true,
@@ -274,6 +275,12 @@ export async function checkAIAccess(
         allowed: false,
         reason: "User not found",
       };
+    }
+
+    // Admin-granted AI access bypasses all subscription restrictions
+    if (user.hasAIAccess) {
+      logger.info("[AI_ACCESS] Admin-granted bypass", { userId, feature });
+      return { allowed: true };
     }
 
     // Check if premium has expired
@@ -427,12 +434,14 @@ export async function recordAIUsage(
 
     await db.aIUsageMetrics.upsert({
       where: {
-        userId_date: {
+        userId_date_period: {
           userId,
           date: today,
+          period: "DAILY",
         },
       },
       update: {
+        updatedAt: new Date(),
         totalGenerations: { increment: usage },
         totalTokens: metadata?.tokensUsed ? { increment: metadata.tokensUsed } : undefined,
         totalCost: metadata?.cost ? { increment: metadata.cost } : undefined,
@@ -444,8 +453,11 @@ export async function recordAIUsage(
         ...(feature === "exercise" && { exerciseGenerations: { increment: usage } }),
       },
       create: {
+        id: crypto.randomUUID(),
         userId,
         date: today,
+        period: "DAILY",
+        updatedAt: new Date(),
         totalGenerations: usage,
         totalTokens: metadata?.tokensUsed || 0,
         totalCost: metadata?.cost || 0,

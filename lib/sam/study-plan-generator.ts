@@ -310,7 +310,7 @@ function generateTasksForWeek(
       PRACTICE: `Work through practical exercises and coding challenges to reinforce learning.`,
       ASSESS: `Complete a self-assessment quiz to test your understanding.`,
       REVIEW: `Review your notes and revisit challenging concepts from this week.`,
-      PROJECT: `Build a small project applying what you&apos;ve learned this week.`,
+      PROJECT: `Build a small project applying what you've learned this week.`,
     };
 
     tasks.push({

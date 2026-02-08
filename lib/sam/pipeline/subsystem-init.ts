@@ -194,7 +194,7 @@ export async function initializeSubsystems(): Promise<SubsystemBundle> {
     maxConversationHistory: 20,
     personality: {
       name: 'SAM',
-      greeting: 'Hello! I&apos;m SAM, your intelligent learning assistant.',
+      greeting: "Hello! I'm SAM, your intelligent learning assistant.",
       tone: 'friendly and professional',
     },
   });

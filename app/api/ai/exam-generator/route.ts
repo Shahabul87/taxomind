@@ -1,9 +1,9 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
-import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 import { normalizeToUppercaseSafe, type BloomsLevelUppercase } from '@/lib/sam/utils/blooms-normalizer';
 
 // Force Node.js runtime for better compatibility
@@ -171,22 +171,6 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, "exam");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     // Parse and validate request body
     const body = await request.json();
     const parseResult = ExamGenerationRequestSchema.safeParse(body);
@@ -208,6 +192,8 @@ export async function POST(request: NextRequest) {
       const prompt = buildExamGenerationPrompt(examRequest);
 
       const completion = await aiClient.chat({
+        userId: session.userId!,
+        capability: 'course',
         maxTokens: 4000,
         temperature: 0.7,
         systemPrompt: EXAM_GENERATION_SYSTEM_PROMPT,
@@ -257,14 +243,6 @@ export async function POST(request: NextRequest) {
           : 'UNDERSTAND',
       }));
 
-      // Record AI usage (only for users, admins bypass tracking)
-      if (!session.isAdmin && session.userId) {
-        await recordAIUsage(session.userId, "exam", 1, {
-          provider: "anthropic",
-          requestType: "exam_generation",
-        });
-      }
-
       return NextResponse.json({
         success: true,
         questions: normalizedQuestions,
@@ -288,9 +266,12 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Exam generator error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },

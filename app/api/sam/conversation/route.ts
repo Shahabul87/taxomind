@@ -7,7 +7,6 @@ import {
   addSAMMessage
 } from '@/lib/sam/utils/sam-database';
 import { SAMMessageType } from '@prisma/client';
-import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 
 export async function GET(req: NextRequest) {
   try {
@@ -49,22 +48,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check subscription tier and usage limits for chat
-    const accessCheck = await checkAIAccess(session.user.id, "chat");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingDaily: accessCheck.remainingDaily,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     const body = await req.json();
     const { type, data } = body;
 
@@ -75,9 +58,6 @@ export async function POST(req: NextRequest) {
         sectionId: data.sectionId,
         title: data.title,
       });
-
-      // Record chat usage
-      await recordAIUsage(session.user.id, "chat", 1);
 
       return NextResponse.json({
         success: true,
@@ -92,9 +72,6 @@ export async function POST(req: NextRequest) {
         metadata: data.metadata,
         parentMessageId: data.parentMessageId,
       });
-
-      // Record chat usage
-      await recordAIUsage(session.user.id, "chat", 1);
 
       return NextResponse.json({
         success: true,

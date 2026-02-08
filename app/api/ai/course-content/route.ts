@@ -1,4 +1,5 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
@@ -129,6 +130,8 @@ export async function POST(request: NextRequest) {
             content: prompt
           }
         ],
+        userId: session.userId,
+        capability: 'course',
       });
 
       const responseText = completion.content;
@@ -160,9 +163,12 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Course content generator error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },

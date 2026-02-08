@@ -110,6 +110,27 @@ export async function GET(req: NextRequest) {
     logger.debug('[HEALTH_CHECK] SAM status unavailable:', error);
   }
 
+  // AI Provider configuration status
+  try {
+    const { getAllProviders, getDefaultProvider } = await import('@/lib/sam/providers/ai-registry');
+    const providers = getAllProviders();
+    const defaultProvider = getDefaultProvider();
+    (health as Record<string, unknown>).aiProviders = {
+      configured: providers.filter(p => p.isConfigured()).map(p => p.id),
+      unconfigured: providers.filter(p => !p.isConfigured()).map(p => p.id),
+      default: defaultProvider?.id ?? 'none',
+      envKeys: {
+        DEEPSEEK_API_KEY: !!process.env.DEEPSEEK_API_KEY,
+        ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+        OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+        GOOGLE_AI_API_KEY: !!process.env.GOOGLE_AI_API_KEY,
+        MISTRAL_API_KEY: !!process.env.MISTRAL_API_KEY,
+      },
+    };
+  } catch (error) {
+    logger.debug('[HEALTH_CHECK] AI provider status unavailable:', error);
+  }
+
   // Notification channel capabilities
   try {
     const { getNotificationCapabilities } = await import('@/lib/sam/agentic-notifications');

@@ -13,7 +13,7 @@ import {
   mapUserToToolRole,
 } from '@/lib/sam/agentic-tooling';
 import { planToolInvocation } from '@/lib/sam/tool-planner';
-import { resolveModeToolAllowlist } from '@/lib/sam/modes';
+import { resolveModeToolAllowlist, getModeById } from '@/lib/sam/modes';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 import { getSAMTelemetryService } from '@/lib/sam/telemetry';
 import type { SubsystemBundle } from './subsystem-init';
@@ -23,6 +23,15 @@ export async function runToolExecutionStage(
   ctx: PipelineContext,
   subsystems: SubsystemBundle,
 ): Promise<PipelineContext> {
+  // Skip if conversational tool already executed (pre-streaming invocation)
+  if (ctx.toolExecution?.toolId) {
+    logger.debug('[ToolExecution] Skipping - conversational tool already executed', {
+      toolId: ctx.toolExecution.toolId,
+      toolName: ctx.toolExecution.toolName,
+    });
+    return ctx;
+  }
+
   let responseText = ctx.responseText;
   let toolExecution = ctx.toolExecution;
 
@@ -39,10 +48,21 @@ export async function runToolExecutionStage(
     // Filter tools by current mode
     const modeFilteredTools = resolveModeToolAllowlist(ctx.modeId, availableTools);
 
+    logger.debug('[ToolExecution] Starting tool planning', {
+      modeId: ctx.modeId,
+      message: ctx.message.slice(0, 100),
+      availableToolCount: availableTools.length,
+      filteredToolCount: modeFilteredTools.length,
+      hasSkillRoadmapTool: modeFilteredTools.some((t) => t.id === 'sam-skill-roadmap-generator'),
+    });
+
     const tutoringCtx = ctx.tutoringContext as Record<string, unknown> | null;
     const planInjection = ctx.planContextInjection as {
       systemPromptAdditions?: string[];
     } | null;
+
+    // Get mode info for context
+    const currentMode = getModeById(ctx.modeId);
 
     const plan = await planToolInvocation({
       ai: subsystems.config.ai,
@@ -53,6 +73,14 @@ export async function runToolExecutionStage(
         pagePath: ctx.pageContext.path,
         entitySummary: ctx.entityContext.summary,
         memorySummary: ctx.memorySummary,
+        // Provide mode context to help AI select mode-appropriate tools
+        modeContext: currentMode
+          ? {
+              modeId: currentMode.id,
+              modeLabel: currentMode.label,
+              modeDescription: currentMode.systemPromptAddition?.slice(0, 200),
+            }
+          : undefined,
         tutoringContext: tutoringCtx
           ? {
               activePlanTitle:
@@ -69,6 +97,13 @@ export async function runToolExecutionStage(
             }
           : undefined,
       },
+    });
+
+    logger.debug('[ToolExecution] Tool plan result', {
+      hasPlan: !!plan,
+      toolId: plan?.tool.id,
+      reasoning: plan?.reasoning,
+      confidence: plan?.confidence,
     });
 
     if (plan) {
@@ -157,6 +192,13 @@ export async function runToolExecutionStage(
         reasoning: plan.reasoning,
         confidence: plan.confidence,
       };
+
+      logger.info('[ToolExecution] Tool executed', {
+        toolId: plan.tool.id,
+        status: execution.status,
+        awaitingConfirmation: execution.awaitingConfirmation,
+        hasResult: !!execution.result,
+      });
 
       if (execution.awaitingConfirmation) {
         responseText = [

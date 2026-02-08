@@ -10,7 +10,8 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // Request validation schemas
 const GenerateDiagnosticSchema = z.object({
@@ -157,7 +158,9 @@ Return valid JSON only:
   }
 }`;
 
-    const diagnosticResponse = await runSAMChat({
+    const diagnosticResponse = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'chat',
       maxTokens: 6000,
       temperature: 0.6,
       systemPrompt: 'You are an expert educational assessment designer. Generate diagnostic assessments in valid JSON format only.',
@@ -243,6 +246,8 @@ Return valid JSON only:
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('[DIAGNOSTIC] Generate diagnostic error:', error);
 
     if (error instanceof z.ZodError) {

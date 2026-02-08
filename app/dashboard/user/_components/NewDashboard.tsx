@@ -52,10 +52,11 @@ const SkillsTab = dynamic(
   { ssr: false, loading: TabSkeleton },
 );
 
-const PracticeTab = dynamic(
-  () => import("./tabs/PracticeTab").then((m) => m.PracticeTab),
-  { ssr: false, loading: TabSkeleton },
-);
+// Hidden - Practice tab retained for later
+// const PracticeTab = dynamic(
+//   () => import("./tabs/PracticeTab").then((m) => m.PracticeTab),
+//   { ssr: false, loading: TabSkeleton },
+// );
 
 const GoalsTab = dynamic(
   () => import("./tabs/GoalsTab").then((m) => m.GoalsTab),
@@ -77,7 +78,7 @@ type DashboardView =
   | "todos"
   | "analytics"
   | "skills"
-  | "practice"
+  // | "practice" // Hidden - backend retained for later
   | "goals"
   | "gaps";
 
@@ -146,8 +147,9 @@ export function NewDashboard({
       case "skills":
         return <SkillsTab userId={userId} />;
 
-      case "practice":
-        return <PracticeTab />;
+      // Hidden - Practice tab retained for later
+      // case "practice":
+      //   return <PracticeTab />;
 
       case "goals":
         return (

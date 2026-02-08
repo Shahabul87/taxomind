@@ -1,9 +1,9 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
-import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -179,22 +179,6 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, "chapter");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     // Parse and validate request body
     const body = await request.json();
     const parseResult = ChapterContentRequestSchema.safeParse(body);
@@ -225,6 +209,8 @@ export async function POST(request: NextRequest) {
             content: prompt
           }
         ],
+        userId: session.userId,
+        capability: 'course',
       });
 
       // Extract the response
@@ -240,11 +226,6 @@ export async function POST(request: NextRequest) {
       // Basic validation - ensure we have actual content
       if (cleanedContent.length < 50) {
         throw new Error('Generated content too short');
-      }
-
-      // Record AI usage after successful response (only for users, admins bypass tracking)
-      if (!session.isAdmin && session.userId) {
-        await recordAIUsage(session.userId, "chapter", 1);
       }
 
       return NextResponse.json({
@@ -271,9 +252,12 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Chapter content generator error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },

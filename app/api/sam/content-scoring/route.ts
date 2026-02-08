@@ -7,9 +7,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export const runtime = 'nodejs';
 
@@ -111,11 +112,12 @@ export async function POST(request: NextRequest) {
 
     switch (data.type) {
       case 'title':
-        const titleScore = await scoreTitles([data.title], data.context);
+        const titleScore = await scoreTitles(user.id, [data.title], data.context);
         return NextResponse.json({ scores: titleScore });
 
       case 'overview':
         const overviewScore = await scoreOverviews(
+          user.id,
           [{ overview: data.overview, title: data.title }],
           data.context
         );
@@ -130,8 +132,8 @@ export async function POST(request: NextRequest) {
           .map(item => ({ overview: item.overview }));
 
         const [titleScores, overviewScores] = await Promise.all([
-          titles.length > 0 ? scoreTitles(titles, data.context) : [],
-          overviews.length > 0 ? scoreOverviews(overviews, data.context) : [],
+          titles.length > 0 ? scoreTitles(user.id, titles, data.context) : [],
+          overviews.length > 0 ? scoreOverviews(user.id, overviews, data.context) : [],
         ]);
 
         return NextResponse.json({
@@ -143,6 +145,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
     }
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('[ContentScoring] Error:', error);
     return NextResponse.json(
       { error: 'Failed to score content' },
@@ -155,6 +159,7 @@ export async function POST(request: NextRequest) {
  * Score multiple titles using AI analysis
  */
 async function scoreTitles(
+  userId: string,
   titles: string[],
   context?: {
     category?: string;
@@ -211,7 +216,9 @@ Return ONLY valid JSON array:
 ]`;
 
   try {
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
       systemPrompt: 'You are a course title scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
       maxTokens: 1500,
       temperature: 0.3,
@@ -238,6 +245,7 @@ Return ONLY valid JSON array:
  * Score multiple overviews using AI analysis
  */
 async function scoreOverviews(
+  userId: string,
   items: Array<{ overview: string; title?: string }>,
   context?: {
     category?: string;
@@ -287,7 +295,9 @@ Return ONLY valid JSON array:
 ]`;
 
   try {
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
       systemPrompt: 'You are a course overview scoring expert. Return ONLY valid JSON with no markdown fences or extra text.',
       maxTokens: 1500,
       temperature: 0.3,

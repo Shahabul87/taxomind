@@ -351,7 +351,7 @@ const SCIENCE_TEMPLATES: QuestionTemplate[] = [
   {
     id: 'sci-physics-mechanics',
     name: 'Classical Mechanics',
-    description: 'Newton&apos;s laws, kinematics, energy, momentum, and rotational motion',
+    description: "Newton's laws, kinematics, energy, momentum, and rotational motion",
     subjectArea: 'Science',
     icon: 'Atom',
     color: 'text-orange-600',
@@ -376,7 +376,7 @@ const SCIENCE_TEMPLATES: QuestionTemplate[] = [
           opt('2 N', false),
         ],
         correctAnswer: '15 N',
-        explanation: 'Using Newton&apos;s Second Law: F = ma = 5 kg * 3 m/s^2 = 15 N',
+        explanation: "Using Newton's Second Law: F = ma = 5 kg * 3 m/s^2 = 15 N",
         bloomsLevel: 'APPLY',
         difficulty: 'EASY',
         points: 1,

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCombinedSession } from "@/lib/auth/combined-session";
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
 import { aiCacheManager } from "@/lib/ai-cache-manager";
 import { logger } from '@/lib/logger';
-import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
+
 
 export const runtime = 'nodejs';
 
@@ -67,61 +68,44 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, "analysis");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     const body: ContentOptimizationRequest = await req.json();
 
     // Use optimized request with caching and deduplication
+    const authenticatedUserId = session.userId!;
     const optimization = await optimizeContentOptimization(
-      { ...body, userId: session.userId },
-      () => optimizeContent(body)
+      { ...body, userId: authenticatedUserId },
+      () => optimizeContent(body, authenticatedUserId)
     );
-
-    // Record AI usage after successful response (only for users, admins bypass tracking)
-    if (!session.isAdmin && session.userId) {
-      await recordAIUsage(session.userId, "analysis", 1);
-    }
 
     return NextResponse.json(optimization);
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error("[CONTENT-OPTIMIZER] Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
-async function optimizeContent(request: ContentOptimizationRequest): Promise<OptimizationResult> {
+async function optimizeContent(request: ContentOptimizationRequest, userId: string): Promise<OptimizationResult> {
   const { type, content, optimizationGoals } = request;
-  
+
   switch (type) {
     case 'title':
-      return await optimizeTitle(content, optimizationGoals);
+      return await optimizeTitle(content, optimizationGoals, userId);
     case 'description':
-      return await optimizeDescription(content, optimizationGoals);
+      return await optimizeDescription(content, optimizationGoals, userId);
     case 'learning_objectives':
-      return await optimizeLearningObjectives(content, optimizationGoals);
+      return await optimizeLearningObjectives(content, optimizationGoals, userId);
     case 'comprehensive':
-      return await comprehensiveOptimization(content, optimizationGoals);
+      return await comprehensiveOptimization(content, optimizationGoals, userId);
     default:
       throw new Error(`Unknown optimization type: ${type}`);
   }
 }
 
-async function optimizeTitle(content: any, goals: string[]): Promise<OptimizationResult> {
+async function optimizeTitle(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Optimize this course title for maximum impact and effectiveness.
 
 CURRENT TITLE: "${content.title}"
@@ -171,6 +155,8 @@ Return ONLY valid JSON:
 }`;
 
   const response = await aiClient.chat({
+    userId,
+    capability: 'analysis',
     maxTokens: 1500,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }]
@@ -179,7 +165,7 @@ Return ONLY valid JSON:
   return JSON.parse(response.content);
 }
 
-async function optimizeDescription(content: any, goals: string[]): Promise<OptimizationResult> {
+async function optimizeDescription(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Optimize this course description for maximum conversion and engagement.
 
 CURRENT DESCRIPTION: "${content.description}"
@@ -205,6 +191,8 @@ Create an optimized description that converts browsers into students.
 Return ONLY valid JSON with the same structure, focusing on description optimization.`;
 
   const response = await aiClient.chat({
+    userId,
+    capability: 'analysis',
     maxTokens: 2000,
     temperature: 0.5,
     messages: [{ role: "user", content: prompt }]
@@ -213,7 +201,7 @@ Return ONLY valid JSON with the same structure, focusing on description optimiza
   return JSON.parse(response.content);
 }
 
-async function optimizeLearningObjectives(content: any, goals: string[]): Promise<OptimizationResult> {
+async function optimizeLearningObjectives(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Optimize these learning objectives for educational effectiveness and student motivation.
 
 CURRENT OBJECTIVES: ${JSON.stringify(content.learningObjectives)}
@@ -237,6 +225,8 @@ Transform these into compelling, measurable learning outcomes.
 Return ONLY valid JSON with learning objectives optimization structure.`;
 
   const response = await aiClient.chat({
+    userId,
+    capability: 'analysis',
     maxTokens: 1800,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }]
@@ -245,7 +235,7 @@ Return ONLY valid JSON with learning objectives optimization structure.`;
   return JSON.parse(response.content);
 }
 
-async function comprehensiveOptimization(content: any, goals: string[]): Promise<OptimizationResult> {
+async function comprehensiveOptimization(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
   const prompt = `Perform comprehensive optimization of all course content elements.
 
 CURRENT CONTENT:
@@ -275,6 +265,8 @@ Optimize all elements to work together synergistically for maximum impact.
 Return ONLY valid JSON with comprehensive optimization covering title, description, and learning objectives.`;
 
   const response = await aiClient.chat({
+    userId,
+    capability: 'analysis',
     maxTokens: 3000,
     temperature: 0.5,
     messages: [{ role: "user", content: prompt }]

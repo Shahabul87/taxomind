@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,28 +23,28 @@ export async function POST(request: NextRequest) {
 
     switch (processingType) {
       case 'image_analysis':
-        result = await analyzeImageForLearning(visualData, learningContext);
+        result = await analyzeImageForLearning(user.id, visualData, learningContext);
         break;
       case 'diagram_generation':
-        result = await generateLearningDiagram(generationRequest, learningContext);
+        result = await generateLearningDiagram(user.id, generationRequest, learningContext);
         break;
       case 'concept_visualization':
-        result = await generateConceptVisualization(generationRequest, learningContext);
+        result = await generateConceptVisualization(user.id, generationRequest, learningContext);
         break;
       case 'interactive_annotation':
-        result = await createInteractiveAnnotation(visualData, learningContext);
+        result = await createInteractiveAnnotation(user.id, visualData, learningContext);
         break;
       case 'visual_quiz_creation':
-        result = await createVisualQuiz(visualData, learningContext);
+        result = await createVisualQuiz(user.id, visualData, learningContext);
         break;
       case 'infographic_generation':
-        result = await generateInfographic(generationRequest, learningContext);
+        result = await generateInfographic(user.id, generationRequest, learningContext);
         break;
       case 'mind_map_creation':
-        result = await createMindMap(generationRequest, learningContext);
+        result = await createMindMap(user.id, generationRequest, learningContext);
         break;
       case 'flowchart_generation':
-        result = await generateFlowchart(generationRequest, learningContext);
+        result = await generateFlowchart(user.id, generationRequest, learningContext);
         break;
       default:
         return NextResponse.json({ error: 'Unknown processing type' }, { status: 400 });
@@ -57,6 +58,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Visual processor error:', error);
     return NextResponse.json(
       { error: 'Failed to process visual content' },
@@ -66,12 +69,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function runVisualChat(
+  userId: string,
   systemPrompt: string,
   userPrompt: string,
-  options?: { maxTokens?: number; temperature?: number; model?: string }
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChat({
-    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+  return runSAMChatWithPreference({
+    userId,
+    capability: 'analysis',
     maxTokens: options?.maxTokens ?? 1500,
     temperature: options?.temperature ?? 0.7,
     systemPrompt,
@@ -80,6 +85,7 @@ async function runVisualChat(
 }
 
 async function analyzeImageForLearning(
+  userId: string,
   visualData: any,
   learningContext: any
 ): Promise<any> {
@@ -108,6 +114,7 @@ Provide comprehensive analysis including:
 8. Related visual resources`;
 
   const analysisText = await runVisualChat(
+    userId,
     systemPrompt,
     `Analyze this educational image: ${imageDescription}`,
     { maxTokens: 1500, temperature: 0.7 }
@@ -128,6 +135,7 @@ Provide comprehensive analysis including:
 }
 
 async function generateLearningDiagram(
+  userId: string,
   generationRequest: any,
   learningContext: any
 ): Promise<any> {
@@ -157,6 +165,7 @@ Create a detailed diagram specification including:
 8. Implementation guidelines`;
 
   const specificationText = await runVisualChat(
+    userId,
     systemPrompt,
     `Create a ${diagramType} diagram for "${concept}" at ${complexity} complexity level for ${audience}`,
     { maxTokens: 1500, temperature: 0.7 }
@@ -181,6 +190,7 @@ Create a detailed diagram specification including:
 }
 
 async function generateConceptVisualization(
+  userId: string,
   generationRequest: any,
   learningContext: any
 ): Promise<any> {
@@ -210,6 +220,7 @@ Create a comprehensive visualization plan including:
 8. Customization options`;
 
   const visualizationText = await runVisualChat(
+    userId,
     systemPrompt,
     `Create a ${visualizationType} visualization for concepts: ${concepts.join(', ')}`,
     { maxTokens: 1500, temperature: 0.7 }
@@ -233,6 +244,7 @@ Create a comprehensive visualization plan including:
 }
 
 async function createInteractiveAnnotation(
+  userId: string,
   visualData: any,
   learningContext: any
 ): Promise<any> {
@@ -261,6 +273,7 @@ Create interactive annotation plan including:
 8. Engagement mechanics`;
 
   const annotationText = await runVisualChat(
+    userId,
     systemPrompt,
     `Create interactive annotations for: ${imageDescription}`,
     { maxTokens: 1200, temperature: 0.7 }
@@ -282,6 +295,7 @@ Create interactive annotation plan including:
 }
 
 async function createVisualQuiz(
+  userId: string,
   visualData: any,
   learningContext: any
 ): Promise<any> {
@@ -311,6 +325,7 @@ Create visual quiz including:
 8. Feedback and explanations`;
 
   const quizText = await runVisualChat(
+    userId,
     systemPrompt,
     `Create a visual quiz for: ${imageDescription}`,
     { maxTokens: 1500, temperature: 0.7 }
@@ -330,6 +345,7 @@ Create visual quiz including:
 }
 
 async function generateInfographic(
+  userId: string,
   generationRequest: any,
   learningContext: any
 ): Promise<any> {
@@ -359,6 +375,7 @@ Create infographic specification including:
 8. Learning enhancement features`;
 
   const infographicText = await runVisualChat(
+    userId,
     systemPrompt,
     `Create an infographic about "${topic}" for ${audience}`,
     { maxTokens: 1500, temperature: 0.7 }
@@ -381,6 +398,7 @@ Create infographic specification including:
 }
 
 async function createMindMap(
+  userId: string,
   generationRequest: any,
   learningContext: any
 ): Promise<any> {
@@ -410,6 +428,7 @@ Create mind map specification including:
 8. Assessment integration points`;
 
   const mindMapText = await runVisualChat(
+    userId,
     systemPrompt,
     `Create a mind map for "${centralConcept}" with ${depth} levels of depth`,
     { maxTokens: 1500, temperature: 0.7 }
@@ -432,6 +451,7 @@ Create mind map specification including:
 }
 
 async function generateFlowchart(
+  userId: string,
   generationRequest: any,
   learningContext: any
 ): Promise<any> {
@@ -461,6 +481,7 @@ Create flowchart specification including:
 8. Assessment opportunities`;
 
   const flowchartText = await runVisualChat(
+    userId,
     systemPrompt,
     `Create a ${flowType} flowchart for the process: "${process}"`,
     { maxTokens: 1500, temperature: 0.7 }

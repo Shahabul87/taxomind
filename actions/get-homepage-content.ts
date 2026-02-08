@@ -15,6 +15,8 @@ type HomepageCourse = {
   category: { name: string } | null;
   chapters: { id: string }[];
   cleanDescription?: string;
+  averageRating: number | null;
+  enrollmentCount: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -68,6 +70,8 @@ export const getHomepageFeaturedCourses = cacheWrapper(
           isFeatured: true,
           category: { select: { name: true } },
           chapters: { select: { id: true }, where: { isPublished: true } },
+          averageRating: true,
+          _count: { select: { Enrollment: true } },
           createdAt: true,
           updatedAt: true,
         },
@@ -80,9 +84,11 @@ export const getHomepageFeaturedCourses = cacheWrapper(
 
       console.log('✅ [getHomepageFeaturedCourses] Found published courses:', courses.length);
 
-      const result = courses.map((c) => ({
+      const result = courses.map(({ _count, ...c }) => ({
         ...c,
         cleanDescription: extractTextFromHtml(c.description),
+        averageRating: c.averageRating,
+        enrollmentCount: _count.Enrollment,
       }));
 
       console.log('📦 [getHomepageFeaturedCourses] Returning courses:', result.length);

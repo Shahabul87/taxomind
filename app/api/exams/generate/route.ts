@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { BloomsLevel, QuestionType, QuestionDifficulty, QuestionGenerationMode } from '@prisma/client';
 
 // Request validation schema
@@ -92,7 +93,8 @@ export async function POST(request: Request) {
     const questions = await generateQuestions(
       section,
       validatedData,
-      section.learningObjectiveItems
+      section.learningObjectiveItems,
+      user.id
     );
 
     // Create exam in database
@@ -188,6 +190,9 @@ export async function POST(request: Request) {
       })),
     });
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     console.error('Error generating exam:', error);
 
     if (error instanceof z.ZodError) {
@@ -207,7 +212,8 @@ export async function POST(request: Request) {
 async function generateQuestions(
   section: any,
   config: GenerateExamRequest,
-  learningObjectives: any[]
+  learningObjectives: any[],
+  userId: string
 ): Promise<GeneratedQuestion[]> {
   const distribution = config.bloomsDistribution || getDefaultDistribution();
   const questionTypes = config.questionTypes || ['MULTIPLE_CHOICE', 'SHORT_ANSWER'];
@@ -229,7 +235,8 @@ async function generateQuestions(
         level,
         count,
         questionTypes,
-        config.difficulty || 'MEDIUM'
+        config.difficulty || 'MEDIUM',
+        userId
       );
       questions.push(...levelQuestions);
     }
@@ -242,7 +249,8 @@ async function generateQuestions(
       'APPLY',
       1,
       questionTypes,
-      config.difficulty || 'MEDIUM'
+      config.difficulty || 'MEDIUM',
+      userId
     );
     questions.push(...additionalQuestion);
   }
@@ -256,11 +264,14 @@ async function generateQuestionsForLevel(
   bloomsLevel: BloomsLevel,
   count: number,
   questionTypes: QuestionType[],
-  difficulty: QuestionDifficulty
+  difficulty: QuestionDifficulty,
+  userId: string
 ): Promise<GeneratedQuestion[]> {
   const systemPrompt = buildQuestionGenerationPrompt(bloomsLevel, questionTypes, difficulty);
 
   const response = await aiClient.chat({
+    userId,
+    capability: 'course',
     maxTokens: 4000,
     temperature: 0.7,
     systemPrompt,

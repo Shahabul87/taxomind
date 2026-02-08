@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,22 +34,22 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'generate_assessment':
-        result = await generateAssessment(assessmentType, subject, topic, difficulty, questionCount, learningObjectives, bloomsLevels, questionTypes, duration);
+        result = await generateAssessment(user.id, assessmentType, subject, topic, difficulty, questionCount, learningObjectives, bloomsLevels, questionTypes, duration);
         break;
       case 'adaptive_question':
-        result = await generateAdaptiveQuestion(subject, topic, difficulty, existingQuestions, studentResponses, adaptiveSettings);
+        result = await generateAdaptiveQuestion(user.id, subject, topic, difficulty, existingQuestions, studentResponses, adaptiveSettings);
         break;
       case 'analyze_responses':
-        result = await analyzeStudentResponses(studentResponses, assessmentData);
+        result = await analyzeStudentResponses(user.id, studentResponses, assessmentData);
         break;
       case 'generate_rubric':
-        result = await generateAssessmentRubric(subject, topic, assessmentType, rubricCriteria);
+        result = await generateAssessmentRubric(user.id, subject, topic, assessmentType, rubricCriteria);
         break;
       case 'provide_feedback':
-        result = await generateDetailedFeedback(studentResponses, assessmentData);
+        result = await generateDetailedFeedback(user.id, studentResponses, assessmentData);
         break;
       case 'difficulty_adjustment':
-        result = await adjustDifficultyLevel(studentResponses, assessmentData);
+        result = await adjustDifficultyLevel(user.id, studentResponses, assessmentData);
         break;
       case 'learning_analytics':
         result = await generateLearningGoals(assessmentData);
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Assessment engine error:', error);
     return NextResponse.json(
       { error: 'Failed to process assessment request' },
@@ -74,12 +77,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function runAssessmentChat(
+  userId: string,
   systemPrompt: string,
   userPrompt: string,
-  options?: { maxTokens?: number; temperature?: number; model?: string }
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChat({
-    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+  return runSAMChatWithPreference({
+    userId,
+    capability: 'chat',
     maxTokens: options?.maxTokens ?? 2000,
     temperature: options?.temperature ?? 0.7,
     systemPrompt,
@@ -88,6 +93,7 @@ async function runAssessmentChat(
 }
 
 async function generateAssessment(
+  userId: string,
   assessmentType: string,
   subject: string,
   topic: string,
@@ -135,6 +141,7 @@ For each question, provide:
 Create a balanced assessment that challenges students appropriately while providing comprehensive evaluation of their understanding.`;
 
   const assessmentText = await runAssessmentChat(
+    userId,
     systemPrompt,
     `Create a comprehensive ${assessmentType} assessment for ${topic} in ${subject}.`,
     { maxTokens: 4000, temperature: 0.7 }
@@ -165,6 +172,7 @@ Create a balanced assessment that challenges students appropriately while provid
 }
 
 async function generateAdaptiveQuestion(
+  userId: string,
   subject: string,
   topic: string,
   difficulty: string,
@@ -206,6 +214,7 @@ async function generateAdaptiveQuestion(
 Create a question that optimally challenges the student while supporting their learning journey.`;
 
   const questionText = await runAssessmentChat(
+    userId,
     systemPrompt,
     'Generate an adaptive question for this student based on their performance patterns.',
     { maxTokens: 1500, temperature: 0.8 }
@@ -228,7 +237,7 @@ Create a question that optimally challenges the student while supporting their l
   };
 }
 
-async function analyzeStudentResponses(studentResponses: any[], assessmentData: any) {
+async function analyzeStudentResponses(userId: string, studentResponses: any[], assessmentData: any) {
   const systemPrompt = `You are SAM, an expert AI learning analytics specialist. Analyze student responses to provide comprehensive insights into their learning patterns, strengths, weaknesses, and areas for improvement.
 
 **Student Response Data:**
@@ -258,6 +267,7 @@ ${JSON.stringify(assessmentData, null, 2)}
 Provide actionable insights that can guide personalized learning interventions.`;
 
   const analysisText = await runAssessmentChat(
+    userId,
     systemPrompt,
     'Analyze these student responses and provide comprehensive learning insights.',
     { maxTokens: 2000, temperature: 0.7 }
@@ -285,6 +295,7 @@ Provide actionable insights that can guide personalized learning interventions.`
 }
 
 async function generateAssessmentRubric(
+  userId: string,
   subject: string,
   topic: string,
   assessmentType: string,
@@ -319,6 +330,7 @@ For each criterion, provide:
 Create a rubric that promotes fair, consistent, and meaningful assessment.`;
 
   const rubricText = await runAssessmentChat(
+    userId,
     systemPrompt,
     `Create a comprehensive rubric for evaluating ${assessmentType} assessments in ${subject} on ${topic}.`,
     { maxTokens: 2500, temperature: 0.7 }
@@ -343,7 +355,7 @@ Create a rubric that promotes fair, consistent, and meaningful assessment.`;
   };
 }
 
-async function generateDetailedFeedback(studentResponses: any[], assessmentData: any) {
+async function generateDetailedFeedback(userId: string, studentResponses: any[], assessmentData: any) {
   const systemPrompt = `You are SAM, an expert AI feedback specialist. Provide detailed, constructive, and personalized feedback that helps students understand their performance and guides their learning improvement.
 
 **Student Response Data:**
@@ -373,6 +385,7 @@ ${JSON.stringify(assessmentData, null, 2)}
 Create feedback that empowers students to take ownership of their learning journey.`;
 
   const feedbackText = await runAssessmentChat(
+    userId,
     systemPrompt,
     'Generate detailed, personalized feedback for this student based on their assessment responses.',
     { maxTokens: 2000, temperature: 0.8 }
@@ -1075,7 +1088,7 @@ function generateLearningGoals(performanceData: any): string[] {
   return goals;
 }
 
-async function adjustDifficultyLevel(studentResponses: any[], assessmentData: any) {
+async function adjustDifficultyLevel(userId: string, studentResponses: any[], assessmentData: any) {
   const performance = analyzePerformance(studentResponses);
   const currentDifficulty = assessmentData.difficulty || 'medium';
   const adjustedDifficulty = adjustDifficultyBasedOnPerformance(currentDifficulty, performance);
@@ -1102,6 +1115,7 @@ ${JSON.stringify(assessmentData, null, 2)}
 Provide specific recommendations for difficulty adjustment including question types, cognitive levels, and support strategies.`;
 
   const adjustmentText = await runAssessmentChat(
+    userId,
     systemPrompt,
     'Analyze performance and recommend difficulty adjustments for optimal learning.',
     { maxTokens: 1500, temperature: 0.7 }

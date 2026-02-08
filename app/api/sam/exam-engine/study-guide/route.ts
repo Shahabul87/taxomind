@@ -3,7 +3,8 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
 
     // Generate personalized study guide
     const studyGuide = await generatePersonalizedStudyGuide(
+      user.id,
       studentData,
       focusAreas,
       includeWeakAreas
@@ -52,6 +54,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Generate study guide error:', error);
     return NextResponse.json(
       { error: 'Failed to generate study guide' },
@@ -257,6 +261,7 @@ function analyzeExamPerformance(attempts: any[]): any {
 }
 
 async function generatePersonalizedStudyGuide(
+  userId: string,
   studentData: any,
   focusAreas: string[] | null,
   includeWeakAreas: boolean
@@ -285,7 +290,9 @@ ${focusAreas?.join(', ') || 'General improvement'}
 5. A suggested study schedule
 6. Tips for improvement based on performance patterns`;
 
-  const guideText = await runSAMChat({
+  const guideText = await runSAMChatWithPreference({
+    userId,
+    capability: 'analysis',
     maxTokens: 3000,
     temperature: 0.7,
     systemPrompt,

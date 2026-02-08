@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,19 +29,19 @@ export async function POST(request: NextRequest) {
 
     switch (planType) {
       case 'detailed_lesson':
-        lessonPlan = await generateDetailedLessonPlan(subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
+        lessonPlan = await generateDetailedLessonPlan(user.id, subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
         break;
       case 'unit_plan':
-        lessonPlan = await generateUnitPlan(subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
+        lessonPlan = await generateUnitPlan(user.id, subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
         break;
       case 'activity_plan':
-        lessonPlan = await generateActivityPlan(subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
+        lessonPlan = await generateActivityPlan(user.id, subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
         break;
       case 'assessment_plan':
-        lessonPlan = await generateAssessmentPlan(subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
+        lessonPlan = await generateAssessmentPlan(user.id, subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
         break;
       case 'differentiated_plan':
-        lessonPlan = await generateDifferentiatedPlan(subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
+        lessonPlan = await generateDifferentiatedPlan(user.id, subject, topic, duration, studentLevel, learningObjectives, constraints, teachingStyle, classSize, resources);
         break;
       default:
         return NextResponse.json({ error: 'Invalid plan type' }, { status: 400 });
@@ -54,6 +55,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Lesson planner error:', error);
     return NextResponse.json(
       { error: 'Failed to generate lesson plan' },
@@ -63,12 +66,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function runLessonPlannerChat(
+  userId: string,
   systemPrompt: string,
   userPrompt: string,
-  options?: { maxTokens?: number; temperature?: number; model?: string }
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChat({
-    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+  return runSAMChatWithPreference({
+    userId,
+    capability: 'chat',
     maxTokens: options?.maxTokens ?? 2500,
     temperature: options?.temperature ?? 0.7,
     systemPrompt,
@@ -77,6 +82,7 @@ async function runLessonPlannerChat(
 }
 
 async function generateDetailedLessonPlan(
+  userId: string,
   subject: string,
   topic: string,
   duration: string,
@@ -123,6 +129,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Make the plan practical, engaging, and aligned with modern educational best practices.`;
 
   const planText = await runLessonPlannerChat(
+    userId,
     systemPrompt,
     `Create a detailed lesson plan for ${topic} in ${subject}.`,
     { maxTokens: 3000, temperature: 0.7 }
@@ -149,6 +156,7 @@ Make the plan practical, engaging, and aligned with modern educational best prac
 }
 
 async function generateUnitPlan(
+  userId: string,
   subject: string,
   topic: string,
   duration: string,
@@ -195,6 +203,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create a cohesive unit that builds understanding progressively and engages students throughout.`;
 
   const planText = await runLessonPlannerChat(
+    userId,
     systemPrompt,
     `Create a comprehensive unit plan for ${topic} in ${subject}.`,
     { maxTokens: 3000, temperature: 0.7 }
@@ -219,6 +228,7 @@ Create a cohesive unit that builds understanding progressively and engages stude
 }
 
 async function generateActivityPlan(
+  userId: string,
   subject: string,
   topic: string,
   duration: string,
@@ -265,6 +275,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create activities that are engaging, educational, and practically feasible for the classroom.`;
 
   const planText = await runLessonPlannerChat(
+    userId,
     systemPrompt,
     `Create engaging activities for ${topic} in ${subject}.`,
     { maxTokens: 2000, temperature: 0.8 }
@@ -288,6 +299,7 @@ Create activities that are engaging, educational, and practically feasible for t
 }
 
 async function generateAssessmentPlan(
+  userId: string,
   subject: string,
   topic: string,
   duration: string,
@@ -334,6 +346,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create assessments that are fair, comprehensive, and aligned with learning objectives.`;
 
   const planText = await runLessonPlannerChat(
+    userId,
     systemPrompt,
     `Create comprehensive assessment strategies for ${topic} in ${subject}.`,
     { maxTokens: 2500, temperature: 0.7 }
@@ -357,6 +370,7 @@ Create assessments that are fair, comprehensive, and aligned with learning objec
 }
 
 async function generateDifferentiatedPlan(
+  userId: string,
   subject: string,
   topic: string,
   duration: string,
@@ -403,6 +417,7 @@ ${resources.map(resource => `- ${resource}`).join('\n')}
 Create a plan that ensures all students can access and engage with the content at their level.`;
 
   const planText = await runLessonPlannerChat(
+    userId,
     systemPrompt,
     `Create a differentiated lesson plan for ${topic} in ${subject}.`,
     { maxTokens: 2500, temperature: 0.7 }

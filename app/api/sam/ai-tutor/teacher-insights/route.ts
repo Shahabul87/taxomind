@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,22 +22,22 @@ export async function GET(request: NextRequest) {
 
     switch (metric) {
       case 'overview':
-        insights = await generateOverviewInsights(courseId, timeframe);
+        insights = await generateOverviewInsights(user.id, courseId, timeframe);
         break;
       case 'engagement':
-        insights = await generateEngagementInsights(courseId, timeframe);
+        insights = await generateEngagementInsights(user.id, courseId, timeframe);
         break;
       case 'performance':
-        insights = await generatePerformanceInsights(courseId, timeframe);
+        insights = await generatePerformanceInsights(user.id, courseId, timeframe);
         break;
       case 'at_risk':
-        insights = await generateAtRiskInsights(courseId, timeframe);
+        insights = await generateAtRiskInsights(user.id, courseId, timeframe);
         break;
       case 'learning_patterns':
-        insights = await generateLearningPatternInsights(courseId, timeframe);
+        insights = await generateLearningPatternInsights(user.id, courseId, timeframe);
         break;
       case 'content_effectiveness':
-        insights = await generateContentEffectivenessInsights(courseId, timeframe);
+        insights = await generateContentEffectivenessInsights(user.id, courseId, timeframe);
         break;
       default:
         return NextResponse.json({ error: 'Invalid metric type' }, { status: 400 });
@@ -52,6 +53,8 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Teacher insights error:', error);
     return NextResponse.json(
       { error: 'Failed to generate teacher insights' },
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
         result = await analyzeContentEffectiveness(courseId);
         break;
       case 'custom_insight':
-        result = await generateCustomInsight(customQuery, courseId);
+        result = await generateCustomInsight(user.id, customQuery, courseId);
         break;
       case 'export_report':
         result = await exportInsightsReport(courseId);
@@ -102,6 +105,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Teacher insights action error:', error);
     return NextResponse.json(
       { error: 'Failed to process teacher insights action' },
@@ -111,12 +116,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function runTeacherInsightsChat(
+  userId: string,
   systemPrompt: string,
   userPrompt: string,
-  options?: { maxTokens?: number; temperature?: number; model?: string }
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChat({
-    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+  return runSAMChatWithPreference({
+    userId,
+    capability: 'analysis',
     maxTokens: options?.maxTokens ?? 1500,
     temperature: options?.temperature ?? 0.7,
     systemPrompt,
@@ -124,7 +131,7 @@ async function runTeacherInsightsChat(
   });
 }
 
-async function generateOverviewInsights(courseId: string | null, timeframe: string) {
+async function generateOverviewInsights(userId: string, courseId: string | null, timeframe: string) {
   const { startDate, previousStartDate, endDate } = getTimeframeRange(timeframe);
   const enrollmentWhere = courseId ? { courseId } : {};
 
@@ -323,6 +330,7 @@ Provide actionable insights including:
 Make the insights practical and actionable for teachers.`;
 
   const analysisText = await runTeacherInsightsChat(
+    userId,
     systemPrompt,
     'Generate comprehensive class overview insights for this teacher.',
     { maxTokens: 1500, temperature: 0.7 }
@@ -364,7 +372,7 @@ Make the insights practical and actionable for teachers.`;
   };
 }
 
-async function generateEngagementInsights(courseId: string | null, timeframe: string) {
+async function generateEngagementInsights(userId: string, courseId: string | null, timeframe: string) {
   const { startDate, previousStartDate, endDate } = getTimeframeRange(timeframe);
   const activityWhere = {
     ...(courseId ? { courseId } : {}),
@@ -439,6 +447,7 @@ Provide insights on:
 Focus on actionable recommendations to improve student engagement.`;
 
   const analysisText = await runTeacherInsightsChat(
+    userId,
     systemPrompt,
     'Analyze the engagement patterns and provide actionable insights.',
     { maxTokens: 1200, temperature: 0.7 }
@@ -476,7 +485,7 @@ Focus on actionable recommendations to improve student engagement.`;
   };
 }
 
-async function generatePerformanceInsights(courseId: string | null, timeframe: string) {
+async function generatePerformanceInsights(userId: string, courseId: string | null, timeframe: string) {
   const { startDate, endDate } = getTimeframeRange(timeframe);
   const attempts = await db.userExamAttempt.findMany({
     where: {
@@ -552,6 +561,7 @@ Provide insights on:
 Focus on data-driven recommendations for improving student outcomes.`;
 
   const analysisText = await runTeacherInsightsChat(
+    userId,
     systemPrompt,
     'Analyze the performance data and provide actionable insights.',
     { maxTokens: 1200, temperature: 0.7 }
@@ -577,7 +587,7 @@ Focus on data-driven recommendations for improving student outcomes.`;
   };
 }
 
-async function generateAtRiskInsights(courseId: string | null, timeframe: string) {
+async function generateAtRiskInsights(userId: string, courseId: string | null, timeframe: string) {
   const { startDate, endDate } = getTimeframeRange(timeframe);
   const enrollments = await db.enrollment.findMany({
     where: courseId ? { courseId } : {},
@@ -710,6 +720,7 @@ Provide insights on:
 Focus on prevention and early intervention strategies.`;
 
   const analysisText = await runTeacherInsightsChat(
+    userId,
     systemPrompt,
     'Analyze at-risk student patterns and provide intervention strategies.',
     { maxTokens: 1200, temperature: 0.7 }
@@ -732,7 +743,7 @@ Focus on prevention and early intervention strategies.`;
   };
 }
 
-async function generateLearningPatternInsights(courseId: string | null, timeframe: string) {
+async function generateLearningPatternInsights(userId: string, courseId: string | null, timeframe: string) {
   const { startDate, endDate } = getTimeframeRange(timeframe);
   const activityLogs = await db.learningActivityLog.findMany({
     where: {
@@ -770,6 +781,7 @@ Provide insights on:
 Focus on how to adapt teaching methods to match student learning patterns.`;
 
   const analysisText = await runTeacherInsightsChat(
+    userId,
     systemPrompt,
     'Analyze learning patterns and suggest teaching adaptations.',
     { maxTokens: 1000, temperature: 0.7 }
@@ -789,7 +801,7 @@ Focus on how to adapt teaching methods to match student learning patterns.`;
   };
 }
 
-async function generateContentEffectivenessInsights(courseId: string | null, timeframe: string) {
+async function generateContentEffectivenessInsights(userId: string, courseId: string | null, timeframe: string) {
   const { startDate, endDate } = getTimeframeRange(timeframe);
   const activityLogs = await db.learningActivityLog.findMany({
     where: {
@@ -826,6 +838,7 @@ Provide insights on:
 Focus on data-driven content optimization strategies.`;
 
   const analysisText = await runTeacherInsightsChat(
+    userId,
     systemPrompt,
     'Analyze content effectiveness and provide optimization suggestions.',
     { maxTokens: 1000, temperature: 0.7 }
@@ -916,7 +929,7 @@ async function analyzeContentEffectiveness(courseId: string) {
   };
 }
 
-async function generateCustomInsight(query: string, courseId: string) {
+async function generateCustomInsight(userId: string, query: string, courseId: string) {
   const systemPrompt = `You are SAM, an AI teaching assistant. A teacher has asked a specific question about their course or students. Provide a helpful, data-driven response.
 
 **Teacher Query:** ${query}
@@ -925,6 +938,7 @@ async function generateCustomInsight(query: string, courseId: string) {
 Provide practical, actionable insights based on educational best practices and data analysis principles.`;
 
   const analysisText = await runTeacherInsightsChat(
+    userId,
     systemPrompt,
     query,
     { maxTokens: 800, temperature: 0.7 }

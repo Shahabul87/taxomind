@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import {
@@ -7,6 +7,7 @@ import {
   type GeneratedContent,
   type DifficultyLevel,
 } from '@sam-ai/quality';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +47,9 @@ Return a JSON array of problems, each with:
 - explanation: Why this is the correct answer
 - bloomsLevel: Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation`;
 
-    const problemsText = await runSAMChat({
+    const problemsText = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'chat',
       maxTokens: 2000,
       temperature: 0.8,
       systemPrompt,
@@ -118,6 +121,8 @@ Return a JSON array of problems, each with:
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Practice problems generation error:', error);
     return NextResponse.json(
       { error: 'Failed to generate practice problems' },

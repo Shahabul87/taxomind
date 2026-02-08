@@ -261,18 +261,70 @@ export async function GET(req: NextRequest) {
 
     const courseIds = enrollments.map(e => e.courseId);
 
-    // Batch fetch all data for efficiency
-    const [
-      sectionCompletions,
-      learningSessions,
-      examAttempts,
-      practiceSessions,
-      goals,
-      studyStreaks,
-      bloomsProgress,
-    ] = await Promise.all([
+    // Batch fetch all data for efficiency - with individual error handling
+    // Using explicit types to handle includes properly
+    type SectionCompletionWithRelations = {
+      id: string;
+      userId: string;
+      sectionId: string;
+      completedAt: Date | null;
+      timeSpent: number;
+      section: {
+        id: string;
+        title: string;
+        chapterId: string;
+        chapter: { courseId: string };
+      };
+    };
+
+    type ExamAttemptWithRelations = {
+      id: string;
+      userId: string;
+      scorePercentage: number | null;
+      isPassed: boolean | null;
+      Exam: {
+        section: {
+          chapter: { courseId: string };
+        } | null;
+      } | null;
+      UserAnswer: Array<{
+        ExamQuestion: { bloomsLevel: string | null } | null;
+      }> | null;
+    };
+
+    type GoalWithSubGoals = {
+      id: string;
+      courseId: string | null;
+      subGoals: Array<{
+        id: string;
+        title: string;
+        status: string;
+        completedAt: Date | null;
+      }>;
+    };
+
+    let sectionCompletions: SectionCompletionWithRelations[] = [];
+    let learningSessions: Array<{
+      id: string;
+      sessionType: string;
+      contentId: string;
+      startTime: Date;
+      duration: number;
+    }> = [];
+    let examAttempts: ExamAttemptWithRelations[] = [];
+    let practiceSessions: Array<{
+      id: string;
+      courseId: string | null;
+      startedAt: Date;
+      durationMinutes: number;
+    }> = [];
+    let goals: GoalWithSubGoals[] = [];
+    let studyStreaks: { currentStreak: number } | null = null;
+    let bloomsProgress: Array<{ courseId: string | null }> = [];
+
+    try {
       // Section completions for progress
-      db.userSectionCompletion.findMany({
+      const rawCompletions = await db.userSectionCompletion.findMany({
         where: {
           userId: user.id,
           section: { chapter: { courseId: { in: courseIds } } },
@@ -287,20 +339,33 @@ export async function GET(req: NextRequest) {
             },
           },
         },
-      }),
+      });
+      sectionCompletions = rawCompletions as unknown as SectionCompletionWithRelations[];
+    } catch (e) {
+      logger.error('[COURSE_OVERVIEW] Error fetching section completions:', e);
+    }
 
+    try {
       // Learning sessions for time tracking
-      db.sAMLearningSession.findMany({
+      const rawSessions = await db.learningSession.findMany({
         where: {
           userId: user.id,
-          courseId: { in: courseIds },
+          OR: [
+            { sessionType: 'course', contentId: { in: courseIds } },
+            { sessionType: { in: ['chapter', 'section'] } },
+          ],
           startTime: { gte: timeRangeStart },
         },
         orderBy: { startTime: 'desc' },
-      }),
+      });
+      learningSessions = rawSessions as typeof learningSessions;
+    } catch (e) {
+      logger.error('[COURSE_OVERVIEW] Error fetching learning sessions:', e);
+    }
 
+    try {
       // Exam attempts for assessment tracking
-      db.userExamAttempt.findMany({
+      const rawAttempts = await db.userExamAttempt.findMany({
         where: {
           userId: user.id,
           Exam: { section: { chapter: { courseId: { in: courseIds } } } },
@@ -321,19 +386,29 @@ export async function GET(req: NextRequest) {
             },
           },
         },
-      }),
+      });
+      examAttempts = rawAttempts as unknown as ExamAttemptWithRelations[];
+    } catch (e) {
+      logger.error('[COURSE_OVERVIEW] Error fetching exam attempts:', e);
+    }
 
+    try {
       // Practice sessions
-      db.practiceSession.findMany({
+      const rawPractice = await db.practiceSession.findMany({
         where: {
           userId: user.id,
           courseId: { in: courseIds },
           startedAt: { gte: timeRangeStart },
         },
-      }),
+      });
+      practiceSessions = rawPractice as typeof practiceSessions;
+    } catch (e) {
+      logger.error('[COURSE_OVERVIEW] Error fetching practice sessions:', e);
+    }
 
+    try {
       // Goals for milestones
-      db.sAMLearningGoal.findMany({
+      const rawGoals = await db.sAMLearningGoal.findMany({
         where: {
           userId: user.id,
           courseId: { in: courseIds },
@@ -343,22 +418,35 @@ export async function GET(req: NextRequest) {
             orderBy: { order: 'asc' },
           },
         },
-      }),
+      });
+      goals = rawGoals as unknown as GoalWithSubGoals[];
+    } catch (e) {
+      logger.error('[COURSE_OVERVIEW] Error fetching goals:', e);
+    }
 
+    try {
       // Study streaks
-      db.study_streaks.findFirst({
+      const rawStreaks = await db.study_streaks.findFirst({
         where: { userId: user.id },
         orderBy: { updatedAt: 'desc' },
-      }),
+      });
+      studyStreaks = rawStreaks as typeof studyStreaks;
+    } catch (e) {
+      logger.error('[COURSE_OVERVIEW] Error fetching study streaks:', e);
+    }
 
+    try {
       // Bloom's progress for cognitive breakdown
-      db.studentBloomsProgress.findMany({
+      const rawBlooms = await db.studentBloomsProgress.findMany({
         where: {
           userId: user.id,
           courseId: { in: courseIds },
         },
-      }),
-    ]);
+      });
+      bloomsProgress = rawBlooms as typeof bloomsProgress;
+    } catch (e) {
+      logger.error('[COURSE_OVERVIEW] Error fetching blooms progress:', e);
+    }
 
     // Group data by course
     const courseAnalytics: CourseAnalytics[] = enrollments.map(enrollment => {
@@ -374,15 +462,16 @@ export async function GET(req: NextRequest) {
         0
       );
 
-      // Get completions for this course
+      // Get completions for this course (with null safety)
       const courseCompletions = sectionCompletions.filter(
-        sc => sc.section.chapter.courseId === course.id
+        sc => sc.section?.chapter?.courseId === course.id
       );
       const sectionsCompleted = courseCompletions.filter(sc => sc.completedAt).length;
       const completedChapterIds = new Set(
         courseCompletions
           .filter(sc => sc.completedAt)
-          .map(sc => sc.section.chapterId)
+          .map(sc => sc.section?.chapterId)
+          .filter((id): id is string => Boolean(id))
       );
 
       // Check if all sections in a chapter are completed
@@ -399,13 +488,42 @@ export async function GET(req: NextRequest) {
         ? Math.round((sectionsCompleted / totalSections) * 100)
         : 0;
 
-      // Time tracking
-      const courseSessions = learningSessions.filter(s => s.courseId === course.id);
-      const totalMinutes = courseSessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+      // Time tracking - use multiple sources
+      // 1. LearningSession: contentId is courseId when sessionType='course'
+      const courseSessions = learningSessions.filter(s =>
+        s.sessionType === 'course' && s.contentId === course.id
+      );
+
+      // 2. Calculate time from section completions (timeSpent is in seconds)
+      const timeFromCompletions = courseCompletions.reduce(
+        (sum, sc) => sum + (sc.timeSpent ?? 0),
+        0
+      );
+
+      // 3. Calculate time from practice sessions
+      const coursePracticeSessions = practiceSessions.filter(ps => ps.courseId === course.id);
+      const timeFromPractice = coursePracticeSessions.reduce(
+        (sum, ps) => sum + ((ps.durationMinutes ?? 0) * 60),
+        0
+      );
+
+      // Total time in minutes (convert seconds to minutes)
+      const sessionTimeSeconds = courseSessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+      const totalSeconds = sessionTimeSeconds + timeFromCompletions + timeFromPractice;
+      const totalMinutes = Math.round(totalSeconds / 60);
+
+      // This week's time
       const thisWeekSessions = courseSessions.filter(s => s.startTime >= weekAgo);
-      const thisWeekMinutes = thisWeekSessions.reduce((sum, s) => sum + (s.duration ?? 0), 0);
-      const averageSessionMinutes = courseSessions.length > 0
-        ? Math.round(totalMinutes / courseSessions.length)
+      const thisWeekPractice = coursePracticeSessions.filter(ps => ps.startedAt >= weekAgo);
+      const thisWeekSeconds =
+        thisWeekSessions.reduce((sum, s) => sum + (s.duration ?? 0), 0) +
+        thisWeekPractice.reduce((sum, ps) => sum + ((ps.durationMinutes ?? 0) * 60), 0);
+      const thisWeekMinutes = Math.round(thisWeekSeconds / 60);
+
+      // Average session time
+      const totalSessionCount = courseSessions.length + coursePracticeSessions.length;
+      const averageSessionMinutes = totalSessionCount > 0
+        ? Math.round(totalMinutes / totalSessionCount)
         : 0;
 
       // Assessment tracking
@@ -442,18 +560,18 @@ export async function GET(req: NextRequest) {
           }
         : { remember: 0, understand: 0, apply: 0, analyze: 0, evaluate: 0, create: 0 };
 
-      // Practice sessions
-      const coursePractice = practiceSessions.filter(ps => ps.courseId === course.id);
-      const totalPracticeMinutes = coursePractice.reduce(
+      // Practice sessions - use coursePracticeSessions already defined above
+      const totalPracticeMinutes = coursePracticeSessions.reduce(
         (sum, ps) => sum + (ps.durationMinutes ?? 0),
         0
       );
 
-      // Milestones from goals
+      // Milestones from goals (with null safety)
       const courseGoals = goals.filter(g => g.courseId === course.id);
       const milestones: CourseMilestone[] = courseGoals.flatMap(goal => {
-        // Create milestones from subgoals
-        const subGoalMilestones = goal.subGoals.slice(0, 5).map(sg => ({
+        // Create milestones from subgoals (with null safety)
+        const subGoals = goal.subGoals ?? [];
+        const subGoalMilestones = subGoals.slice(0, 5).map(sg => ({
           id: sg.id,
           title: sg.title,
           status: (sg.status === 'completed' ? 'completed' :
@@ -466,10 +584,10 @@ export async function GET(req: NextRequest) {
         return subGoalMilestones;
       });
 
-      // Topics from chapters/sections
+      // Topics from chapters/sections (with null safety)
       const topics: TopicProgress[] = course.chapters.slice(0, 10).map(chapter => {
         const chapterCompletions = courseCompletions.filter(
-          sc => sc.section.chapterId === chapter.id
+          sc => sc.section?.chapterId === chapter.id
         );
         const chapterSectionCount = chapter.sections.length;
         const completedCount = chapterCompletions.filter(sc => sc.completedAt).length;
@@ -546,13 +664,13 @@ export async function GET(req: NextRequest) {
           totalMinutes,
           thisWeekMinutes,
           averageSessionMinutes,
-          sessionsCount: courseSessions.length,
+          sessionsCount: totalSessionCount,
         },
         assessments: {
           examAttempts: courseExamAttempts.length,
           averageScore,
           passedExams,
-          practiceSessionsCount: coursePractice.length,
+          practiceSessionsCount: coursePracticeSessions.length,
           totalPracticeMinutes,
           bloomsBreakdown,
         },

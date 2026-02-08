@@ -40,16 +40,16 @@ const RETRY_AFTER_MS = 30000;
 
 const DEGRADED_RESPONSES: Record<string, (entitySummary?: string) => string> = {
   greeting: () =>
-    'Hi! I&apos;m currently running in limited mode due to a temporary service issue. ' +
+    "Hi! I'm currently running in limited mode due to a temporary service issue. " +
     'I can still help with basic navigation and information on this page. ' +
     'Full AI capabilities will be restored shortly.',
 
   question: (entitySummary) =>
     entitySummary
-      ? `I&apos;m experiencing connectivity issues, so I can&apos;t provide a full AI-powered answer right now. ` +
+      ? `I'm experiencing connectivity issues, so I can't provide a full AI-powered answer right now. ` +
         `However, based on your current page context:\n\n${entitySummary}\n\n` +
         `Please try again in a moment for a more detailed response.`
-      : 'I&apos;m temporarily unable to process questions due to a connectivity issue. ' +
+      : "I'm temporarily unable to process questions due to a connectivity issue. " +
         'Please try again in about 30 seconds. In the meantime, you can browse the page content directly.',
 
   tool_request: () =>
@@ -66,7 +66,7 @@ const DEGRADED_RESPONSES: Record<string, (entitySummary?: string) => string> = {
     'Full assessment capabilities will return shortly.',
 
   goal_query: () =>
-    'I can&apos;t retrieve your goal details right now due to a temporary issue. ' +
+    "I can't retrieve your goal details right now due to a temporary issue. " +
     'Please try again in a moment.',
 
   progress_check: () =>
@@ -74,12 +74,12 @@ const DEGRADED_RESPONSES: Record<string, (entitySummary?: string) => string> = {
     'Your progress data is safe and will be fully available once the service is restored.',
 
   feedback: () =>
-    'Thank you for your feedback. I&apos;m currently in limited mode, ' +
+    "Thank you for your feedback. I'm currently in limited mode, " +
     'but your feedback has been noted and will be processed when full service resumes.',
 };
 
 const DEFAULT_DEGRADED_RESPONSE = () =>
-  'I&apos;m temporarily operating with reduced capabilities due to a service interruption. ' +
+  "I'm temporarily operating with reduced capabilities due to a service interruption. " +
   'Please try again in about 30 seconds. Your data and progress are safe.';
 
 // =============================================================================

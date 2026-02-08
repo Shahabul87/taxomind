@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // ==========================================
 // AI-Powered Analytics Insights API
@@ -80,7 +81,8 @@ export async function GET(request: NextRequest) {
       learningData,
       creatorData,
       params.view,
-      params.focusArea
+      params.focusArea,
+      user.id
     );
 
     return NextResponse.json({
@@ -96,6 +98,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid parameters', details: error.errors },
@@ -252,7 +257,8 @@ async function generateAIInsights(
   learningData: LearningData,
   creatorData: CreatorData,
   view: string,
-  focusArea?: string
+  focusArea?: string,
+  userId?: string
 ): Promise<AIInsight[]> {
   const insights: AIInsight[] = [];
 
@@ -265,7 +271,8 @@ async function generateAIInsights(
       learningData,
       creatorData,
       view,
-      focusArea
+      focusArea,
+      userId
     );
     insights.push(...aiEnhancedInsights);
   } catch (error) {
@@ -440,7 +447,8 @@ async function generateClaudeInsights(
   learningData: LearningData,
   creatorData: CreatorData,
   view: string,
-  focusArea?: string
+  focusArea?: string,
+  userId?: string
 ): Promise<AIInsight[]> {
   const prompt = `You are SAM, an AI learning assistant. Analyze this learner's data and provide 2-3 personalized insights.
 
@@ -479,6 +487,8 @@ Focus on actionable, specific insights based on the data. Be encouraging but hon
 
   try {
     const response = await aiClient.chat({
+      userId,
+      capability: 'analysis',
       maxTokens: 500,
       messages: [{ role: 'user', content: prompt }],
     });

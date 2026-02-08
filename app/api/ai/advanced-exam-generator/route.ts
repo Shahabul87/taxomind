@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
 import {
@@ -8,7 +9,7 @@ import {
   ENHANCED_BLOOMS_FRAMEWORK
 } from '@/lib/ai-question-generator';
 import { BloomsLevel, QuestionType } from '@prisma/client';
-import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
+
 
 // SAM Exam Generation Service
 import { generateExamWithSAM } from '@/lib/sam/exam-generation/exam-generator-service';
@@ -279,22 +280,6 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, "exam");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     // Parse and validate request body
     const body = await request.json();
     const parseResult = AdvancedExamGenerationRequestSchema.safeParse(body);
@@ -366,11 +351,6 @@ export async function POST(request: NextRequest) {
           hints: q.hints,
         }));
 
-        // Record AI usage after successful SAM generation (only for users, admins bypass tracking)
-        if (!session.isAdmin && session.userId) {
-          await recordAIUsage(session.userId, "exam", 1);
-        }
-
         return NextResponse.json({
           success: samResult.success,
           questions: enhancedQuestions,
@@ -412,11 +392,6 @@ export async function POST(request: NextRequest) {
     // Use mock questions for legacy fallback
     const mockQuestions = generateAdvancedMockQuestions(examRequest);
 
-    // Record AI usage after successful legacy generation (only for users, admins bypass tracking)
-    if (!session.isAdmin && session.userId) {
-      await recordAIUsage(session.userId, "exam", 1);
-    }
-
     return NextResponse.json({
       success: true,
       questions: mockQuestions,
@@ -431,9 +406,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Advanced exam generator error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },

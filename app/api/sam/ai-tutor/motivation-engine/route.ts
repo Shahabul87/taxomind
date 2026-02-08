@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,28 +24,28 @@ export async function POST(request: NextRequest) {
 
     switch (motivationType) {
       case 'daily_boost':
-        motivationResponse = await generateDailyMotivation(learningContext, userState);
+        motivationResponse = await generateDailyMotivation(user.id, learningContext, userState);
         break;
       case 'struggle_support':
-        motivationResponse = await generateStruggleSupport(learningContext, userState, recentActivity);
+        motivationResponse = await generateStruggleSupport(user.id, learningContext, userState, recentActivity);
         break;
       case 'achievement_celebration':
-        motivationResponse = await generateAchievementCelebration(learningContext, userState);
+        motivationResponse = await generateAchievementCelebration(user.id, learningContext, userState);
         break;
       case 'streak_encouragement':
-        motivationResponse = await generateStreakEncouragement(learningContext, userState);
+        motivationResponse = await generateStreakEncouragement(user.id, learningContext, userState);
         break;
       case 'goal_reminder':
-        motivationResponse = await generateGoalReminder(learningContext, userState);
+        motivationResponse = await generateGoalReminder(user.id, learningContext, userState);
         break;
       case 'peer_inspiration':
-        motivationResponse = await generatePeerInspiration(learningContext, userState);
+        motivationResponse = await generatePeerInspiration(user.id, learningContext, userState);
         break;
       case 'comeback_motivation':
-        motivationResponse = await generateComebackMotivation(learningContext, userState);
+        motivationResponse = await generateComebackMotivation(user.id, learningContext, userState);
         break;
       case 'personalized_message':
-        motivationResponse = await generatePersonalizedMessage(learningContext, userState, personalityProfile);
+        motivationResponse = await generatePersonalizedMessage(user.id, learningContext, userState, personalityProfile);
         break;
       default:
         return NextResponse.json({ error: 'Invalid motivation type' }, { status: 400 });
@@ -58,6 +59,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Motivation engine error:', error);
     return NextResponse.json(
       { error: 'Failed to generate motivation' },
@@ -67,12 +70,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function runMotivationChat(
+  userId: string,
   systemPrompt: string,
   userPrompt: string,
-  options?: { maxTokens?: number; temperature?: number; model?: string }
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChat({
-    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+  return runSAMChatWithPreference({
+    userId,
+    capability: 'chat',
     maxTokens: options?.maxTokens ?? 400,
     temperature: options?.temperature ?? 0.7,
     systemPrompt,
@@ -80,7 +85,7 @@ async function runMotivationChat(
   });
 }
 
-async function generateDailyMotivation(learningContext: any, userState: any) {
+async function generateDailyMotivation(userId: string, learningContext: any, userState: any) {
   const systemPrompt = `You are SAM, an AI tutor providing daily motivation. Generate an inspiring, personalized daily motivation message based on the user's learning context and current state.
 
 **Learning Context:**
@@ -98,6 +103,7 @@ ${JSON.stringify(userState, null, 2)}
 - Include relevant emojis to make it engaging`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'Generate a daily motivation message for me.',
     { maxTokens: 300, temperature: 0.8 }
@@ -118,7 +124,7 @@ ${JSON.stringify(userState, null, 2)}
   };
 }
 
-async function generateStruggleSupport(learningContext: any, userState: any, recentActivity: any) {
+async function generateStruggleSupport(userId: string, learningContext: any, userState: any, recentActivity: any) {
   const systemPrompt = `You are SAM, an AI tutor providing emotional support and encouragement during difficult learning moments. Generate a supportive, empathetic message that helps the user overcome their current learning struggle.
 
 **Learning Context:**
@@ -139,6 +145,7 @@ ${JSON.stringify(recentActivity, null, 2)}
 - Include growth mindset principles`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'I\'m struggling with this topic and feeling frustrated.',
     { maxTokens: 400, temperature: 0.7 }
@@ -165,7 +172,7 @@ ${JSON.stringify(recentActivity, null, 2)}
   };
 }
 
-async function generateAchievementCelebration(learningContext: any, userState: any) {
+async function generateAchievementCelebration(userId: string, learningContext: any, userState: any) {
   const recentAchievements = userState.recentAchievements || [];
   
   const systemPrompt = `You are SAM, an AI tutor celebrating the user's achievements. Generate an enthusiastic, celebratory message acknowledging their accomplishments and encouraging continued progress.
@@ -188,6 +195,7 @@ ${JSON.stringify(recentAchievements, null, 2)}
 - Make it feel special and rewarding`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'I just completed a major milestone in my learning journey!',
     { maxTokens: 300, temperature: 0.8 }
@@ -212,7 +220,7 @@ ${JSON.stringify(recentAchievements, null, 2)}
   };
 }
 
-async function generateStreakEncouragement(learningContext: any, userState: any) {
+async function generateStreakEncouragement(userId: string, learningContext: any, userState: any) {
   const streakData = userState.streakData || {};
   
   const systemPrompt = `You are SAM, an AI tutor encouraging the user to maintain their learning streak. Generate a motivating message that acknowledges their consistency and encourages them to continue.
@@ -235,6 +243,7 @@ ${JSON.stringify(streakData, null, 2)}
 - Include streak-related imagery and language`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'I want to maintain my learning streak and stay motivated.',
     { maxTokens: 300, temperature: 0.7 }
@@ -259,7 +268,7 @@ ${JSON.stringify(streakData, null, 2)}
   };
 }
 
-async function generateGoalReminder(learningContext: any, userState: any) {
+async function generateGoalReminder(userId: string, learningContext: any, userState: any) {
   const goals = userState.goals || [];
   
   const systemPrompt = `You are SAM, an AI tutor helping the user stay focused on their learning goals. Generate a motivating reminder message that reconnects them with their objectives and encourages progress.
@@ -282,6 +291,7 @@ ${JSON.stringify(goals, null, 2)}
 - Connect daily actions to bigger picture`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'Help me stay focused on my learning goals.',
     { maxTokens: 300, temperature: 0.7 }
@@ -307,7 +317,7 @@ ${JSON.stringify(goals, null, 2)}
   };
 }
 
-async function generatePeerInspiration(learningContext: any, userState: any) {
+async function generatePeerInspiration(userId: string, learningContext: any, userState: any) {
   const peerData = userState.peerData || {};
   
   const systemPrompt = `You are SAM, an AI tutor providing inspiration based on peer achievements and community success. Generate a motivating message that uses social proof and peer examples to inspire continued learning.
@@ -330,6 +340,7 @@ ${JSON.stringify(peerData, null, 2)}
 - Maintain positive, inclusive tone`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'I want to be inspired by what others are achieving in their learning.',
     { maxTokens: 300, temperature: 0.7 }
@@ -355,7 +366,7 @@ ${JSON.stringify(peerData, null, 2)}
   };
 }
 
-async function generateComebackMotivation(learningContext: any, userState: any) {
+async function generateComebackMotivation(userId: string, learningContext: any, userState: any) {
   const inactivityData = userState.inactivityData || {};
   
   const systemPrompt = `You are SAM, an AI tutor welcoming back a user who has been inactive and helping them restart their learning journey. Generate a warm, encouraging comeback message that addresses their absence positively.
@@ -378,6 +389,7 @@ ${JSON.stringify(inactivityData, null, 2)}
 - Keep the tone positive and supportive`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'I\'ve been away from learning for a while and want to get back into it.',
     { maxTokens: 300, temperature: 0.7 }
@@ -403,7 +415,7 @@ ${JSON.stringify(inactivityData, null, 2)}
   };
 }
 
-async function generatePersonalizedMessage(learningContext: any, userState: any, personalityProfile: any) {
+async function generatePersonalizedMessage(userId: string, learningContext: any, userState: any, personalityProfile: any) {
   const systemPrompt = `You are SAM, an AI tutor creating a highly personalized motivation message based on the user's unique personality profile and learning preferences.
 
 **Learning Context:**
@@ -424,6 +436,7 @@ ${JSON.stringify(personalityProfile, null, 2)}
 - Use language that resonates with their values`;
 
   const motivationText = await runMotivationChat(
+    userId,
     systemPrompt,
     'Give me a personalized motivation message that speaks to who I am as a learner.',
     { maxTokens: 400, temperature: 0.8 }

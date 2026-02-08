@@ -64,6 +64,7 @@ model Course {
   organization                 Organization?                  @relation("OrganizationCourses", fields: [organizationId], references: [id])
   user                         User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
   CourseBloomsAnalysis         CourseBloomsAnalysis?
+  CourseDepthAnalysisV2        CourseDepthAnalysisV2[]        @relation("CourseDepthAnalysisV2")
   CourseCompetitor             CourseCompetitor[]
   CourseGuideAnalysis          CourseGuideAnalysis?
   CourseMarketAnalysis         CourseMarketAnalysis?
@@ -1422,4 +1423,235 @@ model AnalysisEvidence {
   @@index([sourceType, sourceId])
   @@index([classification])
   @@index([confidence])
+}
+
+// =============================================================================
+// Enhanced Course Depth Analysis V2 (January 2026)
+// =============================================================================
+// Comprehensive AI-powered course analysis with specific issues and fix guidance
+
+enum DepthAnalysisStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  NEEDS_REANALYSIS
+}
+
+enum IssueSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum IssueType {
+  STRUCTURE        // Course structure issues
+  CONTENT          // Content quality issues
+  FLOW             // Learning flow/progression issues
+  DUPLICATE        // Duplicate content
+  CONSISTENCY      // Chapter/section consistency
+  DEPTH            // Cognitive depth issues
+  OBJECTIVE        // Learning objective issues
+  ASSESSMENT       // Assessment alignment issues
+  TIME             // Time estimation issues
+  PREREQUISITE     // Missing prerequisite concepts
+  GAP              // Content gaps/duplication
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  SKIPPED
+  WONT_FIX
+}
+
+model CourseDepthAnalysisV2 {
+  id                    String               @id @default(cuid())
+  courseId              String
+  version               Int                  @default(1)
+
+  // Overall Scores (0-100)
+  overallScore          Float
+  depthScore            Float                // Cognitive depth
+  consistencyScore      Float                // Structure consistency
+  flowScore             Float                // Knowledge flow
+  qualityScore          Float                // Content quality
+
+  // Bloom's Analysis
+  bloomsDistribution    Json                 // { REMEMBER: 15, UNDERSTAND: 25, ... }
+  bloomsBalance         String?              // 'well-balanced' | 'bottom-heavy' | 'top-heavy'
+
+  // Detailed Chapter Analysis
+  chapterAnalysis       Json                 // Array of per-chapter analysis
+
+  // Issue Summary Counts
+  issueCountCritical    Int                  @default(0)
+  issueCountHigh        Int                  @default(0)
+  issueCountMedium      Int                  @default(0)
+  issueCountLow         Int                  @default(0)
+  totalIssues           Int                  @default(0)
+
+  // Learning Outcomes
+  learningOutcomes      Json?                // What students will learn
+  skillsGained          Json?                // Skills developed
+  knowledgeGaps         Json?                // Gaps after completion
+
+  // Content Analysis Results
+  duplicateContent      Json?                // Array of duplicate pairs
+  thinSections          Json?                // Sections needing more content
+  contentFlowAnalysis   Json?                // Flow analysis results
+
+  // Metadata
+  contentHash           String?              // Detect course changes
+  status                DepthAnalysisStatus  @default(COMPLETED)
+  errorMessage          String?              // If failed
+  analysisMethod        String?              // 'ai' | 'rule-based' | 'hybrid'
+
+  // Comparison with previous version
+  previousVersionId     String?
+  scoreImprovement      Float?               // Delta from previous
+  issuesResolved        Int?                 // Count of resolved issues
+
+  // Timestamps
+  analyzedAt            DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relations
+  course                Course               @relation("CourseDepthAnalysisV2", fields: [courseId], references: [id], onDelete: Cascade)
+  issues                DepthAnalysisIssue[]
+
+  @@unique([courseId, version])
+  @@index([courseId])
+  @@index([courseId, version])
+  @@index([status])
+  @@index([contentHash])
+  @@map("course_depth_analysis_v2")
+}
+
+model DepthAnalysisIssue {
+  id                    String               @id @default(cuid())
+  analysisId            String
+
+  // Issue Classification
+  type                  IssueType
+  severity              IssueSeverity
+  status                IssueStatus          @default(OPEN)
+
+  // Location (exact)
+  chapterId             String?
+  chapterTitle          String?
+  chapterPosition       Int?
+  sectionId             String?
+  sectionTitle          String?
+  sectionPosition       Int?
+  contentType           String?              // 'title' | 'description' | 'objective' | 'content' | 'assessment'
+
+  // Problem Description
+  title                 String               // Short summary
+  description           String               @db.Text  // Detailed explanation
+  evidence              Json?                // Array of specific examples
+
+  // Impact
+  impactArea            String?              // "Learning Outcomes", "Skill Development", etc.
+  impactDescription     String?              @db.Text
+
+  // Fix Instructions
+  fixAction             String?              // 'add' | 'modify' | 'remove' | 'reorder' | 'split' | 'merge'
+  fixWhat               String?              @db.Text  // What needs to change
+  fixWhy                String?              @db.Text  // Why this fix helps
+  fixHow                String?              @db.Text  // Step-by-step instructions
+  suggestedContent      String?              @db.Text  // AI-generated content suggestion
+  fixExamples           Json?                // Example implementations
+
+  // Related Issues
+  relatedIssueIds       String[]             @default([])
+
+  // User Actions
+  resolvedAt            DateTime?
+  resolvedBy            String?              // userId
+  userNotes             String?              @db.Text
+  skippedReason         String?
+
+  // Timestamps
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Relations
+  analysis              CourseDepthAnalysisV2 @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+  @@index([analysisId, severity])
+  @@index([analysisId, type])
+  @@index([analysisId, status])
+  @@index([chapterId])
+  @@index([sectionId])
+  @@map("depth_analysis_issues")
+}
+
+// Track chapter-level consistency for V2 analysis
+model ChapterConsistencyAnalysis {
+  id                    String               @id @default(cuid())
+  analysisId            String               // Links to CourseDepthAnalysisV2
+  chapterId             String
+
+  // Consistency Scores
+  goalAlignmentScore    Float                // How well chapter aligns with course goals
+  depthConsistencyScore Float                // Uniform depth across sections
+  flowScore             Float                // Knowledge progression within chapter
+
+  // Bloom's Distribution for Chapter
+  bloomsDistribution    Json
+  dominantLevel         String               // Primary Bloom's level
+
+  // Section Analysis
+  sectionCount          Int
+  sectionsAnalyzed      Json                 // Per-section breakdown
+
+  // Issues in this chapter
+  issueIds              String[]             @default([])
+
+  createdAt             DateTime             @default(now())
+
+  @@unique([analysisId, chapterId])
+  @@index([analysisId])
+  @@index([chapterId])
+  @@map("chapter_consistency_analysis")
+}
+
+// Track duplicate content pairs
+model DuplicateContentPair {
+  id                    String               @id @default(cuid())
+  analysisId            String               // Links to CourseDepthAnalysisV2
+
+  // Source A
+  sourceAChapterId      String
+  sourceAChapterTitle   String
+  sourceASectionId      String?
+  sourceASectionTitle   String?
+  sourceAContent        String               @db.Text
+
+  // Source B
+  sourceBChapterId      String
+  sourceBChapterTitle   String
+  sourceBSectionId      String?
+  sourceBSectionTitle   String?
+  sourceBContent        String               @db.Text
+
+  // Similarity Analysis
+  similarityScore       Float                // 0-100
+  overlappingConcepts   Json?                // Array of shared concepts
+  recommendation        String               // 'KEEP_A' | 'KEEP_B' | 'MERGE' | 'KEEP_BOTH'
+  recommendationReason  String?              @db.Text
+
+  // Status
+  resolved              Boolean              @default(false)
+  resolution            String?              // What user decided
+
+  createdAt             DateTime             @default(now())
+
+  @@index([analysisId])
+  @@index([similarityScore])
+  @@map("duplicate_content_pairs")
 }

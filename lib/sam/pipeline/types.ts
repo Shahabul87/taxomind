@@ -55,6 +55,15 @@ export interface PipelineContext {
   options?: { engines?: string[]; stream?: boolean };
   modeId: string;
 
+  // --- Tool conversation (for conversational tools like skill-roadmap-generator) ---
+  toolConversation?: {
+    conversationId: string;
+    toolId: string;
+    // Stateless continuation data (serverless-friendly)
+    currentStep?: string;
+    collected?: Record<string, unknown>;
+  };
+
   // --- Gathered context ---
   entityContext: EntityContext;
   entitySummary: string;

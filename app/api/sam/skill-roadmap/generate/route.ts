@@ -3,14 +3,25 @@
  *
  * AI-powered roadmap generation with course matching.
  * Streams progress events back to the client.
+ *
+ * Uses comprehensive pedagogical guidelines from prompt-templates.ts
+ * to ensure consistent, high-quality roadmap generation.
  */
 
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { db } from '@/lib/db';
 import { aiClient } from '@/lib/ai/enterprise-client';
+import {
+  buildComprehensiveRoadmapPrompt,
+  validateAIResponse,
+  PROFICIENCY_DEFINITIONS,
+  type RoadmapGenerationInput,
+  type AIRoadmapResponse,
+} from '@/lib/sam/roadmap-generation/prompt-templates';
 
 export const runtime = 'nodejs';
 
@@ -40,71 +51,6 @@ const GenerateRoadmapSchema = z.object({
 const LEVEL_ORDER = [
   'NOVICE', 'BEGINNER', 'COMPETENT', 'PROFICIENT', 'ADVANCED', 'EXPERT', 'STRATEGIST',
 ] as const;
-
-// AI prompt for roadmap generation
-function buildRoadmapPrompt(input: z.infer<typeof GenerateRoadmapSchema>): string {
-  return `You are an expert learning path designer. Generate a structured skill development roadmap.
-
-SKILL: ${input.skillName}
-CURRENT LEVEL: ${input.currentLevel}
-TARGET LEVEL: ${input.targetLevel}
-HOURS PER WEEK: ${input.hoursPerWeek}
-LEARNING STYLE: ${input.learningStyle}
-INCLUDE ASSESSMENTS: ${input.includeAssessments}
-PRIORITIZE QUICK WINS: ${input.prioritizeQuickWins}
-
-Generate a roadmap with 4-6 sequential phases to go from ${input.currentLevel} to ${input.targetLevel} in ${input.skillName}.
-
-Return ONLY valid JSON (no markdown, no code blocks) with this exact structure:
-{
-  "title": "Roadmap title",
-  "description": "One-line roadmap description",
-  "phases": [
-    {
-      "title": "Phase title",
-      "description": "What this phase covers (2-3 sentences)",
-      "bloomsLevel": "REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE",
-      "estimatedHours": 20,
-      "durationWeeks": 2,
-      "skills": [
-        {
-          "skillName": "Sub-skill name",
-          "targetLevel": "BEGINNER|COMPETENT|PROFICIENT|ADVANCED",
-          "estimatedHours": 8
-        }
-      ],
-      "courses": [
-        {
-          "title": "Specific course title (10+ chars, actionable)",
-          "description": "What the student will learn in this course (50-100 words)",
-          "difficulty": "BEGINNER|INTERMEDIATE|ADVANCED",
-          "estimatedHours": 8,
-          "reason": "Why this course is needed for this phase"
-        }
-      ],
-      "projects": [
-        {
-          "title": "Hands-on project title",
-          "description": "Project description and deliverable",
-          "difficulty": "BEGINNER|INTERMEDIATE|ADVANCED",
-          "estimatedHours": 6
-        }
-      ],
-      "assessmentCriteria": "What proves mastery of this phase"
-    }
-  ]
-}
-
-Requirements:
-- Each phase should have 2-3 courses and 1-2 projects
-- Course titles should be specific and actionable (e.g., "React Fundamentals: Components, Props & State")
-- Course descriptions should be detailed (50-100 words explaining what the student will learn)
-- Projects should be practical and build on the phase skills
-- Hours should be realistic and add up to a reasonable total
-- Earlier phases should have more foundational content
-- Later phases should have more advanced, applied content
-- If prioritizing quick wins, put high-impact skills early`;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -185,23 +131,39 @@ export async function POST(request: NextRequest) {
             provider: resolvedProvider,
           }));
 
-          // Stage 2: AI Generation
-          const prompt = buildRoadmapPrompt(validated);
+          // Stage 2: AI Generation with Comprehensive Pedagogical Prompt
+          const promptInput: RoadmapGenerationInput = {
+            skillName: validated.skillName,
+            currentLevel: validated.currentLevel,
+            targetLevel: validated.targetLevel,
+            hoursPerWeek: validated.hoursPerWeek,
+            targetCompletionDate: validated.targetCompletionDate,
+            learningStyle: validated.learningStyle,
+            includeAssessments: validated.includeAssessments,
+            prioritizeQuickWins: validated.prioritizeQuickWins,
+          };
+
+          const prompt = buildComprehensiveRoadmapPrompt(promptInput);
 
           controller.enqueue(sseEvent('progress', {
             stage: 'designing',
             percent: 25,
-            message: `${providerDisplayName} is designing your learning phases...`,
+            message: `${providerDisplayName} is designing your learning phases with pedagogical guidelines...`,
             provider: resolvedProvider,
           }));
 
+          // Use lower temperature for more consistent output
           const aiResult = await aiClient.chat({
             userId,
             capability: 'skill-roadmap',
-            systemPrompt: 'You are a learning path design expert. Return only valid JSON.',
+            systemPrompt: `You are an expert instructional designer following Bloom's Taxonomy and evidence-based learning principles.
+You MUST return ONLY valid JSON (no markdown, no code blocks, no explanations).
+You MUST follow the exact schema provided in the prompt.
+You MUST ensure proper cognitive progression through Bloom's levels.
+You MUST ensure difficulty increases progressively (never decreases).`,
             messages: [{ role: 'user', content: prompt }],
-            maxTokens: 4000,
-            temperature: 0.7,
+            maxTokens: 6000, // Increased for more detailed output
+            temperature: 0.5, // Lower temperature for more consistent structure
             extended: true,
           });
 
@@ -210,48 +172,58 @@ export async function POST(request: NextRequest) {
           controller.enqueue(sseEvent('progress', {
             stage: 'parsing',
             percent: 50,
-            message: `${providerDisplayName} generated a response. Parsing roadmap structure...`,
+            message: `${providerDisplayName} generated a response. Validating roadmap structure...`,
             provider: aiResult.provider,
           }));
 
-          // Parse AI response
-          let roadmapData: {
-            title: string;
-            description: string;
-            phases: Array<{
-              title: string;
-              description: string;
-              bloomsLevel: string;
-              estimatedHours: number;
-              durationWeeks: number;
-              skills: Array<{
-                skillName: string;
-                targetLevel: string;
-                estimatedHours: number;
-              }>;
-              courses: Array<{
-                title: string;
-                description: string;
-                difficulty: string;
-                estimatedHours: number;
-                reason: string;
-              }>;
-              projects: Array<{
-                title: string;
-                description: string;
-                difficulty: string;
-                estimatedHours: number;
-              }>;
-              assessmentCriteria: string;
-            }>;
-          };
+          // Parse and validate AI response
+          let roadmapData: AIRoadmapResponse;
 
           try {
-            const cleanJson = aiResponseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            roadmapData = JSON.parse(cleanJson);
+            // Clean up potential markdown formatting
+            let cleanJson = aiResponseText
+              .replace(/```json\n?/g, '')
+              .replace(/```\n?/g, '')
+              .trim();
+
+            // Handle potential leading/trailing text
+            const jsonStart = cleanJson.indexOf('{');
+            const jsonEnd = cleanJson.lastIndexOf('}');
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+              cleanJson = cleanJson.slice(jsonStart, jsonEnd + 1);
+            }
+
+            const parsedData = JSON.parse(cleanJson);
+
+            // Validate with comprehensive schema
+            const validation = validateAIResponse(parsedData);
+
+            if (!validation.valid) {
+              logger.warn('[SkillRoadmap] AI response validation failed', {
+                errors: validation.errors,
+                responsePreview: aiResponseText.slice(0, 500),
+              });
+
+              // Try to use the data anyway with relaxed validation for backward compatibility
+              if (parsedData.phases && parsedData.phases.length > 0) {
+                logger.info('[SkillRoadmap] Using AI response with validation warnings');
+                roadmapData = parsedData as AIRoadmapResponse;
+              } else {
+                controller.enqueue(sseEvent('error', {
+                  message: `AI response validation failed: ${validation.errors?.slice(0, 2).join('; ')}. Please try again.`,
+                }));
+                controller.close();
+                return;
+              }
+            } else {
+              roadmapData = validation.data!;
+            }
           } catch (parseError) {
             const detail = parseError instanceof Error ? parseError.message : 'Unknown parse error';
-            logger.error('[SkillRoadmap] Failed to parse AI response', { detail, responsePreview: aiResponseText.slice(0, 200) });
+            logger.error('[SkillRoadmap] Failed to parse AI response', {
+              detail,
+              responsePreview: aiResponseText.slice(0, 500),
+            });
             controller.enqueue(sseEvent('error', {
               message: `AI returned invalid JSON. ${detail}. Please try again.`,
             }));
@@ -266,6 +238,15 @@ export async function POST(request: NextRequest) {
             controller.close();
             return;
           }
+
+          // Log successful generation with stats
+          logger.info('[SkillRoadmap] AI roadmap generated successfully', {
+            skill: validated.skillName,
+            phases: roadmapData.phases.length,
+            totalHours: roadmapData.totalEstimatedHours,
+            bloomsProgression: roadmapData.phases.map(p => p.bloomsLevel).join(' → '),
+            difficultyProgression: roadmapData.phases.map(p => p.difficulty).join(' → '),
+          });
 
           // Stage 3: Course matching
           const totalAICourses = roadmapData.phases.reduce((sum, p) => sum + p.courses.length, 0);
@@ -317,10 +298,9 @@ export async function POST(request: NextRequest) {
             message: `Building your roadmap (${matchedCount} platform courses linked)...`,
           }));
 
-          // Stage 4: Persist to database
-          const totalEstimatedHours = roadmapData.phases.reduce(
-            (sum, p) => sum + (p.estimatedHours || 0), 0
-          );
+          // Stage 4: Persist to database with enhanced schema
+          const totalEstimatedHours = roadmapData.totalEstimatedHours ||
+            roadmapData.phases.reduce((sum, p) => sum + (p.estimatedHours || 0), 0);
 
           const roadmap = await db.skillBuildRoadmap.create({
             data: {
@@ -334,6 +314,8 @@ export async function POST(request: NextRequest) {
                 currentLevel: validated.currentLevel,
                 targetLevel: validated.targetLevel,
                 skillDefId: skillDef.id,
+                learningStyle: validated.learningStyle,
+                hoursPerWeek: validated.hoursPerWeek,
               },
               totalEstimatedHours,
               startedAt: new Date(),
@@ -357,25 +339,38 @@ export async function POST(request: NextRequest) {
                       targetLevel: s.targetLevel,
                       estimatedHours: s.estimatedHours,
                       progress: 0,
+                      prerequisiteSkills: s.prerequisiteSkills || [],
                     })),
                     resources: {
-                      courses: phase.courses.map(c => ({
+                      // Enhanced course data with learning outcomes and key topics
+                      courses: phase.courses.map((c, courseIdx) => ({
+                        courseNumber: c.courseNumber || courseIdx + 1,
                         title: c.title,
                         description: c.description,
                         difficulty: c.difficulty,
                         estimatedHours: c.estimatedHours,
+                        learningOutcomes: c.learningOutcomes || [],
+                        keyTopics: c.keyTopics || [],
+                        prerequisiteConcepts: c.prerequisiteConcepts || [],
                         reason: c.reason,
                         matchedCourseId: courseMatchCache.get(c.title) ?? null,
                       })),
+                      // Enhanced project data with deliverables
                       projects: phase.projects.map(p => ({
                         title: p.title,
                         description: p.description,
                         difficulty: p.difficulty,
                         estimatedHours: p.estimatedHours,
+                        deliverables: p.deliverables || [],
+                        skillsApplied: p.skillsApplied || [],
                       })),
+                      // Phase-level metadata
                       assessmentCriteria: phase.assessmentCriteria,
                       bloomsLevel: phase.bloomsLevel,
+                      difficulty: phase.difficulty,
                       durationWeeks: phase.durationWeeks,
+                      prerequisites: phase.prerequisites || '',
+                      learningObjectives: phase.learningObjectives || [],
                     },
                     matchedCourseIds: matchedIds,
                     assessmentRequired: validated.includeAssessments,
@@ -439,6 +434,9 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     if (error instanceof z.ZodError) {
       return new Response(
         JSON.stringify({ error: 'Invalid request', details: error.errors }),

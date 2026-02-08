@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export const runtime = 'nodejs';
 
@@ -53,10 +54,10 @@ export async function POST(req: Request) {
     
     if (body.formData) {
       // Handle AI Creator page format
-      validation = await validateFormData(body.formData, body.step || 1);
+      validation = await validateFormData(user.id, body.formData, body.step || 1);
     } else if (body.field) {
       // Handle individual field validation format
-      validation = await validateField(body);
+      validation = await validateField(user.id, body);
     } else {
       throw new Error("Invalid validation request format");
     }
@@ -64,8 +65,10 @@ export async function POST(req: Request) {
     return NextResponse.json(validation);
     
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("[VALIDATION] Error:", error);
-    
+
     // Return basic validation result on error
     const fallbackResult: ValidationResult = {
       isValid: true,
@@ -81,23 +84,23 @@ export async function POST(req: Request) {
   }
 }
 
-async function validateFormData(formData: any, step: number): Promise<ValidationResult> {
+async function validateFormData(userId: string, formData: any, step: number): Promise<ValidationResult> {
   // Create a comprehensive validation result based on the current form data
   const validations = [];
   
   // Always validate basic fields if they exist
   if (formData.courseTitle) {
-    const titleValidation = await validateCourseTitle(formData.courseTitle, formData);
+    const titleValidation = await validateCourseTitle(userId, formData.courseTitle, formData);
     validations.push({...titleValidation, field: 'courseTitle'});
   }
   
   if (formData.courseShortOverview) {
-    const overviewValidation = await validateCourseOverview(formData.courseShortOverview, formData);
+    const overviewValidation = await validateCourseOverview(userId, formData.courseShortOverview, formData);
     validations.push({...overviewValidation, field: 'courseShortOverview'});
   }
   
   if (formData.targetAudience) {
-    const audienceValidation = await validateTargetAudience(formData.targetAudience, formData);
+    const audienceValidation = await validateTargetAudience(userId, formData.targetAudience, formData);
     validations.push({...audienceValidation, field: 'targetAudience'});
   }
   
@@ -134,20 +137,20 @@ async function validateFormData(formData: any, step: number): Promise<Validation
   };
 }
 
-async function validateField(request: ValidationRequest): Promise<ValidationResult> {
+async function validateField(userId: string, request: ValidationRequest): Promise<ValidationResult> {
   const { field, value, context } = request;
-  
+
   if (!field) {
     throw new Error(`Field is required for validation`);
   }
-  
+
   switch (field) {
     case 'courseTitle':
-      return await validateCourseTitle(value, context);
+      return await validateCourseTitle(userId, value, context);
     case 'courseOverview':
-      return await validateCourseOverview(value, context);
+      return await validateCourseOverview(userId, value, context);
     case 'targetAudience':
-      return await validateTargetAudience(value, context);
+      return await validateTargetAudience(userId, value, context);
     case 'learningGoals':
       return await validateLearningGoals(value, context);
     case 'courseStructure':
@@ -159,7 +162,7 @@ async function validateField(request: ValidationRequest): Promise<ValidationResu
   }
 }
 
-async function validateCourseTitle(title: string, context: any): Promise<ValidationResult> {
+async function validateCourseTitle(userId: string, title: string, context: any): Promise<ValidationResult> {
   if (!title || title.length < 5) {
     return {
       isValid: false,
@@ -219,7 +222,9 @@ Return ONLY valid JSON in this format:
 Focus on actionable feedback that will help create a more successful course.`;
 
   try {
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
       maxTokens: 1000,
       temperature: 0.3,
       messages: [{ role: "user", content: prompt }],
@@ -232,7 +237,7 @@ Focus on actionable feedback that will help create a more successful course.`;
   }
 }
 
-async function validateCourseOverview(overview: string, context: any): Promise<ValidationResult> {
+async function validateCourseOverview(userId: string, overview: string, context: any): Promise<ValidationResult> {
   if (!overview || overview.length < 50) {
     return {
       isValid: false,
@@ -272,7 +277,9 @@ EVALUATION CRITERIA:
 Return ONLY valid JSON with validation results and specific suggestions for improvement.`;
 
   try {
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
       maxTokens: 1200,
       temperature: 0.3,
       messages: [{ role: "user", content: prompt }],
@@ -285,7 +292,7 @@ Return ONLY valid JSON with validation results and specific suggestions for impr
   }
 }
 
-async function validateTargetAudience(audience: string, context: any): Promise<ValidationResult> {
+async function validateTargetAudience(userId: string, audience: string, context: any): Promise<ValidationResult> {
   if (!audience || audience.length < 10) {
     return {
       isValid: false,
@@ -324,7 +331,9 @@ ANALYSIS:
 Return JSON with validation score, issues, and suggestions for improvement.`;
 
   try {
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
       maxTokens: 800,
       temperature: 0.3,
       messages: [{ role: "user", content: prompt }],

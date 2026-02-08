@@ -54,6 +54,8 @@ type CourseWithProgressWithCategory = {
   category: CourseCategory;
   chapters: { id: string }[];
   cleanDescription?: string;
+  averageRating?: number | null;
+  enrollmentCount?: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -324,6 +326,8 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                           price={course.price || 0}
                           category={course?.category?.name || "General"}
                           priority={index < 4}
+                          rating={course.averageRating}
+                          enrollmentCount={course.enrollmentCount ?? 0}
                         />
                       </motion.div>
                     ))}

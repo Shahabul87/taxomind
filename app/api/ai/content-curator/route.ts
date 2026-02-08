@@ -1,4 +1,5 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
@@ -10,7 +11,7 @@ import {
   ContentType,
   CourseDifficulty
 } from '@/lib/ai-course-types';
-import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
+
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -313,22 +314,6 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, "analysis");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     // Rate limiting disabled for now
 
     // Parse and validate request body
@@ -352,6 +337,8 @@ export async function POST(request: NextRequest) {
       const prompt = buildContentCurationPrompt(curationRequest);
 
       const completion = await aiClient.chat({
+        userId: session.userId!,
+        capability: 'analysis',
         maxTokens: 8000,
         temperature: 0.7,
         systemPrompt: CONTENT_CURATOR_SYSTEM_PROMPT,
@@ -397,11 +384,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Record AI usage after successful response (only for users, admins bypass tracking)
-      if (!session.isAdmin && session.userId) {
-        await recordAIUsage(session.userId, "analysis", 1);
-      }
-
       return NextResponse.json({
         success: true,
         data: validationResult.data,
@@ -425,9 +407,12 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Content curator error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },

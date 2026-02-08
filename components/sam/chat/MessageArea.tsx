@@ -23,6 +23,8 @@ interface MessageAreaProps {
   isInsertableContent: (content: string, userQuery?: string) => boolean;
   detectTargetField: (userQuery: string, detectedForms: Record<string, FormFieldInfo>) => string | null;
   detectedForms: Record<string, FormFieldInfo>;
+  // Conversational tool support
+  onSendMessage?: (message: string) => void;
   // Quick actions
   quickActions?: Array<{ label: string; icon: React.ReactNode; action: string; isAnalysis?: boolean }>;
   onQuickAction?: (action: string) => void;
@@ -43,6 +45,7 @@ export function MessageArea({
   isInsertableContent,
   detectTargetField,
   detectedForms,
+  onSendMessage,
   quickActions,
   onQuickAction,
   className,
@@ -138,6 +141,7 @@ export function MessageArea({
           detectTargetField={detectTargetField}
           detectedForms={detectedForms}
           getUserQuery={getUserQuery}
+          onSendMessage={onSendMessage}
         />
       ))}
 

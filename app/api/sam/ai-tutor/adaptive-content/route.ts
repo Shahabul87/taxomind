@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +16,9 @@ export async function POST(request: NextRequest) {
 
     const systemPrompt = buildAdaptiveContentPrompt(format, learningStyle, personality, context);
 
-    const content = await runSAMChat({
+    const content = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'chat',
       maxTokens: 1500,
       temperature: 0.7,
       systemPrompt,
@@ -36,6 +39,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Adaptive content generation error:', error);
     return NextResponse.json(
       { error: 'Failed to generate adaptive content' },

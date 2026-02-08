@@ -9,7 +9,8 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createSocraticTeachingEngine, type BloomsLevel } from '@sam-ai/educational';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 const StartDialogueSchema = z.object({
   userId: z.string(),
@@ -23,14 +24,16 @@ const StartDialogueSchema = z.object({
 });
 
 // Create engine with AI adapter
-const createEngineWithAI = () => {
+const createEngineWithAI = (userId: string) => {
   return createSocraticTeachingEngine({
     aiAdapter: {
       chat: async ({ messages }) => {
         const systemMessage = messages.find(m => m.role === 'system')?.content || '';
         const userMessage = messages.find(m => m.role === 'user')?.content || '';
 
-        const response = await runSAMChat({
+        const response = await runSAMChatWithPreference({
+          userId,
+          capability: 'chat',
           maxTokens: 2000,
           temperature: 0.8,
           systemPrompt: systemMessage,
@@ -69,7 +72,7 @@ export async function POST(request: NextRequest) {
     } = validatedData;
 
     // Use the portable engine
-    const engine = createEngineWithAI();
+    const engine = createEngineWithAI(user.id);
 
     const result = await engine.startDialogue({
       userId,
@@ -90,6 +93,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Socratic dialogue start error:', error);
 
     if (error instanceof z.ZodError) {

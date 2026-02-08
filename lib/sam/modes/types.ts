@@ -187,6 +187,7 @@ export const SAM_MODE_IDS = [
   'course-architect',
   'knowledge-graph',
   'competency-mapper',
+  'skill-roadmap-builder',
   // Insights & Analytics
   'analytics',
   'predictive',

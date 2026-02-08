@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { applyRateLimit, samConversationLimiter } from '@/lib/sam/config/sam-rate-limiter';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // Redact potentially sensitive values from pageContext before sending to LLM
 function scrubDataContext(dataContext: any) {
@@ -144,7 +145,9 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
       { role: 'user' as const, content: message }
     ];
 
-    const aiResponse = await runSAMChat({
+    const aiResponse = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'chat',
       maxTokens: 1500,
       temperature: 0.7,
       systemPrompt,
@@ -173,6 +176,8 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
     return json;
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Context-Aware SAM API Error:', error);
     return NextResponse.json(
       { error: 'Failed to process request' },

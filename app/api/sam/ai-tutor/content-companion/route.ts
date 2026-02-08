@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,28 +24,28 @@ export async function POST(request: NextRequest) {
 
     switch (interactionType) {
       case 'video_timestamp_help':
-        response = await handleVideoTimestampHelp(contentContext, userInput, learningState);
+        response = await handleVideoTimestampHelp(user.id, contentContext, userInput, learningState);
         break;
       case 'code_line_explanation':
-        response = await handleCodeLineExplanation(contentContext, userInput, learningState);
+        response = await handleCodeLineExplanation(user.id, contentContext, userInput, learningState);
         break;
       case 'text_concept_clarification':
-        response = await handleTextConceptClarification(contentContext, userInput, learningState);
+        response = await handleTextConceptClarification(user.id, contentContext, userInput, learningState);
         break;
       case 'image_annotation':
-        response = await handleImageAnnotation(contentContext, userInput, learningState);
+        response = await handleImageAnnotation(user.id, contentContext, userInput, learningState);
         break;
       case 'quiz_hint_request':
-        response = await handleQuizHintRequest(contentContext, userInput, learningState, assistanceLevel);
+        response = await handleQuizHintRequest(user.id, contentContext, userInput, learningState, assistanceLevel);
         break;
       case 'document_navigation':
-        response = await handleDocumentNavigation(contentContext, userInput, learningState);
+        response = await handleDocumentNavigation(user.id, contentContext, userInput, learningState);
         break;
       case 'concept_connection':
-        response = await handleConceptConnection(contentContext, userInput, learningState);
+        response = await handleConceptConnection(user.id, contentContext, userInput, learningState);
         break;
       case 'study_session_guidance':
-        response = await handleStudySessionGuidance(contentContext, userInput, learningState);
+        response = await handleStudySessionGuidance(user.id, contentContext, userInput, learningState);
         break;
       default:
         return NextResponse.json({ error: 'Unknown interaction type' }, { status: 400 });
@@ -58,6 +59,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Content companion error:', error);
     return NextResponse.json(
       { error: 'Failed to process content interaction' },
@@ -67,12 +70,14 @@ export async function POST(request: NextRequest) {
 }
 
 async function runContentCompanionChat(
+  userId: string,
   systemPrompt: string,
   userPrompt: string,
-  options?: { maxTokens?: number; temperature?: number; model?: string }
+  options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChat({
-    model: options?.model ?? 'claude-sonnet-4-5-20250929',
+  return runSAMChatWithPreference({
+    userId,
+    capability: 'chat',
     maxTokens: options?.maxTokens ?? 1000,
     temperature: options?.temperature ?? 0.7,
     systemPrompt,
@@ -81,6 +86,7 @@ async function runContentCompanionChat(
 }
 
 async function handleVideoTimestampHelp(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any
@@ -107,6 +113,7 @@ Provide contextual help that:
 5. Offers interactive exercises related to this concept`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `Student question at ${timestamp}: "${userQuestion}"`,
     { maxTokens: 1000, temperature: 0.7 }
@@ -123,6 +130,7 @@ Provide contextual help that:
 }
 
 async function handleCodeLineExplanation(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any
@@ -150,6 +158,7 @@ Provide:
 6. Step-by-step breakdown if complex`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `Explain this code line: "${codeSnippet}" (line ${lineNumber})`,
     { maxTokens: 1000, temperature: 0.7 }
@@ -167,6 +176,7 @@ Provide:
 }
 
 async function handleTextConceptClarification(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any
@@ -194,6 +204,7 @@ Provide:
 6. Related concepts to explore`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `Please clarify this concept: "${concept}" from the text: "${textSegment}"`,
     { maxTokens: 1000, temperature: 0.7 }
@@ -211,6 +222,7 @@ Provide:
 }
 
 async function handleImageAnnotation(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any
@@ -238,6 +250,7 @@ Provide:
 6. Connections to broader concepts`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `Student is asking about "${annotationPoint}" in the image. Question: "${userQuestion}"`,
     { maxTokens: 1000, temperature: 0.7 }
@@ -255,6 +268,7 @@ Provide:
 }
 
 async function handleQuizHintRequest(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any,
@@ -284,6 +298,7 @@ Based on the assistance level, provide:
 Always encourage independent thinking and learning.`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `Student needs ${assistanceLevel} help with: "${question}". Their current answer: "${studentAnswer}"`,
     { maxTokens: 800, temperature: 0.7 }
@@ -301,6 +316,7 @@ Always encourage independent thinking and learning.`;
 }
 
 async function handleDocumentNavigation(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any
@@ -328,6 +344,7 @@ Provide:
 6. Study schedule suggestions`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `Help me navigate this ${documentType} to find: "${navigationQuery}"`,
     { maxTokens: 800, temperature: 0.7 }
@@ -345,6 +362,7 @@ Provide:
 }
 
 async function handleConceptConnection(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any
@@ -372,6 +390,7 @@ Provide:
 6. Interactive exercises to reinforce the connection`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `Help me understand the ${connectionType} connection between "${concept1}" and "${concept2}"`,
     { maxTokens: 1000, temperature: 0.7 }
@@ -389,6 +408,7 @@ Provide:
 }
 
 async function handleStudySessionGuidance(
+  userId: string,
   contentContext: any,
   userInput: any,
   learningState: any
@@ -418,6 +438,7 @@ Provide:
 6. Suggestions for next session`;
 
   const responseText = await runContentCompanionChat(
+    userId,
     systemPrompt,
     `I have ${timeAvailable} to study ${contentType}. My energy level is ${energyLevel} and I want to ${sessionGoals}`,
     { maxTokens: 1000, temperature: 0.7 }

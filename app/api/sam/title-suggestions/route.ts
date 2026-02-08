@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export const runtime = 'nodejs';
 
@@ -56,17 +57,19 @@ export async function POST(req: Request) {
       return new NextResponse("Current title is required and must be at least 3 characters", { status: 400 });
     }
 
-    const suggestions = await generateTitleSuggestions(body);
+    const suggestions = await generateTitleSuggestions(user.id, body);
 
     return NextResponse.json(suggestions);
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("[TITLE-SUGGESTIONS] Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
-async function generateTitleSuggestions(request: TitleSuggestionRequest): Promise<TitleSuggestionResponse> {
+async function generateTitleSuggestions(userId: string, request: TitleSuggestionRequest): Promise<TitleSuggestionResponse> {
   const { currentTitle, overview, category, subcategory, difficulty, intent, targetAudience, count = 5 } = request;
 
   const systemPrompt = `You are an expert course title generator. You MUST generate titles that are directly related to the subject the user provides. Every title MUST be about the specific topic given. Return ONLY valid JSON with no markdown fences or extra text.`;
@@ -97,7 +100,9 @@ EXAMPLES (if the topic were "How neural networks works?"):
 Return ONLY this JSON (no markdown, no extra text):
 {"titles":["title1","title2","title3","title4","title5"],"suggestions":{"message":"strategy explanation","reasoning":"why these work"}}`;
 
-  const responseText = await runSAMChat({
+  const responseText = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     systemPrompt,
     maxTokens: 800,
     temperature: 0.7,

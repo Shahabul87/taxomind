@@ -1,4 +1,5 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
     // Generate questions using AI
     let questions;
     try {
-      questions = await generateAIQuestions(section, strategy, request);
+      questions = await generateAIQuestions(section, strategy, request, user.id);
     } catch (error) {
       logger.error('AI question generation failed:', error);
       questions = generateFallbackQuestions(section, strategy, request);
@@ -105,9 +106,12 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Adaptive question recommendation error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },
@@ -249,10 +253,12 @@ function generateAdaptiveStrategy(performanceData: any, request: any) {
   return strategy;
 }
 
-async function generateAIQuestions(section: any, strategy: any, request: any) {
+async function generateAIQuestions(section: any, strategy: any, request: any, userId: string) {
   const prompt = buildAdaptiveQuestionPrompt(section, strategy, request);
-  
+
   const completion = await aiClient.chat({
+    userId,
+    capability: 'analysis',
     maxTokens: 4000,
     temperature: 0.7,
     systemPrompt: ADAPTIVE_QUESTION_SYSTEM_PROMPT,

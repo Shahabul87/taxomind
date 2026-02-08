@@ -35,7 +35,7 @@
  *   });
  */
 
-import type { AIAdapter, AIMessage } from '@sam-ai/core';
+import type { AIAdapter, AIMessage, AIChatStreamChunk } from '@sam-ai/core';
 import {
   createAIAdapter,
   getUserModelPreferences,
@@ -444,34 +444,142 @@ export const aiClient = {
       };
     };
 
-    // Try primary provider, fall back to secondary on failure
+    // Try primary provider, fall back to others on failure
     try {
       return await executeChat(resolvedProvider);
     } catch (primaryError) {
-      // Get fallback provider from platform settings
-      const settings = await getPlatformSettings();
-      const fallbackProvider = settings.fallbackProvider;
-
-      // Only attempt fallback if:
-      // 1. A fallback provider is configured
-      // 2. It's different from the primary provider
-      // 3. It's available (has API key configured)
-      if (
-        fallbackProvider &&
-        fallbackProvider !== resolvedProvider &&
-        isProviderAvailable(fallbackProvider)
-      ) {
-        logger.warn('[Enterprise AI] Primary provider failed, trying fallback', {
-          primary: resolvedProvider,
-          fallback: fallbackProvider,
-          error: primaryError instanceof Error ? primaryError.message : String(primaryError),
-        });
-
-        return await executeChat(fallbackProvider, true);
+      // Don't fallback for access-denied errors (subscription/rate limit issues)
+      if (primaryError instanceof AIAccessDeniedError) {
+        throw primaryError;
       }
 
-      // No valid fallback available, re-throw original error
+      const errorMsg = primaryError instanceof Error ? primaryError.message : String(primaryError);
+
+      // Build ordered list of fallback candidates
+      const settings = await getPlatformSettings();
+      const candidates: AIProviderType[] = [];
+
+      // 1. Configured fallback provider (highest priority)
+      if (
+        settings.fallbackProvider &&
+        settings.fallbackProvider !== resolvedProvider &&
+        isProviderAvailable(settings.fallbackProvider)
+      ) {
+        candidates.push(settings.fallbackProvider);
+      }
+
+      // 2. Any other available provider (ordered: deepseek > anthropic > openai > others)
+      const providerPriority: AIProviderType[] = ['deepseek', 'anthropic', 'openai', 'gemini', 'mistral'];
+      for (const provider of providerPriority) {
+        if (
+          provider !== resolvedProvider &&
+          !candidates.includes(provider) &&
+          isProviderAvailable(provider)
+        ) {
+          candidates.push(provider);
+        }
+      }
+
+      // Try each candidate in order
+      for (const candidate of candidates) {
+        try {
+          logger.warn('[Enterprise AI] Primary provider failed, trying fallback', {
+            primary: resolvedProvider,
+            fallback: candidate,
+            error: errorMsg,
+          });
+          return await executeChat(candidate, true);
+        } catch (fallbackError) {
+          logger.warn('[Enterprise AI] Fallback provider also failed', {
+            fallback: candidate,
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+          });
+          // Continue to next candidate
+        }
+      }
+
+      // All candidates exhausted, re-throw original error
       throw primaryError;
+    }
+  },
+
+  /**
+   * Stream a chat response from the AI provider.
+   *
+   * Uses the same provider resolution, rate limiting, and usage recording
+   * as `chat()`, but yields `AIChatStreamChunk` objects for real-time streaming.
+   *
+   * Falls back to a single-chunk non-streaming response if the adapter
+   * does not support `chatStream()`.
+   */
+  async *stream(options: AIChatOptions): AsyncGenerator<AIChatStreamChunk> {
+    const {
+      userId,
+      systemPrompt,
+      messages,
+      maxTokens = 2000,
+      temperature = 0.7,
+      extended = false,
+      provider: explicitProvider,
+      capability,
+    } = options;
+
+    const featureMap: Record<string, AIFeatureType> = {
+      'chat': 'chat',
+      'course': 'course',
+      'analysis': 'analysis',
+      'code': 'code',
+      'skill-roadmap': 'chat',
+    };
+    const feature = featureMap[capability ?? 'chat'] as AIFeatureType;
+
+    // Check rate limits for authenticated users
+    if (userId) {
+      const accessCheck = await checkAIAccess(userId, feature);
+      if (!accessCheck.allowed) {
+        throw new AIAccessDeniedError(accessCheck);
+      }
+    }
+
+    // Resolve provider
+    const resolvedProvider = await resolveProvider({
+      explicitProvider,
+      userId,
+      capability,
+    });
+
+    logger.debug('[Enterprise AI] Stream request', {
+      provider: resolvedProvider,
+      userId: userId ?? 'anonymous',
+      extended,
+      maxTokens,
+      messageCount: messages.length,
+    });
+
+    const adapter = await getAdapter({
+      provider: resolvedProvider,
+      userId,
+      extended,
+    });
+
+    const chatParams = { maxTokens, temperature, systemPrompt, messages };
+
+    // Use native streaming if available, otherwise fallback to single chunk
+    if (adapter.chatStream) {
+      yield* adapter.chatStream(chatParams);
+    } else {
+      logger.warn('[Enterprise AI] Adapter does not support streaming, falling back to single chunk');
+      const response = await adapter.chat(chatParams);
+      yield { content: response.content ?? '', done: true };
+    }
+
+    // Record usage after stream completes (fire-and-forget)
+    if (userId) {
+      recordAIUsage(userId, feature, 1, {
+        provider: resolvedProvider,
+        model: adapter.getModel(),
+        requestType: capability ?? 'chat',
+      }).catch(err => logger.warn('[Enterprise AI] Stream usage recording failed', { error: err }));
     }
   },
 

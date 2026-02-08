@@ -341,6 +341,8 @@ export async function streamAIResponse(
       systemPrompt,
       temperature: 0.7,
       maxTokens: 4096,
+      userId: ctx.user.id,
+      capability: 'chat',
     })) {
       if (streamErrored) break;
       if (chunk.content) {

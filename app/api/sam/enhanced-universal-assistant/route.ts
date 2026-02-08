@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { withAuth } from '@/lib/api/with-api-auth';
 import { db } from '@/lib/db';
@@ -9,6 +9,7 @@ import {
   formatMemoryForPrompt,
   processChatWithMemory,
 } from '@/lib/sam/services/chat-memory-integration';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // =============================================================================
 // VALIDATION SCHEMAS
@@ -59,6 +60,7 @@ interface RetryableApiError {
 // =============================================================================
 
 async function callWithRetry(
+  userId: string,
   messageRequest: {
     max_tokens: number;
     temperature?: number;
@@ -70,7 +72,9 @@ async function callWithRetry(
 ): Promise<string> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await runSAMChat({
+      return await runSAMChatWithPreference({
+        userId,
+        capability: 'chat',
         maxTokens: messageRequest.max_tokens,
         temperature: messageRequest.temperature,
         systemPrompt: messageRequest.system,
@@ -304,7 +308,7 @@ export const POST = withAuth(
         systemPrompt = basePrompt + memoryPromptSection;
       }
 
-      const responseText = await callWithRetry({
+      const responseText = await callWithRetry(userId, {
         max_tokens: 500,
         temperature: 0.7,
         system: systemPrompt,
@@ -354,6 +358,8 @@ export const POST = withAuth(
 
       return NextResponse.json(response);
     } catch (error: unknown) {
+      const accessResponse = handleAIAccessError(error);
+      if (accessResponse) return accessResponse;
       const apiError = error as RetryableApiError;
       logger.error('SAM Enhanced Universal Assistant Error:', error);
 

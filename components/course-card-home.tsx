@@ -17,6 +17,8 @@ interface CourseCardProps {
   price: number;
   category: string;
   priority?: boolean;
+  rating?: number | null;
+  enrollmentCount?: number;
 }
 
 export const CourseCardHome = ({
@@ -28,7 +30,10 @@ export const CourseCardHome = ({
   price,
   category,
   priority = false,
+  rating,
+  enrollmentCount = 0,
 }: CourseCardProps) => {
+  const displayRating = rating != null && rating > 0 ? rating.toFixed(1) : null;
   // Ensure image URLs use HTTPS for Next.js Image component in production
   // Use fallback if imageUrl is null, undefined, or empty string
   const secureImageUrl = ensureHttpsUrl(imageUrl) || getFallbackImageUrl('course');
@@ -96,15 +101,19 @@ export const CourseCardHome = ({
         <div className="absolute bottom-1.5 left-1.5 right-1.5 sm:bottom-2 sm:left-2 sm:right-2 z-20">
           {/* Quick Stats on Image */}
           <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-            <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-300 fill-yellow-300" />
-              <span className="text-white text-[10px] sm:text-xs font-bold">4.0</span>
-            </div>
+            {displayRating && (
+              <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+                <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-300 fill-yellow-300" />
+                <span className="text-white text-[10px] sm:text-xs font-bold">{displayRating}</span>
+              </div>
+            )}
 
-            <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
-              <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-              <span className="text-white text-[10px] sm:text-xs font-bold">128</span>
-            </div>
+            {enrollmentCount > 0 && (
+              <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
+                <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                <span className="text-white text-[10px] sm:text-xs font-bold">{enrollmentCount}</span>
+              </div>
+            )}
 
             <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/30">
               <BookOpen className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
@@ -147,12 +156,12 @@ export const CourseCardHome = ({
 
           <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
             <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" />
-            <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">4.0</span>
+            <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">{displayRating ?? 'New'}</span>
           </div>
 
           <div className="flex flex-col items-center gap-0.5 flex-1 p-1 sm:p-1.5 rounded-md sm:rounded-lg bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-700/50">
             <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500 dark:text-blue-400" />
-            <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">128</span>
+            <span className="text-[10px] sm:text-xs font-bold text-slate-900 dark:text-white">{enrollmentCount}</span>
           </div>
         </div>
       </div>

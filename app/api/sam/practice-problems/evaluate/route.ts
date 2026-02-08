@@ -9,7 +9,8 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createPracticeProblemsEngine, type PracticeProblem } from '@sam-ai/educational';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 const EvaluateAnswerSchema = z.object({
   problemId: z.string(),
@@ -49,14 +50,16 @@ const EvaluateAnswerSchema = z.object({
 });
 
 // Create engine with AI adapter
-const createEngineWithAI = () => {
+const createEngineWithAI = (userId: string) => {
   return createPracticeProblemsEngine({
     aiAdapter: {
       chat: async ({ messages }) => {
         const systemMessage = messages.find(m => m.role === 'system')?.content || '';
         const userMessage = messages.find(m => m.role === 'user')?.content || '';
 
-        const response = await runSAMChat({
+        const response = await runSAMChatWithPreference({
+          userId,
+          capability: 'chat',
           maxTokens: 1500,
           temperature: 0.3,
           systemPrompt: systemMessage,
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
     const { problem, userAnswer, hintsUsed } = validatedData;
 
     // Use the portable engine
-    const engine = createEngineWithAI();
+    const engine = createEngineWithAI(user.id);
 
     // Transform the problem to match the engine's expected type
     const practiceProblem: PracticeProblem = {
@@ -149,6 +152,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Practice problem evaluation error:', error);
 
     if (error instanceof z.ZodError) {

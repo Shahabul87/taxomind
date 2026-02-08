@@ -1,9 +1,9 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
-import { checkAIAccess, recordAIUsage } from "@/lib/ai/subscription-enforcement";
 import {
   CourseGenerationRequestSchema,
   CourseGenerationResponseSchema,
@@ -255,22 +255,6 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, "course");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     // Parse and validate request body
     const body = await request.json();
     const parseResult = CourseGenerationRequestSchema.safeParse(body);
@@ -302,6 +286,8 @@ export async function POST(request: NextRequest) {
           }
         ],
         extended: true,
+        userId: session.userId,
+        capability: 'course',
       });
 
       // Extract and parse the response
@@ -337,14 +323,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Record AI usage (only for users, admins bypass tracking)
-      if (!session.isAdmin && session.userId) {
-        await recordAIUsage(session.userId, "course", 1, {
-          provider: completion.provider,
-          requestType: "course_generation",
-        });
-      }
-
       return NextResponse.json({
         success: true,
         data: validationResult.data,
@@ -368,9 +346,12 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Course planner error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },

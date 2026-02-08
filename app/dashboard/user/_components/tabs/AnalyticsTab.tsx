@@ -1,10 +1,20 @@
 'use client';
 
+/**
+ * AnalyticsTab
+ *
+ * Redesigned analytics tab with course-centric approach.
+ * Provides clean, focused view of enrolled course progress and AI insights.
+ *
+ * Features:
+ * - 3-tab design: Overview, Courses, AI Insights
+ * - Consolidated API reducing 8+ calls to 1-2
+ * - Real-time data from SAM AI system
+ * - Responsive design
+ */
+
 import { SAMContextTracker } from '@/components/sam/SAMContextTracker';
-import { LearningAnalyticsDashboard } from '../learning-command-center/analytics';
-import { SelfAssessmentHub } from '@/components/sam/self-assessment-hub';
-import { QualityScoreDashboard } from '@/components/sam/QualityScoreDashboard';
-import { ConfidenceCalibrationWidget } from '@/components/sam/ConfidenceCalibrationWidget';
+import { CourseAnalyticsDashboard } from '@/components/analytics/enrolled';
 
 interface AnalyticsTabProps {
   userId: string;
@@ -16,27 +26,12 @@ export function AnalyticsTab({ userId }: AnalyticsTabProps) {
       {/* SAM Context Tracker - Invisible, syncs page context */}
       <SAMContextTracker />
 
-      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-16 sm:pt-20">
-        {/* Learning Analytics Dashboard - Full analytics experience */}
-        <LearningAnalyticsDashboard
+      <div className="mx-auto max-w-7xl px-0 sm:px-4 md:px-6 lg:px-8 pb-6 sm:pb-8 pt-4 sm:pt-6">
+        {/* Course Analytics Dashboard - New course-centric design */}
+        <CourseAnalyticsDashboard
           defaultTab="overview"
-          onExport={() => console.log('Export analytics')}
-          onRefresh={() => console.log('Refresh analytics')}
+          refreshInterval={0} // Manual refresh
         />
-
-        {/* Self-Assessment Hub - Merged from assess tab */}
-        <div className="mt-6 sm:mt-8">
-          <SelfAssessmentHub userId={userId} />
-        </div>
-
-        {/* Quality & Calibration Metrics - Consolidated from Skills and Gamification tabs */}
-        <div className="mt-6 sm:mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {/* Quality Score Dashboard - Content quality metrics */}
-          <QualityScoreDashboard />
-
-          {/* Confidence Calibration - AI Quality Metrics */}
-          <ConfidenceCalibrationWidget />
-        </div>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export const runtime = 'nodejs';
 
@@ -35,17 +36,19 @@ export async function POST(req: Request) {
       return new NextResponse("Course title is required and must be at least 3 characters", { status: 400 });
     }
     
-    const suggestions = await generateOverviewSuggestions(body);
+    const suggestions = await generateOverviewSuggestions(user.id, body);
     
     return NextResponse.json(suggestions);
     
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("[OVERVIEW-SUGGESTIONS] Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
 
-async function generateOverviewSuggestions(request: OverviewSuggestionRequest): Promise<OverviewSuggestionResponse> {
+async function generateOverviewSuggestions(userId: string, request: OverviewSuggestionRequest): Promise<OverviewSuggestionResponse> {
   const { title, category, subcategory, difficulty, intent, targetAudience, currentOverview, count = 3 } = request;
   
   const prompt = `Generate ${count} compelling and professional course overview descriptions based on the following information:
@@ -91,7 +94,9 @@ Return ONLY valid JSON in this format:
 }`;
 
   try {
-    const responseText = await runSAMChat({
+    const responseText = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
       maxTokens: 1000,
       temperature: 0.7,
       messages: [{ role: 'user', content: prompt }],

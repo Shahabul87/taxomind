@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 async function runAIAnalysis(
+  userId: string,
   systemPrompt: string,
   userPrompt: string,
   maxTokens: number
 ): Promise<string> {
-  return await runSAMChat({
+  return await runSAMChatWithPreference({
+    userId,
+    capability: 'analysis',
     maxTokens,
     temperature: 0.7,
     systemPrompt,
@@ -36,25 +40,25 @@ export async function POST(request: NextRequest) {
     
     switch (contentType) {
       case 'video':
-        analysis = await analyzeVideoContent(contentData, analysisType, learningContext);
+        analysis = await analyzeVideoContent(user.id, contentData, analysisType, learningContext);
         break;
       case 'text':
-        analysis = await analyzeTextContent(contentData, analysisType, learningContext);
+        analysis = await analyzeTextContent(user.id, contentData, analysisType, learningContext);
         break;
       case 'code':
-        analysis = await analyzeCodeContent(contentData, analysisType, learningContext);
+        analysis = await analyzeCodeContent(user.id, contentData, analysisType, learningContext);
         break;
       case 'image':
-        analysis = await analyzeImageContent(contentData, analysisType, learningContext);
+        analysis = await analyzeImageContent(user.id, contentData, analysisType, learningContext);
         break;
       case 'pdf':
-        analysis = await analyzePDFContent(contentData, analysisType, learningContext);
+        analysis = await analyzePDFContent(user.id, contentData, analysisType, learningContext);
         break;
       case 'quiz':
-        analysis = await analyzeQuizContent(contentData, analysisType, learningContext);
+        analysis = await analyzeQuizContent(user.id, contentData, analysisType, learningContext);
         break;
       case 'webpage':
-        analysis = await analyzeWebpageContent(contentData, analysisType, learningContext);
+        analysis = await analyzeWebpageContent(user.id, contentData, analysisType, learningContext);
         break;
       default:
         return NextResponse.json({ error: 'Unsupported content type' }, { status: 400 });
@@ -69,6 +73,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Content analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to analyze content' },
@@ -78,6 +84,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function analyzeVideoContent(
+  userId: string,
   contentData: any,
   analysisType: string,
   learningContext: any
@@ -100,6 +107,7 @@ async function analyzeVideoContent(
   - Accessibility considerations`;
 
   const analysisText = await runAIAnalysis(
+    userId,
     systemPrompt,
     `Analyze this video content:
 Title: ${title}
@@ -125,6 +133,7 @@ URL: ${url}`,
 }
 
 async function analyzeTextContent(
+  userId: string,
   contentData: any,
   analysisType: string,
   learningContext: any
@@ -147,6 +156,7 @@ async function analyzeTextContent(
   - Assessment opportunities`;
 
   const analysisText = await runAIAnalysis(
+    userId,
     systemPrompt,
     `Analyze this text content:
 Title: ${title}
@@ -171,6 +181,7 @@ Content: ${content.substring(0, 2000)}...`,
 }
 
 async function analyzeCodeContent(
+  userId: string,
   contentData: any,
   analysisType: string,
   learningContext: any
@@ -194,6 +205,7 @@ async function analyzeCodeContent(
   - Step-by-step explanations`;
 
   const analysisText = await runAIAnalysis(
+    userId,
     systemPrompt,
     `Analyze this code:
 Title: ${title}
@@ -220,6 +232,7 @@ ${code}
 }
 
 async function analyzeImageContent(
+  userId: string,
   contentData: any,
   analysisType: string,
   learningContext: any
@@ -243,6 +256,7 @@ async function analyzeImageContent(
   - Related visual aids suggestions`;
 
   const analysisText = await runAIAnalysis(
+    userId,
     systemPrompt,
     `Analyze this image content:
 Title: ${title}
@@ -265,6 +279,7 @@ URL: ${url}`,
 }
 
 async function analyzePDFContent(
+  userId: string,
   contentData: any,
   analysisType: string,
   learningContext: any
@@ -287,6 +302,7 @@ async function analyzePDFContent(
   - Note-taking suggestions`;
 
   const analysisText = await runAIAnalysis(
+    userId,
     systemPrompt,
     `Analyze this PDF content:
 Title: ${title}
@@ -308,6 +324,7 @@ Extracted Text: ${extractedText?.substring(0, 2000) || 'No text extracted'}...`,
 }
 
 async function analyzeQuizContent(
+  userId: string,
   contentData: any,
   analysisType: string,
   learningContext: any
@@ -330,6 +347,7 @@ async function analyzeQuizContent(
   - Learning objectives alignment`;
 
   const analysisText = await runAIAnalysis(
+    userId,
     systemPrompt,
     `Analyze this quiz content:
 Title: ${title}
@@ -352,6 +370,7 @@ Questions: ${JSON.stringify(questions).substring(0, 1500)}...`,
 }
 
 async function analyzeWebpageContent(
+  userId: string,
   contentData: any,
   analysisType: string,
   learningContext: any
@@ -374,6 +393,7 @@ async function analyzeWebpageContent(
   - Critical thinking questions`;
 
   const analysisText = await runAIAnalysis(
+    userId,
     systemPrompt,
     `Analyze this webpage content:
 URL: ${url}

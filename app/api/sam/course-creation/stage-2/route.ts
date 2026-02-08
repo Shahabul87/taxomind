@@ -13,7 +13,7 @@ import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { buildStage2Prompt } from '@/lib/sam/course-creation/prompts';
 import { canAccessSamFeature } from '@/lib/premium/sam-access';
-import { checkAIAccess, recordAIUsage } from '@/lib/ai/subscription-enforcement';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import {
   Stage2Request,
   Stage2Response,
@@ -40,17 +40,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage2Res
         error: accessResult.reason,
         requiresUpgrade: accessResult.requiresUpgrade,
       }, { status: 403 });
-    }
-
-    // Check AI usage limits
-    const usageCheck = await checkAIAccess(user.id, 'course');
-    if (!usageCheck.allowed) {
-      return NextResponse.json({
-        success: false,
-        error: usageCheck.reason || 'Usage limit exceeded',
-        remainingMonthly: usageCheck.remainingMonthly,
-        upgradeRequired: usageCheck.upgradeRequired,
-      }, { status: 429 });
     }
 
     const body: Stage2Request = await request.json();
@@ -125,11 +114,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage2Res
       uniquenessValidated,
     });
 
-    // Record AI usage for subscription tracking
-    await recordAIUsage(user.id, 'course', 1, {
-      requestType: 'stage-2-section-generation',
-    });
-
     return NextResponse.json({
       success: true,
       section,
@@ -139,6 +123,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage2Res
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[STAGE2] Error generating section:', error);
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

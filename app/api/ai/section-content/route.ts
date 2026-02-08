@@ -1,10 +1,11 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
-import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
+
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -254,22 +255,6 @@ export async function POST(request: NextRequest) {
 
     logger.info('[SECTION_CONTENT] Session authenticated:', session.userId);
 
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, "lesson");
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
-
     // Parse and validate request body
     const body = await request.json();
     logger.info('[SECTION_CONTENT] Request body received:', {
@@ -377,6 +362,8 @@ export async function POST(request: NextRequest) {
             content: userPrompt
           }
         ],
+        userId: session.userId,
+        capability: 'course',
       });
 
       // Extract and parse the response
@@ -403,11 +390,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Record AI usage after successful response (only for users, admins bypass tracking)
-      if (!session.isAdmin && session.userId) {
-        await recordAIUsage(session.userId, "lesson", 1);
-      }
-
       return NextResponse.json({
         success: true,
         content: htmlContent,
@@ -432,6 +414,9 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Section content generator error:', error);
     return NextResponse.json(
       {

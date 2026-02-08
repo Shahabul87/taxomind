@@ -16,7 +16,16 @@
 
 import { NextRequest } from 'next/server';
 import { logger } from '@/lib/logger';
-import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
+
+import * as fs from 'fs';
+
+// Debug log file
+const DEBUG_LOG_FILE = '/tmp/sam-stream-debug.log';
+function debugLog(label: string, data: unknown) {
+  const line = `[${new Date().toISOString()}] ${label}: ${JSON.stringify(data, null, 2)}\n`;
+  fs.appendFileSync(DEBUG_LOG_FILE, line);
+  console.log(label, JSON.stringify(data, null, 2));
+}
 
 import {
   initializeSubsystems,
@@ -33,6 +42,7 @@ import {
   runMemoryPersistenceStage,
 } from '@/lib/sam/pipeline';
 import { streamAIResponse, emitDeferredSSEEvents } from '@/lib/sam/pipeline/streaming-adapter';
+import { checkConversationalToolInvoke, executeConversationalTool } from '@/lib/sam/conversational-tool-handler';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -63,12 +73,28 @@ export async function POST(request: NextRequest) {
 
     // 2. Validate request body, classify intent, create agentic bridge (shared stage)
     const body = await request.json();
+
+    // DEBUG: Log full request data
+    debugLog('=== REQUEST RECEIVED ===', {
+      mode: body.mode,
+      hasToolConversation: !!body.toolConversation,
+      toolConversation: body.toolConversation,
+      message: body.message?.slice(0, 50),
+    });
+
     const valid = await runValidationStage(body, auth.ctx, startTime);
     if ('response' in valid) return valid.response;
 
     // Mark context as SSE output
     let ctx = { ...valid.ctx, outputMode: 'sse' as const };
     ctx.stageErrors = [];
+
+    // DEBUG: Log context after validation
+    debugLog('=== CONTEXT AFTER VALIDATION ===', {
+      modeId: ctx.modeId,
+      hasToolConversation: !!ctx.toolConversation,
+      toolConversation: ctx.toolConversation,
+    });
 
     // 3-4. Run pre-streaming stages (context gathering + memory)
     const preStreamStages: Array<{
@@ -92,7 +118,59 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Create SSE stream
+    // 5. Check for conversational tool invocation BEFORE streaming
+    // This allows conversational tools (like skill roadmap builder) to drive the interaction
+    let conversationalToolResult: Awaited<ReturnType<typeof executeConversationalTool>> = null;
+    try {
+      const toolCheck = await checkConversationalToolInvoke(ctx);
+
+      // DEBUG: Log tool check result
+      debugLog('=== TOOL CHECK RESULT ===', {
+        shouldInvoke: toolCheck.shouldInvoke,
+        toolId: toolCheck.toolId,
+        input: toolCheck.input,
+      });
+
+      if (toolCheck.shouldInvoke) {
+        logger.info('[SAM_STREAM] Conversational tool matched, executing before stream', {
+          toolId: toolCheck.toolId,
+          modeId: ctx.modeId,
+        });
+        conversationalToolResult = await executeConversationalTool(ctx, toolCheck);
+
+        // DEBUG: Log tool execution result (tool returns 'output', not 'result')
+        const toolOutput = conversationalToolResult?.result as Record<string, unknown> | undefined;
+        debugLog('=== TOOL EXECUTION RESULT ===', {
+          success: conversationalToolResult?.success,
+          toolId: conversationalToolResult?.toolId,
+          status: conversationalToolResult?.status,
+          resultKeys: toolOutput ? Object.keys(toolOutput) : [],
+          resultType: toolOutput?.type,
+          resultStep: toolOutput?.step,
+          resultCollected: toolOutput?.collected,
+          fullResult: toolOutput,
+        });
+
+        if (conversationalToolResult) {
+          // Set tool execution in context so it's included in insights
+          ctx = {
+            ...ctx,
+            toolExecution: {
+              toolId: conversationalToolResult.toolId,
+              toolName: conversationalToolResult.toolName,
+              status: conversationalToolResult.status,
+              result: conversationalToolResult.result,
+              reasoning: 'Conversational tool auto-invoked based on user intent',
+              confidence: 0.95,
+            },
+          };
+        }
+      }
+    } catch (toolError) {
+      logger.warn('[SAM_STREAM] Conversational tool check failed:', toolError);
+    }
+
+    // 6. Create SSE stream
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
@@ -103,11 +181,42 @@ export async function POST(request: NextRequest) {
               subsystems: ['unifiedBlooms', 'qualityGates', 'pedagogy', 'memory', 'tutoring'],
               timestamp: new Date().toISOString(),
               streaming: true,
+              conversationalTool: conversationalToolResult ? {
+                toolId: conversationalToolResult.toolId,
+                toolName: conversationalToolResult.toolName,
+              } : undefined,
             }),
           );
 
-          // PHASE 1: Stream AI response tokens
-          const responseText = await streamAIResponse(ctx, subsystems, controller);
+          // PHASE 0: If conversational tool executed, emit tool result FIRST
+          if (conversationalToolResult?.success) {
+            logger.info('[SAM_STREAM] Emitting conversational tool result', {
+              toolId: conversationalToolResult.toolId,
+              hasResult: !!conversationalToolResult.result,
+            });
+
+            // Emit tool execution event with the result
+            controller.enqueue(
+              sseEvent('tool-execution', {
+                toolId: conversationalToolResult.toolId,
+                toolName: conversationalToolResult.toolName,
+                status: conversationalToolResult.status,
+                result: conversationalToolResult.result,
+                isConversational: true,
+              }),
+            );
+
+            // For conversational tools, emit a brief acknowledgment as content
+            const acknowledgment = `I'm helping you with your ${conversationalToolResult.toolName.replace('SAM ', '')} request.`;
+            controller.enqueue(sseEvent('content', { text: acknowledgment }));
+            ctx = { ...ctx, responseText: acknowledgment };
+          }
+
+          // PHASE 1: Stream AI response tokens (skip if conversational tool handled it)
+          let responseText = ctx.responseText || '';
+          if (!conversationalToolResult?.success) {
+            responseText = await streamAIResponse(ctx, subsystems, controller);
+          }
           ctx = { ...ctx, responseText };
 
           // PHASE 2: Run deferred pipeline stages with incremental SSE events
@@ -152,9 +261,6 @@ export async function POST(request: NextRequest) {
 
           // PHASE 3: Emit SSE insights, suggestions, actions, done
           emitDeferredSSEEvents(ctx, controller);
-
-          // Record AI usage
-          await recordAIUsage(ctx.user.id, 'chat', 1);
 
           controller.close();
         } catch (error) {

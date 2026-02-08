@@ -61,7 +61,7 @@ EVALUATION GUIDELINES:
 2. Consider partial understanding - be nuanced in your assessment
 3. Look for demonstration of knowledge application, not just recall
 4. Consider the context of the learning step and its objectives
-5. Be encouraging but honest - don&apos;t mark criteria as met without clear evidence
+5. Be encouraging but honest - don't mark criteria as met without clear evidence
 
 CONFIDENCE SCORING:
 - 0.9-1.0: Clear, unambiguous evidence the criterion is met
@@ -96,7 +96,7 @@ CONVERSATION:
 [AI Tutor]: ${assistantResponse}
 
 TASK:
-Evaluate whether the criterion "${criterion}" has been met based on this conversation. Consider both the student&apos;s question/response and the tutor&apos;s explanation.
+Evaluate whether the criterion "${criterion}" has been met based on this conversation. Consider both the student's question/response and the tutor's explanation.
 
 Respond with JSON only:`;
 

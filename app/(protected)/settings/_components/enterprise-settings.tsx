@@ -50,20 +50,20 @@ export const EnterpriseSettings = ({ user }: EnterpriseSettingsProps) => {
   const form = useForm<z.infer<typeof SettingsSchema>>({
     resolver: zodResolver(SettingsSchema),
     defaultValues: {
-      // Account
-      name: user.name || undefined,
-      email: user.email || undefined,
-      password: undefined,
-      newPassword: undefined,
-      isTwoFactorEnabled: user.isTwoFactorEnabled || undefined,
+      // Account - use empty string for text inputs to keep them controlled
+      name: user.name ?? "",
+      email: user.email ?? "",
+      password: "",
+      newPassword: "",
+      isTwoFactorEnabled: user.isTwoFactorEnabled ?? false,
 
-      // Profile
-      phone: user.phone || undefined,
-      image: user.image || undefined,
-      bio: user.bio || undefined,
-      location: user.location || undefined,
-      website: user.website || undefined,
-      learningStyle: user.learningStyle || undefined,
+      // Profile - use empty string for text inputs to keep them controlled
+      phone: user.phone ?? "",
+      image: user.image ?? "",
+      bio: user.bio ?? "",
+      location: user.location ?? "",
+      website: user.website ?? "",
+      learningStyle: user.learningStyle ?? "",
 
       // Notifications (defaults - should be fetched from user preferences)
       emailNotifications: true,

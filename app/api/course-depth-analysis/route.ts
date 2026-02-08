@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { logger } from '@/lib/logger';
 import {
   createEnhancedDepthAnalysisEngine,
@@ -1830,6 +1831,8 @@ Use this exact JSON structure:
 }`;
 
     const response = await aiClient.chat({
+      userId: user.id,
+      capability: 'analysis',
       maxTokens: 4000,
       temperature: 0.3,
       systemPrompt: "You are an expert instructional designer specializing in Bloom's Taxonomy and course depth analysis. Provide precise, actionable insights.",
@@ -1936,8 +1939,11 @@ Use this exact JSON structure:
     });
 
   } catch (error: any) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Course depth analysis error:', error);
-    
+
     // Handle specific AI API errors
     let errorMessage = 'Failed to analyze course depth';
     let statusCode = 500;

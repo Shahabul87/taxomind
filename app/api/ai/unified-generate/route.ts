@@ -1,9 +1,10 @@
 import { aiClient } from '@/lib/ai/enterprise-client';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 import { NextRequest, NextResponse } from "next/server";
 import { getCombinedSession } from "@/lib/auth/combined-session";
 import * as z from "zod";
 import { logger } from "@/lib/logger";
-import { checkAIAccess, recordAIUsage, type AIFeatureType } from "@/lib/ai/subscription-enforcement";
+
 
 // Force Node.js runtime
 export const runtime = "nodejs";
@@ -539,29 +540,6 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-
-    // Determine AI feature type from content request
-    const featureType: AIFeatureType = body.contentType === "chapters" ? "chapter" :
-                                       body.contentType === "sections" ? "lesson" :
-                                       body.entityLevel === "course" ? "course" : "other";
-
-    // Check subscription tier and usage limits
-    // Note: Admins are automatically granted access in checkAIAccess
-    const accessCheck = await checkAIAccess(session.userId, featureType);
-    if (!accessCheck.allowed) {
-      return NextResponse.json(
-        {
-          error: accessCheck.reason || "AI access denied",
-          upgradeRequired: accessCheck.upgradeRequired,
-          suggestedTier: accessCheck.suggestedTier,
-          remainingDaily: accessCheck.remainingDaily,
-          remainingMonthly: accessCheck.remainingMonthly,
-          maintenanceMode: accessCheck.maintenanceMode,
-          maintenanceMessage: accessCheck.maintenanceMessage,
-        },
-        { status: accessCheck.maintenanceMode ? 503 : 403 }
-      );
-    }
     const parseResult = UnifiedGenerateRequestSchema.safeParse(body);
 
     if (!parseResult.success) {
@@ -593,6 +571,8 @@ export async function POST(request: NextRequest) {
       logger.debug("Generated prompt:", prompt.substring(0, 500) + "...");
 
       const completion = await aiClient.chat({
+        userId: session.userId!,
+        capability: 'course',
         maxTokens: 4000,
         temperature: contentRequest.advancedSettings?.creativity
           ? contentRequest.advancedSettings.creativity / 10
@@ -671,15 +651,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Record successful AI usage (only for users, admins bypass tracking)
-      if (!session.isAdmin && session.userId) {
-        await recordAIUsage(session.userId, featureType, 1, {
-          provider: completion.provider,
-          model: completion.model,
-          requestType: contentRequest.contentType,
-        });
-      }
-
       return NextResponse.json({
         success: true,
         content: cleanedResponse.trim(),
@@ -688,10 +659,6 @@ export async function POST(request: NextRequest) {
           model: completion.model,
           generatedAt: new Date().toISOString(),
           bloomsLevels: contentRequest.bloomsEnabled ? contentRequest.bloomsLevels : undefined,
-        },
-        usage: {
-          remainingDaily: accessCheck.remainingDaily,
-          remainingMonthly: accessCheck.remainingMonthly,
         },
       });
     } catch (apiError) {
@@ -706,6 +673,9 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error("Unified generate error:", error);
     return NextResponse.json(
       {

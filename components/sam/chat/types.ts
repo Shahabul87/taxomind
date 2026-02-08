@@ -170,6 +170,12 @@ export interface AgenticInsight {
   };
   sessionRecorded?: boolean;
   interventions?: Array<{ type: string; reason: string; priority: string }>;
+  toolExecution?: {
+    toolId: string;
+    toolName?: string;
+    status?: string;
+    result?: unknown;
+  };
 }
 
 export interface OrchestrationStepProgress {

@@ -10,7 +10,8 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // Validation schemas
 const GenerateRemediationSchema = z.object({
@@ -97,7 +98,9 @@ Return valid JSON only:
   ]
 }`;
 
-    const response = await runSAMChat({
+    const response = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'chat',
       maxTokens: 4000,
       temperature: 0.7,
       systemPrompt: 'You are an expert educational content creator specializing in remediation and personalized learning. Generate content in valid JSON format only.',
@@ -164,6 +167,8 @@ Return valid JSON only:
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('[REMEDIATION] Generate error:', error);
 
     if (error instanceof z.ZodError) {

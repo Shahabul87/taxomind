@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +32,9 @@ export async function POST(request: NextRequest) {
 
 Generate a thoughtful Socratic question that will help the student think more deeply about this topic.`;
 
-    const question = await runSAMChat({
+    const question = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'chat',
       maxTokens: 500,
       temperature: 0.7,
       systemPrompt,
@@ -47,6 +50,8 @@ Generate a thoughtful Socratic question that will help the student think more de
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Socratic method error:', error);
     return NextResponse.json(
       { error: 'Failed to generate Socratic question' },

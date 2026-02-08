@@ -9,7 +9,8 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createPracticeProblemsEngine, type BloomsLevel } from '@sam-ai/educational';
-import { runSAMChat } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 const GenerateProblemsSchema = z.object({
   topic: z.string().min(1),
@@ -25,14 +26,16 @@ const GenerateProblemsSchema = z.object({
 });
 
 // Create engine with AI adapter
-const createEngineWithAI = () => {
+const createEngineWithAI = (userId: string) => {
   return createPracticeProblemsEngine({
     aiAdapter: {
       chat: async ({ messages }) => {
         const systemMessage = messages.find(m => m.role === 'system')?.content || '';
         const userMessage = messages.find(m => m.role === 'user')?.content || '';
 
-        const response = await runSAMChat({
+        const response = await runSAMChatWithPreference({
+          userId,
+          capability: 'chat',
           maxTokens: 4000,
           temperature: 0.7,
           systemPrompt: systemMessage,
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
     } = validatedData;
 
     // Use the portable engine
-    const engine = createEngineWithAI();
+    const engine = createEngineWithAI(user.id);
 
     const result = await engine.generateProblems({
       topic,
@@ -88,6 +91,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Practice problems generation error:', error);
 
     if (error instanceof z.ZodError) {
