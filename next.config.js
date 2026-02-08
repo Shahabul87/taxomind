@@ -108,9 +108,10 @@ const nextConfig = {
     workerThreads: false,
     // CRITICAL: Limit CPU count for "Collecting page data" phase to prevent OOM
     // Railway reports 47 CPUs but only has ~3.5GB memory - 47 workers exhaust memory
-    // Force 2 CPUs in production/Railway to prevent OOM during builds
+    // Force 1 CPU in production/Railway: NODE_OPTIONS heap is inherited by each worker,
+    // so N workers × 4GB heap = N × 4GB total. 1 worker keeps it within Railway's 8GB limit.
     cpus: process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production'
-      ? 2
+      ? 1
       : parseInt(process.env.EXPERIMENTAL_CPUS || '4', 10),
     // Note: optimizeCss disabled - requires 'critters' package to be installed
     // optimizeCss: true,

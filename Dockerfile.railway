@@ -75,11 +75,11 @@ ENV SKIP_ENV_VALIDATION=true
 
 # Memory optimization for large Next.js builds
 # CRITICAL: These settings prevent OOM during "Collecting page data" phase
-# - max-old-space-size: Limit heap to 3.5GB (leave room for Node overhead)
-# - EXPERIMENTAL_CPUS: Limit page data collection workers (default = CPU cores)
+# - max-old-space-size: 4GB heap (inherited by worker processes)
+# - EXPERIMENTAL_CPUS=1: Single worker so total = main 4GB + worker 4GB = 8GB max
 # - UV_THREADPOOL_SIZE: Limit libuv threads for I/O operations
-ENV NODE_OPTIONS="--max-old-space-size=3584"
-ENV EXPERIMENTAL_CPUS=2
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV EXPERIMENTAL_CPUS=1
 ENV UV_THREADPOOL_SIZE=4
 
 # Regenerate Prisma client with latest schema
@@ -91,11 +91,11 @@ RUN npx prisma generate
 # EXPERIMENTAL_CPUS=2 limits "Collecting page data" workers (default = CPU cores = 47!)
 # Also set NEXT_PRIVATE_WORKER_THREADS to ensure worker limit is respected
 # Memory flags:
-#   --max-old-space-size=6144: 6GB for old generation (main heap)
-#   --max-semi-space-size=128: 128MB for new generation (young objects)
-RUN NODE_OPTIONS="--max-old-space-size=6144 --max-semi-space-size=128" \
-    EXPERIMENTAL_CPUS=2 \
-    NEXT_PRIVATE_WORKER_THREADS=2 \
+#   --max-old-space-size=4096: 4GB heap (main + 1 worker = 8GB max, fits Railway container)
+#   Single worker prevents OOM: NODE_OPTIONS is inherited by workers, so N workers × heap = total
+RUN NODE_OPTIONS="--max-old-space-size=4096" \
+    EXPERIMENTAL_CPUS=1 \
+    NEXT_PRIVATE_WORKER_THREADS=1 \
     pnpm run build:railway
 
 # CRITICAL: Remove any .env files from standalone output
