@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -10,14 +10,11 @@ import {
   Brain,
   Sparkles,
   Target,
-  Lightbulb,
   Code2,
   FileQuestion,
-  TrendingUp,
   BookOpen,
   Shield,
   CheckCircle2,
-  AlertTriangle,
   Info,
   BarChart3,
   Activity
@@ -175,22 +172,6 @@ export const EnterpriseSectionPageClient = ({
 
     return suggestions;
   }, [section, contentStats, setShowAIAssistant]);
-
-  // Keyboard navigation handler
-  const handleKeyboardNavigation = useCallback((event: KeyboardEvent) => {
-    if (event.ctrlKey || event.metaKey) {
-      switch(event.key) {
-        case 's':
-          event.preventDefault();
-          // Trigger save action
-          break;
-        case 'p':
-          event.preventDefault();
-          // Toggle preview
-          break;
-      }
-    }
-  }, []);
 
   return (
     <TooltipProvider>
@@ -913,55 +894,3 @@ const DetailedMetric = ({ label, current, recommended, icon: Icon }: DetailedMet
   );
 };
 
-const AISuggestionCard = ({ suggestion }: { suggestion: AISuggestion }) => {
-  const typeStyles = {
-    info: 'border-blue-500/20 bg-blue-500/5 text-blue-600 dark:text-blue-400',
-    warning: 'border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400',
-    success: 'border-green-500/20 bg-green-500/5 text-green-600 dark:text-green-400',
-    tip: 'border-purple-500/20 bg-purple-500/5 text-purple-600 dark:text-purple-400',
-  };
-
-  const iconComponents = {
-    info: Info,
-    warning: AlertTriangle,
-    success: CheckCircle2,
-    tip: Lightbulb,
-  };
-
-  const Icon = iconComponents[suggestion.type];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        "p-4 rounded-lg border backdrop-blur-sm",
-        typeStyles[suggestion.type]
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <Icon className="h-5 w-5 mt-0.5 flex-shrink-0" />
-        <div className="flex-1">
-          <h4 className="font-medium mb-1 text-foreground">{suggestion.title}</h4>
-          <p className="text-sm text-muted-foreground mb-3">{suggestion.description}</p>
-          {suggestion.actions && suggestion.actions.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {suggestion.actions.map((action, index) => (
-                <Button
-                  key={index}
-                  size="sm"
-                  variant={action.variant || 'outline'}
-                  onClick={action.onClick}
-                  className="gap-1.5"
-                >
-                  {action.icon && <action.icon className="h-3.5 w-3.5" />}
-                  {action.label}
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-};

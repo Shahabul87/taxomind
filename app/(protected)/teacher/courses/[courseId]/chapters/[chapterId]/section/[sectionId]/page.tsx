@@ -70,6 +70,8 @@ async function SectionContent(props: {
             rating: true,
             platform: true,
           },
+          take: 50,
+          orderBy: { position: 'asc' as const },
         },
         blogs: {
           select: {
@@ -83,6 +85,8 @@ async function SectionContent(props: {
             rating: true,
             siteName: true,
           },
+          take: 50,
+          orderBy: { position: 'asc' as const },
         },
         articles: {
           select: {
@@ -93,6 +97,7 @@ async function SectionContent(props: {
             source: true,
             summary: true,
           },
+          take: 50,
         },
         notes: {
           select: {
@@ -103,6 +108,8 @@ async function SectionContent(props: {
             isImportant: true,
             category: true,
           },
+          take: 50,
+          orderBy: { position: 'asc' as const },
         },
         codeExplanations: {
           select: {
@@ -117,6 +124,8 @@ async function SectionContent(props: {
             groupId: true,
             isPublished: true,
           },
+          take: 50,
+          orderBy: { position: 'asc' as const },
         },
         mathExplanations: {
           select: {
@@ -132,6 +141,8 @@ async function SectionContent(props: {
             isPublished: true,
             position: true,
           },
+          take: 50,
+          orderBy: { position: 'asc' as const },
         },
         chapter: {
           select: {
@@ -177,6 +188,7 @@ async function SectionContent(props: {
       where: {
         chapterId: params.chapterId,
       },
+      take: 100,
       orderBy: {
         position: "asc",
       },

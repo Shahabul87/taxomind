@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -92,7 +92,6 @@ export const SectionLearningObjectivesForm = ({
   const { isSubmitting, isValid } = form.formState;
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const [learningObjectivesArray, setLearningObjectivesArray] = useState<string[]>([]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -115,30 +114,21 @@ export const SectionLearningObjectivesForm = ({
     toast.success("Learning objectives generated! You can edit them before saving.");
   };
 
-  // Parse HTML content to extract learning objectives as array
-  useEffect(() => {
-    if (!isMounted || !initialData.learningObjectives) return;
-
-    if (typeof window !== 'undefined') {
-      const div = document.createElement('div');
-      div.innerHTML = initialData.learningObjectives;
-
-      const listItems = div.querySelectorAll('li');
-      const paragraphs = div.querySelectorAll('p');
-
-      let objectives: string[] = [];
-
-      if (listItems.length > 0) {
-        objectives = Array.from(listItems).map(li => li.textContent?.trim() || '').filter(text => text);
-      } else if (paragraphs.length > 0) {
-        objectives = Array.from(paragraphs).map(p => p.textContent?.trim() || '').filter(text => text);
-      } else {
-        const textContent = div.textContent || '';
-        objectives = textContent.split('\n').map(line => line.trim()).filter(line => line);
-      }
-
-      setLearningObjectivesArray(objectives);
+  // Derive learning objectives array from HTML content (no side effects needed)
+  const learningObjectivesArray = useMemo(() => {
+    if (!isMounted || !initialData.learningObjectives) return [];
+    if (typeof window === 'undefined') return [];
+    const div = document.createElement('div');
+    div.innerHTML = initialData.learningObjectives;
+    const listItems = div.querySelectorAll('li');
+    const paragraphs = div.querySelectorAll('p');
+    if (listItems.length > 0) {
+      return Array.from(listItems).map(li => li.textContent?.trim() || '').filter(Boolean);
     }
+    if (paragraphs.length > 0) {
+      return Array.from(paragraphs).map(p => p.textContent?.trim() || '').filter(Boolean);
+    }
+    return (div.textContent || '').split('\n').map(line => line.trim()).filter(Boolean);
   }, [initialData.learningObjectives, isMounted]);
 
   if (!isMounted) {
@@ -185,7 +175,7 @@ export const SectionLearningObjectivesForm = ({
                   {/* Display learning objectives as numbered list with nice formatting */}
                   <ul className="space-y-2 sm:space-y-3">
                     {learningObjectivesArray.slice(0, isExpanded ? learningObjectivesArray.length : 3).map((objective, index) => (
-                      <li key={index} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <li key={`obj-${objective.slice(0, 40)}-${index}`} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
                         <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-semibold text-[10px] sm:text-xs">
                           {index + 1}
                         </span>

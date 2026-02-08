@@ -65,9 +65,12 @@ export const SectionAccessForm = ({
       toast.success("Section access updated");
       toggleEdit();
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Section access update error:", error);
-      toast.error(error.response?.data || "Failed to update section access");
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data as string) || "Failed to update section access"
+        : "Failed to update section access";
+      toast.error(message);
     }
   };
 

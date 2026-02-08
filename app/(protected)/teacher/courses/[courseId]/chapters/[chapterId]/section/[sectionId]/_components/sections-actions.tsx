@@ -46,23 +46,24 @@ export const SectionActions = ({
       setIsLoading(true);
 
       if (isPublished) {
-        const response = await axios.patch(
+        await axios.patch(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/unpublish`
         );
-
         toast.success("Section unpublished");
       } else {
-        const response = await axios.patch(
+        await axios.patch(
           `/api/courses/${courseId}/chapters/${chapterId}/sections/${sectionId}/publish`
         );
-
         toast.success("Section published");
       }
 
       router.refresh();
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Section publish/unpublish error:", error);
-      toast.error(error.response?.data || "Failed to update section status");
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data as string) || "Failed to update section status"
+        : "Failed to update section status";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

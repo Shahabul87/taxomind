@@ -5,7 +5,7 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Pencil, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -76,7 +76,6 @@ export const SectionDescriptionForm = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [truncatedContent, setTruncatedContent] = useState("");
   const router = useRouter();
   const isPremium = useIsPremium();
 
@@ -96,26 +95,15 @@ export const SectionDescriptionForm = ({
     setIsMounted(true);
   }, []);
 
-  // Handle content truncation
-  useEffect(() => {
-    if (!isMounted) return;
-
-    const truncateHtml = (html: string, maxLength: number) => {
-      if (typeof window === 'undefined') return html;
-
-      const div = document.createElement('div');
-      div.innerHTML = html || '';
-      const text = div.textContent || div.innerText;
-      if (text.length <= maxLength) return html;
-      return text.substring(0, maxLength).trim() + '...';
-    };
-
-    if (initialData.description) {
-      setTruncatedContent(isExpanded
-        ? initialData.description
-        : truncateHtml(initialData.description, 300)
-      );
-    }
+  // Derive truncated content from props (no side effects needed)
+  const truncatedContent = useMemo(() => {
+    if (!isMounted || !initialData.description) return "";
+    if (isExpanded) return initialData.description;
+    if (typeof window === 'undefined') return initialData.description;
+    const div = document.createElement('div');
+    div.innerHTML = initialData.description;
+    const text = div.textContent || div.innerText;
+    return text.length <= 300 ? initialData.description : text.substring(0, 300).trim() + '...';
   }, [isExpanded, initialData.description, isMounted]);
 
   const handleAIGenerate = (content: string | string[] | object) => {

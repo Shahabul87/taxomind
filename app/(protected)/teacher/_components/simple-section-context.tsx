@@ -39,65 +39,71 @@ export function SimpleSectionContext({
   completionStatus = {}
 }: SimpleSectionContextProps) {
   useEffect(() => {
+    if (typeof window === 'undefined' || !section?.id) return;
+
+    type WindowWithContext = Window & { sectionContext?: unknown };
+
     // Inject section context data into global scope for SAM
-    if (typeof window !== 'undefined' && section && section.id) {
-      // Add context data to window for SAM to access
-      (window as Window & { sectionContext?: unknown }).sectionContext = {
-        entityType: 'section',
-        entityId: section.id,
-        entityData: {
-          // Core section data
-          title: section.title,
-          description: section.description,
-          content: section.content,
-          contentType: section.contentType,
-          videoUrl: section.videoUrl,
-          isPublished: section.isPublished,
-          isFree: section.isFree,
-          position: section.position,
+    (window as WindowWithContext).sectionContext = {
+      entityType: 'section',
+      entityId: section.id,
+      entityData: {
+        // Core section data
+        title: section.title,
+        description: section.description,
+        content: section.content,
+        contentType: section.contentType,
+        videoUrl: section.videoUrl,
+        isPublished: section.isPublished,
+        isFree: section.isFree,
+        position: section.position,
 
-          // Parent chapter info
-          chapterId: section.chapterId,
-          chapterTitle: section.chapterTitle,
+        // Parent chapter info
+        chapterId: section.chapterId,
+        chapterTitle: section.chapterTitle,
 
-          // Parent course info
-          courseId: section.courseId,
-          courseTitle: section.courseTitle,
+        // Parent course info
+        courseId: section.courseId,
+        courseTitle: section.courseTitle,
 
-          // Full section data for detailed context
-          fullSectionData: {
-            ...section,
-            completionStatus: completionStatus,
-            // Strip HTML from content for summary
-            contentPreview: section.content
-              ? section.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 500)
-              : null,
-            hasVideo: !!section.videoUrl,
-          }
-        },
-        completionStatus,
-        workflow: {
-          currentStep: calculateCurrentStep(section, completionStatus),
-          nextAction: determineNextAction(section, completionStatus),
-          progress: calculateProgress(completionStatus)
+        // Full section data for detailed context
+        fullSectionData: {
+          ...section,
+          completionStatus: completionStatus,
+          // Strip HTML from content for summary
+          contentPreview: section.content
+            ? section.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 500)
+            : null,
+          hasVideo: !!section.videoUrl,
         }
-      };
+      },
+      completionStatus,
+      workflow: {
+        currentStep: calculateCurrentStep(section, completionStatus),
+        nextAction: determineNextAction(section, completionStatus),
+        progress: calculateProgress(completionStatus)
+      }
+    };
 
-      // Trigger SAM context update event
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('sam-context-update', {
-          detail: {
-            serverData: {
-              entityType: 'section',
-              entityId: section.id,
-              entityData: (window as Window & { sectionContext?: { entityData?: unknown } }).sectionContext?.entityData
-            }
+    // Trigger SAM context update event
+    const timeoutId = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('sam-context-update', {
+        detail: {
+          serverData: {
+            entityType: 'section',
+            entityId: section.id,
+            entityData: (window as WindowWithContext & { sectionContext?: { entityData?: unknown } }).sectionContext?.entityData
           }
-        }));
+        }
+      }));
 
-        logger.debug('[SimpleSectionContext] Context injected:', section.title);
-      }, 100);
-    }
+      logger.debug('[SimpleSectionContext] Context injected:', section.title);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      delete (window as WindowWithContext).sectionContext;
+    };
   }, [section, completionStatus]);
 
   return null;
