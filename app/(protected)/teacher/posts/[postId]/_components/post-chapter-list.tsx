@@ -8,6 +8,7 @@ import {
   closestCenter,
   useSensor,
   useSensors,
+  type DragEndEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -79,42 +80,42 @@ export const PostChapterList = ({
     })
   );
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (!over || active.id === over.id) return;
 
     setChapters((chapters) => {
       const oldIndex = chapters.findIndex((chapter) => chapter.id === active.id);
       const newIndex = chapters.findIndex((chapter) => chapter.id === over.id);
-      
+
       const newChapters = arrayMove(chapters, oldIndex, newIndex);
-      
+
       const updateData = newChapters.map((chapter, index) => ({
         id: chapter.id,
         position: index,
       }));
-      
+
       onReorder(updateData);
-      
+
       return newChapters;
     });
   };
-  
+
   if (!isMounted) {
     return null;
   }
 
   return (
-    <DndContext 
-      sensors={sensors} 
-      collisionDetection={closestCenter} 
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={chapters.map(chapter => chapter.id)} strategy={verticalListSortingStrategy}>
         <div className="flex flex-col gap-y-2">
           {chapters.map((chapter) => (
-            <SortableChapterItem 
+            <SortableChapterItem
               key={chapter.id}
               chapter={chapter}
               onEdit={onEdit}
@@ -158,14 +159,23 @@ const SortableChapterItem = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-x-2 bg-slate-200 border-slate-200 border text-slate-700 rounded-md mb-4 text-sm",
-        chapter.isPublished && "bg-sky-100 border-sky-200 text-sky-700"
+        "flex items-center gap-x-2 border rounded-md mb-4 text-sm",
+        chapter.isPublished
+          ? "bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-500/10 dark:border-violet-500/30 dark:text-violet-300"
+          : "bg-slate-100 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
       )}
     >
       <div
         {...attributes}
         {...listeners}
-        className="px-2 py-3 hover:bg-slate-300 rounded-l-md transition"
+        className={cn(
+          "px-2 py-3 rounded-l-md transition cursor-grab",
+          chapter.isPublished
+            ? "hover:bg-violet-100 dark:hover:bg-violet-500/20"
+            : "hover:bg-slate-200 dark:hover:bg-slate-700"
+        )}
+        aria-roledescription="sortable"
+        aria-label={`Drag to reorder: ${chapter.title}`}
       >
         <Grip className="h-5 w-5" />
       </div>
@@ -180,19 +190,23 @@ const SortableChapterItem = ({
         )}
         <Badge
           className={cn(
-            "bg-slate-500",
-            chapter.isPublished && "bg-sky-700"
+            chapter.isPublished
+              ? "bg-violet-600 hover:bg-violet-700"
+              : "bg-slate-500 hover:bg-slate-600"
           )}
         >
           {chapter.isPublished ? "Published" : "Draft"}
         </Badge>
-        <Pencil
+        <button
           onClick={() => onEdit(chapter.id)}
-          className="w-4 h-4 cursor-pointer hover:opacity-75 transition"
-        />
+          aria-label={`Edit chapter: ${chapter.title}`}
+          className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition"
+        >
+          <Pencil className="w-4 h-4 cursor-pointer hover:opacity-75 transition" />
+        </button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button 
+            <Button
               variant="ghost"
               className="h-8 w-8 p-0 text-gray-500 dark:text-gray-400 hover:text-rose-600 dark:hover:text-rose-500"
             >
@@ -225,4 +239,4 @@ const SortableChapterItem = ({
       </div>
     </div>
   );
-}; 
+};

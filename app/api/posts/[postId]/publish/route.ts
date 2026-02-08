@@ -1,5 +1,6 @@
 import { currentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 import { db } from "@/lib/db";
 
@@ -31,7 +32,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
     const hasPublishedChapter = post.PostChapterSection.some((chapter) => chapter.isPublished);
 
     if (!post.title || !post.description || !post.imageUrl || !post.category || !hasPublishedChapter) {
-      return new NextResponse("Missing required fields", { status: 401 });
+      return new NextResponse("Missing required fields", { status: 400 });
     }
 
     const publishedPost = await db.post.update({
@@ -46,7 +47,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
 
     return NextResponse.json(publishedPost);
   } catch (error) {
-
+    logger.error("[POST_PUBLISH]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

@@ -3,8 +3,9 @@
 import axios from "axios";
 import { Trash } from "lucide-react";
 import { useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { logger } from "@/lib/logger";
 
 import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/modals/confirm-modal";
@@ -15,7 +16,7 @@ interface ActionsProps {
   disabled: boolean;
   postId: string;
   isPublished: boolean;
-};
+}
 
 export const PostActions = ({
   disabled,
@@ -40,13 +41,14 @@ export const PostActions = ({
       }
 
       router.refresh();
-    } catch {
+    } catch (error) {
+      logger.error("[POST_ACTIONS] Publish/unpublish failed:", error);
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);
     }
   }
-  
+
   const onDelete = async () => {
     try {
       setIsLoading(true);
@@ -55,8 +57,9 @@ export const PostActions = ({
 
       toast.success("Post deleted");
       router.refresh();
-      router.push(`/teacher/posts`);
-    } catch {
+      router.push('/teacher/posts/all-posts');
+    } catch (error) {
+      logger.error("[POST_ACTIONS] Delete failed:", error);
       toast.error("Something went wrong");
     } finally {
       setIsLoading(false);
@@ -72,15 +75,15 @@ export const PostActions = ({
           "w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base font-medium rounded-lg transition-colors",
           "focus:outline-none focus:ring-2 focus:ring-offset-2",
           isPublished ? [
-            "bg-orange-500 dark:bg-orange-600 text-white",
-            "hover:bg-orange-600 dark:hover:bg-orange-700",
-            "focus:ring-orange-500 dark:focus:ring-orange-600",
-            "disabled:bg-orange-300 dark:disabled:bg-orange-800"
+            "bg-amber-500 dark:bg-amber-600 text-white",
+            "hover:bg-amber-600 dark:hover:bg-amber-700",
+            "focus:ring-amber-500 dark:focus:ring-amber-600",
+            "disabled:bg-amber-300 dark:disabled:bg-amber-800"
           ].join(' ') : [
-            "bg-emerald-500 dark:bg-emerald-600 text-white",
-            "hover:bg-emerald-600 dark:hover:bg-emerald-700",
-            "focus:ring-emerald-500 dark:focus:ring-emerald-600",
-            "disabled:bg-emerald-300 dark:disabled:bg-emerald-800"
+            "bg-violet-600 dark:bg-violet-600 text-white",
+            "hover:bg-violet-700 dark:hover:bg-violet-700",
+            "focus:ring-violet-500 dark:focus:ring-violet-600",
+            "disabled:bg-violet-300 dark:disabled:bg-violet-800"
           ].join(' '),
           "disabled:cursor-not-allowed disabled:opacity-60"
         )}
@@ -94,9 +97,10 @@ export const PostActions = ({
       </Button>
 
       <ConfirmModal onConfirm={onDelete}>
-        <Button 
+        <Button
           size="sm"
           disabled={isLoading}
+          aria-label="Delete post"
           className={cn(
             "w-full sm:w-auto aspect-square sm:aspect-auto p-2 sm:p-2.5 rounded-lg transition-colors",
             "bg-rose-500 dark:bg-rose-600 text-white",

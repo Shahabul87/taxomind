@@ -3,7 +3,7 @@
 import * as z from "zod";
 import axios from "axios";
 import { Pencil, Image as ImageIcon, Upload, X, Check } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -32,9 +32,6 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [uploadResponse, setUploadResponse] = useState<UploadedFile[] | null>(
-    null
-  );
   const router = useRouter();
 
   const [formValues, setFormValues] = useState<z.infer<typeof formSchema>>({
@@ -42,12 +39,6 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
   });
 
   const toggleEdit = () => setIsEditing((current) => !current);
-
-  useEffect(() => {
-    if (uploadResponse) {
-      // URLs are extracted but currently unused - keeping for future features
-    }
-  }, [uploadResponse]);
 
   const handleFileUpload = (uploadedFiles: File[]) => {
     setFiles(uploadedFiles);
@@ -75,7 +66,6 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
 
       if (response.status === 200) {
         const result = response.data;
-        setUploadResponse(result.uploadedFiles);
 
         const firstImageUrl =
           result.uploadedFiles.length > 0 ? result.uploadedFiles[0].url : null;
@@ -122,7 +112,7 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
         "border border-slate-200/80 dark:border-slate-800",
         "rounded-xl overflow-hidden",
         "transition-all duration-200",
-        isEditing && "ring-2 ring-[#C65D3B]/20"
+        isEditing && "ring-2 ring-violet-500/20"
       )}
     >
       {/* Header */}
@@ -132,16 +122,16 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
             <div
               className={cn(
                 "w-9 h-9 rounded-lg flex items-center justify-center",
-                "bg-[#C65D3B]/10 text-[#C65D3B]"
+                "bg-violet-500/10 text-violet-600"
               )}
             >
               <ImageIcon className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white font-[family-name:var(--font-ui)]">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
                 Cover Image
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {initialData.imageUrl
                   ? "Click to change image"
                   : "Add a cover image"}
@@ -154,9 +144,8 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
             variant="ghost"
             size="sm"
             className={cn(
-              "text-[#C65D3B] hover:text-[#A84D32]",
-              "hover:bg-[#C65D3B]/10",
-              "font-[family-name:var(--font-ui)]"
+              "text-violet-600 hover:text-violet-700",
+              "hover:bg-violet-500/10"
             )}
           >
             {isEditing ? (
@@ -188,10 +177,10 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
                 )}
               >
                 <ImageIcon className="h-12 w-12 text-slate-300 dark:text-slate-600 mb-3" />
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
                   No cover image
                 </p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 font-[family-name:var(--font-ui)] mt-1">
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                   Click edit to upload one
                 </p>
               </div>
@@ -234,18 +223,18 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
                 <div
                   className={cn(
                     "mt-4 p-3 rounded-lg",
-                    "bg-[#87A878]/10 border border-[#87A878]/20"
+                    "bg-emerald-500/10 border border-emerald-500/20"
                   )}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#87A878]/20 rounded-lg">
-                      <Check className="h-4 w-4 text-[#87A878]" />
+                    <div className="p-2 bg-emerald-500/20 rounded-lg">
+                      <Check className="h-4 w-4 text-emerald-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#87A878] truncate font-[family-name:var(--font-ui)]">
+                      <p className="text-sm font-medium text-emerald-600 truncate">
                         {files[0].name}
                       </p>
-                      <p className="text-xs text-[#87A878]/70 font-[family-name:var(--font-ui)]">
+                      <p className="text-xs text-emerald-600/70">
                         {(files[0].size / (1024 * 1024)).toFixed(2)} MB
                       </p>
                     </div>
@@ -258,8 +247,7 @@ export const PostImageUpload = ({ initialData, postId }: ImageFormProps) => {
                   onClick={handleCombinedSubmit}
                   disabled={isSubmitting || files.length === 0}
                   className={cn(
-                    "bg-[#C65D3B] hover:bg-[#A84D32] text-white",
-                    "font-[family-name:var(--font-ui)]",
+                    "bg-violet-600 hover:bg-violet-700 text-white",
                     "shadow-sm px-6",
                     "disabled:bg-slate-200 dark:disabled:bg-slate-700",
                     "disabled:text-slate-400 dark:disabled:text-slate-500"

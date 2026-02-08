@@ -1,10 +1,10 @@
 /**
  * Loading Skeleton for Edit Post Page
- * Matches the editorial design system with warm earth tones
+ * Matches the violet/indigo design system
  */
 export default function EditPostLoading() {
   return (
-    <div className="min-h-screen bg-[#FAF6F1] dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -47,7 +47,7 @@ export default function EditPostLoading() {
             <div className="bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-800/30">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#C65D3B]/10 animate-pulse" />
+                  <div className="w-9 h-9 rounded-lg bg-violet-500/10 animate-pulse" />
                   <div>
                     <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                     <div className="h-3 w-28 bg-slate-200 dark:bg-slate-800 rounded mt-1 animate-pulse" />
@@ -63,7 +63,7 @@ export default function EditPostLoading() {
             <div className="bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-800/30">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#87A878]/10 animate-pulse" />
+                  <div className="w-9 h-9 rounded-lg bg-emerald-500/10 animate-pulse" />
                   <div>
                     <div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                     <div className="h-3 w-28 bg-slate-200 dark:bg-slate-800 rounded mt-1 animate-pulse" />
@@ -71,7 +71,7 @@ export default function EditPostLoading() {
                 </div>
               </div>
               <div className="p-5">
-                <div className="h-8 w-32 bg-[#87A878]/10 rounded-full animate-pulse" />
+                <div className="h-8 w-32 bg-emerald-500/10 rounded-full animate-pulse" />
               </div>
             </div>
 
@@ -79,7 +79,7 @@ export default function EditPostLoading() {
             <div className="bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-800/30">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#C4A35A]/10 animate-pulse" />
+                  <div className="w-9 h-9 rounded-lg bg-amber-500/10 animate-pulse" />
                   <div>
                     <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                     <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded mt-1 animate-pulse" />
@@ -97,7 +97,7 @@ export default function EditPostLoading() {
             <div className="bg-white dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-800/30">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#C65D3B]/10 animate-pulse" />
+                  <div className="w-9 h-9 rounded-lg bg-violet-500/10 animate-pulse" />
                   <div>
                     <div className="h-4 w-24 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
                     <div className="h-3 w-32 bg-slate-200 dark:bg-slate-800 rounded mt-1 animate-pulse" />
@@ -143,13 +143,13 @@ export default function EditPostLoading() {
               </div>
 
               {/* Tips Card Skeleton */}
-              <div className="bg-[#C4A35A]/5 dark:bg-[#C4A35A]/10 border border-[#C4A35A]/20 rounded-xl p-5">
-                <div className="h-4 w-16 bg-[#C4A35A]/20 rounded mb-3 animate-pulse" />
+              <div className="bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/20 rounded-xl p-5">
+                <div className="h-4 w-16 bg-violet-500/20 rounded mb-3 animate-pulse" />
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="h-3 w-full bg-[#C4A35A]/10 rounded animate-pulse"
+                      className="h-3 w-full bg-violet-500/10 rounded animate-pulse"
                     />
                   ))}
                 </div>

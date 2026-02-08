@@ -82,7 +82,7 @@ export const PostTitleForm = ({ initialData, postId }: TitleFormProps) => {
         "border border-slate-200/80 dark:border-slate-800",
         "rounded-xl overflow-hidden",
         "transition-all duration-200",
-        isEditing && "ring-2 ring-[#C65D3B]/20"
+        isEditing && "ring-2 ring-violet-500/20"
       )}
     >
       {/* Header */}
@@ -92,16 +92,16 @@ export const PostTitleForm = ({ initialData, postId }: TitleFormProps) => {
             <div
               className={cn(
                 "w-9 h-9 rounded-lg flex items-center justify-center",
-                "bg-[#C65D3B]/10 text-[#C65D3B]"
+                "bg-violet-500/10 text-violet-600"
               )}
             >
               <Type className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white font-[family-name:var(--font-ui)]">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
                 Post Title
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {initialData.title ? "Click edit to modify" : "Required field"}
               </p>
             </div>
@@ -113,9 +113,8 @@ export const PostTitleForm = ({ initialData, postId }: TitleFormProps) => {
               variant="ghost"
               size="sm"
               className={cn(
-                "text-[#C65D3B] hover:text-[#A84D32]",
-                "hover:bg-[#C65D3B]/10",
-                "font-[family-name:var(--font-ui)]"
+                "text-violet-600 hover:text-violet-700",
+                "hover:bg-violet-500/10"
               )}
             >
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
@@ -130,13 +129,13 @@ export const PostTitleForm = ({ initialData, postId }: TitleFormProps) => {
         {!isEditing ? (
           <div className="space-y-1">
             {initialData.title ? (
-              <p className="text-base text-slate-700 dark:text-slate-200 font-[family-name:var(--font-body)] leading-relaxed">
+              <p className="text-base text-slate-700 dark:text-slate-200 leading-relaxed">
                 {initialData.title}
               </p>
             ) : (
               <div className="flex items-center gap-2 py-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                <p className="text-sm text-slate-500 dark:text-slate-400 italic font-[family-name:var(--font-body)]">
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
                   No title set - click edit to add one
                 </p>
               </div>
@@ -161,13 +160,12 @@ export const PostTitleForm = ({ initialData, postId }: TitleFormProps) => {
                           "border-slate-200 dark:border-slate-700",
                           "text-slate-800 dark:text-slate-200",
                           "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                          "focus:ring-[#C65D3B]/20 focus:border-[#C65D3B]/50",
-                          "font-[family-name:var(--font-body)]",
+                          "focus:ring-violet-500/20 focus:border-violet-500/50",
                           "text-base py-3"
                         )}
                       />
                     </FormControl>
-                    <FormMessage className="text-rose-500 text-xs font-[family-name:var(--font-ui)]" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )}
               />
@@ -178,8 +176,7 @@ export const PostTitleForm = ({ initialData, postId }: TitleFormProps) => {
                   type="submit"
                   size="sm"
                   className={cn(
-                    "bg-[#C65D3B] hover:bg-[#A84D32] text-white",
-                    "font-[family-name:var(--font-ui)]",
+                    "bg-violet-600 hover:bg-violet-700 text-white",
                     "shadow-sm"
                   )}
                 >
@@ -204,8 +201,7 @@ export const PostTitleForm = ({ initialData, postId }: TitleFormProps) => {
                   className={cn(
                     "text-slate-600 dark:text-slate-400",
                     "hover:text-slate-800 dark:hover:text-slate-200",
-                    "hover:bg-slate-100 dark:hover:bg-slate-800",
-                    "font-[family-name:var(--font-ui)]"
+                    "hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}
                 >
                   <X className="h-3.5 w-3.5 mr-1.5" />

@@ -8,27 +8,8 @@ import { Loader2, PlusCircle, LayoutList } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Post, Chapter } from "@prisma/client";
 import { cn } from "@/lib/utils";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { logger } from "@/lib/logger";
 
 import {
   Form,
@@ -72,7 +53,7 @@ export const PostChaptersForm = ({
 }: ChaptersFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -90,13 +71,19 @@ export const PostChaptersForm = ({
       toast.success("Chapter created");
       toggleCreating();
       router.refresh();
-    } catch {
+    } catch (error) {
+      logger.error("[POST_CHAPTERS] Create failed:", error);
       toast.error("Something went wrong");
     }
   };
 
   const toggleCreating = () => {
-    setIsCreating((current) => !current);
+    setIsCreating((current) => {
+      if (!current) {
+        form.reset({ title: "" });
+      }
+      return !current;
+    });
   };
 
   const onReorder = async (updateData: { id: string; position: number }[]) => {
@@ -107,7 +94,8 @@ export const PostChaptersForm = ({
       });
       toast.success("Chapters reordered");
       router.refresh();
-    } catch {
+    } catch (error) {
+      logger.error("[POST_CHAPTERS] Reorder failed:", error);
       toast.error("Something went wrong");
     } finally {
       setIsUpdating(false);
@@ -123,7 +111,8 @@ export const PostChaptersForm = ({
       await axios.delete(`/api/posts/${postId}/postchapters/${postchapterId}`);
       toast.success("Chapter deleted");
       router.refresh();
-    } catch {
+    } catch (error) {
+      logger.error("[POST_CHAPTERS] Delete failed:", error);
       toast.error("Something went wrong");
     }
   };
@@ -132,12 +121,12 @@ export const PostChaptersForm = ({
     <div className="relative p-3 sm:p-4 lg:p-6 bg-white/50 dark:bg-gray-800/40 rounded-lg sm:rounded-xl border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/60 dark:hover:bg-gray-800/50 transition-all duration-200">
       {isUpdating && (
         <div className="absolute h-full w-full bg-gray-50/50 dark:bg-gray-900/50 top-0 right-0 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm">
-          <Loader2 className="animate-spin h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
+          <Loader2 className="animate-spin h-5 w-5 sm:h-6 sm:w-6 text-violet-600 dark:text-violet-400" />
         </div>
       )}
       <div className="font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
         <div className="flex items-center gap-x-2">
-          <LayoutList className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 dark:text-purple-400" />
+          <LayoutList className="h-4 w-4 sm:h-5 sm:w-5 text-violet-600 dark:text-violet-400" />
           <div>
             <h2 className="text-base sm:text-lg text-gray-900 dark:text-gray-200">
               Post Chapters
@@ -150,7 +139,7 @@ export const PostChaptersForm = ({
         <Button
           onClick={toggleCreating}
           variant="ghost"
-          className="w-full sm:w-auto text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:bg-purple-50 dark:hover:text-purple-300 dark:hover:bg-purple-500/10"
+          className="w-full sm:w-auto text-violet-600 dark:text-violet-400 hover:text-violet-700 hover:bg-violet-50 dark:hover:text-violet-300 dark:hover:bg-violet-500/10"
         >
           {isCreating ? (
             <>Cancel</>
@@ -179,7 +168,7 @@ export const PostChaptersForm = ({
                       {...field}
                       disabled={isSubmitting}
                       placeholder="e.g. 'Introduction to the topic'"
-                      className="bg-white dark:bg-gray-900/50 border-gray-200/50 dark:border-gray-700/50 text-gray-900 dark:text-gray-200 focus:ring-purple-500/20 dark:focus:ring-purple-500/30 focus:border-purple-500/30 dark:focus:border-purple-500/30 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      className="bg-white dark:bg-gray-900/50 border-gray-200/50 dark:border-gray-700/50 text-gray-900 dark:text-gray-200 focus:ring-violet-500/20 dark:focus:ring-violet-500/30 focus:border-violet-500/30 dark:focus:border-violet-500/30 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                   </FormControl>
                   <FormMessage className="text-rose-500 dark:text-rose-400 text-sm" />
@@ -191,7 +180,7 @@ export const PostChaptersForm = ({
                 disabled={!isValid || isSubmitting}
                 type="submit"
                 variant="ghost"
-                className="bg-purple-500/10 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20 dark:hover:bg-purple-500/20 hover:text-purple-700 dark:hover:text-purple-300 w-full sm:w-auto"
+                className="bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 dark:hover:bg-violet-500/20 hover:text-violet-700 dark:hover:text-violet-300 w-full sm:w-auto"
               >
                 Create
               </Button>

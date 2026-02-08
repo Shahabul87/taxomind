@@ -2,6 +2,14 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const UpdatePostSchema = z.object({
+  title: z.string().min(1).max(100).optional(),
+  description: z.string().max(5000).optional(),
+  imageUrl: z.string().url().optional(),
+  category: z.string().optional(),
+}).strict();
 
 export async function DELETE(req: Request, props: { params: Promise<{ postId: string }> }) {
   const params = await props.params;
@@ -38,30 +46,34 @@ export async function PATCH(req: Request, props: { params: Promise<{ postId: str
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const userId = user?.id;
+    const validated = UpdatePostSchema.parse(values);
+
+    const userId = user.id;
     // Check if the post exists and belongs to the user
-  const postExists = await db.post.findFirst({
-    where: {
-      id: postId,
-      userId: userId,
-    },
-  });
+    const postExists = await db.post.findFirst({
+      where: {
+        id: postId,
+        userId: userId,
+      },
+    });
 
-  if (!postExists) {
-    return new NextResponse("Post not found or unauthorized", { status: 404 });
+    if (!postExists) {
+      return new NextResponse("Post not found or unauthorized", { status: 404 });
+    }
+
+    // Proceed to update the post
+    const updatedPost = await db.post.update({
+      where: { id: postId },
+      data: validated,
+    });
+
+    return NextResponse.json(updatedPost);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      logger.error("[POST_PATCH] Validation error:", error.errors);
+      return new NextResponse("Invalid request data", { status: 400 });
+    }
+    logger.error("[POST_PATCH]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
-
-  // Proceed to update the post
-  const updatedPost = await db.post.update({
-    where: { id: postId },
-    data: {
-      ...values,
-    },
-  });
-
-  return NextResponse.json(updatedPost);
-} catch (error) {
-
-  return new NextResponse("Internal Error", { status: 500 });
-}
 }

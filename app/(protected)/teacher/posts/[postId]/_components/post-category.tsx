@@ -125,7 +125,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
         "border border-slate-200/80 dark:border-slate-800",
         "rounded-xl overflow-hidden",
         "transition-all duration-200",
-        isEditing && "ring-2 ring-[#C65D3B]/20"
+        isEditing && "ring-2 ring-violet-500/20"
       )}
     >
       {/* Header */}
@@ -135,16 +135,16 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
             <div
               className={cn(
                 "w-9 h-9 rounded-lg flex items-center justify-center",
-                "bg-[#87A878]/10 text-[#87A878]"
+                "bg-emerald-500/10 text-emerald-600"
               )}
             >
               <Tag className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white font-[family-name:var(--font-ui)]">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
                 Category
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {initialData.category ? "Click edit to change" : "Required field"}
               </p>
             </div>
@@ -156,9 +156,8 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
               variant="ghost"
               size="sm"
               className={cn(
-                "text-[#C65D3B] hover:text-[#A84D32]",
-                "hover:bg-[#C65D3B]/10",
-                "font-[family-name:var(--font-ui)]"
+                "text-violet-600 hover:text-violet-700",
+                "hover:bg-violet-500/10"
               )}
             >
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
@@ -177,9 +176,9 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
                 className={cn(
                   "inline-flex items-center gap-1.5",
                   "px-3 py-1.5 rounded-full text-sm",
-                  "bg-[#87A878]/10 text-[#87A878] dark:text-[#A8C49A]",
-                  "border border-[#87A878]/20",
-                  "font-[family-name:var(--font-ui)] font-medium"
+                  "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                  "border border-emerald-500/20",
+                  "font-medium"
                 )}
               >
                 <Tag className="w-3 h-3" />
@@ -188,7 +187,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
             ) : (
               <div className="flex items-center gap-2 py-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                <p className="text-sm text-slate-500 dark:text-slate-400 italic font-[family-name:var(--font-body)]">
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
                   No category selected - click edit to choose one
                 </p>
               </div>
@@ -202,7 +201,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormDescription className="text-xs text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)] mb-2">
+                    <FormDescription className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                       Select a category that best describes your post
                     </FormDescription>
                     <Select
@@ -217,8 +216,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
                             "bg-white dark:bg-slate-900",
                             "border-slate-200 dark:border-slate-700",
                             "text-slate-800 dark:text-slate-200",
-                            "focus:ring-[#C65D3B]/20 focus:border-[#C65D3B]/50",
-                            "font-[family-name:var(--font-ui)]"
+                            "focus:ring-violet-500/20 focus:border-violet-500/50"
                           )}
                           data-form="post-category"
                         >
@@ -232,8 +230,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
                             value={category.value}
                             className={cn(
                               "text-slate-800 dark:text-slate-200",
-                              "focus:bg-[#C65D3B]/10 focus:text-[#C65D3B]",
-                              "font-[family-name:var(--font-ui)]"
+                              "focus:bg-violet-500/10 focus:text-violet-600"
                             )}
                           >
                             {category.label}
@@ -241,7 +238,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-rose-500 text-xs font-[family-name:var(--font-ui)]" />
+                    <FormMessage className="text-rose-500 text-xs" />
                   </FormItem>
                 )}
               />
@@ -252,8 +249,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
                   type="submit"
                   size="sm"
                   className={cn(
-                    "bg-[#C65D3B] hover:bg-[#A84D32] text-white",
-                    "font-[family-name:var(--font-ui)]",
+                    "bg-violet-600 hover:bg-violet-700 text-white",
                     "shadow-sm"
                   )}
                 >
@@ -278,8 +274,7 @@ export const PostCategory = ({ initialData, postId }: CategoryFormProps) => {
                   className={cn(
                     "text-slate-600 dark:text-slate-400",
                     "hover:text-slate-800 dark:hover:text-slate-200",
-                    "hover:bg-slate-100 dark:hover:bg-slate-800",
-                    "font-[family-name:var(--font-ui)]"
+                    "hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}
                 >
                   <X className="h-3.5 w-3.5 mr-1.5" />

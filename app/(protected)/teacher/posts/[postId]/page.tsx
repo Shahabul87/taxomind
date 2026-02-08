@@ -1,8 +1,14 @@
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { currentUser } from '@/lib/auth'
-import { Footer } from "@/app/(homepage)/footer";
+import { ReactErrorBoundary } from "@/components/react-error-boundary";
 import EnterpriseEditPost from "./enterprise-edit-post";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Edit Post",
+  robots: "noindex, nofollow",
+};
 
 const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
   const params = await props.params;
@@ -48,7 +54,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
   }
 
   return (
-    <>
+    <ReactErrorBoundary name="EditPost">
       <EnterpriseEditPost
           postId={post.id}
           title={post.title}
@@ -70,7 +76,7 @@ const PostEditPage = async (props: {params: Promise<{ postId: string; }>}) => {
             postId: chapter.postId,
           }))}
         />
-    </>
+    </ReactErrorBoundary>
   );
 }
 

@@ -92,7 +92,7 @@ export const PostDescription = ({
         "border border-slate-200/80 dark:border-slate-800",
         "rounded-xl overflow-hidden",
         "transition-all duration-200",
-        isEditing && "ring-2 ring-[#C65D3B]/20"
+        isEditing && "ring-2 ring-violet-500/20"
       )}
     >
       {/* Header */}
@@ -102,16 +102,16 @@ export const PostDescription = ({
             <div
               className={cn(
                 "w-9 h-9 rounded-lg flex items-center justify-center",
-                "bg-[#C4A35A]/10 text-[#C4A35A]"
+                "bg-amber-500/10 text-amber-600"
               )}
             >
               <AlignLeft className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-white font-[family-name:var(--font-ui)]">
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
                 Description
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)]">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {initialData.description
                   ? `${wordCount} words`
                   : "Required field"}
@@ -125,9 +125,8 @@ export const PostDescription = ({
               variant="ghost"
               size="sm"
               className={cn(
-                "text-[#C65D3B] hover:text-[#A84D32]",
-                "hover:bg-[#C65D3B]/10",
-                "font-[family-name:var(--font-ui)]"
+                "text-violet-600 hover:text-violet-700",
+                "hover:bg-violet-500/10"
               )}
             >
               <Pencil className="h-3.5 w-3.5 mr-1.5" />
@@ -145,7 +144,7 @@ export const PostDescription = ({
               <div
                 className={cn(
                   "text-sm text-slate-600 dark:text-slate-300",
-                  "leading-[1.8] font-[family-name:var(--font-body)]",
+                  "leading-[1.8]",
                   "prose prose-sm dark:prose-invert max-w-none"
                 )}
               >
@@ -154,7 +153,7 @@ export const PostDescription = ({
             ) : (
               <div className="flex items-center gap-2 py-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                <p className="text-sm text-slate-500 dark:text-slate-400 italic font-[family-name:var(--font-body)]">
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
                   No description provided - click edit to add one
                 </p>
               </div>
@@ -168,7 +167,7 @@ export const PostDescription = ({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormDescription className="text-xs text-slate-500 dark:text-slate-400 font-[family-name:var(--font-ui)] mb-2">
+                    <FormDescription className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                       Write a compelling description for your post (aim for
                       150-300 words for SEO)
                     </FormDescription>
@@ -182,20 +181,19 @@ export const PostDescription = ({
                           "border-slate-200 dark:border-slate-700",
                           "text-slate-800 dark:text-slate-200",
                           "placeholder:text-slate-400 dark:placeholder:text-slate-500",
-                          "focus:ring-[#C65D3B]/20 focus:border-[#C65D3B]/50",
-                          "font-[family-name:var(--font-body)]",
+                          "focus:ring-violet-500/20 focus:border-violet-500/50",
                           "min-h-[180px] resize-y leading-[1.8]"
                         )}
                       />
                     </FormControl>
                     <div className="flex items-center justify-between">
-                      <FormMessage className="text-rose-500 text-xs font-[family-name:var(--font-ui)]" />
+                      <FormMessage className="text-rose-500 text-xs" />
                       <span
                         className={cn(
-                          "text-xs font-[family-name:var(--font-ui)]",
+                          "text-xs",
                           field.value?.trim().split(/\s+/).filter(Boolean)
                             .length >= 150
-                            ? "text-[#87A878]"
+                            ? "text-emerald-500"
                             : "text-slate-400"
                         )}
                       >
@@ -214,8 +212,7 @@ export const PostDescription = ({
                   type="submit"
                   size="sm"
                   className={cn(
-                    "bg-[#C65D3B] hover:bg-[#A84D32] text-white",
-                    "font-[family-name:var(--font-ui)]",
+                    "bg-violet-600 hover:bg-violet-700 text-white",
                     "shadow-sm"
                   )}
                 >
@@ -240,8 +237,7 @@ export const PostDescription = ({
                   className={cn(
                     "text-slate-600 dark:text-slate-400",
                     "hover:text-slate-800 dark:hover:text-slate-200",
-                    "hover:bg-slate-100 dark:hover:bg-slate-800",
-                    "font-[family-name:var(--font-ui)]"
+                    "hover:bg-slate-100 dark:hover:bg-slate-800"
                   )}
                 >
                   <X className="h-3.5 w-3.5 mr-1.5" />
