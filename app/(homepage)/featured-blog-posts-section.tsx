@@ -53,6 +53,9 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: '-50px' });
 
+  // Hide entire section when there are no posts
+  if (posts.length === 0) return null;
+
   // Filter posts by category
   const filteredPosts = activeCategory === 'all'
     ? posts
@@ -99,42 +102,51 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
       </div>
 
       <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Section Heading */}
+        {/* Section Heading — left-aligned, single line */}
         <motion.div
-          className="mb-8 sm:mb-10 md:mb-12 lg:mb-16 text-center"
+          className="mb-6 sm:mb-8"
           variants={fadeInUp}
           initial="hidden"
           animate={isInView ? 'visible' : 'hidden'}
           style={{ willChange: 'transform, opacity' }}
         >
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-purple-200/50 dark:border-purple-500/30 shadow-sm mb-3 sm:mb-4">
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
-            <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">Latest Insights</span>
-          </div>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100/80 dark:bg-purple-900/30 border border-purple-200/50 dark:border-purple-500/30 mb-3">
+                <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span className="text-xs font-semibold text-purple-700 dark:text-purple-300">Latest Insights</span>
+              </div>
+              <h2
+                id="featured-blog-heading"
+                className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white"
+              >
+                Featured{' '}
+                <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 bg-clip-text text-transparent">
+                  Blog Posts
+                </span>
+              </h2>
+              <p className="mt-1.5 text-sm sm:text-base text-slate-500 dark:text-slate-400">
+                Read our latest blog posts and stay up to date with the latest trends
+              </p>
+            </div>
 
-          <h2
-            id="featured-blog-heading"
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] sm:leading-[1.15] tracking-tight text-slate-900 dark:text-white mb-3 sm:mb-4 px-2 sm:px-0"
-          >
-            <span className="block">Featured</span>
-            <span className="block bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 bg-clip-text text-transparent">
-              Blog Posts
-            </span>
-          </h2>
-          <p className="mt-3 sm:mt-4 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed text-slate-600 dark:text-slate-300 max-w-2xl mx-auto px-2 sm:px-0">
-            Read our latest blog posts and stay up to date with the latest trends
-          </p>
+            <Link
+              href="/blog"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors group whitespace-nowrap"
+            >
+              View all posts
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
         </motion.div>
 
-        {/* Controls Bar */}
-        <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4">
-          {/* Category Select and Results Info */}
-          <div className="flex flex-col gap-3 sm:gap-4">
-            {/* Category Select */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center justify-between">
+        {/* Controls Bar — single row: filter left, count right */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
               <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as BlogCategoryKey)}>
                 <SelectTrigger
-                  className="w-full sm:w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11 sm:h-11"
+                  className="w-full sm:w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10"
                   aria-label="Browse blog topics"
                 >
                   <SelectValue placeholder="Browse Topics" />
@@ -154,18 +166,16 @@ export const FeaturedBlogPostsSection = ({ posts }: FeaturedBlogPostsProps) => {
                 </SelectContent>
               </Select>
 
-              {/* Results Info */}
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
-                  {filteredPosts.length} {filteredPosts.length === 1 ? 'Post' : 'Posts'}
-                </h3>
-                {activeCategory !== 'all' && (
-                  <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs sm:text-sm">
-                    {BLOG_CATEGORIES.find(c => c.key === activeCategory)?.label}
-                  </Badge>
-                )}
-              </div>
+              {activeCategory !== 'all' && (
+                <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs sm:text-sm self-center">
+                  {BLOG_CATEGORIES.find(c => c.key === activeCategory)?.label}
+                </Badge>
+              )}
             </div>
+
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+              {filteredPosts.length} {filteredPosts.length === 1 ? 'Post' : 'Posts'}
+            </span>
           </div>
         </div>
 

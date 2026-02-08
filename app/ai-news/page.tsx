@@ -15,11 +15,11 @@ import {
 import { Button } from '@/components/ui/button';
 
 // Import redesigned components
-import { AINewsNavbar } from './components/AINewsNavbar';
 import { AINewsHero } from './components/AINewsHero';
 import { AINewsFilterBar } from './components/AINewsFilterBar';
 import { NewsCard } from './components/NewsCard';
 import { AINewsSidebar } from './components/AINewsSidebar';
+import { HomeFooter } from '@/app/(homepage)/HomeFooter';
 
 interface NewsArticle {
   articleId: string;
@@ -204,17 +204,6 @@ export default function AINewsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Skip to main content link for accessibility */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-white focus:text-slate-900 focus:rounded-lg focus:shadow-lg"
-      >
-        Skip to main content
-      </a>
-
-      {/* Floating Navbar - Appears on scroll */}
-      <AINewsNavbar />
-
       {/* Hero Section */}
       <AINewsHero stats={stats} />
 
@@ -306,7 +295,7 @@ export default function AINewsPage() {
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="relative">
                     <div className="w-16 h-16 border-4 border-slate-200 dark:border-slate-700 rounded-full"></div>
-                    <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="absolute top-0 left-0 w-16 h-16 border-4 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
                   </div>
                   <p className="mt-4 text-slate-500 dark:text-slate-400 font-medium">Loading latest AI news...</p>
                 </div>
@@ -369,6 +358,9 @@ export default function AINewsPage() {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <HomeFooter />
     </div>
   );
 }

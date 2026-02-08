@@ -135,7 +135,7 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
           href="/"
           className="relative z-20 flex items-center space-x-2.5 py-1"
         >
-          <div className="relative h-9 w-9 overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md flex items-center justify-center">
+          <div className="relative h-9 w-9 overflow-hidden rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md flex items-center justify-center">
             <Image
               src="/taxomind-logo.png"
               alt="Taxomind Logo"
@@ -166,7 +166,7 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
               className={cn(
                 "relative px-4 py-2 rounded-lg transition-colors",
                 item.link === "/ai-news"
-                  ? "text-blue-600 dark:text-blue-400 font-semibold"
+                  ? "text-violet-600 dark:text-violet-400 font-semibold"
                   : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               )}
             >
@@ -226,7 +226,7 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
           href="/"
           className="relative z-20 flex items-center space-x-2 py-1"
         >
-          <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm flex items-center justify-center">
+          <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 shadow-sm flex items-center justify-center">
             <Image
               src="/taxomind-logo.png"
               alt="Taxomind Logo"
@@ -264,7 +264,7 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
               >
                 {/* Header */}
                 <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6 pb-8">
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl" />
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-violet-500/10 rounded-full blur-3xl" />
                   <div className="relative z-10">
                     <SheetHeader className="space-y-2">
                       <SheetTitle className="text-white text-xl font-bold text-left">
@@ -279,7 +279,7 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
                       <div className="mt-6 flex items-center gap-3 p-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
                         <Avatar className="h-12 w-12 ring-2 ring-white/20">
                           <AvatarImage src={user.image || ''} alt={user.name || 'User'} />
-                          <AvatarFallback className="bg-gradient-to-br from-blue-400 to-indigo-400 text-white font-semibold">
+                          <AvatarFallback className="bg-gradient-to-br from-violet-400 to-indigo-400 text-white font-semibold">
                             {user.name?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
@@ -312,7 +312,7 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
                         className={cn(
                           "group flex items-center justify-between rounded-xl px-4 py-3.5 transition-all duration-200",
                           isActive
-                            ? "bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20"
+                            ? "bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20"
                             : "hover:bg-slate-50 dark:hover:bg-slate-800"
                         )}
                       >
@@ -320,13 +320,13 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
                           <div className={cn(
                             "flex items-center justify-center w-10 h-10 rounded-lg",
                             isActive
-                              ? "bg-blue-100 dark:bg-blue-500/20"
+                              ? "bg-violet-100 dark:bg-violet-500/20"
                               : "bg-slate-100 dark:bg-slate-800"
                           )}>
                             <Icon className={cn(
                               "h-5 w-5",
                               isActive
-                                ? "text-blue-600 dark:text-blue-400"
+                                ? "text-violet-600 dark:text-violet-400"
                                 : "text-slate-600 dark:text-slate-400"
                             )} />
                           </div>
@@ -334,7 +334,7 @@ export function AINewsNavbar({ className }: AINewsNavbarProps) {
                             <p className={cn(
                               "font-semibold text-sm",
                               isActive
-                                ? "text-blue-700 dark:text-blue-400"
+                                ? "text-violet-700 dark:text-violet-400"
                                 : "text-slate-700 dark:text-slate-300"
                             )}>
                               {item.name}

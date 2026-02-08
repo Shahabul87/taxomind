@@ -54,24 +54,28 @@ const createNewsAPIProvider = (): NewsProvider => {
       }
 
       try {
-        // Build comprehensive AI search query covering all categories
-        // Use the provided query or default to broad AI topics
+        // Build focused AI search query — avoid generic terms like "education" or "learning"
+        // that pull in UPSC prep sites, generic school news, etc.
         const baseQuery = options.query || 'artificial intelligence';
 
-        // Expand query to cover multiple AI categories if it's a general AI search
         const isGeneralAISearch = baseQuery.toLowerCase().includes('artificial intelligence') ||
                                    baseQuery.toLowerCase().includes('ai education') ||
                                    baseQuery.toLowerCase().includes('ai news');
 
+        // Use quoted phrases and AI-specific terms to improve precision
         const searchQuery = isGeneralAISearch
-          ? '(artificial intelligence OR machine learning OR deep learning OR ChatGPT OR GPT OR AI education OR AI research OR neural network OR LLM OR generative AI)'
+          ? '("artificial intelligence" OR "machine learning" OR "deep learning" OR ChatGPT OR "large language model" OR LLM OR "generative AI" OR "neural network" OR OpenAI OR "AI model" OR "AI startup" OR "AI regulation")'
           : baseQuery;
+
+        // Request max articles so we have enough after relevance filtering
+        // NewsAPI caps at 100 per request — we filter aggressively so fetch the max
+        const fetchSize = 100;
 
         const params = new URLSearchParams({
           q: searchQuery,
           language: 'en',
-          sortBy: 'publishedAt', // Sort by most recent first
-          pageSize: String(Math.min(options.limit ?? 20, 100)), // Fetch more articles
+          sortBy: 'publishedAt',
+          pageSize: String(fetchSize),
           apiKey: apiKey!,
         });
 
@@ -83,33 +87,125 @@ const createNewsAPIProvider = (): NewsProvider => {
         const data = await response.json();
         const articles = data.articles ?? [];
 
-        // Filter out articles with [Removed] title (NewsAPI placeholder for deleted articles)
-        const validArticles = articles.filter((article: Record<string, unknown>) =>
-          article.title &&
-          !(article.title as string).includes('[Removed]') &&
-          article.url
-        );
+        // AI-relevance keywords — at least one must appear in title or description
+        const AI_KEYWORDS = [
+          'artificial intelligence', 'machine learning', 'deep learning',
+          'neural network', 'chatgpt', 'openai', 'anthropic', 'claude',
+          'llm', 'large language model', 'generative ai', 'gen ai',
+          'gpt', 'gemini', 'copilot', 'ai model', 'ai agent',
+          'ai startup', 'ai regulation', 'ai safety', 'ai ethics',
+          'natural language processing', 'nlp', 'computer vision',
+          'robotics', 'autonomous', 'transformer model',
+          'ai-powered', 'ai-driven', 'ai tool', 'ai platform',
+          'deepmind', 'midjourney', 'stable diffusion', 'hugging face',
+          'reinforcement learning', 'federated learning',
+          ' ai ', // standalone "AI" with spaces to avoid matching "said", "aim", etc.
+        ];
 
-        return validArticles.map((article: Record<string, unknown>, index: number) => {
+        // Filter: valid article + AI-relevant + not auto-generated noise
+        const seenTitles = new Set<string>();
+        const validArticles = articles.filter((article: Record<string, unknown>) => {
+          if (!article.title || (article.title as string).includes('[Removed]') || !article.url) {
+            return false;
+          }
+
+          const title = article.title as string;
+          const description = (article.description as string) ?? '';
+          const titleLower = title.toLowerCase();
+          const descLower = description.toLowerCase();
+
+          // Must be AI-relevant: keyword must appear in title, OR in both title+description
+          // This prevents articles that mention AI once in passing from slipping through
+          const titleHasAI = AI_KEYWORDS.some(kw => titleLower.includes(kw));
+          const descHasAI = AI_KEYWORDS.some(kw => descLower.includes(kw));
+          if (!titleHasAI && !descHasAI) return false;
+          // If only in description, require at least 2 different AI keywords for confidence
+          if (!titleHasAI) {
+            const descMatches = AI_KEYWORDS.filter(kw => descLower.includes(kw));
+            if (descMatches.length < 2) return false;
+          }
+
+          // Filter out auto-generated package release noise from PyPI
+          // These are automated "X added to PyPI" or "X 1.2.3" version bumps — not real news
+          const url = article.url as string;
+          if (url.includes('pypi.org')) return false;
+
+          // Deduplicate: exact match, substring match, or significant word overlap
+          const normalizedTitle = titleLower
+            .replace(/\d+\.\d+(\.\d+)?(\.\d+)?/g, '')
+            .replace(/added to pypi/gi, '')
+            .replace(/\s*[-–|:]\s*(macr|theverge|slashdot|cnn|bbc|reuters).*$/i, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+          if (seenTitles.has(normalizedTitle)) return false;
+          // Extract significant words (4+ chars, stripped of punctuation) for overlap comparison
+          const extractWords = (t: string) =>
+            new Set(t.replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length >= 4));
+          const sigWords = extractWords(normalizedTitle);
+          for (const seen of seenTitles) {
+            // Substring check
+            if (normalizedTitle.length > 20 && seen.length > 20) {
+              if (normalizedTitle.includes(seen) || seen.includes(normalizedTitle)) return false;
+            }
+            // Word overlap check — if >50% of significant words match, it's a dupe
+            if (sigWords.size >= 3) {
+              const seenWords = extractWords(seen);
+              const overlap = [...sigWords].filter(w => seenWords.has(w)).length;
+              const minSize = Math.min(sigWords.size, seenWords.size);
+              if (minSize > 0 && overlap / minSize > 0.5) return false;
+            }
+          }
+          seenTitles.add(normalizedTitle);
+
+          // Skip non-English articles (basic Latin alphabet check on title)
+          const latinRatio = (title.match(/[a-zA-Z]/g) ?? []).length / title.length;
+          if (latinRatio < 0.5) return false;
+
+          return true;
+        });
+
+        // Cap to requested limit after AI-relevance filtering
+        const cappedArticles = validArticles.slice(0, options.limit ?? 50);
+
+        return cappedArticles.map((article: Record<string, unknown>, index: number) => {
           // Detect category based on title/description content
           const text = `${article.title} ${article.description}`.toLowerCase();
-          let detectedTopics: string[] = [];
+          const detectedTopics: string[] = [];
 
-          if (text.includes('research') || text.includes('study') || text.includes('paper')) {
+          if (text.includes('research') || text.includes('study') || text.includes('paper') || text.includes('arxiv') || text.includes('findings') || text.includes('benchmark')) {
             detectedTopics.push('research');
           }
-          if (text.includes('startup') || text.includes('funding') || text.includes('venture')) {
+          if (text.includes('startup') || text.includes('funding') || text.includes('venture') || text.includes('seed round') || text.includes('series a') || text.includes('raised $')) {
             detectedTopics.push('startup');
           }
-          if (text.includes('policy') || text.includes('regulation') || text.includes('government')) {
+          if (text.includes('policy') || text.includes('regulation') || text.includes('government') || text.includes('legislation') || text.includes('compliance') || text.includes('eu ai act') || text.includes('dominance') || text.includes('geopolit') || text.includes('ban')) {
             detectedTopics.push('policy');
           }
-          if (text.includes('education') || text.includes('learning') || text.includes('school') || text.includes('university')) {
+          if (text.includes('education') || text.includes('edtech') || text.includes('classroom') || text.includes('university') || text.includes('students') || text.includes('teaching') || text.includes('teaches') || text.includes('kids') || text.includes('learners') || text.includes('curriculum')) {
             detectedTopics.push('education');
           }
-          if (text.includes('breakthrough') || text.includes('announces') || text.includes('launches')) {
+          if (text.includes('ethics') || text.includes('bias') || text.includes('fairness') || text.includes('ai safety') || text.includes('responsible ai') || text.includes('uncensored')) {
+            detectedTopics.push('ethics');
+          }
+          if (text.includes('breakthrough') || text.includes('unveils') || text.includes('reveals') || text.includes('new model') || text.includes('state-of-the-art') || text.includes('outperform')) {
             detectedTopics.push('breakthrough');
           }
+          if (text.includes('partnership') || text.includes('partners with') || text.includes('collaboration') || text.includes('joint venture') || text.includes('teaming up')) {
+            detectedTopics.push('partnership');
+          }
+          if (text.includes('investment') || text.includes('acquires') || text.includes('acquisition') || text.includes('ipo') || text.includes('valuation') || text.includes('billion') || text.includes('spending') || text.includes('investor')) {
+            detectedTopics.push('investment');
+          }
+          if (text.includes('show hn') || text.includes('open-source') || text.includes('open source') || text.includes('i built') || text.includes('product') || text.includes('launch') || text.includes('release') || text.includes('new version') || text.includes('announcing')) {
+            detectedTopics.push('product-launch');
+          }
+          // "industry" only as fallback when no other category matched
+          if (detectedTopics.length === 0) {
+            if (text.includes('enterprise') || text.includes('industry') || text.includes('business') || text.includes('market') || text.includes('deploy') || text.includes('company')) {
+              detectedTopics.push('industry');
+            }
+          }
+          // Final fallback
           if (detectedTopics.length === 0) {
             detectedTopics.push('technology');
           }

@@ -30,12 +30,12 @@ interface PlatformStats {
 }
 
 /**
- * Home Hero Section — Vibrant design with animated Bloom's Taxonomy Pyramid
+ * Vibrant Hero Section with animated Bloom's Taxonomy Pyramid
  *
  * Color System: Violet/Indigo vibrant palette
  * Theme: "Learn by Creating & Sharing" with energetic Framer-style aesthetics
  */
-export default function HomeHeroSectionRedesigned() {
+export default function VibrantHeroSection() {
   const shouldReduceMotion = useReducedMotion();
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: '-50px' });
@@ -184,11 +184,16 @@ export default function HomeHeroSectionRedesigned() {
 
       {/* ─── Animated Background Blobs ─── */}
       <div className="absolute inset-0" aria-hidden="true">
-        <div className="absolute top-20 left-10 w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-violet-300/20 dark:bg-violet-800/30 mix-blend-multiply dark:mix-blend-screen filter blur-3xl motion-safe:animate-blob motion-reduce:animate-none" />
+        {/* Blob 1 — violet */}
+        <div
+          className="absolute top-20 left-10 w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-violet-300/20 dark:bg-violet-800/30 mix-blend-multiply dark:mix-blend-screen filter blur-3xl motion-safe:animate-blob motion-reduce:animate-none"
+        />
+        {/* Blob 2 — blue */}
         <div
           className="absolute top-40 right-10 w-80 h-80 sm:w-[28rem] sm:h-[28rem] rounded-full bg-blue-300/20 dark:bg-blue-800/30 mix-blend-multiply dark:mix-blend-screen filter blur-3xl motion-safe:animate-blob motion-reduce:animate-none"
           style={{ animationDelay: '2s' }}
         />
+        {/* Blob 3 — indigo */}
         <div
           className="absolute -bottom-10 left-1/3 w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-indigo-300/20 dark:bg-indigo-800/30 mix-blend-multiply dark:mix-blend-screen filter blur-3xl motion-safe:animate-blob motion-reduce:animate-none"
           style={{ animationDelay: '4s' }}

@@ -93,7 +93,7 @@ export function AINewsFilterBar({
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search news, topics, or sources..."
-                className="w-full h-11 pl-11 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full h-11 pl-11 pr-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
               />
             </div>
 
@@ -118,7 +118,7 @@ export function AINewsFilterBar({
                   onClick={() => onCategoryChange('all')}
                   className={cn(
                     "cursor-pointer rounded-lg",
-                    selectedCategory === 'all' && "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                    selectedCategory === 'all' && "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400"
                   )}
                 >
                   All Categories
@@ -129,7 +129,7 @@ export function AINewsFilterBar({
                     onClick={() => onCategoryChange(category.name)}
                     className={cn(
                       "cursor-pointer rounded-lg",
-                      selectedCategory === category.name && "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                      selectedCategory === category.name && "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400"
                     )}
                   >
                     {category.name}
@@ -158,7 +158,7 @@ export function AINewsFilterBar({
                     onClick={() => onImportanceChange(option.value)}
                     className={cn(
                       "cursor-pointer rounded-lg",
-                      selectedImportance === option.value && "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                      selectedImportance === option.value && "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400"
                     )}
                   >
                     {option.label}

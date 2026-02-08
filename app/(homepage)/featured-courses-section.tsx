@@ -154,8 +154,8 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
 
   return (
     <div className="relative bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden pt-12 pb-8 sm:pt-20 sm:pb-12 md:pt-24 md:pb-16">
+      {/* Hero Section — tighter spacing, no gap between heading and controls */}
+      <section className="relative overflow-hidden pt-12 pb-4 sm:pt-20 sm:pb-6 md:pt-24 md:pb-8">
         {/* Subtle animated background pattern */}
         <div className="absolute inset-0 opacity-20 sm:opacity-30" aria-hidden="true">
           <div className="absolute top-20 left-4 sm:left-10 w-48 h-48 sm:w-72 sm:h-72 bg-blue-200 dark:bg-blue-900/20 rounded-full mix-blend-multiply dark:mix-blend-overlay filter blur-2xl sm:blur-3xl motion-safe:animate-pulse motion-reduce:animate-none" />
@@ -163,47 +163,57 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
         </div>
 
         <div className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Section Heading */}
+          {/* Section Heading — left-aligned, single line */}
           <motion.div
-            className="mb-8 sm:mb-10 md:mb-12 text-center"
+            className="mb-6 sm:mb-8"
             variants={fadeInUp}
             initial="hidden"
             animate="visible"
             style={{ willChange: 'transform, opacity' }}
           >
-            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-blue-200/50 dark:border-blue-500/30 shadow-sm mb-3 sm:mb-4">
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
-                {sortedCourses.length} Courses Available
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+              {/* Left — title block */}
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/80 dark:bg-blue-900/30 border border-blue-200/50 dark:border-blue-500/30 mb-3">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                    {sortedCourses.length} Courses Available
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  Featured{' '}
+                  <span className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
+                    Learning Paths
+                  </span>
+                </h2>
+                <p className="mt-1.5 text-sm sm:text-base text-slate-500 dark:text-slate-400">
+                  Discover and explore our curated collection of courses
+                </p>
+              </div>
+
+              {/* Right — Browse all link */}
+              <Link
+                href="/courses"
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors group whitespace-nowrap"
+              >
+                Browse all courses
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </div>
-
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] sm:leading-[1.15] tracking-tight text-slate-900 dark:text-white mb-3 sm:mb-4 px-2 sm:px-0">
-              <span className="block">Featured</span>
-              <span className="block bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
-                Learning Paths
-              </span>
-            </h2>
-            <p className="mt-3 sm:mt-4 text-sm sm:text-base md:text-lg lg:text-xl leading-relaxed text-slate-600 dark:text-slate-300 max-w-2xl mx-auto px-2 sm:px-0">
-              Discover and explore our curated collection of courses
-            </p>
           </motion.div>
-
         </div>
       </section>
 
       {/* Main Content Section */}
       <section ref={sectionRef} className="container relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 md:pb-20 lg:pb-24">
-        {/* Controls Bar */}
-        <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4">
-          {/* Category Select and Sort Controls */}
-          <div className="flex flex-col gap-3 sm:gap-4">
-            {/* Mobile: Stack controls vertically */}
+        {/* Controls Bar — single row: filters left, count + view toggle right */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
+            {/* Left — Filters */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 items-stretch sm:items-center">
-              {/* Category Select */}
               <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as CategoryKey)}>
                 <SelectTrigger
-                  className="w-full sm:w-52 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11 sm:h-11"
+                  className="w-full sm:w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10"
                   aria-label="Browse categories"
                 >
                   <SelectValue placeholder="Browse Categories" />
@@ -223,10 +233,9 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                 </SelectContent>
               </Select>
 
-              {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
                 <SelectTrigger
-                  className="w-full sm:w-48 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-11 sm:h-11"
+                  className="w-full sm:w-44 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 h-10"
                   aria-label="Sort courses by"
                 >
                   <SelectValue placeholder="Sort by" />
@@ -239,16 +248,25 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                 </SelectContent>
               </Select>
+
+              {activeCategory !== 'all' && (
+                <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm self-center">
+                  {CATEGORIES.find(c => c.key === activeCategory)?.label}
+                </Badge>
+              )}
             </div>
 
-            {/* Right side - View Mode Toggle */}
-            <div className="flex gap-2 sm:gap-3 items-center justify-end">
+            {/* Right — Count + View Toggle */}
+            <div className="flex items-center gap-3 justify-between sm:justify-end">
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                {sortedCourses.length} {sortedCourses.length === 1 ? 'Course' : 'Courses'}
+              </span>
               <div className="hidden md:flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800">
                 <Button
                   variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
                   size="icon"
                   onClick={() => setViewMode('grid')}
-                  className="rounded-r-none"
+                  className="rounded-r-none h-9 w-9"
                   aria-label="Grid view"
                 >
                   <Grid3X3 className="h-4 w-4" />
@@ -257,7 +275,7 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   variant={viewMode === 'list' ? 'secondary' : 'ghost'}
                   size="icon"
                   onClick={() => setViewMode('list')}
-                  className="rounded-none border-x border-slate-200 dark:border-slate-700"
+                  className="rounded-none border-x border-slate-200 dark:border-slate-700 h-9 w-9"
                   aria-label="List view"
                 >
                   <List className="h-4 w-4" />
@@ -266,25 +284,13 @@ export const FeaturedCoursesSection = ({ courses }: FeaturedCoursesProps) => {
                   variant={viewMode === 'compact' ? 'secondary' : 'ghost'}
                   size="icon"
                   onClick={() => setViewMode('compact')}
-                  className="rounded-l-none"
+                  className="rounded-l-none h-9 w-9"
                   aria-label="Compact view"
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </Button>
               </div>
             </div>
-          </div>
-
-          {/* Results Info */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
-              {sortedCourses.length} {sortedCourses.length === 1 ? 'Course' : 'Courses'}
-            </h3>
-            {activeCategory !== 'all' && (
-              <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm">
-                {CATEGORIES.find(c => c.key === activeCategory)?.label}
-              </Badge>
-            )}
           </div>
         </div>
 

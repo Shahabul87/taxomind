@@ -137,7 +137,7 @@ function transformExternalNews(article: ExternalNewsArticle): NewsArticle {
     },
     author: undefined, // Not provided by external API
     publishDate: new Date(publishedAt),
-    category: article.topics?.[0] ?? 'technology',
+    category: normalizeCategory(article.topics?.[0]),
     tags: article.tags ?? [],
     readingTime,
     relevanceScore: Math.round(score * 10),

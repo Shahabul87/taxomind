@@ -42,8 +42,8 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
       label: "Today&apos;s Articles",
       value: stats.totalArticles.toString(),
       icon: Newspaper,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-50 dark:bg-blue-500/10"
+      color: "text-violet-600 dark:text-violet-400",
+      bgColor: "bg-violet-50 dark:bg-violet-500/10"
     },
     {
       label: "Breaking News",
@@ -56,8 +56,8 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
       label: "High Impact",
       value: stats.highImpact.toString(),
       icon: TrendingUp,
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgColor: "bg-emerald-50 dark:bg-emerald-500/10"
+      color: "text-indigo-600 dark:text-indigo-400",
+      bgColor: "bg-indigo-50 dark:bg-indigo-500/10"
     },
     {
       label: "News Sources",
@@ -96,9 +96,9 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
       {/* Subtle background pattern */}
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         {/* Gradient orbs */}
-        <div className="absolute top-20 left-1/4 w-96 h-96 bg-blue-100/60 dark:bg-blue-500/5 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute top-40 right-1/4 w-80 h-80 bg-violet-100/60 dark:bg-violet-500/5 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute -bottom-20 left-1/2 w-72 h-72 bg-emerald-100/40 dark:bg-emerald-500/5 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
+        <div className="absolute top-20 left-1/4 w-96 h-96 bg-violet-100/60 dark:bg-violet-500/5 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute top-40 right-1/4 w-80 h-80 bg-indigo-100/60 dark:bg-indigo-500/5 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute -bottom-20 left-1/2 w-72 h-72 bg-purple-100/40 dark:bg-purple-500/5 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-3xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '4s' }} />
 
         {/* Grid pattern */}
         <div
@@ -123,7 +123,7 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
               className="flex items-center gap-2.5 group"
               aria-label="Go to Taxomind home page"
             >
-              <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md transition-transform group-hover:scale-105">
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md transition-transform group-hover:scale-105">
                 <Image
                   src="/taxomind-logo.png"
                   alt="Taxomind Logo"
@@ -176,13 +176,13 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 dark:bg-white/10 border border-slate-800 dark:border-white/20 mb-6 sm:mb-8"
           >
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
             </span>
             <span className="text-sm font-medium text-white dark:text-slate-200">
               Live AI Intelligence Feed
             </span>
-            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <Radio className="w-4 h-4 text-violet-400 animate-pulse" />
           </motion.div>
 
           {/* Main Headline */}
@@ -191,7 +191,7 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
             className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-slate-900 dark:text-white mb-4 sm:mb-6"
           >
             <span className="block">Stay Ahead with</span>
-            <span className="block mt-1 sm:mt-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
+            <span className="block mt-1 sm:mt-2 bg-gradient-to-r from-violet-600 via-purple-500 to-indigo-600 bg-clip-text text-transparent">
               AI News Intelligence
             </span>
           </motion.h1>
@@ -222,7 +222,7 @@ export function AINewsHero({ stats }: AINewsHeroProps) {
                     <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
                   </div>
                   <div className={`text-2xl sm:text-3xl font-bold ${stat.color} mb-1`}>
-                    {stat.value}
+                    {stat.value === '0' ? '—' : stat.value}
                   </div>
                   <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
                     {stat.label.replace("&apos;", "'")}
