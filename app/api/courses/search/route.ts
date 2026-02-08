@@ -152,9 +152,7 @@ export async function GET(request: NextRequest) {
         };
         break;
       case "rating":
-        // TODO: Sorting by averageRating requires field in Course model
-        // For now, sort by createdAt as fallback
-        orderBy = { createdAt: "desc" };
+        orderBy = { averageRating: "desc" };
         break;
       case "duration-short":
         orderBy = { totalDuration: "asc" };
@@ -209,11 +207,17 @@ export async function GET(request: NextRequest) {
             rating: true,
           },
         },
+        wishlists: user ? {
+          where: { userId: user.id },
+          select: { id: true },
+          take: 1,
+        } : false,
         _count: {
           select: {
             Enrollment: true,
             reviews: true,
             chapters: true,
+            certifications: true,
           },
         },
       },
@@ -284,15 +288,28 @@ export async function GET(request: NextRequest) {
         rating: avgRating, // Calculated from reviews (averageRating field not in model)
         reviewsCount: course._count.reviews,
         enrolledCount: course._count.Enrollment,
-        completionRate: 0, // Would need to calculate from enrollment progress
-        hasCertificate: true, // Default or from course settings
-        hasExercises: true, // Default or from course settings
+        completionRate: 0,
+        hasCertificate: course._count.certifications > 0,
+        hasExercises: course.chapters.length > 0,
         badges: badges as any,
         isEnrolled,
-        isWishlisted: false, // Would need wishlist table
+        isWishlisted: user ? (Array.isArray(course.wishlists) && course.wishlists.length > 0) : false,
         lastUpdated: course.updatedAt,
       };
     });
+
+    // Get difficulty counts for filter sidebar
+    const difficultyCounts = await db.course.groupBy({
+      by: ['difficulty'],
+      where: { isPublished: true },
+      _count: true,
+    });
+    const difficultyCountMap = new Map<string | null, number>();
+    for (const group of difficultyCounts) {
+      difficultyCountMap.set(group.difficulty, group._count);
+    }
+    // Courses with null difficulty are displayed as "Beginner"
+    const beginnerCount = (difficultyCountMap.get("Beginner") ?? 0) + (difficultyCountMap.get(null) ?? 0);
 
     // Get filter options for sidebar
     const categories = await db.category.findMany({
@@ -323,10 +340,10 @@ export async function GET(request: NextRequest) {
         { label: "$200+", min: 200, max: 99999 },
       ],
       difficulties: [
-        { value: "Beginner", label: "Beginner", count: 0 },
-        { value: "Intermediate", label: "Intermediate", count: 0 },
-        { value: "Advanced", label: "Advanced", count: 0 },
-        { value: "Expert", label: "Expert", count: 0 },
+        { value: "Beginner", label: "Beginner", count: beginnerCount },
+        { value: "Intermediate", label: "Intermediate", count: difficultyCountMap.get("Intermediate") ?? 0 },
+        { value: "Advanced", label: "Advanced", count: difficultyCountMap.get("Advanced") ?? 0 },
+        { value: "Expert", label: "Expert", count: difficultyCountMap.get("Expert") ?? 0 },
       ],
       durations: [
         { label: "< 2 hours", min: 0, max: 120 },

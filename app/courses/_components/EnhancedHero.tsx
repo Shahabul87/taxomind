@@ -32,27 +32,29 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
   const slides = [
     {
       id: 1,
-      tag: "Transform Your Career",
-      title: "Master In-Demand Skills with Expert-Led Courses",
-      subtitle: "Join 50,000+ professionals advancing their careers through world-class online learning",
+      tag: "The Smarter Way to Learn",
+      title: "Learn Faster with AI That Adapts to You",
+      subtitle: statistics.totalEnrollments > 0
+        ? `${statistics.totalEnrollments.toLocaleString()}+ learners are already leveling up on Taxomind`
+        : "Courses that understand how you learn and guide you to mastery",
       gradient: "from-blue-600 via-indigo-600 to-purple-600",
-      features: ["AI-Powered Learning", "Industry Certificates", "Lifetime Access"]
+      features: ["AI-Powered Learning", "Earn Certificates", "Lifetime Access"]
     },
     {
       id: 2,
-      tag: "Learn From The Best",
-      title: "World-Class Instructors, Real-World Projects",
-      subtitle: "Learn from industry leaders and work on hands-on projects that matter",
+      tag: "Learn by Doing",
+      title: "Stop Watching, Start Building Real Projects",
+      subtitle: "Every course is packed with hands-on exercises and real-world projects you can add to your portfolio",
       gradient: "from-emerald-600 via-teal-600 to-cyan-600",
-      features: ["Expert Instructors", "Practical Projects", "Career Support"]
+      features: ["Hands-On Projects", "Interactive Exercises", "Progress Tracking"]
     },
     {
       id: 3,
-      tag: "Enterprise Ready",
-      title: "Empower Your Team with Skills That Drive Results",
-      subtitle: "Trusted by Fortune 500 companies to upskill their workforce",
+      tag: "Your Personal AI Mentor",
+      title: "Get Personalized Guidance at Every Step",
+      subtitle: "Our AI mentor identifies your strengths, fills knowledge gaps, and creates a learning path built just for you",
       gradient: "from-purple-600 via-pink-600 to-rose-600",
-      features: ["Team Licenses", "Custom Content", "Analytics Dashboard"]
+      features: ["Smart Recommendations", "Adaptive Difficulty", "Learning Analytics"]
     }
   ];
 
@@ -208,7 +210,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                       ? `${statistics.totalEnrollments.toLocaleString()}+`
                       : "Growing"}
                   </p>
-                  <p className="text-xs xs:text-sm text-slate-400">Active Learners</p>
+                  <p className="text-xs xs:text-sm text-slate-400">Enrollments</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 xs:gap-2">
@@ -255,18 +257,22 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                 className="absolute top-0 right-0 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-72"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600" />
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
                   <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">Advanced React</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">By Sarah Johnson</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">AI-Powered Learning</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Personalized for You</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <Award className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm font-medium">4.9★</span>
+                    <span className="text-sm font-medium">
+                      {statistics.averageRating > 0 ? `${statistics.averageRating.toFixed(1)}★` : "New ★"}
+                    </span>
                   </div>
-                  <Badge className="bg-emerald-500 text-white">Bestseller</Badge>
+                  <Badge className="bg-emerald-500 text-white">Featured</Badge>
                 </div>
               </motion.div>
 
@@ -277,9 +283,13 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
               >
                 <div className="flex items-center gap-2 mb-2">
                   <Zap className="w-5 h-5 text-amber-500" />
-                  <span className="font-semibold text-slate-900 dark:text-white">12,450</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">
+                    {statistics.totalEnrollments > 0
+                      ? statistics.totalEnrollments.toLocaleString()
+                      : "Growing"}
+                  </span>
                 </div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Enrolled this week</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Total Enrollments</p>
               </motion.div>
 
               <motion.div
@@ -288,8 +298,10 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                 className="absolute top-1/2 -right-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-2xl p-6 w-56 text-white"
               >
                 <Globe2 className="w-8 h-8 mb-3" />
-                <p className="font-bold text-2xl mb-1">150+</p>
-                <p className="text-sm opacity-90">Countries Worldwide</p>
+                <p className="font-bold text-2xl mb-1">
+                  {statistics.totalCourses > 0 ? `${statistics.totalCourses}+` : "New"}
+                </p>
+                <p className="text-sm opacity-90">Courses Available</p>
               </motion.div>
             </div>
           </motion.div>

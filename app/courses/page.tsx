@@ -10,7 +10,7 @@ const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
 
 export const metadata: Metadata = {
   title: 'Courses | Taxomind - Explore Our AI-Powered Course Catalog',
-  description: 'Browse our comprehensive catalog of expert-led courses. Learn at your own pace with AI-powered adaptive learning, personalized recommendations, and industry-recognized certificates.',
+  description: 'Browse our growing catalog of courses. Learn at your own pace with AI-powered adaptive learning, personalized recommendations, and certificates of completion.',
   keywords: [
     'online courses',
     'AI-powered learning',
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'Explore Our Course Catalog | Taxomind',
-    description: 'Discover hundreds of expert-led courses with AI-powered adaptive learning. Get personalized recommendations and earn industry-recognized certificates.',
+    description: 'Discover courses with AI-powered adaptive learning. Get personalized recommendations and earn certificates of completion.',
     url: `${baseUrl}/courses`,
     siteName: 'Taxomind',
     type: 'website',
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Explore Our Course Catalog | Taxomind',
-    description: 'Discover hundreds of expert-led courses with AI-powered adaptive learning.',
+    description: 'Discover courses with AI-powered adaptive learning on Taxomind.',
     images: [`${baseUrl}/og-courses.png`],
     creator: '@taxomind',
     site: '@taxomind',
@@ -110,11 +110,17 @@ async function getInitialData() {
             rating: true,
           },
         },
+        wishlists: user ? {
+          where: { userId: user.id },
+          select: { id: true },
+          take: 1,
+        } : false,
         _count: {
           select: {
             Enrollment: true,
             reviews: true,
             chapters: true,
+            certifications: true,
           },
         },
       },
@@ -159,6 +165,19 @@ async function getInitialData() {
       },
     });
     console.log('[CoursesPage] Step 8: Categories fetched:', categories.length);
+
+    // Get real difficulty counts
+    const difficultyCounts = await db.course.groupBy({
+      by: ['difficulty'],
+      where: { isPublished: true },
+      _count: true,
+    });
+    const difficultyCountMap = new Map<string | null, number>();
+    for (const group of difficultyCounts) {
+      difficultyCountMap.set(group.difficulty, group._count);
+    }
+    // Courses with null difficulty are displayed as "Beginner"
+    const beginnerCount = (difficultyCountMap.get("Beginner") ?? 0) + (difficultyCountMap.get(null) ?? 0);
 
     // Transform courses to match frontend expectations
     console.log('[CoursesPage] Step 9: Transforming courses data');
@@ -222,12 +241,12 @@ async function getInitialData() {
         rating: avgRating,
         reviewsCount: course._count.reviews,
         enrolledCount: course._count.Enrollment,
-        completionRate: 75, // Default - would calculate from enrollment progress
-        hasCertificate: true, // Default - would come from course settings
-        hasExercises: true, // Default - would come from course settings
+        completionRate: 0,
+        hasCertificate: course._count.certifications > 0,
+        hasExercises: course.chapters.length > 0,
         badges,
         isEnrolled,
-        isWishlisted: false, // Would need wishlist table
+        isWishlisted: user ? (Array.isArray(course.wishlists) && course.wishlists.length > 0) : false,
         lastUpdated: course.updatedAt,
       };
     });
@@ -247,10 +266,10 @@ async function getInitialData() {
         { label: "$200+", min: 200, max: 99999 },
       ],
       difficulties: [
-        { value: "Beginner", label: "Beginner", count: 45 },
-        { value: "Intermediate", label: "Intermediate", count: 32 },
-        { value: "Advanced", label: "Advanced", count: 18 },
-        { value: "Expert", label: "Expert", count: 7 },
+        { value: "Beginner", label: "Beginner", count: beginnerCount },
+        { value: "Intermediate", label: "Intermediate", count: difficultyCountMap.get("Intermediate") ?? 0 },
+        { value: "Advanced", label: "Advanced", count: difficultyCountMap.get("Advanced") ?? 0 },
+        { value: "Expert", label: "Expert", count: difficultyCountMap.get("Expert") ?? 0 },
       ],
       durations: [
         { label: "< 2 hours", min: 0, max: 120 },
@@ -372,7 +391,7 @@ function generateCoursesSchema(courses: Array<{
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: 'Taxomind Course Catalog',
-    description: 'Browse our comprehensive catalog of AI-powered courses',
+    description: 'Browse our growing catalog of AI-powered courses',
     url: `${baseUrl}/courses`,
     numberOfItems: courses.length,
     itemListElement: courses.slice(0, 10).map((course, index) => ({
@@ -426,7 +445,7 @@ function generateCoursesSchema(courses: Array<{
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
     name: 'Taxomind Course Catalog',
-    description: 'Browse our comprehensive catalog of expert-led courses with AI-powered adaptive learning.',
+    description: 'Browse our growing catalog of courses with AI-powered adaptive learning.',
     url: `${baseUrl}/courses`,
     mainEntity: {
       '@type': 'ItemList',
