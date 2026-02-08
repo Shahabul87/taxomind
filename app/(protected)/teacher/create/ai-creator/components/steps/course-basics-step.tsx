@@ -236,13 +236,13 @@ export function CourseBasicsStep({ formData, setFormData, validationErrors }: St
                 )}>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-2xl bg-white dark:bg-slate-900 overflow-hidden">
+                <SelectContent className="rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-2xl bg-white dark:bg-slate-900 max-h-[340px] overflow-hidden">
                   <div className="p-1">
                     {COURSE_CATEGORIES.map((category) => (
                       <SelectItem
                         key={category.value}
                         value={category.value}
-                        className="text-sm sm:text-base py-3 px-3 cursor-pointer rounded-lg transition-all hover:bg-emerald-50 dark:hover:bg-emerald-950/30 focus:bg-emerald-50 dark:focus:bg-emerald-950/30 my-0.5"
+                        className="text-sm sm:text-base py-3 px-3 cursor-pointer rounded-lg transition-all hover:bg-emerald-50 hover:text-slate-900 dark:hover:bg-emerald-950/30 dark:hover:text-slate-100 focus:bg-emerald-50 focus:text-slate-900 dark:focus:bg-emerald-950/30 dark:focus:text-slate-100 data-[highlighted]:bg-emerald-50 data-[highlighted]:text-slate-900 dark:data-[highlighted]:bg-emerald-950/30 dark:data-[highlighted]:text-slate-100 my-0.5"
                       >
                         <div className="flex items-center gap-3">
                           <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800">
@@ -285,7 +285,7 @@ export function CourseBasicsStep({ formData, setFormData, validationErrors }: St
                             <SelectItem
                               key={sub}
                               value={sub}
-                              className="text-sm sm:text-base py-2.5 px-3 cursor-pointer rounded-lg transition-all hover:bg-indigo-50 dark:hover:bg-indigo-950/30 my-0.5"
+                              className="text-sm sm:text-base py-2.5 px-3 cursor-pointer rounded-lg transition-all hover:bg-indigo-50 hover:text-slate-900 dark:hover:bg-indigo-950/30 dark:hover:text-slate-100 focus:bg-indigo-50 focus:text-slate-900 dark:focus:bg-indigo-950/30 dark:focus:text-slate-100 data-[highlighted]:bg-indigo-50 data-[highlighted]:text-slate-900 dark:data-[highlighted]:bg-indigo-950/30 dark:data-[highlighted]:text-slate-100 my-0.5"
                             >
                               {sub}
                             </SelectItem>
@@ -336,7 +336,7 @@ export function CourseBasicsStep({ formData, setFormData, validationErrors }: St
                     <SelectItem
                       key={intent}
                       value={intent}
-                      className="text-sm sm:text-base py-3 px-3 cursor-pointer rounded-lg transition-all hover:bg-amber-50 dark:hover:bg-amber-950/30 my-0.5"
+                      className="text-sm sm:text-base py-3 px-3 cursor-pointer rounded-lg transition-all hover:bg-amber-50 hover:text-slate-900 dark:hover:bg-amber-950/30 dark:hover:text-slate-100 focus:bg-amber-50 focus:text-slate-900 dark:focus:bg-amber-950/30 dark:focus:text-slate-100 data-[highlighted]:bg-amber-50 data-[highlighted]:text-slate-900 dark:data-[highlighted]:bg-amber-950/30 dark:data-[highlighted]:text-slate-100 my-0.5"
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-1.5 rounded-lg bg-amber-100/50 dark:bg-amber-900/30">

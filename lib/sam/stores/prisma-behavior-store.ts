@@ -259,13 +259,13 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
     duration: number | null;
     createdAt: Date;
   }): BehaviorEvent {
-    const context = interaction.context as {
-      sessionId: string;
-      timestamp: string;
-      type: BehaviorEventType;
-      data: Record<string, unknown>;
-      pageContext: {
-        url: string;
+    const context = (interaction.context ?? {}) as {
+      sessionId?: string;
+      timestamp?: string;
+      type?: BehaviorEventType;
+      data?: Record<string, unknown>;
+      pageContext?: {
+        url?: string;
         courseId?: string;
         chapterId?: string;
         sectionId?: string;
@@ -279,32 +279,34 @@ export class PrismaBehaviorEventStore implements BehaviorEventStore {
         source: 'text' | 'behavior' | 'timing' | 'pattern';
         timestamp: string;
       }>;
-      processed: boolean;
+      processed?: boolean;
       processedAt?: string;
     };
+
+    const pageContext = context.pageContext ?? {};
 
     return {
       id: interaction.id,
       userId: interaction.userId,
-      sessionId: context.sessionId,
-      timestamp: new Date(context.timestamp),
-      type: context.type,
-      data: context.data,
+      sessionId: context.sessionId ?? '',
+      timestamp: context.timestamp ? new Date(context.timestamp) : interaction.createdAt,
+      type: context.type ?? ('unknown' as BehaviorEventType),
+      data: context.data ?? {},
       pageContext: {
-        url: context.pageContext.url,
-        courseId: interaction.courseId ?? context.pageContext.courseId,
-        chapterId: interaction.chapterId ?? context.pageContext.chapterId,
-        sectionId: interaction.sectionId ?? context.pageContext.sectionId,
-        contentType: context.pageContext.contentType,
-        timeOnPage: interaction.duration ?? context.pageContext.timeOnPage,
-        scrollDepth: context.pageContext.scrollDepth,
+        url: pageContext.url ?? '',
+        courseId: interaction.courseId ?? pageContext.courseId,
+        chapterId: interaction.chapterId ?? pageContext.chapterId,
+        sectionId: interaction.sectionId ?? pageContext.sectionId,
+        contentType: pageContext.contentType,
+        timeOnPage: interaction.duration ?? pageContext.timeOnPage,
+        scrollDepth: pageContext.scrollDepth,
       },
       emotionalSignals: context.emotionalSignals?.map((s) => ({
         ...s,
         type: s.type as 'frustration' | 'confusion' | 'excitement' | 'boredom' | 'engagement' | 'fatigue' | 'confidence' | 'anxiety',
         timestamp: new Date(s.timestamp),
       })),
-      processed: context.processed,
+      processed: context.processed ?? false,
       processedAt: context.processedAt ? new Date(context.processedAt) : undefined,
     };
   }

@@ -6,6 +6,9 @@
  *   Stage 2: For each chapter, generate sections (with cross-course uniqueness)
  *   Stage 3: For each section, generate details (description, objectives, activity)
  *
+ * Tracks concepts cumulatively across the pipeline and passes enriched context
+ * to each stage for better coherence and quality.
+ *
  * Saves results to the database progressively and reports progress via callbacks.
  */
 
@@ -13,6 +16,9 @@ import { db } from '@/lib/db';
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import { logger } from '@/lib/logger';
+import {
+  validateObjective,
+} from '@/lib/sam/prompts/content-generation-criteria';
 import {
   buildStage1Prompt,
   buildStage2Prompt,
@@ -28,6 +34,10 @@ import type {
   SectionDetails,
   BloomsLevel,
   ContentType,
+  QualityScore,
+  ConceptTracker,
+  ConceptEntry,
+  EnrichedChapterContext,
 } from './types';
 
 // =============================================================================
@@ -66,10 +76,18 @@ export async function orchestrateCourseCreation(
   const { userId, config, onProgress, onSSEEvent } = options;
   const startTime = Date.now();
 
-  const qualityScores: number[] = [];
+  const qualityScores: QualityScore[] = [];
   const allSectionTitles: string[] = [];
   let chaptersCreated = 0;
   let sectionsCreated = 0;
+
+  // Initialize concept tracker and Bloom's progression
+  const conceptTracker: ConceptTracker = {
+    concepts: new Map(),
+    vocabulary: [],
+    skillsBuilt: [],
+  };
+  const bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }> = [];
 
   // Build CourseContext from config
   const courseContext: CourseContext = {
@@ -126,6 +144,32 @@ export async function orchestrateCourseCreation(
 
   try {
     // =========================================================================
+    // Resolve category / subcategory names → database IDs (upsert)
+    // =========================================================================
+    let resolvedCategoryId: string | undefined;
+    let resolvedSubcategoryId: string | undefined;
+
+    if (config.category) {
+      const cat = await db.category.upsert({
+        where: { name: config.category },
+        create: { name: config.category },
+        update: {},
+        select: { id: true },
+      });
+      resolvedCategoryId = cat.id;
+    }
+
+    if (config.subcategory) {
+      const sub = await db.category.upsert({
+        where: { name: config.subcategory },
+        create: { name: config.subcategory, parentId: resolvedCategoryId },
+        update: {},
+        select: { id: true },
+      });
+      resolvedSubcategoryId = sub.id;
+    }
+
+    // =========================================================================
     // Create the Course record
     // =========================================================================
     emitProgress('Creating course record...');
@@ -139,8 +183,8 @@ export async function orchestrateCourseCreation(
         difficulty: config.difficulty,
         userId,
         isPublished: false,
-        categoryId: config.category ?? undefined,
-        subcategoryId: config.subcategory ?? undefined,
+        categoryId: resolvedCategoryId,
+        subcategoryId: resolvedSubcategoryId,
       },
     });
 
@@ -170,13 +214,13 @@ export async function orchestrateCourseCreation(
         data: { stage: 1, chapter: chNum, message: `Generating chapter ${chNum}...` },
       });
 
-      // Build prompt with context of previous chapters
+      // Build prompt with context of previous chapters + concept tracker
       const previousPlain = generatedChapters.map((ch) => stripId(ch));
 
       // Quality gate: retry up to MAX_RETRIES if score is below threshold
-      let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: 0 };
+      let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) };
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        const prompt = buildStage1Prompt(courseContext, chNum, previousPlain);
+        const prompt = buildStage1Prompt(courseContext, chNum, previousPlain, conceptTracker);
         const responseText = await runSAMChatWithPreference({
           userId,
           capability: 'course',
@@ -184,20 +228,39 @@ export async function orchestrateCourseCreation(
           messages: [{ role: 'user', content: prompt }],
           extended: true,
         });
-        const result = parseChapterResponse(responseText, chNum, courseContext);
+        const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters);
 
-        if (result.qualityScore > bestResult.qualityScore) {
+        if (result.qualityScore.overall > bestResult.qualityScore.overall) {
           bestResult = result;
         }
-        if (result.qualityScore >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
+        if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
 
         logger.info('[ORCHESTRATOR] Chapter quality below threshold, retrying', {
-          chapter: chNum, score: result.qualityScore, attempt: attempt + 1,
+          chapter: chNum, score: result.qualityScore.overall, attempt: attempt + 1,
         });
       }
 
       const { chapter, thinking, qualityScore } = bestResult;
       qualityScores.push(qualityScore);
+
+      // Update concept tracker with this chapter's concepts
+      const chapterConcepts = chapter.conceptsIntroduced ?? chapter.keyTopics;
+      for (const concept of chapterConcepts) {
+        if (!conceptTracker.concepts.has(concept)) {
+          const entry: ConceptEntry = {
+            concept,
+            introducedInChapter: chNum,
+            bloomsLevel: chapter.bloomsLevel,
+          };
+          conceptTracker.concepts.set(concept, entry);
+        }
+      }
+      conceptTracker.vocabulary.push(...chapter.keyTopics.filter(t => !conceptTracker.vocabulary.includes(t)));
+      bloomsProgression.push({
+        chapter: chNum,
+        level: chapter.bloomsLevel,
+        topics: chapter.keyTopics,
+      });
 
       onSSEEvent?.({
         type: 'thinking',
@@ -233,7 +296,7 @@ export async function orchestrateCourseCreation(
         position: chapter.position,
         title: chapter.title,
         id: dbChapter.id,
-        qualityScore,
+        qualityScore: qualityScore.overall,
       });
 
       onSSEEvent?.({
@@ -243,7 +306,7 @@ export async function orchestrateCourseCreation(
           chapter: chNum,
           title: chapter.title,
           id: dbChapter.id,
-          qualityScore,
+          qualityScore: qualityScore.overall,
         },
       });
 
@@ -255,7 +318,7 @@ export async function orchestrateCourseCreation(
       logger.info('[ORCHESTRATOR] Chapter saved', {
         chapterNum: chNum,
         title: chapter.title,
-        qualityScore,
+        qualityScore: qualityScore.overall,
       });
     }
 
@@ -299,6 +362,13 @@ export async function orchestrateCourseCreation(
           },
         });
 
+        // Build enriched context for this stage
+        const enrichedContext: EnrichedChapterContext = {
+          allChapters: generatedChapters.map(ch => stripId(ch)),
+          conceptTracker,
+          bloomsProgression,
+        };
+
         // Build prompt with context
         const previousPlainSections = chapterSections.map((s) => stripId(s));
         const chapterPlain: GeneratedChapter = {
@@ -311,12 +381,13 @@ export async function orchestrateCourseCreation(
           prerequisites: chapter.prerequisites,
           estimatedTime: chapter.estimatedTime,
           topicsToExpand: chapter.topicsToExpand,
+          conceptsIntroduced: chapter.conceptsIntroduced,
         };
 
         // Quality gate: retry up to MAX_RETRIES if score is below threshold
-        let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles), thinking: '', qualityScore: 0 };
+        let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles), thinking: '', qualityScore: buildDefaultQualityScore(50) };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const prompt = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles);
+          const prompt = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext);
           const responseText = await runSAMChatWithPreference({
             userId,
             capability: 'course',
@@ -326,19 +397,33 @@ export async function orchestrateCourseCreation(
           });
           const result = parseSectionResponse(responseText, secNum, chapterPlain, allSectionTitles);
 
-          if (result.qualityScore > bestSec.qualityScore) {
+          if (result.qualityScore.overall > bestSec.qualityScore.overall) {
             bestSec = result;
           }
-          if (result.qualityScore >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
+          if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
 
           logger.info('[ORCHESTRATOR] Section quality below threshold, retrying', {
-            chapter: chapter.position, section: secNum, score: result.qualityScore, attempt: attempt + 1,
+            chapter: chapter.position, section: secNum, score: result.qualityScore.overall, attempt: attempt + 1,
           });
         }
 
         const { section, thinking, qualityScore } = bestSec;
         qualityScores.push(qualityScore);
         allSectionTitles.push(section.title);
+
+        // Update concept tracker with section concepts
+        const sectionConcepts = section.conceptsIntroduced ?? [];
+        for (const concept of sectionConcepts) {
+          if (!conceptTracker.concepts.has(concept)) {
+            const entry: ConceptEntry = {
+              concept,
+              introducedInChapter: chapter.position,
+              introducedInSection: secNum,
+              bloomsLevel: chapter.bloomsLevel,
+            };
+            conceptTracker.concepts.set(concept, entry);
+          }
+        }
 
         onSSEEvent?.({
           type: 'thinking',
@@ -373,7 +458,7 @@ export async function orchestrateCourseCreation(
           position: section.position,
           title: section.title,
           id: dbSection.id,
-          qualityScore,
+          qualityScore: qualityScore.overall,
         });
 
         onSSEEvent?.({
@@ -384,7 +469,7 @@ export async function orchestrateCourseCreation(
             section: secNum,
             title: section.title,
             id: dbSection.id,
-            qualityScore,
+            qualityScore: qualityScore.overall,
           },
         });
 
@@ -395,7 +480,7 @@ export async function orchestrateCourseCreation(
         logger.info('[ORCHESTRATOR] Section saved', {
           chapter: chapter.title,
           section: section.title,
-          qualityScore,
+          qualityScore: qualityScore.overall,
         });
       }
 
@@ -438,6 +523,13 @@ export async function orchestrateCourseCreation(
           },
         });
 
+        // Build enriched context for Stage 3
+        const enrichedContext: EnrichedChapterContext = {
+          allChapters: generatedChapters.map(ch => stripId(ch)),
+          conceptTracker,
+          bloomsProgression,
+        };
+
         // Build prompt
         const chapterPlain: GeneratedChapter = {
           position: chapter.position,
@@ -449,6 +541,7 @@ export async function orchestrateCourseCreation(
           prerequisites: chapter.prerequisites,
           estimatedTime: chapter.estimatedTime,
           topicsToExpand: chapter.topicsToExpand,
+          conceptsIntroduced: chapter.conceptsIntroduced,
         };
         const sectionPlain: GeneratedSection = {
           position: section.position,
@@ -457,6 +550,8 @@ export async function orchestrateCourseCreation(
           estimatedDuration: section.estimatedDuration,
           topicFocus: section.topicFocus,
           parentChapterContext: section.parentChapterContext,
+          conceptsIntroduced: section.conceptsIntroduced,
+          conceptsReferenced: section.conceptsReferenced,
         };
         const allChapterSectionsPlain = chapterSections.map((s) => stripId(s));
 
@@ -464,10 +559,10 @@ export async function orchestrateCourseCreation(
         let bestDet = {
           details: buildFallbackDetails(chapterPlain, sectionPlain, courseContext),
           thinking: '',
-          qualityScore: 0,
+          qualityScore: buildDefaultQualityScore(50),
         };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const prompt = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain);
+          const prompt = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext);
           const responseText = await runSAMChatWithPreference({
             userId,
             capability: 'course',
@@ -477,18 +572,32 @@ export async function orchestrateCourseCreation(
           });
           const result = parseDetailsResponse(responseText, chapterPlain, sectionPlain, courseContext);
 
-          if (result.qualityScore > bestDet.qualityScore) {
+          if (result.qualityScore.overall > bestDet.qualityScore.overall) {
             bestDet = result;
           }
-          if (result.qualityScore >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
+          if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
 
           logger.info('[ORCHESTRATOR] Details quality below threshold, retrying', {
-            section: section.title, score: result.qualityScore, attempt: attempt + 1,
+            section: section.title, score: result.qualityScore.overall, attempt: attempt + 1,
           });
         }
 
         const { details, thinking, qualityScore } = bestDet;
         qualityScores.push(qualityScore);
+
+        // Update concept tracker with details concepts
+        const detailConcepts = ensureOptionalArray(details.keyConceptsCovered);
+        for (const concept of detailConcepts) {
+          if (!conceptTracker.concepts.has(concept)) {
+            const entry: ConceptEntry = {
+              concept,
+              introducedInChapter: chapter.position,
+              introducedInSection: section.position,
+              bloomsLevel: chapter.bloomsLevel,
+            };
+            conceptTracker.concepts.set(concept, entry);
+          }
+        }
 
         onSSEEvent?.({
           type: 'thinking',
@@ -517,7 +626,7 @@ export async function orchestrateCourseCreation(
             chapter: chapter.position,
             section: section.position,
             title: section.title,
-            qualityScore,
+            qualityScore: qualityScore.overall,
           },
         });
 
@@ -527,7 +636,7 @@ export async function orchestrateCourseCreation(
 
         logger.info('[ORCHESTRATOR] Details saved', {
           section: section.title,
-          qualityScore,
+          qualityScore: qualityScore.overall,
         });
       }
     }
@@ -549,7 +658,7 @@ export async function orchestrateCourseCreation(
     const totalTime = Date.now() - startTime;
     const averageQualityScore =
       qualityScores.length > 0
-        ? Math.round(qualityScores.reduce((a, b) => a + b, 0) / qualityScores.length)
+        ? Math.round(qualityScores.reduce((a, b) => a + b.overall, 0) / qualityScores.length)
         : 0;
 
     logger.info('[ORCHESTRATOR] Course creation complete', {
@@ -627,8 +736,9 @@ function cleanAIResponse(responseText: string): string {
 function parseChapterResponse(
   responseText: string,
   chapterNumber: number,
-  courseContext: CourseContext
-): { chapter: GeneratedChapter; thinking: string; qualityScore: number } {
+  courseContext: CourseContext,
+  previousChapters: (GeneratedChapter & { id: string })[]
+): { chapter: GeneratedChapter; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
     const thinking = parsed.thinking ?? 'Generated chapter based on course context.';
@@ -646,16 +756,17 @@ function parseChapterResponse(
       prerequisites: ch.prerequisites ?? 'None',
       estimatedTime: ch.estimatedTime ?? '1-2 hours',
       topicsToExpand: ensureArray(ch.topicsToExpand ?? ch.keyTopics, 3),
+      conceptsIntroduced: ensureOptionalArray(ch.conceptsIntroduced ?? ch.keyTopics),
     };
 
-    const qualityScore = scoreChapter(chapter, courseContext);
+    const qualityScore = scoreChapter(chapter, courseContext, previousChapters);
     return { chapter, thinking, qualityScore };
   } catch {
     logger.warn('[ORCHESTRATOR] Failed to parse chapter response, using fallback');
     return {
       chapter: buildFallbackChapter(chapterNumber, courseContext),
       thinking: 'Used fallback generation due to parsing error.',
-      qualityScore: 50,
+      qualityScore: buildDefaultQualityScore(50),
     };
   }
 }
@@ -668,7 +779,7 @@ function parseSectionResponse(
   sectionNumber: number,
   chapter: GeneratedChapter,
   existingTitles: string[]
-): { section: GeneratedSection; thinking: string; qualityScore: number } {
+): { section: GeneratedSection; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
     const thinking = parsed.thinking ?? 'Generated section based on chapter context.';
@@ -696,6 +807,8 @@ function parseSectionResponse(
         relevantObjectives: sec.parentChapterContext?.relevantObjectives ??
           chapter.learningObjectives.slice(0, 2),
       },
+      conceptsIntroduced: ensureOptionalArray(sec.conceptsIntroduced),
+      conceptsReferenced: ensureOptionalArray(sec.conceptsReferenced),
     };
 
     const qualityScore = scoreSection(section, existingTitles);
@@ -705,7 +818,7 @@ function parseSectionResponse(
     return {
       section: buildFallbackSection(sectionNumber, chapter, existingTitles),
       thinking: 'Used fallback generation due to parsing error.',
-      qualityScore: 50,
+      qualityScore: buildDefaultQualityScore(50),
     };
   }
 }
@@ -718,7 +831,7 @@ function parseDetailsResponse(
   chapter: GeneratedChapter,
   section: GeneratedSection,
   courseContext: CourseContext
-): { details: SectionDetails; thinking: string; qualityScore: number } {
+): { details: SectionDetails; thinking: string; qualityScore: QualityScore } {
   try {
     const parsed = JSON.parse(cleanAIResponse(responseText));
     const thinking = parsed.thinking ?? 'Generated section details based on context.';
@@ -729,19 +842,19 @@ function parseDetailsResponse(
     const details: SectionDetails = {
       description: det.description ?? `This section covers ${section.topicFocus}.`,
       learningObjectives: ensureArray(det.learningObjectives, courseContext.learningObjectivesPerSection),
-      keyConceptsCovered: ensureArray(det.keyConceptsCovered, 3),
+      keyConceptsCovered: ensureArray(det.keyConceptsCovered ?? det.conceptsIntroduced, 3),
       practicalActivity: det.practicalActivity ?? `Practice the concepts from "${section.title}".`,
       resources: det.resources,
     };
 
-    const qualityScore = scoreDetails(details, section);
+    const qualityScore = scoreDetails(details, section, chapter.bloomsLevel);
     return { details, thinking, qualityScore };
   } catch {
     logger.warn('[ORCHESTRATOR] Failed to parse details response, using fallback');
     return {
       details: buildFallbackDetails(chapter, section, courseContext),
       thinking: 'Used fallback generation due to parsing error.',
-      qualityScore: 50,
+      qualityScore: buildDefaultQualityScore(50),
     };
   }
 }
@@ -762,6 +875,12 @@ function ensureArray(arr: unknown, minLength: number): string[] {
     filtered.push(`Additional item ${filtered.length + 1}`);
   }
   return filtered;
+}
+
+/** Parse an optional array from AI response — returns empty array if not present. */
+function ensureOptionalArray(arr: unknown): string[] {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((item): item is string => typeof item === 'string' && item.length > 0);
 }
 
 const VALID_CONTENT_TYPES = ['video', 'reading', 'assignment', 'quiz', 'project', 'discussion'] as const;
@@ -792,40 +911,175 @@ function buildFallbackDescription(ctx: CourseContext): string {
   );
 }
 
-// =============================================================================
-// QUALITY SCORING
-// =============================================================================
-
-function scoreChapter(ch: GeneratedChapter, ctx: CourseContext): number {
-  let score = 100;
-  if (ch.title.length < 20) score -= 10;
-  if (ch.description.length < 100) score -= 15;
-  if (ch.learningObjectives.length < ctx.learningObjectivesPerChapter) score -= 15;
-  if (ch.keyTopics.length < 3) score -= 10;
-  return Math.max(0, score);
+function buildDefaultQualityScore(overall: number): QualityScore {
+  return {
+    completeness: overall,
+    specificity: overall,
+    bloomsAlignment: overall,
+    uniqueness: overall,
+    overall,
+  };
 }
 
-function scoreSection(sec: GeneratedSection, existingTitles: string[]): number {
-  let score = 100;
-  if (sec.title.length < 15) score -= 20;
-  if (/^(Section \d+|Key Concepts|Overview|Fundamentals)$/i.test(sec.title)) score -= 20;
-  for (const existing of existingTitles) {
-    if (jaccardSimilarity(sec.title, existing) > 0.5) {
-      score -= 15;
-      break;
+// =============================================================================
+// QUALITY SCORING (using QualityScore + existing validators)
+// =============================================================================
+
+function scoreChapter(
+  ch: GeneratedChapter,
+  ctx: CourseContext,
+  previousChapters: GeneratedChapter[]
+): QualityScore {
+  // Completeness (25%): description word count >= 50, objectives meet config, keyTopics >= 3, prerequisites not empty
+  let completeness = 100;
+  const descWordCount = ch.description.split(/\s+/).length;
+  if (descWordCount < 50) completeness -= 30;
+  else if (descWordCount < 30) completeness -= 50;
+  if (ch.learningObjectives.length < ctx.learningObjectivesPerChapter) completeness -= 25;
+  if (ch.keyTopics.length < 3) completeness -= 20;
+  if (!ch.prerequisites || ch.prerequisites === 'None') completeness -= 5;
+  completeness = Math.max(0, completeness);
+
+  // Specificity (20%): title not generic, description mentions >= 2 keyTopics, title >= 20 chars
+  let specificity = 100;
+  if (ch.title.length < 20) specificity -= 25;
+  const genericTitles = /^(introduction|getting started|fundamentals|overview|basics)/i;
+  if (genericTitles.test(ch.title)) specificity -= 30;
+  const descLower = ch.description.toLowerCase();
+  const topicMentions = ch.keyTopics.filter(t => descLower.includes(t.toLowerCase())).length;
+  if (topicMentions < 2) specificity -= 20;
+  specificity = Math.max(0, specificity);
+
+  // Bloom's Alignment (35%): validate each objective against Bloom's verbs
+  let bloomsAlignment = 100;
+  if (ch.learningObjectives.length > 0) {
+    const objectiveScores = ch.learningObjectives.map(obj =>
+      validateObjective(obj, ch.bloomsLevel).score
+    );
+    bloomsAlignment = Math.round(objectiveScores.reduce((a, b) => a + b, 0) / objectiveScores.length);
+  }
+
+  // Uniqueness (20%): Jaccard similarity of keyTopics against previous chapters' topics
+  let uniqueness = 100;
+  if (previousChapters.length > 0) {
+    for (const prev of previousChapters) {
+      const sim = jaccardSimilarity(ch.keyTopics.join(' '), prev.keyTopics.join(' '));
+      if (sim > 0.5) {
+        uniqueness -= 30;
+        break;
+      } else if (sim > 0.3) {
+        uniqueness -= 15;
+      }
+    }
+    // Also check title similarity
+    for (const prev of previousChapters) {
+      if (jaccardSimilarity(ch.title, prev.title) > 0.5) {
+        uniqueness -= 20;
+        break;
+      }
     }
   }
-  if (!sec.topicFocus || sec.topicFocus.length < 5) score -= 15;
-  return Math.max(0, score);
+  uniqueness = Math.max(0, uniqueness);
+
+  const overall = Math.round(
+    completeness * 0.25 + specificity * 0.20 + bloomsAlignment * 0.35 + uniqueness * 0.20
+  );
+
+  return { completeness, specificity, bloomsAlignment, uniqueness, overall };
 }
 
-function scoreDetails(det: SectionDetails, sec: GeneratedSection): number {
-  let score = 100;
-  if (det.description.length < 50) score -= 20;
-  if (det.learningObjectives.length < 2) score -= 20;
-  if (det.keyConceptsCovered.length < 2) score -= 10;
-  if (!det.practicalActivity || det.practicalActivity.length < 20) score -= 10;
-  return Math.max(0, score);
+function scoreSection(sec: GeneratedSection, existingTitles: string[]): QualityScore {
+  // Completeness (25%): all fields present, topicFocus meaningful
+  let completeness = 100;
+  if (!sec.title || sec.title.length < 5) completeness -= 30;
+  if (!sec.topicFocus || sec.topicFocus.length < 5) completeness -= 30;
+  if (!sec.contentType) completeness -= 20;
+  if (!sec.estimatedDuration) completeness -= 10;
+  completeness = Math.max(0, completeness);
+
+  // Specificity (25%): title not generic, differs from chapter title
+  let specificity = 100;
+  if (sec.title.length < 15) specificity -= 25;
+  if (/^(Section \d+|Key Concepts|Overview|Fundamentals|Core Concepts|Key Principles)$/i.test(sec.title)) specificity -= 40;
+  if (sec.title === sec.parentChapterContext.title) specificity -= 30;
+  specificity = Math.max(0, specificity);
+
+  // Bloom's Alignment (25%): section's implied level matches parent chapter
+  const bloomsAlignment = 100; // Sections inherit from chapter; verified at prompt level
+
+  // Uniqueness (25%): Jaccard similarity < 0.5 to all existing titles
+  let uniqueness = 100;
+  for (const existing of existingTitles) {
+    const sim = jaccardSimilarity(sec.title, existing);
+    if (sim > 0.5) {
+      uniqueness -= 30;
+      break;
+    } else if (sim > 0.3) {
+      uniqueness -= 15;
+    }
+  }
+  uniqueness = Math.max(0, uniqueness);
+
+  const overall = Math.round(
+    completeness * 0.25 + specificity * 0.25 + bloomsAlignment * 0.25 + uniqueness * 0.25
+  );
+
+  return { completeness, specificity, bloomsAlignment, uniqueness, overall };
+}
+
+function scoreDetails(
+  det: SectionDetails,
+  sec: GeneratedSection,
+  bloomsLevel: BloomsLevel
+): QualityScore {
+  // Completeness (30%): description >= 50 chars, objectives >= 2, concepts >= 2, activity present
+  let completeness = 100;
+  if (det.description.length < 50) completeness -= 25;
+  if (det.learningObjectives.length < 2) completeness -= 25;
+  if (det.keyConceptsCovered.length < 2) completeness -= 15;
+  if (!det.practicalActivity || det.practicalActivity.length < 20) completeness -= 15;
+  completeness = Math.max(0, completeness);
+
+  // Specificity (20%): description mentions topicFocus, activity matches contentType
+  let specificity = 100;
+  if (!det.description.toLowerCase().includes(sec.topicFocus.toLowerCase().split(' ')[0])) {
+    specificity -= 30;
+  }
+  const activityLower = det.practicalActivity.toLowerCase();
+  const contentTypeMatches: Record<string, string[]> = {
+    video: ['watch', 'video', 'demonstrate', 'observe'],
+    reading: ['read', 'study', 'review', 'research'],
+    assignment: ['complete', 'write', 'exercise', 'practice', 'implement'],
+    quiz: ['quiz', 'test', 'assess', 'answer'],
+    project: ['project', 'build', 'create', 'design', 'develop'],
+    discussion: ['discuss', 'debate', 'share', 'collaborate'],
+  };
+  const expectedTerms = contentTypeMatches[sec.contentType] ?? [];
+  if (expectedTerms.length > 0 && !expectedTerms.some(t => activityLower.includes(t))) {
+    specificity -= 25;
+  }
+  specificity = Math.max(0, specificity);
+
+  // Bloom's Alignment (35%): validate each objective against bloomsLevel
+  let bloomsAlignment = 100;
+  if (det.learningObjectives.length > 0) {
+    const objectiveScores = det.learningObjectives.map(obj =>
+      validateObjective(obj, bloomsLevel).score
+    );
+    bloomsAlignment = Math.round(objectiveScores.reduce((a, b) => a + b, 0) / objectiveScores.length);
+  }
+
+  // Uniqueness (15%): keyConceptsCovered not all identical to topicFocus
+  let uniqueness = 100;
+  const allSame = det.keyConceptsCovered.every(c => c.toLowerCase() === sec.topicFocus.toLowerCase());
+  if (allSame && det.keyConceptsCovered.length > 1) uniqueness -= 40;
+  uniqueness = Math.max(0, uniqueness);
+
+  const overall = Math.round(
+    completeness * 0.30 + specificity * 0.20 + bloomsAlignment * 0.35 + uniqueness * 0.15
+  );
+
+  return { completeness, specificity, bloomsAlignment, uniqueness, overall };
 }
 
 function jaccardSimilarity(a: string, b: string): number {

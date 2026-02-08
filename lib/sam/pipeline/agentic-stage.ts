@@ -34,7 +34,7 @@ export async function runAgenticStage(
           entityContext.course?.title ||
           entityContext.chapter?.title ||
           entityContext.section?.title,
-        responseType: 'explanation',
+        responseType: 'EXPLANATION',
       });
 
       agenticConfidence = {

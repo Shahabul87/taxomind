@@ -86,6 +86,12 @@ const FLUSH_INTERVAL_MS = 30_000;
 const HYDRATION_LIMIT = 1000;
 
 /**
+ * Sentinel value for "no context" entries instead of null.
+ * Prisma composite unique keys don't handle null reliably in upsert where clauses.
+ */
+const NO_CONTEXT_HASH = '__none__';
+
+/**
  * Hydrate in-memory caches from DB on first access.
  * Called lazily (not at module load) to avoid blocking cold start.
  */
@@ -104,7 +110,7 @@ async function hydrateFromDB(): Promise<void> {
       for (const row of rows) {
         const score = row.bayesianScore;
 
-        if (!row.contextHash) {
+        if (!row.contextHash || row.contextHash === NO_CONTEXT_HASH) {
           // Global preset score (contextHash is null -> preset-level)
           // Check if this is a mode+preset combo (modeId is always set)
           // We store: global presets with modeId='__global__', mode combos with real modeId
@@ -189,7 +195,7 @@ async function flushToDB(): Promise<void> {
           modeId_presetId_contextHash: {
             modeId: '__global__',
             presetId: preset,
-            contextHash: null as unknown as string,
+            contextHash: NO_CONTEXT_HASH,
           },
         },
         update: {
@@ -201,6 +207,7 @@ async function flushToDB(): Promise<void> {
         create: {
           modeId: '__global__',
           presetId: preset,
+          contextHash: NO_CONTEXT_HASH,
           positiveCount: data.positiveCount,
           negativeCount: data.negativeCount,
           totalUsages: data.totalUsages,
@@ -220,7 +227,7 @@ async function flushToDB(): Promise<void> {
           modeId_presetId_contextHash: {
             modeId,
             presetId,
-            contextHash: null as unknown as string,
+            contextHash: NO_CONTEXT_HASH,
           },
         },
         update: {
@@ -232,6 +239,7 @@ async function flushToDB(): Promise<void> {
         create: {
           modeId,
           presetId,
+          contextHash: NO_CONTEXT_HASH,
           positiveCount: data.positive,
           negativeCount: data.negative,
           totalUsages: data.total,

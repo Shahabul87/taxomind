@@ -14,6 +14,7 @@ export {
   buildStage2Prompt,
   buildStage3Prompt,
   getBloomsLevelForChapter,
+  getContentAwareBloomsLevel,
   suggestContentType,
 } from './prompts';
 

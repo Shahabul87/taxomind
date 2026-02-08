@@ -20,8 +20,7 @@ import {
   GraduationCap,
   Users,
   Clock,
-  Layers,
-  Brain
+  Layers
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Chapter, Course, Attachment, Category } from "@prisma/client";
@@ -48,8 +47,6 @@ import { CourseLearningOutcomeForm } from "./course-learning-outcome-form";
 import { ContextAwareFeatureRevealer } from "@/components/ui/context-aware-feature-revealer";
 import { BlueprintIntegration } from "./blueprint-integration";
 import { SimpleCourseContext } from "@/app/(protected)/teacher/_components/simple-course-context";
-import { CognitiveRecommendationsPanel } from "@/components/teacher/cognitive-recommendations-panel";
-import { CourseBenchmarkCard } from "@/components/teacher/course-benchmark-card";
 
 interface Section {
   id: string;
@@ -877,83 +874,44 @@ export const EnterpriseCourseSetupClient = ({
           </div>
         </motion.div>
 
-        {/* Cognitive Quality Section */}
+        {/* Depth Analyzer CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8"
         >
-          <div className={cn(
-            "rounded-xl overflow-hidden",
-            "bg-white/70 dark:bg-gray-900/70",
-            "border border-gray-200/70 dark:border-gray-800/70",
-            "backdrop-blur-md",
-            "shadow-md hover:shadow-lg transition-shadow duration-300"
-          )}>
-            {/* Card Header - Brain/Cognitive */}
-            <div className="p-3 sm:p-4 md:p-5 border-b border-gray-200/70 dark:border-gray-800/70 bg-gradient-to-r from-violet-50/50 to-indigo-50/30 dark:from-violet-950/20 dark:to-indigo-950/10">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="p-1.5 sm:p-2 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/25 flex-shrink-0 ring-2 ring-white/50 dark:ring-white/20">
-                  <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
-                    Cognitive Quality
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 hidden sm:block">
-                    Bloom&apos;s Taxonomy analysis and improvement recommendations
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 sm:p-4 md:p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                {/* AI Recommendations Panel */}
-                <CognitiveRecommendationsPanel courseId={course.id} />
-
-                {/* Category Benchmark Card */}
-                {course.categoryId && (
-                  <CourseBenchmarkCard
-                    courseId={course.id}
-                    onViewRecommendations={() => {
-                      // Scroll to recommendations or open modal
-                      const el = document.querySelector('[data-recommendations-panel]');
-                      el?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Quick Link to Depth Analyzer */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="px-2 sm:px-4 md:px-6 mb-4 sm:mb-6 md:mb-8"
-        >
           <Link href={`/teacher/depth-analyzer?courseId=${course.id}`}>
             <motion.div
-              whileHover={{ scale: 1.01, y: -2 }}
-              whileTap={{ scale: 0.99 }}
-              className="bg-gradient-to-r from-purple-500/5 via-indigo-500/5 to-blue-500/5 dark:from-purple-500/10 dark:via-indigo-500/10 dark:to-blue-500/10 backdrop-blur-sm border border-purple-200/50 dark:border-purple-700/50 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 cursor-pointer group hover:border-purple-300 dark:hover:border-purple-600"
+              whileHover={{ scale: 1.005, y: -2 }}
+              whileTap={{ scale: 0.995 }}
+              className={cn(
+                "relative overflow-hidden rounded-2xl sm:rounded-3xl cursor-pointer group",
+                "bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700",
+                "dark:from-violet-700 dark:via-indigo-700 dark:to-purple-800",
+                "shadow-lg hover:shadow-xl hover:shadow-purple-500/20 transition-all duration-300",
+                "p-5 sm:p-6 md:p-7"
+              )}
             >
-              <div className="flex items-center gap-3 sm:gap-4">
-                <div className="p-2.5 sm:p-3 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/25 ring-2 ring-white/50 dark:ring-white/20 group-hover:shadow-xl transition-all group-hover:scale-105">
-                  <Microscope className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              {/* Background decorations */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/4" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
+
+              <div className="relative flex items-center gap-4 sm:gap-5">
+                <div className="p-3 sm:p-3.5 rounded-xl bg-white/15 backdrop-blur-sm shadow-inner ring-1 ring-white/20 group-hover:bg-white/20 transition-all group-hover:scale-105">
+                  <Microscope className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm sm:text-base md:text-lg font-semibold text-slate-900 dark:text-white group-hover:text-purple-700 dark:group-hover:text-purple-400 transition-colors">
-                    Analyze Course Depth
+                  <h3 className="text-base sm:text-lg md:text-xl font-bold text-white">
+                    Analyze Cognitive Depth with SAM
                   </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                    Run Bloom&apos;s Taxonomy analysis on this course, chapters, or sections
+                  <p className="text-xs sm:text-sm text-white/70 mt-1 leading-relaxed">
+                    AI-powered Bloom&apos;s Taxonomy analysis, cognitive quality scoring, and actionable improvement recommendations
                   </p>
                 </div>
-                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-slate-400 dark:text-slate-500 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors group-hover:translate-x-1 transform" />
+                <div className="flex-shrink-0 p-2 rounded-full bg-white/10 group-hover:bg-white/20 transition-all">
+                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6 text-white group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </div>
             </motion.div>
           </Link>

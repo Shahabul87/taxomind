@@ -33,7 +33,7 @@ export function useSelfCritique(options: UseSelfCritiqueOptions = {}): UseSelfCr
           body: JSON.stringify({
             responseId: lastMessage?.id || 'current',
             responseText: messageContent,
-            responseType: 'explanation',
+            responseType: 'EXPLANATION',
             critiqueMode: 'standard',
             runLoop: false,
           }),

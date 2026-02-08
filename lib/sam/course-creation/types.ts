@@ -114,6 +114,7 @@ export interface GeneratedChapter {
   prerequisites: string;
   estimatedTime: string;
   topicsToExpand: string[]; // Topics that become sections in Stage 2
+  conceptsIntroduced?: string[]; // 3-7 new concepts this chapter introduces
 }
 
 export interface Stage1Output {
@@ -146,6 +147,8 @@ export interface GeneratedSection {
     bloomsLevel: BloomsLevel;
     relevantObjectives: string[];
   };
+  conceptsIntroduced?: string[]; // New concepts this section introduces
+  conceptsReferenced?: string[]; // Existing concepts this section builds on
 }
 
 export interface Stage2Output {
@@ -362,4 +365,41 @@ export interface SequentialCreationResult {
     averageQualityScore: number;
   };
   error?: string;
+}
+
+// ============================================================================
+// Concept Tracking (Pipeline Context Enrichment)
+// ============================================================================
+
+/** Tracks a single concept introduced during course generation */
+export interface ConceptEntry {
+  concept: string;
+  introducedInChapter: number;
+  introducedInSection?: number;
+  bloomsLevel: BloomsLevel;
+}
+
+/** Running inventory of concepts, vocabulary, and skills across the pipeline */
+export interface ConceptTracker {
+  concepts: Map<string, ConceptEntry>;
+  vocabulary: string[];
+  skillsBuilt: string[];
+}
+
+/** Rich context passed to Stage 2 and 3 prompt builders */
+export interface EnrichedChapterContext {
+  allChapters: GeneratedChapter[];
+  conceptTracker: ConceptTracker;
+  bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }>;
+}
+
+/** Input for content-aware Bloom's level assignment */
+export interface ContentAwareBloomsInput {
+  chapterNumber: number;
+  totalChapters: number;
+  focusLevels: BloomsLevel[];
+  difficulty: CourseContext['difficulty'];
+  isFoundational: boolean;
+  isCapstone: boolean;
+  previousBloomsLevels: BloomsLevel[];
 }

@@ -67,7 +67,7 @@ export class SelfEvaluationService {
       responseId?: string;
       sessionId?: string;
       topic?: string;
-      responseType?: 'explanation' | 'answer' | 'hint' | 'feedback' | 'assessment' | 'recommendation' | 'clarification';
+      responseType?: 'EXPLANATION' | 'ANSWER' | 'ASSESSMENT' | 'RECOMMENDATION' | 'INTERVENTION' | 'TOOL_RESULT';
     },
   ): Promise<ConfidenceScore> {
     if (!this.confidenceScorer) {
@@ -79,7 +79,7 @@ export class SelfEvaluationService {
       userId: this.userId,
       sessionId: context?.sessionId ?? `session_${Date.now()}`,
       responseText,
-      responseType: context?.responseType ?? 'explanation',
+      responseType: context?.responseType ?? 'EXPLANATION',
       topic: context?.topic,
     });
 

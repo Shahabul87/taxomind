@@ -800,12 +800,14 @@ export class CrossSessionContext {
   // ============================================================================
 
   private addToRecentList(
-    list: string[],
+    list: string[] | undefined,
     item: string,
     maxSize: number
   ): string[] {
+    // Guard against undefined/null lists (e.g. corrupted or uninitialized state)
+    const safeList = Array.isArray(list) ? list : [];
     // Remove if exists
-    const filtered = list.filter((i) => i !== item);
+    const filtered = safeList.filter((i) => i !== item);
     // Add to beginning
     filtered.unshift(item);
     // Trim to max size

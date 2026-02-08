@@ -258,6 +258,27 @@ export class PrismaSkillBuildTrackStore implements SkillBuildTrackStore {
   }
 
   async saveSkillProfile(profile: SkillBuildProfile): Promise<void> {
+    // Ensure the referenced skill definition exists to prevent FK constraint violations.
+    // Auto-create a minimal definition if missing (e.g. for dynamically generated skill IDs).
+    const skillExists = await db.skillBuildDefinition.findUnique({
+      where: { id: profile.skillId },
+      select: { id: true },
+    });
+
+    if (!skillExists) {
+      await db.skillBuildDefinition.create({
+        data: {
+          id: profile.skillId,
+          name: profile.skillId.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+          category: 'DOMAIN',
+          description: `Auto-generated skill definition for ${profile.skillId}`,
+          prerequisites: [],
+          bloomsLevels: [],
+          tags: ['auto-generated'],
+        },
+      });
+    }
+
     await db.skillBuildProfile.upsert({
       where: { userId_skillId: { userId: profile.userId, skillId: profile.skillId } },
       create: {

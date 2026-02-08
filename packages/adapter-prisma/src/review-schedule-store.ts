@@ -21,6 +21,8 @@ export interface ReviewScheduleStore {
   save(entry: ReviewScheduleEntry): Promise<void>;
   get(studentId: string, topicId: string): Promise<ReviewScheduleEntry | null>;
   getDueReviews(studentId: string, limit?: number): Promise<ReviewScheduleEntry[]>;
+  getPendingReviews(studentId: string, limit?: number): Promise<ReviewScheduleEntry[]>;
+  getOverdueReviews(studentId: string): Promise<ReviewScheduleEntry[]>;
   getAllForStudent(studentId: string): Promise<ReviewScheduleEntry[]>;
   delete(studentId: string, topicId: string): Promise<void>;
 }
@@ -61,6 +63,29 @@ export class PrismaReviewScheduleStore implements ReviewScheduleStore {
       },
       orderBy: { nextReviewAt: 'asc' },
       take: limit ?? 20,
+    });
+  }
+
+  /**
+   * Alias for getDueReviews — satisfies the ReviewScheduleStore interface
+   * expected by @sam-ai/memory SpacedRepetitionScheduler.
+   */
+  async getPendingReviews(studentId: string, limit?: number): Promise<ReviewScheduleEntry[]> {
+    return this.getDueReviews(studentId, limit);
+  }
+
+  /**
+   * Get overdue reviews (past due date).
+   * Satisfies the ReviewScheduleStore interface from @sam-ai/memory.
+   */
+  async getOverdueReviews(studentId: string): Promise<ReviewScheduleEntry[]> {
+    return this.prisma[this.tableName].findMany({
+      where: {
+        studentId,
+        nextReviewAt: { lt: new Date() },
+      },
+      orderBy: { nextReviewAt: 'asc' },
+      take: 50,
     });
   }
 

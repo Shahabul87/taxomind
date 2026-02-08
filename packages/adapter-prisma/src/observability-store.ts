@@ -434,7 +434,7 @@ export class PrismaConfidenceCalibrationStore implements ConfidencePredictionSto
         userId: prediction.userId,
         sessionId: prediction.sessionId || null,
         responseId: prediction.responseId,
-        responseType: prediction.responseType,
+        responseType: prediction.responseType.toUpperCase() as typeof prediction.responseType,
         predictedConfidence: prediction.predictedConfidence,
         factors: prediction.factors,
         predictedAt: prediction.predictedAt,
@@ -592,7 +592,8 @@ export class PrismaConfidenceCalibrationStore implements ConfidencePredictionSto
     }> = {};
 
     types.forEach(type => {
-      const ofType = predictions.filter(p => p.responseType === type);
+      // Match both lowercase and uppercase variants since DB stores uppercase
+      const ofType = predictions.filter(p => p.responseType.toLowerCase() === type);
       const withOutcomes = ofType.filter(p => p.accurate !== null);
 
       const avgPredicted = ofType.length > 0
