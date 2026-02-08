@@ -75,12 +75,14 @@ ENV SKIP_ENV_VALIDATION=true
 
 # Memory optimization for large Next.js builds
 # CRITICAL: These settings prevent OOM during "Collecting page data" phase
-# - max-old-space-size: 3GB heap (inherited by worker processes)
-#   Main (3GB) + 1 worker (3GB) = 6GB max, leaving ~2GB for OS/Docker overhead
+# - max-old-space-size: 2.5GB heap (inherited by worker processes)
+#   Main (2.5GB) + 1 worker (2.5GB) = 5GB max, leaving ~3GB for OS/Docker/GC
+#   Combined with webpackMemoryOptimizations + disabled webpack cache in next.config.js,
+#   this is sufficient — webpack no longer holds memory during page data collection.
 # - max-semi-space-size: Cap V8 young generation to prevent auto-growth exhausting RAM
 # - EXPERIMENTAL_CPUS=1: Single worker to minimize total memory
 # - UV_THREADPOOL_SIZE: Limit libuv threads for I/O operations
-ENV NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=64"
+ENV NODE_OPTIONS="--max-old-space-size=2560 --max-semi-space-size=64"
 ENV EXPERIMENTAL_CPUS=1
 ENV UV_THREADPOOL_SIZE=4
 
@@ -90,11 +92,13 @@ RUN npx prisma generate
 
 # Build Next.js application (creates standalone output)
 # Uses build:railway script which doesn't override NODE_OPTIONS
-# Memory flags:
-#   --max-old-space-size=3072: 3GB heap per process (main + 1 worker = 6GB max)
-#   --max-semi-space-size=64: Cap V8 young generation to prevent OOM during page collection
-#   Single worker prevents OOM: NODE_OPTIONS is inherited by workers, so N workers × heap = total
-RUN NODE_OPTIONS="--max-old-space-size=3072 --max-semi-space-size=64" \
+# Memory strategy (permanent fix):
+#   1. next.config.js disables webpack cache → frees memory before page data collection
+#   2. next.config.js enables webpackMemoryOptimizations → reduces webpack peak memory
+#   3. --max-old-space-size=2560: 2.5GB heap per process (main + 1 worker = 5GB max)
+#   4. --max-semi-space-size=64: Cap V8 young generation growth
+#   Total: ~5GB Node.js + ~3GB for OS/Docker/GC overhead = fits in 8GB container
+RUN NODE_OPTIONS="--max-old-space-size=2560 --max-semi-space-size=64" \
     EXPERIMENTAL_CPUS=1 \
     NEXT_PRIVATE_WORKER_THREADS=1 \
     pnpm run build:railway

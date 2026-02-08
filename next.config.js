@@ -100,8 +100,14 @@ const nextConfig = {
     },
     // Optimize package imports for tree-shaking
     optimizePackageImports: optimizeImports,
-    // Enable Webpack build worker for reduced memory usage during builds
-    webpackBuildWorker: true,
+    // Webpack memory strategy for Railway/Docker builds:
+    // - webpackBuildWorker: runs webpack in a separate process that exits before page data
+    //   collection, freeing its memory. Enabled for dev, disabled for Railway where
+    //   webpackMemoryOptimizations provides better overall memory reduction.
+    // - webpackMemoryOptimizations: reduces webpack peak memory at cost of slightly slower
+    //   compilation. Incompatible with webpackBuildWorker so they're mutually exclusive.
+    webpackBuildWorker: !(process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production'),
+    webpackMemoryOptimizations: !!(process.env.RAILWAY_ENVIRONMENT || process.env.NODE_ENV === 'production'),
     // Disable server source maps in production to save memory
     serverSourceMaps: false,
     // Limit worker threads to prevent OOM during page data collection (Railway/Docker)
@@ -151,6 +157,17 @@ const nextConfig = {
     // Fix production chunk loading errors: "Cannot read properties of undefined (reading 'call')"
     if (!dev && !isServer) {
       config.output.publicPath = '/_next/';
+    }
+
+    // ============================================
+    // CRITICAL: Disable webpack cache for production builds (Railway OOM fix)
+    // ============================================
+    // Webpack's in-memory cache holds hundreds of MB after compilation completes.
+    // This memory is NOT freed before the "Collecting page data" phase starts,
+    // causing the page-data worker to OOM even with a small heap (52MB crash).
+    // Disabling cache ensures webpack memory is GC'd before page data collection.
+    if (!dev) {
+      config.cache = false;
     }
 
     // ============================================
