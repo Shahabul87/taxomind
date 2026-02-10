@@ -5,6 +5,9 @@ import type { ExamGenerationConfig, StudentProfile } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create a user-scoped exam engine instance
 async function createExamEngineForUser(userId: string) {
@@ -16,6 +19,9 @@ async function createExamEngineForUser(userId: string) {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -114,11 +120,10 @@ export async function POST(request: NextRequest) {
 
     // Generate exam using portable @sam-ai/educational engine
     const engine = await createExamEngineForUser(user.id);
-    const examResponse = await engine.generateExam(
-      courseId,
-      sectionIds,
-      examConfig,
-      studentProfile
+    const examResponse = await withRetryableTimeout(
+      () => engine.generateExam(courseId, sectionIds, examConfig, studentProfile),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'generateExam'
     );
 
     // Record the generation as a SAM interaction
@@ -141,6 +146,15 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Exam generation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Exam generation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Generate exam error:', error);
     return NextResponse.json(
       { error: 'Failed to generate exam' },

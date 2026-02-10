@@ -10,6 +10,8 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createSocraticTeachingEngine } from '@sam-ai/educational';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const ContinueDialogueSchema = z.object({
   dialogueId: z.string(),
@@ -51,6 +53,9 @@ const getOrCreateEngine = (dialogueId: string, userId: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -69,11 +74,15 @@ export async function POST(request: NextRequest) {
     const engine = getOrCreateEngine(dialogueId, user.id);
 
     try {
-      const result = await engine.continueDialogue({
-        dialogueId,
-        response,
-        skipQuestion,
-      });
+      const result = await withRetryableTimeout(
+        () => engine.continueDialogue({
+          dialogueId,
+          response,
+          skipQuestion,
+        }),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'socratic-continue'
+      );
 
       return NextResponse.json({
         success: true,
@@ -93,6 +102,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Socratic dialogue continue error:', error);

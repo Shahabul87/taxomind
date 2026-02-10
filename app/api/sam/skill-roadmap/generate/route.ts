@@ -21,6 +21,8 @@ import {
   type RoadmapGenerationInput,
   type AIRoadmapResponse,
 } from '@/lib/sam/roadmap-generation/prompt-templates';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -53,6 +55,9 @@ const LEVEL_ORDER = [
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -145,19 +150,23 @@ export async function POST(request: NextRequest) {
           }));
 
           // Use lower temperature for more consistent output
-          const aiResult = await runSAMChatWithMetadata({
-            userId,
-            capability: 'skill-roadmap',
-            systemPrompt: `You are an expert instructional designer following Bloom's Taxonomy and evidence-based learning principles.
+          const aiResult = await withRetryableTimeout(
+            () => runSAMChatWithMetadata({
+              userId,
+              capability: 'skill-roadmap',
+              systemPrompt: `You are an expert instructional designer following Bloom's Taxonomy and evidence-based learning principles.
 You MUST return ONLY valid JSON (no markdown, no code blocks, no explanations).
 You MUST follow the exact schema provided in the prompt.
 You MUST ensure proper cognitive progression through Bloom's levels.
 You MUST ensure difficulty increases progressively (never decreases).`,
-            messages: [{ role: 'user', content: prompt }],
-            maxTokens: 6000, // Increased for more detailed output
-            temperature: 0.5, // Lower temperature for more consistent structure
-            extended: true,
-          });
+              messages: [{ role: 'user', content: prompt }],
+              maxTokens: 6000, // Increased for more detailed output
+              temperature: 0.5, // Lower temperature for more consistent structure
+              extended: true,
+            }),
+            TIMEOUT_DEFAULTS.AI_GENERATION,
+            'skill-roadmap-generation'
+          );
 
           const aiResponseText = aiResult.content;
 
@@ -426,6 +435,13 @@ You MUST ensure difficulty increases progressively (never decreases).`,
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return new Response(
+        JSON.stringify({ error: 'Operation timed out. Please try again.' }),
+        { status: 504, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

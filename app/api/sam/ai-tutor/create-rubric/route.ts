@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -43,16 +48,20 @@ Each criterion should have:
 - levels: Object with descriptors for each performance level
 - pointsRange: Point range for this criterion`;
 
-    const rubricText = await runSAMChatWithPreference({
-      userId: user.id,
-      capability: 'chat',
-      maxTokens: 2000,
-      temperature: 0.7,
-      systemPrompt,
-      messages: [
-        { role: 'user', content: `Create a comprehensive rubric for this assignment: ${JSON.stringify(assignment)}` }
-      ],
-    });
+    const rubricText = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId: user.id,
+        capability: 'chat',
+        maxTokens: 2000,
+        temperature: 0.7,
+        systemPrompt,
+        messages: [
+          { role: 'user', content: `Create a comprehensive rubric for this assignment: ${JSON.stringify(assignment)}` }
+        ],
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'createRubric-generate'
+    );
 
     // Try to parse as JSON, fallback to structured parsing
     let rubric;
@@ -70,6 +79,10 @@ Each criterion should have:
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Rubric creation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Rubric creation error:', error);

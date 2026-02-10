@@ -15,6 +15,8 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // ============================================================================
 // Request Schema
@@ -274,6 +276,9 @@ function generateFallbackStructure(
 // ============================================================================
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   const startTime = Date.now();
 
   try {
@@ -295,7 +300,11 @@ export async function POST(request: NextRequest) {
     let structure = validatedData.generatedStructure;
     if (!structure && options.generateIfMissing) {
       logger.info('Generating course structure with SAM AI...');
-      structure = await generateCourseStructure(formData, samContext, user.id);
+      structure = await withRetryableTimeout(
+        () => generateCourseStructure(formData, samContext, user.id),
+        TIMEOUT_DEFAULTS.AI_GENERATION,
+        'create-course-complete-structure-generation'
+      );
     }
 
     if (!structure) {
@@ -422,6 +431,14 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({
+        success: false,
+        error: { message: 'Operation timed out. Please try again.' },
+      }, { status: 504 });
+    }
+
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

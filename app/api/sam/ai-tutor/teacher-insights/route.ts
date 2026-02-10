@@ -3,6 +3,8 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,6 +54,10 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Teacher insights timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Teacher insights error:', error);
@@ -63,32 +69,47 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      action, 
-      courseId, 
-      studentId, 
-      interventionType, 
-      customQuery 
+    const {
+      action,
+      courseId,
+      studentId,
+      interventionType,
+      customQuery
     } = await request.json();
 
     let result;
 
     switch (action) {
       case 'generate_intervention':
-        result = await generateStudentIntervention(studentId, courseId, interventionType);
+        result = await withRetryableTimeout(
+          () => generateStudentIntervention(studentId, courseId, interventionType),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'teacherInsights-generateIntervention'
+        );
         break;
       case 'analyze_content':
-        result = await analyzeContentEffectiveness(courseId);
+        result = await withRetryableTimeout(
+          () => analyzeContentEffectiveness(courseId),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'teacherInsights-analyzeContent'
+        );
         break;
       case 'custom_insight':
-        result = await generateCustomInsight(user.id, customQuery, courseId);
+        result = await withRetryableTimeout(
+          () => generateCustomInsight(user.id, customQuery, courseId),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'teacherInsights-customInsight'
+        );
         break;
       case 'export_report':
         result = await exportInsightsReport(courseId);
@@ -104,6 +125,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Teacher insights action timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Teacher insights action error:', error);
@@ -120,14 +145,18 @@ async function runTeacherInsightsChat(
   userPrompt: string,
   options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChatWithPreference({
-    userId,
-    capability: 'analysis',
-    maxTokens: options?.maxTokens ?? 1500,
-    temperature: options?.temperature ?? 0.7,
-    systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+  return withRetryableTimeout(
+    () => runSAMChatWithPreference({
+      userId,
+      capability: 'analysis',
+      maxTokens: options?.maxTokens ?? 1500,
+      temperature: options?.temperature ?? 0.7,
+      systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+    TIMEOUT_DEFAULTS.AI_ANALYSIS,
+    'teacherInsights-chat'
+  );
 }
 
 async function generateOverviewInsights(userId: string, courseId: string | null, timeframe: string) {

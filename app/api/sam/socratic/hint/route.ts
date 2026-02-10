@@ -10,6 +10,8 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createSocraticTeachingEngine } from '@sam-ai/educational';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const GetHintSchema = z.object({
   dialogueId: z.string(),
@@ -51,6 +53,9 @@ const getEngine = (dialogueId: string, userId: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -68,7 +73,11 @@ export async function POST(request: NextRequest) {
     const engine = getEngine(dialogueId, user.id);
 
     try {
-      const hint = await engine.getHint(dialogueId, hintIndex);
+      const hint = await withRetryableTimeout(
+        () => engine.getHint(dialogueId, hintIndex),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'socratic-hint'
+      );
 
       return NextResponse.json({
         success: true,
@@ -98,6 +107,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Socratic dialogue hint error:', error);

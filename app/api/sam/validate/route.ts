@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -40,30 +42,45 @@ interface ValidationResult {
 
 export async function POST(req: Request) {
   try {
+    const rateLimitResponse = await withRateLimit(req as any, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
-    
+
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const body: ValidationRequest = await req.json();
-    
+
     // Handle different validation formats
     let validation: ValidationResult;
-    
+
     if (body.formData) {
       // Handle AI Creator page format
-      validation = await validateFormData(user.id, body.formData, body.step || 1);
+      validation = await withRetryableTimeout(
+        () => validateFormData(user.id, body.formData, body.step || 1),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'validate-form-data'
+      );
     } else if (body.field) {
       // Handle individual field validation format
-      validation = await validateField(user.id, body);
+      validation = await withRetryableTimeout(
+        () => validateField(user.id, body),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'validate-field'
+      );
     } else {
       throw new Error("Invalid validation request format");
     }
-    
+
     return NextResponse.json(validation);
-    
+
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error("[VALIDATION] Error:", error);

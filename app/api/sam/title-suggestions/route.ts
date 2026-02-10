@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -44,6 +46,9 @@ function extractJSON(text: string): string {
 
 export async function POST(req: Request) {
   try {
+    const rateLimitResponse = await withRateLimit(req as any, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user?.id) {
@@ -56,11 +61,19 @@ export async function POST(req: Request) {
       return new NextResponse("Current title is required and must be at least 3 characters", { status: 400 });
     }
 
-    const suggestions = await generateTitleSuggestions(user.id, body);
+    const suggestions = await withRetryableTimeout(
+      () => generateTitleSuggestions(user.id, body),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'title-suggestions'
+    );
 
     return NextResponse.json(suggestions);
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error("[TITLE-SUGGESTIONS] Error:", error);

@@ -11,6 +11,8 @@ import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Validation schemas
 const GenerateRemediationSchema = z.object({
@@ -54,6 +56,9 @@ interface RemediationContext {
  * POST - Generate remediation content
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -97,14 +102,18 @@ Return valid JSON only:
   ]
 }`;
 
-    const response = await runSAMChatWithPreference({
-      userId: user.id,
-      capability: 'chat',
-      maxTokens: 4000,
-      temperature: 0.7,
-      systemPrompt: 'You are an expert educational content creator specializing in remediation and personalized learning. Generate content in valid JSON format only.',
-      messages: [{ role: 'user', content: prompt }],
-    });
+    const response = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId: user.id,
+        capability: 'chat',
+        maxTokens: 4000,
+        temperature: 0.7,
+        systemPrompt: 'You are an expert educational content creator specializing in remediation and personalized learning. Generate content in valid JSON format only.',
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'remediation-generate'
+    );
 
     // Parse the generated content
     let contentData: RemediationContext['content'];
@@ -166,6 +175,10 @@ Return valid JSON only:
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Remediation generation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ success: false, error: { code: 'TIMEOUT', message: 'Operation timed out. Please try again.' } }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('[REMEDIATION] Generate error:', error);

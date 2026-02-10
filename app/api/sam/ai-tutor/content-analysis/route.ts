@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 async function runAIAnalysis(
   userId: string,
@@ -9,17 +11,24 @@ async function runAIAnalysis(
   userPrompt: string,
   maxTokens: number
 ): Promise<string> {
-  return await runSAMChatWithPreference({
-    userId,
-    capability: 'analysis',
-    maxTokens,
-    temperature: 0.7,
-    systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+  return withRetryableTimeout(
+    () => runSAMChatWithPreference({
+      userId,
+      capability: 'analysis',
+      maxTokens,
+      temperature: 0.7,
+      systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+    TIMEOUT_DEFAULTS.AI_ANALYSIS,
+    'contentAnalysis-analyze'
+  );
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     
@@ -72,6 +81,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Content analysis timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Content analysis error:', error);

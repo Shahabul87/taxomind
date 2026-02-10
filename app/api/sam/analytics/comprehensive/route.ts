@@ -5,6 +5,8 @@ import { createAnalyticsEngine } from '@sam-ai/educational';
 import type { UserSAMStats } from '@sam-ai/educational';
 import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create analytics-specific database adapter that works with actual Prisma schema
 function createAnalyticsDatabaseAdapter() {
@@ -239,12 +241,16 @@ export async function GET(req: NextRequest) {
     }
 
     const analyticsEngine = await createAnalyticsEngineForUser(session.user.id);
-    const analytics = await analyticsEngine.getComprehensiveAnalytics(
-      session.user.id,
-      {
-        courseId,
-        dateRange: { start: startDate, end: endDate },
-      }
+    const analytics = await withRetryableTimeout(
+      () => analyticsEngine.getComprehensiveAnalytics(
+        session.user.id,
+        {
+          courseId,
+          dateRange: { start: startDate, end: endDate },
+        }
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'comprehensive-analytics'
     );
 
     return NextResponse.json({
@@ -252,6 +258,13 @@ export async function GET(req: NextRequest) {
       data: analytics,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Error fetching comprehensive analytics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch analytics' },

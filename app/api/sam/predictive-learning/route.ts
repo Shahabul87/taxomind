@@ -12,6 +12,9 @@ import type {
 } from "@sam-ai/educational";
 import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from "@/lib/logger";
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 async function createPredictiveEngineForUser(userId: string) {
   const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
@@ -22,6 +25,9 @@ async function createPredictiveEngineForUser(userId: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {
@@ -43,23 +49,43 @@ export async function POST(req: NextRequest) {
     let result;
     switch (action) {
       case "predict-outcomes":
-        result = await handlePredictOutcomes(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handlePredictOutcomes(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'predictOutcomes'
+        );
         break;
 
       case "identify-at-risk":
-        result = await handleIdentifyAtRisk(engine, data, session.user);
+        result = await withRetryableTimeout(
+          () => handleIdentifyAtRisk(engine, data, session.user),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'identifyAtRisk'
+        );
         break;
 
       case "recommend-interventions":
-        result = await handleRecommendInterventions(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleRecommendInterventions(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'recommendInterventions'
+        );
         break;
 
       case "optimize-velocity":
-        result = await handleOptimizeVelocity(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleOptimizeVelocity(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'optimizeVelocity'
+        );
         break;
 
       case "calculate-probability":
-        result = await handleCalculateProbability(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleCalculateProbability(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'calculateProbability'
+        );
         break;
 
       default:
@@ -75,6 +101,15 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Predictive learning timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("Predictive learning error:", error);
     return NextResponse.json(
       { error: "Failed to process prediction" },

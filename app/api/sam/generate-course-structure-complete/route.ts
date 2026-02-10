@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import {
   BLOOMS_TAXONOMY,
   CHAPTER_THINKING_FRAMEWORK,
@@ -12,6 +14,9 @@ import {
 } from '@/lib/sam/prompts/content-generation-criteria';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     if (!user?.id) {
@@ -46,14 +51,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate complete course structure using SAM context
-    const courseStructure = await generateCompleteStructureWithSAM({
-      formData,
-      samContext,
-      existingObjectives,
-      bloomsFocus,
-      preferredContentTypes,
-      userId: user.id
-    });
+    const courseStructure = await withRetryableTimeout(
+      () => generateCompleteStructureWithSAM({
+        formData,
+        samContext,
+        existingObjectives,
+        bloomsFocus,
+        preferredContentTypes,
+        userId: user.id
+      }),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'generate-course-structure-complete'
+    );
 
     return NextResponse.json({ 
       success: true, 
@@ -66,6 +75,14 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({
+        error: 'Operation timed out. Please try again.',
+        details: 'The AI generation is taking longer than expected. Try with fewer chapters or simpler content.'
+      }, { status: 504 });
+    }
+
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

@@ -7,11 +7,16 @@ import {
   type GeneratedContent,
   type DifficultyLevel,
 } from '@sam-ai/quality';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -46,19 +51,23 @@ Return a JSON array of problems, each with:
 - explanation: Why this is the correct answer
 - bloomsLevel: Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation`;
 
-    const problemsText = await runSAMChatWithPreference({
-      userId: user.id,
-      capability: 'chat',
-      maxTokens: 2000,
-      temperature: 0.8,
-      systemPrompt,
-      messages: [
-        {
-          role: 'user',
-          content: `Generate ${count} practice problems about ${topic} at ${difficulty} difficulty level.`,
-        },
-      ],
-    });
+    const problemsText = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId: user.id,
+        capability: 'chat',
+        maxTokens: 2000,
+        temperature: 0.8,
+        systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: `Generate ${count} practice problems about ${topic} at ${difficulty} difficulty level.`,
+          },
+        ],
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'practiceProblems-generate'
+    );
 
     // Try to parse as JSON, fallback to structured parsing
     let problems;
@@ -120,6 +129,10 @@ Return a JSON array of problems, each with:
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Practice problems generation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Practice problems generation error:', error);

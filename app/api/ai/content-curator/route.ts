@@ -10,6 +10,8 @@ import {
   ContentType,
   CourseDifficulty
 } from '@/lib/ai-course-types';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 
 // Force Node.js runtime for better compatibility
@@ -306,6 +308,9 @@ function generateMockResponse(request: ContentCurationRequest): ContentCurationR
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
@@ -335,20 +340,24 @@ export async function POST(request: NextRequest) {
     try {
       const prompt = buildContentCurationPrompt(curationRequest);
 
-      const completion = await runSAMChatWithMetadata({
-        userId: session.userId!,
-        capability: 'analysis',
-        maxTokens: 8000,
-        temperature: 0.7,
-        systemPrompt: CONTENT_CURATOR_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        extended: true,
-      });
+      const completion = await withRetryableTimeout(
+        () => runSAMChatWithMetadata({
+          userId: session.userId!,
+          capability: 'analysis',
+          maxTokens: 8000,
+          temperature: 0.7,
+          systemPrompt: CONTENT_CURATOR_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          extended: true,
+        }),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'content-curation'
+      );
 
       // Extract and parse the response
       const responseText = completion.content;
@@ -406,6 +415,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

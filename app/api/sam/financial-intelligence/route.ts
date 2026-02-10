@@ -6,6 +6,9 @@ import type { DateRange } from "@sam-ai/educational";
 import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import type { SAMInteractionType } from '@prisma/client';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Per-request engine factory (user-scoped AI provider)
 async function createFinancialEngineForUser(userId: string) {
@@ -39,6 +42,9 @@ async function recordSAMInteraction(
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {
@@ -111,59 +117,58 @@ export async function POST(req: NextRequest) {
     let result;
     switch (action) {
       case "analyze-financials":
-        result = await handleAnalyzeFinancials(
-          engine,
-          organizationId,
-          data.dateRange
+        result = await withRetryableTimeout(
+          () => handleAnalyzeFinancials(engine, organizationId, data.dateRange),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeFinancials'
         );
         break;
 
       case "revenue-analysis":
-        result = await handleRevenueAnalysis(
-          engine,
-          organizationId,
-          data.dateRange
+        result = await withRetryableTimeout(
+          () => handleRevenueAnalysis(engine, organizationId, data.dateRange),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'revenueAnalysis'
         );
         break;
 
       case "cost-analysis":
-        result = await handleCostAnalysis(
-          engine,
-          organizationId,
-          data.dateRange
+        result = await withRetryableTimeout(
+          () => handleCostAnalysis(engine, organizationId, data.dateRange),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'costAnalysis'
         );
         break;
 
       case "profitability-analysis":
-        result = await handleProfitabilityAnalysis(
-          engine,
-          organizationId,
-          data.dateRange,
-          data.courseId
+        result = await withRetryableTimeout(
+          () => handleProfitabilityAnalysis(engine, organizationId, data.dateRange, data.courseId),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'profitabilityAnalysis'
         );
         break;
 
       case "pricing-optimization":
-        result = await handlePricingOptimization(
-          engine,
-          organizationId,
-          data.courseIds
+        result = await withRetryableTimeout(
+          () => handlePricingOptimization(engine, organizationId, data.courseIds),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'pricingOptimization'
         );
         break;
 
       case "subscription-metrics":
-        result = await handleSubscriptionMetrics(
-          engine,
-          organizationId,
-          data.dateRange
+        result = await withRetryableTimeout(
+          () => handleSubscriptionMetrics(engine, organizationId, data.dateRange),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'subscriptionMetrics'
         );
         break;
 
       case "financial-forecast":
-        result = await handleFinancialForecast(
-          engine,
-          organizationId,
-          data.forecastPeriod
+        result = await withRetryableTimeout(
+          () => handleFinancialForecast(engine, organizationId, data.forecastPeriod),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'financialForecast'
         );
         break;
 
@@ -186,6 +191,15 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Financial intelligence timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("Financial intelligence error:", error);
     return NextResponse.json(
       { error: "Failed to process financial intelligence request" },

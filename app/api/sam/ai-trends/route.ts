@@ -5,6 +5,9 @@ import type { TrendAnalysis } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, createTrendsAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create a user-scoped trends engine (no singleton - scoped per request)
 async function createTrendsEngineForUser(userId: string) {
@@ -16,6 +19,9 @@ async function createTrendsEngineForUser(userId: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -34,12 +40,11 @@ export async function GET(req: NextRequest) {
         const impact = searchParams.get('impact') as 'low' | 'medium' | 'high' | 'transformative' | undefined;
         const minRelevance = searchParams.get('minRelevance');
 
-        const trends = await trendsEngine.analyzeTrends({
-          category,
-          timeframe,
-          impact,
-          minRelevance: minRelevance ? parseInt(minRelevance) : undefined
-        });
+        const trends = await withRetryableTimeout(
+          () => trendsEngine.analyzeTrends({ category, timeframe, impact, minRelevance: minRelevance ? parseInt(minRelevance) : undefined }),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeTrends'
+        );
 
         return NextResponse.json({ trends });
       }
@@ -55,7 +60,11 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Trend ID required' }, { status: 400 });
         }
 
-        const signals = await trendsEngine.detectMarketSignals(trendId);
+        const signals = await withRetryableTimeout(
+          () => trendsEngine.detectMarketSignals(trendId),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'detectMarketSignals'
+        );
         return NextResponse.json({ signals });
       }
 
@@ -67,7 +76,11 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Two trend IDs required' }, { status: 400 });
         }
 
-        const comparison = await trendsEngine.compareTrends(trendId1, trendId2);
+        const comparison = await withRetryableTimeout(
+          () => trendsEngine.compareTrends(trendId1, trendId2),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'compareTrends'
+        );
         return NextResponse.json({ comparison });
       }
 
@@ -79,7 +92,11 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Trend ID and horizon required' }, { status: 400 });
         }
 
-        const prediction = await trendsEngine.predictTrendTrajectory(trendId, horizon);
+        const prediction = await withRetryableTimeout(
+          () => trendsEngine.predictTrendTrajectory(trendId, horizon),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'predictTrendTrajectory'
+        );
         return NextResponse.json({ prediction });
       }
 
@@ -89,7 +106,11 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Industry required' }, { status: 400 });
         }
 
-        const report = await trendsEngine.generateIndustryReport(industry);
+        const report = await withRetryableTimeout(
+          () => trendsEngine.generateIndustryReport(industry),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'generateIndustryReport'
+        );
         return NextResponse.json({ report });
       }
 
@@ -120,11 +141,24 @@ export async function GET(req: NextRequest) {
 
       default: {
         // Default: get all trends
-        const trends = await trendsEngine.analyzeTrends();
+        const trends = await withRetryableTimeout(
+          () => trendsEngine.analyzeTrends(),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeTrends'
+        );
         return NextResponse.json({ trends });
       }
     }
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('AI Trends timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('AI Trends API error:', error);
     return NextResponse.json(
       { error: 'Failed to process trends request' },
@@ -134,6 +168,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -164,7 +201,11 @@ export async function POST(req: NextRequest) {
 
       case 'analyze-custom': {
         // For more complex analysis with custom parameters
-        const trends = await trendsEngine.analyzeTrends(params.filter);
+        const trends = await withRetryableTimeout(
+          () => trendsEngine.analyzeTrends(params.filter),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeCustomTrends'
+        );
 
         // Additional processing could go here
         const enrichedTrends = trends.map((trend: TrendAnalysis) => ({
@@ -179,6 +220,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('AI Trends POST timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('AI Trends API POST error:', error);
     return NextResponse.json(
       { error: 'Failed to process trends request' },

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 import {
   createCourseGuideEngine,
   createMarketEngine,
@@ -210,6 +213,9 @@ function buildActionPlan(recommendations: IntegratedRecommendation[]): ActionPla
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -285,32 +291,36 @@ export async function POST(request: NextRequest) {
     const courseInput = buildCourseInput(courseWithContent);
 
     const [marketInsights, bloomsProfile, courseGuide, trendsAnalysis, researchPapers, studentProgress] =
-      await Promise.all([
-        enginePreferences?.enableMarketAnalysis === false
-          ? null
-          : engines.market.analyzeCourse(courseId, 'comprehensive'),
-        enginePreferences?.enableBloomsTracking === false
-          ? null
-          : engines.blooms.analyzeCourse(courseInput, {
-              depth:
-                analysisDepth === 'basic'
-                  ? 'basic'
-                  : analysisDepth === 'comprehensive'
-                    ? 'comprehensive'
-                    : 'detailed',
-              includeRecommendations: true,
-            }),
-        enginePreferences?.enableCourseGuide === false
-          ? null
-          : engines.guide.generateCourseGuide(courseId),
-        enginePreferences?.enableTrendsAnalysis === false
-          ? null
-          : engines.trends.getEducationalTrends(),
-        enginePreferences?.enableResearchAccess === false
-          ? null
-          : engines.research.searchPapers({ query: course.title ?? courseId, limit: 5 }),
-        getStudentProgress(userId, courseId),
-      ]);
+      await withRetryableTimeout(
+        () => Promise.all([
+          enginePreferences?.enableMarketAnalysis === false
+            ? null
+            : engines.market.analyzeCourse(courseId, 'comprehensive'),
+          enginePreferences?.enableBloomsTracking === false
+            ? null
+            : engines.blooms.analyzeCourse(courseInput, {
+                depth:
+                  analysisDepth === 'basic'
+                    ? 'basic'
+                    : analysisDepth === 'comprehensive'
+                      ? 'comprehensive'
+                      : 'detailed',
+                includeRecommendations: true,
+              }),
+          enginePreferences?.enableCourseGuide === false
+            ? null
+            : engines.guide.generateCourseGuide(courseId),
+          enginePreferences?.enableTrendsAnalysis === false
+            ? null
+            : engines.trends.getEducationalTrends(),
+          enginePreferences?.enableResearchAccess === false
+            ? null
+            : engines.research.searchPapers({ query: course.title ?? courseId, limit: 5 }),
+          getStudentProgress(userId, courseId),
+        ]),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'integrated-analysis'
+      );
 
     const integratedRecommendations = buildIntegratedRecommendations({
       market: marketInsights,
@@ -350,6 +360,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Integrated analysis error:', error);
     return NextResponse.json(
       { error: 'Failed to perform integrated analysis' },

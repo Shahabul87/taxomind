@@ -6,6 +6,7 @@ import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 import { GeneratePracticeSetSchema } from "@/lib/validations/practice-problems";
 import { runSAMChatWithPreference, handleAIAccessError } from "@/lib/sam/ai-provider";
 import type { BloomsLevel, QuestionType, QuestionDifficulty } from "@prisma/client";
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from "@/lib/sam/utils/timeout";
 
 export const runtime = "nodejs";
 
@@ -23,16 +24,6 @@ function mapBloomsLevel(level: string): BloomsLevel {
   const valid: BloomsLevel[] = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
   const upper = level?.toUpperCase() as BloomsLevel;
   return valid.includes(upper) ? upper : "APPLY";
-}
-
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
-    promise.then(
-      (val) => { clearTimeout(timer); resolve(val); },
-      (err) => { clearTimeout(timer); reject(err); },
-    );
-  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -265,8 +256,8 @@ export async function POST(
     });
 
     // Call AI directly — no engine, no recursion risk
-    const aiResponse = await withTimeout(
-      runSAMChatWithPreference({
+    const aiResponse = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
         userId: user.id,
         capability: "chat",
         maxTokens: 4000,
@@ -274,8 +265,8 @@ export async function POST(
         systemPrompt: prompt.system,
         messages: [{ role: "user", content: prompt.user }],
       }),
-      55000,
-      "Practice AI generation",
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      "practice-ai-generation",
     );
 
     logger.info("[Practice] AI responded", {
@@ -375,6 +366,10 @@ export async function POST(
       data: practiceProblemSet,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

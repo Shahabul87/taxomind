@@ -10,6 +10,8 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createPracticeProblemsEngine, type BloomsLevel } from '@sam-ai/educational';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const GenerateProblemsSchema = z.object({
   topic: z.string().min(1),
@@ -49,6 +51,9 @@ const createEngineWithAI = (userId: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -74,15 +79,19 @@ export async function POST(request: NextRequest) {
     // Use the portable engine
     const engine = createEngineWithAI(user.id);
 
-    const result = await engine.generateProblems({
-      topic,
-      bloomsLevel: bloomsLevel as BloomsLevel,
-      difficulty,
-      count,
-      problemTypes: problemTypes as Array<'multiple_choice' | 'short_answer' | 'coding' | 'essay'>,
-      learningObjectives,
-      timeLimit,
-    });
+    const result = await withRetryableTimeout(
+      () => engine.generateProblems({
+        topic,
+        bloomsLevel: bloomsLevel as BloomsLevel,
+        difficulty,
+        count,
+        problemTypes: problemTypes as Array<'multiple_choice' | 'short_answer' | 'coding' | 'essay'>,
+        learningObjectives,
+        timeLimit,
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'practice-generate'
+    );
 
     return NextResponse.json({
       success: true,
@@ -90,6 +99,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Practice problems generation error:', error);

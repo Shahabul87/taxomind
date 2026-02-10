@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 // Validation schema for query parameters
 const querySchema = z.object({
@@ -358,7 +359,11 @@ export async function GET(req: NextRequest) {
     );
 
     // Fetch conversation summaries with error handling
-    const summaries = await memoryEngine.getConversationSummaries(limit);
+    const summaries = await withRetryableTimeout(
+      () => memoryEngine.getConversationSummaries(limit),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'conversationSummaries-fetch'
+    );
 
     // Add metadata to response
     const response = NextResponse.json({
@@ -382,6 +387,13 @@ export async function GET(req: NextRequest) {
     return response;
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Conversation summaries timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({
+        error: 'Operation timed out. Please try again.',
+        code: 'TIMEOUT',
+      }, { status: 504 });
+    }
     logger.error('Error fetching conversation summaries:', error);
 
     // Handle specific error types

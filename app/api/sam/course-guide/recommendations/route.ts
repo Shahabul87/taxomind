@@ -5,6 +5,8 @@ import { db } from '@/lib/db';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { createCourseGuideAdapter } from '@/lib/adapters';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Create course guide engine singleton
 let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;
@@ -20,6 +22,9 @@ function getCourseGuideEngine() {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     
@@ -60,12 +65,16 @@ export async function POST(request: NextRequest) {
     const guide = await engine.generateCourseGuide(courseId, false, false);
 
     // Generate detailed recommendations based on focus area
-    const recommendations = await generateDetailedRecommendations(
-      user.id,
-      course,
-      guide,
-      focusArea,
-      detailed
+    const recommendations = await withRetryableTimeout(
+      () => generateDetailedRecommendations(
+        user.id,
+        course,
+        guide,
+        focusArea,
+        detailed
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'course-guide-recommendations'
     );
 
     return NextResponse.json({
@@ -80,6 +89,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Generate recommendations error:', error);

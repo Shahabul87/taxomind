@@ -4,16 +4,21 @@ import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
+    const {
       courseId,
       examId,
       focusAreas,
@@ -31,11 +36,15 @@ export async function POST(request: NextRequest) {
     const studentData = await getStudentPerformanceData(user.id, courseId, examId);
 
     // Generate personalized study guide
-    const studyGuide = await generatePersonalizedStudyGuide(
-      user.id,
-      studentData,
-      focusAreas,
-      includeWeakAreas
+    const studyGuide = await withRetryableTimeout(
+      () => generatePersonalizedStudyGuide(
+        user.id,
+        studentData,
+        focusAreas,
+        includeWeakAreas
+      ),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'study-guide-generation'
     );
 
     // Save study guide for future reference
@@ -53,6 +62,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Generate study guide error:', error);

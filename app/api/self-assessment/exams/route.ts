@@ -7,6 +7,9 @@ import { createExamEngine } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { runSAMChatWithMetadata } from '@/lib/sam/ai-provider';
 import { normalizeToUppercaseSafe } from '@/lib/sam/utils/blooms-normalizer';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 /**
  * Self-Assessment Exam API
@@ -475,6 +478,9 @@ export async function GET(request: NextRequest) {
  * POST - Create a new self-assessment exam
  */
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -537,16 +543,20 @@ export async function POST(request: NextRequest) {
         if (data.courseId) {
           // Course-based generation using user-scoped exam engine
           const engine = await createExamEngineForUser(user.id);
-          const generatedExam = await engine.generateExam(
-            data.courseId,
-            [],
-            {
-              totalQuestions: data.aiConfig.totalQuestions,
-              duration: data.timeLimit ?? 60,
-              bloomsDistribution,
-              questionTypes: data.aiConfig.questionTypes ?? ['MULTIPLE_CHOICE', 'SHORT_ANSWER'],
-              adaptiveMode: false,
-            }
+          const generatedExam = await withRetryableTimeout(
+            () => engine.generateExam(
+              data.courseId!,
+              [],
+              {
+                totalQuestions: data.aiConfig!.totalQuestions,
+                duration: data.timeLimit ?? 60,
+                bloomsDistribution,
+                questionTypes: data.aiConfig!.questionTypes ?? ['MULTIPLE_CHOICE', 'SHORT_ANSWER'],
+                adaptiveMode: false,
+              }
+            ),
+            TIMEOUT_DEFAULTS.AI_GENERATION,
+            'generateSelfAssessmentExam'
           );
 
           if (generatedExam.questions && generatedExam.questions.length > 0) {
@@ -592,16 +602,20 @@ export async function POST(request: NextRequest) {
             bloomsDistribution,
           });
 
-          const { questions: generatedQuestions, metadata } = await generateTopicBasedQuestions({
-            userId: user.id,
-            topic: effectiveTopic,
-            subtopics: data.subtopics,
-            description: data.description,
-            totalQuestions: data.aiConfig.totalQuestions,
-            bloomsDistribution,
-            questionTypes: data.aiConfig.questionTypes ?? ['MULTIPLE_CHOICE', 'SHORT_ANSWER'],
-            difficulty: data.aiConfig.difficulty ?? 'mixed',
-          });
+          const { questions: generatedQuestions, metadata } = await withRetryableTimeout(
+            () => generateTopicBasedQuestions({
+              userId: user.id,
+              topic: effectiveTopic,
+              subtopics: data.subtopics,
+              description: data.description,
+              totalQuestions: data.aiConfig!.totalQuestions,
+              bloomsDistribution,
+              questionTypes: data.aiConfig!.questionTypes ?? ['MULTIPLE_CHOICE', 'SHORT_ANSWER'],
+              difficulty: data.aiConfig!.difficulty ?? 'mixed',
+            }),
+            TIMEOUT_DEFAULTS.AI_GENERATION,
+            'generateTopicBasedQuestions'
+          );
 
           logger.info('[Self-Assessment] Generation complete', {
             questionsReturned: generatedQuestions.length,
@@ -705,6 +719,15 @@ export async function POST(request: NextRequest) {
         : 'Exam created successfully',
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Self-assessment exam creation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Error creating self-assessment exam:', error);
 
     if (error instanceof z.ZodError) {

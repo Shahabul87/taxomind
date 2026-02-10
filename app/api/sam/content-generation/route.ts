@@ -6,6 +6,9 @@ import type { LearningObjectiveInput, GenerationConfig } from "@sam-ai/education
 import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import { SAMGuards } from '@/lib/premium';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create a user-scoped content generation engine instance
 async function createContentEngineForUser(userId: string) {
@@ -18,6 +21,9 @@ async function createContentEngineForUser(userId: string) {
 
 // Content Generation is a premium-only feature
 export const POST = SAMGuards.contentGeneration(async (req, context) => {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const body = await req.json();
     const { action, data } = body;
@@ -34,23 +40,43 @@ export const POST = SAMGuards.contentGeneration(async (req, context) => {
     let result;
     switch (action) {
       case "generate-course":
-        result = await handleGenerateCourse(engine, data);
+        result = await withRetryableTimeout(
+          () => handleGenerateCourse(engine, data),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'generateCourse'
+        );
         break;
 
       case "create-assessments":
-        result = await handleCreateAssessments(engine, data);
+        result = await withRetryableTimeout(
+          () => handleCreateAssessments(engine, data),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'createAssessments'
+        );
         break;
 
       case "generate-study-guide":
-        result = await handleGenerateStudyGuide(engine, data, context.userId);
+        result = await withRetryableTimeout(
+          () => handleGenerateStudyGuide(engine, data, context.userId),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'generateStudyGuide'
+        );
         break;
 
       case "create-exercises":
-        result = await handleCreateExercises(engine, data);
+        result = await withRetryableTimeout(
+          () => handleCreateExercises(engine, data),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'createExercises'
+        );
         break;
 
       case "translate-content":
-        result = await handleTranslateContent(engine, data);
+        result = await withRetryableTimeout(
+          () => handleTranslateContent(engine, data),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'translateContent'
+        );
         break;
 
       default:
@@ -67,6 +93,15 @@ export const POST = SAMGuards.contentGeneration(async (req, context) => {
       isPremium: context.isPremium
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Content generation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Content generation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("Content generation error:", error);
     return NextResponse.json(
       { error: "Failed to generate content" },

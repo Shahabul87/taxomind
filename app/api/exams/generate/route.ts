@@ -4,6 +4,9 @@ import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { BloomsLevel, QuestionType, QuestionDifficulty, QuestionGenerationMode } from '@prisma/client';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { logger } from '@/lib/logger';
 
 // Request validation schema
 const GenerateExamSchema = z.object({
@@ -48,6 +51,9 @@ interface GeneratedQuestion {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -89,11 +95,15 @@ export async function POST(request: Request) {
     }
 
     // Generate questions using AI
-    const questions = await generateQuestions(
-      section,
-      validatedData,
-      section.learningObjectiveItems,
-      user.id
+    const questions = await withRetryableTimeout(
+      () => generateQuestions(
+        section,
+        validatedData,
+        section.learningObjectiveItems,
+        user.id
+      ),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'examGenerate'
     );
 
     // Create exam in database
@@ -189,10 +199,15 @@ export async function POST(request: Request) {
       })),
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 
-    console.error('Error generating exam:', error);
+    logger.error('Error generating exam:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

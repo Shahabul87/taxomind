@@ -6,6 +6,9 @@ import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { QuestionType, BloomsLevel, QuestionDifficulty } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create a user-scoped exam engine instance
 async function createExamEngineForUser(userId: string) {
@@ -30,9 +33,12 @@ interface QuestionInput {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -90,7 +96,11 @@ export async function POST(request: NextRequest) {
 
     // Save questions to question bank using portable engine
     const engine = await createExamEngineForUser(user.id);
-    const result = await engine.saveToQuestionBank(questionEntries, courseId, subject, topic);
+    const result = await withRetryableTimeout(
+      () => engine.saveToQuestionBank(questionEntries, courseId, subject, topic),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'saveToQuestionBank'
+    );
 
     return NextResponse.json({
       success: true,
@@ -108,6 +118,15 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Question bank operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Add to question bank error:', error);
     return NextResponse.json(
       { error: 'Failed to add questions to bank' },

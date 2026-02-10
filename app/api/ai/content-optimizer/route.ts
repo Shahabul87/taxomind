@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getCombinedSession } from "@/lib/auth/combined-session";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
 import { aiCacheManager } from "@/lib/ai-cache-manager";
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 
 export const runtime = 'nodejs';
@@ -59,7 +61,10 @@ interface OptimizationResult {
   }[];
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
@@ -71,14 +76,22 @@ export async function POST(req: Request) {
 
     // Use optimized request with caching and deduplication
     const authenticatedUserId = session.userId!;
-    const optimization = await optimizeContentOptimization(
-      { ...body, userId: authenticatedUserId },
-      () => optimizeContent(body, authenticatedUserId)
+    const optimization = await withRetryableTimeout(
+      () => optimizeContentOptimization(
+        { ...body, userId: authenticatedUserId },
+        () => optimizeContent(body, authenticatedUserId)
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'content-optimization'
     );
 
     return NextResponse.json(optimization);
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

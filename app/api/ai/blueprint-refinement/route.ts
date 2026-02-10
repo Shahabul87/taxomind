@@ -1,6 +1,9 @@
+import { NextRequest } from 'next/server';
 import { getCombinedSession } from "@/lib/auth/combined-session";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -53,7 +56,10 @@ interface RefinementResult {
   };
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
@@ -79,11 +85,19 @@ export async function POST(req: Request) {
     }
 
     // Generate blueprint refinement
-    const refinementResult = await generateBlueprintRefinement(request, session.userId);
+    const refinementResult = await withRetryableTimeout(
+      () => generateBlueprintRefinement(request, session.userId),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'blueprint-refinement'
+    );
 
     return Response.json(refinementResult);
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return Response.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

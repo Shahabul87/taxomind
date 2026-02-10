@@ -10,6 +10,9 @@ import type {
 } from "@sam-ai/educational";
 import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create a user-scoped resource engine instance
 async function createResourceEngineForUser(userId: string) {
@@ -21,6 +24,9 @@ async function createResourceEngineForUser(userId: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {
@@ -42,23 +48,43 @@ export async function POST(req: NextRequest) {
     let result;
     switch (action) {
       case "discover":
-        result = await handleDiscoverResources(engine, data);
+        result = await withRetryableTimeout(
+          () => handleDiscoverResources(engine, data),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'discoverResources'
+        );
         break;
 
       case "quality-score":
-        result = await handleQualityScore(engine, data);
+        result = await withRetryableTimeout(
+          () => handleQualityScore(engine, data),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'scoreResourceQuality'
+        );
         break;
 
       case "license-check":
-        result = await handleLicenseCheck(engine, data);
+        result = await withRetryableTimeout(
+          () => handleLicenseCheck(engine, data),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'checkLicenseCompatibility'
+        );
         break;
 
       case "roi-analysis":
-        result = await handleROIAnalysis(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleROIAnalysis(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeResourceROI'
+        );
         break;
 
       case "personalize":
-        result = await handlePersonalize(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handlePersonalize(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'personalizeRecommendations'
+        );
         break;
 
       default:
@@ -74,6 +100,15 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Resource intelligence timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("Resource intelligence error:", error);
     return NextResponse.json(
       { error: "Failed to process resource request" },

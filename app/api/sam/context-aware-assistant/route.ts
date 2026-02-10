@@ -3,6 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { applyRateLimit, samConversationLimiter } from '@/lib/sam/config/sam-rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 // Redact potentially sensitive values from pageContext before sending to LLM
 function scrubDataContext(dataContext: any) {
@@ -144,14 +145,18 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
       { role: 'user' as const, content: message }
     ];
 
-    const aiResponse = await runSAMChatWithPreference({
-      userId: user.id,
-      capability: 'chat',
-      maxTokens: 1500,
-      temperature: 0.7,
-      systemPrompt,
-      messages,
-    }) || "I couldn't generate a response.";
+    const aiResponse = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId: user.id,
+        capability: 'chat',
+        maxTokens: 1500,
+        temperature: 0.7,
+        systemPrompt,
+        messages,
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'contextAwareAssistant-chat'
+    ) || "I couldn't generate a response.";
 
     // Generate contextual suggestions based on page type
     const suggestions = generateContextualSuggestions(pageContext.pageType, message);
@@ -175,6 +180,10 @@ Always be helpful, specific, and contextually aware. Provide actionable advice t
     return json;
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Context-aware assistant timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Context-Aware SAM API Error:', error);

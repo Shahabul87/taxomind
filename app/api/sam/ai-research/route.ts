@@ -5,6 +5,9 @@ import type { ResearchDatabaseAdapter, ResearchPaper, ResearchCategory } from '@
 import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create research-specific database adapter
 function createResearchDatabaseAdapter(): ResearchDatabaseAdapter {
@@ -173,6 +176,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -191,10 +197,14 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Topic and scope required' }, { status: 400 });
         }
 
-        const review = await engine.generateLiteratureReview(
-          topic,
-          scope,
-          paperIds
+        const review = await withRetryableTimeout(
+          () => engine.generateLiteratureReview(
+            topic,
+            scope,
+            paperIds
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'literature-review'
         );
 
         return NextResponse.json({ review });
@@ -293,6 +303,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('AI Research API POST error:', error);
     return NextResponse.json(
       { error: 'Failed to process research request' },

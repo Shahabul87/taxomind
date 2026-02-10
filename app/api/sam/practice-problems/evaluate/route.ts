@@ -10,6 +10,8 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createPracticeProblemsEngine, type PracticeProblem } from '@sam-ai/educational';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const EvaluateAnswerSchema = z.object({
   problemId: z.string(),
@@ -73,6 +75,9 @@ const createEngineWithAI = (userId: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -118,9 +123,13 @@ export async function POST(request: NextRequest) {
     };
 
     // Evaluate the answer
-    const evaluation = await engine.evaluateAttempt(practiceProblem, userAnswer, {
-      partialCredit: true,
-    });
+    const evaluation = await withRetryableTimeout(
+      () => engine.evaluateAttempt(practiceProblem, userAnswer, {
+        partialCredit: true,
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'practice-evaluate'
+    );
 
     // Calculate hint penalty for stats
     const hintPenalty = Math.min(hintsUsed.length * 0.1, 0.3);
@@ -151,6 +160,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Practice problem evaluation error:', error);

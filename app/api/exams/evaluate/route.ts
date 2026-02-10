@@ -7,6 +7,9 @@ import { createEvaluationEngine, createUnifiedBloomsEngine } from '@sam-ai/educa
 import type { EvaluationContext, UnifiedSpacedRepetitionInput } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 import {
   wrapEvaluationWithSafety,
   type SafeEvaluationResult,
@@ -101,6 +104,9 @@ interface EvaluationResult {
 }
 
 export async function POST(request: Request) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -164,11 +170,15 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const result = await evaluateAnswer(
-        question,
-        answerData.answer,
-        attempt.Exam.section.learningObjectiveItems,
-        evalEngine
+      const result = await withRetryableTimeout(
+        () => evaluateAnswer(
+          question,
+          answerData.answer,
+          attempt.Exam.section.learningObjectiveItems,
+          evalEngine
+        ),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'examEvaluateAnswer'
       );
 
       results.push(result);
@@ -420,6 +430,14 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Error evaluating answers:', error);
 
     if (error instanceof z.ZodError) {

@@ -5,6 +5,9 @@ import { getUserScopedSAMConfig, createTrendsAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 import {
   analyzeTrendsSchema,
   compareTrendsSchema,
@@ -219,6 +222,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const aiRateLimitResponse = await withRateLimit(req, 'ai');
+  if (aiRateLimitResponse) return aiRateLimitResponse;
+
   try {
     // Authentication
     const session = await auth();
@@ -275,8 +281,12 @@ export async function POST(req: NextRequest) {
           params.filter = validation.data;
         }
 
-        const trends = await trendsEngine.analyzeTrends(params.filter);
-        
+        const trends = await withRetryableTimeout(
+          () => trendsEngine.analyzeTrends(params.filter),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'trends-analyze-custom'
+        );
+
         // Add user relevance calculation
         const enrichedTrends = trends.map(trend => ({
           ...trend,
@@ -290,6 +300,13 @@ export async function POST(req: NextRequest) {
         return errorResponse('Invalid action');
     }
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('AI Trends API POST error:', error);
     return errorResponse('An error occurred processing your request', 500);
   }

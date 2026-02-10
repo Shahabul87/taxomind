@@ -5,6 +5,8 @@ import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { createTrendsEngine, type TrendAnalysis } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, createTrendsAdapter } from '@/lib/adapters';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 type TrendCategory = 'skill' | 'topic' | 'technology' | 'industry' | 'role';
 type TrendDirection = 'rising' | 'stable' | 'declining';
@@ -171,9 +173,13 @@ export async function GET(req: NextRequest) {
     });
 
     const engine = await createTrendsEngineForUser(session.user.id);
-    const rawTrends = query.query
-      ? await engine.searchTrends(query.query)
-      : await engine.analyzeTrends({ category: query.category ?? undefined });
+    const rawTrends = await withRetryableTimeout(
+      () => query.query
+        ? engine.searchTrends(query.query!)
+        : engine.analyzeTrends({ category: query.category ?? undefined }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'agentic-trends-analysis'
+    );
 
     const filtered = query.category
       ? rawTrends.filter((trend) => trend.category === query.category)
@@ -191,6 +197,13 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[SAM Trends] Failed to fetch trends', { error });
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid query parameters', details: error.errors }, { status: 400 });

@@ -5,6 +5,9 @@ import { createPersonalizationEngine } from "@sam-ai/educational";
 import type { LearningBehavior, PersonalizationContext } from "@sam-ai/educational";
 import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Create a user-scoped personalization engine instance
 async function createPersonalizationEngineForUser(userId: string) {
@@ -16,6 +19,9 @@ async function createPersonalizationEngineForUser(userId: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user) {
@@ -37,27 +43,51 @@ export async function POST(req: NextRequest) {
     let result;
     switch (action) {
       case "detect-learning-style":
-        result = await handleDetectLearningStyle(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleDetectLearningStyle(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'detectLearningStyle'
+        );
         break;
 
       case "optimize-cognitive-load":
-        result = await handleOptimizeCognitiveLoad(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleOptimizeCognitiveLoad(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'optimizeCognitiveLoad'
+        );
         break;
 
       case "recognize-emotional-state":
-        result = await handleRecognizeEmotionalState(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleRecognizeEmotionalState(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'recognizeEmotionalState'
+        );
         break;
 
       case "analyze-motivation":
-        result = await handleAnalyzeMotivation(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleAnalyzeMotivation(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'analyzeMotivation'
+        );
         break;
 
       case "generate-learning-path":
-        result = await handleGenerateLearningPath(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleGenerateLearningPath(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'generateLearningPath'
+        );
         break;
 
       case "apply-personalization":
-        result = await handleApplyPersonalization(engine, data, session.user.id);
+        result = await withRetryableTimeout(
+          () => handleApplyPersonalization(engine, data, session.user.id),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'applyPersonalization'
+        );
         break;
 
       default:
@@ -73,6 +103,15 @@ export async function POST(req: NextRequest) {
       data: result,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Personalization timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error("Personalization error:", error);
     return NextResponse.json(
       { error: "Failed to process personalization request" },

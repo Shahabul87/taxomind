@@ -4,6 +4,8 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -30,6 +32,9 @@ You MUST respond with a valid JSON array containing question objects. Do not inc
 
 // POST endpoint to generate adaptive question recommendations
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     if (!user?.id) {
@@ -85,9 +90,17 @@ export async function POST(req: NextRequest) {
     // Generate questions using AI
     let questions;
     try {
-      questions = await generateAIQuestions(section, strategy, request, user.id);
+      questions = await withRetryableTimeout(
+        () => generateAIQuestions(section, strategy, request, user.id),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'adaptiveQuestionRecommend'
+      );
     } catch (error) {
-      logger.error('AI question generation failed:', error);
+      if (error instanceof OperationTimeoutError) {
+        logger.error('AI question generation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      } else {
+        logger.error('AI question generation failed:', error);
+      }
       questions = generateFallbackQuestions(section, strategy, request);
     }
 
@@ -105,6 +118,11 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: any) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

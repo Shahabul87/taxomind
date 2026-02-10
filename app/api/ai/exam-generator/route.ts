@@ -4,6 +4,8 @@ import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
 import { normalizeToUppercaseSafe, type BloomsLevelUppercase } from '@/lib/sam/utils/blooms-normalizer';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -164,6 +166,9 @@ function generateMockQuestions(request: ExamGenerationRequest): any[] {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
     if (!session.userId) {
@@ -173,12 +178,12 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
     const parseResult = ExamGenerationRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
-        { 
-          error: 'Invalid request format', 
-          details: parseResult.error.errors 
+        {
+          error: 'Invalid request format',
+          details: parseResult.error.errors
         },
         { status: 400 }
       );
@@ -190,19 +195,23 @@ export async function POST(request: NextRequest) {
     try {
       const prompt = buildExamGenerationPrompt(examRequest);
 
-      const responseText = await runSAMChatWithPreference({
-        userId: session.userId!,
-        capability: 'course',
-        maxTokens: 4000,
-        temperature: 0.7,
-        systemPrompt: EXAM_GENERATION_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-      });
+      const responseText = await withRetryableTimeout(
+        () => runSAMChatWithPreference({
+          userId: session.userId!,
+          capability: 'course',
+          maxTokens: 4000,
+          temperature: 0.7,
+          systemPrompt: EXAM_GENERATION_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+        }),
+        TIMEOUT_DEFAULTS.AI_GENERATION,
+        'exam-generation'
+      );
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -262,6 +271,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

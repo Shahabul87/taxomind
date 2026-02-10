@@ -2,8 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     
@@ -65,6 +70,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Assessment engine timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Assessment engine error:', error);
@@ -81,14 +90,18 @@ async function runAssessmentChat(
   userPrompt: string,
   options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChatWithPreference({
-    userId,
-    capability: 'chat',
-    maxTokens: options?.maxTokens ?? 2000,
-    temperature: options?.temperature ?? 0.7,
-    systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+  return withRetryableTimeout(
+    () => runSAMChatWithPreference({
+      userId,
+      capability: 'chat',
+      maxTokens: options?.maxTokens ?? 2000,
+      temperature: options?.temperature ?? 0.7,
+      systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+    TIMEOUT_DEFAULTS.AI_ANALYSIS,
+    'assessmentEngine-chat'
+  );
 }
 
 async function generateAssessment(

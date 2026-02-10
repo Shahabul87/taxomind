@@ -10,6 +10,8 @@ import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -91,6 +93,9 @@ interface OverviewScore {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -111,14 +116,22 @@ export async function POST(request: NextRequest) {
 
     switch (data.type) {
       case 'title':
-        const titleScore = await scoreTitles(user.id, [data.title], data.context);
+        const titleScore = await withRetryableTimeout(
+          () => scoreTitles(user.id, [data.title], data.context),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'content-scoring-title'
+        );
         return NextResponse.json({ scores: titleScore });
 
       case 'overview':
-        const overviewScore = await scoreOverviews(
-          user.id,
-          [{ overview: data.overview, title: data.title }],
-          data.context
+        const overviewScore = await withRetryableTimeout(
+          () => scoreOverviews(
+            user.id,
+            [{ overview: data.overview, title: data.title }],
+            data.context
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'content-scoring-overview'
         );
         return NextResponse.json({ scores: overviewScore });
 
@@ -130,10 +143,14 @@ export async function POST(request: NextRequest) {
           .filter((item): item is { itemType: 'overview'; overview: string } => item.itemType === 'overview')
           .map(item => ({ overview: item.overview }));
 
-        const [titleScores, overviewScores] = await Promise.all([
-          titles.length > 0 ? scoreTitles(user.id, titles, data.context) : [],
-          overviews.length > 0 ? scoreOverviews(user.id, overviews, data.context) : [],
-        ]);
+        const [titleScores, overviewScores] = await withRetryableTimeout(
+          () => Promise.all([
+            titles.length > 0 ? scoreTitles(user.id, titles, data.context) : [],
+            overviews.length > 0 ? scoreOverviews(user.id, overviews, data.context) : [],
+          ]),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'content-scoring-batch'
+        );
 
         return NextResponse.json({
           titleScores,
@@ -144,6 +161,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
     }
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('[ContentScoring] Error:', error);

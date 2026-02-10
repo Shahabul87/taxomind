@@ -10,6 +10,8 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createSocraticTeachingEngine, type BloomsLevel } from '@sam-ai/educational';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 const StartDialogueSchema = z.object({
   userId: z.string(),
@@ -49,6 +51,9 @@ const createEngineWithAI = (userId: string) => {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user) {
@@ -73,14 +78,18 @@ export async function POST(request: NextRequest) {
     // Use the portable engine
     const engine = createEngineWithAI(user.id);
 
-    const result = await engine.startDialogue({
-      userId,
-      topic,
-      learningObjective,
-      targetBloomsLevel: targetBloomsLevel as BloomsLevel,
-      preferredStyle,
-      priorKnowledge,
-    });
+    const result = await withRetryableTimeout(
+      () => engine.startDialogue({
+        userId,
+        topic,
+        learningObjective,
+        targetBloomsLevel: targetBloomsLevel as BloomsLevel,
+        preferredStyle,
+        priorKnowledge,
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'socratic-start'
+    );
 
     // Get the dialogue for returning dialogue ID
     const dialogue = await engine.getDialogue(result.question?.id?.split('_')[1] || '');
@@ -92,6 +101,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Socratic dialogue start error:', error);

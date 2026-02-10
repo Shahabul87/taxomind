@@ -6,6 +6,9 @@ import { logger } from '@/lib/logger';
 import { createEvaluationEngine } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 /**
  * Submit Self-Assessment Attempt API
@@ -42,6 +45,9 @@ async function createEvalEngine(userId: string) {
  * POST - Submit attempt for grading
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     const { examId, attemptId } = await params;
@@ -170,15 +176,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         // SHORT_ANSWER or ESSAY - Use AI evaluation
         try {
           const engine = evalEngine;
-          const evaluation = await engine.evaluateAnswer({
-            questionText: question.question,
-            questionType: question.questionType,
-            correctAnswer: question.correctAnswer,
-            studentAnswer: answerData.answer,
-            rubric: question.rubric as Record<string, unknown> | undefined,
-            bloomsLevel: question.bloomsLevel,
-            maxPoints: question.points,
-          });
+          const evaluation = await withRetryableTimeout(
+            () => engine.evaluateAnswer({
+              questionText: question.question,
+              questionType: question.questionType,
+              correctAnswer: question.correctAnswer,
+              studentAnswer: answerData.answer,
+              rubric: question.rubric as Record<string, unknown> | undefined,
+              bloomsLevel: question.bloomsLevel,
+              maxPoints: question.points,
+            }),
+            TIMEOUT_DEFAULTS.AI_ANALYSIS,
+            'evaluateAnswer'
+          );
 
           isCorrect = (evaluation.score ?? 0) >= question.points * 0.7;
           pointsEarned = evaluation.score ?? 0;
@@ -403,6 +413,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         : 'Assessment completed. Review your results for improvement areas.',
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Attempt submission timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Error submitting attempt:', error);
 
     if (error instanceof z.ZodError) {

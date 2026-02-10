@@ -10,6 +10,8 @@ import {
   CourseDifficulty,
   ContentType
 } from '@/lib/ai-course-types';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -236,6 +238,9 @@ function generateMockResponse(request: ChapterGenerationRequest): ChapterGenerat
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
     if (!session.userId) {
@@ -245,12 +250,12 @@ export async function POST(request: NextRequest) {
     // Parse and validate request body
     const body = await request.json();
     const parseResult = ChapterGenerationRequestSchema.safeParse(body);
-    
+
     if (!parseResult.success) {
       return NextResponse.json(
-        { 
-          error: 'Invalid request format', 
-          details: parseResult.error.errors 
+        {
+          error: 'Invalid request format',
+          details: parseResult.error.errors
         },
         { status: 400 }
       );
@@ -262,20 +267,24 @@ export async function POST(request: NextRequest) {
     try {
       const prompt = buildChapterPrompt(chapterRequest);
 
-      const completion = await runSAMChatWithMetadata({
-        maxTokens: 6000,
-        temperature: 0.7,
-        systemPrompt: CHAPTER_GENERATOR_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        extended: true,
-        userId: session.userId,
-        capability: 'course',
-      });
+      const completion = await withRetryableTimeout(
+        () => runSAMChatWithMetadata({
+          maxTokens: 6000,
+          temperature: 0.7,
+          systemPrompt: CHAPTER_GENERATOR_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          extended: true,
+          userId: session.userId,
+          capability: 'course',
+        }),
+        TIMEOUT_DEFAULTS.AI_GENERATION,
+        'chapter-generation'
+      );
 
       // Extract and parse the response
       const responseText = completion.content;
@@ -333,6 +342,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // ==========================================
 // AI-Powered Analytics Insights API
@@ -59,6 +61,9 @@ interface AIInsight {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     if (!user?.id) {
@@ -76,12 +81,16 @@ export async function GET(request: NextRequest) {
     const creatorData = await gatherCreatorData(user.id);
 
     // Generate AI insights based on data
-    const insights = await generateAIInsights(
-      learningData,
-      creatorData,
-      params.view,
-      params.focusArea,
-      user.id
+    const insights = await withRetryableTimeout(
+      () => generateAIInsights(
+        learningData,
+        creatorData,
+        params.view,
+        params.focusArea,
+        user.id
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'analyticsAIInsights'
     );
 
     return NextResponse.json({
@@ -97,6 +106,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

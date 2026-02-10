@@ -14,6 +14,8 @@ import type { KnowledgeGraphEngine } from '@sam-ai/educational';
 import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 export async function createEngineForUser(userId: string): Promise<KnowledgeGraphEngine> {
   const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
@@ -86,6 +88,9 @@ const ActionSchema = z.discriminatedUnion('action', [
  * POST - Execute engine actions
  */
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -156,6 +161,8 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('[KnowledgeGraphEngine] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to process action' } },

@@ -13,6 +13,8 @@ import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-prov
 import { logger } from '@/lib/logger';
 import { buildStage2Prompt } from '@/lib/sam/course-creation/prompts';
 import { canAccessSamFeature } from '@/lib/premium/sam-access';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import {
   Stage2Request,
   Stage2Response,
@@ -25,6 +27,9 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest): Promise<NextResponse<Stage2Response>> {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     if (!user?.id) {
@@ -82,13 +87,17 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage2Res
     );
 
     // Call SAM AI with user's preferred provider
-    const responseText = await runSAMChatWithPreference({
-      userId: user.id,
-      capability: 'course',
-      maxTokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
-      extended: true,
-    });
+    const responseText = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId: user.id,
+        capability: 'course',
+        maxTokens: 1500,
+        messages: [{ role: 'user', content: prompt }],
+        extended: true,
+      }),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'stage2-section-generation'
+    );
 
     // Parse and validate the response
     const { section, thinking, qualityScore, uniquenessValidated } = parseStage2Response(
@@ -122,6 +131,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage2Res
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[STAGE2] Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ success: false, error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

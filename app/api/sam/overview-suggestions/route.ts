@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +23,10 @@ interface OverviewSuggestionResponse {
   reasoning: string;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     
@@ -40,6 +45,10 @@ export async function POST(req: Request) {
     return NextResponse.json(suggestions);
     
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Overview suggestions timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error("[OVERVIEW-SUGGESTIONS] Error:", error);
@@ -93,13 +102,17 @@ Return ONLY valid JSON in this format:
 }`;
 
   try {
-    const responseText = await runSAMChatWithPreference({
-      userId,
-      capability: 'course',
-      maxTokens: 1000,
-      temperature: 0.7,
-      messages: [{ role: 'user', content: prompt }],
-    });
+    const responseText = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId,
+        capability: 'course',
+        maxTokens: 1000,
+        temperature: 0.7,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'overviewSuggestions-generate'
+    );
 
     return JSON.parse(responseText);
   } catch (parseError) {

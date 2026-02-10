@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { runSAMChatWithPreference, handleAIAccessError } from "@/lib/sam/ai-provider";
 import type { BloomsLevel, QuestionType, QuestionDifficulty } from "@prisma/client";
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from "@/lib/sam/utils/timeout";
+import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 
 export const runtime = "nodejs";
 
@@ -111,6 +113,9 @@ const BALANCED_DISTRIBUTION: Record<BloomsLevel, number> = {
 // ============================================================================
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
     if (!user?.id) {
@@ -193,24 +198,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate questions per Bloom's level using runSAMChatWithPreference()
-    const allQuestions = [];
-    for (const { level, count } of questionsPerLevel) {
-      const generated = await generateQuestionsForLevel(
-        context,
-        level,
-        count,
-        config.questionTypes as QuestionType[],
-        config.difficulty as QuestionDifficulty,
-        config.includeHints,
-        config.includeExplanations,
-        config.includeMisconceptions,
-        config.realWorldContext,
-        config.creativity ?? 5,
-        mode,
-        user.id
-      );
-      allQuestions.push(...generated);
-    }
+    const allQuestions = await withRetryableTimeout(
+      async () => {
+        const results = [];
+        for (const { level, count } of questionsPerLevel) {
+          const generated = await generateQuestionsForLevel(
+            context,
+            level,
+            count,
+            config.questionTypes as QuestionType[],
+            config.difficulty as QuestionDifficulty,
+            config.includeHints,
+            config.includeExplanations,
+            config.includeMisconceptions,
+            config.realWorldContext,
+            config.creativity ?? 5,
+            mode,
+            user.id
+          );
+          results.push(...generated);
+        }
+        return results;
+      },
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'examBuilderGenerate'
+    );
 
     // Transform to UnifiedQuestion format
     const questions = allQuestions
@@ -273,6 +285,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
     // Handle AI access denied errors (rate limiting, subscription limits)
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;

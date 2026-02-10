@@ -13,6 +13,9 @@ import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { wrapEvaluationWithSafety } from '@sam-ai/safety';
 import { BloomsLevel, EvaluationType } from '@prisma/client';
 import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Force Node.js runtime
 export const runtime = 'nodejs';
@@ -56,8 +59,11 @@ export async function POST(
   props: { params: Promise<{ sectionId: string; examId: string; attemptId: string }> }
 ) {
   const params = await props.params;
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   const endTimer = QueryPerformanceMonitor.startQuery("exam:submit");
-  
+
   try {
     const user = await currentUser();
     if (!user?.id) {
@@ -212,11 +218,15 @@ export async function POST(
       // For subjective questions with enhanced questions, use AI evaluation
       if (isSubjective && enhancedQuestion && answerText) {
         try {
-          const evalResult = await evaluateSubjectiveAnswer(
-            enhancedQuestion,
-            String(answerText),
-            learningObjectives,
-            userEvalEngine
+          const evalResult = await withRetryableTimeout(
+            () => evaluateSubjectiveAnswer(
+              enhancedQuestion,
+              String(answerText),
+              learningObjectives,
+              userEvalEngine
+            ),
+            TIMEOUT_DEFAULTS.AI_ANALYSIS,
+            'examSubmit-evaluateAnswer'
           );
 
           isCorrect = evalResult.isCorrect;
@@ -434,9 +444,15 @@ export async function POST(
     });
 
   } catch (error: any) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Exam submission timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
     logger.error('Exam submission error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
       },

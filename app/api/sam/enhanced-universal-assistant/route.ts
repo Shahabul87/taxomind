@@ -9,6 +9,7 @@ import {
   formatMemoryForPrompt,
   processChatWithMemory,
 } from '@/lib/sam/services/chat-memory-integration';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 // =============================================================================
 // VALIDATION SCHEMAS
@@ -307,17 +308,21 @@ export const POST = withAuth(
         systemPrompt = basePrompt + memoryPromptSection;
       }
 
-      const responseText = await callWithRetry(userId, {
-        max_tokens: 500,
-        temperature: 0.7,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: body.message,
-          },
-        ],
-      });
+      const responseText = await withRetryableTimeout(
+        () => callWithRetry(userId, {
+          max_tokens: 500,
+          temperature: 0.7,
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: body.message,
+            },
+          ],
+        }),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'enhancedUniversalAssistant-chat'
+      );
 
       // Generate suggestions
       const suggestions = generateSuggestions(action, body.context);
@@ -357,6 +362,15 @@ export const POST = withAuth(
 
       return NextResponse.json(response);
     } catch (error: unknown) {
+      if (error instanceof OperationTimeoutError) {
+        logger.error('Enhanced universal assistant timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+        const samTimeoutResponse: SamResponse = {
+          response: 'The request took too long to process. Please try again with a simpler question.',
+          suggestions: ['Try again', 'Use simpler requests', 'Contact support'],
+          success: false,
+        };
+        return NextResponse.json(samTimeoutResponse, { status: 200 });
+      }
       const accessResponse = handleAIAccessError(error);
       if (accessResponse) return accessResponse;
       const apiError = error as RetryableApiError;

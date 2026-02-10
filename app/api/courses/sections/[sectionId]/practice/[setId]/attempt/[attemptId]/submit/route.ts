@@ -5,8 +5,10 @@ import { logger } from "@/lib/logger";
 import { SubmitPracticeAttemptSchema } from "@/lib/validations/practice-problems";
 import { createPracticeProblemsEngine } from "@sam-ai/educational";
 import type { PracticeProblem, ProblemEvaluation } from "@sam-ai/educational";
-import { runSAMChatWithPreference } from "@/lib/sam/ai-provider";
+import { runSAMChatWithPreference, handleAIAccessError } from "@/lib/sam/ai-provider";
 import type { BloomsLevel, EvaluationType } from "@prisma/client";
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from "@/lib/sam/utils/timeout";
+import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 
 export const runtime = "nodejs";
 
@@ -43,6 +45,9 @@ export async function POST(
   }
 ) {
   const params = await props.params;
+
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
 
   try {
     const user = await currentUser();
@@ -171,10 +176,14 @@ export async function POST(
             createdAt: question.createdAt,
           };
 
-          const evalResult: ProblemEvaluation = await engine.evaluateAttempt(
-            problemForEngine,
-            answerText,
-            { partialCredit: true }
+          const evalResult: ProblemEvaluation = await withRetryableTimeout(
+            () => engine.evaluateAttempt(
+              problemForEngine,
+              answerText,
+              { partialCredit: true }
+            ),
+            TIMEOUT_DEFAULTS.AI_ANALYSIS,
+            'practiceSubmitEvaluate'
           );
 
           isCorrect = evalResult.isCorrect;
@@ -346,6 +355,14 @@ export async function POST(
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error("[Practice] Submit error:", error);
     return NextResponse.json(
       { success: false, error: { message: "Failed to submit practice attempt" } },

@@ -5,6 +5,9 @@ import { createEvaluationEngine } from '@sam-ai/educational';
 import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { BloomsLevel } from '@prisma/client';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Per-request engine factory (user-scoped AI provider)
 async function createEvalEngine(userId: string) {
@@ -66,6 +69,9 @@ const TeacherChatSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
 
@@ -92,12 +98,16 @@ export async function POST(request: Request) {
         const validatedData = GradingAssistanceSchema.parse(body.data);
 
 
-        const assistance = await engine.getGradingAssistance(
-          validatedData.questionText,
-          validatedData.expectedAnswer,
-          validatedData.studentAnswer,
-          validatedData.rubric,
-          validatedData.bloomsLevel
+        const assistance = await withRetryableTimeout(
+          () => engine.getGradingAssistance(
+            validatedData.questionText,
+            validatedData.expectedAnswer,
+            validatedData.studentAnswer,
+            validatedData.rubric,
+            validatedData.bloomsLevel
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'samAssistGrading'
         );
 
         return NextResponse.json({
@@ -112,10 +122,14 @@ export async function POST(request: Request) {
         const validatedData = ExplanationRequestSchema.parse(body.data);
 
 
-        const explanation = await engine.explainResultToStudent(
-          validatedData.question,
-          validatedData.questionResult as any,
-          validatedData.studentName || user.name || 'Student'
+        const explanation = await withRetryableTimeout(
+          () => engine.explainResultToStudent(
+            validatedData.question,
+            validatedData.questionResult as any,
+            validatedData.studentName || user.name || 'Student'
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'samAssistExplain'
         );
 
         return NextResponse.json({
@@ -137,9 +151,13 @@ export async function POST(request: Request) {
         const validatedData = TeacherChatSchema.parse(body.data);
 
 
-        const response = await engine.assistTeacherGrading(
-          validatedData.question,
-          validatedData.gradingContext as any
+        const response = await withRetryableTimeout(
+          () => engine.assistTeacherGrading(
+            validatedData.question,
+            validatedData.gradingContext as any
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'samAssistTeacherChat'
         );
 
         return NextResponse.json({
@@ -156,6 +174,14 @@ export async function POST(request: Request) {
         );
     }
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Error in SAM assist:', error);
 
     if (error instanceof z.ZodError) {

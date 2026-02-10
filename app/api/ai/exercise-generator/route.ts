@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Force Node.js runtime for better compatibility
 export const runtime = 'nodejs';
@@ -210,6 +212,9 @@ function generateMockExercises(request: ExerciseGeneratorRequest): any[] {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
@@ -237,19 +242,23 @@ export async function POST(request: NextRequest) {
     try {
       const prompt = buildExerciseGeneratorPrompt(exerciseRequest);
 
-      const responseText = await runSAMChatWithPreference({
-        maxTokens: 5000,
-        temperature: 0.7,
-        systemPrompt: EXERCISE_GENERATOR_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        userId: session.userId,
-        capability: 'course',
-      });
+      const responseText = await withRetryableTimeout(
+        () => runSAMChatWithPreference({
+          maxTokens: 5000,
+          temperature: 0.7,
+          systemPrompt: EXERCISE_GENERATOR_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          userId: session.userId,
+          capability: 'course',
+        }),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'exercise-generation'
+      );
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -303,6 +312,10 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 

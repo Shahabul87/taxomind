@@ -2,21 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      motivationType, 
-      learningContext, 
-      userState, 
+    const {
+      motivationType,
+      learningContext,
+      userState,
       recentActivity,
-      personalityProfile 
+      personalityProfile
     } = await request.json();
 
     let motivationResponse;
@@ -58,6 +63,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Motivation engine timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('Motivation engine error:', error);
@@ -74,14 +83,18 @@ async function runMotivationChat(
   userPrompt: string,
   options?: { maxTokens?: number; temperature?: number }
 ): Promise<string> {
-  return runSAMChatWithPreference({
-    userId,
-    capability: 'chat',
-    maxTokens: options?.maxTokens ?? 400,
-    temperature: options?.temperature ?? 0.7,
-    systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
+  return withRetryableTimeout(
+    () => runSAMChatWithPreference({
+      userId,
+      capability: 'chat',
+      maxTokens: options?.maxTokens ?? 400,
+      temperature: options?.temperature ?? 0.7,
+      systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+    TIMEOUT_DEFAULTS.AI_ANALYSIS,
+    'motivationEngine-chat'
+  );
 }
 
 async function generateDailyMotivation(userId: string, learningContext: any, userState: any) {

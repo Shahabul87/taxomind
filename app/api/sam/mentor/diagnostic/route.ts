@@ -11,6 +11,8 @@ import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
 // Request validation schemas
 const GenerateDiagnosticSchema = z.object({
@@ -68,6 +70,9 @@ interface DiagnosticSessionContext {
  */
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = await withRateLimit(request, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user?.id) {
@@ -157,14 +162,18 @@ Return valid JSON only:
   }
 }`;
 
-    const diagnosticResponse = await runSAMChatWithPreference({
-      userId: user.id,
-      capability: 'chat',
-      maxTokens: 6000,
-      temperature: 0.6,
-      systemPrompt: 'You are an expert educational assessment designer. Generate diagnostic assessments in valid JSON format only.',
-      messages: [{ role: 'user', content: diagnosticPrompt }],
-    });
+    const diagnosticResponse = await withRetryableTimeout(
+      () => runSAMChatWithPreference({
+        userId: user.id,
+        capability: 'chat',
+        maxTokens: 6000,
+        temperature: 0.6,
+        systemPrompt: 'You are an expert educational assessment designer. Generate diagnostic assessments in valid JSON format only.',
+        messages: [{ role: 'user', content: diagnosticPrompt }],
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'mentor-diagnostic'
+    );
 
     // Parse the generated diagnostic
     let diagnosticData: {
@@ -245,6 +254,10 @@ Return valid JSON only:
     });
 
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('Operation timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json({ error: 'Operation timed out. Please try again.' }, { status: 504 });
+    }
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
     logger.error('[DIAGNOSTIC] Generate diagnostic error:', error);
