@@ -1,5 +1,4 @@
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithMetadata, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { logger } from '@/lib/logger';
@@ -263,7 +262,7 @@ export async function POST(request: NextRequest) {
     try {
       const prompt = buildChapterPrompt(chapterRequest);
 
-      const completion = await aiClient.chat({
+      const completion = await runSAMChatWithMetadata({
         maxTokens: 6000,
         temperature: 0.7,
         systemPrompt: CHAPTER_GENERATOR_SYSTEM_PROMPT,

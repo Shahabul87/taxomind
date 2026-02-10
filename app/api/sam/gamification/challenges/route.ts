@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const engine = getAchievementEngine();
+    const engine = await getAchievementEngine();
 
     // Get user's challenge data
     const user = await db.user.findUnique({

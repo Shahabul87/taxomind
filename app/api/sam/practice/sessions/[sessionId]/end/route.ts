@@ -399,7 +399,7 @@ export async function POST(
     }
 
     getAchievementEngine()
-      .trackProgress(
+      .then((engine) => engine.trackProgress(
         session.user.id,
         'form_completed',
         { sessionId, qualityHours: completedSession.qualityHours },
@@ -408,7 +408,7 @@ export async function POST(
           chapterId: completedSession.chapterId ?? undefined,
           sectionId: completedSession.sectionId ?? undefined,
         }
-      )
+      ))
       .catch((err) => {
         logger.warn('[Practice Session] Achievement tracking failed', { error: err });
       });

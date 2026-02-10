@@ -41,6 +41,7 @@ export type SectionWithProgress = Prisma.SectionGetPayload<{
     notes: true;
     codeExplanations: true;
     mathExplanations: true;
+    exams: true;
   };
 }>;
 
@@ -79,6 +80,7 @@ export type ChapterWithSections = Prisma.ChapterGetPayload<{
         notes: true;
         codeExplanations: true;
         mathExplanations: true;
+        exams: true;
       };
     };
   };
@@ -116,6 +118,7 @@ export type CourseWithChapters = Prisma.CourseGetPayload<{
             notes: true;
             codeExplanations: true;
             mathExplanations: true;
+            exams: true;
           };
         };
       };
@@ -125,20 +128,9 @@ export type CourseWithChapters = Prisma.CourseGetPayload<{
 
 /**
  * User progress with all tracking data
+ * Uses full model since getUserProgress returns without select
  */
-export type UserProgressData = Prisma.user_progressGetPayload<{
-  select: {
-    id: true;
-    userId: true;
-    sectionId: true;
-    isCompleted: true;
-    completedAt: true;
-    overallProgress: true;
-    lastAccessedAt: true;
-    createdAt: true;
-    updatedAt: true;
-  };
-}>;
+export type UserProgressData = Prisma.user_progressGetPayload<{}>;
 
 /**
  * Enrollment data

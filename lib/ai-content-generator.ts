@@ -1,5 +1,5 @@
-import { aiClient } from '@/lib/ai/enterprise-client';
-import type { CourseGenerationRequest } from './anthropic-client';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import type { CourseGenerationRequest } from './course-blueprint-generator';
 import { logger } from '@/lib/logger';
 
 export interface EnhancedContentRequest extends CourseGenerationRequest {
@@ -86,20 +86,21 @@ export interface IntelligentCourseBlueprint {
 }
 
 export async function generateIntelligentCourseContent(
-  requirements: EnhancedContentRequest
+  requirements: EnhancedContentRequest,
+  userId: string
 ): Promise<IntelligentCourseBlueprint> {
   try {
     // Step 1: Generate course strategy and approach
-    const courseStrategy = await generateCourseStrategy(requirements);
-    
+    const courseStrategy = await generateCourseStrategy(requirements, userId);
+
     // Step 2: Generate detailed course structure
-    const courseStructure = await generateDetailedCourseStructure(requirements, courseStrategy);
-    
+    const courseStructure = await generateDetailedCourseStructure(requirements, courseStrategy, userId);
+
     // Step 3: Generate individual chapters with full details
-    const enhancedChapters = await generateEnhancedChapters(requirements, courseStructure);
-    
+    const enhancedChapters = await generateEnhancedChapters(requirements, courseStructure, userId);
+
     // Step 4: Generate course-level project if applicable
-    const courseLevelProject = await generateCourseLevelProject(requirements, enhancedChapters);
+    const courseLevelProject = await generateCourseLevelProject(requirements, enhancedChapters, userId);
     
     // Step 5: Compile final blueprint
     const blueprint: IntelligentCourseBlueprint = {
@@ -126,7 +127,7 @@ export async function generateIntelligentCourseContent(
   }
 }
 
-async function generateCourseStrategy(requirements: EnhancedContentRequest): Promise<{
+async function generateCourseStrategy(requirements: EnhancedContentRequest, userId: string): Promise<{
   approach: string;
   innovations: string[];
   learningPath: string;
@@ -161,19 +162,22 @@ Return ONLY valid JSON in this format:
 
 Focus on evidence-based educational practices and modern learning science principles.`;
 
-  const response = await aiClient.chat({
+  const content = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     maxTokens: 1000,
     temperature: 0.6,
     extended: true,
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(response.content);
+  return JSON.parse(content);
 }
 
 async function generateDetailedCourseStructure(
   requirements: EnhancedContentRequest,
-  strategy: { approach: string; innovations: string[]; learningPath: string; assessmentStrategy: string; }
+  strategy: { approach: string; innovations: string[]; learningPath: string; assessmentStrategy: string; },
+  userId: string
 ): Promise<{ course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }> {
   const prompt = `Create a detailed course structure based on the requirements and learning strategy.
 
@@ -222,19 +226,22 @@ Return ONLY valid JSON in this format:
 
 Make this course irresistible to the target audience while ensuring educational excellence.`;
 
-  const response = await aiClient.chat({
+  const content = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     maxTokens: 2000,
     temperature: 0.7,
     extended: true,
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(response.content);
+  return JSON.parse(content);
 }
 
 async function generateEnhancedChapters(
   requirements: EnhancedContentRequest,
-  courseStructure: { course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> }
+  courseStructure: { course: IntelligentCourseBlueprint['course']; chapterOutlines: Array<{ title: string; focus: string; bloomsLevel: string; }> },
+  userId: string
 ): Promise<EnhancedChapter[]> {
   const chapters: EnhancedChapter[] = [];
   
@@ -306,14 +313,16 @@ Return ONLY valid JSON in this format:
 
 Make each section rich with practical, actionable content that students can immediately apply.`;
 
-    const response = await aiClient.chat({
+    const chapterContent = await runSAMChatWithPreference({
+      userId,
+      capability: 'course',
       maxTokens: 3000,
       temperature: 0.7,
       extended: true,
       messages: [{ role: "user", content: chapterPrompt }]
     });
 
-    const chapter = JSON.parse(response.content) as EnhancedChapter;
+    const chapter = JSON.parse(chapterContent) as EnhancedChapter;
     chapters.push(chapter);
   }
   
@@ -322,7 +331,8 @@ Make each section rich with practical, actionable content that students can imme
 
 async function generateCourseLevelProject(
   requirements: EnhancedContentRequest,
-  chapters: EnhancedChapter[]
+  chapters: EnhancedChapter[],
+  userId: string
 ): Promise<IntelligentCourseBlueprint['courseLevelProject'] | undefined> {
   if (!requirements.preferredContentTypes.includes('projects')) {
     return undefined;
@@ -355,13 +365,15 @@ Return ONLY valid JSON:
   "portfolioValue": "How this project enhances student's portfolio and career prospects"
 }`;
 
-  const response = await aiClient.chat({
+  const content = await runSAMChatWithPreference({
+    userId,
+    capability: 'course',
     maxTokens: 800,
     temperature: 0.7,
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(response.content);
+  return JSON.parse(content);
 }
 
 // Helper functions

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
-import { getEngine } from '../route';
+import { createEngineForUser } from '../route';
 import { logger } from '@/lib/logger';
 
 const PrerequisitesSchema = z.object({
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const { conceptId, includeMastery, maxDepth } = parsed.data;
 
-    const engine = getEngine();
+    const engine = await createEngineForUser(session.user.id);
 
     // Check if concept exists
     const concept = engine.getConcept(conceptId);

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/anthropic-client";
+import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/course-blueprint-generator";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AIErrorHandler } from "@/lib/error-handler";
@@ -60,7 +60,7 @@ async function transformToLegacyBlueprint(
     async () => {
 
       // Use the new AI-powered generation
-      const aiBlueprint = await generateCourseBlueprint(requirements);
+      const aiBlueprint = await generateCourseBlueprint(requirements, userId);
 
       // Transform to legacy format
       const blueprint: CourseBlueprint = {

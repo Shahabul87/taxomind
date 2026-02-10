@@ -9,7 +9,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import {
   createMetacognitionEngine,
   type MetacognitionEngineConfig,
@@ -24,57 +24,40 @@ import {
 import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
-// ENGINE SINGLETON
+// PER-REQUEST ENGINE FACTORY
 // ============================================================================
 
-let metacognitionEngine: ReturnType<typeof createMetacognitionEngine> | null = null;
+async function createMetacognitionEngineForUser(userId: string) {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-async function getMetacognitionEngine() {
-  if (!metacognitionEngine) {
-    const coreAiAdapter = await getCoreAIAdapter();
-    const aiAdapter = coreAiAdapter ?? {
-      name: 'metacognition-fallback',
-      version: '1.0.0',
-      chat: async () => ({
-        content: '',
-        model: 'fallback',
-        usage: { inputTokens: 0, outputTokens: 0 },
-        finishReason: 'stop' as const,
-      }),
-      isConfigured: () => false,
-      getModel: () => 'fallback',
-    };
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    logger: {
+      debug: (msg: string, data?: unknown) => logger.debug(msg, data),
+      info: (msg: string, data?: unknown) => logger.info(msg, data),
+      warn: (msg: string, data?: unknown) => logger.warn(msg, data),
+      error: (msg: string, data?: unknown) => logger.error(msg, data),
+    },
+    features: {
+      gamification: true,
+      formSync: false,
+      autoContext: true,
+      emotionDetection: true,
+      learningStyleDetection: true,
+      streaming: false,
+      analytics: true,
+    },
+  });
 
-    const samConfig = createSAMConfig({
-      ai: aiAdapter,
-      logger: {
-        debug: (msg: string, data?: unknown) => logger.debug(msg, data),
-        info: (msg: string, data?: unknown) => logger.info(msg, data),
-        warn: (msg: string, data?: unknown) => logger.warn(msg, data),
-        error: (msg: string, data?: unknown) => logger.error(msg, data),
-      },
-      features: {
-        gamification: true,
-        formSync: false,
-        autoContext: true,
-        emotionDetection: true,
-        learningStyleDetection: true,
-        streaming: false,
-        analytics: true,
-      },
-    });
+  const config: MetacognitionEngineConfig = {
+    samConfig,
+    enableAIReflection: true,
+    enableHabitTracking: true,
+    defaultReflectionDepth: 'MODERATE',
+    calibrationThreshold: 0.7,
+  };
 
-    const config: MetacognitionEngineConfig = {
-      samConfig,
-      enableAIReflection: true,
-      enableHabitTracking: true,
-      defaultReflectionDepth: 'MODERATE',
-      calibrationThreshold: 0.7,
-    };
-
-    metacognitionEngine = createMetacognitionEngine(config);
-  }
-  return metacognitionEngine;
+  return createMetacognitionEngine(config);
 }
 
 // ============================================================================
@@ -262,7 +245,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const engine = await getMetacognitionEngine();
+    const engine = await createMetacognitionEngineForUser(session.user.id);
 
     const endpoint = searchParams.get('endpoint') ?? 'habits';
 
@@ -357,7 +340,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await getMetacognitionEngine();
+    const engine = await createMetacognitionEngineForUser(session.user.id);
     let result: unknown;
 
     switch (action) {

@@ -9,7 +9,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import {
   createMultimodalInputEngine,
   type MultimodalConfig,
@@ -18,68 +18,51 @@ import {
 import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
-// ENGINE SINGLETON
+// PER-REQUEST ENGINE FACTORY
 // ============================================================================
 
-let multimodalEngine: ReturnType<typeof createMultimodalInputEngine> | null = null;
+async function createMultimodalEngineForUser(userId: string) {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-async function getMultimodalEngine() {
-  if (!multimodalEngine) {
-    const coreAiAdapter = await getCoreAIAdapter();
-    const aiAdapter = coreAiAdapter ?? {
-      name: 'multimodal-fallback',
-      version: '1.0.0',
-      chat: async () => ({
-        content: '',
-        model: 'fallback',
-        usage: { inputTokens: 0, outputTokens: 0 },
-        finishReason: 'stop' as const,
-      }),
-      isConfigured: () => false,
-      getModel: () => 'fallback',
-    };
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    logger: {
+      debug: (msg: string, data?: unknown) => logger.debug(msg, data),
+      info: (msg: string, data?: unknown) => logger.info(msg, data),
+      warn: (msg: string, data?: unknown) => logger.warn(msg, data),
+      error: (msg: string, data?: unknown) => logger.error(msg, data),
+    },
+    features: {
+      gamification: false,
+      formSync: false,
+      autoContext: true,
+      emotionDetection: true,
+      learningStyleDetection: true,
+      streaming: false,
+      analytics: true,
+    },
+  });
 
-    const samConfig = createSAMConfig({
-      ai: aiAdapter,
-      logger: {
-        debug: (msg: string, data?: unknown) => logger.debug(msg, data),
-        info: (msg: string, data?: unknown) => logger.info(msg, data),
-        warn: (msg: string, data?: unknown) => logger.warn(msg, data),
-        error: (msg: string, data?: unknown) => logger.error(msg, data),
-      },
-      features: {
-        gamification: false,
-        formSync: false,
-        autoContext: true,
-        emotionDetection: true,
-        learningStyleDetection: true,
-        streaming: false,
-        analytics: true,
-      },
-    });
+  const config: Partial<MultimodalConfig> = {
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+    allowedFormats: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'pdf'],
+    enableOCR: true,
+    enableSpeechToText: true,
+    enableHandwritingRecognition: true,
+    defaultLanguage: 'en',
+    qualityThreshold: 0.7,
+    enableAIAnalysis: true,
+    processingTimeout: 120,
+    accessibility: {
+      generateAltText: true,
+      generateCaptions: true,
+      enableTextToSpeech: true,
+      highContrastMode: false,
+      requirements: [],
+    },
+  };
 
-    const config: Partial<MultimodalConfig> = {
-      maxFileSize: 50 * 1024 * 1024, // 50MB
-      allowedFormats: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'mp3', 'wav', 'ogg', 'mp4', 'webm', 'pdf'],
-      enableOCR: true,
-      enableSpeechToText: true,
-      enableHandwritingRecognition: true,
-      defaultLanguage: 'en',
-      qualityThreshold: 0.7,
-      enableAIAnalysis: true,
-      processingTimeout: 120,
-      accessibility: {
-        generateAltText: true,
-        generateCaptions: true,
-        enableTextToSpeech: true,
-        highContrastMode: false,
-        requirements: [],
-      },
-    };
-
-    multimodalEngine = createMultimodalInputEngine(samConfig, config);
-  }
-  return multimodalEngine;
+  return createMultimodalInputEngine(samConfig, config);
 }
 
 // ============================================================================
@@ -156,7 +139,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const engine = await getMultimodalEngine();
+    const engine = await createMultimodalEngineForUser(session.user.id);
 
     const endpoint = searchParams.get('endpoint') ?? 'quota';
 
@@ -226,7 +209,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await getMultimodalEngine();
+    const engine = await createMultimodalEngineForUser(session.user.id);
     let result: unknown;
 
     switch (action) {

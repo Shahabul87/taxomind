@@ -9,7 +9,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import {
   createIntegrityEngine,
   type IntegrityEngineConfig,
@@ -17,64 +17,47 @@ import {
 } from '@sam-ai/educational';
 
 // ============================================================================
-// ENGINE SINGLETON
+// PER-REQUEST ENGINE FACTORY
 // ============================================================================
 
-let integrityEngine: ReturnType<typeof createIntegrityEngine> | null = null;
+async function createIntegrityEngineForUser(userId: string) {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-async function getIntegrityEngine() {
-  if (!integrityEngine) {
-    const coreAiAdapter = await getCoreAIAdapter();
-    const aiAdapter = coreAiAdapter ?? {
-      name: 'integrity-fallback',
-      version: '1.0.0',
-      chat: async () => ({
-        content: '',
-        model: 'fallback',
-        usage: { inputTokens: 0, outputTokens: 0 },
-        finishReason: 'stop' as const,
-      }),
-      isConfigured: () => false,
-      getModel: () => 'fallback',
-    };
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    logger: {
+      debug: (msg: string, data?: unknown) => logger.debug(msg, data),
+      info: (msg: string, data?: unknown) => logger.info(msg, data),
+      warn: (msg: string, data?: unknown) => logger.warn(msg, data),
+      error: (msg: string, data?: unknown) => logger.error(msg, data),
+    },
+    features: {
+      gamification: false,
+      formSync: false,
+      autoContext: true,
+      emotionDetection: false,
+      learningStyleDetection: false,
+      streaming: false,
+      analytics: true,
+    },
+  });
 
-    const samConfig = createSAMConfig({
-      ai: aiAdapter,
-      logger: {
-        debug: (msg: string, data?: unknown) => logger.debug(msg, data),
-        info: (msg: string, data?: unknown) => logger.info(msg, data),
-        warn: (msg: string, data?: unknown) => logger.warn(msg, data),
-        error: (msg: string, data?: unknown) => logger.error(msg, data),
-      },
-      features: {
-        gamification: false,
-        formSync: false,
-        autoContext: true,
-        emotionDetection: false,
-        learningStyleDetection: false,
-        streaming: false,
-        analytics: true,
-      },
-    });
+  const config: IntegrityEngineConfig = {
+    samConfig,
+    checkConfig: {
+      enablePlagiarismCheck: true,
+      enableAIDetection: true,
+      enableConsistencyCheck: true,
+      plagiarismThreshold: 30,
+      aiProbabilityThreshold: 70,
+      minTextLength: 50,
+      compareWithCourseContent: true,
+      compareWithOtherStudents: true,
+      compareWithExternalSources: false,
+    },
+  };
 
-    const config: IntegrityEngineConfig = {
-      samConfig,
-      checkConfig: {
-        enablePlagiarismCheck: true,
-        enableAIDetection: true,
-        enableConsistencyCheck: true,
-        plagiarismThreshold: 30,
-        aiProbabilityThreshold: 70,
-        minTextLength: 50,
-        compareWithCourseContent: true,
-        compareWithOtherStudents: true,
-        compareWithExternalSources: false,
-      },
-    };
-
-    integrityEngine = createIntegrityEngine(config);
-  }
-  return integrityEngine;
+  return createIntegrityEngine(config);
 }
 
 // ============================================================================
@@ -163,7 +146,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const engine = await getIntegrityEngine();
+    const engine = await createIntegrityEngineForUser(session.user.id);
 
     const endpoint = searchParams.get('endpoint') ?? 'config';
 
@@ -215,7 +198,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await getIntegrityEngine();
+    const engine = await createIntegrityEngineForUser(session.user.id);
     let result: unknown;
 
     switch (action) {

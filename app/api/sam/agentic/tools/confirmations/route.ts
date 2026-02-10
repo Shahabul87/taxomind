@@ -33,7 +33,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(session.user.id);
     const toolingPending = await tooling.confirmationManager.getPendingRequests(session.user.id);
 
     // Also get orchestration confirmations when feature is enabled
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Default: handle tooling confirmations
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(session.user.id);
     const request = await tooling.confirmationManager.respond(
       confirmationId,
       confirmed

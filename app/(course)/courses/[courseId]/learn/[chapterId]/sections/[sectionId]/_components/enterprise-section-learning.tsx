@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Info,
   PanelLeftClose,
+  PanelRightOpen,
   Brain,
   Heart,
   Sparkles,
@@ -36,16 +37,19 @@ import { useKeyboardNavigation } from "./keyboard-navigation";
 import { useAnalytics, ANALYTICS_EVENTS } from "./learning-analytics-tracker";
 import { SafeHtmlRenderer } from "./safe-html-renderer";
 import { DiscussionForum } from "@/components/learning/discussion-forum";
-import { FloatingKeyboardShortcuts } from "@/components/learning/keyboard-shortcuts-guide";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { logger } from "@/lib/logger";
+import { StudyGuideGenerator } from "@/components/sam/study-guide";
 import { useEmotionDetection, getEmotionSupportMessage } from "@/hooks/use-emotion-detection";
 import { useLearningStyle, getStyleAdaptations } from "@/hooks/use-learning-style";
 import { useSAMPageContext } from "@sam-ai/react";
 
-// SAM AI Course Learning Integration - Full AI mentor support during learning
-import { SAMCourseLearningIntegration } from "@/components/sam/course-learning";
-// Study Guide Generator - AI-powered personalized study plans
-import { StudyGuideGenerator } from "@/components/sam/study-guide";
 import type {
   UserWithRelations,
   CourseWithChapters,
@@ -90,6 +94,7 @@ export function EnterpriseSectionLearning({
   const { mode, isPreviewMode, canTrackProgress } = useLearningMode();
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [sectionCompleted, setSectionCompleted] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
@@ -344,8 +349,48 @@ export function EnterpriseSectionLearning({
         isPreviewMode={isPreviewMode}
       />
 
+      {/* Mobile Sidebar Drawer - visible below xl breakpoint */}
+      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+        <SheetContent side="right" className="w-[340px] sm:w-[380px] p-0 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+          <SheetHeader className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <SheetTitle className="text-sm font-medium text-slate-900 dark:text-white">
+              Course Navigation
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-57px)]">
+            <div className="p-3">
+              <SectionSidebar
+                course={course}
+                currentChapter={currentChapter}
+                currentSection={currentSection}
+                courseId={courseId}
+                chapterId={chapterId}
+                sectionId={sectionId}
+                userProgress={userProgress}
+                totalSections={totalSections}
+                completedSections={completedSections}
+                onToggle={() => setMobileSidebarOpen(false)}
+              />
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
       {/* Main Content Area */}
       <div className="container mx-auto px-4 sm:px-6 py-6 lg:py-8">
+        {/* Mobile sidebar toggle - only visible below xl */}
+        <div className="xl:hidden flex justify-end mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="flex items-center gap-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <PanelRightOpen className="h-4 w-4" />
+            <span className="text-sm">Course Navigation</span>
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* Main Content Column */}
           <motion.div
@@ -463,7 +508,7 @@ export function EnterpriseSectionLearning({
                     variant="outline"
                     onClick={handlePrevious}
                     disabled={!prevSection}
-                    className="flex items-center gap-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300"
+                    className="flex items-center gap-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-900 hover:text-white hover:border-slate-900 dark:hover:bg-white dark:hover:text-slate-900 dark:hover:border-white text-slate-700 dark:text-slate-300 transition-colors disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-white disabled:hover:text-slate-400 dark:disabled:border-slate-700 dark:disabled:text-slate-600"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     <span className="hidden sm:inline">Previous</span>
@@ -545,7 +590,7 @@ export function EnterpriseSectionLearning({
           {/* Sidebar Column */}
           {sidebarOpen && (
             <motion.div
-              className="xl:col-span-4 relative"
+              className="hidden xl:block xl:col-span-4 relative"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -618,8 +663,7 @@ export function EnterpriseSectionLearning({
         )}
       </AnimatePresence>
 
-      {/* Floating Keyboard Shortcuts Button */}
-      <FloatingKeyboardShortcuts />
+      {/* Keyboard shortcuts are shown in the Overview tab instead */}
 
       {/* SAM AI Emotion Support Notification */}
       <AnimatePresence>
@@ -764,30 +808,7 @@ export function EnterpriseSectionLearning({
         )}
       </AnimatePresence>
 
-      {/* SAM AI Course Learning Integration - Full AI mentor support */}
-      <SAMCourseLearningIntegration
-        context={{
-          courseId,
-          courseTitle: course.title,
-          chapterId,
-          chapterTitle: currentChapter.title,
-          sectionId,
-          sectionTitle: currentSection.title,
-          sectionType: currentSection.type,
-          userId: user?.id,
-          isEnrolled: canTrackProgress,
-          progress: (completedSections / totalSections) * 100,
-        }}
-        onAskSAM={(question) => {
-          // Track SAM usage for analytics
-          analytics.trackEvent("SAM_QUESTION_ASKED", { question: question.slice(0, 100) });
-          // The SAM assistant will handle the question
-          toast.info("Opening SAM Assistant...");
-        }}
-        onRecommendationClick={(recId) => {
-          analytics.trackEvent("SAM_RECOMMENDATION_CLICKED", { recommendationId: recId });
-        }}
-      />
+      {/* SAM AI Course Learning Integration removed - cognitive load widget was cluttering the UI */}
     </div>
   );
 }

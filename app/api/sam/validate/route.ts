@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { logger } from '@/lib/logger';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 
 export const runtime = 'nodejs';
 

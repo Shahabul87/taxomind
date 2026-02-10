@@ -20,7 +20,7 @@ import {
   createMarketAdapter,
   createTrendsAdapter,
   getDatabaseAdapter,
-  getSAMConfig,
+  getUserScopedSAMConfig,
 } from '@/lib/adapters';
 import { randomUUID } from 'crypto';
 
@@ -66,19 +66,10 @@ interface IntegratedAnalysis {
   actionPlan: ActionPlan;
 }
 
-let cachedEngines: {
-  market: ReturnType<typeof createMarketEngine>;
-  guide: ReturnType<typeof createCourseGuideEngine>;
-  blooms: ReturnType<typeof createUnifiedBloomsEngine>;
-  trends: ReturnType<typeof createTrendsEngine>;
-  research: ReturnType<typeof createResearchEngine>;
-} | null = null;
+async function createEnginesForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
 
-function getEngines() {
-  if (cachedEngines) return cachedEngines;
-  const samConfig = getSAMConfig();
-
-  cachedEngines = {
+  return {
     market: createMarketEngine({ databaseAdapter: createMarketAdapter(db as never) }),
     guide: createCourseGuideEngine({ databaseAdapter: createCourseGuideAdapter(db as never) }),
     blooms: createUnifiedBloomsEngine({
@@ -92,8 +83,6 @@ function getEngines() {
     trends: createTrendsEngine({ samConfig, database: createTrendsAdapter(db as never) }),
     research: createResearchEngine({ samConfig }),
   };
-
-  return cachedEngines;
 }
 
 function buildCourseInput(course: {
@@ -275,7 +264,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const engines = getEngines();
+    const engines = await createEnginesForUser(user.id);
 
     const courseWithContent = await db.course.findUnique({
       where: { id: courseId },

@@ -20,7 +20,7 @@ import {
   type SAMConfig,
 } from '@sam-ai/core';
 
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter, getSAMAdapterSystem } from '@/lib/sam/ai-provider';
 import { createUnifiedBloomsAdapterEngine } from '@sam-ai/educational';
 import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 
@@ -144,13 +144,15 @@ function validateModeEngines(orchestrator: SAMAgentOrchestrator): void {
  * The result is cached as a module-level singleton so each
  * subsystem is created at most once per process.
  */
-export async function initializeSubsystems(): Promise<SubsystemBundle> {
+export async function initializeSubsystems(userId?: string): Promise<SubsystemBundle> {
   if (bundle) {
     return bundle;
   }
 
-  // 1. AI adapter — 3-tier fallback (Anthropic → OpenAI → DeepSeek) with circuit breaker
-  const aiAdapter = await getCoreAIAdapter();
+  // 1. AI adapter — user-scoped when userId available, otherwise system-level fallback
+  const aiAdapter = userId
+    ? await getSAMAdapter({ userId, capability: 'chat' })
+    : await getSAMAdapterSystem();
   if (!aiAdapter) {
     throw new Error('No AI adapter available (all providers failed)');
   }
@@ -300,6 +302,6 @@ export async function initializeSubsystems(): Promise<SubsystemBundle> {
 /**
  * Backward-compatible helper — returns just the orchestrator.
  */
-export async function getOrchestrator(): Promise<SAMAgentOrchestrator> {
-  return (await initializeSubsystems()).orchestrator;
+export async function getOrchestrator(userId?: string): Promise<SAMAgentOrchestrator> {
+  return (await initializeSubsystems(userId)).orchestrator;
 }

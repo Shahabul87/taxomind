@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { type IssueType } from '@prisma/client';
-import { AIAccessDeniedError } from '@/lib/ai/enterprise-client';
+import { AIAccessDeniedError } from '@/lib/sam/ai-provider';
 import {
   createEnhancedAnalyzerV2,
   generateContentHash,

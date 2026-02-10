@@ -13,6 +13,7 @@ import {
   AlertCircle,
   Loader2,
   Info,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -23,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 // Provider types matching our registry
@@ -39,6 +42,7 @@ interface ProviderInfo {
 }
 
 interface AIPreferences {
+  preferredGlobalProvider: AIProviderType | null;
   preferredChatProvider: AIProviderType | null;
   preferredCourseProvider: AIProviderType | null;
   preferredAnalysisProvider: AIProviderType | null;
@@ -87,6 +91,7 @@ const CAPABILITY_DESCRIPTIONS = {
 export function AIProvidersTab() {
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [preferences, setPreferences] = useState<AIPreferences>({
+    preferredGlobalProvider: null,
     preferredChatProvider: null,
     preferredCourseProvider: null,
     preferredAnalysisProvider: null,
@@ -120,6 +125,7 @@ export function AIProvidersTab() {
         if (prefsRes.ok) {
           const data = await prefsRes.json();
           setPreferences({
+            preferredGlobalProvider: data.preferredGlobalProvider || null,
             preferredChatProvider: data.preferredChatProvider || "anthropic",
             preferredCourseProvider: data.preferredCourseProvider || "anthropic",
             preferredAnalysisProvider: data.preferredAnalysisProvider || "anthropic",
@@ -403,7 +409,7 @@ export function AIProvidersTab() {
         </div>
       )}
 
-      {/* Provider Selection by Capability */}
+      {/* Global Provider Toggle */}
       <div
         className={cn(
           "p-6 rounded-3xl",
@@ -413,9 +419,99 @@ export function AIProvidersTab() {
           "shadow-lg"
         )}
       >
-        <h4 className="text-md font-semibold text-slate-900 dark:text-white mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0">
+              <Globe className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <Label htmlFor="global-provider-toggle" className="text-md font-semibold text-slate-900 dark:text-white cursor-pointer">
+                Use Same Provider for All Tasks
+              </Label>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Override per-task settings with a single provider
+              </p>
+            </div>
+          </div>
+          <Switch
+            id="global-provider-toggle"
+            checked={preferences.preferredGlobalProvider !== null}
+            onCheckedChange={(checked) => {
+              if (checked) {
+                // Enable global provider — default to first configured or anthropic
+                const defaultGlobal = configuredProviders[0]?.id ?? "anthropic";
+                setPreferences((prev) => ({
+                  ...prev,
+                  preferredGlobalProvider: defaultGlobal as AIProviderType,
+                }));
+              } else {
+                // Disable global provider
+                setPreferences((prev) => ({
+                  ...prev,
+                  preferredGlobalProvider: null,
+                }));
+              }
+              setHasChanges(true);
+            }}
+          />
+        </div>
+
+        {preferences.preferredGlobalProvider !== null && (
+          <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200 flex-1">
+                All AI tasks will use:
+              </p>
+              <Select
+                value={preferences.preferredGlobalProvider}
+                onValueChange={(value) => {
+                  setPreferences((prev) => ({
+                    ...prev,
+                    preferredGlobalProvider: value as AIProviderType,
+                  }));
+                  setHasChanges(true);
+                }}
+              >
+                <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-slate-800">
+                  <SelectValue placeholder="Select provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  {configuredProviders.map((provider) => (
+                    <SelectItem key={provider.id} value={provider.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{PROVIDER_ICONS[provider.id]}</span>
+                        <span>{provider.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Provider Selection by Capability */}
+      <div
+        className={cn(
+          "p-6 rounded-3xl",
+          "bg-white/80 dark:bg-slate-800/80",
+          "backdrop-blur-sm",
+          "border border-slate-200/50 dark:border-slate-700/50",
+          "shadow-lg",
+          preferences.preferredGlobalProvider !== null && "opacity-50 pointer-events-none"
+        )}
+      >
+        <h4 className="text-md font-semibold text-slate-900 dark:text-white mb-2">
           Provider by Task
         </h4>
+        {preferences.preferredGlobalProvider !== null && (
+          <p className="text-sm text-amber-600 dark:text-amber-400 mb-4">
+            Per-task settings are overridden by the global provider above.
+            Disable &quot;Use Same Provider for All Tasks&quot; to customize individually.
+          </p>
+        )}
+        {preferences.preferredGlobalProvider === null && <div className="mb-6" />}
 
         <div className="space-y-6">
           {(

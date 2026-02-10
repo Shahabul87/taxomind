@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createMemoryEngine } from '@sam-ai/educational';
 import type { MemoryDatabaseAdapter, MemorySAMConversation, MemorySAMLearningProfile } from '@sam-ai/educational';
-import { getSAMConfig } from '@/lib/adapters';
+import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { applyRateLimit, samSummariesLimiter } from '@/lib/sam/config/sam-rate-limiter';
 import { db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
@@ -343,6 +343,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Initialize memory engine with validated parameters using portable engine
+    const samConfig = await getUserScopedSAMConfig(session.user.id, 'analysis');
     const memoryEngine = createMemoryEngine(
       {
         userId: session.user.id,
@@ -351,7 +352,7 @@ export async function GET(req: NextRequest) {
         sessionId: uuidv4(),
       },
       {
-        samConfig: getSAMConfig(),
+        samConfig,
         database: createMemoryDatabaseAdapter() as unknown as undefined,
       }
     );

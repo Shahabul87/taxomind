@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Challenge ID is required' }, { status: 400 });
     }
 
-    const success = await getAchievementEngine().startChallenge(session.user.id, challengeId);
+    const success = await (await getAchievementEngine()).startChallenge(session.user.id, challengeId);
 
     if (!success) {
       return NextResponse.json(

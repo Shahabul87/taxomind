@@ -3,21 +3,17 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createContentGenerationEngine } from "@sam-ai/educational";
 import type { LearningObjectiveInput, GenerationConfig } from "@sam-ai/educational";
-import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import { SAMGuards } from '@/lib/premium';
 
-// Create content generation engine singleton with portable package
-let contentEngine: ReturnType<typeof createContentGenerationEngine> | null = null;
-
-function getContentGenerationEngine() {
-  if (!contentEngine) {
-    contentEngine = createContentGenerationEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return contentEngine;
+// Create a user-scoped content generation engine instance
+async function createContentEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'course');
+  return createContentGenerationEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 // Content Generation is a premium-only feature
@@ -33,26 +29,28 @@ export const POST = SAMGuards.contentGeneration(async (req, context) => {
       );
     }
 
+    const engine = await createContentEngineForUser(context.userId);
+
     let result;
     switch (action) {
       case "generate-course":
-        result = await handleGenerateCourse(data);
+        result = await handleGenerateCourse(engine, data);
         break;
 
       case "create-assessments":
-        result = await handleCreateAssessments(data);
+        result = await handleCreateAssessments(engine, data);
         break;
 
       case "generate-study-guide":
-        result = await handleGenerateStudyGuide(data, context.userId);
+        result = await handleGenerateStudyGuide(engine, data, context.userId);
         break;
 
       case "create-exercises":
-        result = await handleCreateExercises(data);
+        result = await handleCreateExercises(engine, data);
         break;
 
       case "translate-content":
-        result = await handleTranslateContent(data);
+        result = await handleTranslateContent(engine, data);
         break;
 
       default:
@@ -77,7 +75,7 @@ export const POST = SAMGuards.contentGeneration(async (req, context) => {
   }
 });
 
-async function handleGenerateCourse(data: any) {
+async function handleGenerateCourse(engine: ReturnType<typeof createContentGenerationEngine>, data: any) {
   const { objectives, config } = data;
 
   if (!objectives || !Array.isArray(objectives)) {
@@ -102,14 +100,13 @@ async function handleGenerateCourse(data: any) {
     constraints: config?.constraints,
   };
 
-  const engine = getContentGenerationEngine();
   return await engine.generateCourseContent(
     learningObjectives,
     generationConfig
   );
 }
 
-async function handleCreateAssessments(data: any) {
+async function handleCreateAssessments(engine: ReturnType<typeof createContentGenerationEngine>, data: any) {
   const { topics, assessmentType, config } = data;
 
   if (!topics || !Array.isArray(topics)) {
@@ -126,7 +123,6 @@ async function handleCreateAssessments(data: any) {
     keywords: topic.keywords || [],
   }));
 
-  const engine = getContentGenerationEngine();
   return await engine.createAssessments(
     topicObjects,
     assessmentType,
@@ -134,7 +130,7 @@ async function handleCreateAssessments(data: any) {
   );
 }
 
-async function handleGenerateStudyGuide(data: any, userId: string) {
+async function handleGenerateStudyGuide(engine: ReturnType<typeof createContentGenerationEngine>, data: any, userId: string) {
   const { courseId } = data;
 
   if (!courseId) {
@@ -176,11 +172,10 @@ async function handleGenerateStudyGuide(data: any, userId: string) {
     difficulty: course.difficulty?.toString() as string | undefined,
   };
 
-  const engine = getContentGenerationEngine();
   return await engine.generateStudyGuides(courseForSAM as any);
 }
 
-async function handleCreateExercises(data: any) {
+async function handleCreateExercises(engine: ReturnType<typeof createContentGenerationEngine>, data: any) {
   const { concepts, exerciseType } = data;
 
   if (!concepts || !Array.isArray(concepts)) {
@@ -198,14 +193,13 @@ async function handleCreateExercises(data: any) {
     skills: concept.skills || [],
   }));
 
-  const engine = getContentGenerationEngine();
   return await engine.createInteractiveExercises(
     conceptObjects,
     exerciseType
   );
 }
 
-async function handleTranslateContent(data: any) {
+async function handleTranslateContent(engine: ReturnType<typeof createContentGenerationEngine>, data: any) {
   const { content, targetLanguage } = data;
 
   if (!content || !content.title || !content.body) {
@@ -216,7 +210,6 @@ async function handleTranslateContent(data: any) {
     throw new Error("Target language is required");
   }
 
-  const engine = getContentGenerationEngine();
   return await engine.adaptContentLanguage(
     content,
     targetLanguage

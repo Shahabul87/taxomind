@@ -4,7 +4,7 @@ import {
   type MemorySystem,
   EmbeddingSourceType,
 } from '@sam-ai/agentic';
-import { getEmbeddingProvider } from '@/lib/sam/integration-adapters';
+import { getEmbeddingProvider } from '@/lib/sam/ai-provider';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
 
 let memorySystemPromise: Promise<MemorySystem> | null = null;

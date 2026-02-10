@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import {
   createEnhancedDepthAnalysisEngine,
@@ -127,7 +126,7 @@ interface FallbackMarketAnalysis {
   growthPotential: number;
 }
 
-async function integrateSAMEngineAnalysis(courseContent: LegacyCourseContent): Promise<LegacySAMAnalysis> {
+async function integrateSAMEngineAnalysis(courseContent: LegacyCourseContent, userId: string): Promise<LegacySAMAnalysis> {
   const samAnalysis: LegacySAMAnalysis = {
     bloomsAnalysis: {},
     marketAnalysis: {},
@@ -138,7 +137,7 @@ async function integrateSAMEngineAnalysis(courseContent: LegacyCourseContent): P
   try {
     // Run analyses in parallel for better performance
     const [bloomsResult, marketResult] = await Promise.allSettled([
-      analyzeBlooms(courseContent),
+      analyzeBlooms(courseContent, userId),
       analyzeMarket(courseContent)
     ]);
 
@@ -220,14 +219,15 @@ interface LegacyResource {
 }
 
 // SAM Blooms Analysis Engine Integration - Using Unified Engine
-async function analyzeBlooms(courseContent: LegacyCourseContent): Promise<FallbackBloomsAnalysis | Record<string, unknown>> {
+async function analyzeBlooms(courseContent: LegacyCourseContent, userId: string): Promise<FallbackBloomsAnalysis | Record<string, unknown>> {
   try {
     // Use the unified Bloom's engine from @sam-ai/educational
     const { createUnifiedBloomsEngine } = await import('@sam-ai/educational');
-    const { getSAMConfig, getDatabaseAdapter } = await import('@/lib/adapters');
+    const { getUserScopedSAMConfig, getDatabaseAdapter } = await import('@/lib/adapters');
 
+    const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
     const engine = createUnifiedBloomsEngine({
-      samConfig: getSAMConfig(),
+      samConfig,
       database: getDatabaseAdapter(),
       defaultMode: 'standard',
       confidenceThreshold: 0.7,
@@ -1645,7 +1645,7 @@ export async function POST(req: NextRequest) {
 
     // Integrate SAM Engine Analysis
 
-    const samAnalysis = await integrateSAMEngineAnalysis(courseContent);
+    const samAnalysis = await integrateSAMEngineAnalysis(courseContent, user.id);
 
     // Call AI for comprehensive analysis
     const analysisPrompt = `Conduct a comprehensive course depth analysis using Bloom's Taxonomy and educational best practices:
@@ -1830,7 +1830,7 @@ Use this exact JSON structure:
   }
 }`;
 
-    const response = await aiClient.chat({
+    const responseText = await runSAMChatWithPreference({
       userId: user.id,
       capability: 'analysis',
       maxTokens: 4000,
@@ -1842,8 +1842,6 @@ Use this exact JSON structure:
       }],
       extended: true,
     });
-
-    const responseText = response.content;
     if (!responseText) {
       throw new Error('Empty response from AI');
     }

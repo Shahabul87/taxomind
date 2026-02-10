@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Generate new summary
     const service = getConversationThreadingService();
-    const summary = await service.autoSummarize(conversationId);
+    const summary = await service.autoSummarize(conversationId, user.id);
 
     return NextResponse.json({
       success: true,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     const service = getConversationThreadingService();
-    const summary = await service.autoSummarize(conversationId);
+    const summary = await service.autoSummarize(conversationId, user.id);
 
     return NextResponse.json({
       success: true,

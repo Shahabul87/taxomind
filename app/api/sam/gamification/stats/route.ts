@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const summary = await getAchievementEngine().getSummary(session.user.id);
+    const summary = await (await getAchievementEngine()).getSummary(session.user.id);
 
     return NextResponse.json({
       success: true,

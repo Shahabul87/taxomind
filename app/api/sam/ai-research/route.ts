@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createResearchEngine } from '@sam-ai/educational';
 import type { ResearchDatabaseAdapter, ResearchPaper, ResearchCategory } from '@sam-ai/educational';
-import { getSAMConfig } from '@/lib/adapters';
+import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
@@ -29,17 +29,13 @@ function createResearchDatabaseAdapter(): ResearchDatabaseAdapter {
   };
 }
 
-// Lazy initialization of research engine to avoid build-time errors
-let _researchEngine: ReturnType<typeof createResearchEngine> | null = null;
-
-function getResearchEngine() {
-  if (!_researchEngine) {
-    _researchEngine = createResearchEngine({
-      samConfig: getSAMConfig(),
-      database: createResearchDatabaseAdapter(),
-    });
-  }
-  return _researchEngine;
+// Create a user-scoped research engine instance
+async function createResearchEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'course');
+  return createResearchEngine({
+    samConfig,
+    database: createResearchDatabaseAdapter(),
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -51,6 +47,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
+    const engine = await createResearchEngineForUser(session.user.id);
 
     switch (action) {
       case 'search': {
@@ -63,7 +60,7 @@ export async function GET(req: NextRequest) {
         const sort = searchParams.get('sort') as any;
         const limit = searchParams.get('limit');
 
-        const papers = await getResearchEngine().searchPapers({
+        const papers = await engine.searchPapers({
           query,
           filters: {
             categories,
@@ -80,7 +77,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'trends': {
-        const trends = await getResearchEngine().getResearchTrends();
+        const trends = await engine.getResearchTrends();
         return NextResponse.json({ trends });
       }
 
@@ -90,7 +87,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Paper ID required' }, { status: 400 });
         }
 
-        const paper = await getResearchEngine().getPaperDetails(paperId);
+        const paper = await engine.getPaperDetails(paperId);
         if (!paper) {
           return NextResponse.json({ error: 'Paper not found' }, { status: 404 });
         }
@@ -101,12 +98,12 @@ export async function GET(req: NextRequest) {
       case 'citations': {
         const paperId = searchParams.get('paperId');
         const depth = searchParams.get('depth');
-        
+
         if (!paperId) {
           return NextResponse.json({ error: 'Paper ID required' }, { status: 400 });
         }
 
-        const network = await getResearchEngine().getCitationNetwork(
+        const network = await engine.getCitationNetwork(
           paperId,
           depth ? parseInt(depth) : 1
         );
@@ -122,12 +119,12 @@ export async function GET(req: NextRequest) {
       case 'recommend': {
         const paperId = searchParams.get('paperId');
         const count = searchParams.get('count');
-        
+
         if (!paperId) {
           return NextResponse.json({ error: 'Paper ID required' }, { status: 400 });
         }
 
-        const recommendations = await getResearchEngine().recommendPapers(
+        const recommendations = await engine.recommendPapers(
           paperId,
           count ? parseInt(count) : 5
         );
@@ -139,7 +136,7 @@ export async function GET(req: NextRequest) {
         const difficulty = searchParams.get('difficulty') || undefined;
         const prerequisites = searchParams.get('prerequisites')?.split(',').filter(Boolean) || undefined;
 
-        const papers = await getResearchEngine().getEducationalPapers(
+        const papers = await engine.getEducationalPapers(
           difficulty,
           prerequisites
         );
@@ -151,18 +148,18 @@ export async function GET(req: NextRequest) {
         const field = searchParams.get('field') || 'AI';
         const timeframe = searchParams.get('timeframe') as any || 'month';
 
-        const metrics = await getResearchEngine().getMetrics(field, timeframe);
+        const metrics = await engine.getMetrics(field, timeframe);
         return NextResponse.json({ metrics });
       }
 
       case 'reading-lists': {
-        const lists = await getResearchEngine().getReadingLists(session.user.id);
+        const lists = await engine.getReadingLists(session.user.id);
         return NextResponse.json({ lists });
       }
 
       default: {
         // Default: search all papers
-        const papers = await getResearchEngine().searchPapers({ query: '' });
+        const papers = await engine.searchPapers({ query: '' });
         return NextResponse.json({ papers });
       }
     }
@@ -184,16 +181,17 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { action, ...params } = body;
+    const engine = await createResearchEngineForUser(session.user.id);
 
     switch (action) {
       case 'literature-review': {
         const { topic, scope, paperIds } = params;
-        
+
         if (!topic || !scope) {
           return NextResponse.json({ error: 'Topic and scope required' }, { status: 400 });
         }
 
-        const review = await getResearchEngine().generateLiteratureReview(
+        const review = await engine.generateLiteratureReview(
           topic,
           scope,
           paperIds
@@ -204,12 +202,12 @@ export async function POST(req: NextRequest) {
 
       case 'create-reading-list': {
         const { name, description, paperIds, visibility } = params;
-        
+
         if (!name || !description || !paperIds) {
           return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        const list = await getResearchEngine().createReadingList(
+        const list = await engine.createReadingList(
           session.user.id,
           name,
           description,
@@ -222,12 +220,12 @@ export async function POST(req: NextRequest) {
 
       case 'record-interaction': {
         const { paperId, interactionType } = params;
-        
+
         if (!paperId || !interactionType) {
           return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        await getResearchEngine().recordInteraction(
+        await engine.recordInteraction(
           session.user.id,
           paperId,
           interactionType
@@ -239,14 +237,14 @@ export async function POST(req: NextRequest) {
       case 'analyze-papers': {
         // Advanced analysis of multiple papers
         const { paperIds, analysisType } = params;
-        
+
         if (!paperIds || !Array.isArray(paperIds)) {
           return NextResponse.json({ error: 'Paper IDs array required' }, { status: 400 });
         }
 
         // Get all papers
         const papers = await Promise.all(
-          paperIds.map(id => getResearchEngine().getPaperDetails(id))
+          paperIds.map(id => engine.getPaperDetails(id))
         );
 
         const validPapers = papers.filter(p => p !== null);
@@ -272,7 +270,7 @@ export async function POST(req: NextRequest) {
 
       case 'export-bibtex': {
         const { paperIds } = params;
-        
+
         if (!paperIds || !Array.isArray(paperIds)) {
           return NextResponse.json({ error: 'Paper IDs array required' }, { status: 400 });
         }
@@ -280,14 +278,14 @@ export async function POST(req: NextRequest) {
         // Generate BibTeX entries
         const bibtexEntries = await Promise.all(
           paperIds.map(async (id) => {
-            const paper = await getResearchEngine().getPaperDetails(id);
+            const paper = await engine.getPaperDetails(id);
             if (!paper) return null;
             return generateBibtex(paper);
           })
         );
 
         const bibtex = bibtexEntries.filter((e): e is string => e !== null).join('\n\n');
-        
+
         return NextResponse.json({ bibtex });
       }
 

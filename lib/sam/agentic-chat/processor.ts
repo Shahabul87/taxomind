@@ -4,7 +4,7 @@ import {
 } from '@/lib/sam/agentic-bridge';
 import { ensureToolingInitialized, ensureDefaultToolPermissions, mapUserToToolRole } from '@/lib/sam/agentic-tooling';
 import { planToolInvocation } from '@/lib/sam/tool-planner';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { createUserScopedAdapter } from '@/lib/ai/user-scoped-adapter';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { SAM_FEATURES } from '@/lib/sam/feature-flags';
 import { getCoordinatorBridge } from './coordinator-bridge';
@@ -231,14 +231,13 @@ export class AgenticChatProcessor {
     toolHints: string[]
   ): Promise<AgenticToolResult | null> {
     // Ensure tooling is initialized and user has permissions
-    await ensureToolingInitialized();
+    await ensureToolingInitialized(this.userId);
     await ensureDefaultToolPermissions(
       this.userId,
       mapUserToToolRole(null) // Default student role
     );
 
-    const aiAdapter = await getCoreAIAdapter();
-    if (!aiAdapter) return null;
+    const aiAdapter = await createUserScopedAdapter(this.userId, 'chat');
 
     const tools = await this.bridge.getAvailableTools();
     if (tools.length === 0) return null;

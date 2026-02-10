@@ -364,7 +364,7 @@ export async function runContextGatheringStage(
   // ----- 4. Tools awareness summary -----
   let toolsSummary: string | undefined;
   try {
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(ctx.user.id);
     const allTools = await tooling.toolRegistry.listTools({
       enabled: true,
       deprecated: false,

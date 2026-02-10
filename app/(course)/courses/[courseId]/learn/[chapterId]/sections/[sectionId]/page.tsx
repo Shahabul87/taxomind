@@ -15,9 +15,9 @@ export const revalidate = 0;
 
 // Input validation schema
 const SectionPageParamsSchema = z.object({
-  courseId: z.string().uuid("Invalid course ID format"),
-  chapterId: z.string().uuid("Invalid chapter ID format"),
-  sectionId: z.string().uuid("Invalid section ID format"),
+  courseId: z.string().min(1, "Course ID is required"),
+  chapterId: z.string().min(1, "Chapter ID is required"),
+  sectionId: z.string().min(1, "Section ID is required"),
 });
 
 interface SectionPageProps {

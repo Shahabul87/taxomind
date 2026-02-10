@@ -30,7 +30,7 @@ import { getToolRegistryCache } from '@/lib/sam/stores/prisma-tool-store';
 import { getIntegrationProfile, getStore } from '@/lib/sam/taxomind-context';
 import { createToolRepositories } from '@/lib/sam/tool-repositories';
 import { createExternalAPITools } from '@/lib/sam/agentic-external-api-tools';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter, getSAMAdapterSystem } from '@/lib/sam/ai-provider';
 import { registerAdapter } from '@/lib/sam/tools/adapters/tool-adapter-interface';
 import { createWikipediaAdapter } from '@/lib/sam/tools/adapters/wikipedia-adapter';
 import { createDictionaryAdapter } from '@/lib/sam/tools/adapters/dictionary-adapter';
@@ -71,7 +71,16 @@ export function resetToolingAdapterCache(): void {
   logger.info('[Tooling] Adapter cache cleared, tools will re-register');
 }
 
-async function getToolAiAdapter(): Promise<AIAdapter | null> {
+async function getToolAiAdapter(userId?: string): Promise<AIAdapter | null> {
+  // When userId is available, create a user-scoped adapter (skip singleton)
+  if (userId) {
+    try {
+      return await getSAMAdapter({ userId, capability: 'chat' });
+    } catch {
+      logger.warn('[Tooling] User-scoped adapter failed, falling back to system adapter');
+    }
+  }
+
   if (toolAiAdapter) {
     return toolAiAdapter;
   }
@@ -81,7 +90,7 @@ async function getToolAiAdapter(): Promise<AIAdapter | null> {
   }
 
   toolAiAdapterPromise = (async () => {
-    const adapter = await getCoreAIAdapter();
+    const adapter = await getSAMAdapterSystem();
     if (!adapter) {
       logger.warn('[Tooling] AI adapter unavailable - AI-powered tools disabled');
       return null;
@@ -156,14 +165,14 @@ function applyToolConfig(tool: ToolDefinition, config?: ToolConfiguration): void
  * Register mentor tools with Promise-based locking to prevent race conditions.
  * Multiple concurrent calls will wait for the first registration to complete.
  */
-async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
+async function registerMentorTools(toolRegistry: ToolRegistry, userId?: string): Promise<void> {
   // If registration is already in progress, wait for it
   if (toolRegistrationPromise) {
     return toolRegistrationPromise;
   }
 
   // Start registration and store the promise for concurrent callers
-  toolRegistrationPromise = doRegisterMentorTools(toolRegistry);
+  toolRegistrationPromise = doRegisterMentorTools(toolRegistry, userId);
 
   try {
     await toolRegistrationPromise;
@@ -174,8 +183,8 @@ async function registerMentorTools(toolRegistry: ToolRegistry): Promise<void> {
   }
 }
 
-async function doRegisterMentorTools(toolRegistry: ToolRegistry): Promise<void> {
-  const aiAdapter = await getToolAiAdapter();
+async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string): Promise<void> {
+  const aiAdapter = await getToolAiAdapter(userId);
   if (!aiAdapter) {
     logger.warn('[Tooling] Skipping mentor tools registration - AI adapter not available');
     return;
@@ -426,13 +435,13 @@ export function getToolingSystem(): ToolingSystem {
   return toolingSystem;
 }
 
-export async function ensureToolingInitialized(): Promise<ToolingSystem> {
+export async function ensureToolingInitialized(userId?: string): Promise<ToolingSystem> {
   logger.info('[Tooling] ensureToolingInitialized called');
   try {
     const system = getToolingSystem();
     logger.info('[Tooling] Got tooling system');
 
-    await registerMentorTools(system.toolRegistry);
+    await registerMentorTools(system.toolRegistry, userId);
     logger.info('[Tooling] Mentor tools registered');
 
     await registerExternalAPITools(system.toolRegistry);

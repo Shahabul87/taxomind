@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { BloomsLevel, EvaluationType } from '@prisma/client';
-import { aiClient } from '@/lib/ai/enterprise-client';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 
 // ==========================================
 // Subjective Answer Evaluator Types
@@ -86,6 +86,7 @@ export interface Misconception {
 }
 
 export interface BatchEvaluationRequest {
+  userId: string;
   answers: {
     answerId: string;
     studentAnswer: string;
@@ -114,19 +115,22 @@ export class SubjectiveEvaluator {
    */
   async evaluateAnswer(
     studentAnswer: string,
-    context: EvaluationContext
+    context: EvaluationContext,
+    userId: string
   ): Promise<SubjectiveEvaluationResult> {
     const systemPrompt = this.buildEvaluationSystemPrompt(context);
     const userPrompt = this.buildEvaluationUserPrompt(studentAnswer, context);
 
-    const response = await aiClient.chat({
+    const evaluationContent = await runSAMChatWithPreference({
+      userId,
+      capability: 'analysis',
       systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
       maxTokens: 2000,
       temperature: 0.3,
     });
 
-    return this.parseEvaluationResponse(response.content, context);
+    return this.parseEvaluationResponse(evaluationContent, context);
   }
 
   /**
@@ -144,7 +148,7 @@ export class SubjectiveEvaluator {
       const batchResults = await Promise.all(
         batch.map(async (item) => ({
           answerId: item.answerId,
-          result: await this.evaluateAnswer(item.studentAnswer, item.context),
+          result: await this.evaluateAnswer(item.studentAnswer, item.context, request.userId),
         }))
       );
       batchResults.forEach((r) => results.set(r.answerId, r.result));
@@ -562,7 +566,8 @@ Please evaluate this answer according to the guidelines and provide your assessm
   async quickEvaluate(
     studentAnswer: string,
     expectedAnswer: string,
-    maxPoints: number
+    maxPoints: number,
+    userId: string
   ): Promise<{ score: number; isCorrect: boolean; feedback: string }> {
     const systemPrompt = `You are a quick answer evaluator. Compare the student answer with the expected answer and determine if it's correct, partially correct, or incorrect.
 
@@ -573,7 +578,9 @@ Respond in JSON format:
   "feedback": "<brief feedback>"
 }`;
 
-    const response = await aiClient.chat({
+    const text = await runSAMChatWithPreference({
+      userId,
+      capability: 'analysis',
       systemPrompt,
       messages: [
         {
@@ -584,8 +591,6 @@ Respond in JSON format:
       maxTokens: 300,
       temperature: 0.2,
     });
-
-    const text = response.content;
 
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);

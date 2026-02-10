@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { SectionWithProgress, UserProgressData } from "@/types/learning";
 
 interface ContentProgress {
   videos: { total: number; completed: number };
@@ -32,9 +33,9 @@ interface ContentProgress {
 }
 
 interface SectionProgressTrackerProps {
-  section: any;
+  section: SectionWithProgress;
   sectionId: string;
-  userProgress?: any;
+  userProgress?: UserProgressData | null;
   onComplete?: () => void;
 }
 
@@ -137,7 +138,7 @@ export function SectionProgressTracker({
     if (value >= 75) return "bg-blue-500";
     if (value >= 50) return "bg-yellow-500";
     if (value >= 25) return "bg-orange-500";
-    return "bg-gray-400";
+    return "bg-slate-400";
   };
 
   // Get achievement level
@@ -146,14 +147,14 @@ export function SectionProgressTracker({
     if (progress >= 75) return { icon: Zap, label: "Almost There", color: "text-blue-500" };
     if (progress >= 50) return { icon: TrendingUp, label: "Halfway", color: "text-yellow-500" };
     if (progress >= 25) return { icon: Target, label: "Getting Started", color: "text-orange-500" };
-    return { icon: BookOpen, label: "Just Started", color: "text-gray-500" };
+    return { icon: BookOpen, label: "Just Started", color: "text-slate-500" };
   };
 
   const achievement = getAchievementLevel();
   const AchievementIcon = achievement.icon;
 
   return (
-    <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200/50 dark:border-slate-700/50 shadow-lg">
+    <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -246,7 +247,7 @@ export function SectionProgressTracker({
             </p>
           </div>
         ) : (
-          <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 text-center">
+          <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-center">
             <p className="text-xs text-muted-foreground">
               Complete all content to finish this section
             </p>

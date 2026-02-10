@@ -6,7 +6,7 @@
  * even during AI provider outages or circuit breaker activation.
  */
 
-import { getAdapterStatus } from '@/lib/sam/integration-adapters';
+import { getAdapterStatus } from '@/lib/sam/ai-provider';
 import type { IntentType } from '@/lib/sam/agentic-chat/types';
 
 // =============================================================================

@@ -5,7 +5,7 @@ import { currentUser } from '@/lib/auth';
 import { BloomsLevel, EvaluationType } from '@prisma/client';
 import { createEvaluationEngine, createUnifiedBloomsEngine } from '@sam-ai/educational';
 import type { EvaluationContext, UnifiedSpacedRepetitionInput } from '@sam-ai/educational';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 import {
   wrapEvaluationWithSafety,
@@ -26,35 +26,30 @@ import {
   bridgeAssessmentToBehaviorMonitor,
 } from '@/lib/sam/cross-feature-bridge';
 
-// Create engine singletons with portable packages
-let evaluationEngine: ReturnType<typeof createEvaluationEngine> | null = null;
-let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
+// Per-request engine factories (user-scoped AI provider)
+async function createEvalEngine(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createEvaluationEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
+}
+
+async function createBloomsEngine(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createUnifiedBloomsEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  });
+}
+
+// Non-AI singletons (no provider resolution needed)
 let masteryTracker: MasteryTracker | null = null;
 let spacedRepScheduler: ReturnType<typeof createSpacedRepetitionScheduler> | null = null;
-
-function getEvaluationEngine() {
-  if (!evaluationEngine) {
-    evaluationEngine = createEvaluationEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return evaluationEngine;
-}
-
-function getUnifiedBloomsEngine() {
-  if (!unifiedBloomsEngine) {
-    unifiedBloomsEngine = createUnifiedBloomsEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-      defaultMode: 'standard',
-      confidenceThreshold: 0.7,
-      enableCache: true,
-      cacheTTL: 3600,
-    });
-  }
-  return unifiedBloomsEngine;
-}
 
 function getMasteryTracker() {
   if (!masteryTracker) {
@@ -116,6 +111,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validatedData = EvaluateAnswersSchema.parse(body);
 
+    // Create user-scoped AI engines
+    const evalEngine = await createEvalEngine(user.id);
+    const bloomsEngine = await createBloomsEngine(user.id);
+
     // Get the attempt with exam and questions
     const attempt = await db.userExamAttempt.findUnique({
       where: { id: validatedData.attemptId },
@@ -168,7 +167,8 @@ export async function POST(request: Request) {
       const result = await evaluateAnswer(
         question,
         answerData.answer,
-        attempt.Exam.section.learningObjectiveItems
+        attempt.Exam.section.learningObjectiveItems,
+        evalEngine
       );
 
       results.push(result);
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
       });
 
       // Update cognitive progress using unified Bloom's engine
-      const blooms = getUnifiedBloomsEngine();
+      const blooms = bloomsEngine;
       await blooms.updateCognitiveProgress(
         user.id,
         attempt.Exam.sectionId,
@@ -216,7 +216,7 @@ export async function POST(request: Request) {
     });
 
     // Log learning activity using unified Bloom's engine
-    const blooms = getUnifiedBloomsEngine();
+    const blooms = bloomsEngine;
     await blooms.logLearningActivity(user.id, 'TAKE_EXAM', {
       sectionId: attempt.Exam.sectionId,
       courseId: attempt.Exam.section.chapter?.courseId,
@@ -436,7 +436,8 @@ export async function POST(request: Request) {
 async function evaluateAnswer(
   question: any,
   studentAnswer: string,
-  learningObjectives: any[]
+  learningObjectives: any[],
+  engine: ReturnType<typeof createEvaluationEngine>
 ): Promise<EvaluationResult> {
   const questionType = question.questionType;
 
@@ -458,8 +459,7 @@ async function evaluateAnswer(
     relatedConcepts: question.relatedConcepts,
   };
 
-  const evalEngine = getEvaluationEngine();
-  const evaluation = await evalEngine.evaluateAnswer(studentAnswer, context);
+  const evaluation = await engine.evaluateAnswer(studentAnswer, context);
 
   // Wrap evaluation with safety validation
   const safeEvaluation: SafeEvaluationResult = await wrapEvaluationWithSafety(
@@ -490,7 +490,7 @@ async function evaluateAnswer(
   }
 
   // Store AI evaluation record using portable engine (with safe feedback)
-  await evalEngine.storeEvaluationResult(
+  await engine.storeEvaluationResult(
     `temp_${question.id}_${Date.now()}`, // Temporary ID, will be updated when answer is created
     question.id,
     {

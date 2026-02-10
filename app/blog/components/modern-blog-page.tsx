@@ -36,6 +36,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 // Enhanced components
 import { ModernHeroSectionOptimized } from "./blog-hero-section-optimized";
@@ -43,6 +44,7 @@ import { BlogSidebarEnhanced } from "./blog-sidebar-enhanced";
 import { BlogCardEnhanced } from "./blog-card-enhanced";
 import { BlogEmptyState } from "./blog-empty-state";
 import { BlogCardSkeleton, HeroSkeleton } from "./blog-skeleton";
+import { HomeFooter } from "@/app/(homepage)/HomeFooter";
 
 // Shared types
 import type { BlogPost, ModernBlogPageProps, BlogStatistics } from "./types";
@@ -56,6 +58,7 @@ export function ModernBlogPage({
   initialPosts,
   categories,
   trendingPosts,
+  userId,
 }: ModernBlogPageProps) {
   const [posts, setPosts] = useState(initialPosts);
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -96,9 +99,7 @@ export function ModernBlogPage({
           setStatistics(result.data);
         }
       } catch (error) {
-        if (process.env.NODE_ENV === "development") {
-          console.error("Failed to fetch blog statistics:", error);
-        }
+        logger.error("Failed to fetch blog statistics:", error);
 
         if (mounted) {
           setStatistics({
@@ -129,20 +130,21 @@ export function ModernBlogPage({
     };
 
     // Defer stats fetch to idle time
-    let idleId: number | null = null;
-    if (typeof (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback === "function") {
-      idleId = (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(fetchStatistics, { timeout: 1500 });
+    let idleId: ReturnType<typeof setTimeout> | null = null;
+    if ("requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(fetchStatistics, { timeout: 1500 }) as unknown as ReturnType<typeof setTimeout>;
     } else {
-      const timeoutId = setTimeout(fetchStatistics, 300);
-      idleId = timeoutId as unknown as number;
+      idleId = setTimeout(fetchStatistics, 300);
     }
 
     return () => {
       mounted = false;
-      if (typeof (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback === "function" && idleId) {
-        (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(idleId);
-      } else if (idleId) {
-        clearTimeout(idleId as unknown as number);
+      if (idleId !== null) {
+        if ("cancelIdleCallback" in window) {
+          window.cancelIdleCallback(idleId as unknown as number);
+        } else {
+          clearTimeout(idleId);
+        }
       }
     };
   }, [initialPosts]);
@@ -286,12 +288,13 @@ export function ModernBlogPage({
     selectedCategory === "all" && featuredPosts.length >= 2;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       {/* Hero Section */}
       <ModernHeroSectionOptimized
         featuredPosts={featuredPosts}
         statistics={statistics}
         isLoading={statsLoading}
+        userId={userId}
       />
 
       {/* Main Content */}
@@ -301,8 +304,8 @@ export function ModernBlogPage({
           <div className="flex flex-col gap-4 mb-4">
             {/* Search Input */}
             <div className="relative group">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 rounded-xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5 transition-colors group-focus-within:text-indigo-500" />
+              <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 via-indigo-500/20 to-purple-500/20 rounded-xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5 transition-colors group-focus-within:text-violet-500" />
               <Label htmlFor="blog-search" className="sr-only">
                 Search articles
               </Label>
@@ -311,7 +314,7 @@ export function ModernBlogPage({
                 placeholder="Search articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="relative pl-12 pr-12 h-12 text-base bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 rounded-xl focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-indigo-400/20 shadow-sm transition-all duration-300"
+                className="relative pl-12 pr-12 h-12 text-base bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60 text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 rounded-xl focus:border-violet-400 dark:focus:border-violet-500 focus:ring-violet-400/20 shadow-sm transition-all duration-300"
                 autoComplete="off"
                 aria-label="Search articles"
               />
@@ -337,7 +340,7 @@ export function ModernBlogPage({
                 }
               >
                 <SelectTrigger
-                  className="flex-1 sm:flex-none sm:w-[160px] h-11 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60 text-slate-900 dark:text-white rounded-xl shadow-sm hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors"
+                  className="flex-1 sm:flex-none sm:w-[160px] h-11 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60 text-slate-900 dark:text-white rounded-xl shadow-sm hover:border-violet-300 dark:hover:border-violet-700 transition-colors"
                   aria-label="Sort articles by"
                 >
                   <SelectValue placeholder="Sort by" />
@@ -360,7 +363,7 @@ export function ModernBlogPage({
                     className={cn(
                       "flex-1 sm:flex-none h-11 px-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-slate-200/60 dark:border-slate-700/60 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-700/80 rounded-xl shadow-sm transition-all",
                       (minViews > 0 || dateRange !== "all") &&
-                        "border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/30"
+                        "border-violet-300 dark:border-violet-700 bg-violet-50/50 dark:bg-violet-950/30"
                     )}
                   >
                     <SlidersHorizontal className="w-4 h-4 mr-2" />
@@ -369,7 +372,7 @@ export function ModernBlogPage({
                     {(minViews > 0 || dateRange !== "all") && (
                       <Badge
                         variant="secondary"
-                        className="ml-2 h-5 px-1.5 text-xs bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300"
+                        className="ml-2 h-5 px-1.5 text-xs bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
                       >
                         {(minViews > 0 ? 1 : 0) + (dateRange !== "all" ? 1 : 0)}
                       </Badge>
@@ -380,7 +383,7 @@ export function ModernBlogPage({
                   <div className="space-y-5">
                     <div className="space-y-2">
                       <h4 className="font-semibold text-sm flex items-center gap-2 text-slate-900 dark:text-white">
-                        <Filter className="w-4 h-4 text-indigo-500" />
+                        <Filter className="w-4 h-4 text-violet-500" />
                         Advanced Filters
                       </h4>
                       <Separator className="bg-slate-200 dark:bg-slate-700" />
@@ -420,7 +423,7 @@ export function ModernBlogPage({
                         className="text-sm font-medium text-slate-700 dark:text-slate-300"
                       >
                         Minimum Views:{" "}
-                        <span className="text-indigo-600 dark:text-indigo-400 font-bold">
+                        <span className="text-violet-600 dark:text-violet-400 font-bold">
                           {minViews > 0 ? minViews.toLocaleString() : "Any"}
                         </span>
                       </Label>
@@ -455,7 +458,7 @@ export function ModernBlogPage({
                       </Button>
                       <Button
                         size="sm"
-                        className="h-9 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                        className="h-9 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
                         onClick={() => setIsFilterPopoverOpen(false)}
                       >
                         Apply Filters
@@ -474,7 +477,7 @@ export function ModernBlogPage({
                   className={cn(
                     "rounded-none h-11 w-11 transition-all",
                     viewMode === "grid"
-                      ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300"
+                      ? "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   )}
                   aria-label="Switch to grid view"
@@ -489,7 +492,7 @@ export function ModernBlogPage({
                   className={cn(
                     "rounded-none h-11 w-11 transition-all",
                     viewMode === "list"
-                      ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300"
+                      ? "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300"
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                   )}
                   aria-label="Switch to list view"
@@ -509,7 +512,7 @@ export function ModernBlogPage({
               {searchQuery && (
                 <Badge
                   variant="secondary"
-                  className="gap-1.5 text-xs bg-indigo-100/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-0"
+                  className="gap-1.5 text-xs bg-violet-100/80 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border-0"
                 >
                   Search: &quot;{searchQuery.slice(0, 20)}
                   {searchQuery.length > 20 ? "..." : ""}&quot;
@@ -591,7 +594,7 @@ export function ModernBlogPage({
                 <TabsTrigger
                   key={category.id}
                   value={category.id}
-                  className="whitespace-nowrap h-10 px-4 text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-indigo-500/25 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-300"
+                  className="whitespace-nowrap h-10 px-4 text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-violet-500/25 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all duration-300"
                   aria-label={`Filter by ${category.name} category`}
                 >
                   {category.name}
@@ -639,7 +642,7 @@ export function ModernBlogPage({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 group"
+                      className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 group"
                     >
                       View All
                       <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
@@ -676,12 +679,12 @@ export function ModernBlogPage({
               <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <div className="flex items-center gap-3 flex-wrap">
                   <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-indigo-500" />
+                    <BookOpen className="w-5 h-5 text-violet-500" />
                     {getCurrentCategoryName()}
                   </h2>
                   <Badge
                     variant="secondary"
-                    className="text-sm bg-indigo-100/80 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
+                    className="text-sm bg-violet-100/80 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
                   >
                     {filteredPosts.length}{" "}
                     {filteredPosts.length === 1 ? "article" : "articles"}
@@ -752,6 +755,7 @@ export function ModernBlogPage({
                     categoryName={
                       categories.find((c) => c.id === selectedCategory)?.name
                     }
+                    userId={userId}
                     onClearFilters={clearAllFilters}
                   />
                 )}
@@ -763,7 +767,7 @@ export function ModernBlogPage({
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full sm:w-auto px-8 py-6 text-base font-medium border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl shadow-sm group transition-all"
+                    className="w-full sm:w-auto px-8 py-6 text-base font-medium border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30 rounded-xl shadow-sm group transition-all"
                   >
                     <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
                     Load More Articles
@@ -796,6 +800,9 @@ export function ModernBlogPage({
           />
         </div>
       </div>
+
+      {/* Footer */}
+      <HomeFooter />
     </div>
   );
 }

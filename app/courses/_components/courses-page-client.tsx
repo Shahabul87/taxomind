@@ -57,6 +57,7 @@ import { CourseComparisonTool } from "./course-comparison-tool";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 interface CourseData {
   id: string;
@@ -274,7 +275,6 @@ export function CoursesPageClient({
 
     // Use window.history.replaceState to update URL without page reload
     window.history.replaceState(null, "", newUrl);
-    console.log('[CoursesPageClient] URL updated without reload:', newUrl);
   }, [
     searchQuery,
     viewMode,
@@ -291,14 +291,6 @@ export function CoursesPageClient({
 
   // Fetch courses when filters change
   const fetchCourses = useCallback(async () => {
-    console.log('[CoursesPageClient] Fetching courses with filters:', {
-      selectedCategories,
-      selectedPriceRange,
-      selectedDifficulties,
-      debouncedSearchQuery,
-      currentPage
-    });
-
     setIsLoading(true);
 
     try {
@@ -335,18 +327,15 @@ export function CoursesPageClient({
         params.set("features", selectedFeatures.join(","));
       }
 
-      console.log('[CoursesPageClient] API URL:', `/api/courses/search?${params.toString()}`);
       const response = await fetch(`/api/courses/search?${params.toString()}`);
       const data = await response.json();
 
-      console.log('[CoursesPageClient] API Response:', data);
       if (data.success) {
         setCourses(data.data.courses);
-        setTotalCount(data.data.pagination.totalCount); // Update dynamic count
-        console.log('[CoursesPageClient] Updated courses:', data.data.courses.length, 'Total:', data.data.pagination.totalCount);
+        setTotalCount(data.data.pagination.totalCount);
       }
     } catch (error) {
-      console.error("Error fetching courses:", error);
+      logger.error("Error fetching courses:", error);
     } finally {
       setIsLoading(false);
     }

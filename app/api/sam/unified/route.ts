@@ -121,12 +121,12 @@ export async function POST(request: NextRequest) {
   const failedStages: string[] = [];
 
   try {
-    // 0. Initialize subsystems (singleton, cached after first call)
-    const subsystems = await initializeSubsystems();
-
     // 1. Auth + subscription + rate limit
     const auth = await runAuthStage(request);
     if ('response' in auth) return auth.response;
+
+    // 0. Initialize subsystems (singleton, cached after first call)
+    const subsystems = await initializeSubsystems(auth.ctx.user.id);
 
     // 2. Validate request body, classify intent, create agentic bridge
     const body = await request.json();

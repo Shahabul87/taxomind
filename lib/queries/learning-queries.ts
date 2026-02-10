@@ -101,10 +101,12 @@ export async function getLearningPageData({
                 orderBy: { position: 'asc' },
               },
               // Include published exams for the current section
+              // SECURITY: No ExamQuestion data sent to client — questions are only
+              // fetched when the student creates an attempt (via the attempts API)
               exams: {
                 where: {
                   sectionId,
-                  isPublished: true, // Only show published exams to students
+                  isPublished: true,
                 },
                 orderBy: { createdAt: 'asc' },
                 select: {
@@ -114,23 +116,28 @@ export async function getLearningPageData({
                   timeLimit: true,
                   passingScore: true,
                   attempts: true,
+                  instructions: true,
                   isPublished: true,
                   createdAt: true,
-                  ExamQuestion: {
-                    orderBy: { order: 'asc' },
-                    select: {
-                      id: true,
-                      question: true,
-                      questionType: true,
-                      difficulty: true,
-                      bloomsLevel: true,
-                      points: true,
-                      order: true,
-                      options: true,
-                      correctAnswer: true,
-                      explanation: true,
-                    },
-                  },
+                  _count: { select: { ExamQuestion: true } },
+                  // Include user's attempt history (if logged in)
+                  UserExamAttempt: userId
+                    ? {
+                        where: { userId },
+                        orderBy: { attemptNumber: 'desc' as const },
+                        select: {
+                          id: true,
+                          attemptNumber: true,
+                          status: true,
+                          scorePercentage: true,
+                          isPassed: true,
+                          submittedAt: true,
+                          timeSpent: true,
+                          correctAnswers: true,
+                          totalQuestions: true,
+                        },
+                      }
+                    : false,
                 },
               },
             },

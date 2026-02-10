@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createTrendsEngine } from '@sam-ai/educational';
-import { getSAMConfig, createTrendsAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, createTrendsAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
@@ -20,35 +20,14 @@ import { rateLimiters, RateLimiter, rateLimitResponse } from '@/lib/rate-limiter
 type TrendHorizon = '3months' | '6months' | '1year' | '2years';
 type TrendInteractionType = 'analyze' | 'view' | 'save' | 'share';
 
-// Create trends engine singleton
-let trendsEngine: ReturnType<typeof createTrendsEngine> | null = null;
-
-function getTrendsEngine() {
-  if (!trendsEngine) {
-    trendsEngine = createTrendsEngine({
-      samConfig: getSAMConfig(),
-      database: createTrendsAdapter(db),
-    });
-  }
-  return trendsEngine;
+// Create a user-scoped trends engine (no singleton - scoped per request)
+async function createTrendsEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createTrendsEngine({
+    samConfig,
+    database: createTrendsAdapter(db),
+  });
 }
-
-// Backward compatibility alias with proper types
-const samTrendsEngine = {
-  analyzeTrends: (filter?: Record<string, unknown>) => getTrendsEngine().analyzeTrends(filter),
-  getTrendCategories: () => getTrendsEngine().getTrendCategories(),
-  detectMarketSignals: (trendId: string) => getTrendsEngine().detectMarketSignals(trendId),
-  compareTrends: (id1: string, id2: string) => getTrendsEngine().compareTrends(id1, id2),
-  predictTrendTrajectory: (id: string, horizon: TrendHorizon) =>
-    getTrendsEngine().predictTrendTrajectory(id, horizon),
-  generateIndustryReport: (industry: string) => getTrendsEngine().generateIndustryReport(industry),
-  searchTrends: (query: string) => getTrendsEngine().searchTrends(query),
-  getTrendingNow: () => getTrendsEngine().getTrendingNow(),
-  getEmergingTrends: () => getTrendsEngine().getEmergingTrends(),
-  getEducationalTrends: () => getTrendsEngine().getEducationalTrends(),
-  recordInteraction: (userId: string, trendId: string, type: TrendInteractionType) =>
-    getTrendsEngine().recordInteraction(userId, trendId, type),
-};
 
 // Error response helper
 function errorResponse(message: string, status: number = 400) {
@@ -88,6 +67,8 @@ export async function GET(req: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
+    const trendsEngine = await createTrendsEngineForUser(session.user.id);
+
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
 
@@ -105,12 +86,12 @@ export async function GET(req: NextRequest) {
           return errorResponse(validation.error);
         }
 
-        const trends = await samTrendsEngine.analyzeTrends(validation.data);
+        const trends = await trendsEngine.analyzeTrends(validation.data);
         return NextResponse.json({ trends });
       }
 
       case 'categories': {
-        const categories = await samTrendsEngine.getTrendCategories();
+        const categories = await trendsEngine.getTrendCategories();
         return NextResponse.json({ categories });
       }
 
@@ -126,7 +107,7 @@ export async function GET(req: NextRequest) {
         }
 
         try {
-          const signals = await samTrendsEngine.detectMarketSignals(trendId);
+          const signals = await trendsEngine.detectMarketSignals(trendId);
           return NextResponse.json({ signals });
         } catch (error) {
           return errorResponse('Trend not found', 404);
@@ -145,7 +126,7 @@ export async function GET(req: NextRequest) {
         }
 
         try {
-          const comparison = await samTrendsEngine.compareTrends(
+          const comparison = await trendsEngine.compareTrends(
             validation.data.trendId1,
             validation.data.trendId2
           );
@@ -167,7 +148,7 @@ export async function GET(req: NextRequest) {
         }
 
         try {
-          const prediction = await samTrendsEngine.predictTrendTrajectory(
+          const prediction = await trendsEngine.predictTrendTrajectory(
             validation.data.trendId,
             validation.data.horizon
           );
@@ -187,7 +168,7 @@ export async function GET(req: NextRequest) {
           return errorResponse(validation.error);
         }
 
-        const report = await samTrendsEngine.generateIndustryReport(
+        const report = await trendsEngine.generateIndustryReport(
           sanitizeString(validation.data.industry)
         );
         return NextResponse.json({ report });
@@ -203,30 +184,30 @@ export async function GET(req: NextRequest) {
           return errorResponse(validation.error);
         }
 
-        const results = await samTrendsEngine.searchTrends(
+        const results = await trendsEngine.searchTrends(
           sanitizeString(validation.data.query)
         );
         return NextResponse.json({ results });
       }
 
       case 'trending': {
-        const trending = await samTrendsEngine.getTrendingNow();
+        const trending = await trendsEngine.getTrendingNow();
         return NextResponse.json({ trending });
       }
 
       case 'emerging': {
-        const emerging = await samTrendsEngine.getEmergingTrends();
+        const emerging = await trendsEngine.getEmergingTrends();
         return NextResponse.json({ emerging });
       }
 
       case 'educational': {
-        const educational = await samTrendsEngine.getEducationalTrends();
+        const educational = await trendsEngine.getEducationalTrends();
         return NextResponse.json({ educational });
       }
 
       default: {
         // Default: get all trends with rate limiting
-        const trends = await samTrendsEngine.analyzeTrends();
+        const trends = await trendsEngine.analyzeTrends();
         return NextResponse.json({ trends });
       }
     }
@@ -254,6 +235,8 @@ export async function POST(req: NextRequest) {
       return rateLimitResponse(rateLimitResult);
     }
 
+    const trendsEngine = await createTrendsEngineForUser(session.user.id);
+
     const body = await req.json();
     const { action, ...params } = body;
 
@@ -264,7 +247,7 @@ export async function POST(req: NextRequest) {
           return errorResponse(validation.error);
         }
 
-        await samTrendsEngine.recordInteraction(
+        await trendsEngine.recordInteraction(
           session.user.id,
           validation.data.trendId,
           validation.data.interactionType
@@ -278,7 +261,7 @@ export async function POST(req: NextRequest) {
         const heavyRateLimit = await rateLimiters.heavy.check(
           RateLimiter.getIdentifier(req, session.user.id)
         );
-        
+
         if (!heavyRateLimit.allowed) {
           return rateLimitResponse(heavyRateLimit);
         }
@@ -292,7 +275,7 @@ export async function POST(req: NextRequest) {
           params.filter = validation.data;
         }
 
-        const trends = await samTrendsEngine.analyzeTrends(params.filter);
+        const trends = await trendsEngine.analyzeTrends(params.filter);
         
         // Add user relevance calculation
         const enrichedTrends = trends.map(trend => ({

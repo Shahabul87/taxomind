@@ -12,9 +12,8 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithMetadata, handleAIAccessError, getResolvedProviderName } from '@/lib/sam/ai-provider';
 import { db } from '@/lib/db';
-import { aiClient } from '@/lib/ai/enterprise-client';
 import {
   buildComprehensiveRoadmapPrompt,
   validateAIResponse,
@@ -113,14 +112,7 @@ export async function POST(request: NextRequest) {
           }));
 
           // Resolve the AI provider for this capability
-          let resolvedProvider: string;
-          try {
-            resolvedProvider = await aiClient.getResolvedProvider({
-              userId,
-            });
-          } catch {
-            resolvedProvider = 'anthropic';
-          }
+          const resolvedProvider = await getResolvedProviderName(userId);
 
           const providerDisplayName = resolvedProvider.charAt(0).toUpperCase() + resolvedProvider.slice(1);
 
@@ -153,7 +145,7 @@ export async function POST(request: NextRequest) {
           }));
 
           // Use lower temperature for more consistent output
-          const aiResult = await aiClient.chat({
+          const aiResult = await runSAMChatWithMetadata({
             userId,
             capability: 'skill-roadmap',
             systemPrompt: `You are an expert instructional designer following Bloom's Taxonomy and evidence-based learning principles.

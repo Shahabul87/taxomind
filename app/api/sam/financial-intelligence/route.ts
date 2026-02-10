@@ -3,22 +3,20 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createFinancialEngine } from "@sam-ai/educational";
 import type { DateRange } from "@sam-ai/educational";
-import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import type { SAMInteractionType } from '@prisma/client';
 
-// Create financial engine singleton with portable package
-let financialEngine: ReturnType<typeof createFinancialEngine> | null = null;
-
-function getFinancialEngine() {
-  if (!financialEngine) {
-    financialEngine = createFinancialEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return financialEngine;
+// Per-request engine factory (user-scoped AI provider)
+async function createFinancialEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createFinancialEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
+
+type FinancialEngineInstance = ReturnType<typeof createFinancialEngine>;
 
 async function recordSAMInteraction(
   userId: string,
@@ -108,10 +106,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const engine = await createFinancialEngineForUser(session.user.id);
+
     let result;
     switch (action) {
       case "analyze-financials":
         result = await handleAnalyzeFinancials(
+          engine,
           organizationId,
           data.dateRange
         );
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
 
       case "revenue-analysis":
         result = await handleRevenueAnalysis(
+          engine,
           organizationId,
           data.dateRange
         );
@@ -126,6 +128,7 @@ export async function POST(req: NextRequest) {
 
       case "cost-analysis":
         result = await handleCostAnalysis(
+          engine,
           organizationId,
           data.dateRange
         );
@@ -133,6 +136,7 @@ export async function POST(req: NextRequest) {
 
       case "profitability-analysis":
         result = await handleProfitabilityAnalysis(
+          engine,
           organizationId,
           data.dateRange,
           data.courseId
@@ -141,6 +145,7 @@ export async function POST(req: NextRequest) {
 
       case "pricing-optimization":
         result = await handlePricingOptimization(
+          engine,
           organizationId,
           data.courseIds
         );
@@ -148,6 +153,7 @@ export async function POST(req: NextRequest) {
 
       case "subscription-metrics":
         result = await handleSubscriptionMetrics(
+          engine,
           organizationId,
           data.dateRange
         );
@@ -155,6 +161,7 @@ export async function POST(req: NextRequest) {
 
       case "financial-forecast":
         result = await handleFinancialForecast(
+          engine,
           organizationId,
           data.forecastPeriod
         );
@@ -188,6 +195,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleAnalyzeFinancials(
+  engine: FinancialEngineInstance,
   organizationId: string,
   dateRange?: { start: string; end: string }
 ) {
@@ -204,8 +212,6 @@ async function handleAnalyzeFinancials(
         start: new Date(new Date().setMonth(new Date().getMonth() - 1)),
         end: new Date(),
       };
-
-  const engine = getFinancialEngine();
   const analytics = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
@@ -230,6 +236,7 @@ async function handleAnalyzeFinancials(
 }
 
 async function handleRevenueAnalysis(
+  engine: FinancialEngineInstance,
   organizationId: string,
   dateRange?: { start: string; end: string }
 ) {
@@ -246,8 +253,6 @@ async function handleRevenueAnalysis(
         start: new Date(new Date().setMonth(new Date().getMonth() - 1)),
         end: new Date(),
       };
-
-  const engine = getFinancialEngine();
   const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
@@ -295,6 +300,7 @@ async function handleRevenueAnalysis(
 }
 
 async function handleCostAnalysis(
+  engine: FinancialEngineInstance,
   organizationId: string,
   dateRange?: { start: string; end: string }
 ) {
@@ -312,7 +318,6 @@ async function handleCostAnalysis(
         end: new Date(),
       };
 
-  const engine = getFinancialEngine();
   const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
@@ -361,6 +366,7 @@ async function handleCostAnalysis(
 }
 
 async function handleProfitabilityAnalysis(
+  engine: FinancialEngineInstance,
   organizationId: string,
   dateRange?: { start: string; end: string },
   courseId?: string
@@ -379,7 +385,6 @@ async function handleProfitabilityAnalysis(
         end: new Date(),
       };
 
-  const engine = getFinancialEngine();
   const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
@@ -442,6 +447,7 @@ async function handleProfitabilityAnalysis(
 }
 
 async function handlePricingOptimization(
+  engine: FinancialEngineInstance,
   organizationId: string,
   courseIds?: string[]
 ) {
@@ -454,7 +460,6 @@ async function handlePricingOptimization(
     end: new Date(),
   };
 
-  const engine = getFinancialEngine();
   const financials = await engine.analyzeFinancials(
     organizationId,
     dateRange
@@ -523,6 +528,7 @@ async function handlePricingOptimization(
 }
 
 async function handleSubscriptionMetrics(
+  engine: FinancialEngineInstance,
   organizationId: string,
   dateRange?: { start: string; end: string }
 ) {
@@ -540,7 +546,6 @@ async function handleSubscriptionMetrics(
         end: new Date(),
       };
 
-  const engine = getFinancialEngine();
   const financials = await engine.analyzeFinancials(
     organizationId,
     parsedDateRange
@@ -572,6 +577,7 @@ async function handleSubscriptionMetrics(
 }
 
 async function handleFinancialForecast(
+  engine: FinancialEngineInstance,
   organizationId: string,
   forecastPeriod?: string
 ) {
@@ -584,7 +590,6 @@ async function handleFinancialForecast(
     end: new Date(),
   };
 
-  const engine = getFinancialEngine();
   const financials = await engine.analyzeFinancials(
     organizationId,
     dateRange

@@ -1,5 +1,5 @@
 import { type EnhancedContentRequest } from "@/lib/ai-content-generator";
-import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/anthropic-client";
+import { generateCourseBlueprint, type CourseGenerationRequest } from "@/lib/course-blueprint-generator";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
@@ -165,7 +165,7 @@ async function generateBlueprintWithStreaming(
       updateProgress('Fallback Generation', 50, 'Using standard AI generation method...');
       
       // Fallback to standard generation
-      aiBlueprint = await generateCourseBlueprint(requirements);
+      aiBlueprint = await generateCourseBlueprint(requirements, userId);
       updateProgress('Standard Generation', 80, 'Course blueprint generated successfully...');
     }
 

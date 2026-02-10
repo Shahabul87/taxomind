@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
-import { getEngine } from '../route';
+import { createEngineForUser } from '../route';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const engine = getEngine();
+    const engine = await createEngineForUser(session.user.id);
 
     // Analyze the course
     const result = await engine.analyzeCourse({

@@ -3,11 +3,8 @@ import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { createAnalyticsEngine } from '@sam-ai/educational';
 import type { UserSAMStats } from '@sam-ai/educational';
-import { getSAMConfig } from '@/lib/adapters';
+import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
-
-// Singleton pattern for analytics engine
-let analyticsEngine: ReturnType<typeof createAnalyticsEngine> | null = null;
 
 // Create analytics-specific database adapter that works with actual Prisma schema
 function createAnalyticsDatabaseAdapter() {
@@ -201,15 +198,14 @@ function createAnalyticsDatabaseAdapter() {
   };
 }
 
-function getAnalyticsEngine() {
-  if (!analyticsEngine) {
-    analyticsEngine = createAnalyticsEngine({
-      samConfig: getSAMConfig(),
-      // Cast to unknown first to bypass strict type checking since we're providing a custom adapter
-      database: createAnalyticsDatabaseAdapter() as unknown as undefined,
-    });
-  }
-  return analyticsEngine;
+// Per-request engine factory (user-scoped AI provider)
+async function createAnalyticsEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createAnalyticsEngine({
+    samConfig,
+    // Cast to unknown first to bypass strict type checking since we're providing a custom adapter
+    database: createAnalyticsDatabaseAdapter() as unknown as undefined,
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -242,7 +238,8 @@ export async function GET(req: NextRequest) {
         startDate.setDate(startDate.getDate() - 30);
     }
 
-    const analytics = await getAnalyticsEngine().getComprehensiveAnalytics(
+    const analyticsEngine = await createAnalyticsEngineForUser(session.user.id);
+    const analytics = await analyticsEngine.getComprehensiveAnalytics(
       session.user.id,
       {
         courseId,

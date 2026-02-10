@@ -17,8 +17,8 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
-jest.mock('@/lib/sam/integration-adapters', () => ({
-  getCoreAIAdapter: jest.fn().mockResolvedValue(null),
+jest.mock('@/lib/ai/user-scoped-adapter', () => ({
+  createUserScopedAdapter: jest.fn().mockRejectedValue(new Error('No adapter in test')),
 }));
 
 jest.mock('@/lib/sam/utils/timeout', () => ({
@@ -326,6 +326,7 @@ describe('ConversationThreadingService', () => {
     it('should use fallback when no AI adapter available', async () => {
       mockConversation.findUnique.mockResolvedValue({
         id: 'conv-1',
+        userId: 'user-1',
         messages: [
           { messageType: 'USER_MESSAGE', content: 'I want to learn about recursion in programming', createdAt: new Date() },
           { messageType: 'AI_RESPONSE', content: 'Recursion is when a function calls itself...', createdAt: new Date() },

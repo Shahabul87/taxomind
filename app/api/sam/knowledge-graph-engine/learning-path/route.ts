@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
-import { getEngine } from '../route';
+import { createEngineForUser } from '../route';
 import { logger } from '@/lib/logger';
 
 const LearningPathSchema = z.object({
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const { targetConceptIds, strategy, skipMastered } = parsed.data;
 
-    const engine = getEngine();
+    const engine = await createEngineForUser(session.user.id);
 
     // Verify at least one concept exists
     const existingConcepts = targetConceptIds

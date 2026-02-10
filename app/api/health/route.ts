@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getDbMetrics } from '@/lib/db-pooled';
 import { enterpriseDataAPI } from '@/lib/data-fetching/enterprise-data-api';
 import { shouldUseRealNews, isProductionEnvironment } from '@/lib/config/news-config';
-import { getAdapterStatus } from '@/lib/sam/integration-adapters';
+import { getAdapterStatus } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { stageHealthTracker } from '@/lib/sam/pipeline/stage-health-tracker';
 

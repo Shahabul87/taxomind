@@ -144,10 +144,10 @@ function GridCard({ post, priority = false }: BlogCardProps) {
     <Link
       href={`/blog/${post.id}`}
       prefetch={true}
-      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 dark:hover:shadow-indigo-500/5 hover:border-indigo-300/50 dark:hover:border-indigo-600/50 hover:-translate-y-1"
+      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 h-full flex flex-col transition-all duration-500 hover:shadow-2xl hover:shadow-violet-500/10 dark:hover:shadow-violet-500/5 hover:border-violet-300/50 dark:hover:border-violet-600/50 hover:-translate-y-1"
     >
       {/* Hover Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-indigo-500/5 group-hover:via-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500 pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-violet-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none z-10" />
 
       {/* Image Container */}
       <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800">
@@ -165,8 +165,8 @@ function GridCard({ post, priority = false }: BlogCardProps) {
             blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg=="
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30 flex items-center justify-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
+          <div className="w-full h-full bg-gradient-to-br from-violet-100 via-indigo-50 to-purple-100 dark:from-violet-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-violet-500/30">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
           </div>
@@ -174,7 +174,7 @@ function GridCard({ post, priority = false }: BlogCardProps) {
 
         {/* Gradient Overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/0 via-transparent to-pink-600/0 opacity-0 group-hover:from-indigo-600/20 group-hover:to-pink-600/20 group-hover:opacity-100 transition-all duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/0 via-transparent to-pink-600/0 opacity-0 group-hover:from-violet-600/20 group-hover:to-indigo-600/20 group-hover:opacity-100 transition-all duration-500" />
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2 z-20">
@@ -221,8 +221,8 @@ function GridCard({ post, priority = false }: BlogCardProps) {
         {/* Play/Read Button Overlay */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-500 z-30 bg-slate-900/10">
           <div className="relative">
-            <div className="absolute inset-0 bg-indigo-500 rounded-full blur-xl opacity-50 animate-pulse" />
-            <div className="relative p-4 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
+            <div className="absolute inset-0 bg-violet-500 rounded-full blur-xl opacity-50 animate-pulse" />
+            <div className="relative p-4 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 backdrop-blur-sm border-2 border-white/40 text-white shadow-2xl transform scale-0 group-hover:scale-100 transition-transform duration-500">
               <Play className="h-6 w-6 fill-current" />
             </div>
           </div>
@@ -238,7 +238,7 @@ function GridCard({ post, priority = false }: BlogCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-base sm:text-lg font-bold mb-2 line-clamp-2 leading-snug text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+        <h3 className="text-base sm:text-lg font-bold mb-2 line-clamp-2 leading-snug text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors duration-300">
           {post.title}
         </h3>
 
@@ -267,7 +267,7 @@ function GridCard({ post, priority = false }: BlogCardProps) {
             ) : (
               <div className="w-1" />
             )}
-            <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 text-xs font-semibold group-hover:gap-2 transition-all duration-300">
+            <div className="flex items-center gap-1 text-violet-600 dark:text-violet-400 text-xs font-semibold group-hover:gap-2 transition-all duration-300">
               Read more
               <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform duration-300" />
             </div>
@@ -290,10 +290,10 @@ function ListCard({ post, priority = false }: BlogCardProps) {
     <Link
       href={`/blog/${post.id}`}
       prefetch={true}
-      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/10 dark:hover:shadow-indigo-500/5 hover:border-indigo-300/50 dark:hover:border-indigo-600/50"
+      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 transition-all duration-500 hover:shadow-2xl hover:shadow-violet-500/10 dark:hover:shadow-violet-500/5 hover:border-violet-300/50 dark:hover:border-violet-600/50"
     >
       {/* Hover Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-indigo-500/5 group-hover:via-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500 pointer-events-none z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-violet-500/0 via-indigo-500/0 to-purple-500/0 group-hover:from-violet-500/5 group-hover:via-indigo-500/5 group-hover:to-purple-500/5 transition-all duration-500 pointer-events-none z-10" />
 
       <div className="relative flex flex-col sm:flex-row">
         {/* Image Container */}
@@ -312,8 +312,8 @@ function ListCard({ post, priority = false }: BlogCardProps) {
               blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg=="
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 dark:from-indigo-900/30 dark:via-purple-900/30 dark:to-pink-900/30 flex items-center justify-center">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30">
+            <div className="w-full h-full bg-gradient-to-br from-violet-100 via-indigo-50 to-purple-100 dark:from-violet-900/30 dark:via-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center">
+              <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-violet-500/30">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
             </div>
@@ -354,14 +354,14 @@ function ListCard({ post, priority = false }: BlogCardProps) {
               {getReadingTime(post.description, post.readingTime)}
             </div>
             <span className="text-slate-300 dark:text-slate-600">|</span>
-            <div className="flex items-center gap-1.5 font-medium text-indigo-600 dark:text-indigo-400">
+            <div className="flex items-center gap-1.5 font-medium text-violet-600 dark:text-violet-400">
               <Eye className="w-3.5 h-3.5" />
               {formatViewCount(post.views)} views
             </div>
           </div>
 
           {/* Title */}
-          <h3 className="text-lg sm:text-xl font-bold mb-3 line-clamp-2 leading-snug text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
+          <h3 className="text-lg sm:text-xl font-bold mb-3 line-clamp-2 leading-snug text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors duration-300">
             {post.title}
           </h3>
 
@@ -409,7 +409,7 @@ function ListCard({ post, priority = false }: BlogCardProps) {
                   {getCommentCount(post.comments)}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 text-sm font-semibold group-hover:gap-2 transition-all duration-300">
+              <div className="flex items-center gap-1 text-violet-600 dark:text-violet-400 text-sm font-semibold group-hover:gap-2 transition-all duration-300">
                 Read more
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
               </div>
@@ -432,7 +432,7 @@ function FeaturedCard({ post, priority = true }: BlogCardProps) {
     <Link
       href={`/blog/${post.id}`}
       prefetch={true}
-      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/20 dark:hover:shadow-indigo-500/10"
+      className="group relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl overflow-hidden border border-slate-200/60 dark:border-slate-700/60 transition-all duration-500 hover:shadow-2xl hover:shadow-violet-500/20 dark:hover:shadow-violet-500/10"
     >
       {/* Image Container */}
       <div className="relative h-64 sm:h-80 w-full overflow-hidden">
@@ -447,7 +447,7 @@ function FeaturedCard({ post, priority = true }: BlogCardProps) {
             priority={priority}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-500 flex items-center justify-center">
             <BookOpen className="w-20 h-20 text-white/80" />
           </div>
         )}
@@ -470,7 +470,7 @@ function FeaturedCard({ post, priority = true }: BlogCardProps) {
           )}
 
           {/* Title */}
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2 leading-tight group-hover:text-indigo-200 transition-colors duration-300">
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 line-clamp-2 leading-tight group-hover:text-violet-200 transition-colors duration-300">
             {post.title}
           </h3>
 
@@ -530,15 +530,15 @@ function CompactCard({ post }: BlogCardProps) {
             quality={60}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-indigo-500" />
+          <div className="w-full h-full bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+            <BookOpen className="w-6 h-6 text-violet-500" />
           </div>
         )}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-2 mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+        <h4 className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-2 mb-1 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
           {post.title}
         </h4>
         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">

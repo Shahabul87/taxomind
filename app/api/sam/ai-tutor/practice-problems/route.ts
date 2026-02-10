@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import {
@@ -7,7 +7,6 @@ import {
   type GeneratedContent,
   type DifficultyLevel,
 } from '@sam-ai/quality';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 export async function POST(request: NextRequest) {
   try {

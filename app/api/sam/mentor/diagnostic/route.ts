@@ -10,8 +10,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Request validation schemas
 const GenerateDiagnosticSchema = z.object({

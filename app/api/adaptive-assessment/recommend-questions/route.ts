@@ -1,5 +1,4 @@
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { NextRequest, NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -256,7 +255,7 @@ function generateAdaptiveStrategy(performanceData: any, request: any) {
 async function generateAIQuestions(section: any, strategy: any, request: any, userId: string) {
   const prompt = buildAdaptiveQuestionPrompt(section, strategy, request);
 
-  const completion = await aiClient.chat({
+  const responseText = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
     maxTokens: 4000,
@@ -269,8 +268,6 @@ async function generateAIQuestions(section: any, strategy: any, request: any, us
       }
     ],
   });
-
-  const responseText = completion.content;
 
   if (!responseText) {
     throw new Error('Empty response from AI model');

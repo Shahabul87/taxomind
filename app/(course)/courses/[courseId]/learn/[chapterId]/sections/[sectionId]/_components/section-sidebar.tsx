@@ -18,15 +18,21 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import type {
+  CourseWithChapters,
+  ChapterWithSections,
+  SectionWithProgress,
+  UserProgressData,
+} from "@/types/learning";
 
 interface SectionSidebarProps {
-  course: any;
-  currentChapter: any;
-  currentSection: any;
+  course: CourseWithChapters;
+  currentChapter: ChapterWithSections;
+  currentSection: SectionWithProgress;
   courseId: string;
   chapterId: string;
   sectionId: string;
-  userProgress?: any;
+  userProgress?: UserProgressData | null;
   totalSections: number;
   completedSections: number;
   onToggle: () => void;
@@ -57,14 +63,14 @@ export function SectionSidebar({
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium text-slate-900 dark:text-white">Progress</CardTitle>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={onToggle}
-              className="h-8 px-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="h-7 px-2.5 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
               title="Collapse sidebar (Ctrl+B)"
             >
-              <PanelRightClose className="h-4 w-4 mr-1.5" />
-              <span className="text-xs">Hide</span>
+              <PanelRightClose className="h-3.5 w-3.5 mr-1.5" />
+              <span className="text-xs font-medium">Hide</span>
             </Button>
           </div>
         </CardHeader>
@@ -111,20 +117,20 @@ export function SectionSidebar({
       </Card>
 
       {/* Chapter Navigation */}
-      <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-slate-900 dark:text-white">Chapter</CardTitle>
-          <CardDescription className="text-xs text-slate-500 dark:text-slate-400 truncate">
+          <CardDescription className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-full">
             {currentChapter.title}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-hidden">
           <ScrollArea className="h-[calc(100vh-20rem)]">
             <div className="p-3 space-y-0.5">
-              {currentChapter.sections.map((section: any) => {
+              {currentChapter.sections.map((section) => {
                 const isCurrentSection = section.id === sectionId;
                 const isCompleted = section.user_progress?.some(
-                  (p: any) => p.isCompleted
+                  (p) => p.isCompleted
                 );
                 const isLocked = !section.isFree && !isEnrolled;
 
@@ -133,7 +139,7 @@ export function SectionSidebar({
                     key={section.id}
                     href={`/courses/${courseId}/learn/${chapterId}/sections/${section.id}`}
                     className={cn(
-                      "flex items-center gap-2.5 p-2.5 rounded-md transition-colors",
+                      "flex items-center gap-2.5 p-2.5 rounded-md transition-colors overflow-hidden",
                       isCurrentSection
                         ? "bg-slate-100 dark:bg-slate-800"
                         : "hover:bg-slate-50 dark:hover:bg-slate-800/50",
@@ -151,9 +157,9 @@ export function SectionSidebar({
                         <Circle className="h-4 w-4 text-slate-300 dark:text-slate-600" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <p className={cn(
-                        "text-sm truncate text-slate-700 dark:text-slate-300",
+                        "text-sm leading-snug text-slate-700 dark:text-slate-300",
                         isCurrentSection && "font-medium text-slate-900 dark:text-white"
                       )}>
                         {section.title}

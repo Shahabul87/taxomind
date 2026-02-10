@@ -26,7 +26,7 @@ import {
 import { type AIAdapter, type SAMLogger } from '@sam-ai/core';
 
 import { getGoalStores } from '../taxomind-context';
-import { getCoreAIAdapter } from '../integration-adapters';
+import { createUserScopedAdapter } from '@/lib/ai/user-scoped-adapter';
 import type { AgenticLogger } from './types';
 
 // ============================================================================
@@ -80,11 +80,7 @@ export class GoalPlanningService {
     }
 
     try {
-      const adapter = await getCoreAIAdapter();
-      if (!adapter) {
-        this.logger.warn('AI adapter unavailable - GoalDecomposer disabled');
-        return;
-      }
+      const adapter = await createUserScopedAdapter(this.userId, 'chat');
 
       this.aiAdapter = adapter;
       this.goalDecomposer = createGoalDecomposer({
@@ -92,7 +88,7 @@ export class GoalPlanningService {
         logger: samLogger,
       });
 
-      this.logger.debug('GoalDecomposer initialized with integration AI adapter');
+      this.logger.debug('GoalDecomposer initialized with user-scoped AI adapter');
     } catch (error) {
       this.logger.warn('Failed to initialize AI adapter for GoalDecomposer', {
         error: error instanceof Error ? error.message : String(error),

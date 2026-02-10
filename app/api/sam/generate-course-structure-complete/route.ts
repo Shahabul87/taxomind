@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
 import {
   BLOOMS_TAXONOMY,
   CHAPTER_THINKING_FRAMEWORK,

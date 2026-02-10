@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +37,18 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface ExamTakeClientProps {
@@ -53,7 +65,7 @@ interface Question {
   id: string;
   question: string;
   questionType: 'MULTIPLE_CHOICE' | 'TRUE_FALSE' | 'SHORT_ANSWER' | 'ESSAY' | 'FILL_IN_BLANK';
-  options?: any;
+  options?: string[];
   points: number;
   order: number;
   imageUrl?: string;
@@ -96,14 +108,76 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
   const router = useRouter();
   const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, string | boolean>>({});
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   // SAM AI hint panel state
   const [showSamHint, setShowSamHint] = useState(false);
   const [samHintUsed, setSamHintUsed] = useState<Set<string>>(new Set());
+
+  // Auto-save key for localStorage
+  const autoSaveKey = `exam_autosave_${params.attemptId}`;
+
+  // Auto-save answers to localStorage whenever they change
+  const answersRef = useRef(answers);
+  answersRef.current = answers;
+
+  useEffect(() => {
+    if (Object.keys(answers).length === 0) return;
+    try {
+      localStorage.setItem(autoSaveKey, JSON.stringify({
+        answers,
+        currentQuestionIndex,
+        flaggedQuestions: Array.from(flaggedQuestions),
+        savedAt: new Date().toISOString(),
+      }));
+      setLastSaved(new Date());
+    } catch {
+      // localStorage might be full or unavailable
+    }
+  }, [answers, currentQuestionIndex, flaggedQuestions, autoSaveKey]);
+
+  // Restore auto-saved answers on mount (before fetch completes)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(autoSaveKey);
+      if (saved) {
+        const data = JSON.parse(saved) as {
+          answers: Record<string, string | boolean>;
+          currentQuestionIndex?: number;
+          flaggedQuestions?: string[];
+          savedAt?: string;
+        };
+        if (data.answers && Object.keys(data.answers).length > 0) {
+          setAnswers(prev => ({ ...data.answers, ...prev }));
+        }
+        if (data.currentQuestionIndex !== undefined) {
+          setCurrentQuestionIndex(data.currentQuestionIndex);
+        }
+        if (data.flaggedQuestions) {
+          setFlaggedQuestions(new Set(data.flaggedQuestions));
+        }
+        if (data.savedAt) {
+          setLastSaved(new Date(data.savedAt));
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, [autoSaveKey]);
+
+  // Clear auto-save on successful submission
+  const clearAutoSave = useCallback(() => {
+    try {
+      localStorage.removeItem(autoSaveKey);
+    } catch {
+      // Ignore
+    }
+  }, [autoSaveKey]);
 
   // Close SAM hint panel when navigating to a different question
   useEffect(() => {
@@ -118,18 +192,56 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
       );
       if (response.ok) {
         const attempts = await response.json();
-        const currentAttempt = attempts.find((a: any) => a.id === params.attemptId);
-        if (currentAttempt) {
-          setAttempt(currentAttempt);
+        const raw = attempts.find((a: Record<string, unknown>) => a.id === params.attemptId);
+        if (raw) {
+          // Transform Prisma response shape to client interface
+          const examData = (raw.Exam || raw.exam) as Record<string, unknown> | undefined;
+          const questionsRaw = (
+            (examData?.ExamQuestion as Array<Record<string, unknown>>) ??
+            (examData?.questions as Array<Record<string, unknown>>) ??
+            []
+          );
+
+          const transformed: ExamAttempt = {
+            id: raw.id as string,
+            exam: {
+              id: (examData?.id as string) ?? "",
+              title: (examData?.title as string) ?? "Exam",
+              description: examData?.description as string | undefined,
+              timeLimit: examData?.timeLimit as number | undefined,
+              questions: questionsRaw.map((q) => ({
+                id: q.id as string,
+                question: q.question as string,
+                questionType: q.questionType as Question["questionType"],
+                options: q.options,
+                points: (q.points as number) ?? 1,
+                order: (q.order as number) ?? 0,
+                imageUrl: q.imageUrl as string | undefined,
+                videoUrl: q.videoUrl as string | undefined,
+              })),
+            },
+            startedAt: raw.startedAt as string,
+            timeSpent: raw.timeSpent as number | undefined,
+            status: raw.status as string,
+          };
+          setAttempt(transformed);
+
           // Initialize answers from existing attempt
-          const existingAnswers: Record<string, any> = {};
-          currentAttempt.answers?.forEach((answer: any) => {
-            existingAnswers[answer.questionId] = answer.answer;
+          const existingAnswers: Record<string, string | boolean> = {};
+          const userAnswers = (
+            (raw.UserAnswer as Array<Record<string, unknown>>) ?? []
+          );
+          userAnswers.forEach((answer) => {
+            const questionRef = answer.ExamQuestion as Record<string, unknown> | undefined;
+            const qId = (questionRef?.id as string) ?? (answer.questionId as string);
+            if (qId && answer.answer != null) {
+              existingAnswers[qId] = answer.answer as string | boolean;
+            }
           });
           setAnswers(existingAnswers);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error fetching attempt:", error);
     } finally {
       setLoading(false);
@@ -150,7 +262,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
     }
   }, [attempt, timeRemaining]);
 
-  const handleAnswerChange = (questionId: string, answer: any) => {
+  const handleAnswerChange = (questionId: string, answer: string | boolean) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -197,18 +309,18 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
       );
 
       if (response.ok) {
-        const result = await response.json();
+        clearAutoSave();
         // Redirect to results page
         router.push(
           `/courses/${params.courseId}/learn/${params.chapterId}/sections/${params.sectionId}/exams/${params.examId}/results/${params.attemptId}`
         );
       }
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error submitting exam:", error);
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, attempt, answers, params.sectionId, params.examId, params.attemptId, params.courseId, params.chapterId, router]);
+  }, [submitting, attempt, answers, params.sectionId, params.examId, params.attemptId, params.courseId, params.chapterId, router, clearAutoSave]);
 
   useEffect(() => {
     if (timeRemaining !== null && timeRemaining > 0) {
@@ -338,7 +450,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
             value={answer || ""}
             onValueChange={(value) => handleAnswerChange(question.id, value)}
           >
-            {question.options?.map((option: string, index: number) => (
+            {question.options?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem value={option} id={`${question.id}-${index}`} />
                 <Label htmlFor={`${question.id}-${index}`} className="flex-1 cursor-pointer">
@@ -394,8 +506,62 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        {/* Header skeleton */}
+        <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-8 w-24 rounded-md" />
+                <div>
+                  <Skeleton className="h-5 w-48 mb-1" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-8 w-20 rounded-lg" />
+                <Skeleton className="h-2 w-24 rounded-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Content skeleton */}
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-1">
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                <CardHeader><Skeleton className="h-4 w-20" /></CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-5 lg:grid-cols-1 gap-2">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Skeleton key={i} className="h-8 w-full rounded-lg" />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <div className="lg:col-span-3">
+              <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                <CardHeader>
+                  <div className="flex gap-2 mb-3">
+                    <Skeleton className="h-6 w-24 rounded-full" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-6 w-3/4 mt-1" />
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -421,7 +587,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
   const isFirstQuestion = currentQuestionIndex === 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -460,6 +626,12 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
               )}
               
               <div className="flex items-center gap-2">
+                {lastSaved && (
+                  <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                    <Save className="w-3 h-3" />
+                    Saved
+                  </span>
+                )}
                 <Progress value={getProgress()} className="w-24 h-2" />
                 <span className="text-sm text-slate-600 dark:text-slate-400">
                   {Math.round(getProgress())}%
@@ -648,7 +820,7 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
                       <div className="flex gap-2">
                         {!isLastQuestion ? (
                           <Button
-                            onClick={() => setCurrentQuestionIndex(prev => 
+                            onClick={() => setCurrentQuestionIndex(prev =>
                               Math.min(attempt.exam.questions.length - 1, prev + 1)
                             )}
                           >
@@ -656,23 +828,50 @@ export default function ExamTakeClient({ params }: ExamTakeClientProps) {
                             <ArrowRight className="w-4 h-4 ml-2" />
                           </Button>
                         ) : (
-                          <Button
-                            onClick={handleSubmit}
-                            disabled={submitting}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            {submitting ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                                Submitting...
-                              </>
-                            ) : (
-                              <>
+                          <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                disabled={submitting}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
                                 <Send className="w-4 h-4 mr-2" />
                                 Submit Exam
-                              </>
-                            )}
-                          </Button>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="text-slate-900 dark:text-white">Submit Exam?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-slate-600 dark:text-slate-400 space-y-3">
+                                  <span className="block">
+                                    You&apos;ve answered {attempt.exam.questions.filter(q => answers[q.id] !== undefined).length} of {attempt.exam.questions.length} questions.
+                                  </span>
+                                  {attempt.exam.questions.filter(q => answers[q.id] === undefined).length > 0 && (
+                                    <span className="block text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                                      {attempt.exam.questions.filter(q => answers[q.id] === undefined).length} question(s) unanswered
+                                    </span>
+                                  )}
+                                  {flaggedQuestions.size > 0 && (
+                                    <span className="block text-yellow-600 dark:text-yellow-400 flex items-center gap-1.5">
+                                      <Flag className="w-4 h-4 flex-shrink-0" />
+                                      {flaggedQuestions.size} question(s) flagged for review
+                                    </span>
+                                  )}
+                                  <span className="block">Once submitted, you cannot change your answers.</span>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="border-slate-200 dark:border-slate-700">Review Answers</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={handleSubmit}
+                                  disabled={submitting}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  {submitting ? "Submitting..." : "Confirm Submit"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </div>
                     </div>

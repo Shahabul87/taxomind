@@ -1,7 +1,7 @@
 "use client";
 
 import { FileQuestion } from "lucide-react";
-import { ExamCreationForm } from "../ExamCreationForm";
+import { UnifiedExamBuilder } from "../exam-creator/UnifiedExamBuilder";
 
 interface ExamTabProps {
   courseId: string;
@@ -18,13 +18,17 @@ interface ExamTabProps {
       title: string;
     };
   };
+  sectionContent?: string;
+  learningObjectives?: string[];
 }
 
 export const ExamTab = ({
   courseId,
   chapterId,
   sectionId,
-  initialData
+  initialData,
+  sectionContent,
+  learningObjectives,
 }: ExamTabProps) => {
   return (
     <div className="animate-fadeIn">
@@ -40,15 +44,17 @@ export const ExamTab = ({
           </div>
 
           <div className="mt-2 sm:mt-3">
-            <ExamCreationForm
+            <UnifiedExamBuilder
               courseId={courseId}
               chapterId={chapterId}
               sectionId={sectionId}
               initialData={initialData}
+              sectionContent={sectionContent}
+              learningObjectives={learningObjectives}
             />
           </div>
         </div>
       </div>
     </div>
   );
-}; 
+};

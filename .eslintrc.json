@@ -4,8 +4,78 @@
     "react-hooks/exhaustive-deps": "warn",
     "react/no-unescaped-entities": "warn",
     "@next/next/no-img-element": "warn",
-    "jsx-a11y/alt-text": "warn"
+    "jsx-a11y/alt-text": "warn",
+    "no-restricted-imports": ["warn", {
+      "patterns": [
+        {
+          "group": ["@/lib/ai/enterprise-client"],
+          "message": "Import from '@/lib/sam/ai-provider' instead. Direct enterprise-client usage bypasses the unified AI provider layer."
+        },
+        {
+          "group": ["@/lib/course-blueprint-generator"],
+          "message": "Import from '@/lib/sam/ai-provider' instead. Direct course-blueprint-generator usage bypasses user preferences, rate limiting, and usage tracking."
+        },
+        {
+          "group": ["@/lib/sam/integration-adapters"],
+          "message": "Import from '@/lib/sam/ai-provider' instead. Direct integration-adapters usage bypasses the unified AI provider layer."
+        },
+        {
+          "group": ["@anthropic-ai/sdk"],
+          "message": "Do not import the Anthropic SDK directly. Use '@/lib/sam/ai-provider' for AI operations. Only low-level adapter files (lib/anthropic.ts) may import this."
+        },
+        {
+          "group": ["openai"],
+          "message": "Do not import the OpenAI SDK directly. Use '@/lib/sam/ai-provider' for AI operations. Only low-level adapter files (lib/openai.ts) may import this."
+        }
+      ]
+    }]
   },
+  "overrides": [
+    {
+      "files": [
+        "lib/sam/ai-provider.ts",
+        "lib/ai/user-scoped-adapter.ts",
+        "lib/sam/memory-ingestion.ts",
+        "app/api/admin/ai-settings/route.ts",
+        "app/api/settings/ai-preferences/route.ts",
+        "app/api/admin/system-health/route.ts",
+        "app/api/health/route.ts",
+        "lib/sam/degraded-responses.ts",
+        "lib/sam/agentic-memory.ts",
+        "lib/sam/agentic-vector-search.ts",
+        "lib/sam/services/pgvector-search.ts",
+        "__tests__/**/*.ts",
+        "__tests__/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    },
+    {
+      "files": [
+        "lib/anthropic.ts",
+        "lib/openai.ts",
+        "lib/sam/providers/*.ts",
+        "lib/services/openai-with-circuit-breaker.ts",
+        "lib/_deprecated/**/*.ts",
+        "packages/*/src/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": ["warn", {
+          "patterns": [
+            {
+              "group": ["@/lib/ai/enterprise-client"],
+              "message": "Import from '@/lib/sam/ai-provider' instead. Direct enterprise-client usage bypasses the unified AI provider layer."
+            },
+            {
+              "group": ["@/lib/course-blueprint-generator"],
+              "message": "Import from '@/lib/sam/ai-provider' instead. Direct course-blueprint-generator usage bypasses user preferences, rate limiting, and usage tracking."
+            }
+          ]
+        }]
+      }
+    }
+  ],
   "ignorePatterns": [
     "node_modules/",
     ".next/",

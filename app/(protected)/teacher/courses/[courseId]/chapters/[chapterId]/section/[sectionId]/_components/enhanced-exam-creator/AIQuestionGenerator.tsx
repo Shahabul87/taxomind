@@ -50,12 +50,26 @@ import {
   DEFAULT_BLOOMS_DISTRIBUTION,
 } from "./types";
 
+/** Section context for API calls (optional for backward compatibility) */
+interface SectionContextForGenerator {
+  courseId: string;
+  chapterId: string;
+  sectionId: string;
+  courseTitle?: string;
+  chapterTitle?: string;
+  sectionTitle?: string;
+  sectionContent?: string;
+  learningObjectives?: string[];
+}
+
 interface AIQuestionGeneratorProps {
   sectionContent: string;
   learningObjectives: string[];
   onQuestionsGenerated: (questions: GeneratedQuestion[]) => void;
   isGenerating: boolean;
   setIsGenerating: (generating: boolean) => void;
+  /** When provided, uses the SAM exam builder API with full section context */
+  sectionContext?: SectionContextForGenerator;
 }
 
 const BLOOMS_ICONS: Record<BloomsLevel, React.ReactNode> = {
@@ -116,6 +130,7 @@ export function AIQuestionGenerator({
   onQuestionsGenerated,
   isGenerating,
   setIsGenerating,
+  sectionContext,
 }: AIQuestionGeneratorProps) {
   const [mode, setMode] = useState<string>("AI_GUIDED");
   const [config, setConfig] = useState<AIGenerationConfig>(defaultConfig);
@@ -174,14 +189,40 @@ export function AIQuestionGenerator({
         setGenerationProgress((prev) => Math.min(prev + 10, 90));
       }, 500);
 
-      const response = await fetch("/api/exams/generate-questions", {
+      const response = await fetch("/api/sam/exam-builder/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode,
-          config,
-          sectionContent,
-          learningObjectives,
+          config: {
+            questionCount: config.questionCount,
+            bloomsDistribution: config.bloomsDistribution,
+            questionTypes: config.questionTypes,
+            difficulty: config.difficulty,
+            includeHints: config.includeHints,
+            includeExplanations: config.includeExplanations,
+            includeMisconceptions: config.includeMisconceptions,
+            creativity: config.creativity,
+            realWorldContext: config.realWorldContext,
+            generationMode: mode,
+          },
+          sectionContext: sectionContext
+            ? {
+                courseId: sectionContext.courseId,
+                chapterId: sectionContext.chapterId,
+                sectionId: sectionContext.sectionId,
+                courseTitle: sectionContext.courseTitle,
+                chapterTitle: sectionContext.chapterTitle,
+                sectionTitle: sectionContext.sectionTitle,
+                sectionContent: sectionContext.sectionContent ?? sectionContent,
+                learningObjectives: sectionContext.learningObjectives ?? learningObjectives,
+              }
+            : {
+                courseId: "",
+                chapterId: "",
+                sectionId: "",
+                sectionContent,
+                learningObjectives,
+              },
         }),
       });
 

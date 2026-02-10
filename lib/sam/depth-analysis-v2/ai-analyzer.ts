@@ -14,7 +14,7 @@
  */
 
 import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { AIAccessDeniedError } from '@/lib/ai/enterprise-client';
+import { AIAccessDeniedError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { nanoid } from 'nanoid';
 import type {

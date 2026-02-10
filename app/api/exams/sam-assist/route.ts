@@ -2,21 +2,17 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { currentUser } from '@/lib/auth';
 import { createEvaluationEngine } from '@sam-ai/educational';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { BloomsLevel } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
-// Create evaluation engine singleton with portable package
-let evaluationEngine: ReturnType<typeof createEvaluationEngine> | null = null;
-
-function getEvaluationEngine() {
-  if (!evaluationEngine) {
-    evaluationEngine = createEvaluationEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return evaluationEngine;
+// Per-request engine factory (user-scoped AI provider)
+async function createEvalEngine(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createEvaluationEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 // ==========================================
@@ -80,6 +76,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action } = body;
 
+    // Create user-scoped AI engine
+    const engine = await createEvalEngine(user.id);
+
     switch (action) {
       case 'grading-assistance': {
         // Only teachers can use grading assistance
@@ -92,7 +91,7 @@ export async function POST(request: Request) {
 
         const validatedData = GradingAssistanceSchema.parse(body.data);
 
-        const engine = getEvaluationEngine();
+
         const assistance = await engine.getGradingAssistance(
           validatedData.questionText,
           validatedData.expectedAnswer,
@@ -112,7 +111,7 @@ export async function POST(request: Request) {
         // Students can ask for explanations about their results
         const validatedData = ExplanationRequestSchema.parse(body.data);
 
-        const engine = getEvaluationEngine();
+
         const explanation = await engine.explainResultToStudent(
           validatedData.question,
           validatedData.questionResult as any,
@@ -137,7 +136,7 @@ export async function POST(request: Request) {
 
         const validatedData = TeacherChatSchema.parse(body.data);
 
-        const engine = getEvaluationEngine();
+
         const response = await engine.assistTeacherGrading(
           validatedData.question,
           validatedData.gradingContext as any

@@ -15,23 +15,22 @@ import type {
   ContentToAdapt,
   AdaptationOptions,
 } from '@sam-ai/educational';
-import { getAdaptiveContentAdapter, getSAMConfig } from '@/lib/adapters';
+import { getAdaptiveContentAdapter } from '@/lib/adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 
-// Engine singleton
-let engineInstance: AdaptiveContentEngine | null = null;
+/**
+ * Create a user-scoped AdaptiveContentEngine instance.
+ */
+async function createEngine(userId: string): Promise<AdaptiveContentEngine> {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-function getEngine(): AdaptiveContentEngine {
-  if (!engineInstance) {
-    const samConfig = getSAMConfig();
-    engineInstance = createAdaptiveContentEngine({
-      database: getAdaptiveContentAdapter(),
-      aiAdapter: samConfig.ai,
-      enableCaching: true,
-      minInteractionsForAdaptation: 5,
-    });
-  }
-  return engineInstance;
+  return createAdaptiveContentEngine({
+    database: getAdaptiveContentAdapter(),
+    aiAdapter,
+    enableCaching: true,
+    minInteractionsForAdaptation: 5,
+  });
 }
 
 const ContentSchema = z.object({
@@ -90,7 +89,7 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = parsed.data.userId || session.user.id;
-    const engine = getEngine();
+    const engine = await createEngine(userId);
 
     // Get or use provided profile
     let profile: AdaptiveLearnerProfile;

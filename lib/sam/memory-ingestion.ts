@@ -1,14 +1,11 @@
 import { createHash } from "crypto";
 import { z } from "zod";
 import {
-  type AIAdapter,
-} from "@sam-ai/core";
-import {
   EmbeddingSourceType,
   EntityType,
   RelationshipType,
 } from "@sam-ai/agentic";
-import { getDefaultAdapter } from "@/lib/sam/providers/ai-factory";
+import { aiClient } from "@/lib/ai/enterprise-client";
 import { logger } from "@/lib/logger";
 import { getAgenticMemorySystem, buildMemoryMetadata } from "@/lib/sam/agentic-memory";
 
@@ -81,17 +78,9 @@ let isProcessing = false;
 const MAX_CHUNK_LENGTH = 1200;
 const MAX_SUMMARY_LENGTH = 800;
 
-let memoryAiAdapter: AIAdapter | null = null;
-
-function getMemoryAiAdapter(): AIAdapter {
-  if (memoryAiAdapter) return memoryAiAdapter;
-  const adapter = getDefaultAdapter({ timeout: 60000, maxRetries: 1 });
-  if (!adapter) {
-    throw new Error("No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.");
-  }
-  memoryAiAdapter = adapter;
-  return memoryAiAdapter;
-}
+// AI calls route through aiClient.chat() which handles provider resolution,
+// rate limiting, and usage tracking. When userId is provided, user preferences
+// are respected; when absent, system defaults are used.
 
 function hashContent(content: string): string {
   return createHash("sha256").update(content).digest("hex");
@@ -129,15 +118,16 @@ function chunkText(content: string): string[] {
   return chunks.length > 0 ? chunks : [content];
 }
 
-async function summarizeContent(content: string): Promise<{ summary: string; keyConcepts?: string[] } | null> {
-  const adapter = getMemoryAiAdapter();
+async function summarizeContent(content: string, userId?: string): Promise<{ summary: string; keyConcepts?: string[] } | null> {
   const prompt = [
     "Summarize the following content for long-term memory.",
     "Return JSON: {\"summary\": \"...\", \"keyConcepts\": [\"...\"]}",
     content.slice(0, 4000),
   ].join("\n\n");
 
-  const response = await adapter.chat({
+  const response = await aiClient.chat({
+    userId,
+    capability: 'analysis',
     messages: [{ role: "user", content: prompt }],
     systemPrompt: "Return only JSON. No markdown.",
     temperature: 0.2,
@@ -153,8 +143,7 @@ async function summarizeContent(content: string): Promise<{ summary: string; key
   }
 }
 
-async function extractKnowledge(content: string): Promise<KnowledgeExtraction | null> {
-  const adapter = getMemoryAiAdapter();
+async function extractKnowledge(content: string, userId?: string): Promise<KnowledgeExtraction | null> {
   const prompt = [
     "Extract knowledge graph nodes and relationships from the content.",
     "Use only the provided types.",
@@ -162,7 +151,9 @@ async function extractKnowledge(content: string): Promise<KnowledgeExtraction | 
     content.slice(0, 4000),
   ].join("\n\n");
 
-  const response = await adapter.chat({
+  const response = await aiClient.chat({
+    userId,
+    capability: 'analysis',
     messages: [{ role: "user", content: prompt }],
     systemPrompt: "Return only JSON. No markdown.",
     temperature: 0.2,
@@ -248,7 +239,7 @@ async function processIngestion(input: MemoryIngestionInput) {
   );
 
   if (input.enableSummary !== false && input.content.length > MAX_CHUNK_LENGTH) {
-    const summary = await summarizeContent(input.content);
+    const summary = await summarizeContent(input.content, input.userId);
     if (summary?.summary) {
       await storeEmbedding(
         summary.summary.slice(0, MAX_SUMMARY_LENGTH),
@@ -260,7 +251,7 @@ async function processIngestion(input: MemoryIngestionInput) {
   }
 
   if (input.enableKnowledgeGraph) {
-    const extraction = await extractKnowledge(input.content);
+    const extraction = await extractKnowledge(input.content, input.userId);
     if (extraction) {
       const entityIds = new Map<string, string>();
 

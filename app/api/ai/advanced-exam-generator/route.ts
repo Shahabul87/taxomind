@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
 import {

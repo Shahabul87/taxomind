@@ -46,7 +46,7 @@ export interface SAMExamGenerationRequest {
   enablePedagogicalValidation?: boolean;
 
   // User context (for ZPD evaluation)
-  userId?: string;
+  userId: string;
 }
 
 /**

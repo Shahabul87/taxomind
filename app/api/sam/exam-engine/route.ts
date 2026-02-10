@@ -2,21 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { createExamEngine } from '@sam-ai/educational';
 import type { ExamGenerationConfig, StudentProfile } from '@sam-ai/educational';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
-// Create exam engine singleton with portable package
-let examEngine: ReturnType<typeof createExamEngine> | null = null;
-
-function getExamEngine() {
-  if (!examEngine) {
-    examEngine = createExamEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return examEngine;
+// Create a user-scoped exam engine instance
+async function createExamEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createExamEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -117,7 +113,7 @@ export async function POST(request: NextRequest) {
     } : undefined;
 
     // Generate exam using portable @sam-ai/educational engine
-    const engine = getExamEngine();
+    const engine = await createExamEngineForUser(user.id);
     const examResponse = await engine.generateExam(
       courseId,
       sectionIds,

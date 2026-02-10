@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCombinedSession } from "@/lib/auth/combined-session";
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { optimizeContentOptimization } from "@/lib/request-optimizer";
 import { aiCacheManager } from "@/lib/ai-cache-manager";
 import { logger } from '@/lib/logger';
@@ -154,7 +153,7 @@ Return ONLY valid JSON:
   ]
 }`;
 
-  const response = await aiClient.chat({
+  const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
     maxTokens: 1500,
@@ -162,7 +161,7 @@ Return ONLY valid JSON:
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(response.content);
+  return JSON.parse(aiResponse);
 }
 
 async function optimizeDescription(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
@@ -190,7 +189,7 @@ Create an optimized description that converts browsers into students.
 
 Return ONLY valid JSON with the same structure, focusing on description optimization.`;
 
-  const response = await aiClient.chat({
+  const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
     maxTokens: 2000,
@@ -198,7 +197,7 @@ Return ONLY valid JSON with the same structure, focusing on description optimiza
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(response.content);
+  return JSON.parse(aiResponse);
 }
 
 async function optimizeLearningObjectives(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
@@ -224,7 +223,7 @@ Transform these into compelling, measurable learning outcomes.
 
 Return ONLY valid JSON with learning objectives optimization structure.`;
 
-  const response = await aiClient.chat({
+  const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
     maxTokens: 1800,
@@ -232,7 +231,7 @@ Return ONLY valid JSON with learning objectives optimization structure.`;
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(response.content);
+  return JSON.parse(aiResponse);
 }
 
 async function comprehensiveOptimization(content: any, goals: string[], userId: string): Promise<OptimizationResult> {
@@ -264,7 +263,7 @@ Optimize all elements to work together synergistically for maximum impact.
 
 Return ONLY valid JSON with comprehensive optimization covering title, description, and learning objectives.`;
 
-  const response = await aiClient.chat({
+  const aiResponse = await runSAMChatWithPreference({
     userId,
     capability: 'analysis',
     maxTokens: 3000,
@@ -272,5 +271,5 @@ Return ONLY valid JSON with comprehensive optimization covering title, descripti
     messages: [{ role: "user", content: prompt }]
   });
 
-  return JSON.parse(response.content);
+  return JSON.parse(aiResponse);
 }

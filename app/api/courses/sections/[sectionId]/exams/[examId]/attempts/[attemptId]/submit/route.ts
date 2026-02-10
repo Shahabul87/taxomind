@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 import { recordExamProgress } from '@/lib/sam/progress-recorder';
 import { createEvaluationEngine, createUnifiedBloomsEngine } from '@sam-ai/educational';
 import type { EvaluationContext } from '@sam-ai/educational';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { wrapEvaluationWithSafety } from '@sam-ai/safety';
 import { BloomsLevel, EvaluationType } from '@prisma/client';
 import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
@@ -17,32 +17,25 @@ import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 // Force Node.js runtime
 export const runtime = 'nodejs';
 
-// Lazy-loaded engine singletons
-let evaluationEngine: ReturnType<typeof createEvaluationEngine> | null = null;
-let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
-
-function getEvaluationEngine() {
-  if (!evaluationEngine) {
-    evaluationEngine = createEvaluationEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return evaluationEngine;
+// Per-request engine factories (user-scoped AI provider)
+async function createEvalEngine(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createEvaluationEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
-function getUnifiedBloomsEngine() {
-  if (!unifiedBloomsEngine) {
-    unifiedBloomsEngine = createUnifiedBloomsEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-      defaultMode: 'standard',
-      confidenceThreshold: 0.7,
-      enableCache: true,
-      cacheTTL: 3600,
-    });
-  }
-  return unifiedBloomsEngine;
+async function createBloomsEngine(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createUnifiedBloomsEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  });
 }
 
 // Subjective question types that require AI evaluation
@@ -70,6 +63,10 @@ export async function POST(
     if (!user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    // Create user-scoped AI engines
+    const userEvalEngine = await createEvalEngine(user.id);
+    const userBloomsEngine = await createBloomsEngine(user.id);
 
     // Parse and validate request body
     const body = await req.json();
@@ -107,12 +104,12 @@ export async function POST(
                 order: 'asc'
               }
             },
-            Section: {
+            section: {
               select: {
                 id: true,
                 chapterId: true,
                 learningObjectiveItems: true,
-                Chapter: {
+                chapter: {
                   select: {
                     courseId: true,
                   }
@@ -140,7 +137,7 @@ export async function POST(
 
     // Check if we have enhanced questions for AI evaluation
     const hasEnhancedQuestions = attempt.Exam.enhancedQuestions.length > 0;
-    const learningObjectives = attempt.Exam.Section?.learningObjectiveItems ?? [];
+    const learningObjectives = attempt.Exam.section?.learningObjectiveItems ?? [];
 
     // Create a map of enhanced questions by their content for matching
     const enhancedQuestionMap = new Map(
@@ -218,7 +215,8 @@ export async function POST(
           const evalResult = await evaluateSubjectiveAnswer(
             enhancedQuestion,
             String(answerText),
-            learningObjectives
+            learningObjectives,
+            userEvalEngine
           );
 
           isCorrect = evalResult.isCorrect;
@@ -348,15 +346,15 @@ export async function POST(
           isPassed,
           correctAnswers,
           totalQuestions: attempt.Exam.ExamQuestion.length,
-          status: aiEvaluations.length > 0 ? 'GRADED' : undefined,
+          status: aiEvaluations.length > 0 ? 'GRADED' : 'SUBMITTED',
         }
       });
     });
 
     // Record Bloom's Taxonomy progress from exam questions
     // This is done outside the transaction to not block the main submission flow
-    const courseId = attempt.Exam.Section?.Chapter?.courseId;
-    const sectionId = attempt.Exam.Section?.id ?? params.sectionId;
+    const courseId = attempt.Exam.section?.chapter?.courseId;
+    const sectionId = attempt.Exam.section?.id ?? params.sectionId;
 
     if (courseId) {
       // Prepare question data with Bloom's levels for progress tracking
@@ -385,7 +383,7 @@ export async function POST(
     // Update Bloom's cognitive progress for AI-evaluated questions
     if (aiEvaluations.length > 0) {
       try {
-        const blooms = getUnifiedBloomsEngine();
+        const blooms = userBloomsEngine;
         for (const evalData of aiEvaluations) {
           await blooms.updateCognitiveProgress(
             user.id,
@@ -406,12 +404,12 @@ export async function POST(
     }
 
     getAchievementEngine()
-      .trackProgress(
+      .then((engine) => engine.trackProgress(
         user.id,
         'form_completed',
         { examId: params.examId, scorePercentage },
-        { courseId, chapterId: attempt.Exam.Section?.chapterId, sectionId: params.sectionId }
-      )
+        { courseId, chapterId: attempt.Exam.section?.chapterId, sectionId: params.sectionId }
+      ))
       .catch((err) => {
         logger.warn('[Exam Submit] Achievement tracking failed', { error: err });
       });
@@ -527,7 +525,8 @@ interface SubjectiveEvaluationResult {
 async function evaluateSubjectiveAnswer(
   question: EnhancedQuestionData,
   studentAnswer: string,
-  learningObjectives: LearningObjectiveItem[]
+  learningObjectives: LearningObjectiveItem[],
+  evalEngine: ReturnType<typeof createEvaluationEngine>
 ): Promise<SubjectiveEvaluationResult> {
   // Build evaluation context
   const context: EvaluationContext = {
@@ -547,7 +546,6 @@ async function evaluateSubjectiveAnswer(
   };
 
   // Get evaluation from AI engine
-  const evalEngine = getEvaluationEngine();
   const evaluation = await evalEngine.evaluateAnswer(studentAnswer, context);
 
   // Wrap with safety validation

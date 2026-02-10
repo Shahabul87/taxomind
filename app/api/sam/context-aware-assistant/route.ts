@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { applyRateLimit, samConversationLimiter } from '@/lib/sam/config/sam-rate-limiter';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // Redact potentially sensitive values from pageContext before sending to LLM
 function scrubDataContext(dataContext: any) {

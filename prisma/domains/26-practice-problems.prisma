@@ -1,0 +1,124 @@
+// ==========================================
+// Practice Problems System
+// ==========================================
+// Persistent AI-generated practice problems with
+// server-side grading, attempt tracking, and analytics
+//
+// Total Models: 4
+// Priority: 5
+//
+// Reuses existing enums: QuestionType, BloomsLevel,
+// QuestionDifficulty, AttemptStatus, EvaluationType
+// ==========================================
+
+model PracticeProblemSet {
+  id            String   @id @default(cuid())
+  userId        String
+  sectionId     String
+  title         String?
+  topic         String
+  status        String   @default("READY") // GENERATING | READY | ARCHIVED
+  difficulty    String?  @default("intermediate")
+  bloomsLevel   BloomsLevel? @default(APPLY)
+  questionCount Int      @default(5)
+  questionTypes String[] @default(["MULTIPLE_CHOICE", "SHORT_ANSWER"])
+  totalAttempts Int      @default(0)
+  bestScore     Float?
+  avgScore      Float?
+  lastAttemptedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user      User                     @relation("UserPracticeProblemSets", fields: [userId], references: [id], onDelete: Cascade)
+  section   Section                  @relation("SectionPracticeProblemSets", fields: [sectionId], references: [id], onDelete: Cascade)
+  questions PracticeProblemQuestion[]
+  attempts  UserPracticeAttempt[]
+
+  @@index([userId, sectionId])
+  @@index([userId, createdAt])
+}
+
+model PracticeProblemQuestion {
+  id                   String             @id @default(cuid())
+  setId                String
+  questionType         QuestionType       @default(MULTIPLE_CHOICE)
+  question             String             @db.Text
+  options              Json?              // [{id, text, isCorrect, explanation}]
+  correctAnswer        String             @db.Text
+  explanation          String?            @db.Text
+  acceptableVariations Json?              // For short answer alternatives
+  bloomsLevel          BloomsLevel        @default(APPLY)
+  difficulty           QuestionDifficulty @default(MEDIUM)
+  points               Int                @default(10)
+  order                Int                @default(0)
+  hints                Json?              // [{id, content, order, penaltyPoints}]
+  relatedConcepts      String[]           @default([])
+  cognitiveSkills      String[]           @default([])
+  estimatedTime        Int?               // seconds
+  totalAttempts        Int                @default(0)
+  correctAttempts      Int                @default(0)
+  createdAt            DateTime           @default(now())
+
+  set     PracticeProblemSet   @relation(fields: [setId], references: [id], onDelete: Cascade)
+  answers UserPracticeAnswer[]
+
+  @@index([setId, order])
+}
+
+model UserPracticeAttempt {
+  id              String       @id @default(cuid())
+  userId          String
+  setId           String
+  attemptNumber   Int
+  status          AttemptStatus @default(IN_PROGRESS)
+  totalQuestions  Int          @default(0)
+  correctAnswers  Int          @default(0)
+  scorePercentage Float?
+  earnedPoints    Int          @default(0)
+  totalPoints     Int          @default(0)
+  startedAt       DateTime     @default(now())
+  submittedAt     DateTime?
+  timeSpent       Int?         // seconds
+  bloomsPerformance Json?      // {REMEMBER:{correct,total}, ...}
+  weakAreas       String[]     @default([])
+  strongAreas     String[]     @default([])
+  recommendations Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user    User                 @relation("UserPracticeAttempts", fields: [userId], references: [id], onDelete: Cascade)
+  set     PracticeProblemSet   @relation(fields: [setId], references: [id], onDelete: Cascade)
+  answers UserPracticeAnswer[]
+
+  @@unique([userId, setId, attemptNumber])
+  @@index([userId, setId])
+  @@index([userId, status])
+}
+
+model UserPracticeAnswer {
+  id                String         @id @default(cuid())
+  attemptId         String
+  questionId        String
+  answer            String         @db.Text
+  isCorrect         Boolean?
+  pointsEarned      Float          @default(0)
+  timeSpent         Int?           // seconds per question
+  evaluationType    EvaluationType @default(AUTO_GRADED)
+  aiFeedback        String?        @db.Text
+  aiScore           Float?
+  aiAccuracy        Float?
+  aiCompleteness    Float?
+  targetBloomsLevel BloomsLevel?
+  demonstratedLevel BloomsLevel?
+  misconceptions    String[]       @default([])
+  knowledgeGaps     String[]       @default([])
+  hintsUsed         Int            @default(0)
+  createdAt         DateTime       @default(now())
+
+  attempt  UserPracticeAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question PracticeProblemQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}

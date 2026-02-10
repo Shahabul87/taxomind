@@ -1,5 +1,4 @@
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import * as z from 'zod';
@@ -191,7 +190,7 @@ export async function POST(request: NextRequest) {
     try {
       const prompt = buildExamGenerationPrompt(examRequest);
 
-      const completion = await aiClient.chat({
+      const responseText = await runSAMChatWithPreference({
         userId: session.userId!,
         capability: 'course',
         maxTokens: 4000,
@@ -204,9 +203,6 @@ export async function POST(request: NextRequest) {
           }
         ],
       });
-
-      // Extract and parse the response
-      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -247,7 +243,7 @@ export async function POST(request: NextRequest) {
         success: true,
         questions: normalizedQuestions,
         metadata: {
-          tokensUsed: completion.usage?.input_tokens || 0,
+          tokensUsed: 0,
           model: 'claude-sonnet-4-5-20250929',
           generatedAt: new Date().toISOString()
         }

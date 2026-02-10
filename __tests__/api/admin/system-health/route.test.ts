@@ -22,9 +22,9 @@ jest.mock("@/lib/monitoring/performance", () => ({
   },
 }));
 
-jest.mock("@/lib/sam/integration-adapters", () => ({
+jest.mock("@/lib/sam/ai-provider", () => ({
   getAdapterStatus: jest.fn(),
-  getCoreAIAdapter: jest.fn(),
+  getSAMAdapterSystem: jest.fn(),
 }));
 
 jest.mock("@/lib/sam/middleware/rate-limiter", () => ({
@@ -66,7 +66,7 @@ jest.mock("@/lib/data-fetching/enterprise-data-api", () => ({
 import { adminAuth } from "@/auth.admin";
 import { getDbMetrics, checkDatabaseHealth } from "@/lib/db-pooled";
 import { perfMonitor } from "@/lib/monitoring/performance";
-import { getAdapterStatus, getCoreAIAdapter } from "@/lib/sam/integration-adapters";
+import { getAdapterStatus, getSAMAdapterSystem } from "@/lib/sam/ai-provider";
 import { getRateLimitStats } from "@/lib/sam/middleware/rate-limiter";
 import { cache } from "@/lib/cache/simple-cache";
 import { getSAMTelemetryService } from "@/lib/sam/telemetry";
@@ -87,8 +87,8 @@ const mockedGetDbMetrics = getDbMetrics as jest.MockedFunction<
 const mockedGetAdapterStatus = getAdapterStatus as jest.MockedFunction<
   typeof getAdapterStatus
 >;
-const mockedGetCoreAIAdapter = getCoreAIAdapter as jest.MockedFunction<
-  typeof getCoreAIAdapter
+const mockedGetSAMAdapterSystem = getSAMAdapterSystem as jest.MockedFunction<
+  typeof getSAMAdapterSystem
 >;
 const mockedGetRateLimitStats = getRateLimitStats as jest.MockedFunction<
   typeof getRateLimitStats
@@ -131,7 +131,7 @@ function setupHealthyMocks() {
     latency: { p50: 2, p95: 10, p99: 15, max: 20, avg: 4 },
   });
 
-  mockedGetCoreAIAdapter.mockResolvedValue(null);
+  mockedGetSAMAdapterSystem.mockResolvedValue(null);
   mockedGetAdapterStatus.mockReturnValue({
     hasAIAdapter: true,
     hasEmbeddingProvider: true,
@@ -475,7 +475,7 @@ describe("GET /api/admin/system-health", () => {
   });
 
   it("degrades health score when AI adapter is missing", async () => {
-    mockedGetCoreAIAdapter.mockResolvedValue(null);
+    mockedGetSAMAdapterSystem.mockResolvedValue(null);
     mockedGetAdapterStatus.mockReturnValue({
       hasAIAdapter: false,
       hasEmbeddingProvider: false,
@@ -601,7 +601,7 @@ describe("GET /api/admin/system-health", () => {
   });
 
   it("handles getAdapterStatus throwing gracefully", async () => {
-    mockedGetCoreAIAdapter.mockRejectedValue(new Error("Adapter error"));
+    mockedGetSAMAdapterSystem.mockRejectedValue(new Error("Adapter error"));
     mockedGetAdapterStatus.mockImplementation(() => {
       throw new Error("Adapter error");
     });

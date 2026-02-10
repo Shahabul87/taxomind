@@ -19,71 +19,44 @@ import {
   type SkillBuildEvidenceType,
 } from '@sam-ai/educational';
 import { createSAMConfig } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { getStore } from '@/lib/sam/taxomind-context';
 import { trackAssessmentAttempt } from '@/lib/sam/proactive-intervention-integration';
 
-// ============================================================================
-// SHARED SKILL BUILD TRACK ENGINE (lazy singleton)
-// ============================================================================
+async function createSkillBuildTrackEngineForUser(
+  userId: string,
+): Promise<ReturnType<typeof createSkillBuildTrackEngine>> {
+  const store = getStore('skillBuildTrack');
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-let sharedEngine: ReturnType<typeof createSkillBuildTrackEngine> | null = null;
-let engineInitPromise: Promise<ReturnType<typeof createSkillBuildTrackEngine>> | null = null;
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    logger: {
+      debug: (msg: string, data?: unknown) => logger.debug(msg, data),
+      info: (msg: string, data?: unknown) => logger.info(msg, data),
+      warn: (msg: string, data?: unknown) => logger.warn(msg, data),
+      error: (msg: string, data?: unknown) => logger.error(msg, data),
+    },
+    features: {
+      gamification: false,
+      formSync: false,
+      autoContext: true,
+      emotionDetection: false,
+      learningStyleDetection: false,
+      streaming: false,
+      analytics: true,
+    },
+  });
 
-async function getSharedSkillBuildTrackEngine(): Promise<ReturnType<typeof createSkillBuildTrackEngine>> {
-  if (sharedEngine) return sharedEngine;
+  const config: SkillBuildTrackEngineConfig = {
+    samConfig,
+    database: store as unknown as import('@sam-ai/core').SAMDatabaseAdapter,
+    enableVelocityTracking: true,
+    enableDecayPrediction: true,
+    enableBenchmarking: false,
+  };
 
-  // Avoid concurrent initialization races
-  if (engineInitPromise) return engineInitPromise;
-
-  engineInitPromise = (async () => {
-    const store = getStore('skillBuildTrack');
-    const coreAiAdapter = await getCoreAIAdapter();
-    const aiAdapter = coreAiAdapter ?? {
-      name: 'cross-feature-bridge-fallback',
-      version: '1.0.0',
-      chat: async () => ({
-        content: '',
-        model: 'fallback',
-        usage: { inputTokens: 0, outputTokens: 0 },
-        finishReason: 'stop' as const,
-      }),
-      isConfigured: () => false,
-      getModel: () => 'fallback',
-    };
-
-    const samConfig = createSAMConfig({
-      ai: aiAdapter,
-      logger: {
-        debug: (msg: string, data?: unknown) => logger.debug(msg, data),
-        info: (msg: string, data?: unknown) => logger.info(msg, data),
-        warn: (msg: string, data?: unknown) => logger.warn(msg, data),
-        error: (msg: string, data?: unknown) => logger.error(msg, data),
-      },
-      features: {
-        gamification: false,
-        formSync: false,
-        autoContext: true,
-        emotionDetection: false,
-        learningStyleDetection: false,
-        streaming: false,
-        analytics: true,
-      },
-    });
-
-    const config: SkillBuildTrackEngineConfig = {
-      samConfig,
-      database: store as unknown as import('@sam-ai/core').SAMDatabaseAdapter,
-      enableVelocityTracking: true,
-      enableDecayPrediction: true,
-      enableBenchmarking: false,
-    };
-
-    sharedEngine = createSkillBuildTrackEngine(config);
-    return sharedEngine;
-  })();
-
-  return engineInitPromise;
+  return createSkillBuildTrackEngine(config);
 }
 
 // ============================================================================
@@ -113,7 +86,7 @@ export async function bridgeAssessmentToSkillTrack(
   input: AssessmentBridgeInput,
 ): Promise<void> {
   try {
-    const engine = await getSharedSkillBuildTrackEngine();
+    const engine = await createSkillBuildTrackEngineForUser(input.userId);
     const skillId = input.sectionId;
 
     // Record practice session (feeds velocity tracking + last-practice timestamps)
@@ -234,7 +207,7 @@ export async function bridgeChatSkillToSkillTrack(
   input: ChatSkillBridgeInput,
 ): Promise<void> {
   try {
-    const engine = await getSharedSkillBuildTrackEngine();
+    const engine = await createSkillBuildTrackEngineForUser(input.userId);
 
     const demonstratedLevel = scoreToProficiencyLevel(input.score);
 

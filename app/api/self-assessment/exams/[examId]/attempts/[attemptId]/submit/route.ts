@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { createEvaluationEngine } from '@sam-ai/educational';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { getAchievementEngine } from '@/lib/adapters/achievement-adapter';
 
 /**
@@ -29,17 +29,13 @@ interface RouteParams {
   params: Promise<{ examId: string; attemptId: string }>;
 }
 
-// Get evaluation engine singleton
-let evaluationEngine: ReturnType<typeof createEvaluationEngine> | null = null;
-
-function getEvaluationEngine() {
-  if (!evaluationEngine) {
-    evaluationEngine = createEvaluationEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return evaluationEngine;
+// Create user-scoped evaluation engine
+async function createEvalEngine(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createEvaluationEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 /**
@@ -53,6 +49,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const evalEngine = await createEvalEngine(user.id);
 
     const attempt = await db.selfAssessmentAttempt.findUnique({
       where: { id: attemptId },
@@ -171,7 +169,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       } else {
         // SHORT_ANSWER or ESSAY - Use AI evaluation
         try {
-          const engine = getEvaluationEngine();
+          const engine = evalEngine;
           const evaluation = await engine.evaluateAnswer({
             questionText: question.question,
             questionType: question.questionType,
@@ -373,12 +371,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     getAchievementEngine()
-      .trackProgress(
+      .then((engine) => engine.trackProgress(
         user.id,
         'form_completed',
         { examId, scorePercentage },
         { courseId: attempt.exam.courseId ?? undefined }
-      )
+      ))
       .catch((err) => {
         logger.warn('[Self Assessment] Achievement tracking failed', { error: err });
       });

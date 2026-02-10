@@ -3,8 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { BloomsLevel } from '@prisma/client';
 import { logger } from '@/lib/logger';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {

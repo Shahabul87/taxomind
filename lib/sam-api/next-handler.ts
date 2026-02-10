@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { SAMApiRequest, SAMApiResponse, SAMHandler, SAMHandlerContext } from '@sam-ai/api';
-import { getSAMConfig } from '@/lib/adapters';
+import { getUserScopedSAMConfigOrDefault } from '@/lib/adapters';
 
 function headersToRecord(headers: NextRequest['headers']): Record<string, string> {
   const record: Record<string, string> = {};
@@ -57,9 +57,16 @@ export function toNextResponse(response: SAMApiResponse): NextResponse {
   return nextResponse;
 }
 
-export function createDefaultHandlerContext(): SAMHandlerContext {
+/**
+ * Create a default handler context, optionally scoped to a user.
+ *
+ * @param userId - If provided, resolves the user's AI preferences via the enterprise client.
+ *                 If omitted, falls back to system-level adapter.
+ */
+export async function createDefaultHandlerContext(userId?: string): Promise<SAMHandlerContext> {
+  const config = await getUserScopedSAMConfigOrDefault(userId);
   return {
-    config: getSAMConfig(),
+    config,
     requestId: generateRequestId(),
     timestamp: new Date(),
   };
@@ -68,7 +75,7 @@ export function createDefaultHandlerContext(): SAMHandlerContext {
 export function createNextSAMHandler(handler: SAMHandler) {
   return async (req: NextRequest): Promise<NextResponse> => {
     const samRequest = await toSAMApiRequest(req);
-    const context = createDefaultHandlerContext();
+    const context = await createDefaultHandlerContext();
     const samResponse = await handler(samRequest, context);
     return toNextResponse(samResponse);
   };

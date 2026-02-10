@@ -9,7 +9,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import {
   createPeerLearningEngine,
   type PeerLearningEngineConfig,
@@ -23,57 +23,40 @@ import {
 import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
-// ENGINE SINGLETON
+// PER-REQUEST ENGINE FACTORY
 // ============================================================================
 
-let peerLearningEngine: ReturnType<typeof createPeerLearningEngine> | null = null;
+async function createPeerLearningEngineForUser(userId: string) {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'chat' });
 
-async function getPeerLearningEngine() {
-  if (!peerLearningEngine) {
-    const coreAiAdapter = await getCoreAIAdapter();
-    const aiAdapter = coreAiAdapter ?? {
-      name: 'peer-learning-fallback',
-      version: '1.0.0',
-      chat: async () => ({
-        content: '',
-        model: 'fallback',
-        usage: { inputTokens: 0, outputTokens: 0 },
-        finishReason: 'stop' as const,
-      }),
-      isConfigured: () => false,
-      getModel: () => 'fallback',
-    };
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    logger: {
+      debug: (msg: string, data?: unknown) => logger.debug(msg, data),
+      info: (msg: string, data?: unknown) => logger.info(msg, data),
+      warn: (msg: string, data?: unknown) => logger.warn(msg, data),
+      error: (msg: string, data?: unknown) => logger.error(msg, data),
+    },
+    features: {
+      gamification: true,
+      formSync: false,
+      autoContext: true,
+      emotionDetection: false,
+      learningStyleDetection: true,
+      streaming: false,
+      analytics: true,
+    },
+  });
 
-    const samConfig = createSAMConfig({
-      ai: aiAdapter,
-      logger: {
-        debug: (msg: string, data?: unknown) => logger.debug(msg, data),
-        info: (msg: string, data?: unknown) => logger.info(msg, data),
-        warn: (msg: string, data?: unknown) => logger.warn(msg, data),
-        error: (msg: string, data?: unknown) => logger.error(msg, data),
-      },
-      features: {
-        gamification: true,
-        formSync: false,
-        autoContext: true,
-        emotionDetection: false,
-        learningStyleDetection: true,
-        streaming: false,
-        analytics: true,
-      },
-    });
+  const config: PeerLearningEngineConfig = {
+    matchingAlgorithm: 'ML_ENHANCED',
+    gamificationEnabled: true,
+    mentoringEnabled: true,
+    reviewCalibrationEnabled: true,
+    projectsEnabled: true,
+  };
 
-    const config: PeerLearningEngineConfig = {
-      matchingAlgorithm: 'ML_ENHANCED',
-      gamificationEnabled: true,
-      mentoringEnabled: true,
-      reviewCalibrationEnabled: true,
-      projectsEnabled: true,
-    };
-
-    peerLearningEngine = createPeerLearningEngine(samConfig, config);
-  }
-  return peerLearningEngine;
+  return createPeerLearningEngine(samConfig, config);
 }
 
 // ============================================================================
@@ -274,7 +257,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const engine = await getPeerLearningEngine();
+    const engine = await createPeerLearningEngineForUser(session.user.id);
 
     // Support both 'action' (frontend) and 'endpoint' param names
     const endpoint = searchParams.get('endpoint') ?? searchParams.get('action') ?? 'profile';
@@ -490,7 +473,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await getPeerLearningEngine();
+    const engine = await createPeerLearningEngineForUser(session.user.id);
     let result: unknown;
 
     switch (action) {

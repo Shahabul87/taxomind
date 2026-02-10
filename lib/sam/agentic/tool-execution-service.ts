@@ -36,7 +36,7 @@ export class ToolExecutionService {
 
   private async initializeTooling(): Promise<void> {
     try {
-      const tooling = await ensureToolingInitialized();
+      const tooling = await ensureToolingInitialized(this.userId);
       this.toolRegistry = tooling.toolRegistry;
       this.toolExecutor = tooling.toolExecutor;
       this.logger.debug('Tool Execution initialized');

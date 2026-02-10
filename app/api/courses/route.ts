@@ -196,7 +196,7 @@ export async function POST(req: Request): Promise<Response> {
 
     // 9.1 Track achievement progress asynchronously
     getAchievementEngine()
-      .trackProgress(user.id, 'content_created', { courseId: course.id }, { courseId: course.id })
+      .then((engine) => engine.trackProgress(user.id, 'content_created', { courseId: course.id }, { courseId: course.id }))
       .catch((err) => {
         logger.warn('[COURSES] Achievement tracking failed', { error: err });
       });

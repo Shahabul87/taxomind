@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
-import YouTube, { YouTubeProps } from "react-youtube";
+import YouTube, { type YouTubeProps, type YouTubeEvent } from "react-youtube";
 import { useLearningMode } from "../../../../_components/learning-mode-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,6 +31,38 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+/** YouTube IFrame API player instance methods used by this component */
+interface YTPlayerInstance {
+  playVideo: () => void;
+  pauseVideo: () => void;
+  getPlayerState: () => number;
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  setVolume: (volume: number) => void;
+  getVolume: () => number;
+  mute: () => void;
+  unMute: () => void;
+  isMuted: () => boolean;
+  setPlaybackRate: (rate: number) => void;
+  getPlaybackRate: () => number;
+  setPlaybackQuality: (quality: string) => void;
+  getAvailableQualityLevels: () => string[];
+  getIframe: () => HTMLIFrameElement;
+}
+
+/** Public ref handle exposed to parent components */
+export interface SectionYouTubePlayerRef {
+  playVideo: () => void;
+  pauseVideo: () => void;
+  getPlayerState: () => number | undefined;
+  seekTo: (seconds: number) => void;
+  getCurrentTime: () => number | undefined;
+  getDuration: () => number | undefined;
+  setVolume: (volume: number) => void;
+  getVolume: () => number | undefined;
+}
+
 interface SectionYouTubePlayerProps {
   videoUrl: string;
   sectionId: string;
@@ -41,7 +73,7 @@ interface SectionYouTubePlayerProps {
   startTime?: number;
 }
 
-export const SectionYouTubePlayer = forwardRef<any, SectionYouTubePlayerProps>(({
+export const SectionYouTubePlayer = forwardRef<SectionYouTubePlayerRef, SectionYouTubePlayerProps>(({
   videoUrl,
   sectionId,
   sectionTitle,
@@ -51,7 +83,7 @@ export const SectionYouTubePlayer = forwardRef<any, SectionYouTubePlayerProps>((
   startTime = 0,
 }, ref) => {
   const { mode, canTrackProgress, isPreviewMode, user } = useLearningMode();
-  const [player, setPlayer] = useState<any>(null);
+  const [player, setPlayer] = useState<YTPlayerInstance | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -185,7 +217,7 @@ export const SectionYouTubePlayer = forwardRef<any, SectionYouTubePlayerProps>((
   };
 
   // Player event handlers
-  const onReady = (event: any) => {
+  const onReady = (event: YouTubeEvent) => {
     setPlayer(event.target);
     setDuration(event.target.getDuration());
     setIsLoading(false);
@@ -199,7 +231,7 @@ export const SectionYouTubePlayer = forwardRef<any, SectionYouTubePlayerProps>((
     }
   };
 
-  const onStateChange = (event: any) => {
+  const onStateChange = (event: YouTubeEvent<number>) => {
     const state = event.data;
     setIsPlaying(state === 1); // 1 = playing
 
@@ -209,7 +241,7 @@ export const SectionYouTubePlayer = forwardRef<any, SectionYouTubePlayerProps>((
     }
   };
 
-  const onError = (event: any) => {
+  const onError = (event: YouTubeEvent<number>) => {
     setIsLoading(false);
     setError("Failed to load video. Please check your connection and try again.");
     console.error("YouTube Player Error:", event);
@@ -487,7 +519,7 @@ export const SectionYouTubePlayer = forwardRef<any, SectionYouTubePlayerProps>((
               {Math.round(progress)}% Complete
             </span>
           </div>
-          <div className="mt-2 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div className="mt-2 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
               style={{ width: `${progress}%` }}

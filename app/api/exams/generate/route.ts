@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { BloomsLevel, QuestionType, QuestionDifficulty, QuestionGenerationMode } from '@prisma/client';
 
 // Request validation schema
@@ -269,7 +268,7 @@ async function generateQuestionsForLevel(
 ): Promise<GeneratedQuestion[]> {
   const systemPrompt = buildQuestionGenerationPrompt(bloomsLevel, questionTypes, difficulty);
 
-  const response = await aiClient.chat({
+  const text = await runSAMChatWithPreference({
     userId,
     capability: 'course',
     maxTokens: 4000,
@@ -282,8 +281,6 @@ async function generateQuestionsForLevel(
       },
     ],
   });
-
-  const text = response.content;
 
   try {
     const jsonMatch = text.match(/\[[\s\S]*\]/);

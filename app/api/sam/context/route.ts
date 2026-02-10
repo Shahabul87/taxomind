@@ -16,7 +16,7 @@ import {
   createSAMConfig,
   type PageContextSnapshot,
 } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { processContextSnapshot } from '@/lib/sam/context-gathering-integration';
 
 // ============================================================================
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
     const { snapshot } = parsed.data;
 
     // Build SAM config (lightweight — no AI calls needed for context processing)
-    const aiAdapter = await getCoreAIAdapter();
+    const aiAdapter = await getSAMAdapter({ userId: user.id, capability: 'chat' });
     const samConfig = createSAMConfig({ ai: aiAdapter });
 
     // Process the snapshot

@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
-  BookOpen,
   PenSquare,
   Sparkles,
   Search,
@@ -27,6 +25,7 @@ interface EmptyStateProps {
   variant?: "no-posts" | "no-results" | "no-category" | "loading-error";
   searchQuery?: string;
   categoryName?: string;
+  userId?: string;
   onClearFilters?: () => void;
   onRetry?: () => void;
   className?: string;
@@ -36,12 +35,12 @@ interface EmptyStateProps {
 // No Posts Empty State (When blog has no content)
 // ============================================================================
 
-function NoPostsState() {
+function NoPostsState({ userId }: { userId?: string }) {
   return (
     <div className="relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-64 h-64 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-64 h-64 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-gradient-to-br from-pink-500/10 to-rose-500/10 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-cyan-500/5 to-teal-500/5 rounded-full blur-3xl" />
       </div>
@@ -52,7 +51,7 @@ function NoPostsState() {
             {/* Animated Icon */}
             <div className="relative inline-flex mb-8">
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full blur-2xl animate-pulse" />
-              <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-purple-500/30">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-3xl bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-500 flex items-center justify-center shadow-2xl shadow-violet-500/30">
                 <Rocket className="w-12 h-12 sm:w-16 sm:h-16 text-white animate-bounce" />
               </div>
               <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
@@ -61,7 +60,7 @@ function NoPostsState() {
             </div>
 
             {/* Heading */}
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Be the First to Share
             </h2>
 
@@ -83,7 +82,7 @@ function NoPostsState() {
                   className="group p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-700/50 dark:to-slate-800/50 border border-slate-200/50 dark:border-slate-600/50 transition-all duration-300 hover:shadow-lg hover:scale-105"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                     <feature.icon className="w-5 h-5 text-white" />
                   </div>
                   <p className="font-semibold text-slate-900 dark:text-white text-sm">{feature.title}</p>
@@ -94,13 +93,13 @@ function NoPostsState() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/teacher/posts/create">
+              <Link href={userId ? "/dashboard/user" : "/auth/login"}>
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-xl shadow-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/40 px-8 py-6 text-base font-semibold group transition-all duration-300"
+                  className="w-full sm:w-auto bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-700 hover:via-indigo-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/30 hover:shadow-2xl hover:shadow-violet-500/40 px-8 py-6 text-base font-semibold group transition-all duration-300"
                 >
                   <PenSquare className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
-                  Write Your First Article
+                  {userId ? "Go to Dashboard" : "Sign In to Write"}
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
@@ -188,17 +187,19 @@ function NoResultsState({
 
 function NoCategoryState({
   categoryName,
+  userId,
   onClearFilters
 }: {
   categoryName?: string;
+  userId?: string;
   onClearFilters?: () => void;
 }) {
   return (
     <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl rounded-2xl overflow-hidden">
       <CardContent className="p-8 sm:p-12 text-center">
         {/* Icon */}
-        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-cyan-100 to-teal-100 dark:from-cyan-900/30 dark:to-teal-900/30 flex items-center justify-center">
-          <Filter className="w-10 h-10 text-cyan-600 dark:text-cyan-400" />
+        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 dark:from-violet-900/30 dark:to-indigo-900/30 flex items-center justify-center">
+          <Filter className="w-10 h-10 text-violet-600 dark:text-violet-400" />
         </div>
 
         {/* Heading */}
@@ -218,15 +219,15 @@ function NoCategoryState({
             <Button
               variant="outline"
               onClick={onClearFilters}
-              className="border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+              className="border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20"
             >
               View All Articles
             </Button>
           )}
-          <Link href="/teacher/posts/create">
-            <Button className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white">
+          <Link href={userId ? "/dashboard/user" : "/auth/login"}>
+            <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white">
               <PenSquare className="w-4 h-4 mr-2" />
-              Write Article
+              {userId ? "Go to Dashboard" : "Sign In to Write"}
             </Button>
           </Link>
         </div>
@@ -281,18 +282,19 @@ export function BlogEmptyState({
   variant = "no-posts",
   searchQuery,
   categoryName,
+  userId,
   onClearFilters,
   onRetry,
   className,
 }: EmptyStateProps) {
   return (
     <div className={cn("w-full", className)}>
-      {variant === "no-posts" && <NoPostsState />}
+      {variant === "no-posts" && <NoPostsState userId={userId} />}
       {variant === "no-results" && (
         <NoResultsState searchQuery={searchQuery} onClearFilters={onClearFilters} />
       )}
       {variant === "no-category" && (
-        <NoCategoryState categoryName={categoryName} onClearFilters={onClearFilters} />
+        <NoCategoryState categoryName={categoryName} userId={userId} onClearFilters={onClearFilters} />
       )}
       {variant === "loading-error" && <LoadingErrorState onRetry={onRetry} />}
     </div>

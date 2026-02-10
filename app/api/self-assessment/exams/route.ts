@@ -4,8 +4,8 @@ import { db } from '@/lib/db';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { createExamEngine } from '@sam-ai/educational';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
-import { getDefaultAdapter } from '@/lib/sam/providers/ai-factory';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { runSAMChatWithMetadata } from '@/lib/sam/ai-provider';
 import { normalizeToUppercaseSafe } from '@/lib/sam/utils/blooms-normalizer';
 
 /**
@@ -66,17 +66,13 @@ const GeneratedQuestionSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-// Get exam engine singleton (for course-based generation)
-let examEngine: ReturnType<typeof createExamEngine> | null = null;
-
-function getExamEngine() {
-  if (!examEngine) {
-    examEngine = createExamEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return examEngine;
+// Create a user-scoped exam engine (for course-based generation)
+async function createExamEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createExamEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 /**
@@ -226,6 +222,7 @@ function generateMockQuestions(params: {
  * Generate questions using AI for a standalone topic (no course)
  */
 async function generateTopicBasedQuestions(params: {
+  userId: string;
   topic: string;
   subtopics?: string[];
   description?: string;
@@ -254,34 +251,20 @@ async function generateTopicBasedQuestions(params: {
     isMock: boolean;
   };
 }> {
-  // Get AI adapter using factory (supports multiple providers)
-  const adapter = getDefaultAdapter({ timeout: 120000 }); // 2 minutes for long generation
-
-  if (!adapter) {
-    logger.warn('[Self-Assessment] No AI provider configured, using mock questions');
-    return {
-      questions: generateMockQuestions(params),
-      metadata: {
-        provider: 'mock',
-        model: 'none',
-        generatedAt: new Date().toISOString(),
-        isMock: true,
-      },
-    };
-  }
-
   try {
     logger.info('[Self-Assessment] Generating questions with AI', {
       topic: params.topic,
       totalQuestions: params.totalQuestions,
-      provider: adapter.name,
+      userId: params.userId,
     });
 
     // Build the user prompt
     const userPrompt = buildTopicQuestionPrompt(params);
 
-    // Call AI with system prompt
-    const response = await adapter.chat({
+    // Call AI through the unified provider pipeline (respects user prefs, rate limits, usage tracking)
+    const result = await runSAMChatWithMetadata({
+      userId: params.userId,
+      capability: 'analysis',
       messages: [{ role: 'user', content: userPrompt }],
       systemPrompt: TOPIC_QUESTION_GENERATION_PROMPT,
       maxTokens: 8000,
@@ -289,7 +272,7 @@ async function generateTopicBasedQuestions(params: {
     });
 
     // Extract JSON from response
-    const responseText = response.content;
+    const responseText = result.content;
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);
 
     if (!jsonMatch) {
@@ -297,8 +280,8 @@ async function generateTopicBasedQuestions(params: {
       return {
         questions: generateMockQuestions(params),
         metadata: {
-          provider: adapter.name,
-          model: adapter.getModel(),
+          provider: result.provider,
+          model: result.model,
           generatedAt: new Date().toISOString(),
           isMock: true,
         },
@@ -313,14 +296,14 @@ async function generateTopicBasedQuestions(params: {
 
     // Validate and normalize questions
     const validatedQuestions = parsed.map((q: Record<string, unknown>, idx: number) => {
-      const result = GeneratedQuestionSchema.safeParse(q);
+      const validationResult = GeneratedQuestionSchema.safeParse(q);
 
-      if (!result.success) {
-        logger.warn(`[Self-Assessment] Question ${idx} validation failed:`, result.error.errors);
+      if (!validationResult.success) {
+        logger.warn(`[Self-Assessment] Question ${idx} validation failed:`, validationResult.error.errors);
         return null;
       }
 
-      const data = result.data;
+      const data = validationResult.data;
 
       // Normalize Bloom's level to uppercase
       const normalizedBloomsLevel = normalizeToUppercaseSafe(data.bloomsLevel) || 'UNDERSTAND';
@@ -345,8 +328,8 @@ async function generateTopicBasedQuestions(params: {
       return {
         questions: generateMockQuestions(params),
         metadata: {
-          provider: adapter.name,
-          model: adapter.getModel(),
+          provider: result.provider,
+          model: result.model,
           generatedAt: new Date().toISOString(),
           isMock: true,
         },
@@ -356,14 +339,14 @@ async function generateTopicBasedQuestions(params: {
     logger.info('[Self-Assessment] Successfully generated questions', {
       requested: params.totalQuestions,
       generated: validatedQuestions.length,
-      provider: adapter.name,
+      provider: result.provider,
     });
 
     return {
       questions: validatedQuestions,
       metadata: {
-        provider: adapter.name,
-        model: adapter.getModel(),
+        provider: result.provider,
+        model: result.model,
         generatedAt: new Date().toISOString(),
         isMock: false,
       },
@@ -374,8 +357,8 @@ async function generateTopicBasedQuestions(params: {
     return {
       questions: generateMockQuestions(params),
       metadata: {
-        provider: adapter?.name ?? 'unknown',
-        model: adapter?.getModel() ?? 'unknown',
+        provider: 'unknown',
+        model: 'unknown',
         generatedAt: new Date().toISOString(),
         isMock: true,
       },
@@ -552,8 +535,8 @@ export async function POST(request: NextRequest) {
       try {
         // Check if we have a courseId - use exam engine for course-based generation
         if (data.courseId) {
-          // Course-based generation using exam engine
-          const engine = getExamEngine();
+          // Course-based generation using user-scoped exam engine
+          const engine = await createExamEngineForUser(user.id);
           const generatedExam = await engine.generateExam(
             data.courseId,
             [],
@@ -610,6 +593,7 @@ export async function POST(request: NextRequest) {
           });
 
           const { questions: generatedQuestions, metadata } = await generateTopicBasedQuestions({
+            userId: user.id,
             topic: effectiveTopic,
             subtopics: data.subtopics,
             description: data.description,

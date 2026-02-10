@@ -6,7 +6,7 @@
  */
 
 import type { CriterionEvaluationAdapter } from '@sam-ai/agentic';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter, getSAMAdapterSystem } from '@/lib/sam/ai-provider';
 
 interface CriterionEvaluationParams {
   criterion: string;
@@ -31,10 +31,14 @@ interface CriterionEvaluationResult {
 }
 
 /**
- * Creates an AI-powered criterion evaluator using the integration AI adapter
+ * Creates an AI-powered criterion evaluator using the user's preferred AI provider.
+ * Routes through the enterprise client for full provider resolution, rate limiting,
+ * and automatic fallback. Falls back to heuristic evaluation if no AI is available.
+ *
+ * @param userId - Optional user ID for user-scoped provider resolution
  * @returns CriterionEvaluationAdapter instance
  */
-export function createAnthropicCriterionEvaluator(): CriterionEvaluationAdapter {
+export function createAICriterionEvaluator(userId?: string): CriterionEvaluationAdapter {
   const heuristicEvaluator = createHeuristicCriterionEvaluator();
   return {
     async evaluateCriterion(
@@ -48,7 +52,9 @@ export function createAnthropicCriterionEvaluator(): CriterionEvaluationAdapter 
         memoryContext,
       } = params;
 
-      const aiAdapter = await getCoreAIAdapter();
+      const aiAdapter = userId
+        ? await getSAMAdapter({ userId, capability: 'analysis' })
+        : await getSAMAdapterSystem();
       if (!aiAdapter || !aiAdapter.isConfigured()) {
         return heuristicEvaluator.evaluateCriterion(params);
       }
@@ -192,11 +198,15 @@ export function createHeuristicCriterionEvaluator(): CriterionEvaluationAdapter 
 }
 
 /**
- * Creates the best available criterion evaluator based on configuration
+ * Creates the best available criterion evaluator based on configuration.
+ * Uses the enterprise AI adapter when available, falls back to heuristic.
  *
- * @returns CriterionEvaluationAdapter - Uses integration adapter when available, falls back to heuristic
+ * @param userId - Optional user ID for user-scoped provider resolution
+ * @returns CriterionEvaluationAdapter
  */
-export function createBestAvailableCriterionEvaluator(): CriterionEvaluationAdapter | undefined {
-  console.log('[CriterionEvaluator] Using integration AI adapter when available');
-  return createAnthropicCriterionEvaluator();
+export function createBestAvailableCriterionEvaluator(userId?: string): CriterionEvaluationAdapter | undefined {
+  return createAICriterionEvaluator(userId);
 }
+
+/** @deprecated Use {@link createAICriterionEvaluator} instead. */
+export const createAnthropicCriterionEvaluator = createAICriterionEvaluator;

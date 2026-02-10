@@ -2,21 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createTrendsEngine } from '@sam-ai/educational';
 import type { TrendAnalysis } from '@sam-ai/educational';
-import { getSAMConfig, createTrendsAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, createTrendsAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
-// Lazy initialization of trends engine to avoid build-time errors
-let _trendsEngine: ReturnType<typeof createTrendsEngine> | null = null;
-
-function getTrendsEngine() {
-  if (!_trendsEngine) {
-    _trendsEngine = createTrendsEngine({
-      samConfig: getSAMConfig(),
-      database: createTrendsAdapter(db),
-    });
-  }
-  return _trendsEngine;
+// Create a user-scoped trends engine (no singleton - scoped per request)
+async function createTrendsEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createTrendsEngine({
+    samConfig,
+    database: createTrendsAdapter(db),
+  });
 }
 
 export async function GET(req: NextRequest) {
@@ -25,6 +21,8 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const trendsEngine = await createTrendsEngineForUser(session.user.id);
 
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
@@ -36,7 +34,7 @@ export async function GET(req: NextRequest) {
         const impact = searchParams.get('impact') as 'low' | 'medium' | 'high' | 'transformative' | undefined;
         const minRelevance = searchParams.get('minRelevance');
 
-        const trends = await getTrendsEngine().analyzeTrends({
+        const trends = await trendsEngine.analyzeTrends({
           category,
           timeframe,
           impact,
@@ -47,7 +45,7 @@ export async function GET(req: NextRequest) {
       }
 
       case 'categories': {
-        const categories = await getTrendsEngine().getTrendCategories();
+        const categories = await trendsEngine.getTrendCategories();
         return NextResponse.json({ categories });
       }
 
@@ -57,7 +55,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Trend ID required' }, { status: 400 });
         }
 
-        const signals = await getTrendsEngine().detectMarketSignals(trendId);
+        const signals = await trendsEngine.detectMarketSignals(trendId);
         return NextResponse.json({ signals });
       }
 
@@ -69,7 +67,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Two trend IDs required' }, { status: 400 });
         }
 
-        const comparison = await getTrendsEngine().compareTrends(trendId1, trendId2);
+        const comparison = await trendsEngine.compareTrends(trendId1, trendId2);
         return NextResponse.json({ comparison });
       }
 
@@ -81,7 +79,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Trend ID and horizon required' }, { status: 400 });
         }
 
-        const prediction = await getTrendsEngine().predictTrendTrajectory(trendId, horizon);
+        const prediction = await trendsEngine.predictTrendTrajectory(trendId, horizon);
         return NextResponse.json({ prediction });
       }
 
@@ -91,7 +89,7 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Industry required' }, { status: 400 });
         }
 
-        const report = await getTrendsEngine().generateIndustryReport(industry);
+        const report = await trendsEngine.generateIndustryReport(industry);
         return NextResponse.json({ report });
       }
 
@@ -101,28 +99,28 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({ error: 'Search query required' }, { status: 400 });
         }
 
-        const results = await getTrendsEngine().searchTrends(query);
+        const results = await trendsEngine.searchTrends(query);
         return NextResponse.json({ results });
       }
 
       case 'trending': {
-        const trending = await getTrendsEngine().getTrendingNow();
+        const trending = await trendsEngine.getTrendingNow();
         return NextResponse.json({ trending });
       }
 
       case 'emerging': {
-        const emerging = await getTrendsEngine().getEmergingTrends();
+        const emerging = await trendsEngine.getEmergingTrends();
         return NextResponse.json({ emerging });
       }
 
       case 'educational': {
-        const educational = await getTrendsEngine().getEducationalTrends();
+        const educational = await trendsEngine.getEducationalTrends();
         return NextResponse.json({ educational });
       }
 
       default: {
         // Default: get all trends
-        const trends = await getTrendsEngine().analyzeTrends();
+        const trends = await trendsEngine.analyzeTrends();
         return NextResponse.json({ trends });
       }
     }
@@ -142,6 +140,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const trendsEngine = await createTrendsEngineForUser(session.user.id);
+
     const body = await req.json();
     const { action, ...params } = body;
 
@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        await getTrendsEngine().recordInteraction(
+        await trendsEngine.recordInteraction(
           session.user.id,
           trendId,
           interactionType
@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
 
       case 'analyze-custom': {
         // For more complex analysis with custom parameters
-        const trends = await getTrendsEngine().analyzeTrends(params.filter);
+        const trends = await trendsEngine.analyzeTrends(params.filter);
 
         // Additional processing could go here
         const enrichedTrends = trends.map((trend: TrendAnalysis) => ({

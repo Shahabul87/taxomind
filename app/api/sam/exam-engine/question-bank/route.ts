@@ -2,22 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { createExamEngine } from '@sam-ai/educational';
 import type { QuestionBankEntry, QuestionBankQuery } from '@sam-ai/educational';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { QuestionType, BloomsLevel, QuestionDifficulty } from '@prisma/client';
 import { logger } from '@/lib/logger';
 
-// Create exam engine singleton with portable package
-let examEngine: ReturnType<typeof createExamEngine> | null = null;
-
-function getExamEngine() {
-  if (!examEngine) {
-    examEngine = createExamEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return examEngine;
+// Create a user-scoped exam engine instance
+async function createExamEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createExamEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 // Type for question input from request
@@ -93,7 +89,7 @@ export async function POST(request: NextRequest) {
     }));
 
     // Save questions to question bank using portable engine
-    const engine = getExamEngine();
+    const engine = await createExamEngineForUser(user.id);
     const result = await engine.saveToQuestionBank(questionEntries, courseId, subject, topic);
 
     return NextResponse.json({
@@ -170,7 +166,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Get questions using portable engine
-    const engine = getExamEngine();
+    const engine = await createExamEngineForUser(user.id);
     const result = await engine.getFromQuestionBank(query);
 
     // Get statistics using portable engine

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await getAchievementEngine().trackProgress(
+    const result = await (await getAchievementEngine()).trackProgress(
       session.user.id,
       action,
       metadata ?? {},

@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     );
 
     logger.info('[Tools API] Initializing tooling system...');
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(session.user.id);
     logger.info('[Tools API] Tooling system initialized');
 
     const tools = await tooling.toolRegistry.listTools({
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(session.user.id);
     const role = mapUserToToolRole(session.user as { role?: string; isTeacher?: boolean });
     await ensureDefaultToolPermissions(session.user.id, role, session.user.id);
 

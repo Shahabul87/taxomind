@@ -9,8 +9,7 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createPracticeProblemsEngine, type BloomsLevel } from '@sam-ai/educational';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 
 const GenerateProblemsSchema = z.object({
   topic: z.string().min(1),

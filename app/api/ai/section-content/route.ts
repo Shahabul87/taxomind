@@ -1,5 +1,4 @@
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithMetadata, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { db } from '@/lib/db';
@@ -352,7 +351,7 @@ export async function POST(request: NextRequest) {
         ? buildLearningObjectivesPrompt(contentRequest)
         : buildDescriptionPrompt(contentRequest);
 
-      const completion = await aiClient.chat({
+      const completion = await runSAMChatWithMetadata({
         maxTokens: 2000,
         temperature: 0.7,
         systemPrompt,

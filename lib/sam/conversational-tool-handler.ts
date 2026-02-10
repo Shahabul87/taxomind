@@ -127,7 +127,7 @@ export async function checkConversationalToolInvoke(
 
     // Find and return the tool for continuation
     try {
-      const tooling = await ensureToolingInitialized();
+      const tooling = await ensureToolingInitialized(ctx.user.id);
       const role = mapUserToToolRole(ctx.user as { role?: string; isTeacher?: boolean });
       await ensureDefaultToolPermissions(ctx.user.id, role, ctx.user.id);
 
@@ -186,7 +186,7 @@ export async function checkConversationalToolInvoke(
 
   // Initialize tooling and find the tool
   try {
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(ctx.user.id);
     const role = mapUserToToolRole(ctx.user as { role?: string; isTeacher?: boolean });
     await ensureDefaultToolPermissions(ctx.user.id, role, ctx.user.id);
 
@@ -265,7 +265,7 @@ export async function executeConversationalTool(
   }
 
   try {
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(ctx.user.id);
 
     logger.info('[ConversationalTool] Executing tool', {
       toolId: toolCheck.toolId,

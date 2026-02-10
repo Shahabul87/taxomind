@@ -9,7 +9,6 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 import {
   createSkillBuildTrackEngine,
   type SkillBuildTrackEngineConfig,
@@ -17,65 +16,47 @@ import {
   type SkillBuildCategory,
   type SkillBuildEvidenceType,
 } from '@sam-ai/educational';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { getStore } from '@/lib/sam/taxomind-context';
 
 // ============================================================================
-// ENGINE SINGLETON
+// PER-REQUEST ENGINE FACTORY
 // ============================================================================
 
-let skillBuildTrackEngine: ReturnType<typeof createSkillBuildTrackEngine> | null = null;
+async function createSkillBuildTrackEngineForUser(userId: string) {
+  // Use TaxomindContext for store access
+  const store = getStore('skillBuildTrack');
 
-async function getSkillBuildTrackEngine() {
-  if (!skillBuildTrackEngine) {
-    // Use TaxomindContext for store access
-    const store = getStore('skillBuildTrack');
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-    // Use integration adapter factory instead of hardcoding Anthropic
-    const coreAiAdapter = await getCoreAIAdapter();
-    const aiAdapter = coreAiAdapter ?? {
-      // Fallback stub if no API key configured
-      name: 'skill-build-track-fallback',
-      version: '1.0.0',
-      chat: async () => ({
-        content: '',
-        model: 'fallback',
-        usage: { inputTokens: 0, outputTokens: 0 },
-        finishReason: 'stop' as const,
-      }),
-      isConfigured: () => false,
-      getModel: () => 'fallback',
-    };
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    logger: {
+      debug: (msg: string, data?: unknown) => logger.debug(msg, data),
+      info: (msg: string, data?: unknown) => logger.info(msg, data),
+      warn: (msg: string, data?: unknown) => logger.warn(msg, data),
+      error: (msg: string, data?: unknown) => logger.error(msg, data),
+    },
+    features: {
+      gamification: true,
+      formSync: false,
+      autoContext: true,
+      emotionDetection: false,
+      learningStyleDetection: true,
+      streaming: false,
+      analytics: true,
+    },
+  });
 
-    const samConfig = createSAMConfig({
-      ai: aiAdapter,
-      logger: {
-        debug: (msg: string, data?: unknown) => logger.debug(msg, data),
-        info: (msg: string, data?: unknown) => logger.info(msg, data),
-        warn: (msg: string, data?: unknown) => logger.warn(msg, data),
-        error: (msg: string, data?: unknown) => logger.error(msg, data),
-      },
-      features: {
-        gamification: true,
-        formSync: false,
-        autoContext: true,
-        emotionDetection: false,
-        learningStyleDetection: true,
-        streaming: false,
-        analytics: true,
-      },
-    });
+  const config: SkillBuildTrackEngineConfig = {
+    samConfig,
+    database: store as unknown as import('@sam-ai/core').SAMDatabaseAdapter,
+    enableVelocityTracking: true,
+    enableDecayPrediction: true,
+    enableBenchmarking: true,
+  };
 
-    const config: SkillBuildTrackEngineConfig = {
-      samConfig,
-      database: store as unknown as import('@sam-ai/core').SAMDatabaseAdapter,
-      enableVelocityTracking: true,
-      enableDecayPrediction: true,
-      enableBenchmarking: true,
-    };
-
-    skillBuildTrackEngine = createSkillBuildTrackEngine(config);
-  }
-  return skillBuildTrackEngine;
+  return createSkillBuildTrackEngine(config);
 }
 
 // ============================================================================
@@ -190,7 +171,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const engine = await getSkillBuildTrackEngine();
+    const engine = await createSkillBuildTrackEngineForUser(session.user.id);
 
     // If skillId is provided, get specific profile
     const skillId = searchParams.get('skillId');
@@ -264,7 +245,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing action parameter' }, { status: 400 });
     }
 
-    const engine = await getSkillBuildTrackEngine();
+    const engine = await createSkillBuildTrackEngineForUser(session.user.id);
     let result: unknown;
 
     switch (action) {

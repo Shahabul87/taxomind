@@ -11,13 +11,11 @@ import {
   PenSquare,
   FileText,
   Users,
-  Award,
   Eye,
   Clock,
   TrendingUp,
   BookOpen,
   Zap,
-  Target,
   Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,6 +28,7 @@ interface ModernHeroSectionProps {
   featuredPosts: BlogPost[];
   statistics?: BlogStatistics | null;
   isLoading?: boolean;
+  userId?: string;
 }
 
 /**
@@ -40,7 +39,8 @@ interface ModernHeroSectionProps {
 export function ModernHeroSectionOptimized({
   featuredPosts,
   statistics,
-  isLoading
+  isLoading,
+  userId,
 }: ModernHeroSectionProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
@@ -51,21 +51,21 @@ export function ModernHeroSectionOptimized({
       tag: "Tech Insights",
       title: "Ideas That Shape Tomorrow",
       subtitle: "Explore cutting-edge insights on technology, innovation, and digital transformation. Join our community of forward-thinkers.",
-      gradient: "from-blue-600 via-indigo-600 to-purple-600"
+      gradient: "from-violet-600 via-purple-500 to-indigo-600"
     },
     {
       id: 2,
       tag: "Innovation Hub",
       title: "Learn From Industry Experts",
       subtitle: "Discover thought leadership, best practices, and real-world experiences from top technology professionals.",
-      gradient: "from-emerald-600 via-teal-600 to-cyan-600"
+      gradient: "from-indigo-600 via-violet-500 to-purple-600"
     },
     {
       id: 3,
       tag: "Knowledge Base",
       title: "Master Modern Technologies",
       subtitle: "Deep-dive tutorials, comprehensive guides, and practical insights to accelerate your technical journey.",
-      gradient: "from-purple-600 via-pink-600 to-rose-600"
+      gradient: "from-purple-600 via-indigo-500 to-violet-600"
     }
   ];
 
@@ -100,12 +100,12 @@ export function ModernHeroSectionOptimized({
   const showAuthorsStat = (statistics?.totalAuthors || 0) >= 1;
 
   return (
-    <div className="relative min-h-[60vh] sm:min-h-[75vh] lg:min-h-[85vh] flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
+    <div className="relative min-h-[60vh] sm:min-h-[75vh] lg:min-h-[85vh] flex flex-col overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-950 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
       {/* Animated Background Elements - CSS Only */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse-slow animation-delay-1000" />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 sm:w-96 sm:h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse-slow animation-delay-2000" />
+        <div className="absolute top-0 left-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 sm:w-96 sm:h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse-slow animation-delay-1000" />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 sm:w-96 sm:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse-slow animation-delay-2000" />
 
         {/* Animated Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:2rem_2rem] sm:bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)]" />
@@ -161,21 +161,37 @@ export function ModernHeroSectionOptimized({
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 animate-fade-in-up animation-delay-300">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg group w-full sm:w-auto"
-              >
-                Start Reading
-                <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg group w-full sm:w-auto"
-              >
-                <PenSquare className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-                Write an Article
-              </Button>
+              {userId ? (
+                <Link href="/dashboard/user">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-xl px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg group w-full sm:w-auto"
+                  >
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/auth/register">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-xl px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg group w-full sm:w-auto"
+                  >
+                    Start Reading
+                    <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </Link>
+              )}
+              <Link href="/teacher/posts/create">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg group w-full sm:w-auto"
+                >
+                  <PenSquare className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
+                  Write an Article
+                </Button>
+              </Link>
             </div>
 
             {/* Live Stats - Only show stats that have meaningful values */}
@@ -183,7 +199,7 @@ export function ModernHeroSectionOptimized({
               <div className="flex flex-wrap gap-4 sm:gap-6 pt-4 animate-fade-in-up animation-delay-400">
                 {(showArticlesStat || isLoading) && (
                   <div className="flex items-center gap-2.5 sm:gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30 flex-shrink-0">
                       <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
@@ -200,7 +216,7 @@ export function ModernHeroSectionOptimized({
                 )}
                 {(showReadersStat || isLoading) && (
                   <div className="flex items-center gap-2.5 sm:gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 flex-shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 flex-shrink-0">
                       <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
@@ -217,7 +233,7 @@ export function ModernHeroSectionOptimized({
                 )}
                 {(showAuthorsStat || isLoading) && (
                   <div className="flex items-center gap-2.5 sm:gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 flex-shrink-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/30 flex-shrink-0">
                       <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                     </div>
                     <div>
@@ -257,12 +273,12 @@ export function ModernHeroSectionOptimized({
                             quality={80}
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+                          <div className="w-full h-full bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-500 flex items-center justify-center">
                             <BookOpen className="w-12 h-12 text-white/80" />
                           </div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                        <Badge className="absolute top-3 left-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-0 text-xs px-3 py-1.5 shadow-lg">
+                        <Badge className="absolute top-3 left-3 bg-gradient-to-r from-violet-500 to-indigo-600 text-white border-0 text-xs px-3 py-1.5 shadow-lg">
                           <Sparkles className="w-3 h-3 mr-1" />
                           Featured
                         </Badge>
@@ -294,19 +310,19 @@ export function ModernHeroSectionOptimized({
                     <Card className="overflow-hidden bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all cursor-pointer group border border-white/20">
                       <CardContent className="p-5">
                         <div className="flex items-center gap-3 mb-3">
-                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
                             <TrendingUp className="w-5 h-5 text-white" />
                           </div>
                           <div>
                             <p className="font-bold text-sm text-slate-900 dark:text-white">
                               Trending Now
                             </p>
-                            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                            <p className="text-xs text-violet-600 dark:text-violet-400 font-medium">
                               {featuredPosts[1].views.toLocaleString()} views
                             </p>
                           </div>
                         </div>
-                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 line-clamp-2 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
                           {featuredPosts[1].title}
                         </h4>
                       </CardContent>
@@ -320,7 +336,7 @@ export function ModernHeroSectionOptimized({
                 {featuredPosts.length >= 3 ? (
                   // Show third featured post if available
                   <Link href={`/blog/${featuredPosts[2].id}`}>
-                    <Card className="bg-gradient-to-br from-purple-500 via-violet-500 to-pink-600 rounded-2xl shadow-2xl p-5 text-white hover:scale-105 transition-transform cursor-pointer border border-white/20">
+                    <Card className="bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-5 text-white hover:scale-105 transition-transform cursor-pointer border border-white/20">
                       <div className="flex items-center gap-2 mb-3">
                         <Zap className="w-6 h-6" />
                         <span className="text-xs font-semibold bg-white/20 px-2 py-1 rounded-full">Must Read</span>
@@ -334,7 +350,7 @@ export function ModernHeroSectionOptimized({
                   </Link>
                 ) : (
                   // Show CTA card when not enough content
-                  <Card className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-600 rounded-2xl shadow-2xl p-5 text-white border border-white/20">
+                  <Card className="bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-5 text-white border border-white/20">
                     <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-4">
                       <Lightbulb className="w-6 h-6" />
                     </div>
@@ -356,8 +372,8 @@ export function ModernHeroSectionOptimized({
               </div>
 
               {/* Decorative floating elements */}
-              <div className="absolute top-32 right-96 w-20 h-20 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-2xl blur-xl animate-float animation-delay-2000" />
-              <div className="absolute top-80 right-20 w-16 h-16 bg-gradient-to-br from-pink-400/20 to-rose-400/20 rounded-full blur-xl animate-float-reverse animation-delay-1000" />
+              <div className="absolute top-32 right-96 w-20 h-20 bg-gradient-to-br from-violet-400/20 to-indigo-400/20 rounded-2xl blur-xl animate-float animation-delay-2000" />
+              <div className="absolute top-80 right-20 w-16 h-16 bg-gradient-to-br from-purple-400/20 to-violet-400/20 rounded-full blur-xl animate-float-reverse animation-delay-1000" />
             </div>
           </div>
         </div>

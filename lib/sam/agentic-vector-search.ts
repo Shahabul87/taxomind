@@ -13,7 +13,7 @@ import {
   type EmbeddingSourceType,
 } from '@sam-ai/agentic';
 import { getMemoryStores } from '@/lib/sam/taxomind-context';
-import { getEmbeddingProvider } from '@/lib/sam/integration-adapters';
+import { getEmbeddingProvider } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { createHash } from 'crypto';
 

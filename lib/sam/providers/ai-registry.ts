@@ -14,12 +14,25 @@ export type AIProviderType =
   | 'gemini'
   | 'mistral';
 
+/**
+ * Canonical AI capability types used across the entire system.
+ *
+ * This is the SINGLE SOURCE OF TRUTH for capability types.
+ * Import this type in ai-provider.ts, enterprise-client.ts, and all routes.
+ *
+ * Mapping:
+ *   'chat'           → SAM tutor conversations, Q&A
+ *   'course'         → Course creation, content/exam generation
+ *   'analysis'       → Bloom's taxonomy, depth analysis, learning analytics
+ *   'code'           → Code assistance, programming help
+ *   'skill-roadmap'  → Skill roadmap builder, learning paths
+ */
 export type AICapability =
   | 'chat'
-  | 'course-creation'
+  | 'course'
   | 'analysis'
   | 'code'
-  | 'reasoning';
+  | 'skill-roadmap';
 
 export interface ProviderInfo {
   id: AIProviderType;
@@ -29,6 +42,8 @@ export interface ProviderInfo {
   defaultModel: string;
   capabilities: AICapability[];
   isConfigured: () => boolean;
+  /** Whether ai-factory can create a working adapter for this provider */
+  isImplemented: boolean;
   envKeyName: string;
 }
 
@@ -43,8 +58,9 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
     description: 'Advanced reasoning, analysis, and coding assistance',
     models: ['claude-sonnet-4-20250514', 'claude-sonnet-4-5-20250929'],
     defaultModel: 'claude-sonnet-4-5-20250929',
-    capabilities: ['chat', 'course-creation', 'analysis', 'code', 'reasoning'],
+    capabilities: ['chat', 'course', 'analysis', 'code', 'skill-roadmap'],
     isConfigured: () => Boolean(process.env.ANTHROPIC_API_KEY),
+    isImplemented: true,
     envKeyName: 'ANTHROPIC_API_KEY',
   },
   deepseek: {
@@ -53,8 +69,9 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
     description: 'Cost-effective reasoning and coding specialist',
     models: ['deepseek-chat', 'deepseek-reasoner'],
     defaultModel: 'deepseek-chat',
-    capabilities: ['chat', 'course-creation', 'analysis', 'code', 'reasoning'],
+    capabilities: ['chat', 'course', 'analysis', 'code', 'skill-roadmap'],
     isConfigured: () => Boolean(process.env.DEEPSEEK_API_KEY),
+    isImplemented: true,
     envKeyName: 'DEEPSEEK_API_KEY',
   },
   openai: {
@@ -63,8 +80,9 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
     description: 'Versatile AI for general tasks and creative content',
     models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'o1', 'o1-mini'],
     defaultModel: 'gpt-4o',
-    capabilities: ['chat', 'course-creation', 'analysis', 'code', 'reasoning'],
+    capabilities: ['chat', 'course', 'analysis', 'code', 'skill-roadmap'],
     isConfigured: () => Boolean(process.env.OPENAI_API_KEY),
+    isImplemented: true,
     envKeyName: 'OPENAI_API_KEY',
   },
   gemini: {
@@ -73,8 +91,9 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
     description: 'Multimodal AI by Google (coming soon)',
     models: ['gemini-pro', 'gemini-ultra'],
     defaultModel: 'gemini-pro',
-    capabilities: ['chat', 'course-creation', 'analysis'],
+    capabilities: ['chat', 'course', 'analysis'],
     isConfigured: () => Boolean(process.env.GOOGLE_AI_API_KEY),
+    isImplemented: false,
     envKeyName: 'GOOGLE_AI_API_KEY',
   },
   mistral: {
@@ -85,6 +104,7 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
     defaultModel: 'mistral-large',
     capabilities: ['chat', 'analysis', 'code'],
     isConfigured: () => Boolean(process.env.MISTRAL_API_KEY),
+    isImplemented: false,
     envKeyName: 'MISTRAL_API_KEY',
   },
 };
@@ -94,10 +114,10 @@ export const AI_PROVIDERS: Record<AIProviderType, ProviderInfo> = {
 // ============================================================================
 
 /**
- * Get all configured (available) providers
+ * Get all configured and implemented (usable) providers
  */
 export function getConfiguredProviders(): ProviderInfo[] {
-  return Object.values(AI_PROVIDERS).filter((p) => p.isConfigured());
+  return Object.values(AI_PROVIDERS).filter((p) => p.isConfigured() && p.isImplemented);
 }
 
 /**
@@ -115,21 +135,21 @@ export function getProvider(id: AIProviderType): ProviderInfo | undefined {
 }
 
 /**
- * Check if a provider is available (configured)
+ * Check if a provider is available (configured and implemented)
  */
 export function isProviderAvailable(id: AIProviderType): boolean {
   const provider = AI_PROVIDERS[id];
-  return provider?.isConfigured() ?? false;
+  return (provider?.isConfigured() && provider.isImplemented) ?? false;
 }
 
 /**
- * Get providers that support a specific capability
+ * Get providers that support a specific capability (only implemented ones)
  */
 export function getProvidersWithCapability(
   capability: AICapability
 ): ProviderInfo[] {
   return Object.values(AI_PROVIDERS).filter(
-    (p) => p.isConfigured() && p.capabilities.includes(capability)
+    (p) => p.isConfigured() && p.isImplemented && p.capabilities.includes(capability)
   );
 }
 
@@ -139,10 +159,11 @@ export function getProvidersWithCapability(
  */
 export function getDefaultProvider(): ProviderInfo | undefined {
   // Priority matches the factory: DeepSeek > Anthropic > OpenAI
-  if (AI_PROVIDERS.deepseek.isConfigured()) return AI_PROVIDERS.deepseek;
-  if (AI_PROVIDERS.anthropic.isConfigured()) return AI_PROVIDERS.anthropic;
-  if (AI_PROVIDERS.openai.isConfigured()) return AI_PROVIDERS.openai;
+  // Uses isProviderAvailable() which checks both isConfigured() AND isImplemented
+  if (isProviderAvailable('deepseek')) return AI_PROVIDERS.deepseek;
+  if (isProviderAvailable('anthropic')) return AI_PROVIDERS.anthropic;
+  if (isProviderAvailable('openai')) return AI_PROVIDERS.openai;
 
-  // Fall back to first configured provider (gemini, mistral, etc.)
+  // Fall back to first configured + implemented provider
   return getConfiguredProviders()[0];
 }

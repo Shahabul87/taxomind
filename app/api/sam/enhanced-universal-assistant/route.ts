@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { withAuth } from '@/lib/api/with-api-auth';
 import { db } from '@/lib/db';
@@ -9,7 +9,6 @@ import {
   formatMemoryForPrompt,
   processChatWithMemory,
 } from '@/lib/sam/services/chat-memory-integration';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // =============================================================================
 // VALIDATION SCHEMAS

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
 import {
   createGoalDecomposer,
   type GoalDecomposition,
@@ -13,23 +13,17 @@ import {
 // Get the stores from TaxomindContext singleton
 const { goal: goalStore, subGoal: subGoalStore } = getGoalStores();
 
-// Lazy initialize AI-dependent components
-let decomposerInstance: ReturnType<typeof createGoalDecomposer> | null = null;
+// ============================================================================
+// PER-REQUEST ENGINE FACTORY
+// ============================================================================
 
-async function getGoalDecomposer() {
-  if (!decomposerInstance) {
-    // Use integration adapter factory instead of hardcoding Anthropic
-    const aiAdapter = await getCoreAIAdapter();
-    if (!aiAdapter) {
-      throw new Error('AI adapter not available. Check ANTHROPIC_API_KEY or OPENAI_API_KEY environment variables.');
-    }
+async function createGoalDecomposerForUser(userId: string) {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'chat' });
 
-    decomposerInstance = createGoalDecomposer({
-      aiAdapter,
-      logger: console,
-    });
-  }
-  return decomposerInstance;
+  return createGoalDecomposer({
+    aiAdapter,
+    logger: console,
+  });
 }
 
 // ============================================================================
@@ -85,7 +79,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     // Use the GoalDecomposer from @sam-ai/agentic package
     logger.info(`[Decompose] Starting decomposition for goal: ${goal.title}`);
-    const decomposer = await getGoalDecomposer();
+    const decomposer = await createGoalDecomposerForUser(session.user.id);
 
     let decomposition: GoalDecomposition;
     try {

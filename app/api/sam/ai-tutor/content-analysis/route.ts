@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 async function runAIAnalysis(
   userId: string,

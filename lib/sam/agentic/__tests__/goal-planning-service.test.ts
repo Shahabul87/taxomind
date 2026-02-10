@@ -47,12 +47,6 @@ jest.mock('../../taxomind-context', () => ({
   })),
 }));
 
-jest.mock('../../integration-adapters', () => ({
-  getCoreAIAdapter: jest.fn().mockResolvedValue({
-    chat: jest.fn(),
-  }),
-}));
-
 // Import the service. Because it imports from @sam-ai/agentic at load time,
 // we rely on Jest's transform chain to resolve the workspace package.
 // We then inject mock collaborators into the private fields directly.

@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { createTrendsEngine, type TrendAnalysis } from '@sam-ai/educational';
-import { getSAMConfig, createTrendsAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, createTrendsAdapter } from '@/lib/adapters';
 
 type TrendCategory = 'skill' | 'topic' | 'technology' | 'industry' | 'role';
 type TrendDirection = 'rising' | 'stable' | 'declining';
@@ -65,16 +65,13 @@ const TrendsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
 });
 
-let trendsEngine: ReturnType<typeof createTrendsEngine> | null = null;
-
-function getTrendsEngine() {
-  if (!trendsEngine) {
-    trendsEngine = createTrendsEngine({
-      samConfig: getSAMConfig(),
-      database: createTrendsAdapter(db),
-    });
-  }
-  return trendsEngine;
+// Create a user-scoped trends engine (no singleton - scoped per request)
+async function createTrendsEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createTrendsEngine({
+    samConfig,
+    database: createTrendsAdapter(db),
+  });
 }
 
 function mapTrendCategory(category?: string): TrendCategory {
@@ -173,7 +170,7 @@ export async function GET(req: NextRequest) {
       limit: searchParams.get('limit') ?? undefined,
     });
 
-    const engine = getTrendsEngine();
+    const engine = await createTrendsEngineForUser(session.user.id);
     const rawTrends = query.query
       ? await engine.searchTrends(query.query)
       : await engine.analyzeTrends({ category: query.category ?? undefined });

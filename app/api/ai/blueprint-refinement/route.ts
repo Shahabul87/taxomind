@@ -1,6 +1,5 @@
 import { getCombinedSession } from "@/lib/auth/combined-session";
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -164,7 +163,7 @@ Please provide a comprehensive analysis and refinement plan that includes:
 Format your response as a JSON object with the structure matching the RefinementResult interface.`;
 
   try {
-    const response = await aiClient.chat({
+    const responseText = await runSAMChatWithPreference({
       userId,
       capability: 'course',
       maxTokens: 8000,
@@ -177,8 +176,6 @@ Format your response as a JSON object with the structure matching the Refinement
       ],
       extended: true,
     });
-
-    const responseText = response.content;
     if (!responseText) {
       throw new Error('Empty response from AI');
     }

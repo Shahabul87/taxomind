@@ -3,7 +3,7 @@ import { adminAuth } from "@/auth.admin";
 import { AdminRole } from "@/types/admin-role";
 import { getDbMetrics, checkDatabaseHealth } from "@/lib/db-pooled";
 import { perfMonitor } from "@/lib/monitoring/performance";
-import { getAdapterStatus, getCoreAIAdapter } from "@/lib/sam/integration-adapters";
+import { getAdapterStatus, getSAMAdapterSystem } from "@/lib/sam/ai-provider";
 import { getRateLimitStats, RATE_LIMIT_CONFIGS } from "@/lib/sam/middleware/rate-limiter";
 import { cache } from "@/lib/cache/simple-cache";
 import { logger } from "@/lib/logger";
@@ -344,7 +344,7 @@ function safeGetDbMetrics() {
 async function safeGetAdapterStatus() {
   try {
     // Eagerly initialize the adapter so the health check reflects real status
-    await getCoreAIAdapter();
+    await getSAMAdapterSystem();
     return getAdapterStatus();
   } catch {
     return {

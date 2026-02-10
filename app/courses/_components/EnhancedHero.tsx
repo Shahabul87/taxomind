@@ -9,7 +9,6 @@ import {
   Award,
   Sparkles,
   ArrowRight,
-  Play,
   CheckCircle2,
   Globe2,
   Zap
@@ -24,9 +23,10 @@ interface EnhancedHeroProps {
     totalEnrollments: number;
     averageRating: number;
   };
+  userId?: string;
 }
 
-export function EnhancedHero({ statistics }: EnhancedHeroProps) {
+export function EnhancedHero({ statistics, userId }: EnhancedHeroProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const slides = [
@@ -37,7 +37,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
       subtitle: statistics.totalEnrollments > 0
         ? `${statistics.totalEnrollments.toLocaleString()}+ learners are already leveling up on Taxomind`
         : "Courses that understand how you learn and guide you to mastery",
-      gradient: "from-blue-600 via-indigo-600 to-purple-600",
+      gradient: "from-violet-600 via-purple-500 to-indigo-600",
       features: ["AI-Powered Learning", "Earn Certificates", "Lifetime Access"]
     },
     {
@@ -45,7 +45,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
       tag: "Learn by Doing",
       title: "Stop Watching, Start Building Real Projects",
       subtitle: "Every course is packed with hands-on exercises and real-world projects you can add to your portfolio",
-      gradient: "from-emerald-600 via-teal-600 to-cyan-600",
+      gradient: "from-indigo-600 via-violet-500 to-purple-600",
       features: ["Hands-On Projects", "Interactive Exercises", "Progress Tracking"]
     },
     {
@@ -53,7 +53,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
       tag: "Your Personal AI Mentor",
       title: "Get Personalized Guidance at Every Step",
       subtitle: "Our AI mentor identifies your strengths, fills knowledge gaps, and creates a learning path built just for you",
-      gradient: "from-purple-600 via-pink-600 to-rose-600",
+      gradient: "from-purple-600 via-indigo-500 to-violet-600",
       features: ["Smart Recommendations", "Adaptive Difficulty", "Learning Analytics"]
     }
   ];
@@ -68,12 +68,12 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
   const currentSlideData = slides[currentSlide];
 
   return (
-    <section className="relative min-h-[60vh] xs:min-h-[65vh] sm:min-h-[70vh] md:min-h-[80vh] lg:min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
+    <section className="relative min-h-[60vh] xs:min-h-[65vh] sm:min-h-[70vh] md:min-h-[80vh] lg:min-h-[90vh] flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-950 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
       {/* Static Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-blue-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-purple-500/20 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-pink-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-violet-500/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 xs:w-80 xs:h-80 sm:w-96 sm:h-96 bg-purple-500/10 rounded-full blur-3xl" />
 
         {/* Animated Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:2rem_2rem] xs:bg-[size:3rem_3rem] sm:bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,#000_70%,transparent_110%)]" />
@@ -163,34 +163,36 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
               </motion.div>
             </AnimatePresence>
 
-            {/* CTA Buttons */}
+            {/* CTA Button */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
               className="flex flex-wrap gap-2.5 xs:gap-3 sm:gap-4"
             >
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl px-4 xs:px-6 sm:px-8 py-3 xs:py-4 sm:py-6 text-sm xs:text-base sm:text-lg group w-full xs:w-auto"
-                asChild
-              >
-                <Link href="/auth/register">
-                  Start Learning Free
-                  <ArrowRight className="ml-1.5 xs:ml-2 w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 px-4 xs:px-6 sm:px-8 py-3 xs:py-4 sm:py-6 text-sm xs:text-base sm:text-lg group w-full xs:w-auto"
-                asChild
-              >
-                <Link href="#demo">
-                  <Play className="mr-1.5 xs:mr-2 w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5" />
-                  Watch Demo
-                </Link>
-              </Button>
+              {userId ? (
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-xl px-4 xs:px-6 sm:px-8 py-3 xs:py-4 sm:py-6 text-sm xs:text-base sm:text-lg group w-full xs:w-auto"
+                  asChild
+                >
+                  <Link href="/dashboard/user">
+                    Go to Dashboard
+                    <ArrowRight className="ml-1.5 xs:ml-2 w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white shadow-xl px-4 xs:px-6 sm:px-8 py-3 xs:py-4 sm:py-6 text-sm xs:text-base sm:text-lg group w-full xs:w-auto"
+                  asChild
+                >
+                  <Link href="/auth/register">
+                    Start Learning Free
+                    <ArrowRight className="ml-1.5 xs:ml-2 w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+              )}
             </motion.div>
 
             {/* Live Stats */}
@@ -201,27 +203,27 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
               className="flex flex-wrap gap-4 xs:gap-5 sm:gap-6 pt-3 xs:pt-4"
             >
               <div className="flex items-center gap-1.5 xs:gap-2">
-                <div className="w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <div className="w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg flex-shrink-0">
                   <Users className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-xl xs:text-2xl font-bold text-white">
                     {statistics.totalEnrollments > 0
                       ? `${statistics.totalEnrollments.toLocaleString()}+`
-                      : "Growing"}
+                      : "0"}
                   </p>
                   <p className="text-xs xs:text-sm text-slate-400">Enrollments</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 xs:gap-2">
-                <div className="w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <div className="w-10 h-10 xs:w-11 xs:h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg flex-shrink-0">
                   <TrendingUp className="w-5 h-5 xs:w-5.5 xs:h-5.5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-xl xs:text-2xl font-bold text-white">
                     {statistics.totalCourses > 0
                       ? `${statistics.totalCourses}+`
-                      : "Coming"}
+                      : "0"}
                   </p>
                   <p className="text-xs xs:text-sm text-slate-400">Expert Courses</p>
                 </div>
@@ -234,7 +236,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                   <p className="text-xl xs:text-2xl font-bold text-white">
                     {statistics.averageRating > 0
                       ? `${statistics.averageRating.toFixed(1)}★`
-                      : "New ★"}
+                      : "0★"}
                   </p>
                   <p className="text-xs xs:text-sm text-slate-400">Average Rating</p>
                 </div>
@@ -257,7 +259,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                 className="absolute top-0 right-0 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-72"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
                     <Sparkles className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -286,7 +288,7 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
                   <span className="font-semibold text-slate-900 dark:text-white">
                     {statistics.totalEnrollments > 0
                       ? statistics.totalEnrollments.toLocaleString()
-                      : "Growing"}
+                      : "0"}
                   </span>
                 </div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Total Enrollments</p>
@@ -295,11 +297,11 @@ export function EnhancedHero({ statistics }: EnhancedHeroProps) {
               <motion.div
                 animate={{ y: [0, -15, 0] }}
                 transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                className="absolute top-1/2 -right-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-2xl p-6 w-56 text-white"
+                className="absolute top-1/2 -right-10 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl shadow-2xl p-6 w-56 text-white"
               >
                 <Globe2 className="w-8 h-8 mb-3" />
                 <p className="font-bold text-2xl mb-1">
-                  {statistics.totalCourses > 0 ? `${statistics.totalCourses}+` : "New"}
+                  {statistics.totalCourses > 0 ? `${statistics.totalCourses}+` : "0"}
                 </p>
                 <p className="text-sm opacity-90">Courses Available</p>
               </motion.div>

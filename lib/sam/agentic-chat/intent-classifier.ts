@@ -1,5 +1,5 @@
 import { type ClassifiedIntent, IntentType } from './types';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter, getSAMAdapterSystem } from '@/lib/sam/ai-provider';
 import { withTimeout } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 
@@ -168,9 +168,11 @@ const INTENT_CLASSIFICATION_PROMPT = `You are an intent classifier for an AI lea
 Respond ONLY with valid JSON:
 {"intent":"<intent>","shouldUseTool":<bool>,"shouldCheckGoals":<bool>,"toolHints":["<hint>"]}`;
 
-async function classifyTier2(message: string): Promise<ClassifiedIntent | null> {
+async function classifyTier2(message: string, userId?: string): Promise<ClassifiedIntent | null> {
   try {
-    const adapter = await getCoreAIAdapter();
+    const adapter = userId
+      ? await getSAMAdapter({ userId, capability: 'chat' })
+      : await getSAMAdapterSystem();
     if (!adapter) return null;
 
     const result = await withTimeout(
@@ -227,7 +229,7 @@ async function classifyTier2(message: string): Promise<ClassifiedIntent | null> 
  * - Tier 1 (rule-based): instant, handles common patterns
  * - Tier 2 (AI-powered): for ambiguous messages when Tier 1 confidence < 0.8
  */
-export async function classifyIntent(message: string): Promise<ClassifiedIntent> {
+export async function classifyIntent(message: string, userId?: string): Promise<ClassifiedIntent> {
   const tier1Result = classifyTier1(message);
 
   // If Tier 1 is confident enough, skip the AI call
@@ -236,6 +238,6 @@ export async function classifyIntent(message: string): Promise<ClassifiedIntent>
   }
 
   // Tier 2: AI-powered for ambiguous messages
-  const tier2Result = await classifyTier2(message);
+  const tier2Result = await classifyTier2(message, userId);
   return tier2Result ?? tier1Result;
 }

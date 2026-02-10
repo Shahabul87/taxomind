@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId');
+    const sectionId = searchParams.get('sectionId');
     const period = searchParams.get('period') || 'all';
 
     // Calculate date filter based on period
@@ -80,14 +81,19 @@ export async function GET(req: NextRequest) {
       whereClause.submittedAt = { gte: dateFilter };
     }
 
-    if (courseId) {
-      whereClause.Exam = {
-        section: {
+    if (courseId || sectionId) {
+      const examFilter: Record<string, unknown> = {};
+      if (sectionId) {
+        examFilter.sectionId = sectionId;
+      }
+      if (courseId) {
+        examFilter.section = {
           chapter: {
             courseId,
           },
-        },
-      };
+        };
+      }
+      whereClause.Exam = examFilter;
     }
 
     // Fetch all exam attempts with related data

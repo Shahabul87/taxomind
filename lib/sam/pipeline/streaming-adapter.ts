@@ -16,7 +16,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { streamChat } from '@/lib/sam/integration-adapters';
+import { runSAMChatStream } from '@/lib/sam/ai-provider';
 import { TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { isDegraded, getDegradedResponse } from '@/lib/sam/degraded-responses';
 import { SAMServiceUnavailableError } from '@/lib/sam/utils/error-handler';
@@ -336,7 +336,7 @@ export async function streamAIResponse(
       }
     }, TIMEOUT_DEFAULTS.STREAM_TOTAL);
 
-    for await (const chunk of streamChat({
+    for await (const chunk of runSAMChatStream({
       messages: chatMessages,
       systemPrompt,
       temperature: 0.7,

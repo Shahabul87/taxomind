@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ export function SectionHeader({
   progress,
   isPreviewMode,
 }: SectionHeaderProps) {
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -58,12 +60,12 @@ export function SectionHeader({
   }, []);
 
   const handleExitLearning = () => {
-    window.location.href = `/courses/${course.id}`;
+    router.push(`/courses/${course.id}`);
   };
 
   const handleSwitchToTeacher = () => {
     if (isPreviewMode) {
-      window.location.href = `/teacher/courses/${course.id}/chapters/${chapter.id}/section/${section.id}`;
+      router.push(`/teacher/courses/${course.id}/chapters/${chapter.id}/section/${section.id}`);
     }
   };
 

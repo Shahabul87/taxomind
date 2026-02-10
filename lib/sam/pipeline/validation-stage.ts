@@ -176,6 +176,7 @@ export async function runValidationStage(
       conversationHistory: conversationHistory as Array<{ role: string; content: string }>,
       enableAIFallback: true,
       sessionId,
+      userId: auth.user.id,
     },
   );
   if (modeClassification.shouldSuggestSwitch) {

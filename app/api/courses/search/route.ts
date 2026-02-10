@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
+import { logger } from "@/lib/logger";
 
 // Schema for search parameters
 const SearchParamsSchema = z.object({
@@ -88,14 +89,14 @@ export async function GET(request: NextRequest) {
     // Note: Frontend defaults NULL difficulty to "Beginner", so we need to handle that
     if (params.difficulties) {
       const difficulties = params.difficulties.split(",");
-      console.log('[API Search] Difficulty filter:', { difficulties, raw: params.difficulties });
+      logger.info('[API Search] Difficulty filter:', { difficulties, raw: params.difficulties });
 
       // If "Beginner" is selected, also include courses with NULL difficulty
       // since the frontend displays NULL as "Beginner"
       if (difficulties.includes("Beginner")) {
         // Create a separate OR condition for difficulty
         const difficultyConditions = [
-          { difficulty: { in: difficulties as any } },
+          { difficulty: { in: difficulties } },
           { difficulty: null }
         ];
 
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
           where.OR = difficultyConditions;
         }
       } else {
-        where.difficulty = { in: difficulties as any };
+        where.difficulty = { in: difficulties };
       }
     }
 
@@ -168,8 +169,8 @@ export async function GET(request: NextRequest) {
 
     // Get total count for pagination
     const totalCount = await db.course.count({ where });
-    console.log('[API Search] Query:', JSON.stringify(where, null, 2));
-    console.log('[API Search] Total count:', totalCount);
+    logger.info('[API Search] Query:', JSON.stringify(where, null, 2));
+    logger.info('[API Search] Total count:', totalCount);
 
     // Fetch courses with relations
     const courses = await db.course.findMany({
@@ -243,13 +244,14 @@ export async function GET(request: NextRequest) {
       }, 0);
 
       // Determine badges
-      const badges: string[] = [];
+      type BadgeType = "New" | "Bestseller" | "Hot" | "Updated" | "Featured";
+      const badges: BadgeType[] = [];
       const daysSinceCreated = Math.floor(
         (Date.now() - new Date(course.createdAt).getTime()) / (1000 * 60 * 60 * 24)
       );
       if (daysSinceCreated <= 30) badges.push("New");
-      if (course._count.Enrollment > 100) badges.push("Popular");
-      if (avgRating >= 4.5 && course._count.reviews >= 10) badges.push("Top Rated");
+      if (course._count.Enrollment > 100) badges.push("Bestseller");
+      if (avgRating >= 4.5 && course._count.reviews >= 10) badges.push("Hot");
 
       // Check if user is enrolled
       const isEnrolled = user
@@ -291,7 +293,7 @@ export async function GET(request: NextRequest) {
         completionRate: 0,
         hasCertificate: course._count.certifications > 0,
         hasExercises: course.chapters.length > 0,
-        badges: badges as any,
+        badges,
         isEnrolled,
         isWishlisted: user ? (Array.isArray(course.wishlists) && course.wishlists.length > 0) : false,
         lastUpdated: course.updatedAt,
@@ -385,7 +387,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[COURSES_SEARCH_ERROR]", error);
+    logger.error("[COURSES_SEARCH_ERROR]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

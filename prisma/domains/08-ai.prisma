@@ -143,6 +143,7 @@ model UserAIPreferences {
   User               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // AI Provider Preferences (Multi-Provider Support - added January 2026)
+  preferredGlobalProvider        String?                         // If set, overrides ALL per-capability preferences
   preferredChatProvider          String?  @default("anthropic")  // anthropic, deepseek, openai, gemini, mistral
   preferredCourseProvider        String?  @default("anthropic")  // Provider for course creation
   preferredAnalysisProvider      String?  @default("anthropic")  // Provider for analysis tasks

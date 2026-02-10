@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
-import { generateSamSuggestion } from "@/lib/anthropic-client";
+import { generateSamSuggestion } from "@/lib/course-blueprint-generator";
 import { logger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
@@ -50,8 +50,8 @@ export async function POST(req: Request) {
     const body: SamSuggestionRequest = await req.json();
     
     // Generate contextual suggestion based on the request
-    const suggestion = await generateContextualSuggestion(body);
-    
+    const suggestion = await generateContextualSuggestion(body, user.id);
+
     return NextResponse.json(suggestion);
     
   } catch (error) {
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
   }
 }
 
-async function generateContextualSuggestion(request: SamSuggestionRequest): Promise<SamResponse> {
+async function generateContextualSuggestion(request: SamSuggestionRequest, userId: string): Promise<SamResponse> {
   const { context, userInput, step } = request;
   
   let contextPrompt = "";
@@ -122,7 +122,7 @@ async function generateContextualSuggestion(request: SamSuggestionRequest): Prom
   }
   
   try {
-    const aiResponse = await generateSamSuggestion(contextPrompt, userInput as any);
+    const aiResponse = await generateSamSuggestion(contextPrompt, userInput as any, userId);
     
     // Determine confidence based on context and input completeness
     const confidence = calculateConfidence(userInput, context);

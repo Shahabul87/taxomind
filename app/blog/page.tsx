@@ -1,6 +1,6 @@
-import { BlogPageRedesigned } from './components/redesign/BlogPageRedesigned';
 import { ModernBlogPage } from './components/modern-blog-page';
 import { getSimplePostsForBlog } from '@/actions/get-simple-posts';
+import { currentUser } from '@/lib/auth';
 import { PageWithMobileLayout } from '@/components/layouts/PageWithMobileLayout';
 import Script from 'next/script';
 
@@ -41,7 +41,10 @@ async function getPosts() {
 }
 
 export default async function BlogPage() {
-  const { featuredPosts, posts, categories, trendingPosts } = await getPosts();
+  const [{ featuredPosts, posts, categories, trendingPosts }, user] = await Promise.all([
+    getPosts(),
+    currentUser(),
+  ]);
   const base = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '')
 
   const schema = {
@@ -73,7 +76,7 @@ export default async function BlogPage() {
       showSidebar={false}
       showBottomBar={false}
       enableGestures={false}
-      contentClassName="bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
+      contentClassName="bg-slate-50 dark:bg-slate-900"
     >
       <Script
         id="blog-ld-json"
@@ -86,6 +89,7 @@ export default async function BlogPage() {
         initialPosts={posts}
         categories={categories}
         trendingPosts={trendingPosts.length > 0 ? trendingPosts : posts.slice(0, 5)}
+        userId={user?.id}
       />
     </PageWithMobileLayout>
   );

@@ -52,6 +52,7 @@ import {
   Copy,
   Info,
   Cloud,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLearningMode } from "../../../../_components/learning-mode-context";
@@ -81,8 +82,8 @@ interface ResourceDownloadsProps {
 }
 
 // File type icon mapping
-const getFileIcon = (type: string) => {
-  const icons: Record<string, any> = {
+const getFileIcon = (type: string): LucideIcon => {
+  const icons: Record<string, LucideIcon> = {
     pdf: FileText,
     doc: FileText,
     image: FileImage,
@@ -107,9 +108,9 @@ const getFileTypeColor = (type: string) => {
     code: "text-yellow-500",
     spreadsheet: "text-emerald-500",
     archive: "text-indigo-500",
-    other: "text-gray-500",
+    other: "text-slate-500",
   };
-  return colors[type] || "text-gray-500";
+  return colors[type] || "text-slate-500";
 };
 
 // Format file size

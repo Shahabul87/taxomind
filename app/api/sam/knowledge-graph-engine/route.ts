@@ -11,24 +11,18 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { createKnowledgeGraphEngine } from '@sam-ai/educational';
 import type { KnowledgeGraphEngine } from '@sam-ai/educational';
-import { getSAMConfig } from '@/lib/adapters';
+import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 
-// Engine singleton
-let engineInstance: KnowledgeGraphEngine | null = null;
-
-export function getEngine(): KnowledgeGraphEngine {
-  if (!engineInstance) {
-    const samConfig = getSAMConfig();
-    engineInstance = createKnowledgeGraphEngine({
-      samConfig,
-      enableAIExtraction: true,
-      confidenceThreshold: 0.7,
-      maxPrerequisiteDepth: 10,
-    });
-  }
-  return engineInstance;
+export async function createEngineForUser(userId: string): Promise<KnowledgeGraphEngine> {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createKnowledgeGraphEngine({
+    samConfig,
+    enableAIExtraction: true,
+    confidenceThreshold: 0.7,
+    maxPrerequisiteDepth: 10,
+  });
 }
 
 /**
@@ -108,7 +102,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = getEngine();
+    const engine = await createEngineForUser(session.user.id);
     const adapter = getKnowledgeGraphEngineAdapter();
     const { action } = parsed.data;
 

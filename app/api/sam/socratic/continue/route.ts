@@ -9,8 +9,7 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createSocraticTeachingEngine } from '@sam-ai/educational';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 
 const ContinueDialogueSchema = z.object({
   dialogueId: z.string(),

@@ -3,6 +3,10 @@
  *
  * Creates SAMConfig instances for use with @sam-ai/core and @sam-ai/educational packages.
  * This provides a standardized way to configure SAM engines in API routes.
+ *
+ * PRIMARY API (use these):
+ *   getUserScopedSAMConfig(userId, capability) — full enterprise resolution
+ *   getUserScopedSAMConfigOrDefault(userId?, capability?) — with safe fallback
  */
 
 import {
@@ -14,6 +18,7 @@ import type { SAMConfig, SAMDatabaseAdapter, AIAdapter } from '@sam-ai/core';
 import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { createUserScopedAdapter, type AICapability } from '@/lib/ai/user-scoped-adapter';
 
 // ============================================================================
 // SINGLETON INSTANCES
@@ -21,7 +26,6 @@ import { logger } from '@/lib/logger';
 
 let cachedSAMConfig: SAMConfig | null = null;
 let cachedDatabaseAdapter: SAMDatabaseAdapter | null = null;
-
 // ============================================================================
 // FACTORY FUNCTIONS
 // ============================================================================
@@ -37,13 +41,17 @@ export function getDatabaseAdapter(): SAMDatabaseAdapter {
 }
 
 /**
- * Get the default SAM configuration (singleton)
+ * Build-time fallback SAM configuration (singleton).
+ *
+ * Creates a hardcoded Anthropic adapter used ONLY as a last-resort fallback
+ * inside `getUserScopedSAMConfigOrDefault()` when both user-scoped and
+ * system-level adapter resolution fail (e.g. during build or cold-start).
  *
  * NOTE: During build time, ANTHROPIC_API_KEY may not be available.
- * In that case, we create a placeholder config that will work for
- * static analysis but throw at runtime if AI features are actually used.
+ * In that case, a placeholder config is created that will throw at runtime
+ * if AI features are actually used.
  */
-export function getSAMConfig(): SAMConfig {
+function _createBuildTimeFallbackConfig(): SAMConfig {
   if (!cachedSAMConfig) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -94,28 +102,32 @@ function createPlaceholderAIAdapter(): AIAdapter {
   };
 }
 
+// ============================================================================
+// USER-SCOPED FACTORY FUNCTIONS
+// ============================================================================
+
 /**
- * Create a new SAM configuration with custom options
+ * Get a SAM configuration scoped to a specific user's AI preferences.
+ *
+ * This routes all AI calls through the enterprise client, providing:
+ * - User preference resolution (global → per-capability)
+ * - Platform admin controls (provider enable/disable, maintenance mode)
+ * - Rate limiting based on subscription tier
+ * - Usage tracking with provider metadata
+ * - Automatic fallback to secondary provider on failure
+ *
+ * @param userId - The authenticated user's ID
+ * @param capability - The AI capability context (defaults to 'analysis')
  */
-export function createCustomSAMConfig(options?: {
-  model?: string;
-  enableCaching?: boolean;
-}): SAMConfig {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY environment variable is required');
-  }
-
+export async function getUserScopedSAMConfig(
+  userId: string,
+  capability?: AICapability
+): Promise<SAMConfig> {
+  const aiAdapter = await createUserScopedAdapter(userId, capability ?? 'analysis');
   return createSAMConfig({
-    ai: createAnthropicAdapter({
-      apiKey,
-      model: options?.model ?? 'claude-sonnet-4-20250514',
-    }),
+    ai: aiAdapter,
     database: getDatabaseAdapter(),
-    cache: options?.enableCaching !== false
-      ? createMemoryCache({ maxSize: 1000, defaultTTL: 300 })
-      : undefined,
+    cache: createMemoryCache({ maxSize: 1000, defaultTTL: 300 }),
     logger: {
       debug: (...args: unknown[]) => logger.debug('[SAM]', ...args),
       info: (...args: unknown[]) => logger.info('[SAM]', ...args),
@@ -123,6 +135,61 @@ export function createCustomSAMConfig(options?: {
       error: (...args: unknown[]) => logger.error('[SAM]', ...args),
     },
   });
+}
+
+/**
+ * Get a user-scoped SAM configuration, falling back to a system-level adapter
+ * if no userId is provided or if user-scoped resolution fails.
+ *
+ * The fallback uses the enterprise client's system adapter (platform default →
+ * factory default) instead of the hardcoded Anthropic singleton.
+ *
+ * Use this in routes where auth is optional or where a graceful fallback
+ * to the default provider is acceptable.
+ *
+ * @param userId - The authenticated user's ID, or undefined for system-level calls
+ * @param capability - The AI capability context (defaults to 'analysis')
+ */
+export async function getUserScopedSAMConfigOrDefault(
+  userId: string | undefined,
+  capability?: AICapability
+): Promise<SAMConfig> {
+  if (userId) {
+    try {
+      return await getUserScopedSAMConfig(userId, capability);
+    } catch (error) {
+      logger.warn('[SAMConfig] User-scoped config failed, falling back to system adapter', {
+        userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  // System-level fallback: use enterprise client's provider resolution
+  try {
+    const { getSAMAdapterSystem } = await import('@/lib/sam/ai-provider');
+    const systemAdapter = await getSAMAdapterSystem();
+    if (systemAdapter) {
+      return createSAMConfig({
+        ai: systemAdapter,
+        database: getDatabaseAdapter(),
+        cache: createMemoryCache({ maxSize: 1000, defaultTTL: 300 }),
+        logger: {
+          debug: (...args: unknown[]) => logger.debug('[SAM]', ...args),
+          info: (...args: unknown[]) => logger.info('[SAM]', ...args),
+          warn: (...args: unknown[]) => logger.warn('[SAM]', ...args),
+          error: (...args: unknown[]) => logger.error('[SAM]', ...args),
+        },
+      });
+    }
+  } catch (error) {
+    logger.warn('[SAMConfig] System adapter fallback failed, using build-time config', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+
+  // Last resort: build-time singleton (hardcoded Anthropic)
+  return _createBuildTimeFallbackConfig();
 }
 
 /**

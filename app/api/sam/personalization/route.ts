@@ -3,20 +3,16 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createPersonalizationEngine } from "@sam-ai/educational";
 import type { LearningBehavior, PersonalizationContext } from "@sam-ai/educational";
-import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 
-// Create personalization engine singleton with portable package
-let personalizationEngine: ReturnType<typeof createPersonalizationEngine> | null = null;
-
-function getPersonalizationEngine() {
-  if (!personalizationEngine) {
-    personalizationEngine = createPersonalizationEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return personalizationEngine;
+// Create a user-scoped personalization engine instance
+async function createPersonalizationEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'course');
+  return createPersonalizationEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -36,30 +32,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const engine = await createPersonalizationEngineForUser(session.user.id);
+
     let result;
     switch (action) {
       case "detect-learning-style":
-        result = await handleDetectLearningStyle(data, session.user.id);
+        result = await handleDetectLearningStyle(engine, data, session.user.id);
         break;
 
       case "optimize-cognitive-load":
-        result = await handleOptimizeCognitiveLoad(data, session.user.id);
+        result = await handleOptimizeCognitiveLoad(engine, data, session.user.id);
         break;
 
       case "recognize-emotional-state":
-        result = await handleRecognizeEmotionalState(data, session.user.id);
+        result = await handleRecognizeEmotionalState(engine, data, session.user.id);
         break;
 
       case "analyze-motivation":
-        result = await handleAnalyzeMotivation(data, session.user.id);
+        result = await handleAnalyzeMotivation(engine, data, session.user.id);
         break;
 
       case "generate-learning-path":
-        result = await handleGenerateLearningPath(data, session.user.id);
+        result = await handleGenerateLearningPath(engine, data, session.user.id);
         break;
 
       case "apply-personalization":
-        result = await handleApplyPersonalization(data, session.user.id);
+        result = await handleApplyPersonalization(engine, data, session.user.id);
         break;
 
       default:
@@ -83,14 +81,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function handleDetectLearningStyle(data: any, userId: string) {
-  const engine = getPersonalizationEngine();
+async function handleDetectLearningStyle(engine: ReturnType<typeof createPersonalizationEngine>, data: any, userId: string) {
   const behavior = await buildLearningBehavior(data.userId || userId);
   return await engine.detectLearningStyle(behavior);
 }
 
-async function handleOptimizeCognitiveLoad(data: any, userId: string) {
-  const engine = getPersonalizationEngine();
+async function handleOptimizeCognitiveLoad(engine: ReturnType<typeof createPersonalizationEngine>, data: any, userId: string) {
   const { content } = data;
 
   if (!content) {
@@ -118,26 +114,22 @@ async function handleOptimizeCognitiveLoad(data: any, userId: string) {
   return await engine.optimizeCognitiveLoad(content, studentInfo);
 }
 
-async function handleRecognizeEmotionalState(data: any, userId: string) {
-  const engine = getPersonalizationEngine();
+async function handleRecognizeEmotionalState(engine: ReturnType<typeof createPersonalizationEngine>, data: any, userId: string) {
   const interactions = await getRecentInteractions(data.userId || userId);
   return await engine.recognizeEmotionalState(interactions);
 }
 
-async function handleAnalyzeMotivation(data: any, userId: string) {
-  const engine = getPersonalizationEngine();
+async function handleAnalyzeMotivation(engine: ReturnType<typeof createPersonalizationEngine>, data: any, userId: string) {
   const history = await buildLearningHistory(data.userId || userId);
   return await engine.analyzeMotivationPatterns(history);
 }
 
-async function handleGenerateLearningPath(data: any, userId: string) {
-  const engine = getPersonalizationEngine();
+async function handleGenerateLearningPath(engine: ReturnType<typeof createPersonalizationEngine>, data: any, userId: string) {
   const profile = await buildStudentProfile(data.userId || userId);
   return await engine.generatePersonalizedPath(profile);
 }
 
-async function handleApplyPersonalization(data: any, userId: string) {
-  const engine = getPersonalizationEngine();
+async function handleApplyPersonalization(engine: ReturnType<typeof createPersonalizationEngine>, data: any, userId: string) {
   const context: PersonalizationContext = {
     userId: data.userId || userId,
     currentContent: data.currentContent,

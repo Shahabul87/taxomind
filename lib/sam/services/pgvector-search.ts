@@ -14,7 +14,7 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import * as crypto from 'crypto';
 import type { EmbeddingProvider } from '@sam-ai/agentic';
-import { getEmbeddingProvider } from '@/lib/sam/integration-adapters';
+import { getEmbeddingProvider } from '@/lib/sam/ai-provider';
 
 // ==========================================
 // TYPES & VALIDATION SCHEMAS

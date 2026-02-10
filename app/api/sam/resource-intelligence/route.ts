@@ -8,20 +8,16 @@ import type {
   StudentResourceProfile,
   ResourceType,
 } from "@sam-ai/educational";
-import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 
-// Create resource engine singleton with portable package
-let resourceEngine: ReturnType<typeof createResourceEngine> | null = null;
-
-function getResourceEngine() {
-  if (!resourceEngine) {
-    resourceEngine = createResourceEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return resourceEngine;
+// Create a user-scoped resource engine instance
+async function createResourceEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'course');
+  return createResourceEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -41,26 +37,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const engine = await createResourceEngineForUser(session.user.id);
+
     let result;
     switch (action) {
       case "discover":
-        result = await handleDiscoverResources(data);
+        result = await handleDiscoverResources(engine, data);
         break;
 
       case "quality-score":
-        result = await handleQualityScore(data);
+        result = await handleQualityScore(engine, data);
         break;
 
       case "license-check":
-        result = await handleLicenseCheck(data);
+        result = await handleLicenseCheck(engine, data);
         break;
 
       case "roi-analysis":
-        result = await handleROIAnalysis(data, session.user.id);
+        result = await handleROIAnalysis(engine, data, session.user.id);
         break;
 
       case "personalize":
-        result = await handlePersonalize(data, session.user.id);
+        result = await handlePersonalize(engine, data, session.user.id);
         break;
 
       default:
@@ -84,7 +82,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function handleDiscoverResources(data: any) {
+async function handleDiscoverResources(engine: ReturnType<typeof createResourceEngine>, data: any) {
   const { topic, config } = data;
 
   if (!topic || !topic.name) {
@@ -117,36 +115,33 @@ async function handleDiscoverResources(data: any) {
     costFilter: config?.costFilter,
   };
 
-  const engine = getResourceEngine();
   return await engine.discoverResources(topicObj, discoveryConfig);
 }
 
-async function handleQualityScore(data: any) {
+async function handleQualityScore(engine: ReturnType<typeof createResourceEngine>, data: any) {
   const { resource } = data;
 
   if (!resource || !resource.url) {
     throw new Error("Resource URL is required");
   }
 
-  const engine = getResourceEngine();
   return await engine.scoreResourceQuality(resource);
 }
 
-async function handleLicenseCheck(data: any) {
+async function handleLicenseCheck(engine: ReturnType<typeof createResourceEngine>, data: any) {
   const { resource, intendedUse } = data;
 
   if (!resource) {
     throw new Error("Resource is required");
   }
 
-  const engine = getResourceEngine();
   return await engine.checkLicenseCompatibility(
     resource,
     intendedUse
   );
 }
 
-async function handleROIAnalysis(data: any, userId: string) {
+async function handleROIAnalysis(engine: ReturnType<typeof createResourceEngine>, data: any, userId: string) {
   const { resource } = data;
 
   if (!resource) {
@@ -156,11 +151,10 @@ async function handleROIAnalysis(data: any, userId: string) {
   // Build learner profile
   const profile = await buildLearnerProfile(userId);
 
-  const engine = getResourceEngine();
   return await engine.analyzeResourceROI(resource, profile);
 }
 
-async function handlePersonalize(data: any, userId: string) {
+async function handlePersonalize(engine: ReturnType<typeof createResourceEngine>, data: any, userId: string) {
   const { resources } = data;
 
   if (!resources || !Array.isArray(resources)) {
@@ -170,7 +164,6 @@ async function handlePersonalize(data: any, userId: string) {
   // Build learner profile
   const profile = await buildLearnerProfile(userId);
 
-  const engine = getResourceEngine();
   return await engine.personalizeRecommendations(
     profile,
     resources
@@ -256,7 +249,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type") || "recommendations";
 
     if (type === "recommendations" && topic) {
-      const engine = getResourceEngine();
+      const engine = await createResourceEngineForUser(session.user.id);
       const recommendations = await engine.getResourceRecommendations(
         session.user.id,
         topic

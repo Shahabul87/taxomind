@@ -13,68 +13,61 @@ import type {
   MultimediaContent,
   MultimediaAnalysisOptions,
 } from "@sam-ai/educational";
-import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import type { SAMInteractionType } from '@prisma/client';
 
-// Create multimedia engine singleton with portable package
-let multimediaEngine: ReturnType<typeof createMultimediaEngine> | null = null;
-
-function getMultimediaEngine() {
-  if (!multimediaEngine) {
-    multimediaEngine = createMultimediaEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return multimediaEngine;
+// Per-request engine factory (user-scoped AI provider)
+async function createMultimediaEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createMultimediaEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
-// Create Multimedia Bloom's Engine singleton (Phase 4: Multimedia Content Analysis)
-let multimediaBloomsEngine: MultimediaBloomsEngine | null = null;
+// Per-request Multimedia Bloom's Engine factory (Phase 4: Multimedia Content Analysis)
+async function createMultimediaBloomsEngineForUser(userId: string): Promise<MultimediaBloomsEngine> {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
 
-function getMultimediaBloomsEngine(): MultimediaBloomsEngine {
-  if (!multimediaBloomsEngine) {
-    // Create content analyzer adapter using unified blooms engine
-    const unifiedEngine = createUnifiedBloomsEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-      defaultMode: 'standard',
-      confidenceThreshold: 0.7,
-      enableCache: true,
-      cacheTTL: 3600,
-    });
+  // Create content analyzer adapter using unified blooms engine
+  const unifiedEngine = createUnifiedBloomsEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+    defaultMode: 'standard',
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600,
+  });
 
-    // Create adapter for the content analyzer interface
-    const contentAnalyzer = {
-      async analyze(content: string, options?: { includeSubLevel?: boolean }) {
-        const result = await unifiedEngine.analyze(content, {
-          mode: 'standard',
-          includeSubLevel: options?.includeSubLevel,
-        });
-        return {
-          dominantLevel: result.dominantLevel,
-          distribution: result.distribution,
-          confidence: result.confidence,
-          cognitiveDepth: result.cognitiveDepth,
-          subLevel: result.subLevel,
-        };
-      },
-    };
+  // Create adapter for the content analyzer interface
+  const contentAnalyzer = {
+    async analyze(content: string, options?: { includeSubLevel?: boolean }) {
+      const result = await unifiedEngine.analyze(content, {
+        mode: 'standard',
+        includeSubLevel: options?.includeSubLevel,
+      });
+      return {
+        dominantLevel: result.dominantLevel,
+        distribution: result.distribution,
+        confidence: result.confidence,
+        cognitiveDepth: result.cognitiveDepth,
+        subLevel: result.subLevel,
+      };
+    },
+  };
 
-    multimediaBloomsEngine = new MultimediaBloomsEngine(contentAnalyzer, {
-      enableParallelAnalysis: true,
-      maxParallelImages: 5,
-      logger: {
-        debug: (msg: string, ...args: unknown[]) => logger.debug(msg, ...args),
-        warn: (msg: string, ...args: unknown[]) => logger.warn(msg, ...args),
-        error: (msg: string, ...args: unknown[]) => logger.error(msg, ...args),
-      },
-    });
-  }
-  return multimediaBloomsEngine;
+  return new MultimediaBloomsEngine(contentAnalyzer, {
+    enableParallelAnalysis: true,
+    maxParallelImages: 5,
+    logger: {
+      debug: (msg: string, ...args: unknown[]) => logger.debug(msg, ...args),
+      warn: (msg: string, ...args: unknown[]) => logger.warn(msg, ...args),
+      error: (msg: string, ...args: unknown[]) => logger.error(msg, ...args),
+    },
+  });
 }
 
 function normalizeAnalysis(analysis: unknown) {
@@ -191,7 +184,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = getMultimediaEngine();
+    const engine = await createMultimediaEngineForUser(session.user.id);
     let analysis;
     switch (contentType) {
       case "video":
@@ -220,7 +213,7 @@ export async function POST(req: NextRequest) {
 
       // Phase 4: Bloom's Taxonomy Analysis for Multimedia Content
       case "blooms-video": {
-        const bloomsEngine = getMultimediaBloomsEngine();
+        const bloomsEngine = await createMultimediaBloomsEngineForUser(session.user.id);
         const videoContent: MultimediaContent = {
           type: 'video',
           id: contentData.videoId ?? `video-${Date.now()}`,
@@ -246,7 +239,7 @@ export async function POST(req: NextRequest) {
       }
 
       case "blooms-image": {
-        const bloomsEngine = getMultimediaBloomsEngine();
+        const bloomsEngine = await createMultimediaBloomsEngineForUser(session.user.id);
         const imageContent: MultimediaContent = {
           type: 'image',
           id: contentData.imageId ?? `image-${Date.now()}`,
@@ -273,7 +266,7 @@ export async function POST(req: NextRequest) {
       }
 
       case "blooms-mixed": {
-        const bloomsEngine = getMultimediaBloomsEngine();
+        const bloomsEngine = await createMultimediaBloomsEngineForUser(session.user.id);
         const mixedContent: MultimediaContent = {
           type: 'mixed',
           id: contentData.contentId ?? `mixed-${Date.now()}`,
@@ -418,7 +411,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const engine = getMultimediaEngine();
+    const engine = await createMultimediaEngineForUser(session.user.id);
     let result;
     switch (reportType) {
       case "recommendations":

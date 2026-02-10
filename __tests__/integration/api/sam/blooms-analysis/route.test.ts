@@ -74,9 +74,9 @@ jest.mock('@sam-ai/pedagogy', () => ({
   })),
 }));
 
-// Mock @/lib/adapters
+// Mock @/lib/adapters — the route uses getUserScopedSAMConfig (async)
 jest.mock('@/lib/adapters', () => ({
-  getSAMConfig: jest.fn(() => ({
+  getUserScopedSAMConfig: jest.fn(async () => ({
     aiProvider: 'anthropic',
     model: 'claude-3-haiku',
   })),

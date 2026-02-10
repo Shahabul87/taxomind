@@ -94,6 +94,7 @@ export async function classifyModeRelevanceAsync(
     conversationHistory?: Array<{ role: string; content: string }>;
     enableAIFallback?: boolean;
     sessionId?: string;
+    userId?: string;
   },
 ): Promise<ModeClassificationResult> {
   // Run Tier 1 (synchronous, heuristic-based)
@@ -123,7 +124,7 @@ export async function classifyModeRelevanceAsync(
 
   // Run Tier 2 (AI-powered classification)
   try {
-    const aiResult = await classifyModeWithAI(message, pageType);
+    const aiResult = await classifyModeWithAI(message, pageType, options?.userId);
 
     if (aiResult && aiResult.confidence > 0.7) {
       logger.debug('[INTENT_CLASSIFIER] AI fallback used:', {

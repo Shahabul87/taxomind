@@ -10,20 +10,15 @@ import type {
   StudentCohort,
   PredictiveLearningContext,
 } from "@sam-ai/educational";
-import { getSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
+import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from "@/lib/logger";
 
-// Singleton pattern for predictive engine
-let predictiveEngine: ReturnType<typeof createPredictiveEngine> | null = null;
-
-function getPredictiveEngine() {
-  if (!predictiveEngine) {
-    predictiveEngine = createPredictiveEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-    });
-  }
-  return predictiveEngine;
+async function createPredictiveEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createPredictiveEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -43,26 +38,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const engine = await createPredictiveEngineForUser(session.user.id);
+
     let result;
     switch (action) {
       case "predict-outcomes":
-        result = await handlePredictOutcomes(data, session.user.id);
+        result = await handlePredictOutcomes(engine, data, session.user.id);
         break;
 
       case "identify-at-risk":
-        result = await handleIdentifyAtRisk(data, session.user);
+        result = await handleIdentifyAtRisk(engine, data, session.user);
         break;
 
       case "recommend-interventions":
-        result = await handleRecommendInterventions(data, session.user.id);
+        result = await handleRecommendInterventions(engine, data, session.user.id);
         break;
 
       case "optimize-velocity":
-        result = await handleOptimizeVelocity(data, session.user.id);
+        result = await handleOptimizeVelocity(engine, data, session.user.id);
         break;
 
       case "calculate-probability":
-        result = await handleCalculateProbability(data, session.user.id);
+        result = await handleCalculateProbability(engine, data, session.user.id);
         break;
 
       default:
@@ -86,47 +83,47 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function handlePredictOutcomes(data: any, userId: string) {
+async function handlePredictOutcomes(engine: ReturnType<typeof createPredictiveEngine>, data: any, userId: string) {
   const studentProfile = await buildStudentProfile(
     data.studentId || userId,
     data.courseId
   );
-  return await getPredictiveEngine().predictLearningOutcomes(studentProfile);
+  return await engine.predictLearningOutcomes(studentProfile);
 }
 
-async function handleIdentifyAtRisk(data: any, user: any) {
+async function handleIdentifyAtRisk(engine: ReturnType<typeof createPredictiveEngine>, data: any, user: any) {
   // Check if user is admin
   if (user.role !== "ADMIN") {
     throw new Error("Insufficient permissions");
   }
 
   const cohort = await buildStudentCohort(data.courseId, data.timeframe);
-  return await getPredictiveEngine().identifyAtRiskStudents(cohort);
+  return await engine.identifyAtRiskStudents(cohort);
 }
 
-async function handleRecommendInterventions(data: any, userId: string) {
+async function handleRecommendInterventions(engine: ReturnType<typeof createPredictiveEngine>, data: any, userId: string) {
   const studentProfile = await buildStudentProfile(
     data.studentId || userId,
     data.courseId
   );
-  return await getPredictiveEngine().recommendInterventions(studentProfile);
+  return await engine.recommendInterventions(studentProfile);
 }
 
-async function handleOptimizeVelocity(data: any, userId: string) {
+async function handleOptimizeVelocity(engine: ReturnType<typeof createPredictiveEngine>, data: any, userId: string) {
   const studentProfile = await buildStudentProfile(
     data.studentId || userId,
     data.courseId
   );
-  return await getPredictiveEngine().optimizeLearningVelocity(studentProfile);
+  return await engine.optimizeLearningVelocity(studentProfile);
 }
 
-async function handleCalculateProbability(data: any, userId: string) {
+async function handleCalculateProbability(engine: ReturnType<typeof createPredictiveEngine>, data: any, userId: string) {
   const context = await buildLearningContext(
     data.studentId || userId,
     data.courseId,
     data.environmentFactors
   );
-  return await getPredictiveEngine().calculateSuccessProbability(context);
+  return await engine.calculateSuccessProbability(context);
 }
 
 async function buildStudentProfile(

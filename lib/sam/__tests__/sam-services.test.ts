@@ -59,13 +59,6 @@ jest.mock('../taxomind-context', () => ({
   getStore: jest.fn().mockReturnValue({}),
 }));
 
-// Mock integration-adapters
-jest.mock('../integration-adapters', () => ({
-  getCoreAIAdapter: jest.fn().mockResolvedValue({
-    complete: jest.fn(),
-  }),
-}));
-
 // Mock orchestration-integration
 jest.mock('../orchestration-integration', () => ({
   initializeOrchestration: jest.fn(),

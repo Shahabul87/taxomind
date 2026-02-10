@@ -15,6 +15,7 @@ import {
   LogIn,
   Newspaper,
   FlaskConical,
+  Heart,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -143,6 +144,16 @@ export default function HomeHeroSectionRedesigned() {
                   AI Research
                 </span>
               </Link>
+              <Link
+                href="/our-story"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm hover:shadow-md hover:bg-white dark:hover:bg-slate-800 transition-all group"
+                aria-label="Our Story"
+              >
+                <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Our Story
+                </span>
+              </Link>
             </div>
 
             {/* Center — AI News & Research (Mobile) */}
@@ -160,6 +171,13 @@ export default function HomeHeroSectionRedesigned() {
                 aria-label="AI Research"
               >
                 <FlaskConical className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </Link>
+              <Link
+                href="/our-story"
+                className="inline-flex items-center justify-center p-1.5 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
+                aria-label="Our Story"
+              >
+                <Heart className="w-4 h-4 text-rose-600 dark:text-rose-400" />
               </Link>
             </div>
 
@@ -393,6 +411,29 @@ export default function HomeHeroSectionRedesigned() {
               Track your growth across all 6 stages of Bloom&apos;s
               Taxonomy—from remembering to creating.
             </motion.p>
+
+            {/* Founder Story Link */}
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate={isInView ? 'visible' : 'hidden'}
+              transition={{ delay: 0.35 }}
+              className="flex justify-center lg:justify-start px-2 sm:px-0"
+            >
+              <Link
+                href="/our-story"
+                className="group inline-flex items-center gap-2 sm:gap-2.5 px-4 py-2.5 sm:px-5 sm:py-3 rounded-2xl bg-gradient-to-r from-rose-50 to-violet-50 dark:from-rose-950/30 dark:to-violet-950/30 border border-rose-200/60 dark:border-rose-800/40 hover:border-rose-300 dark:hover:border-rose-700 shadow-sm hover:shadow-md transition-all"
+              >
+                <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 dark:text-rose-400 group-hover:scale-110 transition-transform flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-snug">
+                  <span className="font-semibold text-slate-900 dark:text-white">Why I built TaxoMind</span>
+                  <span className="hidden sm:inline">
+                    {' '}&mdash; 16 years of struggle turned into a platform for every self-learner
+                  </span>
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-500 dark:text-violet-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
+              </Link>
+            </motion.div>
 
             {/* Feature Pills */}
             <motion.div

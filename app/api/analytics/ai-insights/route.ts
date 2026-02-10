@@ -3,8 +3,7 @@ import { currentUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { aiClient } from '@/lib/ai/enterprise-client';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // ==========================================
 // AI-Powered Analytics Insights API
@@ -486,14 +485,12 @@ Provide insights in this JSON format:
 Focus on actionable, specific insights based on the data. Be encouraging but honest.`;
 
   try {
-    const response = await aiClient.chat({
+    const responseText = await runSAMChatWithPreference({
       userId,
       capability: 'analysis',
       maxTokens: 500,
       messages: [{ role: 'user', content: prompt }],
     });
-
-    const responseText = response.content;
     if (responseText) {
       const jsonMatch = responseText.match(/\[[\s\S]*\]/);
       if (jsonMatch) {

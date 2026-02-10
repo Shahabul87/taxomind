@@ -159,7 +159,7 @@ export async function GET(
                 order: true,
                 imageUrl: true,
                 videoUrl: true,
-                correctAnswer: true, // Include for completed attempts
+                correctAnswer: true,
                 explanation: true,
               }
             }
@@ -185,7 +185,27 @@ export async function GET(
       }
     });
 
-    return NextResponse.json(attempts);
+    // SECURITY: Strip correctAnswer & explanation from IN_PROGRESS attempts
+    // so students can't inspect DevTools to cheat
+    const sanitized = attempts.map((attempt) => {
+      if (attempt.status === 'IN_PROGRESS') {
+        return {
+          ...attempt,
+          Exam: {
+            ...attempt.Exam,
+            ExamQuestion: attempt.Exam.ExamQuestion.map((q) => ({
+              ...q,
+              correctAnswer: undefined,
+              explanation: undefined,
+            })),
+          },
+          UserAnswer: [],
+        };
+      }
+      return attempt;
+    });
+
+    return NextResponse.json(sanitized);
 
   } catch (error: any) {
     logger.error('Exam attempts fetch error:', error);

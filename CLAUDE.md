@@ -200,7 +200,7 @@ app/
 - **Auth**: NextAuth.js v5, roles: ADMIN, USER
 - **Database**: Prisma + PostgreSQL, see `prisma/schema.prisma`
 - **Components**: Radix UI + Tailwind CSS
-- **AI**: OpenAI + Anthropic for content generation
+- **AI**: Multi-provider (Anthropic, DeepSeek, OpenAI) via unified `lib/sam/ai-provider.ts`
 
 ## Critical TypeScript Patterns
 
@@ -446,6 +446,112 @@ export async function POST(req: NextRequest) {
 }
 ```
 
+### Unified AI Provider Integration Rules
+
+**Single entry point: `@/lib/sam/ai-provider`** — ALL AI operations MUST import from this module.
+
+#### Decision Tree: Which Function to Use
+
+| Scenario | Function | Returns |
+|----------|----------|---------|
+| API route needs AI text response | `runSAMChatWithPreference()` | `string` |
+| Route needs provider/model info | `runSAMChatWithMetadata()` | `{content, provider, model}` |
+| SSE streaming response | `runSAMChatStream()` | `AsyncGenerator<AIChatStreamChunk>` |
+| SAM engine needs `CoreAIAdapter` | `getSAMAdapter()` | `CoreAIAdapter` |
+| SAM engine needs `SAMConfig` | `getUserScopedSAMConfig()` (from `@/lib/adapters`) | `SAMConfig` |
+| Health check (no userId) | `getSAMAdapterSystem()` | `CoreAIAdapter \| null` |
+| Vector search / embeddings | `getEmbeddingProvider()` | `EmbeddingProvider \| null` |
+
+#### Capability Types
+
+Pick the `capability` that best matches your feature:
+- `'chat'` — SAM tutor conversations, Q&A
+- `'course'` — Course creation, content generation, exam generation
+- `'analysis'` — Bloom&apos;s taxonomy, depth analysis, learning analytics
+- `'code'` — Code assistance, programming help
+- `'skill-roadmap'` — Skill roadmap builder, learning paths
+
+#### Pattern 1: Standard AI Call (Most Routes)
+
+```typescript
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { currentUser } from '@/lib/auth';
+
+export async function POST(req: Request) {
+  const user = await currentUser();
+  if (!user?.id) return new NextResponse("Unauthorized", { status: 401 });
+
+  try {
+    const body = await req.json();
+    const response = await runSAMChatWithPreference({
+      userId: user.id,
+      capability: 'analysis',
+      messages: [{ role: 'user', content: body.prompt }],
+      systemPrompt: 'You are a helpful assistant...',
+      maxTokens: 2000,
+      temperature: 0.7,
+    });
+    return NextResponse.json({ success: true, content: response });
+  } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+    return NextResponse.json({ error: 'AI request failed' }, { status: 500 });
+  }
+}
+```
+
+#### Pattern 2: SAM Engine with User-Scoped Config
+
+```typescript
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+
+const config = await getUserScopedSAMConfig(userId, 'analysis');
+const engine = createBloomsEngine({ samConfig: config, database: getDatabaseAdapter() });
+const result = await engine.analyze(content);
+```
+
+#### Pattern 3: Streaming (SSE)
+
+```typescript
+import { runSAMChatStream } from '@/lib/sam/ai-provider';
+
+for await (const chunk of runSAMChatStream({
+  userId: user.id,
+  capability: 'chat',
+  messages,
+  systemPrompt,
+})) {
+  controller.enqueue(sseEvent('content', { text: chunk.content }));
+}
+```
+
+#### What Every Call Gets Automatically
+
+- User preference resolution (global + per-capability)
+- Platform admin controls (enable/disable, maintenance mode)
+- Rate limiting by subscription tier
+- Usage tracking with cost estimation
+- Circuit breaker (5 failures = open, 30s reset)
+- Automatic fallback to secondary provider
+- 3-tier caching (platform 5min, user 60s, adapters 10min)
+
+#### FORBIDDEN Patterns
+
+```typescript
+// ❌ NEVER import enterprise-client directly in routes
+import { aiClient } from '@/lib/ai/enterprise-client';
+
+// ❌ NEVER create adapters directly — bypasses preferences + rate limiting
+import { createAIAdapter } from '@/lib/sam/providers/ai-factory';
+const adapter = createAIAdapter('deepseek');
+
+// ❌ NEVER use deprecated getCoreAIAdapter — removed
+import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+
+// ❌ NEVER hardcode provider names in routes
+const response = await someDirectOpenAICall(messages);
+```
+
 ### Database Query Safety
 ```typescript
 // ✅ CORRECT - Always bound findMany with take
@@ -476,10 +582,18 @@ const result = await db.$transaction(async (tx) => {
 - `auth.ts` - NextAuth config
 - `lib/db.ts` - Database singleton
 - `lib/db-pooled.ts` - Connection pooling, metrics, health check
+- `lib/sam/ai-provider.ts` - **SINGLE ENTRY POINT** for all AI operations
+- `lib/ai/enterprise-client.ts` - Core AI engine (provider resolution, fallback, circuit breaker)
+- `lib/ai/user-scoped-adapter.ts` - User-scoped CoreAIAdapter for SAM packages
+- `lib/sam/providers/ai-registry.ts` - Provider metadata (models, capabilities, env keys)
+- `lib/sam/providers/ai-factory.ts` - SDK adapter creation (internal use only)
+- `lib/adapters/sam-config-factory.ts` - SAMConfig factory for @sam-ai engines
+- `lib/sam/integration-adapters.ts` - Embedding provider + adapter status (infrastructure)
+- `lib/ai/subscription-enforcement.ts` - Rate limiting + usage tracking
+- `prisma/domains/08-ai.prisma` - UserAIPreferences + PlatformAISettings schemas
 - `lib/sam/utils/timeout.ts` - Timeout + retry utilities for AI calls
 - `lib/sam/utils/error-handler.ts` - Circuit breaker, error types, retry
 - `lib/sam/middleware/rate-limiter.ts` - In-memory rate limiting
-- `lib/sam/integration-adapters.ts` - AI adapter with circuit breaker
 - `components/react-error-boundary.tsx` - React ErrorBoundary for component isolation
 - `app/api/health/route.ts` - Health check (DB, SAM, pool metrics)
 
@@ -569,6 +683,10 @@ const monitor = createBehaviorMonitor({
 
 | File | Purpose |
 |------|---------|
+| `lib/sam/ai-provider.ts` | **SINGLE ENTRY POINT** - All AI operations (chat, stream, adapters) |
+| `lib/ai/enterprise-client.ts` | Core AI engine (provider resolution, rate limiting, fallback) |
+| `lib/ai/user-scoped-adapter.ts` | Creates CoreAIAdapter carrying user preferences |
+| `lib/adapters/sam-config-factory.ts` | Creates SAMConfig for @sam-ai educational engines |
 | `lib/sam/taxomind-context.ts` | **SINGLE ENTRY POINT** - All store access |
 | `lib/sam/index.ts` | Main SAM exports |
 | `lib/sam/agentic-bridge.ts` | Main integration bridge |
@@ -602,5 +720,5 @@ const { skill, learningPath, courseGraph } = getLearningPathStores();
 
 **Quick Reference**: See `/Users/CLAUDE.md` for full enterprise standards. Always verify schema before database queries.
 
-*Last updated: January 2025*
+*Last updated: February 2026*
 *Stack: Next.js 15 + Prisma + PostgreSQL + NextAuth.js v5*

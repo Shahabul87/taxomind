@@ -26,9 +26,10 @@ export async function GET() {
       db.enrollment.count(),
 
       // Completed course enrollments (for success rate)
+      // Enrollment model uses `status` field, not `completedAt`
       db.enrollment.count({
         where: {
-          completedAt: { not: null },
+          status: "COMPLETED",
         },
       }),
 

@@ -443,6 +443,10 @@ model User {
   // Context Gathering (February 2026)
   samPageContextSnapshots    SAMPageContextSnapshot[]      @relation("SAMPageContextSnapshots")
 
+  // Persistent Practice Problems System (February 2026)
+  practiceProblemSets        PracticeProblemSet[]           @relation("UserPracticeProblemSets")
+  practiceAttempts           UserPracticeAttempt[]          @relation("UserPracticeAttempts")
+
   // PERFORMANCE: Composite indexes for frequent query patterns
   @@index([subscriptionTier, hasAIAccess])   // AI access control queries
   @@index([isPremium, premiumExpiresAt])     // Premium expiry checks

@@ -9,7 +9,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter, getSAMAdapterSystem } from '@/lib/sam/ai-provider';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import type { SAMModeId } from './types';
 import { SAM_MODE_IDS } from './types';
@@ -75,9 +75,12 @@ const MODE_DESCRIPTIONS: Record<string, string> = {
 export async function classifyModeWithAI(
   message: string,
   pageType: string,
+  userId?: string,
 ): Promise<AIModeClassification | null> {
   try {
-    const adapter = await getCoreAIAdapter();
+    const adapter = userId
+      ? await getSAMAdapter({ userId, capability: 'chat' })
+      : await getSAMAdapterSystem();
     if (!adapter) return null;
 
     const modeList = Object.entries(MODE_DESCRIPTIONS)

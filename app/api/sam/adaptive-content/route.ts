@@ -20,30 +20,26 @@ import type {
   AdaptationOptions,
 } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMConfig } from '@/lib/adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
-// ENGINE SINGLETON
+// ENGINE FACTORY (user-scoped)
 // ============================================================================
 
-let engineInstance: AdaptiveContentEngine | null = null;
-
 /**
- * Get or create the AdaptiveContentEngine instance
+ * Create a user-scoped AdaptiveContentEngine instance.
+ * Called per-request so that the AI adapter respects the user's provider preferences.
  */
-function getAdaptiveContentEngine(): AdaptiveContentEngine {
-  if (!engineInstance) {
-    const samConfig = getSAMConfig();
+async function createEngine(userId: string): Promise<AdaptiveContentEngine> {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-    engineInstance = createAdaptiveContentEngine({
-      database: getAdaptiveContentAdapter(),
-      aiAdapter: samConfig.ai,
-      enableCaching: true,
-      minInteractionsForAdaptation: 5,
-    });
-  }
-  return engineInstance;
+  return createAdaptiveContentEngine({
+    database: getAdaptiveContentAdapter(),
+    aiAdapter,
+    enableCaching: true,
+    minInteractionsForAdaptation: 5,
+  });
 }
 
 // ============================================================================
@@ -122,7 +118,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const engine = getAdaptiveContentEngine();
+    const engine = await createEngine(session.user.id);
     const profile = await engine.getLearnerProfile(session.user.id);
 
     return NextResponse.json({
@@ -170,8 +166,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = getAdaptiveContentEngine();
     const userId = parsed.data.action === 'get-tips' ? session.user.id : (parsed.data.userId || session.user.id);
+    const engine = await createEngine(userId);
 
     switch (parsed.data.action) {
       case 'get-profile': {

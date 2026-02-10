@@ -8,7 +8,7 @@
  * - Telemetry tracking
  */
 
-import { aiClient } from '@/lib/ai/enterprise-client';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 
 // SAM imports
@@ -164,15 +164,15 @@ export class SAMExamGeneratorService {
     const prompt = this.buildGenerationPrompt(request, bloomsDistribution);
 
     try {
-      const completion = await aiClient.chat({
+      const responseText = await runSAMChatWithPreference({
+        userId: request.userId,
+        capability: 'analysis',
         maxTokens: 6000,
         temperature: 0.3,
         systemPrompt: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
         extended: true,
       });
-
-      const responseText = completion.content;
 
       if (!responseText) {
         throw new Error('Empty response from AI model');
@@ -880,7 +880,7 @@ Response Format - JSON array with this structure:
       return this.telemetry.startToolExecution({
         toolId: 'sam-exam-generator',
         toolName: 'SAM Exam Generator',
-        userId: request.userId || 'unknown',
+        userId: request.userId,
         confirmationRequired: false,
       });
     } catch (error) {

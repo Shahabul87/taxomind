@@ -6,10 +6,12 @@
  */
 
 export { PrismaSAMDatabaseAdapter, createPrismaSAMAdapter } from './prisma-sam-adapter';
+
+// --- Primary API (use these) ---
 export {
-  getSAMConfig,
+  getUserScopedSAMConfig,
+  getUserScopedSAMConfigOrDefault,
   getDatabaseAdapter,
-  createCustomSAMConfig,
   resetSAMConfig,
 } from './sam-config-factory';
 

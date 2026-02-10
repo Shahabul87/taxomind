@@ -9,7 +9,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import {
   createCompetencyEngine,
   type CompetencyEngineConfig,
@@ -21,56 +21,39 @@ import {
 import { enrichFeatureResponse } from '@/lib/sam/pipeline/feature-enrichment';
 
 // ============================================================================
-// ENGINE SINGLETON
+// PER-REQUEST ENGINE FACTORY
 // ============================================================================
 
-let competencyEngine: ReturnType<typeof createCompetencyEngine> | null = null;
+async function createCompetencyEngineForUser(userId: string) {
+  const aiAdapter = await getSAMAdapter({ userId, capability: 'analysis' });
 
-async function getCompetencyEngine() {
-  if (!competencyEngine) {
-    const coreAiAdapter = await getCoreAIAdapter();
-    const aiAdapter = coreAiAdapter ?? {
-      name: 'competency-fallback',
-      version: '1.0.0',
-      chat: async () => ({
-        content: '',
-        model: 'fallback',
-        usage: { inputTokens: 0, outputTokens: 0 },
-        finishReason: 'stop' as const,
-      }),
-      isConfigured: () => false,
-      getModel: () => 'fallback',
-    };
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    logger: {
+      debug: (msg: string, data?: unknown) => logger.debug(msg, data),
+      info: (msg: string, data?: unknown) => logger.info(msg, data),
+      warn: (msg: string, data?: unknown) => logger.warn(msg, data),
+      error: (msg: string, data?: unknown) => logger.error(msg, data),
+    },
+    features: {
+      gamification: true,
+      formSync: false,
+      autoContext: true,
+      emotionDetection: false,
+      learningStyleDetection: true,
+      streaming: false,
+      analytics: true,
+    },
+  });
 
-    const samConfig = createSAMConfig({
-      ai: aiAdapter,
-      logger: {
-        debug: (msg: string, data?: unknown) => logger.debug(msg, data),
-        info: (msg: string, data?: unknown) => logger.info(msg, data),
-        warn: (msg: string, data?: unknown) => logger.warn(msg, data),
-        error: (msg: string, data?: unknown) => logger.error(msg, data),
-      },
-      features: {
-        gamification: true,
-        formSync: false,
-        autoContext: true,
-        emotionDetection: false,
-        learningStyleDetection: true,
-        streaming: false,
-        analytics: true,
-      },
-    });
+  const config: CompetencyEngineConfig = {
+    samConfig,
+    enableAISkillExtraction: true,
+    defaultFramework: 'CUSTOM',
+    includeIndustryBenchmarks: true,
+  };
 
-    const config: CompetencyEngineConfig = {
-      samConfig,
-      enableAISkillExtraction: true,
-      defaultFramework: 'CUSTOM',
-      includeIndustryBenchmarks: true,
-    };
-
-    competencyEngine = createCompetencyEngine(config);
-  }
-  return competencyEngine;
+  return createCompetencyEngine(config);
 }
 
 // ============================================================================
@@ -188,7 +171,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const engine = await getCompetencyEngine();
+    const engine = await createCompetencyEngineForUser(session.user.id);
 
     // Support both 'action' (frontend) and 'endpoint' param names
     const endpoint = searchParams.get('endpoint') ?? searchParams.get('action') ?? 'profile';
@@ -340,7 +323,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await getCompetencyEngine();
+    const engine = await createCompetencyEngineForUser(session.user.id);
     let result: unknown;
 
     switch (action) {

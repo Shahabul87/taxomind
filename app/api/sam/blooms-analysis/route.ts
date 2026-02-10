@@ -11,7 +11,7 @@ import {
   createCognitiveLoadAnalyzer,
   type CognitiveLoadResult,
 } from '@sam-ai/pedagogy';
-import { getSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getDatabaseAdapter } from '@/lib/adapters';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
@@ -30,21 +30,17 @@ function getCognitiveLoadAnalyzer() {
   return cognitiveLoadAnalyzer;
 }
 
-// Create Unified Blooms engine singleton (Priority 1: Unified Bloom's Engine)
-let unifiedBloomsEngine: ReturnType<typeof createUnifiedBloomsEngine> | null = null;
-
-function getUnifiedBloomsEngine() {
-  if (!unifiedBloomsEngine) {
-    unifiedBloomsEngine = createUnifiedBloomsEngine({
-      samConfig: getSAMConfig(),
-      database: getDatabaseAdapter(),
-      defaultMode: 'standard', // Keyword + AI validation when confidence low
-      confidenceThreshold: 0.7,
-      enableCache: true,
-      cacheTTL: 3600, // 1 hour cache
-    });
-  }
-  return unifiedBloomsEngine;
+// Create user-scoped Blooms engine (Priority 1: Unified Bloom's Engine)
+async function createBloomsEngineForUser(userId: string) {
+  const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+  return createUnifiedBloomsEngine({
+    samConfig,
+    database: getDatabaseAdapter(),
+    defaultMode: 'standard', // Keyword + AI validation when confidence low
+    confidenceThreshold: 0.7,
+    enableCache: true,
+    cacheTTL: 3600, // 1 hour cache
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -177,7 +173,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Perform Bloom's Taxonomy analysis using unified engine (with timeout)
-    const engine = getUnifiedBloomsEngine();
+    const engine = await createBloomsEngineForUser(user.id);
     const analysis = await withRetryableTimeout(
       () => engine.analyzeCourse(courseData, options),
       TIMEOUT_DEFAULTS.AI_ANALYSIS,

@@ -7,7 +7,7 @@
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
-import { getCoreAIAdapter } from '@/lib/sam/integration-adapters';
+import { createUserScopedAdapter } from '@/lib/ai/user-scoped-adapter';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import type { SAMThreadType } from '@prisma/client';
 
@@ -125,7 +125,7 @@ export class ConversationThreadingService {
   /**
    * Auto-summarize a conversation
    */
-  async autoSummarize(conversationId: string): Promise<string> {
+  async autoSummarize(conversationId: string, userId?: string): Promise<string> {
     const conversation = await db.sAMConversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -140,41 +140,44 @@ export class ConversationThreadingService {
       return 'No messages to summarize.';
     }
 
+    // Resolve the userId: prefer param, then conversation owner
+    const resolvedUserId = userId ?? conversation.userId;
+
     // Try AI-based summarization
-    const aiAdapter = await getCoreAIAdapter();
-    if (aiAdapter) {
-      try {
-        const messageText = conversation.messages
-          .map((m) => `${m.messageType}: ${m.content}`)
-          .join('\n');
+    try {
+      const aiAdapter = await createUserScopedAdapter(resolvedUserId, 'chat');
 
-        const prompt = `Summarize this learning conversation in 1-2 sentences. Focus on the main topic and key outcomes:\n\n${messageText.slice(0, 2000)}`;
+      const messageText = conversation.messages
+        .map((m) => `${m.messageType}: ${m.content}`)
+        .join('\n');
 
-        const summary = await withRetryableTimeout(
-          async () => {
-            const result = await aiAdapter.generateText(prompt, {
-              maxTokens: 150,
-              temperature: 0.3,
-            });
-            return typeof result === 'string' ? result : (result as { text: string }).text;
-          },
-          TIMEOUT_DEFAULTS.AI_ANALYSIS,
-          'conversationSummarize',
-          1
-        );
+      const prompt = `Summarize this learning conversation in 1-2 sentences. Focus on the main topic and key outcomes:\n\n${messageText.slice(0, 2000)}`;
 
-        // Persist the summary
-        await db.sAMConversation.update({
-          where: { id: conversationId },
-          data: { summary },
-        });
+      const summary = await withRetryableTimeout(
+        async () => {
+          const result = await aiAdapter.chat({
+            messages: [{ role: 'user', content: prompt }],
+            maxTokens: 150,
+            temperature: 0.3,
+          });
+          return result.content;
+        },
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'conversationSummarize',
+        1
+      );
 
-        return summary;
-      } catch (error) {
-        logger.debug('[ConversationThreading] AI summarization failed, using fallback', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+      // Persist the summary
+      await db.sAMConversation.update({
+        where: { id: conversationId },
+        data: { summary },
+      });
+
+      return summary;
+    } catch (error) {
+      logger.debug('[ConversationThreading] AI summarization failed, using fallback', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Fallback: extract first user message as summary

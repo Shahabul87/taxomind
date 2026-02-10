@@ -100,8 +100,8 @@ export function initializeOrchestration(
   const confirmationStore = createInMemoryOrchestrationConfirmationStore();
   const sessionStore = getMultiSessionStores().tutoringSession;
 
-  // Create AI-powered criterion evaluator (if ANTHROPIC_API_KEY is available)
-  // This enables intelligent evaluation of learning criteria using Claude
+  // Create AI-powered criterion evaluator (uses user's preferred provider)
+  // Falls back to heuristic evaluation if no AI provider is configured
   const criterionEvaluator = createBestAvailableCriterionEvaluator();
 
   // Initialize Tutoring Loop Controller

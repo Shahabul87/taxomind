@@ -65,22 +65,22 @@ function TrendingWidget({ posts }: { posts: BlogPost[] }) {
   return (
     <Card className="group relative overflow-hidden bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl transition-all duration-500 hover:shadow-2xl hover:shadow-slate-300/50 dark:hover:shadow-slate-800/50">
       {/* Decorative gradient border effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
       <CardHeader className="relative pb-4 border-b border-slate-200/60 dark:border-slate-700/60">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold flex items-center gap-2.5 text-slate-900 dark:text-white">
             <div className="relative">
-              <div className="absolute inset-0 bg-orange-500/20 blur-lg rounded-full" />
-              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+              <div className="absolute inset-0 bg-violet-500/20 blur-lg rounded-full" />
+              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
                 <Flame className="w-5 h-5 text-white" />
               </div>
             </div>
-            <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
               Trending Now
             </span>
           </h3>
-          <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 px-3 py-1.5 text-xs font-bold shadow-lg shadow-orange-500/25 animate-pulse">
+          <Badge className="bg-gradient-to-r from-violet-500 to-indigo-600 text-white border-0 px-3 py-1.5 text-xs font-bold shadow-lg shadow-violet-500/25 animate-pulse">
             <Zap className="w-3 h-3 mr-1" />
             Hot
           </Badge>
@@ -92,9 +92,9 @@ function TrendingWidget({ posts }: { posts: BlogPost[] }) {
           {posts.slice(0, 5).map((post, index) => (
             <li key={post.id} className="group/item">
               <Link href={`/blog/${post.id}`} aria-label={`Read: ${post.title}`}>
-                <div className="relative px-5 py-4 cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/50 dark:hover:from-orange-950/20 dark:hover:to-red-950/20">
+                <div className="relative px-5 py-4 cursor-pointer transition-all duration-300 hover:bg-gradient-to-r hover:from-violet-50/50 hover:to-indigo-50/50 dark:hover:from-violet-950/20 dark:hover:to-indigo-950/20">
                   {/* Hover indicator */}
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-hover/item:h-8 bg-gradient-to-b from-orange-500 to-red-500 rounded-r-full transition-all duration-300" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 group-hover/item:h-8 bg-gradient-to-b from-violet-500 to-indigo-600 rounded-r-full transition-all duration-300" />
 
                   <div className="flex gap-4 items-start">
                     {/* Animated rank badge */}
@@ -114,7 +114,7 @@ function TrendingWidget({ posts }: { posts: BlogPost[] }) {
 
                     {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-semibold line-clamp-2 text-slate-900 dark:text-white group-hover/item:text-orange-600 dark:group-hover/item:text-orange-400 transition-colors duration-300 mb-2 leading-tight">
+                      <h4 className="text-sm font-semibold line-clamp-2 text-slate-900 dark:text-white group-hover/item:text-violet-600 dark:group-hover/item:text-violet-400 transition-colors duration-300 mb-2 leading-tight">
                         {post.title}
                       </h4>
                       <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
@@ -127,7 +127,7 @@ function TrendingWidget({ posts }: { posts: BlogPost[] }) {
                             <span className="text-slate-300 dark:text-slate-600">|</span>
                           </>
                         )}
-                        <span className="flex items-center gap-1.5 font-medium text-orange-600 dark:text-orange-400">
+                        <span className="flex items-center gap-1.5 font-medium text-violet-600 dark:text-violet-400">
                           <Eye className="w-3 h-3" />
                           {post.views.toLocaleString()}
                         </span>
@@ -135,7 +135,7 @@ function TrendingWidget({ posts }: { posts: BlogPost[] }) {
                     </div>
 
                     {/* Arrow indicator */}
-                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover/item:text-orange-500 group-hover/item:translate-x-1 transition-all duration-300 flex-shrink-0 mt-1" />
+                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover/item:text-violet-500 group-hover/item:translate-x-1 transition-all duration-300 flex-shrink-0 mt-1" />
                   </div>
                 </div>
               </Link>
@@ -178,15 +178,15 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
   const displayCount = formatSubscribers(subscriberCount);
 
   return (
-    <Card className="group relative overflow-hidden bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/40 border border-indigo-200/50 dark:border-indigo-800/50 shadow-xl shadow-indigo-200/30 dark:shadow-indigo-900/30 rounded-2xl transition-all duration-500 hover:shadow-2xl">
+    <Card className="group relative overflow-hidden bg-gradient-to-br from-violet-50 via-indigo-50 to-purple-50 dark:from-violet-950/40 dark:via-indigo-950/40 dark:to-purple-950/40 border border-violet-200/50 dark:border-violet-800/50 shadow-xl shadow-violet-200/30 dark:shadow-violet-900/30 rounded-2xl transition-all duration-500 hover:shadow-2xl">
       {/* Animated background orbs */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-pink-400/20 to-rose-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-400/20 to-indigo-400/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-purple-400/20 to-violet-400/20 rounded-full blur-3xl animate-pulse delay-1000" />
 
       <CardContent className="relative p-6">
         {isSubscribed ? (
           <div className="text-center py-4 animate-fade-in">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/30">
               <Sparkles className="w-8 h-8 text-white animate-pulse" />
             </div>
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
@@ -199,11 +199,11 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
         ) : (
           <>
             <div className="text-center mb-5">
-              <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 mb-4 shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform duration-300">
+              <div className="relative inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500 via-indigo-500 to-purple-500 mb-4 shadow-lg shadow-violet-500/30 group-hover:scale-110 transition-transform duration-300">
                 <Rocket className="w-7 h-7 text-white" />
                 <div className="absolute inset-0 rounded-2xl bg-white/20 animate-ping opacity-75" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Stay Updated
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -224,14 +224,14 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
                   placeholder="Enter your email"
                   autoComplete="email"
                   aria-label="Email address"
-                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-indigo-200/50 dark:border-indigo-700/50 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-indigo-400/20 h-12 pl-4 pr-4 text-base transition-all duration-300"
+                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-violet-200/50 dark:border-violet-700/50 focus:border-violet-400 dark:focus:border-violet-500 focus:ring-violet-400/20 h-12 pl-4 pr-4 text-base transition-all duration-300"
                   required
                 />
               </div>
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 text-white font-semibold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all duration-300 group/btn"
+                className="w-full h-12 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 hover:from-violet-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 group/btn"
               >
                 {isSubmitting ? (
                   <div className="flex items-center gap-2">
@@ -249,7 +249,7 @@ function NewsletterWidget({ subscriberCount }: { subscriberCount?: number }) {
 
             {displayCount && (
               <p className="text-xs text-center mt-4 text-slate-500 dark:text-slate-400">
-                Join <span className="font-semibold text-indigo-600 dark:text-indigo-400">{displayCount}</span> subscribers. No spam, unsubscribe anytime.
+                Join <span className="font-semibold text-violet-600 dark:text-violet-400">{displayCount}</span> subscribers. No spam, unsubscribe anytime.
               </p>
             )}
           </>
@@ -318,14 +318,14 @@ function PopularTopicsWidget({
   return (
     <Card className="group relative overflow-hidden bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl transition-all duration-500 hover:shadow-2xl">
       {/* Decorative elements */}
-      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-cyan-500/10 to-teal-500/10 rounded-full blur-2xl" />
+      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-full blur-2xl" />
 
       <CardHeader className="relative">
         <h3 className="font-bold flex items-center gap-2.5 text-slate-900 dark:text-white">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
             <Hash className="w-5 h-5 text-white" />
           </div>
-          <span className="bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
             Popular Topics
           </span>
         </h3>
@@ -416,14 +416,14 @@ function TopContributorsWidget({
   return (
     <Card className="group relative overflow-hidden bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/60 shadow-xl shadow-slate-200/50 dark:shadow-slate-900/50 rounded-2xl transition-all duration-500 hover:shadow-2xl">
       {/* Decorative elements */}
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-2xl" />
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-full blur-2xl" />
 
       <CardHeader className="relative">
         <h3 className="font-bold flex items-center gap-2.5 text-slate-900 dark:text-white">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
             <Users className="w-5 h-5 text-white" />
           </div>
-          <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
             Top Contributors
           </span>
         </h3>
@@ -433,10 +433,10 @@ function TopContributorsWidget({
         {authors.map((author, index) => (
           <div
             key={author.id}
-            className="group/author flex items-center gap-3 p-2 -mx-2 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 dark:hover:from-purple-950/20 dark:hover:to-pink-950/20 cursor-pointer"
+            className="group/author flex items-center gap-3 p-2 -mx-2 rounded-xl transition-all duration-300 hover:bg-gradient-to-r hover:from-violet-50/50 hover:to-indigo-50/50 dark:hover:from-violet-950/20 dark:hover:to-indigo-950/20 cursor-pointer"
           >
             <div className="relative">
-              <Avatar className="w-11 h-11 ring-2 ring-white dark:ring-slate-700 shadow-md group-hover/author:ring-purple-300 dark:group-hover/author:ring-purple-700 transition-all duration-300">
+              <Avatar className="w-11 h-11 ring-2 ring-white dark:ring-slate-700 shadow-md group-hover/author:ring-violet-300 dark:group-hover/author:ring-violet-700 transition-all duration-300">
                 {author.image ? (
                   <AvatarImage src={author.image} alt={author.name} />
                 ) : null}
@@ -455,7 +455,7 @@ function TopContributorsWidget({
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover/author:text-purple-600 dark:group-hover/author:text-purple-400 transition-colors">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover/author:text-violet-600 dark:group-hover/author:text-violet-400 transition-colors">
                 {author.name}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
@@ -467,7 +467,7 @@ function TopContributorsWidget({
             <Button
               size="sm"
               variant="outline"
-              className="h-8 px-3 text-xs font-medium border-purple-200 dark:border-purple-800 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300 opacity-0 group-hover/author:opacity-100"
+              className="h-8 px-3 text-xs font-medium border-violet-200 dark:border-violet-800 text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-950/50 hover:border-violet-300 dark:hover:border-violet-700 transition-all duration-300 opacity-0 group-hover/author:opacity-100"
             >
               View
             </Button>

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
-import { getEngine } from '../route';
+import { createEngineForUser } from '../route';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 
@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
 
     const { conceptId, score, evidenceType } = parsed.data;
 
-    const engine = getEngine();
+    const engine = await createEngineForUser(session.user.id);
     const adapter = getKnowledgeGraphEngineAdapter();
 
     // Update mastery using the engine

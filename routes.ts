@@ -19,6 +19,7 @@ export const publicRoutes = [
   "/post/[postId]",
   "/articles/[articleId]",
   "/about",
+  "/our-story",
   "/features",
   "/solutions",
   "/get-started",

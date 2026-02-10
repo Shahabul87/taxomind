@@ -1,7 +1,7 @@
 {
-  "filesProcessed": 26,
-  "totalLines": 14371,
-  "timestamp": "2026-02-06T18:07:59.867Z",
+  "filesProcessed": 27,
+  "totalLines": 14506,
+  "timestamp": "2026-02-09T07:07:12.305Z",
   "domains": [
     "base",
     "enums",
@@ -28,6 +28,7 @@
     "skill-build-track",
     "practice-tracking",
     "self-assessment",
-    "marketing"
+    "marketing",
+    "practice-problems"
   ]
 }

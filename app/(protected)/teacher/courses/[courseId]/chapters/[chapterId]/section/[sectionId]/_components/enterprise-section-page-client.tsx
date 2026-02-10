@@ -43,10 +43,72 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip";
 import {
+  type Section,
   type SectionPageClientProps,
   type ContentStatistics,
   type AISuggestion
 } from "./enterprise-section-types";
+
+/** Build rich teaching content string from all section content sources for AI exam generation */
+function buildSectionContentForExam(section: Section): string {
+  const parts: string[] = [];
+
+  // Section description
+  if (section.description) {
+    parts.push(section.description);
+  }
+
+  // Blog content (teaching articles written by the teacher)
+  if (section.blogs?.length > 0) {
+    for (const blog of section.blogs) {
+      if (blog.content) {
+        parts.push(`--- ${blog.title} ---\n${blog.content}`);
+      }
+    }
+  }
+
+  // Article content
+  if (section.articles?.length > 0) {
+    for (const article of section.articles) {
+      if (article.content) {
+        parts.push(`--- ${article.title} ---\n${article.content}`);
+      }
+    }
+  }
+
+  // Study notes
+  if (section.notes?.length > 0) {
+    for (const note of section.notes) {
+      if (note.content) {
+        parts.push(`--- Note: ${note.title} ---\n${note.content}`);
+      }
+    }
+  }
+
+  // Code explanations
+  if (section.codeExplanations?.length > 0) {
+    for (const code of section.codeExplanations) {
+      let codeBlock = `--- Code: ${code.title} ---\n`;
+      if (code.code) codeBlock += `\`\`\`${code.language ?? ""}\n${code.code}\n\`\`\`\n`;
+      if (code.explanation) codeBlock += `Explanation: ${code.explanation}`;
+      parts.push(codeBlock);
+    }
+  }
+
+  // Math explanations
+  if (section.mathExplanations?.length > 0) {
+    for (const math of section.mathExplanations) {
+      let mathBlock = `--- Math: ${math.title} ---\n`;
+      if (math.equation || math.latex || math.latexEquation) {
+        mathBlock += `Equation: ${math.equation || math.latex || math.latexEquation}\n`;
+      }
+      if (math.explanation) mathBlock += `Explanation: ${math.explanation}`;
+      parts.push(mathBlock);
+    }
+  }
+
+  return parts.join("\n\n") || "";
+}
 
 // Enterprise-grade Section Page Client Component
 export const EnterpriseSectionPageClient = ({
@@ -720,6 +782,12 @@ export const EnterpriseSectionPageClient = ({
                       title: chapter.course.title
                     }
                   }}
+                  sectionContent={buildSectionContentForExam(section)}
+                  learningObjectives={
+                    section.learningObjectives
+                      ? section.learningObjectives.split("\n").filter(Boolean)
+                      : undefined
+                  }
                 />
               </CardContent>
             </Card>

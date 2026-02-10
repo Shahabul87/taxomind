@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { CoursesPageClient } from "./_components/courses-page-client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from "@/lib/logger";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taxomind.com';
 
@@ -65,12 +66,12 @@ export const dynamic = 'force-dynamic';
 
 async function getInitialData() {
   try {
-    console.log('[CoursesPage] Step 1: Starting data fetch');
+    logger.info('[CoursesPage] Starting data fetch');
     const user = await currentUser();
-    console.log('[CoursesPage] Step 2: User auth complete', user ? `User ID: ${user.id}` : 'No user');
+    logger.info('[CoursesPage] User auth complete', user ? `User ID: ${user.id}` : 'No user');
 
     // Get initial courses
-    console.log('[CoursesPage] Step 3: Fetching courses from database');
+    logger.info('[CoursesPage] Fetching courses from database');
     let courses;
     try {
       courses = await db.course.findMany({
@@ -129,28 +130,23 @@ async function getInitialData() {
       },
       take: 12, // Initial page size
     });
-      console.log('[CoursesPage] Step 4: Successfully fetched courses', courses.length);
+      logger.info('[CoursesPage] Successfully fetched courses', courses.length);
     } catch (dbError) {
-      console.error('[CoursesPage] DATABASE ERROR - Course fetch failed:', dbError);
-      console.error('[CoursesPage] Error details:', {
+      logger.error('[CoursesPage] DATABASE ERROR - Course fetch failed:', dbError);
+      logger.error('[CoursesPage] Error details:', {
         message: dbError instanceof Error ? dbError.message : 'Unknown error',
         name: dbError instanceof Error ? dbError.name : undefined,
-        stack: dbError instanceof Error ? dbError.stack : undefined,
       });
       throw new Error(`Failed to fetch courses: ${dbError instanceof Error ? dbError.message : 'Unknown database error'}`);
     }
 
     // Get total count
-    console.log('[CoursesPage] Step 5: Counting total courses');
     const totalCourses = await db.course.count({
       where: {
         isPublished: true,
       },
     });
-    console.log('[CoursesPage] Step 6: Total courses count:', totalCourses);
-
     // Get categories for filters
-    console.log('[CoursesPage] Step 7: Fetching categories');
     const categories = await db.category.findMany({
       select: {
         id: true,
@@ -164,7 +160,7 @@ async function getInitialData() {
         },
       },
     });
-    console.log('[CoursesPage] Step 8: Categories fetched:', categories.length);
+    logger.info('[CoursesPage] Categories fetched:', categories.length);
 
     // Get real difficulty counts
     const difficultyCounts = await db.course.groupBy({
@@ -180,7 +176,6 @@ async function getInitialData() {
     const beginnerCount = (difficultyCountMap.get("Beginner") ?? 0) + (difficultyCountMap.get(null) ?? 0);
 
     // Transform courses to match frontend expectations
-    console.log('[CoursesPage] Step 9: Transforming courses data');
     const transformedCourses = courses.map((course) => {
       // Calculate average rating
       const avgRating = course.reviews.length > 0
@@ -292,8 +287,7 @@ async function getInitialData() {
       ],
     };
 
-    console.log('[CoursesPage] Step 10: Data transformation complete');
-    console.log('[CoursesPage] SUCCESS: Returning', {
+    logger.info('[CoursesPage] Data ready', {
       coursesCount: transformedCourses.length,
       totalCourses,
       categoriesCount: categories.length,
@@ -314,10 +308,7 @@ async function getInitialData() {
       } : null,
     };
   } catch (error) {
-    console.error("[CoursesPage] FATAL ERROR - Data fetch failed:", error);
-    console.error("[CoursesPage] Error type:", error instanceof Error ? error.constructor.name : typeof error);
-    console.error("[CoursesPage] Error message:", error instanceof Error ? error.message : String(error));
-    console.error("[CoursesPage] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+    logger.error("[CoursesPage] FATAL ERROR - Data fetch failed:", error);
     return {
       courses: [],
       filterOptions: {

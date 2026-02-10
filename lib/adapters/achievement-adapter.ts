@@ -5,7 +5,7 @@
 
 import { createAchievementEngine } from '@sam-ai/educational';
 import type { AchievementDatabaseAdapter, AchievementProgress, UserStats } from '@sam-ai/educational';
-import { getSAMConfig } from '@/lib/adapters';
+import { getUserScopedSAMConfig, getUserScopedSAMConfigOrDefault } from '@/lib/adapters';
 import { db } from '@/lib/db';
 
 // Create achievement-specific database adapter
@@ -399,15 +399,20 @@ export function createAchievementDatabaseAdapter(): AchievementDatabaseAdapter {
   };
 }
 
-// Lazy initialization
-let _achievementEngine: ReturnType<typeof createAchievementEngine> | null = null;
-
-export function getAchievementEngine() {
-  if (!_achievementEngine) {
-    _achievementEngine = createAchievementEngine({
-      samConfig: getSAMConfig(),
+export async function getAchievementEngine(userId?: string) {
+  if (userId) {
+    // User-scoped: create a fresh engine with user's AI provider preferences
+    const samConfig = await getUserScopedSAMConfig(userId, 'analysis');
+    return createAchievementEngine({
+      samConfig,
       database: createAchievementDatabaseAdapter(),
     });
   }
-  return _achievementEngine;
+
+  // System-level fallback: use enterprise client's provider resolution
+  const samConfig = await getUserScopedSAMConfigOrDefault(undefined, 'analysis');
+  return createAchievementEngine({
+    samConfig,
+    database: createAchievementDatabaseAdapter(),
+  });
 }

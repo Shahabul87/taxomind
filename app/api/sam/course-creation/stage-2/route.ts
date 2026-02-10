@@ -9,11 +9,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { buildStage2Prompt } from '@/lib/sam/course-creation/prompts';
 import { canAccessSamFeature } from '@/lib/premium/sam-access';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
 import {
   Stage2Request,
   Stage2Response,

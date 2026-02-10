@@ -10,11 +10,12 @@ import { useLearningMode } from "../../../../_components/learning-mode-context";
 import { SectionYouTubePlayer } from "./section-youtube-player";
 import { MathLatexRenderer, initMathJax } from "./math-latex-renderer";
 import { CodeSyntaxHighlighter, initPrism } from "./code-syntax-highlighter";
-import { ExamQuizComponent } from "./exam-quiz-component";
+import { ExamCard } from "./exam-quiz-component";
+import { ExamFeedbackPanel } from "./exam-feedback-panel";
 import { ResourceDownloads } from "./resource-downloads";
 import { CompletionCertificate } from "./completion-certificate";
 import { SafeHtmlRenderer } from "./safe-html-renderer";
-import { SAMPracticeProblems } from "@/components/learning/sam-practice-problems";
+import { PersistentPracticeHub } from "./persistent-practice-hub";
 import { SAMSocraticDialogue } from "@/components/learning/sam-socratic-dialogue";
 import { InteractiveCodeViewer } from "../../../../_components/interactive-code-viewer";
 import { cn } from "@/lib/utils";
@@ -44,13 +45,14 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import type { SectionWithProgress, UserProgressData } from "@/types/learning";
 
 interface SectionContentTabsProps {
-  section: any; // Will be properly typed with actual Prisma types
+  section: SectionWithProgress;
   courseId: string;
   chapterId: string;
   sectionId: string;
-  userProgress?: any;
+  userProgress?: UserProgressData | null;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
 }
@@ -162,22 +164,28 @@ export function SectionContentTabs({
 
     // Find main code blocks (those without groupId and with actual code content)
     const mainBlocks = codeExplanations.filter(
-      (item: any) => !item.groupId && item.code
+      (item) => !item.groupId && item.code
     );
 
     // Find line explanations (those with groupId pointing to a main block)
     const lineExplanations = codeExplanations.filter(
-      (item: any) => item.groupId && (item.lineStart !== null || item.lineEnd !== null)
+      (item) => item.groupId && (item.lineStart !== null || item.lineEnd !== null)
     );
 
     // Separate main blocks into those with explanations and those without
-    const blocksWithExplanations: any[] = [];
-    const blocksWithoutExplanations: any[] = [];
+    const blocksWithExplanations: Array<{
+      id: string;
+      title: string;
+      code: string;
+      language: string;
+      explanations: Array<{ id: string; title: string; explanation: string; lineStart: number; lineEnd: number; position: number }>;
+    }> = [];
+    const blocksWithoutExplanations: typeof codeExplanations = [];
 
-    mainBlocks.forEach((mainBlock: any) => {
+    mainBlocks.forEach((mainBlock) => {
       const blockExplanations = lineExplanations
-        .filter((exp: any) => exp.groupId === mainBlock.id)
-        .map((exp: any) => ({
+        .filter((exp) => exp.groupId === mainBlock.id)
+        .map((exp) => ({
           id: exp.id,
           title: exp.title || "Code Explanation",
           explanation: exp.explanation || "",
@@ -185,7 +193,7 @@ export function SectionContentTabs({
           lineEnd: exp.lineEnd || exp.lineStart || 1,
           position: exp.position || 0,
         }))
-        .sort((a: any, b: any) => a.lineStart - b.lineStart);
+        .sort((a, b) => a.lineStart - b.lineStart);
 
       if (blockExplanations.length > 0) {
         // Has line explanations - use InteractiveCodeViewer
@@ -218,14 +226,14 @@ export function SectionContentTabs({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="flex flex-wrap gap-1 mb-6 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg sticky top-[57px] z-30 border border-slate-100 dark:border-slate-700">
-            <TabsTrigger value="overview" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+          <TabsList className="flex flex-nowrap gap-1 mb-6 bg-slate-50 dark:bg-slate-800 p-1 rounded-lg sticky top-[57px] z-30 border border-slate-100 dark:border-slate-700 overflow-x-auto scrollbar-hide">
+            <TabsTrigger value="overview" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
             </TabsTrigger>
 
             {contentCounts.videos > 0 && (
-              <TabsTrigger value="videos" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="videos" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <Video className="h-4 w-4" />
                 <span className="hidden sm:inline">Videos</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
@@ -235,7 +243,7 @@ export function SectionContentTabs({
             )}
 
             {contentCounts.blogs > 0 && (
-              <TabsTrigger value="blogs" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="blogs" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Articles</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
@@ -245,7 +253,7 @@ export function SectionContentTabs({
             )}
 
             {contentCounts.math > 0 && (
-              <TabsTrigger value="math" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="math" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <Calculator className="h-4 w-4" />
                 <span className="hidden sm:inline">Math</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
@@ -255,7 +263,7 @@ export function SectionContentTabs({
             )}
 
             {contentCounts.code > 0 && (
-              <TabsTrigger value="code" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="code" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <Code2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Code</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
@@ -265,7 +273,7 @@ export function SectionContentTabs({
             )}
 
             {contentCounts.exams > 0 && (
-              <TabsTrigger value="exams" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="exams" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <FileQuestion className="h-4 w-4" />
                 <span className="hidden sm:inline">Exams</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
@@ -275,7 +283,7 @@ export function SectionContentTabs({
             )}
 
             {contentCounts.resources > 0 && (
-              <TabsTrigger value="resources" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="resources" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Resources</span>
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-slate-200 dark:bg-slate-700">
@@ -285,7 +293,7 @@ export function SectionContentTabs({
             )}
 
             {mode === "learning" && userProgress?.progressPercent >= 100 && (
-              <TabsTrigger value="certificate" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="certificate" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <Award className="h-4 w-4" />
                 <span className="hidden sm:inline">Certificate</span>
               </TabsTrigger>
@@ -293,7 +301,7 @@ export function SectionContentTabs({
 
             {/* SAM AI Practice Tab */}
             {(isEnrolled || isTeacher) && (
-              <TabsTrigger value="practice" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="practice" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <Brain className="h-4 w-4" />
                 <span className="hidden sm:inline">Practice</span>
               </TabsTrigger>
@@ -301,104 +309,143 @@ export function SectionContentTabs({
 
             {/* SAM AI Tutor Tab */}
             {(isEnrolled || isTeacher) && (
-              <TabsTrigger value="tutor" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+              <TabsTrigger value="tutor" className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md flex-shrink-0 data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                 <MessageCircle className="h-4 w-4" />
                 <span className="hidden sm:inline">AI Tutor</span>
               </TabsTrigger>
             )}
           </TabsList>
 
-          {/* Tab Content Container with min-height to prevent layout shift */}
-          <div className="min-h-[400px] relative">
+          {/* Tab Content Container */}
+          <div className="min-h-[200px] relative">
           {/* Overview Tab */}
           <TabsContent
             value="overview"
             className="space-y-6 data-[state=inactive]:hidden"
           >
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              {/* Content Summary - Show what's available in each tab */}
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-3 text-slate-900 dark:text-slate-100">Available Learning Materials</h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
-                  This section contains various learning materials to help you master the topic.
-                  Navigate through the tabs above to access different types of content.
-                </p>
-              </div>
-
-              {/* Content Summary Cards */}
-              {hasContent && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {contentCounts.videos > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                      <Video className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.videos}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Videos</p>
-                      </div>
-                    </div>
-                  )}
-                  {contentCounts.blogs > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
-                      <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.blogs}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Articles</p>
-                      </div>
-                    </div>
-                  )}
-                  {contentCounts.math > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                      <Calculator className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.math}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Math</p>
-                      </div>
-                    </div>
-                  )}
-                  {contentCounts.code > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800">
-                      <Code2 className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.code}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Code</p>
-                      </div>
-                    </div>
-                  )}
-                  {contentCounts.exams > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-                      <FileQuestion className="h-5 w-5 text-red-600 dark:text-red-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.exams}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Exams</p>
-                      </div>
-                    </div>
-                  )}
-                  {contentCounts.resources > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800">
-                      <Download className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.resources}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">Resources</p>
-                      </div>
-                    </div>
-                  )}
+            <div className="space-y-6">
+              {/* Section Description */}
+              {section.description && (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <SafeHtmlRenderer
+                    html={section.description}
+                    className="text-slate-600 dark:text-slate-400"
+                  />
                 </div>
               )}
 
-              {/* Quick Tips Section */}
-              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
-                <h4 className="text-sm font-medium mb-2 flex items-center gap-2 text-slate-900 dark:text-white">
+              {/* Content At a Glance */}
+              {hasContent && (
+                <div>
+                  <h3 className="text-sm font-medium text-slate-900 dark:text-white mb-3">
+                    What&apos;s in this section
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {contentCounts.videos > 0 && (
+                      <button
+                        onClick={() => setActiveTab("videos")}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-600 transition-colors text-left"
+                      >
+                        <Video className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.videos}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">Videos</p>
+                        </div>
+                      </button>
+                    )}
+                    {contentCounts.blogs > 0 && (
+                      <button
+                        onClick={() => setActiveTab("blogs")}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 hover:border-purple-400 dark:hover:border-purple-600 transition-colors text-left"
+                      >
+                        <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.blogs}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">Articles</p>
+                        </div>
+                      </button>
+                    )}
+                    {contentCounts.math > 0 && (
+                      <button
+                        onClick={() => setActiveTab("math")}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 hover:border-green-400 dark:hover:border-green-600 transition-colors text-left"
+                      >
+                        <Calculator className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.math}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">Math</p>
+                        </div>
+                      </button>
+                    )}
+                    {contentCounts.code > 0 && (
+                      <button
+                        onClick={() => setActiveTab("code")}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600 transition-colors text-left"
+                      >
+                        <Code2 className="h-5 w-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.code}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">Code</p>
+                        </div>
+                      </button>
+                    )}
+                    {contentCounts.exams > 0 && (
+                      <button
+                        onClick={() => setActiveTab("exams")}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 hover:border-red-400 dark:hover:border-red-600 transition-colors text-left"
+                      >
+                        <FileQuestion className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.exams}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">Exams</p>
+                        </div>
+                      </button>
+                    )}
+                    {contentCounts.resources > 0 && (
+                      <button
+                        onClick={() => setActiveTab("resources")}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800 hover:border-indigo-400 dark:hover:border-indigo-600 transition-colors text-left"
+                      >
+                        <Download className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{contentCounts.resources}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400">Resources</p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Keyboard Shortcuts */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
+                <h4 className="text-sm font-medium mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
                   <AlertCircle className="h-4 w-4 text-slate-500" />
-                  Quick Tips
+                  Keyboard Shortcuts
                 </h4>
-                <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                  <li>• Space to play/pause, N for next, P for previous</li>
-                  <li>• Track progress by marking items complete</li>
-                  <li>• Download resources for offline study</li>
-                  {mode === "learning" && userProgress?.progressPercent >= 100 && (
-                    <li className="text-emerald-600 dark:text-emerald-400 font-medium">• Certificate available in Certificate tab</li>
-                  )}
-                </ul>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-slate-600 dark:text-slate-400">
+                  <div className="flex items-center justify-between">
+                    <span>Play / Pause</span>
+                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">Space</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Next section</span>
+                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">N</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Previous section</span>
+                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">P</kbd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Toggle sidebar</span>
+                    <kbd className="px-1.5 py-0.5 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">Ctrl+B</kbd>
+                  </div>
+                </div>
+                {mode === "learning" && userProgress?.progressPercent !== undefined && userProgress.progressPercent >= 100 && (
+                  <p className="mt-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                    Section complete — certificate available in the Certificate tab.
+                  </p>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -997,9 +1044,47 @@ export function SectionContentTabs({
               value="code"
               className="space-y-6 min-h-[300px] data-[state=inactive]:hidden"
             >
+              {/* Enterprise Section Header */}
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 p-[1px]">
+                <div className="rounded-xl bg-white dark:bg-slate-900 p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/25">
+                        <Code2 className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900 dark:text-white">Code Examples</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Interactive code blocks with line-by-line explanations</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {/* Progress Indicator */}
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800">
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                          <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                            {hasMounted ? section.codeExplanations.filter((c: { id: string }) => completedItems.has(c.id)).length : 0}/{contentCounts.code}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-16 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-500"
+                            style={{ width: hasMounted ? `${(section.codeExplanations.filter((c: { id: string }) => completedItems.has(c.id)).length / contentCounts.code) * 100}%` : '0%' }}
+                          />
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800">
+                        <Code2 className="h-3 w-3 mr-1" />
+                        {groupedCodeExplanations.grouped.length > 0 ? 'Interactive' : 'Examples'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid gap-6">
                 {/* Grouped code blocks with line-by-line explanations */}
-                {groupedCodeExplanations.grouped.map((codeBlock: any) => (
+                {groupedCodeExplanations.grouped.map((codeBlock) => (
                   <InteractiveCodeViewer
                     key={codeBlock.id}
                     codeBlock={codeBlock}
@@ -1007,7 +1092,7 @@ export function SectionContentTabs({
                 ))}
 
                 {/* Standalone code blocks (without line explanations) */}
-                {groupedCodeExplanations.standalone.map((code: any) => (
+                {groupedCodeExplanations.standalone.map((code) => (
                   <CodeSyntaxHighlighter
                     key={code.id}
                     code={code}
@@ -1027,49 +1112,27 @@ export function SectionContentTabs({
               className="space-y-4 data-[state=inactive]:hidden"
             >
               <div className="grid gap-4">
-                {section.exams.map((exam: any) => {
-                  // Transform exam data to match the ExamQuizComponent format
-                  // Handle both Prisma relation name (ExamQuestion) and frontend name (questions)
-                  const rawQuestions = exam.questions || exam.ExamQuestion || [];
-
-                  // Transform questions to fix correctAnswer format
-                  // Database stores "A", "B", etc. but component expects full option text
-                  const transformedQuestions = rawQuestions.map((q: any) => {
-                    const options = Array.isArray(q.options) ? q.options : [];
-                    let correctAnswer = q.correctAnswer;
-
-                    // Convert letter answer (A, B, C, D) to actual option text
-                    // Handle both quoted ("A") and unquoted (A) formats
-                    const letterMatch = String(correctAnswer).replace(/"/g, '').trim().toUpperCase();
-                    const letterToIndex: Record<string, number> = { 'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4 };
-
-                    if (letterToIndex[letterMatch] !== undefined && options[letterToIndex[letterMatch]]) {
-                      correctAnswer = options[letterToIndex[letterMatch]];
-                    }
-
-                    return {
-                      ...q,
-                      id: q.id,
-                      question: q.question,
-                      type: q.questionType === 'MULTIPLE_CHOICE' ? 'single' :
-                            q.questionType === 'TRUE_FALSE' ? 'truefalse' : 'single',
-                      options: options,
-                      correctAnswer: correctAnswer,
-                      explanation: q.explanation,
-                      points: q.points || 1,
-                    };
-                  });
-
-                  const formattedExam = {
-                    id: exam.id,
-                    title: exam.title,
-                    description: exam.description,
-                    questions: transformedQuestions,
-                    passingScore: exam.passingScore,
-                    timeLimit: exam.timeLimit,
-                    attempts: exam.attempts,
-                  };
-
+                {section.exams.map((exam: Record<string, unknown> & {
+                  id: string;
+                  title: string;
+                  description?: string | null;
+                  timeLimit?: number | null;
+                  passingScore: number;
+                  attempts: number;
+                  instructions?: string | null;
+                  _count: { ExamQuestion: number };
+                  UserExamAttempt?: Array<{
+                    id: string;
+                    attemptNumber: number;
+                    status: string;
+                    scorePercentage: number | null;
+                    isPassed: boolean | null;
+                    submittedAt: string | null;
+                    timeSpent: number | null;
+                    correctAnswers: number;
+                    totalQuestions: number;
+                  }>;
+                }) => {
                   // Show locked state for non-enrolled users
                   if (!isEnrolled && !isTeacher) {
                     return (
@@ -1093,18 +1156,21 @@ export function SectionContentTabs({
                   }
 
                   return (
-                    <ExamQuizComponent
+                    <ExamCard
                       key={exam.id}
-                      exam={formattedExam}
+                      exam={exam}
                       sectionId={sectionId}
-                      onComplete={(score) => {
-                        markItemComplete(exam.id, "exam");
-                        toast.success(`Exam completed with score: ${score}%`);
-                      }}
+                      courseId={courseId}
+                      chapterId={chapterId}
                     />
                   );
                 })}
               </div>
+
+              {/* SAM AI Feedback Panel — shown after completed attempts */}
+              {isEnrolled && (
+                <ExamFeedbackPanel sectionId={sectionId} courseId={courseId} />
+              )}
             </TabsContent>
           )}
 
@@ -1115,7 +1181,7 @@ export function SectionContentTabs({
               className="space-y-4 data-[state=inactive]:hidden"
             >
               <ResourceDownloads
-                resources={section.notes?.map((note: any) => ({
+                resources={section.notes?.map((note) => ({
                   id: note.id,
                   title: note.title || "Resource",
                   description: note.description,
@@ -1163,27 +1229,19 @@ export function SectionContentTabs({
             </TabsContent>
           )}
 
-          {/* SAM AI Practice Tab Content */}
+          {/* Persistent Practice Tab Content */}
           {(isEnrolled || isTeacher) && (
             <TabsContent
               value="practice"
               className="space-y-4 min-h-[400px] data-[state=inactive]:hidden"
             >
-              <div className="min-h-[350px]">
-                <SAMPracticeProblems
-                  topic={section.title}
-                  sectionId={sectionId}
-                  userId={userProgress?.userId || "anonymous"}
-                  bloomsLevel="APPLY"
-                  difficulty="intermediate"
-                  onComplete={(stats) => {
-                    toast.success(`Practice complete! Score: ${Math.round(stats.score)}%`);
-                    if (stats.correct === stats.total) {
-                      markItemComplete(`practice_${sectionId}`, "practice");
-                    }
-                  }}
-                />
-              </div>
+              <PersistentPracticeHub
+                sectionId={sectionId}
+                sectionTitle={section.title}
+                userId={userProgress?.userId || ""}
+                courseId={courseId}
+                chapterId={chapterId}
+              />
             </TabsContent>
           )}
 

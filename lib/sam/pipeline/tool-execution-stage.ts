@@ -36,7 +36,7 @@ export async function runToolExecutionStage(
   let toolExecution = ctx.toolExecution;
 
   try {
-    const tooling = await ensureToolingInitialized();
+    const tooling = await ensureToolingInitialized(ctx.user.id);
     const role = mapUserToToolRole(ctx.user as { role?: string; isTeacher?: boolean });
     await ensureDefaultToolPermissions(ctx.user.id, role, ctx.user.id);
 

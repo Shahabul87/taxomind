@@ -459,7 +459,7 @@ class SAMServices {
   /**
    * Get the core AI adapter for LLM interactions
    */
-  async getAIAdapter(): Promise<AIAdapter | null> {
+  async getAIAdapter(userId?: string): Promise<AIAdapter | null> {
     if (this._aiAdapter) {
       return this._aiAdapter;
     }
@@ -468,18 +468,20 @@ class SAMServices {
       return this._aiAdapterPromise;
     }
 
-    this._aiAdapterPromise = this._initializeAIAdapter();
+    this._aiAdapterPromise = this._initializeAIAdapter(userId);
     this._aiAdapter = await this._aiAdapterPromise;
     return this._aiAdapter;
   }
 
-  private async _initializeAIAdapter(): Promise<AIAdapter | null> {
+  private async _initializeAIAdapter(userId?: string): Promise<AIAdapter | null> {
     const startTime = Date.now();
     logger.info('[SAMServices] Initializing AI adapter...');
 
     try {
-      const { getCoreAIAdapter } = await import('./integration-adapters');
-      const adapter = await getCoreAIAdapter();
+      const { getSAMAdapter, getSAMAdapterSystem } = await import('./ai-provider');
+      const adapter = userId
+        ? await getSAMAdapter({ userId, capability: 'chat' })
+        : await getSAMAdapterSystem();
 
       if (!adapter) {
         logger.warn('[SAMServices] AI adapter not available - AI features disabled');

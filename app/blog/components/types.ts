@@ -33,4 +33,5 @@ export interface ModernBlogPageProps {
   initialPosts: BlogPost[];
   categories: { id: string; name: string; count: number }[];
   trendingPosts: BlogPost[];
+  userId?: string;
 }

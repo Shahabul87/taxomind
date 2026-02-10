@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { createCourseGuideEngine } from '@sam-ai/educational';
 import { db } from '@/lib/db';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { createCourseGuideAdapter } from '@/lib/adapters';
-import { handleAIAccessError } from '@/lib/ai/route-helper';
 
 // Create course guide engine singleton
 let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;

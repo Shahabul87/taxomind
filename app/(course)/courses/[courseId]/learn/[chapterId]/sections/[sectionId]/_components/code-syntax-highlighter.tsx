@@ -101,7 +101,7 @@ export function CodeSyntaxHighlighter({
       rust: "bg-orange-500",
       sql: "bg-pink-500",
     };
-    return colorMap[code.language || ""] || "bg-gray-500";
+    return colorMap[code.language || ""] || "bg-slate-500";
   };
 
   // Apply basic syntax highlighting (enhanced version would use Prism.js)
@@ -155,7 +155,7 @@ export function CodeSyntaxHighlighter({
     // Highlight comments (simplified)
     highlighted = highlighted.replace(
       /(\/\/.*$)|(\/\*[\s\S]*?\*\/)/gm,
-      '<span class="text-gray-500 italic">$&</span>'
+      '<span class="text-slate-500 italic">$&</span>'
     );
 
     return highlighted;
@@ -208,35 +208,35 @@ export function CodeSyntaxHighlighter({
                   size="sm"
                   variant="ghost"
                   onClick={copyToClipboard}
-                  className="h-8 w-8 p-0 hover:bg-gray-800"
+                  className="h-8 w-8 p-0 hover:bg-slate-800"
                 >
-                  <Copy className="h-4 w-4 text-gray-400" />
+                  <Copy className="h-4 w-4 text-slate-400" />
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={downloadCode}
-                  className="h-8 w-8 p-0 hover:bg-gray-800"
+                  className="h-8 w-8 p-0 hover:bg-slate-800"
                 >
-                  <Download className="h-4 w-4 text-gray-400" />
+                  <Download className="h-4 w-4 text-slate-400" />
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="h-8 w-8 p-0 hover:bg-gray-800"
+                  className="h-8 w-8 p-0 hover:bg-slate-800"
                 >
                   {isExpanded ? (
-                    <Minimize2 className="h-4 w-4 text-gray-400" />
+                    <Minimize2 className="h-4 w-4 text-slate-400" />
                   ) : (
-                    <Maximize2 className="h-4 w-4 text-gray-400" />
+                    <Maximize2 className="h-4 w-4 text-slate-400" />
                   )}
                 </Button>
                 {code.runnable && (
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8 px-2 hover:bg-gray-800"
+                    className="h-8 px-2 hover:bg-slate-800"
                     onClick={() => toast.info("Code execution coming soon!")}
                   >
                     <Play className="h-4 w-4 text-green-400" />

@@ -1,4 +1,4 @@
-import { aiClient } from '@/lib/ai/enterprise-client';
+import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
 import { generateIntelligentCourseContent, type EnhancedContentRequest } from './ai-content-generator';
 import { logger } from '@/lib/logger';
 
@@ -87,9 +87,10 @@ export const samPersonality = {
   ]
 };
 
-// Generate course blueprint using Anthropic Claude
+// Generate course blueprint using enterprise AI provider
 export async function generateCourseBlueprint(
-  requirements: CourseGenerationRequest
+  requirements: CourseGenerationRequest,
+  userId: string
 ): Promise<AIGeneratedBlueprint> {
   try {
     // First, try the enhanced intelligent generation
@@ -105,7 +106,7 @@ export async function generateCourseBlueprint(
 
     try {
 
-      const intelligentBlueprint = await generateIntelligentCourseContent(enhancedRequirements);
+      const intelligentBlueprint = await generateIntelligentCourseContent(enhancedRequirements, userId);
       
       // Transform to the expected format
       const transformedBlueprint: AIGeneratedBlueprint = {
@@ -147,7 +148,9 @@ export async function generateCourseBlueprint(
       // Fallback to the original generation method
       const prompt = createCourseGenerationPrompt(requirements);
 
-      const response = await aiClient.chat({
+      const blueprintContent = await runSAMChatWithPreference({
+        userId,
+        capability: 'course',
         maxTokens: 4000,
         temperature: 0.7,
         extended: true,
@@ -160,7 +163,7 @@ export async function generateCourseBlueprint(
       });
 
       // Parse the JSON response
-      const blueprint = JSON.parse(response.content) as AIGeneratedBlueprint;
+      const blueprint = JSON.parse(blueprintContent) as AIGeneratedBlueprint;
       
       // Add metadata
       blueprint.metadata = {
@@ -184,7 +187,8 @@ export async function generateCourseBlueprint(
 // Generate contextual suggestions for Sam's personality
 export async function generateSamSuggestion(
   context: string,
-  userInput: Partial<CourseGenerationRequest>
+  userInput: Partial<CourseGenerationRequest>,
+  userId: string
 ): Promise<string> {
   try {
     const prompt = `You are Sam, an enthusiastic and helpful AI Teaching Assistant. You're helping an instructor create a course.
@@ -200,7 +204,9 @@ Provide a brief, encouraging, and helpful suggestion (1-2 sentences) that:
 
 Keep it concise and focused on helping them improve their course design.`;
 
-    const response = await aiClient.chat({
+    const suggestionContent = await runSAMChatWithPreference({
+      userId,
+      capability: 'chat',
       maxTokens: 150,
       temperature: 0.8,
       messages: [
@@ -211,7 +217,7 @@ Keep it concise and focused on helping them improve their course design.`;
       ]
     });
 
-    return response.content.trim();
+    return suggestionContent.trim();
     
   } catch (error: any) {
     logger.error('Error generating Sam suggestion:', error);
@@ -412,5 +418,5 @@ function extractIndustryContext(requirements: CourseGenerationRequest): string {
   return context;
 }
 
-// Enterprise AI client is used for all AI operations
-// No direct SDK initialization needed
+// All AI operations go through the enterprise AI client (lib/ai/enterprise-client.ts)
+// via lib/sam/ai-provider.ts — no direct SDK initialization needed

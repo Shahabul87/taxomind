@@ -1,7 +1,15 @@
 /**
- * Taxomind SAM Configuration
+ * @deprecated This module is superseded by `@/lib/adapters/sam-config-factory`.
  *
- * Provides Taxomind-specific SAM configuration using @sam-ai packages.
+ * Use instead:
+ *   import { getUserScopedSAMConfig } from '@/lib/adapters';  // user-scoped (routes)
+ *   import { getSystemSAMConfig }     from '@/lib/adapters';  // system-level (health checks)
+ *
+ * This file remains for backward compatibility but is NOT used by any production
+ * routes. It lacks user-scoped provider resolution, rate limiting, and usage
+ * tracking that the adapters layer provides.
+ *
+ * Original purpose: Taxomind-specific SAM configuration using @sam-ai packages.
  */
 
 import {
@@ -9,7 +17,7 @@ import {
   type SAMConfig,
   type SAMConfigInput,
 } from '@sam-ai/core';
-import { getDefaultAdapter } from '@/lib/sam/providers/ai-factory';
+import { getSAMAdapterSystem } from '@/lib/sam/ai-provider';
 
 // ============================================================================
 // CONFIGURATION
@@ -41,13 +49,14 @@ export interface TaxomindSAMConfigOptions {
 }
 
 /**
- * Get the default Taxomind SAM configuration
+ * @deprecated Use `getUserScopedSAMConfig()` from `@/lib/adapters` for user-scoped config,
+ * or `getSystemSAMConfig()` for system-level config.
  */
-export function getTaxomindSAMConfig(
+export async function getTaxomindSAMConfig(
   options?: TaxomindSAMConfigOptions
-): SAMConfig {
-  // Create the AI adapter using platform default provider (DeepSeek > Anthropic > OpenAI)
-  const aiAdapter = getDefaultAdapter({ timeout: 60000, maxRetries: 2 });
+): Promise<SAMConfig> {
+  // Create the AI adapter through the standard system adapter path (integration-adapters layer)
+  const aiAdapter = await getSAMAdapterSystem();
   if (!aiAdapter) {
     throw new Error('No AI provider is configured. Set DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY.');
   }
@@ -85,16 +94,14 @@ export function getTaxomindSAMConfig(
 }
 
 /**
- * Get the AI model from environment or default
- * Uses the platform default provider's default model
+ * @deprecated Use `AI_PROVIDERS[provider].defaultModel` from `@/lib/sam/providers/ai-registry`.
  */
 export function getDefaultAIModel(): string {
   return process.env.SAM_AI_MODEL ?? 'platform-default';
 }
 
 /**
- * Check if SAM is properly configured
- * Returns true if any AI provider has API keys set
+ * @deprecated Use `getConfiguredProviders().length > 0` from `@/lib/sam/providers/ai-registry`.
  */
 export function isSAMConfigured(): boolean {
   return Boolean(
@@ -111,17 +118,17 @@ export function isSAMConfigured(): boolean {
 let defaultConfig: SAMConfig | null = null;
 
 /**
- * Get or create the default Taxomind SAM configuration
+ * @deprecated Use `getUserScopedSAMConfig()` from `@/lib/adapters`.
  */
-export function getDefaultTaxomindConfig(): SAMConfig {
+export async function getDefaultTaxomindConfig(): Promise<SAMConfig> {
   if (!defaultConfig) {
-    defaultConfig = getTaxomindSAMConfig();
+    defaultConfig = await getTaxomindSAMConfig();
   }
   return defaultConfig;
 }
 
 /**
- * Reset the default configuration (for testing)
+ * @deprecated No longer needed — adapters use TTL-based caching.
  */
 export function resetDefaultTaxomindConfig(): void {
   defaultConfig = null;
