@@ -915,13 +915,22 @@ export const aiClient = {
       };
     });
 
-    // Use native streaming if available, otherwise fallback to single chunk
-    if (adapter.chatStream) {
-      yield* adapter.chatStream(chatParams);
-    } else {
-      logger.warn('[Enterprise AI] Adapter does not support streaming, falling back to single chunk', { requestId });
-      const response = await adapter.chat(chatParams);
-      yield { content: response.content ?? '', done: true };
+    // Use native streaming if available, otherwise fallback to single chunk.
+    // Wrap in try-catch so mid-stream failures are recorded by the circuit
+    // breaker — otherwise the NEXT request would still hit the broken provider.
+    try {
+      if (adapter.chatStream) {
+        yield* adapter.chatStream(chatParams);
+      } else {
+        logger.warn('[Enterprise AI] Adapter does not support streaming, falling back to single chunk', { requestId });
+        const response = await adapter.chat(chatParams);
+        yield { content: response.content ?? '', done: true };
+      }
+    } catch (streamError) {
+      providerBreaker.recordFailure(
+        streamError instanceof Error ? streamError : new Error(String(streamError))
+      );
+      throw streamError;
     }
 
     // Record usage after stream completes (with retry)

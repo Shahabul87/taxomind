@@ -9,7 +9,9 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   createMetacognitionEngine,
   type MetacognitionEngineConfig,
@@ -319,6 +321,9 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   const startTime = Date.now();
   try {
     const session = await auth();
@@ -340,18 +345,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await createMetacognitionEngineForUser(session.user.id);
+    const engine = await withRetryableTimeout(
+      () => createMetacognitionEngineForUser(session.user.id),
+      TIMEOUT_DEFAULTS.AI_ADAPTER_INIT,
+      'metacognition-engine-init'
+    );
     let result: unknown;
 
     switch (action) {
       case 'generate-reflection': {
         const validated = GenerateReflectionSchema.parse(data);
-        result = await engine.generateReflection({
-          userId: session.user.id,
-          type: validated.type as ReflectionType,
-          depth: validated.depth as ReflectionDepth,
-          context: validated.context,
-        });
+        result = await withRetryableTimeout(
+          () => engine.generateReflection({
+            userId: session.user.id,
+            type: validated.type as ReflectionType,
+            depth: validated.depth as ReflectionDepth,
+            context: validated.context,
+          }),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'metacognition-generate-reflection'
+        );
         logger.info('[Metacognition] Reflection generated', {
           userId: session.user.id,
           type: validated.type,
@@ -598,6 +611,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to process metacognition request' } },

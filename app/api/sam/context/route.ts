@@ -18,6 +18,8 @@ import {
 } from '@sam-ai/core';
 import { getSAMAdapter } from '@/lib/sam/ai-provider';
 import { processContextSnapshot } from '@/lib/sam/context-gathering-integration';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 // ============================================================================
 // VALIDATION
@@ -176,6 +178,9 @@ const RequestSchema = z.object({
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'standard');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Auth check
     const user = await currentUserOrAdmin();
@@ -209,14 +214,18 @@ export async function POST(req: NextRequest) {
     const aiAdapter = await getSAMAdapter({ userId: user.id, capability: 'chat' });
     const samConfig = createSAMConfig({ ai: aiAdapter });
 
-    // Process the snapshot
-    const output = await processContextSnapshot(
-      snapshot as PageContextSnapshot,
-      {
-        samConfig,
-        userId: user.id,
-        userRole: user.role ?? 'USER',
-      },
+    // Process the snapshot with timeout protection
+    const output = await withRetryableTimeout(
+      () => processContextSnapshot(
+        snapshot as PageContextSnapshot,
+        {
+          samConfig,
+          userId: user.id,
+          userRole: user.role ?? 'USER',
+        },
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'context-snapshot-process'
     );
 
     return NextResponse.json({

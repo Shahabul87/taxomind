@@ -11,7 +11,9 @@ import { z } from 'zod';
 import { createAdaptiveContentEngine } from '@sam-ai/educational';
 import type { AdaptiveContentEngine } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 
 /**
@@ -34,6 +36,9 @@ const DetectStyleSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -54,10 +59,18 @@ export async function POST(req: NextRequest) {
     const engine = await createEngine(userId);
 
     // Detect learning style from interactions
-    const styleResult = await engine.detectLearningStyle(userId);
+    const styleResult = await withRetryableTimeout(
+      () => engine.detectLearningStyle(userId),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'adaptive-detect-style'
+    );
 
     // Update profile if it exists, or let the engine create one
-    const profile = await engine.updateProfileFromInteractions(userId);
+    const profile = await withRetryableTimeout(
+      () => engine.updateProfileFromInteractions(userId),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'adaptive-update-profile'
+    );
 
     return NextResponse.json({
       success: true,
@@ -66,6 +79,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     logger.error('[AdaptiveContent DetectStyle] POST error:', error);
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     return NextResponse.json(
       { success: false, error: { message: 'Failed to detect learning style' } },
       { status: 500 }

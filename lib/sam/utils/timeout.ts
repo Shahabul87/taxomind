@@ -81,7 +81,9 @@ export async function withRetryableTimeout<T>(
 
       // Only retry transient errors
       if (attempt < maxRetries && isTransientError(lastError)) {
-        const delayMs = Math.min(500 * (attempt + 1), 2000);
+        const baseDelay = Math.min(500 * (attempt + 1), 2000);
+        const jitter = Math.random() * baseDelay * 0.3; // ±30% jitter to prevent thundering herd
+        const delayMs = Math.floor(baseDelay + jitter);
         await new Promise((resolve) => setTimeout(resolve, delayMs));
         continue;
       }

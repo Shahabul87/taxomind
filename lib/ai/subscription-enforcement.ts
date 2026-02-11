@@ -388,96 +388,84 @@ export async function recordAIUsage(
   try {
     const now = new Date();
 
-    // Get current user data
+    // Read user data only to check if resets are needed.
+    // The actual counter update uses atomic increment to avoid race conditions
+    // when concurrent AI requests read the same value.
     const user = await db.user.findUnique({
       where: { id: userId },
       select: {
-        dailyAiUsageCount: true,
         dailyAiUsageResetAt: true,
-        monthlyAiUsageCount: true,
         monthlyAiUsageResetAt: true,
       },
     });
 
     if (!user) return;
 
-    // Calculate new counts with resets
-    let newDailyCount = user.dailyAiUsageCount + usage;
-    let newMonthlyCount = user.monthlyAiUsageCount + usage;
-    let dailyResetAt = user.dailyAiUsageResetAt;
-    let monthlyResetAt = user.monthlyAiUsageResetAt;
+    const dailyNeedsReset = needsUsageReset(user.dailyAiUsageResetAt, "daily");
+    const monthlyNeedsReset = needsUsageReset(user.monthlyAiUsageResetAt, "monthly");
 
-    if (needsUsageReset(user.dailyAiUsageResetAt, "daily")) {
-      newDailyCount = usage;
-      dailyResetAt = now;
-    }
-
-    if (needsUsageReset(user.monthlyAiUsageResetAt, "monthly")) {
-      newMonthlyCount = usage;
-      monthlyResetAt = now;
-    }
-
-    // Update user usage counts
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        dailyAiUsageCount: newDailyCount,
-        dailyAiUsageResetAt: dailyResetAt,
-        monthlyAiUsageCount: newMonthlyCount,
-        monthlyAiUsageResetAt: monthlyResetAt,
-      },
-    });
-
-    // Record detailed metrics in AIUsageMetrics
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    await db.aIUsageMetrics.upsert({
-      where: {
-        userId_date_period: {
+    // Wrap user counter update + metrics upsert in a transaction for atomicity.
+    // Uses atomic `{ increment }` instead of read-then-write to prevent lost updates.
+    await db.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          dailyAiUsageCount: dailyNeedsReset ? usage : { increment: usage },
+          dailyAiUsageResetAt: dailyNeedsReset ? now : undefined,
+          monthlyAiUsageCount: monthlyNeedsReset ? usage : { increment: usage },
+          monthlyAiUsageResetAt: monthlyNeedsReset ? now : undefined,
+        },
+      });
+
+      await tx.aIUsageMetrics.upsert({
+        where: {
+          userId_date_period: {
+            userId,
+            date: today,
+            period: "DAILY",
+          },
+        },
+        update: {
+          updatedAt: new Date(),
+          totalGenerations: { increment: usage },
+          totalTokens: metadata?.tokensUsed ? { increment: metadata.tokensUsed } : undefined,
+          totalCost: metadata?.cost ? { increment: metadata.cost } : undefined,
+          ...(feature === "course" && { courseGenerations: { increment: usage } }),
+          ...(feature === "chapter" && { chapterGenerations: { increment: usage } }),
+          ...(feature === "lesson" && { lessonGenerations: { increment: usage } }),
+          ...(feature === "exam" && { examGenerations: { increment: usage } }),
+          ...(feature === "exercise" && { exerciseGenerations: { increment: usage } }),
+        },
+        create: {
+          id: crypto.randomUUID(),
           userId,
           date: today,
           period: "DAILY",
+          updatedAt: new Date(),
+          totalGenerations: usage,
+          totalTokens: metadata?.tokensUsed || 0,
+          totalCost: metadata?.cost || 0,
+          courseGenerations: feature === "course" ? usage : 0,
+          chapterGenerations: feature === "chapter" ? usage : 0,
+          lessonGenerations: feature === "lesson" ? usage : 0,
+          examGenerations: feature === "exam" ? usage : 0,
+          exerciseGenerations: feature === "exercise" ? usage : 0,
         },
-      },
-      update: {
-        updatedAt: new Date(),
-        totalGenerations: { increment: usage },
-        totalTokens: metadata?.tokensUsed ? { increment: metadata.tokensUsed } : undefined,
-        totalCost: metadata?.cost ? { increment: metadata.cost } : undefined,
-        // Update feature-specific counts
-        ...(feature === "course" && { courseGenerations: { increment: usage } }),
-        ...(feature === "chapter" && { chapterGenerations: { increment: usage } }),
-        ...(feature === "lesson" && { lessonGenerations: { increment: usage } }),
-        ...(feature === "exam" && { examGenerations: { increment: usage } }),
-        ...(feature === "exercise" && { exerciseGenerations: { increment: usage } }),
-      },
-      create: {
-        id: crypto.randomUUID(),
-        userId,
-        date: today,
-        period: "DAILY",
-        updatedAt: new Date(),
-        totalGenerations: usage,
-        totalTokens: metadata?.tokensUsed || 0,
-        totalCost: metadata?.cost || 0,
-        courseGenerations: feature === "course" ? usage : 0,
-        chapterGenerations: feature === "chapter" ? usage : 0,
-        lessonGenerations: feature === "lesson" ? usage : 0,
-        examGenerations: feature === "exam" ? usage : 0,
-        exerciseGenerations: feature === "exercise" ? usage : 0,
-      },
+      });
     });
 
-    // Update platform summary
+    // Platform summary is best-effort and non-critical — keep outside transaction
     await updatePlatformSummary(metadata?.cost || 0);
 
     logger.info("[AI_USAGE_RECORDED]", {
       userId,
       feature,
       usage,
-      newDailyCount,
-      newMonthlyCount,
+      dailyReset: dailyNeedsReset,
+      monthlyReset: monthlyNeedsReset,
       ...metadata,
     });
 

@@ -15,6 +15,7 @@ import { getUserScopedSAMConfig } from '@/lib/adapters';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 export async function createEngineForUser(userId: string): Promise<KnowledgeGraphEngine> {
@@ -107,7 +108,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await createEngineForUser(session.user.id);
+    const engine = await withRetryableTimeout(
+      () => createEngineForUser(session.user.id),
+      TIMEOUT_DEFAULTS.AI_ADAPTER_INIT,
+      'knowledge-graph-engine-init'
+    );
     const adapter = getKnowledgeGraphEngineAdapter();
     const { action } = parsed.data;
 

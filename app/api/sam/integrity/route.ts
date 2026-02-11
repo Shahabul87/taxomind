@@ -9,7 +9,9 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   createIntegrityEngine,
   type IntegrityEngineConfig,
@@ -178,6 +180,9 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 
@@ -198,7 +203,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await createIntegrityEngineForUser(session.user.id);
+    const engine = await withRetryableTimeout(
+      () => createIntegrityEngineForUser(session.user.id),
+      TIMEOUT_DEFAULTS.AI_ADAPTER_INIT,
+      'integrity-engine-init'
+    );
     let result: unknown;
 
     switch (action) {
@@ -241,12 +250,16 @@ export async function POST(req: NextRequest) {
 
       case 'run-integrity-check': {
         const validated = RunIntegrityCheckSchema.parse(data);
-        result = await engine.runIntegrityCheck(
-          validated.answerId,
-          validated.text,
-          validated.studentId,
-          validated.examId,
-          validated.options
+        result = await withRetryableTimeout(
+          () => engine.runIntegrityCheck(
+            validated.answerId,
+            validated.text,
+            validated.studentId,
+            validated.examId,
+            validated.options
+          ),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'integrity-check'
         );
         logger.info('[Integrity] Full integrity check completed', {
           userId: session.user.id,
@@ -260,7 +273,11 @@ export async function POST(req: NextRequest) {
 
       case 'run-batch-integrity-check': {
         const validated = RunBatchIntegrityCheckSchema.parse(data);
-        result = await engine.runBatchIntegrityCheck(validated.submissions);
+        result = await withRetryableTimeout(
+          () => engine.runBatchIntegrityCheck(validated.submissions),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'integrity-batch-check'
+        );
         logger.info('[Integrity] Batch integrity check completed', {
           userId: session.user.id,
           submissionCount: validated.submissions.length,
@@ -306,6 +323,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to process integrity request' } },

@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { type IssueType } from '@prisma/client';
 import { AIAccessDeniedError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import {
   createEnhancedAnalyzerV2,
   generateContentHash,
@@ -628,6 +629,9 @@ async function saveAnalysisResults(
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'heavy');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
 

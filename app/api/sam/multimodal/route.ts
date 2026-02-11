@@ -9,7 +9,9 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   createMultimodalInputEngine,
   type MultimodalConfig,
@@ -188,6 +190,9 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   const startTime = Date.now();
   try {
     const session = await auth();
@@ -209,21 +214,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await createMultimodalEngineForUser(session.user.id);
+    const engine = await withRetryableTimeout(
+      () => createMultimodalEngineForUser(session.user.id),
+      TIMEOUT_DEFAULTS.AI_ADAPTER_INIT,
+      'multimodal-engine-init'
+    );
     let result: unknown;
 
     switch (action) {
       case 'process-input': {
         const validated = ProcessInputSchema.parse(data);
-        result = await engine.processInput({
-          file: validated.file,
-          options: validated.options ?? {},
-          userId: session.user.id,
-          courseId: validated.courseId,
-          assignmentId: validated.assignmentId,
-          questionId: validated.questionId,
-          expectedType: validated.expectedType as MultimodalInputType | undefined,
-        });
+        result = await withRetryableTimeout(
+          () => engine.processInput({
+            file: validated.file,
+            options: validated.options ?? {},
+            userId: session.user.id,
+            courseId: validated.courseId,
+            assignmentId: validated.assignmentId,
+            questionId: validated.questionId,
+            expectedType: validated.expectedType as MultimodalInputType | undefined,
+          }),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'multimodal-process-input'
+        );
         logger.info('[Multimodal] Input processed', {
           userId: session.user.id,
           fileName: validated.file.fileName,
@@ -319,6 +332,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to process multimodal request' } },

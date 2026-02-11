@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCombinedSession } from '@/lib/auth/combined-session';
 import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import * as z from 'zod';
 import { logger } from '@/lib/logger';
 import {
@@ -273,6 +275,9 @@ async function validateAndEnhanceQuestions(
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await withRateLimit(request, 'heavy');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Check authentication - supports both user and admin auth
     const session = await getCombinedSession();
@@ -324,8 +329,12 @@ export async function POST(request: NextRequest) {
           userId: session.userId,
         };
 
-        // Generate with SAM validation pipeline
-        const samResult = await generateExamWithSAM(samRequest);
+        // Generate with SAM validation pipeline (timeout protected)
+        const samResult = await withRetryableTimeout(
+          () => generateExamWithSAM(samRequest),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'advanced-exam-generation'
+        );
 
         // Convert SAM questions to EnhancedQuestion format for backward compatibility
         const enhancedQuestions: EnhancedQuestion[] = samResult.questions.map((q) => ({
@@ -405,7 +414,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     const accessResponse = handleAIAccessError(error);
     if (accessResponse) return accessResponse;
 
@@ -413,7 +422,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+        message: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : 'Something went wrong'
       },
       { status: 500 }
     );

@@ -423,6 +423,23 @@ export class CircuitBreaker {
     }
   }
 
+  /**
+   * Record an external failure (e.g. mid-stream errors that happen
+   * outside `execute()`). This increments the failure counter and
+   * may trip the circuit breaker open.
+   */
+  recordFailure(error: Error): void {
+    this.failures++;
+    this.lastFailureTime = Date.now();
+
+    if (this.failures >= this.failureThreshold) {
+      this.state = CircuitState.OPEN;
+      logger.warn(`[${this.component}] Circuit breaker opened after ${this.failures} failures (external)`, {
+        error: error.message,
+      });
+    }
+  }
+
   getState(): CircuitState {
     return this.state;
   }

@@ -9,7 +9,9 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   createMicrolearningEngine,
   type MicrolearningEngineConfig,
@@ -275,6 +277,9 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   const startTime = Date.now();
   try {
     const session = await auth();
@@ -296,7 +301,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const engine = await getMicrolearningEngine(session.user.id);
+    const engine = await withRetryableTimeout(
+      () => getMicrolearningEngine(session.user.id),
+      TIMEOUT_DEFAULTS.AI_ADAPTER_INIT,
+      'microlearning-engine-init'
+    );
     let result: unknown;
     let responseWrapper: ((r: unknown) => unknown) | null = null;
 
@@ -325,17 +334,21 @@ export async function POST(req: NextRequest) {
         const validated = GenerateModulesSchema.parse(data);
         // Build content from topicId/courseId when content is not provided
         const content = validated.content ?? `Topic: ${validated.topicId ?? 'general'}`;
-        result = await engine.generateModules({
-          content,
-          contentType: validated.contentType,
-          targetModules: validated.targetModules,
-          moduleTypes: validated.moduleTypes as MicroModuleType[] | undefined,
-          includePractice: validated.includePractice,
-          includeSummaries: validated.includeSummaries,
-          sourceContext: validated.sourceContext ?? {
-            courseId: validated.courseId,
-          },
-        });
+        result = await withRetryableTimeout(
+          () => engine.generateModules({
+            content,
+            contentType: validated.contentType,
+            targetModules: validated.targetModules,
+            moduleTypes: validated.moduleTypes as MicroModuleType[] | undefined,
+            includePractice: validated.includePractice,
+            includeSummaries: validated.includeSummaries,
+            sourceContext: validated.sourceContext ?? {
+              courseId: validated.courseId,
+            },
+          }),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'microlearning-generate-modules'
+        );
         // Frontend expects { module: result } for 'generate-module'
         if (action === 'generate-module') {
           responseWrapper = (r) => ({ module: r });
@@ -435,6 +448,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
 
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to process microlearning request' } },

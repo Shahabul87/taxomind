@@ -16,7 +16,9 @@ import type {
   AdaptationOptions,
 } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
 
 /**
@@ -72,6 +74,9 @@ const AdaptRequestSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await withRateLimit(req, 'ai');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -113,11 +118,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Adapt the content
-    const adaptedContent = await engine.adaptContent(
-      parsed.data.content as ContentToAdapt,
-      profile,
-      parsed.data.options as AdaptationOptions
+    // Adapt the content with timeout protection
+    const adaptedContent = await withRetryableTimeout(
+      () => engine.adaptContent(
+        parsed.data.content as ContentToAdapt,
+        profile,
+        parsed.data.options as AdaptationOptions
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'adaptive-adapt-content'
     );
 
     return NextResponse.json({
@@ -126,6 +135,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     logger.error('[AdaptiveContent Adapt] POST error:', error);
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     return NextResponse.json(
       { success: false, error: { message: 'Failed to adapt content' } },
       { status: 500 }
