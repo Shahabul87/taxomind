@@ -10,7 +10,9 @@
  *
  * Provider Resolution Order:
  * 1. Explicit provider override (if specified)
- * 2. User preference (if userId provided)
+ * 2. User preference (if userId provided):
+ *    a. Global provider (overrides all per-capability)
+ *    b. Per-capability provider (when no global is set)
  * 3. Platform default (from PlatformAISettings DB)
  * 4. Factory default (DeepSeek > Anthropic > OpenAI based on configured API keys)
  */
@@ -36,6 +38,11 @@ import {
   type AIFeatureType,
   type EnforcementResult,
 } from './subscription-enforcement';
+import {
+  getCachedPlatformAISettings,
+  invalidateSharedPlatformCache,
+  type CachedPlatformAISettings,
+} from './platform-settings-cache';
 import {
   CircuitBreaker,
   SAMServiceUnavailableError,
@@ -93,22 +100,13 @@ export class AIAccessDeniedError extends Error {
 // ============================================================================
 
 /**
- * Approximate pricing per 1M tokens (input / output) for each provider.
+ * Hardcoded fallback pricing per 1M tokens (input / output) for each provider.
+ * Used only when PlatformAISettings hasn't been loaded yet (e.g., during startup).
  *
- * Sources:
- *   Anthropic  — https://www.anthropic.com/pricing  (Claude Sonnet 4.5)
- *   DeepSeek   — https://platform.deepseek.com/api-docs/pricing
- *   OpenAI     — https://openai.com/api/pricing  (GPT-4o)
- *   Google     — https://ai.google.dev/pricing  (Gemini Pro)
- *   Mistral    — https://mistral.ai/products  (Mistral Large)
- *
- * TODO: Move pricing to PlatformAISettings table for admin-controlled updates.
+ * Primary pricing is now admin-controlled via PlatformAISettings in the database.
+ * Admins can update pricing from the admin dashboard without code changes.
  */
-const PRICING_LAST_VERIFIED = new Date('2026-02-09').getTime();
-const PRICING_STALENESS_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-let pricingStalenessWarned = false;
-
-const AI_PROVIDER_PRICING: Record<AIProviderType, { input: number; output: number }> = {
+const FALLBACK_PRICING: Record<AIProviderType, { input: number; output: number }> = {
   anthropic: { input: 3.0, output: 15.0 },
   deepseek: { input: 0.14, output: 0.28 },
   openai: { input: 2.5, output: 10.0 },
@@ -117,9 +115,32 @@ const AI_PROVIDER_PRICING: Record<AIProviderType, { input: number; output: numbe
 };
 
 /**
+ * Get pricing for a provider from PlatformAISettings (via shared cache).
+ * Falls back to hardcoded defaults if settings haven't been loaded.
+ */
+function getProviderPricing(
+  provider: AIProviderType,
+  settings: CachedPlatformAISettings | null
+): { input: number; output: number } {
+  if (!settings) return FALLBACK_PRICING[provider] ?? { input: 1.0, output: 3.0 };
+
+  const pricingMap: Record<AIProviderType, { input: number; output: number }> = {
+    anthropic: { input: settings.anthropicInputPrice, output: settings.anthropicOutputPrice },
+    deepseek: { input: settings.deepseekInputPrice, output: settings.deepseekOutputPrice },
+    openai: { input: settings.openaiInputPrice, output: settings.openaiOutputPrice },
+    gemini: { input: settings.geminiInputPrice, output: settings.geminiOutputPrice },
+    mistral: { input: settings.mistralInputPrice, output: settings.mistralOutputPrice },
+  };
+
+  return pricingMap[provider] ?? FALLBACK_PRICING[provider] ?? { input: 1.0, output: 3.0 };
+}
+
+// Cache the latest settings reference for synchronous estimateCost calls
+let latestPlatformSettings: CachedPlatformAISettings | null = null;
+
+/**
  * Estimate cost for AI request based on token usage.
- * Prices are per 1M tokens (input/output).
- * Logs a warning once if pricing data is older than 30 days.
+ * Prices are per 1M tokens (input/output) from PlatformAISettings (admin-controlled).
  */
 function estimateCost(
   provider: AIProviderType,
@@ -127,18 +148,7 @@ function estimateCost(
 ): number | undefined {
   if (!usage?.inputTokens && !usage?.outputTokens && !usage?.totalTokens) return undefined;
 
-  // Warn once if pricing data is stale
-  if (!pricingStalenessWarned && Date.now() - PRICING_LAST_VERIFIED > PRICING_STALENESS_THRESHOLD_MS) {
-    pricingStalenessWarned = true;
-    const daysSinceVerified = Math.floor((Date.now() - PRICING_LAST_VERIFIED) / (24 * 60 * 60 * 1000));
-    logger.warn('[Enterprise AI] Provider pricing data is stale — cost estimates may be inaccurate', {
-      lastVerified: new Date(PRICING_LAST_VERIFIED).toISOString(),
-      daysSinceVerified,
-      action: 'Update AI_PROVIDER_PRICING in lib/ai/enterprise-client.ts',
-    });
-  }
-
-  const prices = AI_PROVIDER_PRICING[provider] ?? { input: 1.0, output: 3.0 };
+  const prices = getProviderPricing(provider, latestPlatformSettings);
 
   // Prefer actual token breakdown from provider response
   if (usage.inputTokens != null && usage.outputTokens != null) {
@@ -153,128 +163,24 @@ function estimateCost(
 }
 
 // ============================================================================
-// PLATFORM SETTINGS CACHE
+// PLATFORM SETTINGS (delegates to shared cache)
 // ============================================================================
 
-interface PlatformProviderSettings {
-  defaultProvider: AIProviderType | null;
-  fallbackProvider: AIProviderType | null;
-  // Provider enable/disable toggles
-  anthropicEnabled: boolean;
-  deepseekEnabled: boolean;
-  openaiEnabled: boolean;
-  geminiEnabled: boolean;
-  mistralEnabled: boolean;
-  // User control toggles
-  allowUserProviderSelection: boolean;
-  allowUserModelSelection: boolean;
-  // Default models per provider
-  defaultAnthropicModel: string;
-  defaultDeepseekModel: string;
-  defaultOpenaiModel: string;
-  defaultGeminiModel: string;
-  defaultMistralModel: string;
-  // System status
-  maintenanceMode: boolean;
-  maintenanceMessage: string | null;
-  fetchedAt: number;
-}
-
-let platformSettingsCache: PlatformProviderSettings | null = null;
-const PLATFORM_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+/**
+ * Type alias for the shared platform settings used in this module.
+ * Keeps internal code readable while the actual data lives in the shared cache.
+ */
+type PlatformProviderSettings = CachedPlatformAISettings;
 
 /**
- * Get the platform's default and fallback providers from PlatformAISettings.
- * Cached for 5 minutes to avoid excessive DB queries.
+ * Get the platform settings from the shared cache (5-minute TTL).
+ * Both enterprise-client and subscription-enforcement read from the same cache.
+ * Also updates the local latestPlatformSettings reference for synchronous pricing lookups.
  */
 async function getPlatformSettings(): Promise<PlatformProviderSettings> {
-  const now = Date.now();
-
-  if (
-    platformSettingsCache &&
-    now - platformSettingsCache.fetchedAt < PLATFORM_CACHE_TTL_MS
-  ) {
-    return platformSettingsCache;
-  }
-
-  try {
-    const settings = await db.platformAISettings.findFirst({
-      where: { id: 'default' },
-      select: {
-        defaultProvider: true,
-        fallbackProvider: true,
-        anthropicEnabled: true,
-        deepseekEnabled: true,
-        openaiEnabled: true,
-        geminiEnabled: true,
-        mistralEnabled: true,
-        allowUserProviderSelection: true,
-        allowUserModelSelection: true,
-        defaultAnthropicModel: true,
-        defaultDeepseekModel: true,
-        defaultOpenaiModel: true,
-        defaultGeminiModel: true,
-        defaultMistralModel: true,
-        maintenanceMode: true,
-        maintenanceMessage: true,
-      },
-    });
-
-    const result: PlatformProviderSettings = {
-      defaultProvider: (settings?.defaultProvider as AIProviderType) ?? null,
-      fallbackProvider: (settings?.fallbackProvider as AIProviderType) ?? null,
-      anthropicEnabled: settings?.anthropicEnabled ?? true,
-      deepseekEnabled: settings?.deepseekEnabled ?? true,
-      openaiEnabled: settings?.openaiEnabled ?? true,
-      geminiEnabled: settings?.geminiEnabled ?? false,
-      mistralEnabled: settings?.mistralEnabled ?? false,
-      allowUserProviderSelection: settings?.allowUserProviderSelection ?? true,
-      allowUserModelSelection: settings?.allowUserModelSelection ?? true,
-      defaultAnthropicModel: settings?.defaultAnthropicModel ?? 'claude-sonnet-4-5-20250929',
-      defaultDeepseekModel: settings?.defaultDeepseekModel ?? 'deepseek-chat',
-      defaultOpenaiModel: settings?.defaultOpenaiModel ?? 'gpt-4o',
-      defaultGeminiModel: settings?.defaultGeminiModel ?? 'gemini-pro',
-      defaultMistralModel: settings?.defaultMistralModel ?? 'mistral-large',
-      maintenanceMode: settings?.maintenanceMode ?? false,
-      maintenanceMessage: settings?.maintenanceMessage ?? null,
-      fetchedAt: now,
-    };
-
-    platformSettingsCache = result;
-    return result;
-  } catch (error) {
-    logger.warn('[Enterprise AI] Failed to fetch platform settings, using factory default', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return {
-      defaultProvider: null,
-      fallbackProvider: null,
-      anthropicEnabled: true,
-      deepseekEnabled: true,
-      openaiEnabled: true,
-      geminiEnabled: false,
-      mistralEnabled: false,
-      allowUserProviderSelection: true,
-      allowUserModelSelection: true,
-      defaultAnthropicModel: 'claude-sonnet-4-5-20250929',
-      defaultDeepseekModel: 'deepseek-chat',
-      defaultOpenaiModel: 'gpt-4o',
-      defaultGeminiModel: 'gemini-pro',
-      defaultMistralModel: 'mistral-large',
-      maintenanceMode: false,
-      maintenanceMessage: null,
-      fetchedAt: now,
-    };
-  }
-}
-
-/**
- * Get the platform's default provider from PlatformAISettings.
- * Cached for 5 minutes to avoid excessive DB queries.
- */
-async function getPlatformDefaultProvider(): Promise<AIProviderType | null> {
-  const settings = await getPlatformSettings();
-  return settings.defaultProvider;
+  const settings = await getCachedPlatformAISettings();
+  latestPlatformSettings = settings;
+  return settings;
 }
 
 /**
@@ -286,7 +192,7 @@ async function getPlatformDefaultProvider(): Promise<AIProviderType | null> {
  * Without this, stale adapters could be served for up to 10 minutes.
  */
 export function invalidatePlatformSettingsCache(): void {
-  platformSettingsCache = null;
+  invalidateSharedPlatformCache();
   invalidateAdapterCache();
   for (const breaker of providerCircuitBreakers.values()) {
     breaker.reset();
@@ -469,15 +375,15 @@ function isProviderUsable(
  * Resolve the provider to use based on resolution order:
  * 0. Check maintenance mode
  * 1. Explicit override (also checks platform enable)
- * 2. User preference — per-capability first, then global as fallback
+ * 2. User preference — global OVERRIDES per-capability
  *    (respects allowUserProviderSelection)
  * 3. Platform default (filtered by enabled)
  * 4. Factory default (filtered by enabled: DeepSeek > Anthropic > OpenAI)
  *
- * IMPORTANT: Per-capability preferences take priority over global preference.
+ * IMPORTANT: Global provider OVERRIDES all per-capability preferences.
  * If a user sets globalProvider='deepseek' but courseProvider='anthropic',
- * course-related requests will use Anthropic. Global is only used as fallback
- * when no per-capability preference is set for the requested capability.
+ * ALL requests will use DeepSeek. Per-capability preferences are only used
+ * when no global provider is set.
  */
 async function resolveProvider(options: {
   explicitProvider?: AIProviderType;
@@ -524,7 +430,15 @@ async function resolveProvider(options: {
       }
 
       if (prefs) {
-        // 2a. Per-capability preference FIRST (highest user-level priority)
+        // 2a. Global provider OVERRIDES all per-capability preferences
+        if (prefs.preferredGlobalProvider) {
+          const globalProvider = prefs.preferredGlobalProvider as AIProviderType;
+          if (isProviderUsable(globalProvider, settings)) {
+            return globalProvider;
+          }
+        }
+
+        // 2b. Per-capability preference (when no global is set)
         const providerMap: Record<string, string | null> = {
           chat: prefs.preferredChatProvider,
           course: prefs.preferredCourseProvider,
@@ -536,14 +450,6 @@ async function resolveProvider(options: {
         const preferred = providerMap[capability] as AIProviderType | null;
         if (preferred && isProviderUsable(preferred, settings)) {
           return preferred;
-        }
-
-        // 2b. Global provider as fallback (when no per-capability is set)
-        if (prefs.preferredGlobalProvider) {
-          const globalProvider = prefs.preferredGlobalProvider as AIProviderType;
-          if (isProviderUsable(globalProvider, settings)) {
-            return globalProvider;
-          }
         }
       }
     } catch (error) {
@@ -951,8 +857,13 @@ export const aiClient = {
    * Uses the same provider resolution, rate limiting, and usage recording
    * as `chat()`, but yields `AIChatStreamChunk` objects for real-time streaming.
    *
-   * Falls back to a single-chunk non-streaming response if the adapter
-   * does not support `chatStream()`.
+   * Provider fallback: If the primary provider fails during adapter creation
+   * or before yielding any chunks, falls back to alternative providers
+   * (same logic as `chat()`). Mid-stream failures are NOT retried on a
+   * different provider since partial content has already been sent.
+   *
+   * Usage tracking: Estimates output tokens from accumulated content length
+   * (~4 characters per token) since streaming APIs don't return token counts.
    */
   async *stream(options: AIChatOptions): AsyncGenerator<AIChatStreamChunk> {
     const {
@@ -994,45 +905,159 @@ export const aiClient = {
       messageCount: messages.length,
     });
 
-    // Per-provider circuit breaker wraps adapter creation + initial connection.
-    // Stream iteration happens outside the breaker (mid-stream errors are different).
-    const providerBreaker = getProviderCircuitBreaker(resolvedProvider);
-    const { adapter, chatParams } = await providerBreaker.execute(async () => {
-      const adapterInstance = await getAdapter({
-        provider: resolvedProvider,
-        userId,
-        extended,
+    const chatParams = { maxTokens, temperature, systemPrompt, messages };
+
+    // ----------------------------------------------------------------
+    // Helper: attempt to stream from a specific provider.
+    // Returns { adapter, generator } or throws.
+    // ----------------------------------------------------------------
+    const tryStreamProvider = async (
+      provider: AIProviderType,
+    ): Promise<{ adapter: AIAdapter; generator: AsyncIterable<AIChatStreamChunk> }> => {
+      const breaker = getProviderCircuitBreaker(provider);
+      const adapterInstance = await breaker.execute(() =>
+        getAdapter({ provider, userId, extended }),
+      );
+      if (adapterInstance.chatStream) {
+        return { adapter: adapterInstance, generator: adapterInstance.chatStream(chatParams) };
+      }
+      // Adapter lacks streaming — fall back to single chunk
+      logger.warn('[Enterprise AI] Adapter does not support streaming, falling back to single chunk', {
+        requestId,
+        provider,
       });
+      const response = await adapterInstance.chat(chatParams);
+      const singleChunk: AIChatStreamChunk[] = [{ content: response.content ?? '', done: true }];
       return {
         adapter: adapterInstance,
-        chatParams: { maxTokens, temperature, systemPrompt, messages },
+        generator: (async function* () { yield* singleChunk; })(),
       };
-    });
+    };
 
-    // Use native streaming if available, otherwise fallback to single chunk.
-    // Wrap in try-catch so mid-stream failures are recorded by the circuit
-    // breaker — otherwise the NEXT request would still hit the broken provider.
+    // ----------------------------------------------------------------
+    // Try primary provider, fall back to alternatives on connection failure
+    // ----------------------------------------------------------------
+    let activeAdapter: AIAdapter;
+    let activeGenerator: AsyncIterable<AIChatStreamChunk>;
+    let activeProvider: AIProviderType = resolvedProvider;
+    let isFallback = false;
+
     try {
-      if (adapter.chatStream) {
-        yield* adapter.chatStream(chatParams);
-      } else {
-        logger.warn('[Enterprise AI] Adapter does not support streaming, falling back to single chunk', { requestId });
-        const response = await adapter.chat(chatParams);
-        yield { content: response.content ?? '', done: true };
+      const result = await tryStreamProvider(resolvedProvider);
+      activeAdapter = result.adapter;
+      activeGenerator = result.generator;
+    } catch (primaryError) {
+      // Don't fallback for access-denied or maintenance errors
+      if (
+        primaryError instanceof AIAccessDeniedError ||
+        primaryError instanceof AIMaintenanceModeError
+      ) {
+        throw primaryError;
+      }
+
+      const errorMsg = primaryError instanceof Error ? primaryError.message : String(primaryError);
+
+      // Build fallback candidate list (same logic as chat())
+      const fallbackSettings = await getPlatformSettings();
+      const candidates: AIProviderType[] = [];
+
+      if (
+        fallbackSettings.fallbackProvider &&
+        fallbackSettings.fallbackProvider !== resolvedProvider &&
+        isProviderUsable(fallbackSettings.fallbackProvider, fallbackSettings)
+      ) {
+        candidates.push(fallbackSettings.fallbackProvider);
+      }
+
+      const providerPriority: AIProviderType[] = ['deepseek', 'anthropic', 'openai', 'gemini', 'mistral'];
+      for (const provider of providerPriority) {
+        if (
+          provider !== resolvedProvider &&
+          !candidates.includes(provider) &&
+          isProviderUsable(provider, fallbackSettings)
+        ) {
+          candidates.push(provider);
+        }
+      }
+
+      let fallbackResult: { adapter: AIAdapter; generator: AsyncIterable<AIChatStreamChunk> } | null = null;
+
+      for (const candidate of candidates) {
+        try {
+          logger.warn('[Enterprise AI] Stream primary provider failed, trying fallback', {
+            requestId,
+            primary: resolvedProvider,
+            fallback: candidate,
+            error: errorMsg,
+          });
+          fallbackResult = await tryStreamProvider(candidate);
+          activeProvider = candidate;
+          isFallback = true;
+          break;
+        } catch (fallbackError) {
+          if (fallbackError instanceof SAMServiceUnavailableError) {
+            logger.debug('[Enterprise AI] Stream fallback provider circuit open, skipping', {
+              requestId,
+              fallback: candidate,
+            });
+            continue;
+          }
+          logger.warn('[Enterprise AI] Stream fallback provider also failed', {
+            requestId,
+            fallback: candidate,
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+          });
+        }
+      }
+
+      if (!fallbackResult) {
+        throw primaryError;
+      }
+
+      activeAdapter = fallbackResult.adapter;
+      activeGenerator = fallbackResult.generator;
+    }
+
+    // ----------------------------------------------------------------
+    // Yield stream chunks, tracking content length for token estimation
+    // ----------------------------------------------------------------
+    let totalContentLength = 0;
+
+    try {
+      for await (const chunk of activeGenerator) {
+        totalContentLength += chunk.content.length;
+        yield chunk;
       }
     } catch (streamError) {
-      providerBreaker.recordFailure(
-        streamError instanceof Error ? streamError : new Error(String(streamError))
+      // Mid-stream failure — record on circuit breaker but don't fallback
+      // since partial content was already sent to the client
+      getProviderCircuitBreaker(activeProvider).recordFailure(
+        streamError instanceof Error ? streamError : new Error(String(streamError)),
       );
       throw streamError;
     }
 
-    // Record usage after stream completes (with retry)
+    // ----------------------------------------------------------------
+    // Record usage after stream completes (with estimated token counts)
+    // ----------------------------------------------------------------
     if (userId) {
+      // Estimate input tokens from message content (~4 chars/token for English)
+      const inputChars = messages.reduce((sum, m) => sum + (m.content?.length ?? 0), 0)
+        + (systemPrompt?.length ?? 0);
+      const estimatedInputTokens = Math.ceil(inputChars / 4);
+      const estimatedOutputTokens = Math.ceil(totalContentLength / 4);
+      const estimatedTotalTokens = estimatedInputTokens + estimatedOutputTokens;
+
       recordAIUsageWithRetry(userId, feature, 1, {
-        provider: resolvedProvider,
-        model: adapter.getModel(),
-        requestType: capability ?? 'chat',
+        provider: activeProvider,
+        model: activeAdapter.getModel(),
+        tokensUsed: estimatedTotalTokens,
+        cost: estimateCost(activeProvider as AIProviderType, {
+          inputTokens: estimatedInputTokens,
+          outputTokens: estimatedOutputTokens,
+          totalTokens: estimatedTotalTokens,
+        }),
+        requestType: isFallback ? `${capability ?? 'chat'}_fallback` : (capability ?? 'chat'),
         requestId,
       }, requestId);
     }
@@ -1045,10 +1070,12 @@ export const aiClient = {
   async getResolvedProvider(options?: {
     userId?: string;
     provider?: AIProviderType;
+    capability?: AICapability;
   }): Promise<AIProviderType> {
     return resolveProvider({
       explicitProvider: options?.provider,
       userId: options?.userId,
+      capability: options?.capability,
     });
   },
 

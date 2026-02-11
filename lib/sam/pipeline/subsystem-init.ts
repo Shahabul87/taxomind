@@ -7,6 +7,7 @@
 
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { createSAMLogger } from '@/lib/adapters/sam-config-factory';
 
 import {
   SAMAgentOrchestrator,
@@ -52,7 +53,6 @@ import {
 } from '@/lib/sam/proactive-intervention-integration';
 
 import {
-  getTaxomindContext,
   getGoalStores,
   getStore,
   getStudentProfileStore,
@@ -65,24 +65,29 @@ import { getAllModes } from '@/lib/sam/modes/registry';
 // Types
 // ---------------------------------------------------------------------------
 
-export interface SubsystemBundle {
+/** Shared subsystems that have NO user dependency — safe to cache as singleton. */
+export interface SharedSubsystems {
   orchestrator: SAMAgentOrchestrator;
-  config: SAMConfig;
   quality: ContentQualityGatePipeline;
   pedagogy: PedagogicalPipeline;
   mastery: MasteryTracker;
   spacedRep: SpacedRepetitionScheduler;
   tutoring: OrchestrationSubsystems | null;
   proactive: ProactiveInterventionSubsystems | null;
+}
+
+/** Full bundle with per-request user-scoped AI adapter and SAMConfig. */
+export interface SubsystemBundle extends SharedSubsystems {
+  config: SAMConfig;
   /** True when AI adapter initialization failed (degraded mode) */
   degradedMode?: boolean;
 }
 
 // ---------------------------------------------------------------------------
-// Singleton state
+// Singleton state (shared subsystems only — NO user-scoped data)
 // ---------------------------------------------------------------------------
 
-let bundle: SubsystemBundle | null = null;
+let sharedSubsystems: SharedSubsystems | null = null;
 
 // ---------------------------------------------------------------------------
 // Engine Validation
@@ -138,40 +143,35 @@ function validateModeEngines(orchestrator: SAMAgentOrchestrator): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Initialize (or return cached) the full SAM subsystem bundle.
+ * Initialize (or return cached) the shared subsystems.
  *
- * Both the unified route and stream route call this function.
- * The result is cached as a module-level singleton so each
- * subsystem is created at most once per process.
+ * These subsystems have NO user dependency and are safe to cache
+ * as a module-level singleton. The AI adapter and SAMConfig are
+ * NOT included — those are created per-request via `createRequestBundle()`.
  */
-export async function initializeSubsystems(userId?: string): Promise<SubsystemBundle> {
-  if (bundle) {
-    return bundle;
+async function initializeSharedSubsystems(): Promise<SharedSubsystems> {
+  if (sharedSubsystems) {
+    return sharedSubsystems;
   }
 
-  // 1. AI adapter — user-scoped when userId available, otherwise system-level fallback
-  const aiAdapter = userId
-    ? await getSAMAdapter({ userId, capability: 'chat' })
-    : await getSAMAdapterSystem();
-  if (!aiAdapter) {
-    throw new Error('No AI adapter available (all providers failed)');
+  // We need a temporary system-level adapter to build the initial SAMConfig
+  // for engine registration. Engines don't call AI directly during init,
+  // so the adapter identity doesn't matter here.
+  const systemAdapter = await getSAMAdapterSystem();
+  if (!systemAdapter) {
+    throw new Error('No AI adapter available for subsystem initialization (all providers failed)');
   }
 
-  // 2. Cache + database adapters
+  // Cache + database adapters
   const cacheAdapter = createMemoryCache({ maxSize: 1000, defaultTTL: 300 });
   const databaseAdapter = createPrismaSAMAdapter({ prisma: db });
 
-  // 3. SAM configuration
-  const samConfig = createSAMConfig({
-    ai: aiAdapter,
+  // Temporary SAMConfig for engine registration only
+  const initConfig = createSAMConfig({
+    ai: systemAdapter,
     cache: cacheAdapter,
     database: databaseAdapter,
-    logger: {
-      debug: (msg, ...args) => logger.debug(msg, ...args),
-      info: (msg, ...args) => logger.info(msg, ...args),
-      warn: (msg, ...args) => logger.warn(msg, ...args),
-      error: (msg, ...args) => logger.error(msg, ...args),
-    },
+    logger: createSAMLogger(),
     features: {
       gamification: false,
       formSync: true,
@@ -182,7 +182,7 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
       analytics: true,
     },
     model: {
-      name: 'claude-sonnet-4-20250514',
+      name: systemAdapter.getModel(),
       temperature: 0.7,
       maxTokens: 4096,
     },
@@ -201,16 +201,16 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
     },
   });
 
-  // 4. Orchestrator + engines
-  const orchestrator = new SAMAgentOrchestrator(samConfig);
-  orchestrator.registerEngine(createContextEngine(samConfig));
-  orchestrator.registerEngine(createContentEngine(samConfig));
-  orchestrator.registerEngine(createPersonalizationEngine(samConfig));
-  orchestrator.registerEngine(createAssessmentEngine(samConfig));
-  orchestrator.registerEngine(createResponseEngine(samConfig));
+  // Orchestrator + engines
+  const orchestrator = new SAMAgentOrchestrator(initConfig);
+  orchestrator.registerEngine(createContextEngine(initConfig));
+  orchestrator.registerEngine(createContentEngine(initConfig));
+  orchestrator.registerEngine(createPersonalizationEngine(initConfig));
+  orchestrator.registerEngine(createAssessmentEngine(initConfig));
+  orchestrator.registerEngine(createResponseEngine(initConfig));
   orchestrator.registerEngine(
     createUnifiedBloomsAdapterEngine({
-      samConfig,
+      samConfig: initConfig,
       database: databaseAdapter,
       defaultMode: 'standard',
       confidenceThreshold: 0.7,
@@ -219,7 +219,7 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
     }),
   );
 
-  // 5. Quality Gates
+  // Quality Gates
   const qualityPipeline = createQualityGatePipeline({
     threshold: 70,
     parallel: true,
@@ -228,10 +228,10 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
     timeoutMs: 30000,
   });
 
-  // 6. Pedagogy Pipeline
+  // Pedagogy Pipeline
   const pedagogyPipeline = createPedagogicalPipeline({});
 
-  // 7. Memory Tracking (centralized stores from TaxomindContext)
+  // Memory Tracking (centralized stores from TaxomindContext)
   const profileStore = getStudentProfileStore();
   const reviewStore = getReviewScheduleStore();
   const masteryTracker = createMasteryTracker(
@@ -241,7 +241,7 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
     reviewStore as unknown as Parameters<typeof createSpacedRepetitionScheduler>[0],
   );
 
-  // 8. Tutoring Orchestration
+  // Tutoring Orchestration
   let tutoringOrchestration: OrchestrationSubsystems | null = null;
   try {
     const goalStores = getGoalStores();
@@ -258,7 +258,7 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
     logger.warn('[SUBSYSTEM_INIT] Failed to initialize tutoring orchestration:', error);
   }
 
-  // 9. Proactive Interventions
+  // Proactive Interventions
   let proactiveSubsystems: ProactiveInterventionSubsystems | null = null;
   try {
     proactiveSubsystems = initializeProactiveInterventions({
@@ -276,7 +276,7 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
   // Validate mode-referenced engines against registered engines
   validateModeEngines(orchestrator);
 
-  logger.info('[SUBSYSTEM_INIT] All subsystems initialized:', {
+  logger.info('[SUBSYSTEM_INIT] Shared subsystems initialized:', {
     engines: orchestrator.getRegisteredEngines(),
     qualityGates: true,
     pedagogyPipeline: true,
@@ -285,9 +285,8 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
     proactiveInterventions: !!proactiveSubsystems,
   });
 
-  bundle = {
+  sharedSubsystems = {
     orchestrator,
-    config: samConfig,
     quality: qualityPipeline,
     pedagogy: pedagogyPipeline,
     mastery: masteryTracker,
@@ -296,12 +295,87 @@ export async function initializeSubsystems(userId?: string): Promise<SubsystemBu
     proactive: proactiveSubsystems,
   };
 
-  return bundle;
+  return sharedSubsystems;
 }
 
 /**
- * Backward-compatible helper — returns just the orchestrator.
+ * Create a per-request SubsystemBundle with a fresh user-scoped AI adapter.
+ *
+ * Shared subsystems are cached (singleton). The AI adapter and SAMConfig
+ * are created fresh per request to prevent cross-user adapter leakage.
+ *
+ * @param userId - The requesting user's ID (required for user-scoped adapter)
  */
-export async function getOrchestrator(userId?: string): Promise<SAMAgentOrchestrator> {
-  return (await initializeSubsystems(userId)).orchestrator;
+export async function initializeSubsystems(userId?: string): Promise<SubsystemBundle> {
+  const shared = await initializeSharedSubsystems();
+
+  // Create a fresh user-scoped AI adapter for this request
+  let aiAdapter;
+  let degradedMode = false;
+
+  try {
+    aiAdapter = userId
+      ? await getSAMAdapter({ userId, capability: 'chat' })
+      : await getSAMAdapterSystem();
+  } catch (error) {
+    logger.warn('[SUBSYSTEM_INIT] AI adapter creation failed, using system fallback:', error);
+    aiAdapter = await getSAMAdapterSystem();
+  }
+
+  if (!aiAdapter) {
+    throw new Error('No AI adapter available (all providers failed)');
+  }
+
+  // Build a fresh SAMConfig with the user-scoped adapter
+  const cacheAdapter = createMemoryCache({ maxSize: 1000, defaultTTL: 300 });
+  const databaseAdapter = createPrismaSAMAdapter({ prisma: db });
+
+  const samConfig = createSAMConfig({
+    ai: aiAdapter,
+    cache: cacheAdapter,
+    database: databaseAdapter,
+    logger: createSAMLogger(),
+    features: {
+      gamification: false,
+      formSync: true,
+      autoContext: true,
+      emotionDetection: true,
+      learningStyleDetection: true,
+      streaming: true,
+      analytics: true,
+    },
+    model: {
+      name: aiAdapter.getModel(),
+      temperature: 0.7,
+      maxTokens: 4096,
+    },
+    engine: {
+      timeout: 30000,
+      retries: 2,
+      concurrency: 3,
+      cacheEnabled: true,
+      cacheTTL: 300,
+    },
+    maxConversationHistory: 20,
+    personality: {
+      name: 'SAM',
+      greeting: "Hello! I'm SAM, your intelligent learning assistant.",
+      tone: 'friendly and professional',
+    },
+  });
+
+  return {
+    ...shared,
+    config: samConfig,
+    degradedMode,
+  };
+}
+
+/**
+ * Backward-compatible helper — returns the shared orchestrator.
+ * Does NOT require userId since the orchestrator is user-independent.
+ */
+export async function getOrchestrator(): Promise<SAMAgentOrchestrator> {
+  const shared = await initializeSharedSubsystems();
+  return shared.orchestrator;
 }

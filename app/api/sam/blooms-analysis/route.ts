@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 import { normalizeToUppercaseSafe } from '@/lib/sam/utils/blooms-normalizer';
 import { BloomsLevel } from '@prisma/client';
 import crypto from 'crypto';
@@ -266,6 +267,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     if (error instanceof OperationTimeoutError) {
       logger.error('Blooms analysis timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json(

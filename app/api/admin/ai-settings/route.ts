@@ -8,44 +8,21 @@ import {
   AI_PROVIDERS,
   type AIProviderType,
 } from "@/lib/sam/providers/ai-registry";
-import { aiClient } from "@/lib/ai/enterprise-client";
-import { refreshPlatformSettingsCache } from "@/lib/ai/subscription-enforcement";
+import {
+  invalidateAllAICaches,
+  refreshPlatformSettingsCache,
+} from "@/lib/sam/ai-provider";
+import { PLATFORM_AI_DEFAULTS } from "@/lib/ai/platform-settings-cache";
 
 // Mark this route as dynamic to prevent static generation attempts
 export const dynamic = "force-dynamic";
 
-// Default settings when table doesn't exist
+// Default settings derived from the single source of truth in platform-settings-cache.ts.
+// Only adds the DB-row fields (id, audit timestamps) that the cache type doesn't carry.
 const DEFAULT_SETTINGS = {
+  ...PLATFORM_AI_DEFAULTS,
   id: "default",
-  defaultProvider: "deepseek",
-  fallbackProvider: "anthropic",
-  anthropicEnabled: true,
-  deepseekEnabled: true,
-  openaiEnabled: true,
-  geminiEnabled: false,
-  mistralEnabled: false,
-  freeMonthlyLimit: 50,
-  starterMonthlyLimit: 500,
-  proMonthlyLimit: 2000,
-  enterpriseMonthlyLimit: 10000,
-  freeDailyChatLimit: 10,
-  starterDailyChatLimit: 100,
-  proDailyChatLimit: 1000,
-  enterpriseDailyChatLimit: 10000,
-  monthlyBudget: null,
-  alertThreshold: 0.8,
-  costAlertEmail: null,
-  allowUserProviderSelection: true,
-  allowUserModelSelection: true,
-  requireApprovalForCourses: false,
-  defaultAnthropicModel: "claude-sonnet-4-5-20250929",
-  defaultDeepseekModel: "deepseek-chat",
-  defaultOpenaiModel: "gpt-4o",
-  defaultGeminiModel: "gemini-pro",
-  defaultMistralModel: "mistral-large",
-  maintenanceMode: false,
-  maintenanceMessage: null,
-  lastUpdatedBy: null,
+  lastUpdatedBy: null as string | null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -107,6 +84,18 @@ const UpdateSettingsSchema = z.object({
   defaultOpenaiModel: z.string().optional(),
   defaultGeminiModel: z.string().optional(),
   defaultMistralModel: z.string().optional(),
+
+  // Provider Pricing (per 1M tokens, USD)
+  anthropicInputPrice: z.number().min(0).optional(),
+  anthropicOutputPrice: z.number().min(0).optional(),
+  deepseekInputPrice: z.number().min(0).optional(),
+  deepseekOutputPrice: z.number().min(0).optional(),
+  openaiInputPrice: z.number().min(0).optional(),
+  openaiOutputPrice: z.number().min(0).optional(),
+  geminiInputPrice: z.number().min(0).optional(),
+  geminiOutputPrice: z.number().min(0).optional(),
+  mistralInputPrice: z.number().min(0).optional(),
+  mistralOutputPrice: z.number().min(0).optional(),
 
   // System Status
   maintenanceMode: z.boolean().optional(),
@@ -300,7 +289,7 @@ export async function PUT(request: Request) {
       });
 
       // Invalidate caches immediately so changes take effect
-      aiClient.invalidateCaches();
+      invalidateAllAICaches();
       refreshPlatformSettingsCache();
 
       logger.info("[ADMIN_AI_SETTINGS_UPDATED]", {

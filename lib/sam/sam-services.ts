@@ -118,7 +118,6 @@ class SAMServices {
   private _selfEvaluation: SelfEvaluationServices | null = null;
   private _orchestration: OrchestrationServices | null = null;
   private _memoryLifecycle: MemoryLifecycleServices | null = null;
-  private _aiAdapter: AIAdapter | null = null;
 
   // Promise locks for thread-safe initialization
   private _toolingPromise: Promise<ToolingServices> | null = null;
@@ -127,7 +126,6 @@ class SAMServices {
   private _selfEvaluationPromise: Promise<SelfEvaluationServices> | null = null;
   private _orchestrationPromise: Promise<OrchestrationServices> | null = null;
   private _memoryLifecyclePromise: Promise<MemoryLifecycleServices> | null = null;
-  private _aiAdapterPromise: Promise<AIAdapter | null> | null = null;
 
   // Initialization state
   private _isPreWarmed = false;
@@ -457,25 +455,14 @@ class SAMServices {
   // ============================================================================
 
   /**
-   * Get the core AI adapter for LLM interactions
+   * Get a fresh AI adapter for LLM interactions.
+   *
+   * NOT cached — each call creates a new user-scoped adapter to prevent
+   * cross-user adapter leakage. For system-level checks (no user context),
+   * omit userId to get a system adapter.
    */
   async getAIAdapter(userId?: string): Promise<AIAdapter | null> {
-    if (this._aiAdapter) {
-      return this._aiAdapter;
-    }
-
-    if (this._aiAdapterPromise) {
-      return this._aiAdapterPromise;
-    }
-
-    this._aiAdapterPromise = this._initializeAIAdapter(userId);
-    this._aiAdapter = await this._aiAdapterPromise;
-    return this._aiAdapter;
-  }
-
-  private async _initializeAIAdapter(userId?: string): Promise<AIAdapter | null> {
     const startTime = Date.now();
-    logger.info('[SAMServices] Initializing AI adapter...');
 
     try {
       const { getSAMAdapter, getSAMAdapterSystem } = await import('./ai-provider');
@@ -488,14 +475,15 @@ class SAMServices {
         return null;
       }
 
-      logger.info('[SAMServices] AI adapter initialized', {
+      logger.debug('[SAMServices] AI adapter created', {
+        userId: userId ?? 'system',
         latencyMs: Date.now() - startTime,
       });
 
       return adapter;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.error('[SAMServices] Failed to initialize AI adapter', { error: message });
+      logger.error('[SAMServices] Failed to create AI adapter', { error: message });
       return null; // Non-fatal - AI features will be disabled
     }
   }
@@ -518,9 +506,9 @@ class SAMServices {
     logger.info('[SAMServices] Starting pre-warm sequence...');
 
     // Initialize services in parallel for faster startup
+    // Note: getAIAdapter() is excluded — it requires a userId and is created per-request
     const results = await Promise.allSettled([
       this.getTooling(),
-      this.getAIAdapter(),
       this.getProactive(),
       this.getSelfEvaluation(),
       // Note: Memory and MemoryLifecycle are heavier - initialize in background
@@ -546,9 +534,9 @@ class SAMServices {
     const startTime = Date.now();
     logger.info('[SAMServices] Starting full pre-warm sequence...');
 
+    // Note: getAIAdapter() is excluded — it requires a userId and is created per-request
     const results = await Promise.allSettled([
       this.getTooling(),
-      this.getAIAdapter(),
       this.getProactive(),
       this.getSelfEvaluation(),
       this.getOrchestration(),
@@ -582,7 +570,11 @@ class SAMServices {
       this._checkServiceHealth('proactive', () => this.getProactive()),
       this._checkServiceHealth('orchestration', () => this.getOrchestration()),
       this._checkServiceHealth('memoryLifecycle', () => this.getMemoryLifecycle()),
-      this._checkServiceHealth('aiAdapter', () => this.getAIAdapter()),
+      this._checkServiceHealth('aiAdapter', async () => {
+        // Use system-level adapter for health checks (no userId needed)
+        const { getSAMAdapterSystem } = await import('./ai-provider');
+        return getSAMAdapterSystem();
+      }),
     ]);
 
     const services = {
@@ -665,7 +657,6 @@ class SAMServices {
     this._selfEvaluation = null;
     this._orchestration = null;
     this._memoryLifecycle = null;
-    this._aiAdapter = null;
 
     this._toolingPromise = null;
     this._memoryPromise = null;
@@ -673,7 +664,6 @@ class SAMServices {
     this._selfEvaluationPromise = null;
     this._orchestrationPromise = null;
     this._memoryLifecyclePromise = null;
-    this._aiAdapterPromise = null;
 
     this._isPreWarmed = false;
   }

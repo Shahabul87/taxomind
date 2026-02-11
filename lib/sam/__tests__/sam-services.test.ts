@@ -77,6 +77,16 @@ jest.mock('../memory-lifecycle-service', () => ({
   getKGRefreshScheduler: jest.fn().mockReturnValue({}),
 }));
 
+// Mock AI adapter provider — returns fresh objects each call (no singleton)
+jest.mock('../ai-provider', () => ({
+  getSAMAdapter: jest.fn().mockImplementation(() =>
+    Promise.resolve({ chat: jest.fn(), getModel: jest.fn().mockReturnValue('test-model') })
+  ),
+  getSAMAdapterSystem: jest.fn().mockImplementation(() =>
+    Promise.resolve({ chat: jest.fn(), getModel: jest.fn().mockReturnValue('test-model') })
+  ),
+}));
+
 describe('SAM Services', () => {
   beforeEach(() => {
     // Reset the singleton before each test
@@ -116,17 +126,21 @@ describe('SAM Services', () => {
   });
 
   describe('getAIAdapter', () => {
-    it('returns AI adapter on first call', async () => {
+    it('returns AI adapter on each call', async () => {
       const adapter = await samServices.getAIAdapter();
 
       expect(adapter).toBeDefined();
     });
 
-    it('returns same instance on subsequent calls', async () => {
+    it('creates fresh adapter per call (no singleton caching)', async () => {
       const adapter1 = await samServices.getAIAdapter();
       const adapter2 = await samServices.getAIAdapter();
 
-      expect(adapter1).toBe(adapter2);
+      // Both should be defined but NOT the same instance
+      expect(adapter1).toBeDefined();
+      expect(adapter2).toBeDefined();
+      // Fresh adapter created each time — object identity should differ
+      expect(adapter1).not.toBe(adapter2);
     });
   });
 

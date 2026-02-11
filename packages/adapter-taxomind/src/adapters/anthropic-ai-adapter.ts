@@ -54,6 +54,7 @@ export class AnthropicAIAdapter implements AIAdapter {
     // Anthropic doesn't have a public list models API
     // Return known models
     return [
+      'claude-sonnet-4-5-20250929',
       'claude-opus-4-20250514',
       'claude-sonnet-4-20250514',
       'claude-3-5-sonnet-20241022',

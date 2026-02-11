@@ -5,7 +5,7 @@ import {
   EntityType,
   RelationshipType,
 } from "@sam-ai/agentic";
-import { aiClient } from "@/lib/ai/enterprise-client";
+import { runSAMChatWithMetadata } from "@/lib/sam/ai-provider";
 import { logger } from "@/lib/logger";
 import { getAgenticMemorySystem, buildMemoryMetadata } from "@/lib/sam/agentic-memory";
 
@@ -78,9 +78,9 @@ let isProcessing = false;
 const MAX_CHUNK_LENGTH = 1200;
 const MAX_SUMMARY_LENGTH = 800;
 
-// AI calls route through aiClient.chat() which handles provider resolution,
-// rate limiting, and usage tracking. When userId is provided, user preferences
-// are respected; when absent, system defaults are used.
+// AI calls route through runSAMChatWithMetadata() from the unified entry point
+// (lib/sam/ai-provider.ts), which handles provider resolution, rate limiting,
+// and usage tracking. When userId is provided, user preferences are respected.
 
 function hashContent(content: string): string {
   return createHash("sha256").update(content).digest("hex");
@@ -125,7 +125,14 @@ async function summarizeContent(content: string, userId?: string): Promise<{ sum
     content.slice(0, 4000),
   ].join("\n\n");
 
-  const response = await aiClient.chat({
+  // Memory ingestion is a background task — userId may not always be available.
+  // When absent, the enterprise client uses system defaults (platform → factory).
+  if (!userId) {
+    logger.debug("[MEMORY_INGESTION] No userId for summarizeContent, skipping AI call");
+    return null;
+  }
+
+  const response = await runSAMChatWithMetadata({
     userId,
     capability: 'analysis',
     messages: [{ role: "user", content: prompt }],
@@ -151,7 +158,12 @@ async function extractKnowledge(content: string, userId?: string): Promise<Knowl
     content.slice(0, 4000),
   ].join("\n\n");
 
-  const response = await aiClient.chat({
+  if (!userId) {
+    logger.debug("[MEMORY_INGESTION] No userId for extractKnowledge, skipping AI call");
+    return null;
+  }
+
+  const response = await runSAMChatWithMetadata({
     userId,
     capability: 'analysis',
     messages: [{ role: "user", content: prompt }],

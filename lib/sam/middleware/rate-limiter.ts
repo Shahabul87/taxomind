@@ -145,6 +145,100 @@ class InMemoryRateLimitStore implements RateLimitStore {
   clear(): void { this.map.clear(); }
 }
 
+/**
+ * Redis-backed rate limit store for multi-instance deployments.
+ * Uses the existing Redis client from lib/redis.ts (with MockRedis fallback).
+ * Serializes token buckets as JSON strings with TTL-based expiry.
+ *
+ * NOTE: Redis store methods are synchronous in the RateLimitStore interface
+ * but Redis operations are async. This wrapper uses a local Map as a write-through
+ * cache: writes go to both the local Map and Redis, reads prefer local cache with
+ * periodic Redis sync. This preserves the synchronous RateLimitStore interface
+ * while gaining cross-instance consistency for new buckets.
+ */
+class RedisBackedRateLimitStore implements RateLimitStore {
+  private localCache = new Map<string, TokenBucket>();
+  private redisClient: RedisLike;
+  private readonly REDIS_TTL_SECONDS = 3600; // 1 hour
+
+  constructor(redisClient: RedisLike) {
+    this.redisClient = redisClient;
+    // Periodically sync from Redis (every 30 seconds)
+    setInterval(() => this.syncFromRedis(), 30_000);
+  }
+
+  get(key: string): TokenBucket | undefined {
+    return this.localCache.get(key);
+  }
+
+  set(key: string, bucket: TokenBucket): void {
+    this.localCache.set(key, bucket);
+    // Fire-and-forget write to Redis (guard for non-Promise return)
+    const result = this.redisClient.setex(
+      `rl:${key}`,
+      this.REDIS_TTL_SECONDS,
+      JSON.stringify(bucket)
+    );
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => { /* best-effort */ });
+    }
+  }
+
+  delete(key: string): void {
+    this.localCache.delete(key);
+    const result = this.redisClient.del(`rl:${key}`);
+    if (result && typeof result.catch === 'function') {
+      result.catch(() => { /* best-effort */ });
+    }
+  }
+
+  entries(): IterableIterator<[string, TokenBucket]> {
+    return this.localCache.entries();
+  }
+
+  keys(): IterableIterator<string> {
+    return this.localCache.keys();
+  }
+
+  get size(): number {
+    return this.localCache.size;
+  }
+
+  clear(): void {
+    // Clear local cache; Redis entries expire via TTL
+    this.localCache.clear();
+  }
+
+  /** Pull buckets from Redis into local cache (handles cross-instance updates) */
+  private async syncFromRedis(): Promise<void> {
+    try {
+      const redisKeys = await this.redisClient.keys('rl:*');
+      for (const redisKey of redisKeys) {
+        const localKey = redisKey.replace(/^rl:/, '');
+        const raw = await this.redisClient.get(redisKey);
+        if (raw) {
+          try {
+            const bucket = JSON.parse(raw) as TokenBucket;
+            const local = this.localCache.get(localKey);
+            // Only update if Redis has fewer tokens (more consumed)
+            if (!local || bucket.tokens < local.tokens) {
+              this.localCache.set(localKey, bucket);
+            }
+          } catch { /* ignore parse errors */ }
+        }
+      }
+    } catch { /* Redis unavailable — continue with local cache */ }
+  }
+}
+
+/** Minimal Redis interface needed by RedisBackedRateLimitStore */
+interface RedisLike {
+  get(key: string): Promise<string | null>;
+  setex(key: string, seconds: number, value: string): Promise<string>;
+  del(...keys: string[]): Promise<number>;
+  keys(pattern: string): Promise<string[]>;
+}
+
 let bucketStore: RateLimitStore = new InMemoryRateLimitStore();
 
 /**
@@ -156,6 +250,24 @@ export function setRateLimitStore(store: RateLimitStore): void {
   logger.info('[RateLimiter] Custom storage backend installed', {
     type: store.constructor.name,
   });
+}
+
+/**
+ * Initialize Redis-backed rate limiting if REDIS_URL is configured.
+ * Falls back to in-memory store otherwise. Safe to call multiple times.
+ */
+export function initRedisRateLimitStore(): void {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const { redis: redisClient } = require('@/lib/redis');
+    if (redisClient && process.env.REDIS_URL) {
+      const store = new RedisBackedRateLimitStore(redisClient as RedisLike);
+      setRateLimitStore(store);
+    }
+  } catch {
+    // Redis not available — keep in-memory store
+    logger.debug('[RateLimiter] Redis not available, using in-memory store');
+  }
 }
 
 // Backward-compatible alias for internal use
@@ -219,6 +331,11 @@ export function stopCleanup(): void {
 
 // Start cleanup on module load
 startCleanup();
+
+// Auto-initialize Redis-backed store if REDIS_URL is configured
+if (process.env.REDIS_URL) {
+  initRedisRateLimitStore();
+}
 
 // ============================================================================
 // RATE LIMITER CLASS

@@ -17,6 +17,7 @@ import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 import type { SAMInteractionType } from '@prisma/client';
 
 // Per-request engine factory (user-scoped AI provider)
@@ -348,6 +349,9 @@ export async function POST(req: NextRequest) {
       analysisId: storedAnalysis.id,
     });
   } catch (error) {
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     if (error instanceof OperationTimeoutError) {
       logger.error("Multi-modal analysis timed out:", { operation: error.operationName, timeoutMs: error.timeoutMs });
       return NextResponse.json(

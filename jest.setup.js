@@ -680,8 +680,8 @@ jest.mock('@/lib/redis', () => ({
   redis: {
     get: jest.fn(),
     set: jest.fn(),
-    setex: jest.fn(),
-    del: jest.fn(),
+    setex: jest.fn(() => Promise.resolve('OK')),
+    del: jest.fn(() => Promise.resolve(0)),
     exists: jest.fn(),
     expire: jest.fn(),
     ttl: jest.fn(),

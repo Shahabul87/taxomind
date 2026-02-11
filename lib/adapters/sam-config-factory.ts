@@ -14,11 +14,38 @@ import {
   createAnthropicAdapter,
   createMemoryCache,
 } from '@sam-ai/core';
-import type { SAMConfig, SAMDatabaseAdapter, AIAdapter } from '@sam-ai/core';
+import type { SAMConfig, SAMDatabaseAdapter, SAMLogger, AIAdapter } from '@sam-ai/core';
 import { createPrismaSAMAdapter } from '@sam-ai/adapter-prisma';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { createUserScopedAdapter, type AICapability } from '@/lib/ai/user-scoped-adapter';
+
+// ============================================================================
+// SHARED SAM LOGGER
+// ============================================================================
+
+/**
+ * Create a SAMLogger that delegates to the application logger.
+ * Reusable across all SAMConfig creation sites to avoid duplication.
+ *
+ * @param prefix - Optional prefix prepended to all log messages (e.g. '[SAM]')
+ */
+export function createSAMLogger(prefix?: string): SAMLogger {
+  if (prefix) {
+    return {
+      debug: (message: string, ...args: unknown[]) => logger.debug(`${prefix} ${message}`, ...args),
+      info: (message: string, ...args: unknown[]) => logger.info(`${prefix} ${message}`, ...args),
+      warn: (message: string, ...args: unknown[]) => logger.warn(`${prefix} ${message}`, ...args),
+      error: (message: string, ...args: unknown[]) => logger.error(`${prefix} ${message}`, ...args),
+    };
+  }
+  return {
+    debug: (message: string, ...args: unknown[]) => logger.debug(message, ...args),
+    info: (message: string, ...args: unknown[]) => logger.info(message, ...args),
+    warn: (message: string, ...args: unknown[]) => logger.warn(message, ...args),
+    error: (message: string, ...args: unknown[]) => logger.error(message, ...args),
+  };
+}
 
 // ============================================================================
 // SINGLETON INSTANCES
@@ -68,12 +95,7 @@ function _createBuildTimeFallbackConfig(): SAMConfig {
       ai: aiAdapter,
       database: getDatabaseAdapter(),
       cache: createMemoryCache({ maxSize: 1000, defaultTTL: 300 }),
-      logger: {
-        debug: (...args: unknown[]) => logger.debug('[SAM]', ...args),
-        info: (...args: unknown[]) => logger.info('[SAM]', ...args),
-        warn: (...args: unknown[]) => logger.warn('[SAM]', ...args),
-        error: (...args: unknown[]) => logger.error('[SAM]', ...args),
-      },
+      logger: createSAMLogger('[SAM]'),
     });
   }
 
@@ -128,12 +150,7 @@ export async function getUserScopedSAMConfig(
     ai: aiAdapter,
     database: getDatabaseAdapter(),
     cache: createMemoryCache({ maxSize: 1000, defaultTTL: 300 }),
-    logger: {
-      debug: (...args: unknown[]) => logger.debug('[SAM]', ...args),
-      info: (...args: unknown[]) => logger.info('[SAM]', ...args),
-      warn: (...args: unknown[]) => logger.warn('[SAM]', ...args),
-      error: (...args: unknown[]) => logger.error('[SAM]', ...args),
-    },
+    logger: createSAMLogger('[SAM]'),
   });
 }
 
@@ -174,12 +191,7 @@ export async function getUserScopedSAMConfigOrDefault(
         ai: systemAdapter,
         database: getDatabaseAdapter(),
         cache: createMemoryCache({ maxSize: 1000, defaultTTL: 300 }),
-        logger: {
-          debug: (...args: unknown[]) => logger.debug('[SAM]', ...args),
-          info: (...args: unknown[]) => logger.info('[SAM]', ...args),
-          warn: (...args: unknown[]) => logger.warn('[SAM]', ...args),
-          error: (...args: unknown[]) => logger.error('[SAM]', ...args),
-        },
+        logger: createSAMLogger('[SAM]'),
       });
     }
   } catch (error) {

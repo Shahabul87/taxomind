@@ -14,6 +14,8 @@ import { db } from "@/lib/db";
 import { SubscriptionTier } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import { getCurrentAdminSession } from "@/lib/admin/check-admin";
+import { getCachedPlatformAISettings, type CachedPlatformAISettings } from './platform-settings-cache';
+import { sendEmail } from "@/lib/email";
 
 // AI Feature types that can be rate-limited
 export type AIFeatureType =
@@ -39,101 +41,18 @@ export interface EnforcementResult {
   maintenanceMessage?: string;
 }
 
-// Platform settings cache (refreshed every 5 minutes)
-let platformSettingsCache: {
-  settings: PlatformSettings | null;
-  cachedAt: number;
-} = { settings: null, cachedAt: 0 };
+// Type alias — shared cache provides the full settings object
+type PlatformSettings = CachedPlatformAISettings;
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-interface PlatformSettings {
-  maintenanceMode: boolean;
-  maintenanceMessage: string | null;
-  freeMonthlyLimit: number;
-  starterMonthlyLimit: number;
-  proMonthlyLimit: number;
-  enterpriseMonthlyLimit: number;
-  freeDailyChatLimit: number;
-  starterDailyChatLimit: number;
-  proDailyChatLimit: number;
-  enterpriseDailyChatLimit: number;
-  allowUserProviderSelection: boolean;
-  allowUserModelSelection: boolean;
-  requireApprovalForCourses: boolean;
-  monthlyBudget: number | null;
-  alertThreshold: number;
-  costAlertEmail: string | null;
-}
-
-// Default platform settings when table doesn't exist
-const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
-  maintenanceMode: false,
-  maintenanceMessage: null,
-  freeMonthlyLimit: 50,
-  starterMonthlyLimit: 500,
-  proMonthlyLimit: 2000,
-  enterpriseMonthlyLimit: 10000,
-  freeDailyChatLimit: 10,
-  starterDailyChatLimit: 100,
-  proDailyChatLimit: 1000,
-  enterpriseDailyChatLimit: 10000,
-  allowUserProviderSelection: true,
-  allowUserModelSelection: true,
-  requireApprovalForCourses: false,
-  monthlyBudget: null,
-  alertThreshold: 0.8,
-  costAlertEmail: null,
-};
+// Budget alert deduplication: only send one alert email per calendar month
+let lastBudgetAlertMonth: string | null = null;
 
 /**
- * Get platform AI settings (cached)
- * Returns default settings if table doesn't exist
+ * Get platform AI settings from the shared cache (5-minute TTL).
+ * Handles table-not-exists gracefully via the shared cache.
  */
 async function getPlatformSettings(): Promise<PlatformSettings> {
-  const now = Date.now();
-
-  if (platformSettingsCache.settings && now - platformSettingsCache.cachedAt < CACHE_TTL) {
-    return platformSettingsCache.settings;
-  }
-
-  try {
-    const settings = await db.platformAISettings.findUnique({
-      where: { id: "default" },
-    });
-
-    const platformSettings: PlatformSettings = {
-      maintenanceMode: settings?.maintenanceMode ?? false,
-      maintenanceMessage: settings?.maintenanceMessage ?? null,
-      freeMonthlyLimit: settings?.freeMonthlyLimit ?? 50,
-      starterMonthlyLimit: settings?.starterMonthlyLimit ?? 500,
-      proMonthlyLimit: settings?.proMonthlyLimit ?? 2000,
-      enterpriseMonthlyLimit: settings?.enterpriseMonthlyLimit ?? 10000,
-      freeDailyChatLimit: settings?.freeDailyChatLimit ?? 10,
-      starterDailyChatLimit: settings?.starterDailyChatLimit ?? 100,
-      proDailyChatLimit: settings?.proDailyChatLimit ?? 1000,
-      enterpriseDailyChatLimit: settings?.enterpriseDailyChatLimit ?? 10000,
-      allowUserProviderSelection: settings?.allowUserProviderSelection ?? true,
-      allowUserModelSelection: settings?.allowUserModelSelection ?? true,
-      requireApprovalForCourses: settings?.requireApprovalForCourses ?? false,
-      monthlyBudget: settings?.monthlyBudget ?? null,
-      alertThreshold: settings?.alertThreshold ?? 0.8,
-      costAlertEmail: settings?.costAlertEmail ?? null,
-    };
-
-    platformSettingsCache = { settings: platformSettings, cachedAt: now };
-    return platformSettings;
-  } catch (error) {
-    // If table doesn't exist, use defaults
-    if (error instanceof Error &&
-        (error.message.includes("does not exist in the current database") ||
-         (error.message.includes("relation") && error.message.includes("does not exist")))) {
-      logger.warn("[PLATFORM_SETTINGS] Table does not exist, using defaults");
-      platformSettingsCache = { settings: DEFAULT_PLATFORM_SETTINGS, cachedAt: now };
-      return DEFAULT_PLATFORM_SETTINGS;
-    }
-    throw error;
-  }
+  return getCachedPlatformAISettings();
 }
 
 /**
@@ -545,12 +464,51 @@ async function checkBudgetAlert(): Promise<void> {
     const threshold = settings.monthlyBudget * settings.alertThreshold;
 
     if (totalCost >= threshold) {
-      // TODO: Send alert email
+      // Deduplicate: only send one alert per calendar month
+      const currentMonth = `${startOfMonth.getFullYear()}-${startOfMonth.getMonth()}`;
+      if (lastBudgetAlertMonth === currentMonth) {
+        return; // Already sent this month
+      }
+      lastBudgetAlertMonth = currentMonth;
+
+      const percentUsed = Math.round((totalCost / settings.monthlyBudget) * 100);
+
       logger.warn("[BUDGET_ALERT]", {
         totalCost,
         budget: settings.monthlyBudget,
         threshold,
+        percentUsed,
         alertEmail: settings.costAlertEmail,
+      });
+
+      // Send budget alert email
+      sendEmail({
+        to: settings.costAlertEmail,
+        subject: `[Taxomind] AI Budget Alert: ${percentUsed}% of monthly budget used`,
+        text: [
+          `AI Budget Alert`,
+          ``,
+          `Your AI spending has reached ${percentUsed}% of the monthly budget.`,
+          ``,
+          `Current spend: $${totalCost.toFixed(2)}`,
+          `Monthly budget: $${settings.monthlyBudget.toFixed(2)}`,
+          `Alert threshold: ${Math.round(settings.alertThreshold * 100)}%`,
+          ``,
+          `Review usage in the admin dashboard: /admin/ai-settings`,
+        ].join('\n'),
+        html: [
+          `<h2>AI Budget Alert</h2>`,
+          `<p>Your AI spending has reached <strong>${percentUsed}%</strong> of the monthly budget.</p>`,
+          `<table style="border-collapse:collapse;margin:16px 0">`,
+          `<tr><td style="padding:4px 12px 4px 0;color:#666">Current spend</td><td><strong>$${totalCost.toFixed(2)}</strong></td></tr>`,
+          `<tr><td style="padding:4px 12px 4px 0;color:#666">Monthly budget</td><td><strong>$${settings.monthlyBudget.toFixed(2)}</strong></td></tr>`,
+          `<tr><td style="padding:4px 12px 4px 0;color:#666">Alert threshold</td><td>${Math.round(settings.alertThreshold * 100)}%</td></tr>`,
+          `</table>`,
+          `<p><a href="/admin/ai-settings">Review usage in the admin dashboard</a></p>`,
+        ].join('\n'),
+      }).catch(emailError => {
+        // Email failure should not block usage recording
+        logger.error("[BUDGET_ALERT_EMAIL_ERROR]", emailError);
       });
     }
   } catch (error) {
@@ -619,8 +577,7 @@ export async function getUserUsageStats(userId: string): Promise<{
 }
 
 /**
- * Force refresh platform settings cache
+ * Force refresh platform settings cache.
+ * Delegates to the shared cache invalidation.
  */
-export function refreshPlatformSettingsCache(): void {
-  platformSettingsCache = { settings: null, cachedAt: 0 };
-}
+export { invalidateSharedPlatformCache as refreshPlatformSettingsCache } from './platform-settings-cache';

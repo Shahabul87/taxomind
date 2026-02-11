@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-02-09T07:07:12.297Z
+// Generated: 2026-02-11T04:12:36.229Z
 // Source: 27 domain files
 // ==========================================
 
@@ -5957,7 +5957,7 @@ model AIGeneratedContent {
   content           String
   metadata          Json?
   promptUsed        String
-  model             String             @default("claude-3-5-sonnet-20241022")
+  model             String             @default("claude-sonnet-4-5-20250929")
   tokensUsed        Int?
   generationTime    Int?
   rating            Float?
@@ -6021,7 +6021,7 @@ model AIUsageMetrics {
 model UserAIPreferences {
   id                 String   @id
   userId             String   @unique
-  defaultModel       String   @default("claude-3-5-sonnet-20241022")
+  defaultModel       String   @default("claude-sonnet-4-5-20250929")
   temperature        Float    @default(0.7)
   maxTokens          Int      @default(2000)
   tone               String   @default("professional")
@@ -6037,12 +6037,12 @@ model UserAIPreferences {
   User               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // AI Provider Preferences (Multi-Provider Support - added January 2026)
-  preferredGlobalProvider        String?                         // If set, overrides ALL per-capability preferences
-  preferredChatProvider          String?  @default("anthropic")  // anthropic, deepseek, openai, gemini, mistral
-  preferredCourseProvider        String?  @default("anthropic")  // Provider for course creation
-  preferredAnalysisProvider      String?  @default("anthropic")  // Provider for analysis tasks
-  preferredCodeProvider          String?  @default("anthropic")  // Provider for code-related tasks
-  preferredSkillRoadmapProvider  String?  @default("anthropic")  // Provider for skill roadmap generation
+  preferredGlobalProvider        String?   // If set, overrides all per-capability preferences
+  preferredChatProvider          String?   // null = use platform default; anthropic, deepseek, openai, gemini, mistral
+  preferredCourseProvider        String?   // null = use platform default
+  preferredAnalysisProvider      String?   // null = use platform default
+  preferredCodeProvider          String?   // null = use platform default
+  preferredSkillRoadmapProvider  String?   // null = use platform default
 
   // Per-provider model selections (preserved for backward compatibility)
   anthropicModel            String?  @default("claude-sonnet-4-5-20250929")
@@ -6356,6 +6356,18 @@ model PlatformAISettings {
   defaultOpenaiModel       String   @default("gpt-4o")
   defaultGeminiModel       String   @default("gemini-pro")
   defaultMistralModel      String   @default("mistral-large")
+
+  // Provider Pricing (per 1M tokens, USD) — admin-controlled
+  anthropicInputPrice      Float    @default(3.0)     // Claude Sonnet 4.5
+  anthropicOutputPrice     Float    @default(15.0)
+  deepseekInputPrice       Float    @default(0.14)
+  deepseekOutputPrice      Float    @default(0.28)
+  openaiInputPrice         Float    @default(2.5)     // GPT-4o
+  openaiOutputPrice        Float    @default(10.0)
+  geminiInputPrice         Float    @default(1.25)    // Gemini Pro
+  geminiOutputPrice        Float    @default(5.0)
+  mistralInputPrice        Float    @default(2.0)     // Mistral Large
+  mistralOutputPrice       Float    @default(6.0)
 
   // System Status
   maintenanceMode          Boolean  @default(false)   // Disable all AI features

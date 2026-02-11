@@ -17,7 +17,7 @@ export type {
 } from './types';
 
 // Subsystem initialization (pre-existing)
-export { initializeSubsystems, type SubsystemBundle } from './subsystem-init';
+export { initializeSubsystems, type SubsystemBundle, type SharedSubsystems } from './subsystem-init';
 
 // Pipeline stages
 export { runAuthStage, type AuthStageResult } from './auth-stage';

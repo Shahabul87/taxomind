@@ -30,6 +30,9 @@ export { AIAccessDeniedError, invalidateUserPreferenceCache } from '@/lib/ai/ent
 // Re-export infrastructure utilities so this module is a true single entry point
 export { getEmbeddingProvider, getAdapterStatus, resetAdapterCache } from '@/lib/sam/integration-adapters';
 
+// Re-export cache invalidation for admin routes (prevents direct enterprise-client imports)
+export { refreshPlatformSettingsCache } from '@/lib/ai/subscription-enforcement';
+
 // Re-export the canonical AICapability type from the single source of truth
 export { type AICapability } from '@/lib/sam/providers/ai-registry';
 
@@ -201,4 +204,18 @@ export async function getSAMAdapterSystem(): Promise<CoreAIAdapter | null> {
     });
     return null;
   }
+}
+
+// ============================================================================
+// 7. invalidateAllAICaches — admin cache invalidation
+// ============================================================================
+
+/**
+ * Invalidate all AI caches: platform settings, adapters, user preferences, circuit breakers.
+ * Call this from admin routes when AI settings are changed.
+ *
+ * This replaces direct imports of `aiClient` from `enterprise-client` in admin routes.
+ */
+export function invalidateAllAICaches(): void {
+  aiClient.invalidateCaches();
 }

@@ -51,11 +51,13 @@ export async function createUserScopedAdapter(
   capability: AICapability
 ): Promise<CoreAIAdapter> {
   // Pre-resolve the provider so getModel() can return synchronously.
-  // This is updated after each chat() call to stay current with user preferences.
+  // Pass capability so the initial resolution uses per-capability preferences
+  // (not just the default 'chat' capability). Updated after each chat() call.
   let resolvedProvider: AIProviderType;
   try {
     resolvedProvider = await aiClient.getResolvedProvider({
       userId,
+      capability,
     });
   } catch {
     // Fallback to registry default (not hardcoded) if resolution fails

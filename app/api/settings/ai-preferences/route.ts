@@ -4,12 +4,14 @@
  * PUT: Updates user's AI provider preferences
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import { AI_PROVIDERS, type AIProviderType, isProviderAvailable } from "@/lib/sam/providers/ai-registry";
 import { invalidateUserPreferenceCache } from "@/lib/sam/ai-provider";
+import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 
 // Valid provider values
 const VALID_PROVIDERS = ["anthropic", "deepseek", "openai", "gemini", "mistral"] as const;
@@ -66,8 +68,12 @@ const AIPreferencesSchema = z.object({
   }
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Rate limit: settings reads use 'standard' category
+    const rateLimitResponse = await withRateLimit(request, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
 
     if (!user?.id) {
@@ -111,11 +117,11 @@ export async function GET() {
 
       return NextResponse.json({
         preferredGlobalProvider: null,
-        preferredChatProvider: "anthropic",
-        preferredCourseProvider: "anthropic",
-        preferredAnalysisProvider: "anthropic",
-        preferredCodeProvider: "anthropic",
-        preferredSkillRoadmapProvider: "anthropic",
+        preferredChatProvider: null,
+        preferredCourseProvider: null,
+        preferredAnalysisProvider: null,
+        preferredCodeProvider: null,
+        preferredSkillRoadmapProvider: null,
         // Default models from platform settings (not hardcoded)
         anthropicModel: platformSettings?.defaultAnthropicModel ?? "claude-sonnet-4-5-20250929",
         deepseekModel: platformSettings?.defaultDeepseekModel ?? "deepseek-chat",
@@ -127,7 +133,7 @@ export async function GET() {
 
     return NextResponse.json(preferences);
   } catch (error) {
-    console.error("[AI_PREFERENCES_GET]", error);
+    logger.error("[AI_PREFERENCES_GET]", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -135,11 +141,13 @@ export async function GET() {
   }
 }
 
-export async function PUT(request: Request) {
-  console.log("[AI_PREFERENCES_PUT] Request received");
+export async function PUT(request: NextRequest) {
   try {
+    // Rate limit: settings writes use 'standard' category
+    const rateLimitResponse = await withRateLimit(request, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const user = await currentUser();
-    console.log("[AI_PREFERENCES_PUT] User:", user?.id ? "authenticated" : "not authenticated");
 
     if (!user?.id) {
       return NextResponse.json(
@@ -149,21 +157,16 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    console.log("[AI_PREFERENCES_PUT] Body:", body);
     const validatedData = AIPreferencesSchema.parse(body);
-    console.log("[AI_PREFERENCES_PUT] Validated data:", validatedData);
 
     // Check if preferences exist
-    console.log("[AI_PREFERENCES_PUT] Checking for existing preferences...");
     const existingPrefs = await db.userAIPreferences.findUnique({
       where: { userId: user.id },
     });
-    console.log("[AI_PREFERENCES_PUT] Existing preferences:", existingPrefs ? "found" : "not found");
 
     let preferences;
 
     if (existingPrefs) {
-      console.log("[AI_PREFERENCES_PUT] Updating existing preferences...");
       // Update existing preferences
       preferences = await db.userAIPreferences.update({
         where: { userId: user.id },
@@ -186,7 +189,6 @@ export async function PUT(request: Request) {
       invalidateUserPreferenceCache(user.id);
     } else {
       // Create new preferences with all required defaults
-      console.log("[AI_PREFERENCES_PUT] Creating new preferences...");
 
       // Read platform defaults for new user creation
       const platformDefaults = await db.platformAISettings.findFirst({
@@ -204,7 +206,7 @@ export async function PUT(request: Request) {
         data: {
           id: `ai_pref_${user.id}_${Date.now()}`,
           userId: user.id,
-          defaultModel: "claude-3-5-sonnet-20241022",
+          defaultModel: "claude-sonnet-4-5-20250929",
           temperature: 0.7,
           maxTokens: 2000,
           tone: "professional",
@@ -214,11 +216,11 @@ export async function PUT(request: Request) {
           notifyOnCompletion: true,
           emailSummaries: false,
           preferredGlobalProvider: validatedData.preferredGlobalProvider ?? null,
-          preferredChatProvider: validatedData.preferredChatProvider ?? "anthropic",
-          preferredCourseProvider: validatedData.preferredCourseProvider ?? "anthropic",
-          preferredAnalysisProvider: validatedData.preferredAnalysisProvider ?? "anthropic",
-          preferredCodeProvider: validatedData.preferredCodeProvider ?? "anthropic",
-          preferredSkillRoadmapProvider: validatedData.preferredSkillRoadmapProvider ?? "anthropic",
+          preferredChatProvider: validatedData.preferredChatProvider ?? null,
+          preferredCourseProvider: validatedData.preferredCourseProvider ?? null,
+          preferredAnalysisProvider: validatedData.preferredAnalysisProvider ?? null,
+          preferredCodeProvider: validatedData.preferredCodeProvider ?? null,
+          preferredSkillRoadmapProvider: validatedData.preferredSkillRoadmapProvider ?? null,
           // Per-provider model selection from platform defaults
           anthropicModel: validatedData.anthropicModel ?? platformDefaults?.defaultAnthropicModel ?? "claude-sonnet-4-5-20250929",
           deepseekModel: validatedData.deepseekModel ?? platformDefaults?.defaultDeepseekModel ?? "deepseek-chat",
@@ -252,7 +254,7 @@ export async function PUT(request: Request) {
       }
     }
 
-    console.log("[AI_PREFERENCES_PUT] Success! Preferences saved:", preferences.id);
+    logger.debug("[AI_PREFERENCES_PUT] Preferences saved", { userId: user.id, hasGlobal: !!preferences.preferredGlobalProvider });
     return NextResponse.json({
       success: true,
       ...(warnings.length > 0 ? { warnings } : {}),
@@ -279,13 +281,9 @@ export async function PUT(request: Request) {
       );
     }
 
-    console.error("[AI_PREFERENCES_PUT] Full error:", error);
-    if (error instanceof Error) {
-      console.error("[AI_PREFERENCES_PUT] Stack:", error.stack);
-    }
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logger.error("[AI_PREFERENCES_PUT]", { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
-      { error: "Internal server error", details: errorMessage },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
