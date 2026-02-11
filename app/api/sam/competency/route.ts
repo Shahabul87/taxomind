@@ -9,7 +9,9 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
   createCompetencyEngine,
   type CompetencyEngineConfig,
@@ -161,6 +163,10 @@ const GetSkillGapAnalysisSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'readonly');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -304,6 +310,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -412,20 +422,28 @@ export async function POST(req: NextRequest) {
 
       case 'extract-skills': {
         const validated = ExtractSkillsSchema.parse(data);
-        result = await engine.extractSkills({
-          content: validated.content,
-          contentType: validated.contentType,
-          context: validated.context ? {
-            industry: validated.context.industry,
-            level: validated.context.level as CareerLevel | undefined,
-          } : undefined,
-        });
+        result = await withRetryableTimeout(
+          () => engine.extractSkills({
+            content: validated.content,
+            contentType: validated.contentType,
+            context: validated.context ? {
+              industry: validated.context.industry,
+              level: validated.context.level as CareerLevel | undefined,
+            } : undefined,
+          }),
+          TIMEOUT_DEFAULTS.AI_ANALYSIS,
+          'competency-extractSkills'
+        );
         break;
       }
 
       case 'generate-skill-tree': {
         const validated = GenerateSkillTreeSchema.parse(data);
-        result = await engine.generateSkillTree(validated);
+        result = await withRetryableTimeout(
+          () => engine.generateSkillTree(validated),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'competency-generateSkillTree'
+        );
         break;
       }
 
@@ -467,6 +485,17 @@ export async function POST(req: NextRequest) {
       metadata: { timestamp: new Date().toISOString() },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[Competency] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { code: 'TIMEOUT', message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[Competency] POST error:', error);
 
     if (error instanceof z.ZodError) {

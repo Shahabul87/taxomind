@@ -13,6 +13,9 @@ import type { SocialEngine, SocialLearningGroup } from '@sam-ai/educational';
 import { getSocialEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Engine singleton
 let engineInstance: SocialEngine | null = null;
@@ -32,6 +35,10 @@ const DynamicsSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -151,7 +158,11 @@ export async function POST(req: NextRequest) {
     };
 
     const engine = getEngine();
-    const result = await engine.assessGroupDynamics(socialGroup);
+    const result = await withRetryableTimeout(
+      () => engine.assessGroupDynamics(socialGroup),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'socialEngine-assessDynamics'
+    );
 
     // Calculate additional insights
     const topContributors = group.members
@@ -181,6 +192,17 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[SocialEngine Dynamics] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[SocialEngine Dynamics] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to assess dynamics' } },

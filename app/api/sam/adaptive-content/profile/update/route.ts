@@ -11,8 +11,10 @@ import { z } from 'zod';
 import { createAdaptiveContentEngine } from '@sam-ai/educational';
 import type { AdaptiveContentEngine, AdaptiveLearnerProfile } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 /**
  * Create a user-scoped AdaptiveContentEngine instance.
@@ -49,6 +51,10 @@ const ProfileUpdateSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -73,7 +79,11 @@ export async function POST(req: NextRequest) {
 
     if (!profile) {
       // Create a default profile if none exists
-      await engine.detectLearningStyle(userId);
+      await withRetryableTimeout(
+        () => engine.detectLearningStyle(userId),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'adaptiveContent-detectStyleForUpdate'
+      );
       profile = await engine.getLearnerProfile(userId);
 
       if (!profile) {
@@ -102,6 +112,17 @@ export async function POST(req: NextRequest) {
       data: updatedProfile,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[AdaptiveContent ProfileUpdate] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[AdaptiveContent ProfileUpdate] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to update profile' } },

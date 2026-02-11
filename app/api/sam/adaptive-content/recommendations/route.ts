@@ -11,8 +11,10 @@ import { z } from 'zod';
 import { createAdaptiveContentEngine } from '@sam-ai/educational';
 import type { AdaptiveContentEngine, AdaptiveLearningStyle } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 /**
  * Create a user-scoped AdaptiveContentEngine instance.
@@ -37,6 +39,10 @@ const RecommendationsSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -68,10 +74,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Get recommendations
-    const recommendations = await engine.getContentRecommendations(
-      profile,
-      parsed.data.topic,
-      parsed.data.count
+    const recommendations = await withRetryableTimeout(
+      () => engine.getContentRecommendations(
+        profile,
+        parsed.data.topic,
+        parsed.data.count
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'adaptiveContent-getRecommendations'
     );
 
     // Also get style tips
@@ -85,6 +95,17 @@ export async function POST(req: NextRequest) {
       profileStyle: profile.primaryStyle,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[AdaptiveContent Recommendations] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[AdaptiveContent Recommendations] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to get recommendations' } },

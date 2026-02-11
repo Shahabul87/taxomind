@@ -11,8 +11,10 @@ import { z } from 'zod';
 import { createAdaptiveContentEngine } from '@sam-ai/educational';
 import type { AdaptiveContentEngine, ContentFormat } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 /**
  * Create a user-scoped AdaptiveContentEngine instance.
@@ -47,6 +49,10 @@ const InteractionSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'standard');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -66,7 +72,7 @@ export async function POST(req: NextRequest) {
     const engine = await createEngine(userId);
 
     // Record the interaction
-    await engine.recordInteraction({
+    await withRetryableTimeout(() => engine.recordInteraction({
       userId,
       contentId: parsed.data.contentId,
       format: parsed.data.format as ContentFormat,
@@ -78,13 +84,24 @@ export async function POST(req: NextRequest) {
       completed: parsed.data.completed,
       checkPerformance: parsed.data.checkPerformance,
       timestamp: parsed.data.timestamp ? new Date(parsed.data.timestamp) : new Date(),
-    });
+    }), TIMEOUT_DEFAULTS.AI_ANALYSIS, 'adaptiveContent-recordInteraction');
 
     return NextResponse.json({
       success: true,
       message: 'Interaction recorded',
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[AdaptiveContent Interaction] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[AdaptiveContent Interaction] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to record interaction' } },

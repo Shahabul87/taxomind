@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { getGoalStores } from '@/lib/sam/taxomind-context';
 import {
   createGoalDecomposer,
@@ -49,6 +51,10 @@ interface RouteContext {
 
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -83,14 +89,18 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     let decomposition: GoalDecomposition;
     try {
-      decomposition = await decomposer.decompose(goal, {
-      maxSubGoals: options.maxSubGoals,
-      minSubGoals: options.minSubGoals,
-      includeAssessments: options.includeAssessments,
-      includeReviews: options.includeReviews,
-      preferredLearningStyle: options.preferredLearningStyle,
-      availableTimePerDay: options.availableTimePerDay,
-    });
+      decomposition = await withRetryableTimeout(
+        () => decomposer.decompose(goal, {
+          maxSubGoals: options.maxSubGoals,
+          minSubGoals: options.minSubGoals,
+          includeAssessments: options.includeAssessments,
+          includeReviews: options.includeReviews,
+          preferredLearningStyle: options.preferredLearningStyle,
+          availableTimePerDay: options.availableTimePerDay,
+        }),
+        TIMEOUT_DEFAULTS.AI_GENERATION,
+        'agentic-decomposeGoal'
+      );
       logger.info(`[Decompose] Successfully decomposed goal into ${decomposition.subGoals.length} sub-goals`);
     } catch (decomposeError) {
       logger.error(`[Decompose] Decomposition failed:`, decomposeError);
@@ -148,6 +158,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[Decompose] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Goal decomposition timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('Error decomposing goal:', error);
 
     if (error instanceof z.ZodError) {

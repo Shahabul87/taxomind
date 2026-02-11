@@ -11,6 +11,9 @@ import { z } from 'zod';
 import { createEngineForUser } from '../route';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 const GetMasterySchema = z.object({
   conceptId: z.string().optional(),
@@ -29,6 +32,10 @@ const UpdateMasterySchema = z.object({
  */
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'readonly');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -137,6 +144,10 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -158,11 +169,15 @@ export async function POST(req: NextRequest) {
     const adapter = getKnowledgeGraphEngineAdapter();
 
     // Update mastery using the engine
-    const updatedMastery = await engine.updateConceptMastery(
-      session.user.id,
-      conceptId,
-      score,
-      evidenceType
+    const updatedMastery = await withRetryableTimeout(
+      () => engine.updateConceptMastery(
+        session.user.id,
+        conceptId,
+        score,
+        evidenceType
+      ),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'knowledgeGraph-updateMastery'
     );
 
     // Persist to database
@@ -180,6 +195,17 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[KnowledgeGraphEngine Mastery] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[KnowledgeGraphEngine Mastery] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to update mastery' } },

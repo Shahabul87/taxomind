@@ -11,8 +11,10 @@ import { z } from 'zod';
 import { createAdaptiveContentEngine } from '@sam-ai/educational';
 import type { AdaptiveContentEngine } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMAdapter } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 
 /**
  * Create a user-scoped AdaptiveContentEngine instance.
@@ -35,6 +37,10 @@ const ProfileRequestSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'readonly');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -58,6 +64,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -81,7 +91,11 @@ export async function POST(req: NextRequest) {
 
     // If no profile exists, detect style first to create one
     if (!profile) {
-      const styleResult = await engine.detectLearningStyle(userId);
+      const styleResult = await withRetryableTimeout(
+        () => engine.detectLearningStyle(userId),
+        TIMEOUT_DEFAULTS.AI_ANALYSIS,
+        'adaptiveContent-detectStyleForProfile'
+      );
       const newProfile = await engine.getLearnerProfile(userId);
 
       return NextResponse.json({
@@ -98,6 +112,17 @@ export async function POST(req: NextRequest) {
       isNew: false,
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[AdaptiveContent Profile] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[AdaptiveContent Profile] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to get/create profile' } },

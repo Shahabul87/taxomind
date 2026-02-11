@@ -12,6 +12,9 @@ import { createEngineForUser } from '../route';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 const ExtractConceptsSchema = z.object({
   content: z.string().min(10).max(50000),
@@ -26,6 +29,10 @@ const ExtractConceptsSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -76,14 +83,18 @@ export async function POST(req: NextRequest) {
     }
 
     const engine = await createEngineForUser(session.user.id);
-    const result = await engine.extractConcepts({
-      content,
-      contentType,
-      context: {
-        ...context,
-        existingConcepts: existingConcepts as never,
-      },
-    });
+    const result = await withRetryableTimeout(
+      () => engine.extractConcepts({
+        content,
+        contentType,
+        context: {
+          ...context,
+          existingConcepts: existingConcepts as never,
+        },
+      }),
+      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      'knowledgeGraph-extractConcepts'
+    );
 
     // Optionally save to database
     if (saveToDatabase && context?.courseId) {
@@ -119,6 +130,17 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[KnowledgeGraphEngine ExtractConcepts] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Operation timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[KnowledgeGraphEngine ExtractConcepts] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to extract concepts' } },

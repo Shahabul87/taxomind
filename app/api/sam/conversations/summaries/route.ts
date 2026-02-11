@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 // Validation schema for query parameters
 const querySchema = z.object({
@@ -404,6 +405,9 @@ export async function GET(req: NextRequest) {
         details: error.issues,
       }, { status: 400 });
     }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
 
     if (error instanceof Error && error.message.includes('ECONNREFUSED')) {
       return NextResponse.json({

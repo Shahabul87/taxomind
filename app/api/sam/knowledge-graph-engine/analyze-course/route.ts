@@ -12,6 +12,9 @@ import { createEngineForUser } from '../route';
 import { getKnowledgeGraphEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 
 const AnalyzeCourseSchema = z.object({
   courseId: z.string(),
@@ -22,6 +25,10 @@ const AnalyzeCourseSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -83,11 +90,15 @@ export async function POST(req: NextRequest) {
     const engine = await createEngineForUser(session.user.id);
 
     // Analyze the course
-    const result = await engine.analyzeCourse({
-      courseId,
-      includeFullContent,
-      forceRegenerate,
-    });
+    const result = await withRetryableTimeout(
+      () => engine.analyzeCourse({
+        courseId,
+        includeFullContent,
+        forceRegenerate,
+      }),
+      TIMEOUT_DEFAULTS.AI_GENERATION,
+      'knowledgeGraph-analyzeCourse'
+    );
 
     // Save to database if requested
     if (saveToDatabase) {
@@ -122,6 +133,17 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[KnowledgeGraphEngine AnalyzeCourse] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { success: false, error: { message: 'Course analysis timed out. Please try again.' } },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[KnowledgeGraphEngine AnalyzeCourse] POST error:', error);
     return NextResponse.json(
       { success: false, error: { message: 'Failed to analyze course' } },

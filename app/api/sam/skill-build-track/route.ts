@@ -9,6 +9,9 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
+import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
+import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
 import {
   createSkillBuildTrackEngine,
   type SkillBuildTrackEngineConfig,
@@ -164,6 +167,10 @@ const GetPortfolioSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'readonly');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -232,6 +239,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResponse = await withRateLimit(req, 'ai');
+    if (rateLimitResponse) return rateLimitResponse;
+
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -274,13 +285,17 @@ export async function POST(req: NextRequest) {
 
       case 'generate-roadmap': {
         const validated = GenerateRoadmapSchema.parse(data);
-        result = await engine.generateRoadmap({
-          userId: session.user.id,
-          ...validated,
-          targetCompletionDate: validated.targetCompletionDate
-            ? new Date(validated.targetCompletionDate)
-            : undefined,
-        });
+        result = await withRetryableTimeout(
+          () => engine.generateRoadmap({
+            userId: session.user.id,
+            ...validated,
+            targetCompletionDate: validated.targetCompletionDate
+              ? new Date(validated.targetCompletionDate)
+              : undefined,
+          }),
+          TIMEOUT_DEFAULTS.AI_GENERATION,
+          'skillBuildTrack-generateRoadmap'
+        );
         logger.info('[SkillBuildTrack] Roadmap generated', {
           userId: session.user.id,
           targetType: validated.targetType,
@@ -342,6 +357,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, action, data: result });
   } catch (error) {
+    if (error instanceof OperationTimeoutError) {
+      logger.error('[SkillBuildTrack] Timed out:', { operation: error.operationName, timeoutMs: error.timeoutMs });
+      return NextResponse.json(
+        { error: 'Operation timed out. Please try again.' },
+        { status: 504 }
+      );
+    }
+
+    const accessResponse = handleAIAccessError(error);
+    if (accessResponse) return accessResponse;
+
     logger.error('[SkillBuildTrack] POST error:', error);
 
     if (error instanceof z.ZodError) {
