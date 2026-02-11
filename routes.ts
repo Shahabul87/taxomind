@@ -27,6 +27,9 @@ export const publicRoutes = [
   "/ai-trends",
   "/ai-news",
   "/ai-research",
+  "/legal/cookies",
+  "/legal/ai-policy",
+  "/accessibility",
   "/api/search",
   "/api/search/mock",
   // SECURITY FIX: Debug/test endpoints removed from public routes

@@ -60,14 +60,15 @@ const RESOURCE_LINKS = [
   { label: "Support", href: "/support" },
   { label: "Terms of Service", href: "/legal/terms" },
   { label: "Privacy Policy", href: "/legal/privacy" },
+  { label: "AI Policy", href: "/legal/ai-policy" },
   { label: "Security", href: "/security" },
-  { label: "Status", href: "/status" },
 ];
 
 const LEGAL_LINKS = [
   { label: "Terms", href: "/legal/terms" },
   { label: "Privacy", href: "/legal/privacy" },
   { label: "Cookies", href: "/legal/cookies" },
+  { label: "AI Policy", href: "/legal/ai-policy" },
   { label: "Security", href: "/security" },
   { label: "Accessibility", href: "/accessibility" },
 ];
