@@ -26,11 +26,8 @@ export {
   // Types
   type CreateAdapterOptions,
   type AIProviderError,
-  // Factory
+  // Factory (core function only — use lib/sam/ai-provider.ts for route code)
   createAIAdapter,
-  createExtendedAIAdapter,
-  getDefaultAdapter,
-  getAllConfiguredAdapters,
 } from './ai-factory';
 
 // ============================================================================

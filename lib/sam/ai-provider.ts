@@ -165,13 +165,15 @@ export async function getSAMAdapter(options: {
 /**
  * Resolve the AI provider name for a given user (for display purposes).
  * Returns the provider name string (e.g. 'anthropic', 'openai').
- * Defaults to 'anthropic' if resolution fails.
+ * Falls back to registry default provider (not hardcoded).
  */
 export async function getResolvedProviderName(userId: string): Promise<string> {
   try {
     return await aiClient.getResolvedProvider({ userId });
   } catch {
-    return 'anthropic';
+    // Use registry default instead of hardcoded 'anthropic'
+    const { getDefaultProvider } = await import('@/lib/sam/providers/ai-registry');
+    return getDefaultProvider()?.id ?? 'deepseek';
   }
 }
 
@@ -186,60 +188,13 @@ export async function getResolvedProviderName(userId: string): Promise<string> {
  * This bypasses user preferences and rate limiting — prefer getSAMAdapter() when
  * a userId is available.
  *
- * Internally delegates to `aiClient` with no userId, so only platform defaults
- * and factory defaults are used for provider resolution.
+ * Delegates to createSystemScopedAdapter() in user-scoped-adapter.ts to avoid
+ * code duplication with the user-scoped adapter.
  */
 export async function getSAMAdapterSystem(): Promise<CoreAIAdapter | null> {
   try {
-    const resolvedProvider = await aiClient.getResolvedProvider();
-
-    const adapter: CoreAIAdapter = {
-      name: 'enterprise-system',
-      version: '1.0.0',
-
-      async chat(params) {
-        const response = await aiClient.chat({
-          messages: params.messages,
-          systemPrompt: params.systemPrompt,
-          maxTokens: params.maxTokens,
-          temperature: params.temperature,
-        });
-
-        return {
-          content: response.content,
-          model: response.model,
-          usage: response.usage
-            ? {
-                inputTokens: response.usage.inputTokens ?? 0,
-                outputTokens: response.usage.outputTokens ?? 0,
-                totalTokens: response.usage.totalTokens,
-              }
-            : { inputTokens: 0, outputTokens: 0 },
-          finishReason: 'stop',
-        };
-      },
-
-      async *chatStream(params) {
-        for await (const chunk of aiClient.stream({
-          messages: params.messages,
-          systemPrompt: params.systemPrompt,
-          maxTokens: params.maxTokens,
-          temperature: params.temperature,
-        })) {
-          yield chunk;
-        }
-      },
-
-      isConfigured() {
-        return true;
-      },
-
-      getModel() {
-        return resolvedProvider;
-      },
-    };
-
-    return adapter;
+    const { createSystemScopedAdapter } = await import('@/lib/ai/user-scoped-adapter');
+    return await createSystemScopedAdapter();
   } catch (error) {
     logger.warn('[SAM AI Provider] System adapter creation failed', {
       error: error instanceof Error ? error.message : String(error),

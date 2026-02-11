@@ -95,10 +95,6 @@ export class AIAccessDeniedError extends Error {
 /**
  * Approximate pricing per 1M tokens (input / output) for each provider.
  *
- * ⚠️ IMPORTANT: These are hardcoded estimates. Provider pricing changes
- * frequently. Consider moving to PlatformAISettings for admin-controlled
- * pricing in a future iteration.
- *
  * Sources:
  *   Anthropic  — https://www.anthropic.com/pricing  (Claude Sonnet 4.5)
  *   DeepSeek   — https://platform.deepseek.com/api-docs/pricing
@@ -106,11 +102,12 @@ export class AIAccessDeniedError extends Error {
  *   Google     — https://ai.google.dev/pricing  (Gemini Pro)
  *   Mistral    — https://mistral.ai/products  (Mistral Large)
  *
- * Last verified: 2026-02-09
- *
  * TODO: Move pricing to PlatformAISettings table for admin-controlled updates.
- * Add `lastPricingUpdate` timestamp and warn in admin UI if >30 days old.
  */
+const PRICING_LAST_VERIFIED = new Date('2026-02-09').getTime();
+const PRICING_STALENESS_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+let pricingStalenessWarned = false;
+
 const AI_PROVIDER_PRICING: Record<AIProviderType, { input: number; output: number }> = {
   anthropic: { input: 3.0, output: 15.0 },
   deepseek: { input: 0.14, output: 0.28 },
@@ -122,12 +119,24 @@ const AI_PROVIDER_PRICING: Record<AIProviderType, { input: number; output: numbe
 /**
  * Estimate cost for AI request based on token usage.
  * Prices are per 1M tokens (input/output).
+ * Logs a warning once if pricing data is older than 30 days.
  */
 function estimateCost(
   provider: AIProviderType,
   usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }
 ): number | undefined {
   if (!usage?.inputTokens && !usage?.outputTokens && !usage?.totalTokens) return undefined;
+
+  // Warn once if pricing data is stale
+  if (!pricingStalenessWarned && Date.now() - PRICING_LAST_VERIFIED > PRICING_STALENESS_THRESHOLD_MS) {
+    pricingStalenessWarned = true;
+    const daysSinceVerified = Math.floor((Date.now() - PRICING_LAST_VERIFIED) / (24 * 60 * 60 * 1000));
+    logger.warn('[Enterprise AI] Provider pricing data is stale — cost estimates may be inaccurate', {
+      lastVerified: new Date(PRICING_LAST_VERIFIED).toISOString(),
+      daysSinceVerified,
+      action: 'Update AI_PROVIDER_PRICING in lib/ai/enterprise-client.ts',
+    });
+  }
 
   const prices = AI_PROVIDER_PRICING[provider] ?? { input: 1.0, output: 3.0 };
 
@@ -271,9 +280,17 @@ async function getPlatformDefaultProvider(): Promise<AIProviderType | null> {
 /**
  * Invalidate the platform settings cache.
  * Call this when admin changes the default provider.
+ *
+ * Also clears the adapter cache and resets circuit breakers since
+ * provider enable/disable or default model changes may have occurred.
+ * Without this, stale adapters could be served for up to 10 minutes.
  */
 export function invalidatePlatformSettingsCache(): void {
   platformSettingsCache = null;
+  invalidateAdapterCache();
+  for (const breaker of providerCircuitBreakers.values()) {
+    breaker.reset();
+  }
 }
 
 // ============================================================================
@@ -596,13 +613,26 @@ async function getAdapter(options: {
   const cached = getCachedAdapter(cacheKey);
   if (cached) return cached;
 
-  const adapter = createAIAdapter(provider, {
-    ...timeoutConfig,
-    model: modelOverride,
-  });
+  try {
+    const adapter = createAIAdapter(provider, {
+      ...timeoutConfig,
+      model: modelOverride,
+    });
 
-  setCachedAdapter(cacheKey, adapter);
-  return adapter;
+    setCachedAdapter(cacheKey, adapter);
+    return adapter;
+  } catch (error) {
+    // Record adapter creation failure on the provider's circuit breaker
+    // so repeated creation failures trigger the breaker open state
+    const breaker = getProviderCircuitBreaker(provider);
+    breaker.recordFailure(error instanceof Error ? error : new Error(String(error)));
+    logger.error('[Enterprise AI] Adapter creation failed', {
+      provider,
+      model: modelOverride,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }
 
 // ============================================================================
@@ -641,12 +671,51 @@ function generateRequestId(): string {
 }
 
 // ============================================================================
-// USAGE RECORDING WITH RETRY
+// USAGE RECORDING WITH RETRY + FAILED RECORD BUFFER
 // ============================================================================
 
 /**
- * Record AI usage with one retry on failure.
- * Replaces fire-and-forget pattern to improve billing accuracy.
+ * Buffer for failed usage records. These are retried on the next successful
+ * recording call. Capped to prevent unbounded memory growth.
+ */
+interface FailedUsageRecord {
+  userId: string;
+  feature: AIFeatureType;
+  usage: number;
+  metadata: Record<string, unknown>;
+  failedAt: number;
+}
+
+const failedUsageBuffer: FailedUsageRecord[] = [];
+const MAX_FAILED_BUFFER_SIZE = 50;
+const MAX_RETRY_ATTEMPTS = 3;
+const BASE_RETRY_DELAY_MS = 500;
+
+/**
+ * Drain buffered failed records on successful write.
+ * Fire-and-forget — errors are logged but don't block the caller.
+ */
+function drainFailedUsageBuffer(): void {
+  if (failedUsageBuffer.length === 0) return;
+
+  const records = failedUsageBuffer.splice(0, 10); // Process up to 10 at a time
+  for (const record of records) {
+    recordAIUsage(record.userId, record.feature, record.usage, record.metadata).catch(err => {
+      // If still failing after buffer retry, log and discard
+      logger.error('[Enterprise AI] Buffered usage record permanently lost', {
+        userId: record.userId,
+        feature: record.feature,
+        provider: record.metadata.provider,
+        failedAt: new Date(record.failedAt).toISOString(),
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+  }
+}
+
+/**
+ * Record AI usage with exponential backoff (3 attempts).
+ * Failed records are buffered and retried on the next successful recording.
  */
 function recordAIUsageWithRetry(
   userId: string,
@@ -655,24 +724,49 @@ function recordAIUsageWithRetry(
   metadata: Record<string, unknown>,
   requestId: string
 ): void {
-  recordAIUsage(userId, feature, usage, metadata).catch(firstErr => {
-    logger.warn('[Enterprise AI] Usage recording failed, retrying once', {
-      requestId,
-      error: firstErr instanceof Error ? firstErr.message : String(firstErr),
-    });
-    // Retry once after 500ms
-    setTimeout(() => {
-      recordAIUsage(userId, feature, usage, metadata).catch(retryErr => {
-        logger.error('[Enterprise AI] Usage recording failed after retry — data lost', {
-          requestId,
-          userId,
-          feature,
-          provider: metadata.provider,
-          error: retryErr instanceof Error ? retryErr.message : String(retryErr),
-        });
+  const attemptRecord = (attempt: number): void => {
+    recordAIUsage(userId, feature, usage, metadata)
+      .then(() => {
+        // Success — drain any buffered failed records
+        drainFailedUsageBuffer();
+      })
+      .catch(err => {
+        if (attempt < MAX_RETRY_ATTEMPTS) {
+          const delay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1); // 500ms, 1s, 2s
+          logger.warn('[Enterprise AI] Usage recording failed, retrying', {
+            requestId,
+            attempt,
+            maxAttempts: MAX_RETRY_ATTEMPTS,
+            nextRetryMs: delay,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          setTimeout(() => attemptRecord(attempt + 1), delay);
+        } else {
+          // All retries exhausted — buffer for later
+          if (failedUsageBuffer.length < MAX_FAILED_BUFFER_SIZE) {
+            failedUsageBuffer.push({ userId, feature, usage, metadata, failedAt: Date.now() });
+            logger.error('[Enterprise AI] Usage recording failed after all retries — buffered for later', {
+              requestId,
+              userId,
+              feature,
+              provider: metadata.provider,
+              bufferedCount: failedUsageBuffer.length,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          } else {
+            logger.error('[Enterprise AI] Usage recording failed — buffer full, record lost', {
+              requestId,
+              userId,
+              feature,
+              provider: metadata.provider,
+              error: err instanceof Error ? err.message : String(err),
+            });
+          }
+        }
       });
-    }, 500);
-  });
+  };
+
+  attemptRecord(1);
 }
 
 export const aiClient = {

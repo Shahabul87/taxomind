@@ -29,7 +29,7 @@ import type {
 } from '@sam-ai/core';
 import { aiClient } from '@/lib/ai/enterprise-client';
 import { getUserModelPreferences, getModelForProvider } from '@/lib/sam/providers/ai-factory';
-import { AI_PROVIDERS, type AIProviderType, type AICapability } from '@/lib/sam/providers/ai-registry';
+import { AI_PROVIDERS, type AIProviderType, type AICapability, getDefaultProvider } from '@/lib/sam/providers/ai-registry';
 
 // Re-export AICapability for backward compatibility with existing imports
 export type { AICapability } from '@/lib/sam/providers/ai-registry';
@@ -50,18 +50,20 @@ export async function createUserScopedAdapter(
   userId: string,
   capability: AICapability
 ): Promise<CoreAIAdapter> {
-  // Pre-resolve the provider so getModel() can return synchronously
+  // Pre-resolve the provider so getModel() can return synchronously.
+  // This is updated after each chat() call to stay current with user preferences.
   let resolvedProvider: AIProviderType;
   try {
     resolvedProvider = await aiClient.getResolvedProvider({
       userId,
     });
   } catch {
-    // Fallback if resolution fails during adapter creation
-    resolvedProvider = 'anthropic';
+    // Fallback to registry default (not hardcoded) if resolution fails
+    resolvedProvider = getDefaultProvider()?.id ?? 'deepseek';
   }
 
-  // Resolve the actual model string (user preference → registry default)
+  // Resolve the actual model string (user preference → registry default).
+  // Updated after each chat() call so getModel() reflects the actual model used.
   let resolvedModel: string = AI_PROVIDERS[resolvedProvider]?.defaultModel ?? resolvedProvider;
   try {
     const userPrefs = await getUserModelPreferences(userId);
@@ -86,6 +88,15 @@ export async function createUserScopedAdapter(
         maxTokens: params.maxTokens,
         temperature: params.temperature,
       });
+
+      // Update resolved provider/model so getModel() returns the actual model used.
+      // This keeps the adapter current if user preferences changed since creation.
+      if (response.model) {
+        resolvedModel = response.model;
+      }
+      if (response.provider) {
+        resolvedProvider = response.provider as AIProviderType;
+      }
 
       return {
         content: response.content,
@@ -118,6 +129,70 @@ export async function createUserScopedAdapter(
 
     getModel(): string {
       return resolvedModel;
+    },
+  };
+
+  return adapter;
+}
+
+/**
+ * Create a system-level CoreAIAdapter without user scoping.
+ * Used for health checks and system operations where no userId is available.
+ *
+ * Bypasses user preferences and rate limiting — only platform defaults
+ * and factory defaults are used for provider resolution.
+ */
+export async function createSystemScopedAdapter(): Promise<CoreAIAdapter> {
+  const resolvedProvider = await aiClient.getResolvedProvider();
+  let currentModel: string = AI_PROVIDERS[resolvedProvider]?.defaultModel ?? resolvedProvider;
+
+  const adapter: CoreAIAdapter = {
+    name: 'enterprise-system',
+    version: '1.0.0',
+
+    async chat(params: AIChatParams): Promise<AIChatResponse> {
+      const response = await aiClient.chat({
+        messages: params.messages,
+        systemPrompt: params.systemPrompt,
+        maxTokens: params.maxTokens,
+        temperature: params.temperature,
+      });
+
+      if (response.model) {
+        currentModel = response.model;
+      }
+
+      return {
+        content: response.content,
+        model: response.model,
+        usage: response.usage
+          ? {
+              inputTokens: response.usage.inputTokens ?? 0,
+              outputTokens: response.usage.outputTokens ?? 0,
+              totalTokens: response.usage.totalTokens,
+            }
+          : { inputTokens: 0, outputTokens: 0 },
+        finishReason: 'stop',
+      };
+    },
+
+    async *chatStream(params: AIChatParams): AsyncIterable<AIChatStreamChunk> {
+      for await (const chunk of aiClient.stream({
+        messages: params.messages,
+        systemPrompt: params.systemPrompt,
+        maxTokens: params.maxTokens,
+        temperature: params.temperature,
+      })) {
+        yield chunk;
+      }
+    },
+
+    isConfigured(): boolean {
+      return true;
+    },
+
+    getModel(): string {
+      return currentModel;
     },
   };
 

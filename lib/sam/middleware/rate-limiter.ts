@@ -9,7 +9,18 @@
  * - Per-user tracking with configurable limits
  * - In-memory storage with automatic cleanup
  * - Customizable limits per route category
- * - Redis-compatible interface for future scaling
+ * - Storage backend abstraction (RateLimitStore) for future Redis migration
+ *
+ * ⚠️ PRODUCTION NOTE: The default in-memory storage does NOT share state across
+ * multiple server instances. If Railway or your hosting provider runs >1 instance,
+ * each instance maintains its own rate limit counters. This means effective rate
+ * limits are multiplied by instance count. For strict per-user limits in a
+ * multi-instance deployment, implement a Redis-backed RateLimitStore.
+ *
+ * To switch to Redis:
+ *   1. Implement the RateLimitStore interface with Redis GET/SET/TTL
+ *   2. Call setRateLimitStore(redisStore) at app startup
+ *   3. All existing rate limiters will automatically use the new store
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -101,21 +112,84 @@ export const RATE_LIMIT_CONFIGS = {
 export type RateLimitCategory = keyof typeof RATE_LIMIT_CONFIGS;
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// STORAGE BACKEND ABSTRACTION
 // ============================================================================
 
 /**
- * In-memory store for token buckets
- * Note: In production with multiple instances, use Redis instead
+ * Storage interface for rate limit buckets.
+ * Default implementation uses in-memory Map.
+ * Implement with Redis for multi-instance deployments.
  */
-const buckets = new Map<string, TokenBucket>();
+export interface RateLimitStore {
+  get(key: string): TokenBucket | undefined;
+  set(key: string, bucket: TokenBucket): void;
+  delete(key: string): void;
+  entries(): IterableIterator<[string, TokenBucket]>;
+  keys(): IterableIterator<string>;
+  readonly size: number;
+  clear(): void;
+}
+
+/**
+ * Default in-memory store. Suitable for single-instance deployments.
+ */
+class InMemoryRateLimitStore implements RateLimitStore {
+  private map = new Map<string, TokenBucket>();
+
+  get(key: string): TokenBucket | undefined { return this.map.get(key); }
+  set(key: string, bucket: TokenBucket): void { this.map.set(key, bucket); }
+  delete(key: string): void { this.map.delete(key); }
+  entries(): IterableIterator<[string, TokenBucket]> { return this.map.entries(); }
+  keys(): IterableIterator<string> { return this.map.keys(); }
+  get size(): number { return this.map.size; }
+  clear(): void { this.map.clear(); }
+}
+
+let bucketStore: RateLimitStore = new InMemoryRateLimitStore();
+
+/**
+ * Replace the default in-memory store with a custom implementation (e.g., Redis).
+ * Call this at app startup before any rate limiting occurs.
+ */
+export function setRateLimitStore(store: RateLimitStore): void {
+  bucketStore = store;
+  logger.info('[RateLimiter] Custom storage backend installed', {
+    type: store.constructor.name,
+  });
+}
+
+// Backward-compatible alias for internal use
+const buckets = {
+  get: (key: string) => bucketStore.get(key),
+  set: (key: string, bucket: TokenBucket) => bucketStore.set(key, bucket),
+  delete: (key: string) => bucketStore.delete(key),
+  entries: () => bucketStore.entries(),
+  keys: () => bucketStore.keys(),
+  get size() { return bucketStore.size; },
+  clear: () => bucketStore.clear(),
+};
+
+// ============================================================================
+// IN-MEMORY CLEANUP + PRODUCTION WARNING
+// ============================================================================
 
 /** Cleanup interval handle */
 let cleanupInterval: NodeJS.Timeout | null = null;
+let productionWarningLogged = false;
 
 /** Start automatic cleanup of expired buckets */
 function startCleanup(): void {
   if (cleanupInterval) return;
+
+  // Log production warning once
+  if (process.env.NODE_ENV === 'production' && !productionWarningLogged) {
+    productionWarningLogged = true;
+    logger.warn(
+      '[RateLimiter] Using in-memory storage in production. ' +
+      'Rate limits are per-instance and will NOT be shared across multiple server instances. ' +
+      'For strict rate limiting, implement a Redis-backed RateLimitStore and call setRateLimitStore().'
+    );
+  }
 
   cleanupInterval = setInterval(() => {
     const now = Date.now();
