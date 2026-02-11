@@ -16,7 +16,7 @@ import type {
   AdaptationOptions,
 } from '@sam-ai/educational';
 import { getAdaptiveContentAdapter } from '@/lib/adapters';
-import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { withRetryableTimeout, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { logger } from '@/lib/logger';
@@ -82,6 +82,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'chat' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const parsed = AdaptRequestSchema.safeParse(body);

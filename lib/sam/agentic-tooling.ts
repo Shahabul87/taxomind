@@ -72,15 +72,19 @@ export function resetToolingAdapterCache(): void {
 }
 
 async function getToolAiAdapter(userId?: string): Promise<AIAdapter | null> {
-  // When userId is available, create a user-scoped adapter (skip singleton)
+  // When userId is available, create a user-scoped adapter (skip singleton).
+  // Do NOT fall back to system adapter — that would bypass subscription enforcement.
   if (userId) {
     try {
       return await getSAMAdapter({ userId, capability: 'chat' });
     } catch {
-      logger.warn('[Tooling] User-scoped adapter failed, falling back to system adapter');
+      logger.warn('[Tooling] User-scoped adapter failed for user, AI-powered tools disabled for this request', { userId });
+      return null;
     }
   }
 
+  // System adapter is ONLY used during initialization (no user context) —
+  // e.g. registering tool definitions at startup.
   if (toolAiAdapter) {
     return toolAiAdapter;
   }

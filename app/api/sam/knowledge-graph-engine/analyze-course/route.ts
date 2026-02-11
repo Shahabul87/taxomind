@@ -14,7 +14,7 @@ import { logger } from '@/lib/logger';
 import { db } from '@/lib/db';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
-import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 const AnalyzeCourseSchema = z.object({
   courseId: z.string(),
@@ -33,6 +33,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'analysis' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const parsed = AnalyzeCourseSchema.safeParse(body);

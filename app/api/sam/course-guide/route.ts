@@ -4,6 +4,7 @@ import { createCourseGuideEngine } from '@sam-ai/educational';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { createCourseGuideAdapter } from '@/lib/adapters';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 // Create course guide engine singleton
 let courseGuideEngine: ReturnType<typeof createCourseGuideEngine> | null = null;
@@ -26,7 +27,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
+    const gateResult = await withSubscriptionGate(user.id, { category: 'chat' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
+
+    const {
       courseId,
       includeComparison = true,
       includeProjections = true,

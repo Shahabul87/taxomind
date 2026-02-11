@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,6 +9,10 @@ export async function POST(request: NextRequest) {
     if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Subscription gate: analysis requires STARTER+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'analysis' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const { title, overview, category, subcategory, targetAudience, difficulty, intent, currentSelections } = await request.json();
 

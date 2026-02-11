@@ -15,7 +15,9 @@ import {
   ensureToolingInitialized,
   ensureDefaultToolPermissions,
   mapUserToToolRole,
+  isExternalAPITool,
 } from '@/lib/sam/agentic-tooling';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 const ListToolsQuerySchema = z.object({
   category: z.string().optional(),
@@ -101,6 +103,21 @@ export async function POST(req: NextRequest) {
         { error: 'Invalid request', details: parsed.error.issues },
         { status: 400 }
       );
+    }
+
+    // Determine if tool is AI-powered:
+    // Standalone tools (sam-*) and external API tools are NOT AI-powered
+    const toolId = parsed.data.toolId;
+    const isStandaloneOrExternal = toolId.startsWith('sam-') || isExternalAPITool(toolId);
+    const isAIPowered = !isStandaloneOrExternal;
+
+    // Subscription gate — standalone tools are free, AI-powered tools require STARTER+
+    const gateResult = await withSubscriptionGate(session.user.id, {
+      category: 'tool-execution',
+      isAIPowered,
+    });
+    if (!gateResult.allowed && gateResult.response) {
+      return gateResult.response;
     }
 
     const tooling = await ensureToolingInitialized(session.user.id);

@@ -9,7 +9,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { createSAMConfig } from '@sam-ai/core';
-import { getSAMAdapter, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { getSAMAdapter, handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import {
@@ -472,6 +472,9 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'chat' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const { action, data } = body;

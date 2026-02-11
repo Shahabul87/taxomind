@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { logger } from '@/lib/logger';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,6 +10,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'analysis' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     // Check if user is admin - admins are now in AdminAccount table
     const adminAccount = await db.adminAccount.findUnique({

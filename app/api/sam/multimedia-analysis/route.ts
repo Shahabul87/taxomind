@@ -17,7 +17,7 @@ import { getUserScopedSAMConfig, getDatabaseAdapter } from "@/lib/adapters";
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
-import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import type { SAMInteractionType } from '@prisma/client';
 
 // Per-request engine factory (user-scoped AI provider)
@@ -146,6 +146,10 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { courseId, contentType, contentData } = body;
+
+    // Subscription gate: analysis with enrollment bypass
+    const gateResult = await withSubscriptionGate(session.user.id!, { category: 'analysis', courseId });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     if (!courseId || !contentType || !contentData) {
       return NextResponse.json(

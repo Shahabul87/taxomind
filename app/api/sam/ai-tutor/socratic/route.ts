@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
-import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'chat' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const { topic, studentAnswer, context, personality } = await request.json();
 

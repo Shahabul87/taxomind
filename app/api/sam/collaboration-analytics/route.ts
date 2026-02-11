@@ -5,6 +5,7 @@ import { createCollaborationEngine } from "@sam-ai/educational";
 import type { CollaborationActivityType } from "@sam-ai/educational";
 import { logger } from '@/lib/logger';
 import { createCollaborationAdapter } from '@/lib/adapters';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 // Create collaboration engine singleton
 let collaborationEngine: ReturnType<typeof createCollaborationEngine> | null = null;
@@ -40,6 +41,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'analysis' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const { action, data } = body;

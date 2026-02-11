@@ -1,6 +1,17 @@
 /**
  * SAM AI Feature Access Control
  *
+ * @deprecated Use `withSubscriptionGate()` from `@/lib/ai/subscription-gate` instead.
+ * This module uses a binary premium check with hardcoded limits and non-atomic counter writes.
+ * The new system uses 5-tier enforcement (FREE/STARTER/PRO/ENTERPRISE/CUSTOM) with
+ * admin-configurable limits integrated into the enterprise AI client.
+ *
+ * Migration guide:
+ * - `canAccessSamFeature(userId, 'course-creation')` → `withSubscriptionGate(userId, { category: 'generation' })`
+ * - `canAccessSamFeature(userId, 'basic-qa')` → `withSubscriptionGate(userId, { category: 'chat' })`
+ * - `canAccessSamFeature(userId, 'learning-path')` → `withSubscriptionGate(userId, { category: 'premium-feature' })`
+ * - Usage tracking is handled automatically by enterprise-client after AI calls.
+ *
  * Controls access to SAM AI features based on premium subscription status.
  * Free users get limited daily usage, premium users get unlimited access.
  * Admins have unlimited access without subscription (separate auth system).
@@ -47,6 +58,8 @@ export interface SAMAccessResult {
 
 /**
  * Check if a user can access a specific SAM AI feature
+ *
+ * @deprecated Use `withSubscriptionGate()` from `@/lib/ai/subscription-gate` instead.
  *
  * This function checks in order:
  * 1. Admin session (separate auth system) - unlimited access
@@ -156,6 +169,8 @@ export async function canAccessSamFeature(
 /**
  * Increment the daily usage counter for free tier users
  * Call this AFTER a successful SAM AI request
+ *
+ * @deprecated Usage tracking is now handled automatically by enterprise-client after AI calls.
  */
 export async function incrementSamUsage(userId: string): Promise<void> {
   // Don't track usage for admins
@@ -195,6 +210,8 @@ export async function incrementSamUsage(userId: string): Promise<void> {
 
 /**
  * Get remaining free usage for a user
+ *
+ * @deprecated Use `checkAIAccess()` from `@/lib/ai/subscription-enforcement` for usage limit info.
  */
 export async function getRemainingFreeUsage(userId: string): Promise<number> {
   // Admins have unlimited usage
@@ -231,6 +248,8 @@ export async function getRemainingFreeUsage(userId: string): Promise<number> {
 
 /**
  * Get list of features available to a user
+ *
+ * @deprecated Use `withSubscriptionGate()` from `@/lib/ai/subscription-gate` for access checks.
  */
 export async function getAvailableFeatures(userId: string): Promise<{
   feature: SAMFeature;

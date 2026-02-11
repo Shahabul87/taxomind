@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import {
   evaluatePedagogically,
@@ -125,6 +126,10 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Subscription gate: analysis requires STARTER+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'analysis' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const validated = AnalyzeContentSchema.parse(body);

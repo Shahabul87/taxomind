@@ -12,7 +12,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
-import { runSAMChatWithMetadata, handleAIAccessError, getResolvedProviderName } from '@/lib/sam/ai-provider';
+import { runSAMChatWithMetadata, handleAIAccessError, getResolvedProviderName, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { db } from '@/lib/db';
 import {
   buildComprehensiveRoadmapPrompt,
@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    // Subscription gate: roadmap generation requires STARTER+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'generation' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await request.json();
     const validated = GenerateRoadmapSchema.parse(body);

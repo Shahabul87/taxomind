@@ -17,7 +17,7 @@
 
 import { NextRequest } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { canAccessSamFeature } from '@/lib/premium/sam-access';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { orchestrateCourseCreation } from '@/lib/sam/course-creation/orchestrator';
@@ -60,14 +60,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Subscription check
-    const accessResult = await canAccessSamFeature(user.id, 'course-creation');
-    if (!accessResult.allowed) {
-      return new Response(
-        JSON.stringify({ success: false, error: accessResult.reason }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
+    // 2. Subscription gate: course creation requires STARTER+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     // 3. Validate body
     const body = await request.json();

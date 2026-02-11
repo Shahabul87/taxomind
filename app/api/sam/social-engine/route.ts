@@ -14,7 +14,7 @@ import { getSocialEngineAdapter } from '@/lib/adapters';
 import { logger } from '@/lib/logger';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
-import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 // Engine singleton
 let engineInstance: SocialEngine | null = null;
@@ -101,6 +101,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'chat' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const parsed = ActionSchema.safeParse(body);

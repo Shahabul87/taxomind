@@ -7,8 +7,7 @@
 
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { checkPremiumAccess } from "@/lib/premium/check-premium";
-import { canAccessSamFeature } from "@/lib/premium/sam-access";
+import { withSubscriptionGate } from "@/lib/ai/subscription-gate";
 
 interface AICreatorLayoutProps {
   children: React.ReactNode;
@@ -24,14 +23,9 @@ export default async function AICreatorLayout({
     redirect("/auth/login?callbackUrl=/teacher/create/ai-creator");
   }
 
-  // Check premium status
-  const premiumStatus = await checkPremiumAccess(user.id);
-
-  // Check if user can access AI course creation feature
-  const accessResult = await canAccessSamFeature(user.id, "course-creation");
-
-  // If not premium and feature not available, redirect to create page with upgrade message
-  if (!premiumStatus.isPremium && !accessResult.allowed) {
+  // Check if user can access AI course creation (requires STARTER+ subscription)
+  const gateResult = await withSubscriptionGate(user.id, { category: "generation" });
+  if (!gateResult.allowed) {
     redirect("/teacher/create?upgrade=ai-creator");
   }
 

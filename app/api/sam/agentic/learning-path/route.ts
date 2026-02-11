@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import { getLearningPathStores } from '@/lib/sam/taxomind-context';
@@ -282,6 +283,9 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'premium-feature' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const { searchParams } = new URL(req.url);

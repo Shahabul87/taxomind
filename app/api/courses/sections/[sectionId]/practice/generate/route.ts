@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { withRateLimit } from "@/lib/sam/middleware/rate-limiter";
 import { GeneratePracticeSetSchema } from "@/lib/validations/practice-problems";
-import { runSAMChatWithPreference, handleAIAccessError } from "@/lib/sam/ai-provider";
+import { runSAMChatWithPreference, handleAIAccessError, withSubscriptionGate } from "@/lib/sam/ai-provider";
 import type { BloomsLevel, QuestionType, QuestionDifficulty } from "@prisma/client";
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from "@/lib/sam/utils/timeout";
 
@@ -206,6 +206,10 @@ export async function POST(
         { status: 401 }
       );
     }
+
+    // Subscription gate: practice generation requires STARTER+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const validated = GeneratePracticeSetSchema.parse(body);

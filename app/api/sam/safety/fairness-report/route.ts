@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import {
   createFairnessAuditor,
   createStrictFairnessAuditor,
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'analysis' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const validated = RunAuditSchema.parse(body);

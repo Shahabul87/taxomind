@@ -12,7 +12,7 @@ import { currentUser } from '@/lib/auth';
 import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { buildStage1Prompt } from '@/lib/sam/course-creation/prompts';
-import { canAccessSamFeature } from '@/lib/premium/sam-access';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 import {
@@ -35,15 +35,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage1Res
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check subscription for AI course creation
-    const accessResult = await canAccessSamFeature(user.id, 'course-creation');
-    if (!accessResult.allowed) {
-      return NextResponse.json({
-        success: false,
-        error: accessResult.reason,
-        requiresUpgrade: accessResult.requiresUpgrade,
-      }, { status: 403 });
-    }
+    // Subscription gate: course creation requires STARTER+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body: Stage1Request = await request.json();
     const { courseContext, previousChapters = [] } = body;

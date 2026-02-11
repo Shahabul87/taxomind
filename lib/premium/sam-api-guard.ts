@@ -1,6 +1,10 @@
 /**
  * SAM API Guard
  *
+ * @deprecated Use `withSubscriptionGate()` from `@/lib/ai/subscription-gate` instead.
+ * This module wraps the deprecated `canAccessSamFeature` from `sam-access.ts`.
+ * The new subscription gate provides 5-tier enforcement with admin-configurable limits.
+ *
  * Middleware wrapper for SAM AI API routes to enforce premium access control.
  * Use this to wrap your SAM API handlers.
  */

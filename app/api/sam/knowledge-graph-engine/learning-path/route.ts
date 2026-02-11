@@ -10,6 +10,7 @@ import { auth } from '@/auth';
 import { z } from 'zod';
 import { createEngineForUser } from '../route';
 import { logger } from '@/lib/logger';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 const LearningPathSchema = z.object({
   targetConceptIds: z.array(z.string()).min(1).max(20),
@@ -23,6 +24,9 @@ export async function POST(req: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(session.user.id, { category: 'analysis' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await req.json();
     const parsed = LearningPathSchema.safeParse(body);

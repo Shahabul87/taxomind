@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { createMarketEngine } from '@sam-ai/educational';
 import type { MarketAnalysisType } from '@sam-ai/educational';
 import { db } from '@/lib/db';
@@ -22,10 +23,13 @@ function getMarketEngine() {
 export async function POST(request: NextRequest) {
   try {
     const user = await currentUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'premium-feature' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const { courseId, analysisType = 'comprehensive', includeRecommendations = true } = await request.json();
 

@@ -9,7 +9,7 @@ import { currentUser } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createSocraticTeachingEngine } from '@sam-ai/educational';
-import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { runSAMChatWithPreference, handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
 
@@ -64,6 +64,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'chat' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await request.json();
     const validatedData = ContinueDialogueSchema.parse(body);

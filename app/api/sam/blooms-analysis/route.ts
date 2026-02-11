@@ -16,7 +16,7 @@ import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
-import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { normalizeToUppercaseSafe } from '@/lib/sam/utils/blooms-normalizer';
 import { BloomsLevel } from '@prisma/client';
 import crypto from 'crypto';
@@ -56,6 +56,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const body = await request.json();
+
+    // Subscription gate: analysis with enrollment bypass for enrolled users
+    const gateResult = await withSubscriptionGate(user.id, { category: 'analysis', courseId: body.courseId });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
+
     const {
       courseId,
       depth = 'detailed',
@@ -64,7 +70,7 @@ export async function POST(request: NextRequest) {
       includeSubLevel = false,
       // Phase 3: Cognitive load analysis options
       includeCognitiveLoad = false,
-    } = await request.json();
+    } = body;
 
     if (!courseId) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 });

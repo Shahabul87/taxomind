@@ -27,6 +27,7 @@ export {
 } from "./check-enrollment";
 
 // SAM AI access control
+// @deprecated — Use `withSubscriptionGate()` from `@/lib/ai/subscription-gate` instead
 export {
   canAccessSamFeature,
   incrementSamUsage,
@@ -37,6 +38,7 @@ export {
 } from "./sam-access";
 
 // SAM API Guards (for protecting API routes)
+// @deprecated — Use `withSubscriptionGate()` from `@/lib/ai/subscription-gate` instead
 export {
   createSAMGuardedHandler,
   checkSAMAccess,

@@ -8,7 +8,7 @@ import { QuestionType, BloomsLevel, QuestionDifficulty } from '@prisma/client';
 import { logger } from '@/lib/logger';
 import { withRetryableTimeout, OperationTimeoutError, TIMEOUT_DEFAULTS } from '@/lib/sam/utils/timeout';
 import { withRateLimit } from '@/lib/sam/middleware/rate-limiter';
-import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { handleAIAccessError, withSubscriptionGate } from '@/lib/sam/ai-provider';
 
 // Create a user-scoped exam engine instance
 async function createExamEngineForUser(userId: string) {
@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
+    // Subscription gate: question bank generation requires STARTER+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'generation' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
+
+    const {
       courseId,
       subject,
       topic,

@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
+import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
@@ -217,6 +218,9 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const gateResult = await withSubscriptionGate(user.id, { category: 'premium-feature' });
+    if (!gateResult.allowed && gateResult.response) return gateResult.response;
 
     const body = await request.json();
     const validatedData = CreateInterventionSchema.parse(body);
