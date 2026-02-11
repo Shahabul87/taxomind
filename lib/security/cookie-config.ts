@@ -93,7 +93,7 @@ export function getSecureCookieConfig(options: CookieSecurityOptions = {}): Cook
     (process.env.NODE_ENV as 'development' | 'staging' | 'production') || 
     'development';
   
-  const envConfig = CookieEnvironments[environment];
+  const envConfig = CookieEnvironments[environment as keyof typeof CookieEnvironments] ?? CookieEnvironments.development;
   const isProduction = environment === 'production';
   const isDevelopment = environment === 'development';
 

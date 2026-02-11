@@ -30,6 +30,11 @@ jest.mock('@/lib/ai/subscription-enforcement', () => ({
   recordAIUsage: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock admin check — prevents loading auth.config.admin → Credentials() in test env
+jest.mock('@/lib/admin/check-admin', () => ({
+  getCurrentAdminSession: jest.fn().mockResolvedValue({ isAdmin: false }),
+}));
+
 jest.mock('@/lib/sam/config/sam-rate-limiter', () => ({
   applyRateLimit: jest.fn(),
   samMessagesLimiter: {},
@@ -145,7 +150,7 @@ describe('Pipeline integration', () => {
 
     // Stage 2: Validation
     const body = { message: 'Help me with my course' };
-    const validationResult = runValidationStage(body, auth, startTime);
+    const validationResult = await runValidationStage(body, auth, startTime);
     expect(isSuccess(validationResult)).toBe(true);
     if (!isSuccess(validationResult)) return;
 
@@ -245,7 +250,7 @@ describe('Pipeline integration', () => {
     expect(isSuccess(authResult)).toBe(true);
     if (!isSuccess(authResult)) return;
 
-    const validationResult = runValidationStage({}, authResult.ctx, Date.now());
+    const validationResult = await runValidationStage({}, authResult.ctx, Date.now());
 
     expect(isErrorResponse(validationResult)).toBe(true);
     if (!isErrorResponse(validationResult)) return;
@@ -262,7 +267,7 @@ describe('Pipeline integration', () => {
     expect(isSuccess(authResult)).toBe(true);
     if (!isSuccess(authResult)) return;
 
-    const validationResult = runValidationStage(
+    const validationResult = await runValidationStage(
       { message: '' },
       authResult.ctx,
       Date.now(),
@@ -283,7 +288,7 @@ describe('Pipeline integration', () => {
     const authResult = await runAuthStage(makeRequest());
     if (!isSuccess(authResult)) throw new Error('Auth should succeed');
 
-    const validationResult = runValidationStage(
+    const validationResult = await runValidationStage(
       { message: 'What is my progress?' },
       authResult.ctx,
       startTime,
@@ -310,7 +315,7 @@ describe('Pipeline integration', () => {
     const authResult = await runAuthStage(makeRequest());
     if (!isSuccess(authResult)) throw new Error('Auth should succeed');
 
-    const validationResult = runValidationStage(
+    const validationResult = await runValidationStage(
       { message: 'Generate a quiz for chapter 1' },
       authResult.ctx,
       Date.now(),

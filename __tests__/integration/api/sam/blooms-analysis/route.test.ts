@@ -100,6 +100,16 @@ jest.mock('@/lib/sam/utils/blooms-normalizer', () => ({
   normalizeToUppercaseSafe: jest.fn((level: string) => level?.toUpperCase() || 'REMEMBER'),
 }));
 
+// Mock admin check — prevents loading auth.config.admin → Credentials() in test env
+jest.mock('@/lib/admin/check-admin', () => ({
+  getCurrentAdminSession: jest.fn().mockResolvedValue({ isAdmin: false }),
+}));
+
+// Mock subscription gate — always allow in these tests (subscription tested separately)
+jest.mock('@/lib/ai/subscription-gate', () => ({
+  withSubscriptionGate: jest.fn().mockResolvedValue({ allowed: true, tier: 'PROFESSIONAL' }),
+}));
+
 // Import the actual route handler (after mocks are set up)
 import { POST } from '@/app/api/sam/blooms-analysis/route';
 

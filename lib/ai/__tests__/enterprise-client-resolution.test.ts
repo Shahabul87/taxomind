@@ -12,6 +12,7 @@
  */
 
 import { aiClient, AIMaintenanceModeError } from '../enterprise-client';
+import { db } from '@/lib/db';
 
 // ============================================================================
 // MOCKS
@@ -67,20 +68,11 @@ jest.mock('@/lib/sam/utils/error-handler', () => ({
   },
 }));
 
-// Mock DB
-// Note: shared platform-settings-cache uses findUnique, user prefs also use findUnique
-const mockPlatformFindUnique = jest.fn();
-const mockFindUnique = jest.fn();
-jest.mock('@/lib/db', () => ({
-  db: {
-    platformAISettings: {
-      findUnique: (...args: unknown[]) => mockPlatformFindUnique(...args),
-    },
-    userAIPreferences: {
-      findUnique: (...args: unknown[]) => mockFindUnique(...args),
-    },
-  },
-}));
+// DB mock — use the global mock from jest.setup.js via jest.mock('@/lib/db').
+// Do NOT call jest.mock('@/lib/db') here — that triggers auto-mock and loses the setup mock.
+const dbAny = db as Record<string, Record<string, jest.Mock>>;
+const mockPlatformFindUnique = dbAny.platformAISettings.findUnique;
+const mockFindUnique = dbAny.userAIPreferences.findUnique;
 
 // ============================================================================
 // HELPERS

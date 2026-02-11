@@ -47,6 +47,11 @@ jest.mock('../../taxomind-context', () => ({
   })),
 }));
 
+// Mock admin check — prevents loading auth.config.admin → Credentials() in test env
+jest.mock('@/lib/admin/check-admin', () => ({
+  getCurrentAdminSession: jest.fn().mockResolvedValue({ isAdmin: false }),
+}));
+
 // Import the service. Because it imports from @sam-ai/agentic at load time,
 // we rely on Jest's transform chain to resolve the workspace package.
 // We then inject mock collaborators into the private fields directly.

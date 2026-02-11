@@ -426,6 +426,8 @@ const createMockPrismaClient = () => {
     'complianceEvent', 'organization', 'sectionBloomsMapping',
     // Additional Blooms/SAM models
     'chapterBloomsAnalysis', 'samInteraction',
+    // Platform AI settings & usage tracking
+    'platformAISettings', 'userAIPreferences', 'aIUsageMetrics', 'platformAIUsageSummary',
   ];
   
   const mockClient = {};

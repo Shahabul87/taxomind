@@ -169,7 +169,7 @@ describe('SelfEvaluationService', () => {
       const callArg = mockScoreResponse.mock.calls[0][0] as Record<string, unknown>;
       expect(callArg.responseId).toMatch(/^response_/);
       expect(callArg.sessionId).toMatch(/^session_/);
-      expect(callArg.responseType).toBe('explanation');
+      expect(callArg.responseType).toBe('EXPLANATION');
     });
 
     it('handles empty response text by delegating to the scorer', async () => {

@@ -13,9 +13,6 @@ import { SubscriptionTier } from '@prisma/client';
 
 const mockGetCurrentAdminSession = jest.fn();
 const mockCheckAIAccess = jest.fn();
-const mockFindUniqueUser = jest.fn();
-const mockUpdateUser = jest.fn();
-const mockFindFirstEnrollment = jest.fn();
 
 jest.mock('@/lib/admin/check-admin', () => ({
   getCurrentAdminSession: (...args: unknown[]) => mockGetCurrentAdminSession(...args),
@@ -23,18 +20,6 @@ jest.mock('@/lib/admin/check-admin', () => ({
 
 jest.mock('../subscription-enforcement', () => ({
   checkAIAccess: (...args: unknown[]) => mockCheckAIAccess(...args),
-}));
-
-jest.mock('@/lib/db', () => ({
-  db: {
-    user: {
-      findUnique: (...args: unknown[]) => mockFindUniqueUser(...args),
-      update: (...args: unknown[]) => mockUpdateUser(...args),
-    },
-    enrollment: {
-      findFirst: (...args: unknown[]) => mockFindFirstEnrollment(...args),
-    },
-  },
 }));
 
 jest.mock('@/lib/logger', () => ({
@@ -55,6 +40,14 @@ import {
   type SubscriptionCategory,
   type SubscriptionGateResult,
 } from '../subscription-gate';
+import { db } from '@/lib/db';
+
+// Use the global mock's db functions directly (avoids moduleNameMapper conflict
+// where the cached subscription-gate module references the global mock, not
+// a custom jest.mock factory).
+const mockFindUniqueUser = db.user.findUnique as jest.Mock;
+const mockUpdateUser = db.user.update as jest.Mock;
+const mockFindFirstEnrollment = db.enrollment.findFirst as jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Helpers

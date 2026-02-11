@@ -27,6 +27,11 @@ jest.mock('@/lib/sam/agentic-bridge', () => ({
   })),
 }));
 
+// Mock admin check — prevents loading auth.config.admin → Credentials() in test env
+jest.mock('@/lib/admin/check-admin', () => ({
+  getCurrentAdminSession: jest.fn().mockResolvedValue({ isAdmin: false }),
+}));
+
 jest.mock('@/lib/sam/integration-profile', () => ({
   getSAMIntegrationProfile: jest.fn(() => ({})),
   getSAMCapabilityRegistry: jest.fn(() => ({})),
@@ -77,8 +82,8 @@ describe('runValidationStage', () => {
   // ---- Invalid requests ---------------------------------------------------
 
   describe('request validation failures', () => {
-    it('returns 400 when body is null', () => {
-      const result = runValidationStage(null, auth, startTime);
+    it('returns 400 when body is null', async () => {
+      const result = await runValidationStage(null, auth, startTime);
 
       expect(isErrorResponse(result)).toBe(true);
       if (!isErrorResponse(result)) return;
@@ -86,8 +91,8 @@ describe('runValidationStage', () => {
       expect(result.response.status).toBe(400);
     });
 
-    it('returns 400 when body is undefined', () => {
-      const result = runValidationStage(undefined, auth, startTime);
+    it('returns 400 when body is undefined', async () => {
+      const result = await runValidationStage(undefined, auth, startTime);
 
       expect(isErrorResponse(result)).toBe(true);
       if (!isErrorResponse(result)) return;
@@ -95,8 +100,8 @@ describe('runValidationStage', () => {
       expect(result.response.status).toBe(400);
     });
 
-    it('returns 400 when message field is missing', () => {
-      const result = runValidationStage({}, auth, startTime);
+    it('returns 400 when message field is missing', async () => {
+      const result = await runValidationStage({}, auth, startTime);
 
       expect(isErrorResponse(result)).toBe(true);
       if (!isErrorResponse(result)) return;
@@ -104,8 +109,8 @@ describe('runValidationStage', () => {
       expect(result.response.status).toBe(400);
     });
 
-    it('returns 400 for empty message string', () => {
-      const result = runValidationStage({ message: '' }, auth, startTime);
+    it('returns 400 for empty message string', async () => {
+      const result = await runValidationStage({ message: '' }, auth, startTime);
 
       expect(isErrorResponse(result)).toBe(true);
       if (!isErrorResponse(result)) return;
@@ -113,8 +118,8 @@ describe('runValidationStage', () => {
       expect(result.response.status).toBe(400);
     });
 
-    it('returns 400 when message is not a string', () => {
-      const result = runValidationStage({ message: 123 }, auth, startTime);
+    it('returns 400 when message is not a string', async () => {
+      const result = await runValidationStage({ message: 123 }, auth, startTime);
 
       expect(isErrorResponse(result)).toBe(true);
       if (!isErrorResponse(result)) return;
@@ -123,7 +128,7 @@ describe('runValidationStage', () => {
     });
 
     it('includes validation error details in response body', async () => {
-      const result = runValidationStage({ message: '' }, auth, startTime);
+      const result = await runValidationStage({ message: '' }, auth, startTime);
 
       expect(isErrorResponse(result)).toBe(true);
       if (!isErrorResponse(result)) return;
@@ -138,8 +143,8 @@ describe('runValidationStage', () => {
   // ---- Valid requests -------------------------------------------------------
 
   describe('successful validation', () => {
-    it('returns PipelineContext for a minimal valid body', () => {
-      const result = runValidationStage({ message: 'Hello SAM' }, auth, startTime);
+    it('returns PipelineContext for a minimal valid body', async () => {
+      const result = await runValidationStage({ message: 'Hello SAM' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -148,11 +153,11 @@ describe('runValidationStage', () => {
       expect(result.ctx.user.id).toBe('user-1');
     });
 
-    it('uses the user provided by the auth stage', () => {
+    it('uses the user provided by the auth stage', async () => {
       const customAuth = makeAuth({
         user: { id: 'custom-id', name: 'Custom', email: 'c@e.com', isTeacher: true, role: 'ADMIN' },
       });
-      const result = runValidationStage({ message: 'Hi' }, customAuth, startTime);
+      const result = await runValidationStage({ message: 'Hi' }, customAuth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -162,11 +167,11 @@ describe('runValidationStage', () => {
       expect(result.ctx.user.role).toBe('ADMIN');
     });
 
-    it('sets rateLimitHeaders from auth stage', () => {
+    it('sets rateLimitHeaders from auth stage', async () => {
       const customAuth = makeAuth({
         rateLimitHeaders: { 'X-RateLimit-Remaining': '50' },
       });
-      const result = runValidationStage({ message: 'Hi' }, customAuth, startTime);
+      const result = await runValidationStage({ message: 'Hi' }, customAuth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -174,8 +179,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.rateLimitHeaders).toEqual({ 'X-RateLimit-Remaining': '50' });
     });
 
-    it('defaults modeId to general-assistant when mode is omitted', () => {
-      const result = runValidationStage({ message: 'Hi' }, auth, startTime);
+    it('defaults modeId to general-assistant when mode is omitted', async () => {
+      const result = await runValidationStage({ message: 'Hi' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -183,8 +188,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.modeId).toBe('general-assistant');
     });
 
-    it('preserves explicit mode from the request', () => {
-      const result = runValidationStage(
+    it('preserves explicit mode from the request', async () => {
+      const result = await runValidationStage(
         { message: 'Analyze this', mode: 'blooms-analyzer' },
         auth,
         startTime,
@@ -200,8 +205,8 @@ describe('runValidationStage', () => {
   // ---- Page context ---------------------------------------------------------
 
   describe('pageContext parsing', () => {
-    it('defaults pageContext to general type when omitted', () => {
-      const result = runValidationStage({ message: 'Hi' }, auth, startTime);
+    it('defaults pageContext to general type when omitted', async () => {
+      const result = await runValidationStage({ message: 'Hi' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -210,7 +215,7 @@ describe('runValidationStage', () => {
       expect(result.ctx.pageContext.path).toBe('/unknown');
     });
 
-    it('parses provided pageContext fields correctly', () => {
+    it('parses provided pageContext fields correctly', async () => {
       const body = {
         message: 'Help me with this course',
         pageContext: {
@@ -224,7 +229,7 @@ describe('runValidationStage', () => {
         },
       };
 
-      const result = runValidationStage(body, auth, startTime);
+      const result = await runValidationStage(body, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -237,7 +242,7 @@ describe('runValidationStage', () => {
       expect(result.ctx.pageContext.breadcrumb).toEqual(['Dashboard', 'Courses', 'My Course']);
     });
 
-    it('parses entityData within pageContext', () => {
+    it('parses entityData within pageContext', async () => {
       const body = {
         message: 'Review course',
         pageContext: {
@@ -253,7 +258,7 @@ describe('runValidationStage', () => {
         },
       };
 
-      const result = runValidationStage(body, auth, startTime);
+      const result = await runValidationStage(body, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -269,8 +274,8 @@ describe('runValidationStage', () => {
   // ---- Intent classification ------------------------------------------------
 
   describe('intent classification', () => {
-    it('classifies a greeting message', () => {
-      const result = runValidationStage({ message: 'Hello there!' }, auth, startTime);
+    it('classifies a greeting message', async () => {
+      const result = await runValidationStage({ message: 'Hello there!' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -279,8 +284,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.classifiedIntent.shouldUseTool).toBe(false);
     });
 
-    it('classifies a tool request message', () => {
-      const result = runValidationStage(
+    it('classifies a tool request message', async () => {
+      const result = await runValidationStage(
         { message: 'Generate a quiz for chapter 1' },
         auth,
         startTime,
@@ -294,8 +299,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.classifiedIntent.toolHints.length).toBeGreaterThan(0);
     });
 
-    it('classifies a goal query message', () => {
-      const result = runValidationStage(
+    it('classifies a goal query message', async () => {
+      const result = await runValidationStage(
         { message: 'What is my goal progress?' },
         auth,
         startTime,
@@ -308,8 +313,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.classifiedIntent.shouldCheckGoals).toBe(true);
     });
 
-    it('defaults to question intent for unrecognized messages', () => {
-      const result = runValidationStage(
+    it('defaults to question intent for unrecognized messages', async () => {
+      const result = await runValidationStage(
         { message: 'Teach me about monads' },
         auth,
         startTime,
@@ -328,8 +333,8 @@ describe('runValidationStage', () => {
   // ---- Default context values -----------------------------------------------
 
   describe('default PipelineContext values', () => {
-    it('sets empty defaults for gathered context fields', () => {
-      const result = runValidationStage({ message: 'Hi' }, auth, startTime);
+    it('sets empty defaults for gathered context fields', async () => {
+      const result = await runValidationStage({ message: 'Hi' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -340,8 +345,8 @@ describe('runValidationStage', () => {
       expect(ctx.contextConfidence).toBe(0);
     });
 
-    it('sets null defaults for orchestration and agentic fields', () => {
-      const result = runValidationStage({ message: 'Hi' }, auth, startTime);
+    it('sets null defaults for orchestration and agentic fields', async () => {
+      const result = await runValidationStage({ message: 'Hi' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -360,8 +365,8 @@ describe('runValidationStage', () => {
       expect(ctx.proactiveData).toBeNull();
     });
 
-    it('sets empty arrays for list fields', () => {
-      const result = runValidationStage({ message: 'Hi' }, auth, startTime);
+    it('sets empty arrays for list fields', async () => {
+      const result = await runValidationStage({ message: 'Hi' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -371,8 +376,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.interventionResults).toEqual([]);
     });
 
-    it('sets boolean defaults correctly', () => {
-      const result = runValidationStage({ message: 'Hi' }, auth, startTime);
+    it('sets boolean defaults correctly', async () => {
+      const result = await runValidationStage({ message: 'Hi' }, auth, startTime);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -381,9 +386,9 @@ describe('runValidationStage', () => {
       expect(result.ctx.sessionRecorded).toBe(false);
     });
 
-    it('records the startTime that was passed in', () => {
+    it('records the startTime that was passed in', async () => {
       const now = 1706000000000;
-      const result = runValidationStage({ message: 'Hi' }, auth, now);
+      const result = await runValidationStage({ message: 'Hi' }, auth, now);
 
       expect(isSuccess(result)).toBe(true);
       if (!isSuccess(result)) return;
@@ -395,13 +400,13 @@ describe('runValidationStage', () => {
   // ---- Conversation history -------------------------------------------------
 
   describe('conversationHistory and options', () => {
-    it('passes conversationHistory through to context', () => {
+    it('passes conversationHistory through to context', async () => {
       const history = [
         { role: 'user' as const, content: 'Hello' },
         { role: 'assistant' as const, content: 'Hi there!' },
       ];
 
-      const result = runValidationStage(
+      const result = await runValidationStage(
         { message: 'Follow up', conversationHistory: history },
         auth,
         startTime,
@@ -413,8 +418,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.conversationHistory).toEqual(history);
     });
 
-    it('passes options through to context', () => {
-      const result = runValidationStage(
+    it('passes options through to context', async () => {
+      const result = await runValidationStage(
         { message: 'Hi', options: { engines: ['blooms'], stream: false } },
         auth,
         startTime,
@@ -427,8 +432,8 @@ describe('runValidationStage', () => {
       expect(result.ctx.options?.stream).toBe(false);
     });
 
-    it('passes orchestrationContext through to context', () => {
-      const result = runValidationStage(
+    it('passes orchestrationContext through to context', async () => {
+      const result = await runValidationStage(
         {
           message: 'Continue plan',
           orchestrationContext: { planId: 'plan-1', goalId: 'goal-1', autoDetectPlan: false },
@@ -449,22 +454,22 @@ describe('runValidationStage', () => {
   // ---- Schema-level tests ---------------------------------------------------
 
   describe('UnifiedRequestSchema', () => {
-    it('accepts a minimal valid payload', () => {
+    it('accepts a minimal valid payload', async () => {
       const result = UnifiedRequestSchema.safeParse({ message: 'Hello' });
       expect(result.success).toBe(true);
     });
 
-    it('rejects payload without message', () => {
+    it('rejects payload without message', async () => {
       const result = UnifiedRequestSchema.safeParse({});
       expect(result.success).toBe(false);
     });
 
-    it('rejects an empty message', () => {
+    it('rejects an empty message', async () => {
       const result = UnifiedRequestSchema.safeParse({ message: '' });
       expect(result.success).toBe(false);
     });
 
-    it('accepts valid formContext', () => {
+    it('accepts valid formContext', async () => {
       const result = UnifiedRequestSchema.safeParse({
         message: 'Help with form',
         formContext: {
@@ -477,7 +482,7 @@ describe('runValidationStage', () => {
       expect(result.success).toBe(true);
     });
 
-    it('accepts valid conversationHistory', () => {
+    it('accepts valid conversationHistory', async () => {
       const result = UnifiedRequestSchema.safeParse({
         message: 'Continue',
         conversationHistory: [
