@@ -1,9 +1,11 @@
 /**
- * Language, Communication & Personal Development Category Prompt Enhancer (ARROW-Based)
+ * Language & Communication Category Prompt Enhancer (ARROW-Based)
  *
  * Covers: Languages (English, Spanish, French, German, Japanese, Chinese),
- * Public Speaking, Writing Skills, Leadership, Productivity,
- * Communication Skills, Emotional Intelligence, Career Growth
+ * Public Speaking, Writing Skills, Communication Skills
+ *
+ * NOTE: Personal Development terms (Leadership, Productivity, etc.) were moved
+ * to the dedicated personal-development enhancer.
  *
  * Research basis:
  * - ARROW Framework: Application-first, reverse-engineer, intuition before formalism
@@ -19,7 +21,7 @@ import type { CategoryPromptEnhancer } from './types';
 
 export const languageCommunicationEnhancer: CategoryPromptEnhancer = {
   categoryId: 'language-communication',
-  displayName: 'Language, Communication & Personal Development',
+  displayName: 'Language & Communication',
   matchesCategories: [
     'English',
     'Spanish',
@@ -38,22 +40,12 @@ export const languageCommunicationEnhancer: CategoryPromptEnhancer = {
     'Writing Skills',
     'Creative Writing',
     'Technical Writing',
-    'Leadership',
-    'Productivity',
-    'Time Management',
     'Communication Skills',
-    'Emotional Intelligence',
-    'Career Growth',
-    'Mindfulness',
     'Language',
     'Communication',
-    'Personal Development',
     'Negotiation',
     'Presentation Skills',
     'Interpersonal Skills',
-    'Self Improvement',
-    'Goal Setting',
-    'Coaching',
   ],
 
   domainExpertise: `You are also a polyglot linguist and executive communication coach who teaches by showing powerful communication first, then reverse-engineering what makes it work.

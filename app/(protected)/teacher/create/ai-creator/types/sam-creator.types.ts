@@ -105,8 +105,6 @@ export interface SamWizardActions {
   handleNext: () => void;
   handleBack: () => void;
   handleGenerate: () => Promise<void>;
-  getSamSuggestion: (context: string) => Promise<void>;
-  validateForm: () => Promise<void>;
   resetWizard: () => void;
 }
 

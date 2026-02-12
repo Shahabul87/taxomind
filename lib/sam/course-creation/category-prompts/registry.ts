@@ -17,6 +17,10 @@ import { businessManagementEnhancer } from './business-management';
 import { designCreativeEnhancer } from './design-creative';
 import { healthScienceEnhancer } from './health-science';
 import { languageCommunicationEnhancer } from './language-communication';
+import { educationEnhancer } from './education';
+import { personalDevelopmentEnhancer } from './personal-development';
+import { musicEnhancer } from './music';
+import { lifestyleEnhancer } from './lifestyle';
 import { artsHumanitiesEnhancer } from './arts-humanities';
 import { generalEnhancer } from './general';
 
@@ -34,13 +38,26 @@ const ENHANCERS: CategoryPromptEnhancer[] = [
   designCreativeEnhancer,
   healthScienceEnhancer,
   languageCommunicationEnhancer,
+  educationEnhancer,
+  personalDevelopmentEnhancer,
+  musicEnhancer,
+  lifestyleEnhancer,
   artsHumanitiesEnhancer, // Broadest catch-all last
   // General is never matched by category — only used as explicit fallback
 ];
 
 /**
+ * Normalize a string for matching: lowercase and replace hyphens with spaces.
+ * This ensures COURSE_CATEGORIES values like "personal-development" match
+ * enhancer entries like "Personal Development".
+ */
+function normalize(s: string): string {
+  return s.toLowerCase().replace(/-/g, ' ');
+}
+
+/**
  * Find the best category enhancer for a given course category and subcategory.
- * Uses case-insensitive substring matching.
+ * Uses case-insensitive substring matching with hyphen normalization.
  *
  * @param category - The course category name (e.g., "Computer Science")
  * @param subcategory - Optional subcategory for more specific matching
@@ -51,19 +68,19 @@ export function getCategoryEnhancer(
   subcategory?: string
 ): CategoryPromptEnhancer {
   const searchTerms = [
-    category.toLowerCase(),
-    subcategory?.toLowerCase(),
+    normalize(category),
+    subcategory ? normalize(subcategory) : undefined,
   ].filter((t): t is string => Boolean(t));
 
   // Try exact match first, then substring match
   for (const enhancer of ENHANCERS) {
     for (const matchCategory of enhancer.matchesCategories) {
-      const matchLower = matchCategory.toLowerCase();
+      const matchNorm = normalize(matchCategory);
       for (const term of searchTerms) {
         // Exact match
-        if (term === matchLower) return enhancer;
+        if (term === matchNorm) return enhancer;
         // Substring match (category contains the match term or vice versa)
-        if (term.includes(matchLower) || matchLower.includes(term)) return enhancer;
+        if (term.includes(matchNorm) || matchNorm.includes(term)) return enhancer;
       }
     }
   }

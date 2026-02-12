@@ -12,7 +12,7 @@
 
 'use client';
 
-import { memo, useMemo, useEffect, useRef } from 'react';
+import { memo, useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Dialog,
@@ -41,6 +41,8 @@ import {
   Lightbulb,
   AlertTriangle,
   Zap,
+  Clock,
+  Timer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CreationProgress } from '@/lib/sam/course-creation/types';
@@ -57,6 +59,10 @@ interface SequentialCreationModalProps {
   error: string | null;
   onCancel?: () => void;
   onRetry?: () => void;
+  onResume?: () => void;
+  onRegenerate?: (chapterId: string, position: number) => void;
+  regeneratingChapterId?: string | null;
+  resumableCourseId?: string | null;
   formData: {
     courseTitle: string;
     targetAudience?: string;
@@ -279,8 +285,10 @@ const CurrentActivityDisplay = memo(function CurrentActivityDisplay({
 
 const SAMThinkingDisplay = memo(function SAMThinkingDisplay({
   thinking,
+  isStreaming,
 }: {
   thinking?: string;
+  isStreaming?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -308,6 +316,9 @@ const SAMThinkingDisplay = memo(function SAMThinkingDisplay({
       >
         <p className="text-xs text-muted-foreground leading-relaxed">
           {thinking}
+          {isStreaming && (
+            <span className="inline-block w-1.5 h-3.5 bg-amber-500 ml-0.5 animate-pulse" />
+          )}
         </p>
       </ScrollArea>
     </motion.div>
@@ -315,15 +326,84 @@ const SAMThinkingDisplay = memo(function SAMThinkingDisplay({
 });
 
 // ============================================================================
+// Timing / ETA Display
+// ============================================================================
+
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+
+const TimingDisplay = memo(function TimingDisplay({
+  timing,
+  isCreating,
+  startTime,
+}: {
+  timing?: CreationProgress['timing'];
+  isCreating: boolean;
+  startTime: number;
+}) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!isCreating || startTime === 0) return;
+
+    const interval = setInterval(() => {
+      setElapsed(Date.now() - startTime);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isCreating, startTime]);
+
+  if (!isCreating || startTime === 0) return null;
+
+  const elapsedMs = elapsed || timing?.elapsedMs || 0;
+  const hasEta = timing && timing.itemsCompleted >= 2 && timing.estimatedRemainingMs !== null;
+
+  return (
+    <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+      <div className="flex items-center gap-1.5">
+        <Clock className="h-3.5 w-3.5" />
+        <span>Elapsed: {formatDuration(elapsedMs)}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <Timer className="h-3.5 w-3.5" />
+        {hasEta ? (
+          <span>~{formatDuration(timing.estimatedRemainingMs!)} remaining</span>
+        ) : (
+          <span className="text-muted-foreground/60">Calculating ETA...</span>
+        )}
+      </div>
+      {timing && timing.itemsCompleted > 0 && (
+        <span>{timing.itemsCompleted}/{timing.totalItems} items</span>
+      )}
+    </div>
+  );
+});
+
+// ============================================================================
 // Completed Items List
 // ============================================================================
+
+const QUALITY_REGENERATE_THRESHOLD = 70;
 
 const CompletedItemsList = memo(function CompletedItemsList({
   chapters,
   sections,
+  isComplete,
+  onRegenerate,
+  regeneratingChapterId,
 }: {
   chapters: Array<{ position: number; title: string; id?: string; qualityScore?: number }>;
   sections: Array<{ chapterPosition: number; position: number; title: string; id?: string; qualityScore?: number }>;
+  isComplete?: boolean;
+  onRegenerate?: (chapterId: string, position: number) => void;
+  regeneratingChapterId?: string | null;
 }) {
   const hasItems = chapters.length > 0 || sections.length > 0;
 
@@ -340,30 +420,56 @@ const CompletedItemsList = memo(function CompletedItemsList({
       </div>
       <ScrollArea className="h-32 rounded-lg border bg-card p-2">
         <div className="space-y-1">
-          {chapters.map((chapter, idx) => (
-            <div
-              key={`chapter-${idx}`}
-              className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/50"
-            >
-              <BookOpen className="h-3 w-3 text-blue-500" />
-              <span className="flex-1 truncate">{chapter.title}</span>
-              {chapter.qualityScore && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'text-[10px]',
-                    chapter.qualityScore >= 80
-                      ? 'text-green-600 border-green-500/30'
-                      : chapter.qualityScore >= 60
-                        ? 'text-amber-600 border-amber-500/30'
-                        : 'text-red-600 border-red-500/30'
-                  )}
-                >
-                  {chapter.qualityScore}%
-                </Badge>
-              )}
-            </div>
-          ))}
+          {chapters.map((chapter, idx) => {
+            const canRegenerate =
+              isComplete &&
+              onRegenerate &&
+              chapter.id &&
+              chapter.qualityScore != null &&
+              chapter.qualityScore < QUALITY_REGENERATE_THRESHOLD;
+            const isRegenerating = regeneratingChapterId === chapter.id;
+
+            return (
+              <div
+                key={`chapter-${idx}`}
+                className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/50"
+              >
+                <BookOpen className="h-3 w-3 text-blue-500" />
+                <span className="flex-1 truncate">{chapter.title}</span>
+                {chapter.qualityScore != null && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'text-[10px]',
+                      chapter.qualityScore >= 80
+                        ? 'text-green-600 border-green-500/30'
+                        : chapter.qualityScore >= 60
+                          ? 'text-amber-600 border-amber-500/30'
+                          : 'text-red-600 border-red-500/30'
+                    )}
+                  >
+                    {chapter.qualityScore}%
+                  </Badge>
+                )}
+                {canRegenerate && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 text-muted-foreground hover:text-amber-600"
+                    disabled={!!regeneratingChapterId}
+                    onClick={() => onRegenerate(chapter.id!, chapter.position)}
+                    title="Regenerate this chapter (quality below 70%)"
+                  >
+                    {isRegenerating ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-3 w-3" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
           {sections.slice(-5).map((section, idx) => (
             <div
               key={`section-${idx}`}
@@ -371,7 +477,7 @@ const CompletedItemsList = memo(function CompletedItemsList({
             >
               <Layers className="h-3 w-3 text-purple-500" />
               <span className="flex-1 truncate">{section.title}</span>
-              {section.qualityScore && (
+              {section.qualityScore != null && (
                 <Badge
                   variant="outline"
                   className={cn(
@@ -411,10 +517,25 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
   error,
   onCancel,
   onRetry,
+  onResume,
+  onRegenerate,
+  regeneratingChapterId,
+  resumableCourseId,
   formData,
 }: SequentialCreationModalProps) {
   const isComplete = progress.state.phase === 'complete';
   const isError = progress.state.phase === 'error' || !!error;
+  const startTimeRef = useRef<number>(0);
+
+  // Track when creation starts
+  useEffect(() => {
+    if (isCreating && startTimeRef.current === 0) {
+      startTimeRef.current = Date.now();
+    }
+    if (!isCreating) {
+      startTimeRef.current = 0;
+    }
+  }, [isCreating]);
 
   // Prevent closing while creating
   const handleClose = () => {
@@ -518,6 +639,15 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
             />
           </div>
 
+          {/* Timing / ETA */}
+          {!isComplete && !isError && (
+            <TimingDisplay
+              timing={progress.timing}
+              isCreating={isCreating}
+              startTime={startTimeRef.current}
+            />
+          )}
+
           {/* Stage Progress */}
           {!isComplete && !isError && (
             <StageProgressBar
@@ -530,12 +660,15 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
           <CurrentActivityDisplay progress={progress} />
 
           {/* SAM's Thinking */}
-          <SAMThinkingDisplay thinking={progress.thinking} />
+          <SAMThinkingDisplay thinking={progress.thinking} isStreaming={isCreating} />
 
           {/* Completed Items */}
           <CompletedItemsList
             chapters={progress.completedItems.chapters}
             sections={progress.completedItems.sections}
+            isComplete={isComplete}
+            onRegenerate={onRegenerate}
+            regeneratingChapterId={regeneratingChapterId}
           />
 
           {/* Error Display */}
@@ -600,8 +733,14 @@ export const SequentialCreationModal = memo(function SequentialCreationModal({
                 Cancel
               </Button>
             )}
+            {isError && onResume && resumableCourseId && progress.completedItems.chapters.length > 0 && (
+              <Button onClick={onResume} variant="default">
+                <ChevronRight className="h-4 w-4 mr-2" />
+                Resume from Chapter {progress.completedItems.chapters.length + 1}
+              </Button>
+            )}
             {isError && onRetry && (
-              <Button onClick={onRetry} variant="default">
+              <Button onClick={onRetry} variant={onResume && resumableCourseId ? 'outline' : 'default'}>
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Try Again
               </Button>

@@ -39,7 +39,8 @@ const customJestConfig = {
     '<rootDir>/coverage/',
     '<rootDir>/dist/',
     '<rootDir>/backups/',
-    '<rootDir>/e2e/'
+    '<rootDir>/e2e/',
+    'test-fixtures\\.ts$'
   ],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]

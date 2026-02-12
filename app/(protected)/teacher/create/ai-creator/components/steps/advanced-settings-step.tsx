@@ -1,13 +1,16 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StepComponentProps } from '../../types/sam-creator.types';
-import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles } from 'lucide-react';
+import { Brain, Users, BookOpen, Target, Eye, ArrowRight, Trophy, Star, Sparkles, Clock, Coins, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { CostEstimate } from '@/lib/sam/course-creation/cost-estimator';
+import { formatEstimatedTime } from '@/lib/sam/course-creation/cost-estimator';
 
 export function AdvancedSettingsStep({ formData, setFormData }: StepComponentProps) {
   // Format difficulty for display (capitalize properly)
@@ -27,6 +30,81 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
     formData.targetAudience &&
     formData.courseGoals.length >= 2 &&
     formData.bloomsFocus.length >= 2;
+
+  // =========================================================================
+  // Cost Estimate
+  // =========================================================================
+  const [costEstimate, setCostEstimate] = useState<CostEstimate | null>(null);
+  const [costLoading, setCostLoading] = useState(false);
+  const [costError, setCostError] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track form values that affect cost in a ref for stable comparison
+  const costParamsRef = useRef('');
+
+  const fetchCostEstimate = useCallback(async (params: {
+    totalChapters: number;
+    sectionsPerChapter: number;
+    difficulty: string;
+    bloomsFocusCount: number;
+    learningObjectivesPerChapter: number;
+    learningObjectivesPerSection: number;
+  }) => {
+    setCostLoading(true);
+    setCostError(false);
+    try {
+      const res = await fetch('/api/sam/course-creation/estimate-cost', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json() as { success: boolean; estimate?: CostEstimate };
+      if (data.success && data.estimate) {
+        setCostEstimate(data.estimate);
+      } else {
+        setCostError(true);
+      }
+    } catch {
+      setCostError(true);
+    } finally {
+      setCostLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const params = {
+      totalChapters: formData.chapterCount,
+      sectionsPerChapter: formData.sectionsPerChapter,
+      difficulty: formData.difficulty.toLowerCase(),
+      bloomsFocusCount: formData.bloomsFocus.length,
+      learningObjectivesPerChapter: formData.learningObjectivesPerChapter,
+      learningObjectivesPerSection: formData.learningObjectivesPerSection,
+    };
+    const key = JSON.stringify(params);
+
+    // Skip if params haven't changed
+    if (key === costParamsRef.current) return;
+    costParamsRef.current = key;
+
+    // Debounce 500ms
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchCostEstimate(params);
+    }, 500);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [
+    formData.chapterCount,
+    formData.sectionsPerChapter,
+    formData.difficulty,
+    formData.bloomsFocus.length,
+    formData.learningObjectivesPerChapter,
+    formData.learningObjectivesPerSection,
+    fetchCostEstimate,
+  ]);
 
   return (
     <div className="w-full">
@@ -282,6 +360,95 @@ export function AdvancedSettingsStep({ formData, setFormData }: StepComponentPro
           </Card>
         </div>
       </div>
+
+      {/* Cost Estimate Preview */}
+      <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl mb-4 sm:mb-5 md:mb-6">
+        <div className="flex items-center gap-2.5 mb-4 sm:mb-5">
+          <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
+            <Coins className="h-4 w-4 sm:h-5 sm:w-5 text-slate-900 dark:text-slate-100" />
+          </div>
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100">
+              Generation Estimate
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Approximate cost and time for AI generation
+            </p>
+          </div>
+        </div>
+
+        {costLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-3 w-16 mb-2" />
+                <Skeleton className="h-5 w-12" />
+              </div>
+            ))}
+          </div>
+        ) : costError ? (
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 italic">
+            Cost estimate unavailable
+          </p>
+        ) : costEstimate ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="flex items-center justify-center mb-1.5">
+                  <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="text-sm sm:text-base md:text-lg font-bold text-slate-800 dark:text-slate-100">
+                  {formatEstimatedTime(costEstimate.estimatedTimeSeconds)}
+                </div>
+                <div className="text-[10px] xs:text-xs text-slate-500 dark:text-slate-400">
+                  Est. Time
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="flex items-center justify-center mb-1.5">
+                  <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="text-sm sm:text-base md:text-lg font-bold text-slate-800 dark:text-slate-100">
+                  {costEstimate.totalAICalls}
+                </div>
+                <div className="text-[10px] xs:text-xs text-slate-500 dark:text-slate-400">
+                  AI Calls
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="flex items-center justify-center mb-1.5">
+                  <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="text-sm sm:text-base md:text-lg font-bold text-slate-800 dark:text-slate-100">
+                  ${costEstimate.estimatedCostUSD.toFixed(2)}
+                </div>
+                <div className="text-[10px] xs:text-xs text-slate-500 dark:text-slate-400">
+                  Est. Cost
+                </div>
+              </div>
+
+              <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="flex items-center justify-center mb-1.5">
+                  <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {costEstimate.provider}
+                </div>
+                <div className="text-[10px] xs:text-xs text-slate-500 dark:text-slate-400">
+                  Provider
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[10px] xs:text-xs text-slate-400 dark:text-slate-500 text-center">
+              Includes ~{costEstimate.breakdown.retryOverheadPercent}% retry overhead.
+              Actual cost depends on AI response length and retries.
+            </div>
+          </div>
+        ) : null}
+      </Card>
 
       {/* Generation Status */}
       <Card className="p-4 sm:p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl sm:rounded-2xl">

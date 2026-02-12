@@ -422,6 +422,8 @@ const createMockPrismaClient = () => {
     'coursePlan',
     // SAM Conversation models
     'sAMConversation', 'sAMMessage',
+    // SAM Execution models
+    'sAMExecutionPlan', 'sAMExecutionStep',
     // Enterprise/Compliance models
     'complianceEvent', 'organization', 'sectionBloomsMapping',
     // Additional Blooms/SAM models

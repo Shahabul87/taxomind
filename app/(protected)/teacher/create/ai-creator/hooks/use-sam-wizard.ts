@@ -8,8 +8,8 @@ import { useProgressiveCourseCreation } from '@/hooks/use-progressive-course-cre
 import { trackAIFeatureUsage, trackFormProgress, trackGenerationStart, trackGenerationEnd } from '@/lib/analytics-tracker';
 import { logger } from '@/lib/logger';
 import { useIntelligentSAMSync } from '@/hooks/use-sam-intelligent-sync';
-import { createSamContext, getCourseWizardFieldMeta } from '@/lib/sam/utils/form-data-to-sam-context';
-import { useSamActionHandler, type SamAction } from './use-sam-action-handler';
+import { getCourseWizardFieldMeta } from '@/lib/sam/utils/form-data-to-sam-context';
+import { useSamActionHandler } from './use-sam-action-handler';
 
 const TOTAL_STEPS = 4;
 
@@ -41,7 +41,6 @@ export function useSamWizard() {
   const [samSuggestion, setSamSuggestion] = useState<SamSuggestion | null>(null);
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  const [isValidating, setIsValidating] = useState(false);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
@@ -125,134 +124,6 @@ export function useSamWizard() {
       logger.error('Error loading saved draft:', error);
     }
   }, []);
-
-  const getSamSuggestion = useCallback(async (context: string) => {
-    if (isLoadingSuggestion) return;
-    
-    debouncedCall({
-      key: `sam-suggestion-${context}-${step}`,
-      fn: async () => {
-        setIsLoadingSuggestion(true);
-        
-        try {
-          trackAIFeatureUsage('sam_suggestions', { context, step });
-          
-          const response = await fetch('/api/sam/ai-tutor/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              message: `Provide contextual suggestions for course creation step ${step}. Context: ${context}. Current course data: ${JSON.stringify(formData)}. Give helpful advice and suggestions.`,
-              context: createSamContext({
-                formData: formData as unknown as Record<string, unknown>,
-                pageType: 'course_creation',
-                pageTitle: 'AI Course Creator - Suggestions',
-                userRole: 'teacher',
-                currentStep: step,
-                totalSteps: TOTAL_STEPS,
-              })
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-
-            // Process any actions from the API response (form auto-fill, navigation, etc.)
-            const actionResults = processApiResponse({
-              action: data.action as SamAction | null,
-              actions: data.actions as SamAction[] | undefined,
-            });
-
-            // Determine if we have actionable content based on action results
-            const hasSuccessfulActions = actionResults.some(r => r.success);
-
-            setSamSuggestion({
-              message: data.response,
-              type: 'suggestion',
-              actionable: true,
-              confidence: data.metadata?.confidence ?? 0.85,
-              actionData: data.action || undefined,
-              actionResults: hasSuccessfulActions ? actionResults : undefined,
-            });
-          } else {
-            throw new Error(`Sam suggestion failed: ${response.status}`);
-          }
-        } catch (error: any) {
-          logger.error('Error getting Sam suggestion:', error);
-          setSamSuggestion({
-            message: "I'm having trouble right now. Please try again in a moment.",
-            type: 'warning',
-            actionable: false,
-            confidence: 0.5
-          });
-        } finally {
-          setIsLoadingSuggestion(false);
-        }
-      },
-      delay: 1500
-    });
-  }, [formData, step, isLoadingSuggestion, debouncedCall, processApiResponse]);
-
-  const validateForm = useCallback(async () => {
-    if (isValidating) return;
-    
-    debouncedCall({
-      key: `sam-validation-${step}`,
-      fn: async () => {
-        setIsValidating(true);
-        try {
-          const response = await fetch('/api/sam/ai-tutor/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              message: `Validate course creation form data for step ${step}. Check for completeness, quality, and provide improvement suggestions. Form data: ${JSON.stringify(formData)}`,
-              context: createSamContext({
-                formData: formData as unknown as Record<string, unknown>,
-                pageType: 'course_creation',
-                pageTitle: 'AI Course Creator - Validation',
-                userRole: 'teacher',
-                currentStep: step,
-                totalSteps: TOTAL_STEPS,
-              })
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-
-            // Process any actions from the validation response
-            const actionResults = processApiResponse({
-              action: data.action as SamAction | null,
-              actions: data.actions as SamAction[] | undefined,
-            });
-
-            const hasSuccessfulActions = actionResults.some(r => r.success);
-
-            // Clear previous errors and show SAM's validation feedback
-            setValidationErrors({});
-            setSamSuggestion({
-              message: data.response,
-              type: 'validation',
-              actionable: true,
-              confidence: data.metadata?.confidence ?? 0.9,
-              actionData: data.action || undefined,
-              actionResults: hasSuccessfulActions ? actionResults : undefined,
-            });
-          } else {
-            throw new Error(`Sam validation failed: ${response.status}`);
-          }
-        } catch (error: any) {
-          logger.error('Error validating form:', error);
-        } finally {
-          setIsValidating(false);
-        }
-      },
-      delay: 2000
-    });
-  }, [formData, step, isValidating, debouncedCall, setValidationErrors, processApiResponse]);
 
   const applySamSuggestion = (suggestion: SamSuggestion) => {
     // Apply smart defaults or other actions
@@ -447,8 +318,6 @@ export function useSamWizard() {
     handleNext,
     handleBack,
     handleGenerate,
-    getSamSuggestion,
-    validateForm,
     resetWizard
   };
 

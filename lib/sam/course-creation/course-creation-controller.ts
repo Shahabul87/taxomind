@@ -233,6 +233,35 @@ export async function completeCourseCreation(
 }
 
 /**
+ * Reactivate a paused/failed course creation goal and plan.
+ * Used when resuming from a checkpoint.
+ */
+export async function reactivateCourseCreation(
+  goalId: string,
+  planId: string
+): Promise<void> {
+  if (!goalId || !planId) return;
+
+  const { goal: goalStore, plan: planStore } = getGoalStores();
+
+  try {
+    await goalStore.update(goalId, { status: GoalStatus.ACTIVE });
+    await planStore.update(planId, { status: PlanStatus.ACTIVE });
+
+    logger.info('[CourseCreationController] Course creation reactivated', {
+      goalId,
+      planId,
+    });
+  } catch (error) {
+    logger.warn('[CourseCreationController] Failed to reactivate creation', {
+      error: error instanceof Error ? error.message : String(error),
+      goalId,
+      planId,
+    });
+  }
+}
+
+/**
  * Mark the course creation as failed — goal paused, plan failed.
  */
 export async function failCourseCreation(

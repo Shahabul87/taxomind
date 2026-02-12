@@ -222,6 +222,14 @@ export interface CreationProgress {
   };
   /** SAM Goal ID for this creation session */
   goalId?: string;
+  /** Timing data for ETA display */
+  timing?: {
+    elapsedMs: number;
+    estimatedRemainingMs: number | null;
+    averageItemMs: number | null;
+    itemsCompleted: number;
+    totalItems: number;
+  };
 }
 
 // ============================================================================
@@ -235,6 +243,7 @@ export type SSEEventType =
   | 'item_saving'
   | 'item_complete'
   | 'thinking'
+  | 'thinking_chunk'
   | 'progress'
   | 'error'
   | 'complete';
@@ -431,4 +440,41 @@ export interface ContentAwareBloomsInput {
   isFoundational: boolean;
   isCapstone: boolean;
   previousBloomsLevels: BloomsLevel[];
+}
+
+// ============================================================================
+// Checkpoint / Resume Types
+// ============================================================================
+
+/** Serializable checkpoint data saved after each completed chapter */
+export interface CheckpointData {
+  /** Serialized ConceptTracker.concepts as array (Map not JSON-serializable) */
+  conceptEntries: Array<[string, ConceptEntry]>;
+  vocabulary: string[];
+  skillsBuilt: string[];
+  bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }>;
+  allSectionTitles: string[];
+  completedChapterCount: number;
+  config: Omit<SequentialCreationConfig, 'onProgress' | 'onThinking' | 'onStageComplete' | 'onError'>;
+  qualityScores: QualityScore[];
+  goalId: string;
+  planId: string;
+  stepIds: string[];
+  savedAt: string;
+
+  // === UI-visible progress fields (Phase 3: Progress Persistence) ===
+  /** Course ID for cross-device resume */
+  courseId?: string;
+  /** Total chapters configured */
+  totalChapters?: number;
+  /** Completion percentage (0-100) */
+  percentage?: number;
+  /** Completed chapters with metadata for resume banner */
+  completedChapters?: Array<{ position: number; title: string; id: string; qualityScore?: number }>;
+  /** Completed sections with metadata */
+  completedSections?: Array<{ chapterPosition: number; position: number; title: string; id: string; qualityScore?: number }>;
+  /** Current pipeline status */
+  status?: 'in_progress' | 'paused' | 'error' | 'completed';
+  /** Last error message if status is 'error' */
+  errorMessage?: string;
 }

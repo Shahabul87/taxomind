@@ -20,7 +20,7 @@ import { currentUser } from '@/lib/auth';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
-import { orchestrateCourseCreation } from '@/lib/sam/course-creation/orchestrator';
+import { orchestrateCourseCreation, resumeCourseCreation } from '@/lib/sam/course-creation/orchestrator';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutes max for full course generation
@@ -43,6 +43,7 @@ const OrchestrateRequestSchema = z.object({
   preferredContentTypes: z.array(z.string()).default([]),
   category: z.string().optional(),
   subcategory: z.string().optional(),
+  resumeCourseId: z.string().optional(),
 });
 
 // =============================================================================
@@ -98,25 +99,33 @@ export async function POST(request: NextRequest) {
         });
 
         try {
-          const result = await orchestrateCourseCreation({
+          const orchestrateOptions = {
             userId: user.id,
+            abortSignal: request.signal,
             config: {
               ...config,
-              onProgress: (progress) => {
+              onProgress: (progress: { percentage: number; message: string; state: unknown }) => {
                 sendSSE('progress', {
                   percentage: progress.percentage,
                   message: progress.message,
                   state: progress.state,
                 });
               },
-              onError: (error, canRetry) => {
+              onError: (error: string, canRetry: boolean) => {
                 sendSSE('error', { message: error, canRetry });
               },
             },
-            onSSEEvent: (event) => {
+            onSSEEvent: (event: { type: string; data: Record<string, unknown> }) => {
               sendSSE(event.type, event.data);
             },
-          });
+          };
+
+          const result = config.resumeCourseId
+            ? await resumeCourseCreation({
+                ...orchestrateOptions,
+                resumeCourseId: config.resumeCourseId,
+              })
+            : await orchestrateCourseCreation(orchestrateOptions);
 
           // Final event
           if (result.success) {

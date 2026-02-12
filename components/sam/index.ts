@@ -32,7 +32,6 @@ export { SAMEnginePoweredChat } from './sam-engine-powered-chat';
 // COURSE CREATION COMPONENTS
 // ============================================================================
 
-export { CourseCreationProgress } from './course-creation-progress';
 export { SequentialCreationModal } from './sequential-creation-modal';
 
 // ============================================================================
