@@ -13,7 +13,7 @@ export const runtime = 'nodejs';
 const SectionUpdateSchema = z.object({
   // Core content fields
   title: z.string().min(1, "Title is required").max(200, "Title must be 200 characters or less").optional(),
-  description: z.string().max(5000, "Description must be 5000 characters or less").optional().nullable(),
+  description: z.string().max(30000, "Description must be 30000 characters or less").optional().nullable(),
   learningObjectives: z.string().max(2000, "Learning objectives must be 2000 characters or less").optional().nullable(),
 
   // Video content

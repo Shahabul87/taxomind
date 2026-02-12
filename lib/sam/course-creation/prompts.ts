@@ -106,6 +106,46 @@ The verb in a learning objective dictates the activity type. If an objective say
 Core concepts are revisited across chapters at deeper ARROW phases. A concept introduced via intuition in Chapter 2 may be revisited via failure analysis in Chapter 6.`;
 
 /**
+ * Traditional taxonomy-based pedagogy for A/B experiment comparison.
+ * This is the "treatment-a" variant — uses conventional instructional design.
+ */
+const TRADITIONAL_DESIGN_EXPERTISE = `You are SAM, an expert instructional designer specializing in structured, taxonomy-based course creation. You follow proven instructional design methodologies to create clear, well-organized courses.
+
+## YOUR TEACHING PHILOSOPHY: STRUCTURED TAXONOMY APPROACH
+
+You follow a systematic, objectives-first approach based on established instructional design principles:
+
+1. **OBJECTIVES FIRST** — Start every chapter by clearly stating what students will learn. Use Bloom&apos;s Taxonomy verbs for measurable outcomes.
+2. **FOUNDATIONAL KNOWLEDGE** — Present key definitions, concepts, and terminology before building complexity.
+3. **EXPLANATORY CONTENT** — Provide clear, detailed explanations with examples that illustrate each concept.
+4. **GUIDED PRACTICE** — Walk students through worked examples and structured exercises with scaffolding.
+5. **INDEPENDENT PRACTICE** — Provide opportunities for students to apply knowledge with decreasing support.
+6. **ASSESSMENT** — Include formative checks and summative assessments aligned to learning objectives.
+
+## RULES
+- Always state learning objectives at the start of each chapter
+- Present material in a logical, linear progression from simple to complex
+- Define all key terms before using them
+- Include summaries at the end of each major section
+- Use concrete examples to illustrate abstract concepts
+- Align all activities and assessments directly to stated objectives
+
+## ADAPTIVE BEHAVIOR
+- **BEGINNER**: Extensive scaffolding, step-by-step guidance, many examples, frequent knowledge checks
+- **INTERMEDIATE**: Balanced theory and practice, some open-ended problems, peer discussion prompts
+- **ADVANCED**: Complex scenarios, research-level readings, synthesis across topics, independent projects`;
+
+/**
+ * Returns the appropriate course design expertise based on experiment variant.
+ * Default/undefined/control → ARROW framework (current behavior).
+ * treatment-a → Traditional taxonomy-based pedagogy.
+ */
+export function getCourseDesignExpertise(variant?: string): string {
+  if (variant === 'treatment-a') return TRADITIONAL_DESIGN_EXPERTISE;
+  return COURSE_DESIGN_EXPERTISE;
+}
+
+/**
  * Chapter-level design principles — injected into Stage 1 prompts.
  * Guides SAM on what makes a chapter pedagogically excellent.
  */
@@ -193,12 +233,22 @@ Sections within a chapter should follow the ARROW progression:
  */
 const DETAIL_DESIGN_PRINCIPLES = `## DETAIL DESIGN PRINCIPLES
 
-### Writing Descriptions (ARROW Hook Approach)
-A section description follows the ARROW pattern — hook first, then build:
-1. **HOOK**: What real-world application or surprising fact makes this topic irresistible? Why should students care RIGHT NOW?
-2. **WHAT YOU&apos;LL BUILD/DISCOVER**: What tangible thing will students create or understand by the end?
-3. **WHY IT MATTERS**: How does this connect to the chapter&apos;s application and the broader course?
-4. **WHAT YOU&apos;LL BE ABLE TO DO**: What concrete capability will students gain?
+### Writing Lesson Content (Rich HTML Descriptions)
+A section description is a FULL LESSON — the text version of what a great professor would say in a video lecture. It must be 600-1000 words of structured HTML, organized into exactly 5 sections with h2 headings:
+
+1. **&lt;h2&gt;Why This Matters&lt;/h2&gt;** — Open with a real-world story, scenario, or surprising fact. Build intuition for WHY this concept exists. Make the learner feel "I need to understand this." Use a concrete analogy.
+2. **&lt;h2&gt;The Big Picture&lt;/h2&gt;** — Where does this topic fit in the broader field? Why can&apos;t you skip it? What breaks if you don&apos;t understand it? Connect to prior sections and the chapter arc.
+3. **&lt;h2&gt;What You Will Learn&lt;/h2&gt;** — 3-5 key ideas explained with analogies and plain language. Use &lt;ul&gt;/&lt;li&gt; lists. Each concept should be concrete and specific, not vague.
+4. **&lt;h2&gt;Problems You Can Solve&lt;/h2&gt;** — Specific, concrete problems (not vague categories). Name actual scenarios, datasets, or challenges. Use &lt;ol&gt;/&lt;li&gt; for numbered examples.
+5. **&lt;h2&gt;Real-World Applications&lt;/h2&gt;** — Name real companies, products, or systems that use this concept. Show how this knowledge translates to professional value.
+
+**HTML Rules:**
+- Use ONLY these tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote
+- NO &lt;h1&gt; tags (the section title serves as h1)
+- NO &lt;br&gt;, &lt;div&gt;, &lt;span&gt;, or inline styles
+- Address the learner directly ("you", "your")
+- Mention the section&apos;s topicFocus by name at least 3 times
+- Include at least one analogy to make an abstract concept concrete
 
 ### Writing Learning Objectives (ABCD Method)
 Every objective must contain these elements:
@@ -244,7 +294,8 @@ export function buildStage1Prompt(
   previousChapters: GeneratedChapter[],
   conceptTracker?: ConceptTracker,
   categoryPrompt?: ComposedCategoryPrompt,
-  completedChapters?: CompletedChapter[]
+  completedChapters?: CompletedChapter[],
+  variant?: string
 ): StagePrompt {
   const bloomsLevel = getContentAwareBloomsLevel({
     chapterNumber: currentChapterNumber,
@@ -389,7 +440,7 @@ This chapter develops core competency. Balance ARROW Phases 3-6:
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
   const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
 
-  const systemPrompt = `${COURSE_DESIGN_EXPERTISE}
+  const systemPrompt = `${getCourseDesignExpertise(variant)}
 ${domainExpertise}
 
 ${CHAPTER_DESIGN_PRINCIPLES}
@@ -513,7 +564,8 @@ export function buildStage2Prompt(
   previousSections: GeneratedSection[],
   allExistingSectionTitles: string[],
   enrichedContext?: EnrichedChapterContext,
-  categoryPrompt?: ComposedCategoryPrompt
+  categoryPrompt?: ComposedCategoryPrompt,
+  variant?: string
 ): StagePrompt {
   const previousSectionsSummary = previousSections.length > 0
     ? previousSections.map(s => `- Section ${s.position}: "${s.title}" (${s.contentType}) - Focus: ${s.topicFocus}`).join('\n')
@@ -589,7 +641,7 @@ This is a MIDDLE section (${currentSectionNumber} of ${courseContext.sectionsPer
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
   const domainSectionGuidance = categoryPrompt?.sectionGuidanceBlock ?? '';
 
-  const systemPrompt = `${COURSE_DESIGN_EXPERTISE}
+  const systemPrompt = `${getCourseDesignExpertise(variant)}
 ${domainExpertise}
 
 ${SECTION_DESIGN_PRINCIPLES}
@@ -713,7 +765,8 @@ export function buildStage3Prompt(
   section: GeneratedSection,
   chapterSections: GeneratedSection[],
   enrichedContext?: EnrichedChapterContext,
-  categoryPrompt?: ComposedCategoryPrompt
+  categoryPrompt?: ComposedCategoryPrompt,
+  variant?: string
 ): StagePrompt {
   const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
 
@@ -744,7 +797,7 @@ ${knownConcepts.length > 0 ? knownConcepts.join(', ') : 'This is early in the co
 Build descriptions and objectives that reference and extend this knowledge.
 
 ## STYLE AND DEPTH GUIDELINES
-- Description: 50-150 words, specific to this section's topic
+- Description: 600-1000 words as structured HTML lesson (h2/p/ul/ol/li/strong/em/code), organized into 5 sections: Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications
 - Objectives: Use ONLY ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.join(', ')})
 - Activity: Must match content type "${section.contentType}" and demonstrate measurable skill
 - Each objective should be achievable within ${section.estimatedDuration}
@@ -814,7 +867,7 @@ Design this as a collaborative sense-making experience:
   const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
   const domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
 
-  const systemPrompt = `${COURSE_DESIGN_EXPERTISE}
+  const systemPrompt = `${getCourseDesignExpertise(variant)}
 ${domainExpertise}
 
 ${DETAIL_DESIGN_PRINCIPLES}
@@ -851,12 +904,13 @@ ${domainDetailGuidance}
 
 ## THINKING PROCESS (Reason through each step carefully)
 
-### Step 1: ARROW HOOK — Write the description with an application-first approach
-Write the description following the ARROW pattern:
-1. **THE HOOK**: Why does "${section.topicFocus}" matter? What real-world application or surprising fact makes it irresistible?
-2. **WHAT YOU&apos;LL BUILD/DISCOVER**: What tangible thing will students create or understand in this ${section.contentType}?
-3. **THE CONNECTION**: How does this section build on prior sections and feed into later ones?
-4. **THE OUTCOME**: What can students accomplish after completing this section?
+### Step 1: LESSON CONTENT — Write a full HTML lesson for "${section.topicFocus}"
+Write a rich, structured HTML lesson (600-1000 words) with exactly 5 sections:
+1. **<h2>Why This Matters</h2>**: Open with a real-world story or scenario about "${section.topicFocus}". Why does this concept exist? What problem does it solve? Use a concrete analogy to build intuition.
+2. **<h2>The Big Picture</h2>**: Where does "${section.topicFocus}" fit in the broader field? How does it connect to what students learned in prior sections? What breaks if you skip this?
+3. **<h2>What You Will Learn</h2>**: List 3-5 key ideas with analogies. Use <ul>/<li> for each concept. Explain each in plain language before using technical terms.
+4. **<h2>Problems You Can Solve</h2>**: Give specific, concrete problems (not vague). Use <ol>/<li> to number them. Name actual datasets, scenarios, or challenges.
+5. **<h2>Real-World Applications</h2>**: Name real companies, products, or systems. Show professional value. Connect to what students will build in the practical activity.
 
 ### Step 2: LEARNING OBJECTIVES — Apply ABCD Method
 For each of the ${courseContext.learningObjectivesPerSection} objectives:
@@ -886,7 +940,7 @@ Return a JSON object with this EXACT structure:
 {
   "thinking": "Your 3-5 sentence reasoning covering: (1) what problem this section solves for learners, (2) why the objectives are written at this Bloom's level, (3) how the activity produces evidence of learning",
   "details": {
-    "description": "80-200 words structured as: [Problem/Hook] → [What students will learn] → [What students will do] → [Outcome]. Must mention '${section.topicFocus}' specifically. Write engagingly — address the learner directly.",
+    "description": "600-1000 words of structured HTML lesson content. Must contain exactly 5 sections with <h2> headings: 'Why This Matters', 'The Big Picture', 'What You Will Learn', 'Problems You Can Solve', 'Real-World Applications'. Use only these HTML tags: h2, h3, p, ul, ol, li, strong, em, code, blockquote. Must mention '${section.topicFocus}' by name at least 3 times. Include at least one analogy. Address the learner directly with 'you'/'your'. No <h1>, <br>, <div>, <span>, or inline styles.",
     "learningObjectives": [
       // Exactly ${courseContext.learningObjectivesPerSection} objectives
       // Each MUST start with: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
@@ -902,12 +956,12 @@ Return a JSON object with this EXACT structure:
 }
 
 QUALITY GATES — Your output will be scored on:
-1. **Description Depth**: Does it answer WHAT, WHY, HOW, OUTCOME? Does it mention "${section.topicFocus}"?
+1. **Lesson Structure**: Does the description contain all 5 HTML sections (<h2>Why This Matters, The Big Picture, What You Will Learn, Problems You Can Solve, Real-World Applications</h2>)? Is it 600-1000 words? Does it mention "${section.topicFocus}" at least 3 times?
 2. **Bloom's Compliance**: Do ALL objectives use ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.slice(0, 3).join(', ')})?
 3. **ABCD Completeness**: Do objectives have Behavior + Condition + Degree (not just a verb + noun)?
 4. **Activity Alignment**: Does the activity match content type "${section.contentType}" and produce observable evidence?
 5. **Concept Specificity**: Are keyConceptsCovered precise terms, not vague categories?
-6. **Connection**: Does the description reference how this section connects to the chapter arc?
+6. **Teaching Quality**: Does the lesson include analogies, concrete examples, and address the learner directly?
 
 Return ONLY valid JSON, no markdown formatting`;
 
