@@ -281,6 +281,12 @@ interface CachedUserPreferences {
   preferredAnalysisProvider: string | null;
   preferredCodeProvider: string | null;
   preferredSkillRoadmapProvider: string | null;
+  // Per-capability model overrides
+  chatModel: string | null;
+  courseModel: string | null;
+  analysisModel: string | null;
+  codeModel: string | null;
+  skillRoadmapModel: string | null;
   fetchedAt: number;
 }
 
@@ -420,6 +426,12 @@ async function resolveProvider(options: {
             preferredAnalysisProvider: true,
             preferredCodeProvider: true,
             preferredSkillRoadmapProvider: true,
+            // Per-capability model overrides
+            chatModel: true,
+            courseModel: true,
+            analysisModel: true,
+            codeModel: true,
+            skillRoadmapModel: true,
           },
         });
 
@@ -485,32 +497,61 @@ async function resolveProvider(options: {
 /**
  * Get an adapter for the resolved provider with optional user model preferences.
  * Respects platform settings for model selection control.
+ *
+ * Model resolution order:
+ * 1. Per-capability model (user set a specific model for this capability)
+ * 2. Per-provider model (user set a model for this provider)
+ * 3. Platform default model (admin-set default for this provider)
+ * 4. Registry default (hardcoded in ai-registry)
  */
 async function getAdapter(options: {
   provider: AIProviderType;
   userId?: string;
   extended?: boolean;
+  capability?: AICapability;
 }): Promise<AIAdapter> {
-  const { provider, userId, extended = false } = options;
+  const { provider, userId, extended = false, capability } = options;
   const timeoutConfig: CreateAdapterOptions = extended
     ? { timeout: 180000, maxRetries: 1 }
     : { timeout: 60000, maxRetries: 2 };
 
   const settings = await getPlatformSettings();
 
-  // Determine model: user preference → platform default per provider → registry default
+  // Determine model with resolution order:
+  // per-capability model → per-provider model → platform default → registry default
   let modelOverride: string | undefined;
 
   if (userId && settings.allowUserModelSelection) {
-    try {
-      const userPrefs = await getUserModelPreferences(userId);
-      modelOverride = getModelForProvider(provider, userPrefs) ?? undefined;
-    } catch {
-      // Ignore - will use platform default model
+    // 1. Check per-capability model from cached user preferences
+    if (capability) {
+      const cachedPrefs = getCachedUserPreferences(userId);
+      if (cachedPrefs) {
+        const capabilityModelMap: Record<string, string | null> = {
+          'chat': cachedPrefs.chatModel,
+          'course': cachedPrefs.courseModel,
+          'analysis': cachedPrefs.analysisModel,
+          'code': cachedPrefs.codeModel,
+          'skill-roadmap': cachedPrefs.skillRoadmapModel,
+        };
+        const capabilityModel = capabilityModelMap[capability];
+        if (capabilityModel) {
+          modelOverride = capabilityModel;
+        }
+      }
+    }
+
+    // 2. Fall back to per-provider model
+    if (!modelOverride) {
+      try {
+        const userPrefs = await getUserModelPreferences(userId);
+        modelOverride = getModelForProvider(provider, userPrefs) ?? undefined;
+      } catch {
+        // Ignore - will use platform default model
+      }
     }
   }
 
-  // If no user model, use platform default model for this provider
+  // 3. If no user model, use platform default model for this provider
   if (!modelOverride) {
     modelOverride = getPlatformDefaultModel(provider, settings);
   }
@@ -551,14 +592,14 @@ async function getAdapter(options: {
 
 /**
  * Maps AICapability to AIFeatureType for rate limiting.
- * 'skill-roadmap' maps to 'chat' because it shares the same rate limit bucket.
+ * Each capability has its own rate limit bucket.
  */
 const CAPABILITY_TO_FEATURE: Record<AICapability, AIFeatureType> = {
   'chat': 'chat',
   'course': 'course',
   'analysis': 'analysis',
   'code': 'code',
-  'skill-roadmap': 'chat',
+  'skill-roadmap': 'skill-roadmap',
 };
 
 // ============================================================================
@@ -742,6 +783,7 @@ export const aiClient = {
         provider,
         userId,
         extended,
+        capability,
       });
 
       const response = await adapter.chat({
@@ -916,7 +958,7 @@ export const aiClient = {
     ): Promise<{ adapter: AIAdapter; generator: AsyncIterable<AIChatStreamChunk> }> => {
       const breaker = getProviderCircuitBreaker(provider);
       const adapterInstance = await breaker.execute(() =>
-        getAdapter({ provider, userId, extended }),
+        getAdapter({ provider, userId, extended, capability }),
       );
       if (adapterInstance.chatStream) {
         return { adapter: adapterInstance, generator: adapterInstance.chatStream(chatParams) };

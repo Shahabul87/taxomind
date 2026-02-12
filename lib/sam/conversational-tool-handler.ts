@@ -54,6 +54,17 @@ const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
     ],
     defaultInput: { action: 'start' },
   },
+  'course-architect': {
+    toolId: 'sam-course-creator',
+    intentPatterns: [
+      /\b(create|build|make|generate|design|develop)\b.*\b(course|curriculum|class|program)\b/i,
+      /\bnew course\b/i,
+      /\bcourse\b.*\b(creation|builder|designer|generator)\b/i,
+      /\b(want to|need to|help me)\b.*\b(create|build|make)\b.*\bcourse\b/i,
+      /\bteach\b.*\b(course|class)\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
 };
 
 // =============================================================================
@@ -228,6 +239,25 @@ export async function checkConversationalToolInvoke(
           const skillName = match[1].trim().replace(/\s+/g, ' ');
           if (skillName.length >= 2 && skillName.length <= 50) {
             input = { ...input, skillName };
+            break;
+          }
+        }
+      }
+    }
+
+    if (config.toolId === 'sam-course-creator') {
+      const coursePatterns = [
+        /(?:course|curriculum|class|program)\s+(?:about|on|for)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+        /(?:create|build|make|generate)\s+(?:a\s+)?(?:course|curriculum)\s+(?:about|on|for)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+        /(?:create|build|make)\s+(?:a\s+)?([a-z][a-z0-9\s.#+\-]*?)\s+course/i,
+      ];
+
+      for (const coursePattern of coursePatterns) {
+        const match = message.match(coursePattern);
+        if (match && match[1]) {
+          const courseName = match[1].trim().replace(/\s+/g, ' ');
+          if (courseName.length >= 2 && courseName.length <= 100) {
+            input = { ...input, courseName };
             break;
           }
         }

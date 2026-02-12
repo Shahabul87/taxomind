@@ -55,7 +55,7 @@ export default function SectionError({
               Try Again
             </Button>
             <Button variant="outline" asChild className="flex-1">
-              <Link href="/my-courses">
+              <Link href="/dashboard/user/my-courses">
                 <Home className="h-4 w-4 mr-2" />
                 Back to Courses
               </Link>

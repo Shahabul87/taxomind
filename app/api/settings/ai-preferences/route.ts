@@ -39,6 +39,13 @@ const AIPreferencesSchema = z.object({
   openaiModel: z.enum(VALID_OPENAI_MODELS).nullable().optional(),
   geminiModel: z.enum(VALID_GEMINI_MODELS).nullable().optional(),
   mistralModel: z.enum(VALID_MISTRAL_MODELS).nullable().optional(),
+  // Per-capability model overrides (free-form string — validated loosely since the
+  // valid model depends on which provider is selected for that capability)
+  chatModel: z.string().max(100).nullable().optional(),
+  courseModel: z.string().max(100).nullable().optional(),
+  analysisModel: z.string().max(100).nullable().optional(),
+  codeModel: z.string().max(100).nullable().optional(),
+  skillRoadmapModel: z.string().max(100).nullable().optional(),
 }).superRefine((data, ctx) => {
   // Cross-validate: reject providers that are not yet implemented
   const providerFields = [
@@ -99,6 +106,12 @@ export async function GET(request: NextRequest) {
         openaiModel: true,
         geminiModel: true,
         mistralModel: true,
+        // Per-capability model overrides
+        chatModel: true,
+        courseModel: true,
+        analysisModel: true,
+        codeModel: true,
+        skillRoadmapModel: true,
       },
     });
 
@@ -128,6 +141,12 @@ export async function GET(request: NextRequest) {
         openaiModel: platformSettings?.defaultOpenaiModel ?? "gpt-4o",
         geminiModel: platformSettings?.defaultGeminiModel ?? "gemini-pro",
         mistralModel: platformSettings?.defaultMistralModel ?? "mistral-large",
+        // Per-capability model overrides (null = use provider default)
+        chatModel: null,
+        courseModel: null,
+        analysisModel: null,
+        codeModel: null,
+        skillRoadmapModel: null,
       });
     }
 
@@ -183,6 +202,12 @@ export async function PUT(request: NextRequest) {
           openaiModel: validatedData.openaiModel,
           geminiModel: validatedData.geminiModel,
           mistralModel: validatedData.mistralModel,
+          // Per-capability model overrides
+          chatModel: validatedData.chatModel,
+          courseModel: validatedData.courseModel,
+          analysisModel: validatedData.analysisModel,
+          codeModel: validatedData.codeModel,
+          skillRoadmapModel: validatedData.skillRoadmapModel,
           updatedAt: new Date(),
         },
       });
@@ -227,6 +252,12 @@ export async function PUT(request: NextRequest) {
           openaiModel: validatedData.openaiModel ?? platformDefaults?.defaultOpenaiModel ?? "gpt-4o",
           geminiModel: validatedData.geminiModel ?? platformDefaults?.defaultGeminiModel ?? "gemini-pro",
           mistralModel: validatedData.mistralModel ?? platformDefaults?.defaultMistralModel ?? "mistral-large",
+          // Per-capability model overrides
+          chatModel: validatedData.chatModel ?? null,
+          courseModel: validatedData.courseModel ?? null,
+          analysisModel: validatedData.analysisModel ?? null,
+          codeModel: validatedData.codeModel ?? null,
+          skillRoadmapModel: validatedData.skillRoadmapModel ?? null,
           updatedAt: new Date(),
         },
       });
@@ -271,6 +302,12 @@ export async function PUT(request: NextRequest) {
         openaiModel: preferences.openaiModel,
         geminiModel: preferences.geminiModel,
         mistralModel: preferences.mistralModel,
+        // Per-capability model overrides
+        chatModel: preferences.chatModel,
+        courseModel: preferences.courseModel,
+        analysisModel: preferences.analysisModel,
+        codeModel: preferences.codeModel,
+        skillRoadmapModel: preferences.skillRoadmapModel,
       },
     });
   } catch (error) {

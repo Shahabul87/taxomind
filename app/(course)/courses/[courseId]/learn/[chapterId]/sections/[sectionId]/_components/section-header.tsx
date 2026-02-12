@@ -86,7 +86,7 @@ export function SectionHeader({
           {/* Left: Breadcrumb Navigation */}
           <nav className="flex items-center min-w-0 flex-1 text-sm">
             <Link
-              href="/my-courses"
+              href="/dashboard/user/my-courses"
               className="flex items-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors flex-shrink-0"
             >
               <Home className="h-4 w-4" />

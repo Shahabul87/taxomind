@@ -22,7 +22,7 @@ export default function SectionNotFound() {
         </CardHeader>
         <CardContent>
           <Button asChild className="w-full">
-            <Link href="/my-courses">
+            <Link href="/dashboard/user/my-courses">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to My Courses
             </Link>

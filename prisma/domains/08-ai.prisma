@@ -156,6 +156,13 @@ model UserAIPreferences {
   geminiModel               String?  @default("gemini-pro")
   mistralModel              String?  @default("mistral-large")
   openaiModel               String?  @default("gpt-4o")
+
+  // Per-capability model selections (override per-provider model for specific tasks)
+  chatModel                 String?
+  courseModel                String?
+  analysisModel             String?
+  codeModel                 String?
+  skillRoadmapModel         String?
 }
 
 model AIModelPerformance {

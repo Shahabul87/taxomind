@@ -27,6 +27,7 @@ export type AIFeatureType =
   | "exercise"       // Exercise generation
   | "analysis"       // Content analysis
   | "code"           // Code generation/review
+  | "skill-roadmap"  // Skill roadmap generation
   | "other";         // Other AI operations
 
 // Result of enforcement check
@@ -102,9 +103,9 @@ function isFeatureAvailableForTier(feature: AIFeatureType, tier: SubscriptionTie
     return feature === "chat";
   }
 
-  // Starter tier: chat, basic course generation
+  // Starter tier: chat, basic course generation, skill roadmaps
   if (tier === "STARTER") {
-    return ["chat", "course", "chapter", "lesson", "exam", "exercise"].includes(feature);
+    return ["chat", "course", "chapter", "lesson", "exam", "exercise", "skill-roadmap"].includes(feature);
   }
 
   // Pro and above: all features
@@ -116,7 +117,7 @@ function isFeatureAvailableForTier(feature: AIFeatureType, tier: SubscriptionTie
  */
 function getSuggestedTier(feature: AIFeatureType): SubscriptionTier {
   if (feature === "chat") return "FREE";
-  if (["course", "chapter", "lesson", "exam", "exercise"].includes(feature)) return "STARTER";
+  if (["course", "chapter", "lesson", "exam", "exercise", "skill-roadmap"].includes(feature)) return "STARTER";
   return "PROFESSIONAL";
 }
 
@@ -377,7 +378,7 @@ export async function recordAIUsage(
     });
 
     // Platform summary is best-effort and non-critical — keep outside transaction
-    await updatePlatformSummary(metadata?.cost || 0);
+    await updatePlatformSummary(metadata?.cost || 0, metadata?.provider, feature);
 
     logger.info("[AI_USAGE_RECORDED]", {
       userId,
@@ -398,9 +399,39 @@ export async function recordAIUsage(
  * Update platform-wide usage summary and check budget alerts
  * Gracefully handles missing table
  */
-async function updatePlatformSummary(cost: number): Promise<void> {
+async function updatePlatformSummary(
+  cost: number,
+  provider?: string,
+  feature?: string,
+): Promise<void> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // Build per-provider increment fields
+  const providerGenerationsKey = provider ? `${provider}Generations` : null;
+  const providerCostKey = provider ? `${provider}Cost` : null;
+
+  const providerUpdateFields: Record<string, { increment: number }> = {};
+  const providerCreateFields: Record<string, number> = {};
+
+  if (providerGenerationsKey && ['anthropicGenerations', 'deepseekGenerations', 'openaiGenerations', 'geminiGenerations', 'mistralGenerations'].includes(providerGenerationsKey)) {
+    providerUpdateFields[providerGenerationsKey] = { increment: 1 };
+    providerCreateFields[providerGenerationsKey] = 1;
+  }
+  if (providerCostKey && cost > 0 && ['anthropicCost', 'deepseekCost', 'openaiCost', 'geminiCost', 'mistralCost'].includes(providerCostKey)) {
+    providerUpdateFields[providerCostKey] = { increment: cost };
+    providerCreateFields[providerCostKey] = cost;
+  }
+
+  // Build per-feature increment fields
+  const featureGenerationsKey = feature ? `${feature}Generations` : null;
+  const featureUpdateFields: Record<string, { increment: number }> = {};
+  const featureCreateFields: Record<string, number> = {};
+
+  if (featureGenerationsKey && ['chatGenerations', 'courseGenerations', 'analysisGenerations', 'codeGenerations'].includes(featureGenerationsKey)) {
+    featureUpdateFields[featureGenerationsKey] = { increment: 1 };
+    featureCreateFields[featureGenerationsKey] = 1;
+  }
 
   try {
     // Upsert platform summary
@@ -409,6 +440,8 @@ async function updatePlatformSummary(cost: number): Promise<void> {
       update: {
         totalGenerations: { increment: 1 },
         totalCost: { increment: cost },
+        ...providerUpdateFields,
+        ...featureUpdateFields,
       },
       create: {
         date: today,
@@ -417,6 +450,8 @@ async function updatePlatformSummary(cost: number): Promise<void> {
         totalCost: cost,
         totalTokensInput: 0,
         totalTokensOutput: 0,
+        ...providerCreateFields,
+        ...featureCreateFields,
       },
     });
 

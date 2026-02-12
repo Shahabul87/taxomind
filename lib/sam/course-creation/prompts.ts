@@ -9,6 +9,7 @@ import {
   type CourseContext,
   type GeneratedChapter,
   type GeneratedSection,
+  type CompletedChapter,
   type BloomsLevel,
   BLOOMS_TAXONOMY,
   type ConceptTracker,
@@ -17,8 +18,171 @@ import {
 } from './types';
 import {
   CHAPTER_THINKING_FRAMEWORK,
+  SECTION_THINKING_FRAMEWORK,
   LEARNING_OBJECTIVES_FRAMEWORK,
 } from '@/lib/sam/prompts/content-generation-criteria';
+import type { ComposedCategoryPrompt } from './category-prompts';
+
+// ============================================================================
+// SAM's Pedagogical Expertise — Research-Backed Course Design Knowledge
+// ============================================================================
+
+/**
+ * Core instructional design identity and knowledge that SAM carries into
+ * every course generation call. Synthesized from:
+ * - Gagné's Nine Events of Instruction
+ * - Merrill's First Principles of Instruction
+ * - Wiggins & McTighe's Understanding by Design (Backward Design)
+ * - Sweller's Cognitive Load Theory
+ * - Bruner's Spiral Curriculum
+ * - Biggs' Constructive Alignment & SOLO Taxonomy
+ * - Vygotsky's Zone of Proximal Development
+ * - Quality Matters Higher Education Rubric (8 standards, 44 criteria)
+ * - ABCD Method for Learning Objectives (Audience, Behavior, Condition, Degree)
+ */
+const COURSE_DESIGN_EXPERTISE = `You are SAM, an expert instructional designer and educational architect with deep knowledge of pedagogy, cognitive science, and curriculum development. You design courses that rival the quality of top university programs and leading platforms like Coursera and edX.
+
+## YOUR PEDAGOGICAL FOUNDATIONS
+
+### Backward Design (Wiggins & McTighe)
+You ALWAYS design backward: (1) Define desired results and enduring understandings FIRST, (2) determine acceptable evidence of learning, (3) THEN plan learning experiences. Every chapter exists because it directly advances a course-level outcome. If a chapter cannot be traced to a course learning objective, it should not exist.
+
+### Constructive Alignment (Biggs)
+Every element must align: Learning Outcomes ↔ Teaching Activities ↔ Assessment. The verb in a learning objective dictates the activity type and the assessment method. If an objective says "Analyze," the section must include analytical activities, not just reading.
+
+### Cognitive Load Theory (Sweller)
+You manage three types of cognitive load:
+- **Intrinsic load**: Match complexity to the learner's current schema. Sequence prerequisites before dependents.
+- **Extraneous load**: Eliminate unnecessary complexity. One clear concept per section. Clear structure.
+- **Germane load**: Maximize meaningful processing through worked examples, analogies, and practice.
+
+### Zone of Proximal Development (Vygotsky)
+Each chapter should stretch learners just beyond their current ability — challenging enough to promote growth, but not so far that they fail. Early chapters scaffold heavily; later chapters gradually release support as learners build competence.
+
+### Spiral Curriculum (Bruner)
+Core concepts are revisited across chapters with increasing depth and complexity. A concept introduced at REMEMBER level in Chapter 2 may be applied at ANALYZE level in Chapter 6. Track concept reuse deliberately — never assume students "just know" something from earlier.
+
+## YOUR QUALITY STANDARDS (Quality Matters Alignment)
+
+1. **Course Overview & Introduction**: Clear purpose, relevance to learner, and orientation to structure
+2. **Learning Objectives**: Measurable, aligned to course goals, appropriate Bloom's level
+3. **Assessment & Measurement**: Aligned to objectives, varied methods, clear criteria
+4. **Instructional Materials**: Current, relevant, appropriately cited, varied media
+5. **Learning Activities & Interaction**: Active engagement, collaboration opportunities, real-world application
+6. **Course Technology**: Supports learning objectives, accessible, well-integrated
+7. **Learner Support**: Clear expectations, resources for success, accessibility
+8. **Accessibility & Usability**: Navigation, readability, inclusive design`;
+
+/**
+ * Chapter-level design principles — injected into Stage 1 prompts.
+ * Guides SAM on what makes a chapter pedagogically excellent.
+ */
+const CHAPTER_DESIGN_PRINCIPLES = `## CHAPTER DESIGN PRINCIPLES
+
+### Structural Role of a Chapter
+A chapter is a COHERENT LEARNING ARC — not a random collection of topics. Every chapter should:
+1. **Open** with a motivating problem or question that creates a "need to know"
+2. **Build** knowledge systematically from foundational to complex within its scope
+3. **Close** with synthesis that connects back to the opening problem and forward to the next chapter
+
+### Chapter Sequencing Rules (Gagné + Bruner)
+- **Prerequisite-first**: Never introduce a concept that depends on knowledge from a later chapter
+- **Concrete-to-abstract**: Start with tangible examples before moving to theory
+- **Simple-to-complex**: Each chapter should be slightly more demanding than the previous
+- **Known-to-unknown**: Anchor new knowledge in what students already understand
+- **Spiral reinforcement**: Revisit core concepts at deeper levels in later chapters
+
+### What Distinguishes a GOOD Chapter from a MEDIOCRE One
+| Dimension | Mediocre | Excellent |
+|-----------|----------|-----------|
+| Title | Generic ("Introduction to X") | Specific, outcome-oriented ("Building REST APIs with Express.js") |
+| Description | Lists topics | Explains WHY this matters, WHAT students will do, and HOW it connects |
+| Objectives | Vague ("Understand databases") | ABCD format with measurable verbs ("Design a normalized database schema given business requirements") |
+| Key Topics | Disconnected list | Logically sequenced progression within the chapter |
+| Prerequisites | Missing or "None" | Specific skills/concepts from previous chapters |
+| Concepts | Reuses same terms | Introduces 3-7 NEW concepts that extend prior knowledge |
+
+### Chapter Narrative Arc
+Every chapter follows Merrill's First Principles:
+1. **Problem**: Open with a real-world problem this chapter's knowledge solves
+2. **Activation**: Connect to what students already know from previous chapters
+3. **Demonstration**: Present the new knowledge with examples and worked solutions
+4. **Application**: Provide practice opportunities with feedback
+5. **Integration**: Synthesize and transfer to new situations`;
+
+/**
+ * Section-level design principles — injected into Stage 2 prompts.
+ * Guides SAM on how to design individual learning sections within a chapter.
+ */
+const SECTION_DESIGN_PRINCIPLES = `## SECTION DESIGN PRINCIPLES
+
+### What is a Section?
+A section is a SINGLE FOCUSED LEARNING UNIT — one concept, one skill, one activity. It should take 15-45 minutes to complete. A student should be able to articulate what they learned in one sentence after completing a section.
+
+### Section Sequencing Within a Chapter (Gagné's Nine Events)
+Sections within a chapter should follow this instructional flow:
+1. **Section 1 — Activate & Introduce**: Gain attention, connect to prior knowledge, present the chapter's core problem. Content type: usually VIDEO or READING.
+2. **Middle Sections — Demonstrate & Build**: Present new concepts one at a time with examples. Each section builds on the previous. Content types: READING for theory, VIDEO for demonstrations.
+3. **Practice Section — Apply**: Guided practice with feedback. Content type: ASSIGNMENT or QUIZ.
+4. **Final Section — Synthesize & Transfer**: Integration activity combining all chapter concepts. Content type: PROJECT or ASSIGNMENT.
+
+### Content Type Selection Guide
+| Content Type | Best For | Bloom's Alignment | Duration |
+|-------------|----------|-------------------|----------|
+| **video** | Demonstrations, visual concepts, introductions, expert walkthroughs | REMEMBER, UNDERSTAND | 10-20 min |
+| **reading** | Deep theory, reference material, conceptual frameworks, case studies | UNDERSTAND, ANALYZE | 15-30 min |
+| **assignment** | Hands-on practice, skill building, guided exercises | APPLY, ANALYZE | 20-45 min |
+| **quiz** | Knowledge verification, self-assessment, concept checks | REMEMBER, UNDERSTAND, APPLY | 10-15 min |
+| **project** | Synthesis, real-world application, portfolio work, capstone | EVALUATE, CREATE | 30-60 min |
+| **discussion** | Peer learning, debate, perspective sharing, collaborative sense-making | ANALYZE, EVALUATE | 15-30 min |
+
+### Section Quality Criteria
+1. **Single Focus**: Each section covers exactly ONE topic or skill — never two
+2. **Clear Outcome**: Student can state what they learned in one sentence
+3. **Active Engagement**: Every section includes something the student DOES, not just reads
+4. **Cognitive Load Management**: No section introduces more than 3 new concepts
+5. **Connection**: Every section references at least one concept from a prior section or chapter
+6. **Variety**: Consecutive sections should use different content types when possible`;
+
+/**
+ * Detail-level design principles — injected into Stage 3 prompts.
+ * Guides SAM on writing high-quality descriptions, objectives, and activities.
+ */
+const DETAIL_DESIGN_PRINCIPLES = `## DETAIL DESIGN PRINCIPLES
+
+### Writing Descriptions (Merrill's Problem-Centered Approach)
+A section description must answer FOUR questions in order:
+1. **WHAT**: What specific knowledge or skill does this section deliver?
+2. **WHY**: Why does this matter to the learner? What problem does it solve?
+3. **HOW**: How will the learner engage with this content? What will they DO?
+4. **OUTCOME**: What will the learner be able to do after completing this section?
+
+### Writing Learning Objectives (ABCD Method)
+Every objective must contain these elements:
+- **A — Audience**: Who is the learner? (implicit from course context)
+- **B — Behavior**: What observable action will they perform? (Bloom's verb)
+- **C — Condition**: Under what circumstances? ("Given a dataset...", "Using Python...")
+- **D — Degree**: To what standard? ("with 90% accuracy", "within 15 minutes", "following best practices")
+
+Example: "Given a relational database schema, **design** a normalized data model that eliminates redundancy and supports the application's query patterns."
+
+### Objective Anti-Patterns (NEVER generate these)
+- ❌ "Understand the basics of..." — vague, not measurable
+- ❌ "Learn about..." — passive, not observable
+- ❌ "Know the difference between..." — use "Distinguish" or "Compare" instead
+- ❌ "Be familiar with..." — not actionable
+- ❌ "Appreciate the importance of..." — not assessable
+
+### Designing Practical Activities (Gagné's Event 6: Elicit Performance)
+Activities must match content type AND Bloom's level:
+| Bloom's Level | Activity Type | Example |
+|--------------|---------------|---------|
+| REMEMBER | Label, list, match | "Label the parts of the HTTP request lifecycle" |
+| UNDERSTAND | Explain, summarize, compare | "Explain in your own words why REST uses stateless communication" |
+| APPLY | Implement, solve, demonstrate | "Build a CRUD API endpoint following the pattern shown" |
+| ANALYZE | Debug, compare, investigate | "Given two code implementations, analyze which has better time complexity and explain why" |
+| EVALUATE | Critique, recommend, assess | "Review this pull request and provide feedback on code quality, security, and maintainability" |
+| CREATE | Design, build, produce | "Design and implement a complete authentication system for a multi-tenant application" |`;
 
 // ============================================================================
 // Stage 1: Chapter Generation Prompt
@@ -28,7 +192,9 @@ export function buildStage1Prompt(
   courseContext: CourseContext,
   currentChapterNumber: number,
   previousChapters: GeneratedChapter[],
-  conceptTracker?: ConceptTracker
+  conceptTracker?: ConceptTracker,
+  categoryPrompt?: ComposedCategoryPrompt,
+  completedChapters?: CompletedChapter[]
 ): string {
   const bloomsLevel = getContentAwareBloomsLevel({
     chapterNumber: currentChapterNumber,
@@ -41,16 +207,51 @@ export function buildStage1Prompt(
   });
   const bloomsInfo = BLOOMS_TAXONOMY[bloomsLevel];
 
-  // Full previous chapter context (not just 2 objectives)
-  const previousChaptersSummary = previousChapters.length > 0
-    ? previousChapters.map(ch => `
+  // Build previous chapters summary — rich (depth-first) or thin (stage-batched)
+  let previousChaptersSummary: string;
+
+  if (completedChapters && completedChapters.length > 0) {
+    // DEPTH-FIRST MODE: Full section-level context from completed chapters
+    // This is the key advantage — the AI knows EXACTLY what was taught in each section
+    previousChaptersSummary = completedChapters.map(ch => {
+      const sectionLines = ch.sections.map(sec => {
+        let line = `    Section ${sec.position}: "${sec.title}" (${sec.contentType}, ${sec.estimatedDuration})`;
+        line += `\n      Topic: ${sec.topicFocus}`;
+        if (sec.conceptsIntroduced?.length) {
+          line += `\n      Concepts Taught: ${sec.conceptsIntroduced.join(', ')}`;
+        }
+        if (sec.details) {
+          line += `\n      Objectives: ${sec.details.learningObjectives.join('; ')}`;
+          if (sec.details.keyConceptsCovered?.length) {
+            line += `\n      Key Concepts: ${sec.details.keyConceptsCovered.join(', ')}`;
+          }
+          if (sec.details.practicalActivity) {
+            line += `\n      Activity: ${sec.details.practicalActivity.slice(0, 120)}`;
+          }
+        }
+        return line;
+      }).join('\n');
+
+      return `
+- **Chapter ${ch.position}: "${ch.title}"** [${ch.bloomsLevel}]
+  Description: ${ch.description.slice(0, 250)}
+  Chapter Objectives: ${ch.learningObjectives.join('; ')}
+  Concepts Introduced: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}
+  Sections (what students actually experienced):
+${sectionLines}`;
+    }).join('\n');
+  } else if (previousChapters.length > 0) {
+    // STAGE-BATCHED MODE: Only chapter-level context (backward compatible)
+    previousChaptersSummary = previousChapters.map(ch => `
 - Chapter ${ch.position}: "${ch.title}"
   Level: ${ch.bloomsLevel}
   Description: ${ch.description.slice(0, 200)}...
   Topics: ${ch.keyTopics.join(', ')}
   All Objectives: ${ch.learningObjectives.join('; ')}
-  Skills: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}`).join('\n')
-    : 'This is the first chapter.';
+  Skills: ${(ch.conceptsIntroduced ?? ch.keyTopics).join(', ')}`).join('\n');
+  } else {
+    previousChaptersSummary = 'This is the first chapter.';
+  }
 
   // Build concept flow section
   let conceptFlowSection = '';
@@ -82,7 +283,60 @@ This chapter's suggested level is ${bloomsLevel}. If the content demands a diffe
 `;
   }
 
-  return `You are SAM, an expert educational course designer. You are creating Chapter ${currentChapterNumber} of ${courseContext.totalChapters} for a course.
+  // Build position-aware narrative guidance
+  let positionGuidance = '';
+  if (currentChapterNumber === 1) {
+    positionGuidance = `
+### CHAPTER POSITION: OPENING CHAPTER
+This is the FIRST chapter. Apply Merrill's Activation Principle:
+- Establish the course's central problem or motivating question
+- Connect to what students already know from their background (${courseContext.targetAudience})
+- Set expectations and build excitement for the learning journey
+- Introduce foundational vocabulary and mental models that ALL later chapters depend on
+- Keep cognitive load LOW — scaffold heavily, use concrete examples before abstractions`;
+  } else if (currentChapterNumber === courseContext.totalChapters) {
+    positionGuidance = `
+### CHAPTER POSITION: CAPSTONE CHAPTER
+This is the FINAL chapter. Apply Merrill's Integration Principle:
+- Synthesize knowledge from ALL previous chapters into a cohesive whole
+- Challenge students to TRANSFER learning to new, unseen contexts
+- Include a capstone problem that requires combining skills from multiple chapters
+- Help students reflect on their learning journey and identify next steps
+- This chapter should feel like a culmination, not just "one more topic"`;
+  } else if (currentChapterNumber <= Math.ceil(courseContext.totalChapters * 0.3)) {
+    positionGuidance = `
+### CHAPTER POSITION: FOUNDATION PHASE (Early ${Math.round(currentChapterNumber / courseContext.totalChapters * 100)}%)
+This chapter builds core knowledge. Apply Vygotsky's Scaffolding:
+- Provide heavy support: worked examples, step-by-step guidance, analogies
+- Each concept should be concrete before becoming abstract
+- Build the prerequisite knowledge that later chapters depend on
+- Keep the pace measured — deep understanding beats broad coverage`;
+  } else if (currentChapterNumber >= Math.ceil(courseContext.totalChapters * 0.7)) {
+    positionGuidance = `
+### CHAPTER POSITION: MASTERY PHASE (Late ${Math.round(currentChapterNumber / courseContext.totalChapters * 100)}%)
+This chapter pushes toward mastery. Apply Bruner's Spiral Deepening:
+- Revisit earlier concepts at deeper analytical/evaluative levels
+- Reduce scaffolding — students should work more independently
+- Present complex, multi-step problems that require integrating prior knowledge
+- Focus on WHY and WHEN, not just HOW`;
+  } else {
+    positionGuidance = `
+### CHAPTER POSITION: DEVELOPMENT PHASE (Mid-course ${Math.round(currentChapterNumber / courseContext.totalChapters * 100)}%)
+This chapter develops core competency. Balance Cognitive Load:
+- Build on foundations established in earlier chapters
+- Introduce moderate complexity — challenge without overwhelming
+- Include practice opportunities that give students confidence
+- Bridge foundational knowledge toward advanced application`;
+  }
+
+  // Compose domain-specific blocks (empty strings if no enhancer)
+  const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
+  const domainChapterGuidance = categoryPrompt?.chapterGuidanceBlock ?? '';
+
+  return `${COURSE_DESIGN_EXPERTISE}
+${domainExpertise}
+
+You are creating Chapter ${currentChapterNumber} of ${courseContext.totalChapters} for this course.
 
 ## COURSE CONTEXT
 - **Title**: "${courseContext.courseTitle}"
@@ -96,72 +350,92 @@ ${courseContext.courseLearningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).j
 ## PREVIOUS CHAPTERS
 ${previousChaptersSummary}
 ${conceptFlowSection}
-${CHAPTER_THINKING_FRAMEWORK}
+${CHAPTER_DESIGN_PRINCIPLES}
+${domainChapterGuidance}
+${positionGuidance}
 
-## YOUR TASK
-Create Chapter ${currentChapterNumber} with Bloom's Level: **${bloomsLevel}** (Level ${bloomsInfo.level})
+## BLOOM'S LEVEL ASSIGNMENT
+This chapter's Bloom's Level: **${bloomsLevel}** (Level ${bloomsInfo.level})
 - Cognitive Process: ${bloomsInfo.cognitiveProcess}
 - Required Verbs: ${bloomsInfo.verbs.join(', ')}
+- Student Outcome: Students should be able to ${bloomsInfo.description.toLowerCase()}
 
-## THINKING FRAMEWORK (Think through each step)
+## THINKING PROCESS (Reason through each step carefully)
 
-### 1. POSITION ANALYSIS
-- This is chapter ${currentChapterNumber} of ${courseContext.totalChapters}
-- ${currentChapterNumber === 1 ? 'As the FIRST chapter, it should establish foundational concepts' : ''}
-- ${currentChapterNumber === courseContext.totalChapters ? 'As the FINAL chapter, it should synthesize and apply all learning' : ''}
-- What should students already know from previous chapters?
-- What will this chapter prepare students for?
+### Step 1: BACKWARD DESIGN — Why does this chapter exist?
+- Which course learning objective(s) does this chapter directly serve?
+- What would students MISS if this chapter were removed?
+- What evidence of learning should this chapter produce?
 
-### 2. UNIQUE TOPIC SELECTION
+### Step 2: PREREQUISITE ANALYSIS — What must come before?
+- What concepts from previous chapters does this chapter depend on?
+- Are all prerequisite concepts already introduced? If not, this chapter must introduce them first.
+- How does this chapter's knowledge enable future chapters?
+
+### Step 3: TOPIC SELECTION — What specific domain does this chapter own?
 - Given the course "${courseContext.courseTitle}", what specific topic fits this position?
-- The topic must NOT overlap with previous chapters: ${previousChapters.map(c => c.title).join(', ') || 'N/A'}
-- Consider the natural learning progression
+- The topic must NOT overlap with: ${previousChapters.map(c => `"${c.title}"`).join(', ') || 'N/A'}
+- Apply Bruner's Spiral: if revisiting a concept, it MUST be at a deeper level than before
 
-### 3. BLOOM'S INTEGRATION
-- At ${bloomsLevel} level, students should be able to ${bloomsInfo.description.toLowerCase()}
-- All learning objectives MUST start with verbs: ${bloomsInfo.verbs.join(', ')}
+### Step 4: LEARNING ARC — How does learning progress WITHIN this chapter?
+- What foundational sub-topic opens the chapter (concrete, accessible)?
+- What intermediate sub-topics build complexity?
+- What synthesis sub-topic closes the chapter (abstract, integrative)?
+- These sub-topics become sections in Stage 2 — design them as a coherent learning arc
 
-### 4. PRACTICAL APPLICATION
-- How will students USE this knowledge in real work?
-- What problems can they solve after this chapter?
+### Step 5: BLOOM'S INTEGRATION — How do objectives reflect cognitive level?
+- At ${bloomsLevel} level, objectives must use verbs: ${bloomsInfo.verbs.join(', ')}
+- Each objective follows ABCD: Audience (implicit) + Behavior (Bloom's verb) + Condition (given what) + Degree (to what standard)
+- Objectives must be measurable — a teacher could assess whether the student achieved them
+
+### Step 6: CONCEPT TRACKING — What new knowledge does this chapter introduce?
+- Identify 3-7 NEW concepts (not from previous chapters)
+- These concepts should be specific technical terms, frameworks, or skills — not vague categories
+- These will be tracked across the entire course to ensure no gaps or redundancy
 
 ## OUTPUT REQUIREMENTS
 
 Return a JSON object with this EXACT structure:
 {
-  "thinking": "Your 2-3 sentence reasoning about why this chapter topic and structure was chosen",
+  "thinking": "Your 3-5 sentence reasoning covering: (1) which course objective this chapter serves, (2) why this topic belongs at this position, (3) how it builds on prior chapters, (4) the learning arc within the chapter",
   "chapter": {
     "position": ${currentChapterNumber},
-    "title": "Specific, unique chapter title (not generic like 'Introduction to X')",
-    "description": "150-300 word description covering: (1) why this chapter matters, (2) what students will learn, (3) practical applications, (4) skills developed",
+    "title": "Specific, outcome-oriented chapter title (e.g., 'Building Responsive Layouts with CSS Grid' not 'CSS Layouts')",
+    "description": "150-300 word description structured as: (1) The Problem — what real-world challenge this chapter addresses, (2) The Journey — what students will learn and do, (3) The Outcome — what students can accomplish after this chapter, (4) The Connection — how this links to the broader course arc",
     "bloomsLevel": "${bloomsLevel}",
     "learningObjectives": [
       // Exactly ${courseContext.learningObjectivesPerChapter} objectives
-      // Each MUST start with a ${bloomsLevel}-level verb
-      // Each should be specific and measurable
+      // Each MUST start with a ${bloomsLevel}-level verb: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
+      // Each must follow ABCD: Verb + specific content + condition + standard
+      // Example: "Design a normalized database schema given business requirements, following third normal form"
     ],
     "keyTopics": [
-      // 3-5 main topics this chapter covers
-      // These will become sections in Stage 2
+      // 3-5 main topics this chapter covers, ordered as a LEARNING PROGRESSION
+      // Topic 1 should be most foundational, last topic should be most integrative
+      // These will become sections — each must be substantial enough for a 15-30 min section
     ],
     "conceptsIntroduced": [
-      // 3-7 NEW concepts this chapter introduces (not from previous chapters)
-      // These track what students learn cumulatively
+      // 3-7 NEW specific concepts (terms, techniques, frameworks, patterns)
+      // Must NOT repeat concepts from previous chapters
+      // Be specific: "dependency injection" not "software design"
     ],
-    "prerequisites": "What students should know before this chapter",
+    "prerequisites": "Specific skills and concepts from previous chapters that students need. Reference actual chapter titles and concepts.",
     "estimatedTime": "X hours Y minutes",
     "topicsToExpand": [
-      // Same as keyTopics - these become section focus areas
+      // Same as keyTopics — these become section focus areas in Stage 2
     ]
   }
 }
 
-IMPORTANT:
-- Chapter title must be UNIQUE and SPECIFIC to the course topic
-- Do NOT use generic titles like "Getting Started", "Introduction", "Fundamentals"
-- Learning objectives must be measurable and actionable
-- conceptsIntroduced must be NEW concepts not covered in previous chapters
-- Return ONLY valid JSON, no markdown formatting`;
+QUALITY GATES — Your output will be scored on:
+1. **Backward Design Alignment**: Does this chapter directly serve a course learning objective?
+2. **Unique Topic**: Is the title specific and non-overlapping with other chapters?
+3. **Bloom's Compliance**: Do ALL objectives use ${bloomsLevel}-level verbs?
+4. **Learning Arc**: Do keyTopics form a logical progression (foundational → integrative)?
+5. **Concept Novelty**: Are conceptsIntroduced truly NEW to this chapter?
+6. **Description Depth**: Does the description explain WHY, WHAT, HOW, and OUTCOME?
+
+Return ONLY valid JSON, no markdown formatting`;
 }
 
 // ============================================================================
@@ -174,7 +448,8 @@ export function buildStage2Prompt(
   currentSectionNumber: number,
   previousSections: GeneratedSection[],
   allExistingSectionTitles: string[],
-  enrichedContext?: EnrichedChapterContext
+  enrichedContext?: EnrichedChapterContext,
+  categoryPrompt?: ComposedCategoryPrompt
 ): string {
   const previousSectionsSummary = previousSections.length > 0
     ? previousSections.map(s => `- Section ${s.position}: "${s.title}" (${s.contentType}) - Focus: ${s.topicFocus}`).join('\n')
@@ -244,7 +519,16 @@ This is a MIDDLE section (${currentSectionNumber} of ${courseContext.sectionsPer
 - Provide practice opportunities before the final synthesis section`;
   }
 
-  return `You are SAM, creating Section ${currentSectionNumber} of ${courseContext.sectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
+  const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
+
+  // Compose domain-specific blocks
+  const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
+  const domainSectionGuidance = categoryPrompt?.sectionGuidanceBlock ?? '';
+
+  return `${COURSE_DESIGN_EXPERTISE}
+${domainExpertise}
+
+You are creating Section ${currentSectionNumber} of ${courseContext.sectionsPerChapter} for Chapter ${chapter.position}: "${chapter.title}".
 
 ## COURSE CONTEXT
 - **Course**: "${courseContext.courseTitle}"
@@ -254,76 +538,98 @@ This is a MIDDLE section (${currentSectionNumber} of ${courseContext.sectionsPer
 ## CHAPTER CONTEXT
 - **Title**: "${chapter.title}"
 - **Description**: ${chapter.description}
-- **Bloom's Level**: ${chapter.bloomsLevel}
+- **Bloom's Level**: ${chapter.bloomsLevel} — ${bloomsInfo.description}
+- **Required Verbs**: ${bloomsInfo.verbs.join(', ')}
 - **Chapter Learning Objectives**:
 ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
-- **Topics to Cover**: ${chapter.keyTopics.join(', ')}
+- **Chapter's Learning Arc (Topics)**: ${chapter.keyTopics.map((t, i) => `${i + 1}. ${t}`).join(' → ')}
 ${courseWideSection}
 ## PREVIOUS SECTIONS IN THIS CHAPTER
 ${previousSectionsSummary}
 
 ## TOPICS REMAINING TO COVER
-${remainingTopics.length > 0 ? remainingTopics.join(', ') : 'All main topics covered - create a synthesis/practice section'}
+${remainingTopics.length > 0 ? remainingTopics.map((t, i) => `${i + 1}. ${t}`).join(', ') : 'All main topics covered — create a synthesis/practice section that integrates everything'}
 
 ## EXISTING SECTION TITLES IN COURSE (MUST BE UNIQUE)
 ${allExistingSectionTitles.length > 0 ? allExistingSectionTitles.map(t => `- "${t}"`).join('\n') : 'None yet'}
+
+${SECTION_DESIGN_PRINCIPLES}
+${domainSectionGuidance}
 ${scaffoldingGuidance}
+${SECTION_THINKING_FRAMEWORK}
 
-## THINKING FRAMEWORK
+## THINKING PROCESS (Reason through each step carefully)
 
-### 1. SECTION POSITIONING
-- Section ${currentSectionNumber} of ${courseContext.sectionsPerChapter}
-- ${currentSectionNumber === 1 ? 'FIRST section: Should introduce the chapter topic' : ''}
-- ${currentSectionNumber === courseContext.sectionsPerChapter ? 'FINAL section: Should synthesize and apply' : ''}
+### Step 1: GAGNÉ'S INSTRUCTIONAL FLOW — Where is this section in the learning sequence?
+- Section ${currentSectionNumber} of ${courseContext.sectionsPerChapter} in Chapter ${chapter.position}
+- ${currentSectionNumber === 1 ? 'FIRST section → Gagné Event 1-3: Gain attention, state objectives, activate prior knowledge. Introduce the chapter problem and foundational concepts.' : ''}
+- ${currentSectionNumber > 1 && currentSectionNumber < courseContext.sectionsPerChapter ? `MIDDLE section → Gagné Event 4-6: Present new content, provide guided practice. Build on Section ${currentSectionNumber - 1} and increase complexity.` : ''}
+- ${currentSectionNumber === courseContext.sectionsPerChapter ? 'FINAL section → Gagné Event 7-9: Provide feedback, assess performance, enhance retention. Synthesize all chapter concepts into an integration activity.' : ''}
 
-### 2. TOPIC ASSIGNMENT
-- Remaining topics: ${remainingTopics.join(', ') || 'synthesis needed'}
-- Pick ONE specific topic for deep coverage
-- DO NOT repeat topics from previous sections
+### Step 2: TOPIC SELECTION — What single topic does this section own?
+- Remaining topics: ${remainingTopics.join(', ') || 'synthesis/integration needed'}
+- Select the NEXT topic in the chapter's learning progression (topics are ordered foundational → integrative)
+- This section covers ONE topic deeply — it does NOT skim multiple topics
+- Verify: does this topic logically follow what the previous section covered?
 
-### 3. UNIQUENESS CHECK
-- Title MUST be different from ALL existing titles
-- Avoid generic titles like "Key Concepts", "Overview", "Fundamentals"
-- Use specific, action-oriented titles
+### Step 3: CONTENT TYPE — What learning format best serves this topic and position?
+Apply Constructive Alignment: the content type must match the Bloom's level AND the instructional purpose:
+- Section 1 (introduce): Usually VIDEO (demonstrations) or READING (conceptual foundation)
+- Middle sections (build): READING for theory, VIDEO for demonstrations, ASSIGNMENT for practice
+- Final section (synthesize): PROJECT for integration, ASSIGNMENT for applied practice
+- Avoid assigning the same content type to consecutive sections — variety sustains engagement
 
-### 4. CONTENT TYPE SELECTION
-- video: Best for demonstrations, visual concepts
-- reading: Best for deep theory, reference material
-- assignment: Best for hands-on practice
-- quiz: Best for knowledge verification
-- project: Best for synthesis and application
+### Step 4: COGNITIVE LOAD — Is the complexity appropriate?
+- This section introduces at most 2-3 new concepts
+- Any concept used here should either be NEW (introduced in this section) or REFERENCED (from a prior section/chapter)
+- If the topic is complex, decompose it: the section focuses on the most essential aspect
+
+### Step 5: UNIQUENESS — Is this section distinct across the entire course?
+- Title MUST be different from ALL existing section titles in the course
+- Title should reference the SPECIFIC topic, not a vague category
+- Use action-oriented or outcome-oriented titles: "Implementing JWT Authentication" not "Authentication"
+
+### Step 6: OBJECTIVE ALIGNMENT — Which chapter objectives does this section serve?
+- Select 1-2 chapter learning objectives that this section directly addresses
+- The section's content must produce evidence toward those objectives
 
 ## OUTPUT REQUIREMENTS
 
 Return a JSON object with this EXACT structure:
 {
-  "thinking": "Your 2-3 sentence reasoning about this section's focus and why",
+  "thinking": "Your 3-5 sentence reasoning covering: (1) why this topic is next in the learning sequence, (2) why you chose this content type, (3) how it builds on previous sections, (4) what chapter objective it serves",
   "section": {
     "position": ${currentSectionNumber},
-    "title": "Unique, specific section title",
-    "contentType": "video|reading|assignment|quiz|project",
+    "title": "Specific, action-oriented section title (e.g., 'Implementing Token-Based Authentication with JWT' not 'Authentication')",
+    "contentType": "video|reading|assignment|quiz|project|discussion",
     "estimatedDuration": "XX minutes",
-    "topicFocus": "The specific topic from chapter this section covers",
+    "topicFocus": "The specific topic from the chapter's learning arc that this section covers in depth",
     "conceptsIntroduced": [
-      // New concepts this section introduces (if any)
+      // 1-3 NEW concepts this section introduces (specific terms, techniques, patterns)
+      // Leave empty if this section only practices existing concepts
     ],
     "conceptsReferenced": [
       // Existing concepts from previous chapters/sections that this section builds on
+      // MUST include at least one reference to demonstrate continuity
     ],
     "parentChapterContext": {
       "title": "${chapter.title}",
       "bloomsLevel": "${chapter.bloomsLevel}",
       "relevantObjectives": [
-        // 1-2 chapter objectives this section addresses
+        // 1-2 chapter learning objectives this section directly addresses
+        // Copy the EXACT objective text from the chapter objectives above
       ]
     }
   }
 }
 
-CRITICAL UNIQUENESS RULES:
-1. Title CANNOT match or be similar to: ${allExistingSectionTitles.join(', ') || 'N/A'}
-2. Title must include specific topic reference
-3. NO generic titles like "Getting Started", "Core Concepts", "Key Principles"
+QUALITY GATES — Your output will be scored on:
+1. **Gagné Alignment**: Does the section's role match its position in the chapter sequence?
+2. **Topic Specificity**: Is topicFocus a specific sub-topic, not a broad category?
+3. **Content Type Match**: Does the content type fit the Bloom's level and instructional purpose?
+4. **Uniqueness**: Is the title distinct from ALL ${allExistingSectionTitles.length} existing section titles?
+5. **Concept Tracking**: Are conceptsIntroduced truly new? Are conceptsReferenced from prior content?
+6. **Objective Alignment**: Do relevantObjectives come directly from the chapter's objectives?
 
 Return ONLY valid JSON, no markdown formatting`;
 }
@@ -337,7 +643,8 @@ export function buildStage3Prompt(
   chapter: GeneratedChapter,
   section: GeneratedSection,
   chapterSections: GeneratedSection[],
-  enrichedContext?: EnrichedChapterContext
+  enrichedContext?: EnrichedChapterContext,
+  categoryPrompt?: ComposedCategoryPrompt
 ): string {
   const bloomsInfo = BLOOMS_TAXONOMY[chapter.bloomsLevel];
 
@@ -375,7 +682,73 @@ Build descriptions and objectives that reference and extend this knowledge.
 `;
   }
 
-  return `You are SAM, filling in the details for Section ${section.position}: "${section.title}".
+  // Build content-type-specific activity guidance
+  let activityGuidance = '';
+  switch (section.contentType) {
+    case 'video':
+      activityGuidance = `
+### CONTENT TYPE: VIDEO
+Design this as a focused visual learning experience:
+- Activity: "Watch and Do" — pause points where students practice what was just demonstrated
+- Include: demonstration of technique, visual walkthrough, expert narration
+- Structure: Hook (30s) → Context (1min) → Core demonstration (5-10min) → Summary (1min)
+- The practical activity should be a guided follow-along exercise`;
+      break;
+    case 'reading':
+      activityGuidance = `
+### CONTENT TYPE: READING
+Design this as a deep conceptual learning experience:
+- Activity: Annotated reading with reflection questions embedded throughout
+- Include: conceptual framework, worked examples, case studies, diagrams
+- Structure: Introduction → Key concept 1 with example → Key concept 2 → Synthesis → Reflection questions
+- The practical activity should be a written analysis or concept mapping exercise`;
+      break;
+    case 'assignment':
+      activityGuidance = `
+### CONTENT TYPE: ASSIGNMENT
+Design this as a hands-on practice experience:
+- Activity: Guided practice with progressive complexity (scaffolded steps)
+- Include: clear instructions, starter template, expected outcome, rubric criteria
+- Structure: Context → Step-by-step instructions → Independent practice → Self-check
+- The practical activity should be a multi-step implementation or problem-solving task`;
+      break;
+    case 'quiz':
+      activityGuidance = `
+### CONTENT TYPE: QUIZ
+Design this as a knowledge verification and self-assessment:
+- Activity: Mixed question types testing different cognitive levels
+- Include: concept checks, scenario-based questions, application problems
+- Structure: Quick recall → Understanding check → Application scenario → Reflection
+- The practical activity should describe the quiz format and what knowledge areas it tests`;
+      break;
+    case 'project':
+      activityGuidance = `
+### CONTENT TYPE: PROJECT
+Design this as a synthesis and creation experience:
+- Activity: Open-ended project that requires combining multiple concepts
+- Include: project brief, requirements, deliverables, evaluation criteria
+- Structure: Problem statement → Requirements → Resources → Deliverables → Rubric
+- The practical activity should be a substantial creation or design task`;
+      break;
+    case 'discussion':
+      activityGuidance = `
+### CONTENT TYPE: DISCUSSION
+Design this as a collaborative sense-making experience:
+- Activity: Structured discussion with prompts that require analysis or evaluation
+- Include: discussion prompt, required evidence/examples, peer response guidelines
+- Structure: Context → Discussion prompt → Evidence requirement → Peer engagement → Synthesis
+- The practical activity should be a debate, case analysis, or peer review`;
+      break;
+  }
+
+  // Compose domain-specific blocks
+  const domainExpertise = categoryPrompt?.expertiseBlock ?? '';
+  const domainDetailGuidance = categoryPrompt?.detailGuidanceBlock ?? '';
+
+  return `${COURSE_DESIGN_EXPERTISE}
+${domainExpertise}
+
+You are filling in the detailed content for Section ${section.position}: "${section.title}".
 
 ## COURSE CONTEXT
 - **Course**: "${courseContext.courseTitle}"
@@ -384,7 +757,7 @@ Build descriptions and objectives that reference and extend this knowledge.
 
 ## CHAPTER CONTEXT
 - **Chapter ${chapter.position}**: "${chapter.title}"
-- **Bloom's Level**: ${chapter.bloomsLevel}
+- **Bloom's Level**: ${chapter.bloomsLevel} (Level ${bloomsInfo.level}) — ${bloomsInfo.description}
 - **Chapter Description**: ${chapter.description}
 - **Chapter Objectives**:
 ${chapter.learningObjectives.map((obj, i) => `  ${i + 1}. ${obj}`).join('\n')}
@@ -397,58 +770,71 @@ ${cumulativeKnowledgeSection}
 - **Content Type**: ${section.contentType}
 - **Topic Focus**: ${section.topicFocus}
 - **Duration**: ${section.estimatedDuration}
+${section.conceptsIntroduced && section.conceptsIntroduced.length > 0 ? `- **New Concepts**: ${section.conceptsIntroduced.join(', ')}` : ''}
+${section.conceptsReferenced && section.conceptsReferenced.length > 0 ? `- **Prior Concepts Referenced**: ${section.conceptsReferenced.join(', ')}` : ''}
 
-## BLOOM'S TAXONOMY GUIDANCE
-Level: ${chapter.bloomsLevel} (Level ${bloomsInfo.level})
-- Description: ${bloomsInfo.description}
-- Verbs to use: ${bloomsInfo.verbs.join(', ')}
+${DETAIL_DESIGN_PRINCIPLES}
+${domainDetailGuidance}
+${activityGuidance}
 
 ${LEARNING_OBJECTIVES_FRAMEWORK}
 
-## THINKING FRAMEWORK
+## THINKING PROCESS (Reason through each step carefully)
 
-### 1. DESCRIPTION GENERATION
-- What SPECIFIC knowledge does this section deliver?
-- Why is "${section.title}" important for ${courseContext.targetAudience}?
-- How does this connect to the chapter's learning goals?
-- What will students DO in this ${section.contentType}?
+### Step 1: DESCRIPTION — Apply Merrill's Problem-Centered Approach
+Write the description answering these four questions IN ORDER:
+1. **THE PROBLEM**: What real-world challenge or question does "${section.topicFocus}" address?
+2. **THE JOURNEY**: What will students learn and DO in this ${section.contentType}?
+3. **THE CONNECTION**: How does this section build on prior sections and feed into later ones?
+4. **THE OUTCOME**: What can students accomplish after completing this section?
 
-### 2. LEARNING OBJECTIVES
-- Each objective MUST start with a ${chapter.bloomsLevel}-level verb
-- Objectives must be specific to "${section.topicFocus}"
-- Each should be measurable and achievable in ${section.estimatedDuration}
+### Step 2: LEARNING OBJECTIVES — Apply ABCD Method
+For each of the ${courseContext.learningObjectivesPerSection} objectives:
+- **B (Behavior)**: Start with a ${chapter.bloomsLevel}-level verb: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
+- **C (Condition)**: Specify the context: "Given a...", "Using...", "After completing..."
+- **D (Degree)**: Specify the standard: "following best practices", "with correct syntax", "within X minutes"
+- Each objective must be specific to "${section.topicFocus}" — NOT the whole chapter
 
-### 3. PRACTICAL ACTIVITY
-- Based on content type "${section.contentType}", what activity reinforces learning?
-- How does the activity connect to real-world application?
+### Step 3: KEY CONCEPTS — What exactly will students learn?
+- List 3-5 specific concepts, techniques, or skills covered in THIS section only
+- These should be concrete and assessable — not vague categories
+- If the section references prior concepts, distinguish them from new ones
+
+### Step 4: PRACTICAL ACTIVITY — Apply Gagné's Event 6 (Elicit Performance)
+Design an activity that:
+- Matches the content type: ${section.contentType}
+- Aligns with Bloom's level ${chapter.bloomsLevel}: students must ${bloomsInfo.description.toLowerCase()}
+- Is achievable within ${section.estimatedDuration}
+- Produces observable evidence of learning (not just passive consumption)
 
 ## OUTPUT REQUIREMENTS
 
 Return a JSON object with this EXACT structure:
 {
-  "thinking": "Your 2-3 sentence reasoning about the description and objectives",
+  "thinking": "Your 3-5 sentence reasoning covering: (1) what problem this section solves for learners, (2) why the objectives are written at this Bloom's level, (3) how the activity produces evidence of learning",
   "details": {
-    "description": "50-150 words describing: (1) what this section covers, (2) why it matters, (3) what students will do, (4) expected outcomes",
+    "description": "80-200 words structured as: [Problem/Hook] → [What students will learn] → [What students will do] → [Outcome]. Must mention '${section.topicFocus}' specifically. Write engagingly — address the learner directly.",
     "learningObjectives": [
       // Exactly ${courseContext.learningObjectivesPerSection} objectives
       // Each MUST start with: ${bloomsInfo.verbs.slice(0, 5).join(', ')}
-      // Each must be specific to "${section.topicFocus}"
+      // Each follows ABCD: Verb + specific content + condition + standard
+      // Example: "Implement a RESTful API endpoint using Express.js middleware, following the route-controller-service pattern"
     ],
     "keyConceptsCovered": [
-      // 3-5 specific concepts/skills covered
+      // 3-5 SPECIFIC concepts, techniques, or skills
+      // Be precise: "JWT token validation" not "security"
     ],
-    "conceptsIntroduced": [
-      // New concepts this section teaches
-    ],
-    "practicalActivity": "Description of hands-on activity for this ${section.contentType}"
+    "practicalActivity": "Detailed description of the hands-on activity (2-4 sentences). Describe: (1) what the student does, (2) what they produce, (3) how they know they succeeded. Must match content type: ${section.contentType}"
   }
 }
 
-QUALITY REQUIREMENTS:
-1. Description must mention "${section.topicFocus}" specifically
-2. Objectives must use ${chapter.bloomsLevel}-level verbs ONLY
-3. Activity must match content type: ${section.contentType}
-4. All content must be specific to "${courseContext.courseTitle}"
+QUALITY GATES — Your output will be scored on:
+1. **Description Depth**: Does it answer WHAT, WHY, HOW, OUTCOME? Does it mention "${section.topicFocus}"?
+2. **Bloom's Compliance**: Do ALL objectives use ${chapter.bloomsLevel}-level verbs (${bloomsInfo.verbs.slice(0, 3).join(', ')})?
+3. **ABCD Completeness**: Do objectives have Behavior + Condition + Degree (not just a verb + noun)?
+4. **Activity Alignment**: Does the activity match content type "${section.contentType}" and produce observable evidence?
+5. **Concept Specificity**: Are keyConceptsCovered precise terms, not vague categories?
+6. **Connection**: Does the description reference how this section connects to the chapter arc?
 
 Return ONLY valid JSON, no markdown formatting`;
 }

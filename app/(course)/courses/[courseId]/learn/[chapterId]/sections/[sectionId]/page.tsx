@@ -38,7 +38,7 @@ const SectionPage = async (props: SectionPageProps): Promise<JSX.Element> => {
     params = SectionPageParamsSchema.parse(rawParams);
   } catch (error) {
     logger.error("Invalid section page parameters", error instanceof Error ? error : new Error(String(error)));
-    return redirect("/my-courses");
+    return redirect("/dashboard/user/my-courses");
   }
 
   // ✅ SINGLE OPTIMIZED QUERY (was 3 queries before)

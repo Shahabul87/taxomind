@@ -10,7 +10,7 @@
 // 2. Run: npm run schema:merge
 // 3. Run: npx prisma generate
 //
-// Generated: 2026-02-11T04:12:36.229Z
+// Generated: 2026-02-11T17:36:07.467Z
 // Source: 27 domain files
 // ==========================================
 
@@ -6050,6 +6050,13 @@ model UserAIPreferences {
   geminiModel               String?  @default("gemini-pro")
   mistralModel              String?  @default("mistral-large")
   openaiModel               String?  @default("gpt-4o")
+
+  // Per-capability model selections (override per-provider model for specific tasks)
+  chatModel                 String?
+  courseModel                String?
+  analysisModel             String?
+  codeModel                 String?
+  skillRoadmapModel         String?
 }
 
 model AIModelPerformance {

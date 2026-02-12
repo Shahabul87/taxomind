@@ -611,7 +611,7 @@ ChartBar  // Use BarChart3
 
 ## SAM Agentic AI Mentor Development
 
-### 🔴 MANDATORY: Architecture Reference
+### 🔴 MANDATORY: Architecture References
 
 **Before writing ANY SAM-related code, you MUST read:**
 ```
@@ -626,6 +626,21 @@ This file contains:
 - Code integration guidelines
 - Common patterns with examples
 - File reference map
+
+**Before creating ANY new SAM tool, skill, or AI-powered feature, you MUST also read:**
+```
+codebase-memory/architecture/SAM_SKILL_TOOL_PATTERN.md
+```
+
+This file contains:
+- The 5-layer pattern every SAM tool/skill must follow
+- Tool definition structure (conversational vs direct)
+- Tool registration in `agentic-tooling.ts`
+- Auto-invoke & mode affinity configuration in `tool-planner.ts`
+- Skill descriptor format (`.skill.md`)
+- Goal/Plan tracking + memory persistence patterns
+- Step-by-step checklist for new tools
+- Existing tools reference table
 
 ### 🚨 SAM Integration Rules
 
@@ -712,6 +727,7 @@ const { skill, learningPath, courseGraph } = getLearningPathStores();
 
 ### Quick Links
 - **Architecture Doc**: `codebase-memory/architecture/SAM_AGENTIC_ARCHITECTURE.md`
+- **Skill/Tool Pattern**: `codebase-memory/architecture/SAM_SKILL_TOOL_PATTERN.md`
 - Master Plan: `SAM_AGENTIC_AI_MENTOR_MASTER_PLAN.md`
 - Prisma Schema: `prisma/domains/17-sam-agentic.prisma`
 - Existing Plans: `docs/features/sam-ai-system/improvement-plan/`

@@ -41,6 +41,7 @@ import { createDiagramGeneratorTool } from '@/lib/sam/tools/diagram-generator';
 import { createStudyTimerTool } from '@/lib/sam/tools/study-timer';
 import { createSkillRoadmapGeneratorTool } from '@/lib/sam/tools/skill-roadmap-generator';
 import { createLearningAnalyticsTool } from '@/lib/sam/tools/learning-analytics-tool';
+import { createCourseCreatorTool } from '@/lib/sam/tools/course-creator';
 
 interface ToolingSystem {
   toolRegistry: ToolRegistry;
@@ -267,6 +268,7 @@ async function doRegisterMentorTools(toolRegistry: ToolRegistry, userId?: string
     createStudyTimerTool(),
     createSkillRoadmapGeneratorTool(),
     createLearningAnalyticsTool(),
+    createCourseCreatorTool(),
   ];
 
   let standaloneRegistered = 0;

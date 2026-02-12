@@ -559,7 +559,7 @@ export const MyCoursesDashboard = ({
                   </motion.button>
                 </Link>
 
-                <Link href="/teacher/courses/create">
+                <Link href="/teacher/create">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -576,7 +576,7 @@ export const MyCoursesDashboard = ({
                   title="You haven't created any courses yet"
                   description="Share your knowledge with the world by creating your first course"
                   icon={<Award className="w-10 h-10 text-gray-500" />}
-                  actionLink="/teacher/courses/create"
+                  actionLink="/teacher/create"
                   actionText="Create Course"
                 />
               ) : (

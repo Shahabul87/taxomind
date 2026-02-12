@@ -13,7 +13,8 @@
  */
 
 import { db } from '@/lib/db';
-import { runSAMChatWithPreference } from '@/lib/sam/ai-provider';
+import { createUserScopedAdapter } from '@/lib/ai/user-scoped-adapter';
+import type { AIAdapter as CoreAIAdapter } from '@sam-ai/core';
 import { recordAIUsage } from '@/lib/ai/subscription-enforcement';
 import { logger } from '@/lib/logger';
 import {
@@ -24,6 +25,25 @@ import {
   buildStage2Prompt,
   buildStage3Prompt,
 } from './prompts';
+import {
+  getCategoryEnhancer,
+  composeCategoryPrompt,
+} from './category-prompts';
+import {
+  initializeCourseCreationGoal,
+  advanceCourseStage,
+  completeStageStep,
+  completeCourseCreation,
+  failCourseCreation,
+} from './course-creation-controller';
+import {
+  persistConceptsBackground,
+  persistQualityScoresBackground,
+} from './memory-persistence';
+import {
+  BLOOMS_TAXONOMY,
+  BLOOMS_LEVELS,
+} from './types';
 import type {
   SequentialCreationConfig,
   SequentialCreationResult,
@@ -32,6 +52,8 @@ import type {
   GeneratedChapter,
   GeneratedSection,
   SectionDetails,
+  CompletedSection,
+  CompletedChapter,
   BloomsLevel,
   ContentType,
   QualityScore,
@@ -68,6 +90,8 @@ export interface OrchestrateOptions {
   config: SequentialCreationConfig;
   onProgress?: (progress: CreationProgress) => void;
   onSSEEvent?: (event: { type: string; data: Record<string, unknown> }) => void;
+  /** Pre-built CoreAIAdapter — if omitted, one is created via createUserScopedAdapter */
+  aiAdapter?: CoreAIAdapter;
 }
 
 export async function orchestrateCourseCreation(
@@ -76,10 +100,18 @@ export async function orchestrateCourseCreation(
   const { userId, config, onProgress, onSSEEvent } = options;
   const startTime = Date.now();
 
+  // Create or receive a persistent CoreAIAdapter for this creation session.
+  // This replaces per-call runSAMChatWithPreference and ensures all stages
+  // share the same provider resolution, rate limiting, and usage tracking.
+  const aiAdapter = options.aiAdapter ?? await createUserScopedAdapter(userId, 'course');
+
   const qualityScores: QualityScore[] = [];
   const allSectionTitles: string[] = [];
   let chaptersCreated = 0;
   let sectionsCreated = 0;
+  let goalId = '';
+  let planId = '';
+  let stepIds: string[] = [];
 
   // Initialize concept tracker and Bloom's progression
   const conceptTracker: ConceptTracker = {
@@ -105,6 +137,18 @@ export async function orchestrateCourseCreation(
     learningObjectivesPerSection: config.learningObjectivesPerSection,
     preferredContentTypes: config.preferredContentTypes as ContentType[],
   };
+
+  // Resolve domain-specific category prompt enhancer
+  const categoryEnhancer = getCategoryEnhancer(
+    courseContext.courseCategory,
+    courseContext.courseSubcategory
+  );
+  const composedCategoryPrompt = composeCategoryPrompt(categoryEnhancer);
+  logger.info('[ORCHESTRATOR] Category enhancer resolved', {
+    categoryId: categoryEnhancer.categoryId,
+    displayName: categoryEnhancer.displayName,
+    courseCategory: courseContext.courseCategory,
+  });
 
   // Calculate total items for percentage tracking
   const totalChapters = config.totalChapters;
@@ -195,15 +239,45 @@ export async function orchestrateCourseCreation(
     });
 
     // =========================================================================
-    // Stage 1: Generate Chapters
+    // Initialize SAM Goal + ExecutionPlan for tracking
     // =========================================================================
-    progress.state.stage = 1;
-    progress.state.phase = 'generating_chapter';
-    onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating chapters...' } });
+    const goalPlan = await initializeCourseCreationGoal(
+      userId,
+      config.courseTitle,
+      course.id
+    );
+    goalId = goalPlan.goalId;
+    planId = goalPlan.planId;
+    stepIds = goalPlan.stepIds;
+    progress.goalId = goalId;
 
+    // =========================================================================
+    // DEPTH-FIRST PIPELINE: Complete each chapter fully before the next
+    // =========================================================================
+    //
+    // For each chapter:
+    //   1. Stage 1: Generate chapter (with full section-level context from prior chapters)
+    //   2. Stage 2: Generate all sections for this chapter
+    //   3. Stage 3: Generate details for all sections
+    //   4. Store as CompletedChapter — next chapter gets FULL context
+    //
+    // This ensures when generating Chapter N, the AI knows EVERYTHING taught
+    // in Chapters 1..N-1: every section title, description, objective, activity,
+    // and concept — not just chapter-level metadata.
+    // =========================================================================
+
+    await advanceCourseStage(planId, stepIds, 1);
+    onSSEEvent?.({ type: 'stage_start', data: { stage: 1, message: 'Generating course content...' } });
+
+    const completedChapters: CompletedChapter[] = [];
     const generatedChapters: (GeneratedChapter & { id: string })[] = [];
+    const allSections: Map<string, (GeneratedSection & { id: string })[]> = new Map();
 
     for (let chNum = 1; chNum <= totalChapters; chNum++) {
+      // =====================================================================
+      // STAGE 1: Generate this chapter
+      // =====================================================================
+      progress.state.stage = 1;
       progress.state.currentChapter = chNum;
       progress.state.phase = 'generating_chapter';
       progress.currentItem = `Chapter ${chNum} of ${totalChapters}`;
@@ -214,20 +288,22 @@ export async function orchestrateCourseCreation(
         data: { stage: 1, chapter: chNum, message: `Generating chapter ${chNum}...` },
       });
 
-      // Build prompt with context of previous chapters + concept tracker
       const previousPlain = generatedChapters.map((ch) => stripId(ch));
 
       // Quality gate: retry up to MAX_RETRIES if score is below threshold
       let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) };
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-        const prompt = buildStage1Prompt(courseContext, chNum, previousPlain, conceptTracker);
-        const responseText = await runSAMChatWithPreference({
-          userId,
-          capability: 'course',
-          maxTokens: AI_MAX_TOKENS_CHAPTER,
+        // Pass completedChapters for rich section-level context from prior chapters
+        const prompt = buildStage1Prompt(
+          courseContext, chNum, previousPlain, conceptTracker,
+          composedCategoryPrompt, completedChapters
+        );
+        const aiResponse = await aiAdapter.chat({
           messages: [{ role: 'user', content: prompt }],
-          extended: true,
+          maxTokens: AI_MAX_TOKENS_CHAPTER,
+          temperature: 0.7,
         });
+        const responseText = aiResponse.content;
         const result = parseChapterResponse(responseText, chNum, courseContext, generatedChapters);
 
         if (result.qualityScore.overall > bestResult.qualityScore.overall) {
@@ -240,8 +316,8 @@ export async function orchestrateCourseCreation(
         });
       }
 
-      const { chapter, thinking, qualityScore } = bestResult;
-      qualityScores.push(qualityScore);
+      const { chapter, thinking: chThinking, qualityScore: chQuality } = bestResult;
+      qualityScores.push(chQuality);
 
       // Update concept tracker with this chapter's concepts
       const chapterConcepts = chapter.conceptsIntroduced ?? chapter.keyTopics;
@@ -264,10 +340,10 @@ export async function orchestrateCourseCreation(
 
       onSSEEvent?.({
         type: 'thinking',
-        data: { stage: 1, chapter: chNum, thinking },
+        data: { stage: 1, chapter: chNum, thinking: chThinking },
       });
 
-      // Save to DB
+      // Save chapter to DB
       progress.state.phase = 'saving_chapter';
       emitProgress(`Saving chapter ${chNum}: ${chapter.title}...`);
 
@@ -296,7 +372,7 @@ export async function orchestrateCourseCreation(
         position: chapter.position,
         title: chapter.title,
         id: dbChapter.id,
-        qualityScore: qualityScore.overall,
+        qualityScore: chQuality.overall,
       });
 
       onSSEEvent?.({
@@ -306,11 +382,10 @@ export async function orchestrateCourseCreation(
           chapter: chNum,
           title: chapter.title,
           id: dbChapter.id,
-          qualityScore: qualityScore.overall,
+          qualityScore: chQuality.overall,
         },
       });
 
-      // Track AI usage
       await recordAIUsage(userId, 'course', 1, {
         requestType: 'orchestrator-stage-1',
       });
@@ -318,36 +393,38 @@ export async function orchestrateCourseCreation(
       logger.info('[ORCHESTRATOR] Chapter saved', {
         chapterNum: chNum,
         title: chapter.title,
-        qualityScore: qualityScore.overall,
+        qualityScore: chQuality.overall,
       });
-    }
 
-    onSSEEvent?.({
-      type: 'stage_complete',
-      data: {
-        stage: 1,
-        message: `All ${totalChapters} chapters generated`,
-        chaptersCreated,
-      },
-    });
-    config.onStageComplete?.(1, generatedChapters);
+      // =====================================================================
+      // STAGE 2: Generate all sections for this chapter
+      // =====================================================================
+      progress.state.stage = 2;
+      if (chNum === 1) {
+        onSSEEvent?.({ type: 'stage_start', data: { stage: 2, message: 'Generating sections...' } });
+      }
 
-    // =========================================================================
-    // Stage 2: Generate Sections for each Chapter
-    // =========================================================================
-    progress.state.stage = 2;
-    onSSEEvent?.({ type: 'stage_start', data: { stage: 2, message: 'Generating sections...' } });
-
-    const allSections: Map<string, (GeneratedSection & { id: string })[]> = new Map();
-
-    for (const chapter of generatedChapters) {
       const chapterSections: (GeneratedSection & { id: string })[] = [];
-      progress.state.currentChapter = chapter.position;
+      const completedSections: CompletedSection[] = [];
+
+      // Build plain chapter for prompt builders
+      const chapterPlain: GeneratedChapter = {
+        position: chapterWithId.position,
+        title: chapterWithId.title,
+        description: chapterWithId.description,
+        bloomsLevel: chapterWithId.bloomsLevel,
+        learningObjectives: chapterWithId.learningObjectives,
+        keyTopics: chapterWithId.keyTopics,
+        prerequisites: chapterWithId.prerequisites,
+        estimatedTime: chapterWithId.estimatedTime,
+        topicsToExpand: chapterWithId.topicsToExpand,
+        conceptsIntroduced: chapterWithId.conceptsIntroduced,
+      };
 
       for (let secNum = 1; secNum <= config.sectionsPerChapter; secNum++) {
         progress.state.currentSection = secNum;
         progress.state.phase = 'generating_section';
-        progress.currentItem = `Chapter ${chapter.position}, Section ${secNum}`;
+        progress.currentItem = `Chapter ${chNum}, Section ${secNum}`;
         emitProgress(
           `Generating section ${secNum} of ${config.sectionsPerChapter} for "${chapter.title}"...`
         );
@@ -356,45 +433,30 @@ export async function orchestrateCourseCreation(
           type: 'item_generating',
           data: {
             stage: 2,
-            chapter: chapter.position,
+            chapter: chNum,
             section: secNum,
             message: `Generating section ${secNum}...`,
           },
         });
 
-        // Build enriched context for this stage
         const enrichedContext: EnrichedChapterContext = {
           allChapters: generatedChapters.map(ch => stripId(ch)),
           conceptTracker,
           bloomsProgression,
         };
 
-        // Build prompt with context
         const previousPlainSections = chapterSections.map((s) => stripId(s));
-        const chapterPlain: GeneratedChapter = {
-          position: chapter.position,
-          title: chapter.title,
-          description: chapter.description,
-          bloomsLevel: chapter.bloomsLevel,
-          learningObjectives: chapter.learningObjectives,
-          keyTopics: chapter.keyTopics,
-          prerequisites: chapter.prerequisites,
-          estimatedTime: chapter.estimatedTime,
-          topicsToExpand: chapter.topicsToExpand,
-          conceptsIntroduced: chapter.conceptsIntroduced,
-        };
 
         // Quality gate: retry up to MAX_RETRIES if score is below threshold
         let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles), thinking: '', qualityScore: buildDefaultQualityScore(50) };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const prompt = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext);
-          const responseText = await runSAMChatWithPreference({
-            userId,
-            capability: 'course',
-            maxTokens: AI_MAX_TOKENS_SECTION,
+          const prompt = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt);
+          const aiResponse = await aiAdapter.chat({
             messages: [{ role: 'user', content: prompt }],
-            extended: true,
+            maxTokens: AI_MAX_TOKENS_SECTION,
+            temperature: 0.7,
           });
+          const responseText = aiResponse.content;
           const result = parseSectionResponse(responseText, secNum, chapterPlain, allSectionTitles);
 
           if (result.qualityScore.overall > bestSec.qualityScore.overall) {
@@ -403,12 +465,12 @@ export async function orchestrateCourseCreation(
           if (result.qualityScore.overall >= QUALITY_RETRY_THRESHOLD || attempt === MAX_RETRIES) break;
 
           logger.info('[ORCHESTRATOR] Section quality below threshold, retrying', {
-            chapter: chapter.position, section: secNum, score: result.qualityScore.overall, attempt: attempt + 1,
+            chapter: chNum, section: secNum, score: result.qualityScore.overall, attempt: attempt + 1,
           });
         }
 
-        const { section, thinking, qualityScore } = bestSec;
-        qualityScores.push(qualityScore);
+        const { section, thinking: secThinking, qualityScore: secQuality } = bestSec;
+        qualityScores.push(secQuality);
         allSectionTitles.push(section.title);
 
         // Update concept tracker with section concepts
@@ -417,9 +479,9 @@ export async function orchestrateCourseCreation(
           if (!conceptTracker.concepts.has(concept)) {
             const entry: ConceptEntry = {
               concept,
-              introducedInChapter: chapter.position,
+              introducedInChapter: chNum,
               introducedInSection: secNum,
-              bloomsLevel: chapter.bloomsLevel,
+              bloomsLevel: chapterWithId.bloomsLevel,
             };
             conceptTracker.concepts.set(concept, entry);
           }
@@ -427,21 +489,20 @@ export async function orchestrateCourseCreation(
 
         onSSEEvent?.({
           type: 'thinking',
-          data: { stage: 2, chapter: chapter.position, section: secNum, thinking },
+          data: { stage: 2, chapter: chNum, section: secNum, thinking: secThinking },
         });
 
         // Save to DB
         progress.state.phase = 'saving_section';
         emitProgress(`Saving section: ${section.title}...`);
 
-        // Parse duration string to minutes
         const durationMinutes = parseDuration(section.estimatedDuration);
 
         const dbSection = await db.section.create({
           data: {
             title: section.title,
             position: section.position,
-            chapterId: chapter.id,
+            chapterId: chapterWithId.id,
             type: section.contentType,
             duration: durationMinutes,
             isPublished: false,
@@ -450,26 +511,27 @@ export async function orchestrateCourseCreation(
 
         const sectionWithId = { ...section, id: dbSection.id };
         chapterSections.push(sectionWithId);
+        completedSections.push({ ...section, id: dbSection.id });
         sectionsCreated++;
         completedItems++;
 
         progress.completedItems.sections.push({
-          chapterPosition: chapter.position,
+          chapterPosition: chNum,
           position: section.position,
           title: section.title,
           id: dbSection.id,
-          qualityScore: qualityScore.overall,
+          qualityScore: secQuality.overall,
         });
 
         onSSEEvent?.({
           type: 'item_complete',
           data: {
             stage: 2,
-            chapter: chapter.position,
+            chapter: chNum,
             section: secNum,
             title: section.title,
             id: dbSection.id,
-            qualityScore: qualityScore.overall,
+            qualityScore: secQuality.overall,
           },
         });
 
@@ -480,34 +542,35 @@ export async function orchestrateCourseCreation(
         logger.info('[ORCHESTRATOR] Section saved', {
           chapter: chapter.title,
           section: section.title,
-          qualityScore: qualityScore.overall,
+          qualityScore: secQuality.overall,
         });
       }
 
-      allSections.set(chapter.id, chapterSections);
-    }
+      allSections.set(chapterWithId.id, chapterSections);
 
-    onSSEEvent?.({
-      type: 'stage_complete',
-      data: {
-        stage: 2,
-        message: `All ${sectionsCreated} sections generated`,
-        sectionsCreated,
-      },
-    });
-    config.onStageComplete?.(2, Array.from(allSections.values()).flat());
+      // Chapter-section coverage validation
+      const coveredTopics = validateChapterSectionCoverage(
+        { position: chapterWithId.position, title: chapterWithId.title, keyTopics: chapterWithId.keyTopics, topicsToExpand: chapterWithId.topicsToExpand },
+        chapterSections
+      );
+      if (coveredTopics.uncoveredTopics.length > 0) {
+        logger.warn('[ORCHESTRATOR] Chapter-section coverage gap', {
+          chapter: chapter.title,
+          uncoveredTopics: coveredTopics.uncoveredTopics,
+          coverageScore: coveredTopics.coveragePercent,
+        });
+      }
 
-    // =========================================================================
-    // Stage 3: Generate Details for each Section
-    // =========================================================================
-    progress.state.stage = 3;
-    onSSEEvent?.({ type: 'stage_start', data: { stage: 3, message: 'Generating section details...' } });
+      // =====================================================================
+      // STAGE 3: Generate details for all sections of this chapter
+      // =====================================================================
+      progress.state.stage = 3;
+      if (chNum === 1) {
+        onSSEEvent?.({ type: 'stage_start', data: { stage: 3, message: 'Generating section details...' } });
+      }
 
-    for (const chapter of generatedChapters) {
-      const chapterSections = allSections.get(chapter.id) ?? [];
-      progress.state.currentChapter = chapter.position;
-
-      for (const section of chapterSections) {
+      for (let secIdx = 0; secIdx < chapterSections.length; secIdx++) {
+        const section = chapterSections[secIdx];
         progress.state.currentSection = section.position;
         progress.state.phase = 'generating_details';
         progress.currentItem = `Details for "${section.title}"`;
@@ -517,32 +580,18 @@ export async function orchestrateCourseCreation(
           type: 'item_generating',
           data: {
             stage: 3,
-            chapter: chapter.position,
+            chapter: chNum,
             section: section.position,
             message: `Generating details for "${section.title}"...`,
           },
         });
 
-        // Build enriched context for Stage 3
         const enrichedContext: EnrichedChapterContext = {
           allChapters: generatedChapters.map(ch => stripId(ch)),
           conceptTracker,
           bloomsProgression,
         };
 
-        // Build prompt
-        const chapterPlain: GeneratedChapter = {
-          position: chapter.position,
-          title: chapter.title,
-          description: chapter.description,
-          bloomsLevel: chapter.bloomsLevel,
-          learningObjectives: chapter.learningObjectives,
-          keyTopics: chapter.keyTopics,
-          prerequisites: chapter.prerequisites,
-          estimatedTime: chapter.estimatedTime,
-          topicsToExpand: chapter.topicsToExpand,
-          conceptsIntroduced: chapter.conceptsIntroduced,
-        };
         const sectionPlain: GeneratedSection = {
           position: section.position,
           title: section.title,
@@ -562,14 +611,13 @@ export async function orchestrateCourseCreation(
           qualityScore: buildDefaultQualityScore(50),
         };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const prompt = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext);
-          const responseText = await runSAMChatWithPreference({
-            userId,
-            capability: 'course',
-            maxTokens: AI_MAX_TOKENS_DETAILS,
+          const prompt = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt);
+          const aiResponse = await aiAdapter.chat({
             messages: [{ role: 'user', content: prompt }],
-            extended: true,
+            maxTokens: AI_MAX_TOKENS_DETAILS,
+            temperature: 0.7,
           });
+          const responseText = aiResponse.content;
           const result = parseDetailsResponse(responseText, chapterPlain, sectionPlain, courseContext);
 
           if (result.qualityScore.overall > bestDet.qualityScore.overall) {
@@ -582,8 +630,8 @@ export async function orchestrateCourseCreation(
           });
         }
 
-        const { details, thinking, qualityScore } = bestDet;
-        qualityScores.push(qualityScore);
+        const { details, thinking: detThinking, qualityScore: detQuality } = bestDet;
+        qualityScores.push(detQuality);
 
         // Update concept tracker with details concepts
         const detailConcepts = ensureOptionalArray(details.keyConceptsCovered);
@@ -591,17 +639,20 @@ export async function orchestrateCourseCreation(
           if (!conceptTracker.concepts.has(concept)) {
             const entry: ConceptEntry = {
               concept,
-              introducedInChapter: chapter.position,
+              introducedInChapter: chNum,
               introducedInSection: section.position,
-              bloomsLevel: chapter.bloomsLevel,
+              bloomsLevel: chapterWithId.bloomsLevel,
             };
             conceptTracker.concepts.set(concept, entry);
           }
         }
 
+        // Store details on the completed section for next chapter's context
+        completedSections[secIdx].details = details;
+
         onSSEEvent?.({
           type: 'thinking',
-          data: { stage: 3, chapter: chapter.position, section: section.position, thinking },
+          data: { stage: 3, chapter: chNum, section: section.position, thinking: detThinking },
         });
 
         // Update section in DB with details
@@ -623,10 +674,10 @@ export async function orchestrateCourseCreation(
           type: 'item_complete',
           data: {
             stage: 3,
-            chapter: chapter.position,
+            chapter: chNum,
             section: section.position,
             title: section.title,
-            qualityScore: qualityScore.overall,
+            qualityScore: detQuality.overall,
           },
         });
 
@@ -636,16 +687,53 @@ export async function orchestrateCourseCreation(
 
         logger.info('[ORCHESTRATOR] Details saved', {
           section: section.title,
-          qualityScore: qualityScore.overall,
+          qualityScore: detQuality.overall,
         });
       }
+
+      // =====================================================================
+      // CHAPTER FULLY COMPLETE — store for next chapter's rich context
+      // =====================================================================
+      const completedChapter: CompletedChapter = {
+        ...chapter,
+        id: chapterWithId.id,
+        sections: completedSections,
+      };
+      completedChapters.push(completedChapter);
+
+      logger.info('[ORCHESTRATOR] Chapter fully completed (depth-first)', {
+        chapter: chNum,
+        title: chapter.title,
+        sectionsCompleted: completedSections.length,
+        conceptsTracked: conceptTracker.concepts.size,
+      });
+
+      // Persist memory after each completed chapter (background)
+      persistConceptsBackground(userId, course.id, conceptTracker, chNum);
+      persistQualityScoresBackground(userId, course.id, qualityScores.slice(), chNum);
     }
 
+    // Emit stage completion events and finalize goal tracking
+    onSSEEvent?.({
+      type: 'stage_complete',
+      data: { stage: 1, message: `All ${totalChapters} chapters generated`, chaptersCreated },
+    });
+    onSSEEvent?.({
+      type: 'stage_complete',
+      data: { stage: 2, message: `All ${sectionsCreated} sections generated`, sectionsCreated },
+    });
     onSSEEvent?.({
       type: 'stage_complete',
       data: { stage: 3, message: 'All section details generated' },
     });
+    config.onStageComplete?.(1, generatedChapters);
+    config.onStageComplete?.(2, Array.from(allSections.values()).flat());
     config.onStageComplete?.(3, []);
+
+    // Mark all stages complete in goal tracking
+    await completeStageStep(planId, stepIds, 1, [`${chaptersCreated} chapters`]);
+    await completeStageStep(planId, stepIds, 2, [`${sectionsCreated} sections`]);
+    await completeStageStep(planId, stepIds, 3);
 
     // =========================================================================
     // Complete
@@ -665,6 +753,14 @@ export async function orchestrateCourseCreation(
       courseId: course.id,
       chaptersCreated,
       sectionsCreated,
+      totalTime,
+      averageQualityScore,
+    });
+
+    // Phase 3: Mark entire course creation as completed
+    await completeCourseCreation(goalId, planId, {
+      totalChapters: chaptersCreated,
+      totalSections: sectionsCreated,
       totalTime,
       averageQualityScore,
     });
@@ -691,10 +787,15 @@ export async function orchestrateCourseCreation(
         totalTime,
         averageQualityScore,
       },
+      goalId,
+      planId,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('[ORCHESTRATOR] Course creation failed:', errorMessage);
+
+    // Phase 3: Mark course creation as failed
+    await failCourseCreation(goalId, planId, errorMessage);
 
     progress.state.phase = 'error';
     progress.state.error = errorMessage;
@@ -711,6 +812,8 @@ export async function orchestrateCourseCreation(
       chaptersCreated,
       sectionsCreated,
       error: errorMessage,
+      goalId: goalId || undefined,
+      planId: planId || undefined,
     };
   }
 }
@@ -917,6 +1020,7 @@ function buildDefaultQualityScore(overall: number): QualityScore {
     specificity: overall,
     bloomsAlignment: overall,
     uniqueness: overall,
+    depth: overall,
     overall,
   };
 }
@@ -930,7 +1034,7 @@ function scoreChapter(
   ctx: CourseContext,
   previousChapters: GeneratedChapter[]
 ): QualityScore {
-  // Completeness (25%): description word count >= 50, objectives meet config, keyTopics >= 3, prerequisites not empty
+  // Completeness (20%): description word count >= 50, objectives meet config, keyTopics >= 3, prerequisites not empty
   let completeness = 100;
   const descWordCount = ch.description.split(/\s+/).length;
   if (descWordCount < 50) completeness -= 30;
@@ -940,7 +1044,7 @@ function scoreChapter(
   if (!ch.prerequisites || ch.prerequisites === 'None') completeness -= 5;
   completeness = Math.max(0, completeness);
 
-  // Specificity (20%): title not generic, description mentions >= 2 keyTopics, title >= 20 chars
+  // Specificity (15%): title not generic, description mentions >= 2 keyTopics, title >= 20 chars
   let specificity = 100;
   if (ch.title.length < 20) specificity -= 25;
   const genericTitles = /^(introduction|getting started|fundamentals|overview|basics)/i;
@@ -950,7 +1054,7 @@ function scoreChapter(
   if (topicMentions < 2) specificity -= 20;
   specificity = Math.max(0, specificity);
 
-  // Bloom's Alignment (35%): validate each objective against Bloom's verbs
+  // Bloom's Alignment (30%): validate each objective against Bloom's verbs
   let bloomsAlignment = 100;
   if (ch.learningObjectives.length > 0) {
     const objectiveScores = ch.learningObjectives.map(obj =>
@@ -959,7 +1063,7 @@ function scoreChapter(
     bloomsAlignment = Math.round(objectiveScores.reduce((a, b) => a + b, 0) / objectiveScores.length);
   }
 
-  // Uniqueness (20%): Jaccard similarity of keyTopics against previous chapters' topics
+  // Uniqueness (15%): Jaccard similarity of keyTopics against previous chapters' topics
   let uniqueness = 100;
   if (previousChapters.length > 0) {
     for (const prev of previousChapters) {
@@ -981,15 +1085,32 @@ function scoreChapter(
   }
   uniqueness = Math.max(0, uniqueness);
 
+  // Depth (20%): description richness, unique concepts count, objective complexity, topic detail
+  let depth = 100;
+  // Description should be rich (>= 100 words for high depth)
+  if (descWordCount < 100) depth -= 20;
+  if (descWordCount < 50) depth -= 20;
+  // Should introduce meaningful new concepts (3-7 expected)
+  const conceptCount = ch.conceptsIntroduced?.length ?? 0;
+  if (conceptCount < 3) depth -= 25;
+  else if (conceptCount < 5) depth -= 10;
+  // Objectives should be longer than trivial single-clause sentences
+  const avgObjLength = ch.learningObjectives.reduce((sum, o) => sum + o.split(/\s+/).length, 0) / Math.max(ch.learningObjectives.length, 1);
+  if (avgObjLength < 8) depth -= 15;  // Objectives with fewer than 8 words are shallow
+  // Key topics should be specific (average word count >= 2)
+  const avgTopicWords = ch.keyTopics.reduce((sum, t) => sum + t.split(/\s+/).length, 0) / Math.max(ch.keyTopics.length, 1);
+  if (avgTopicWords < 2) depth -= 15;
+  depth = Math.max(0, depth);
+
   const overall = Math.round(
-    completeness * 0.25 + specificity * 0.20 + bloomsAlignment * 0.35 + uniqueness * 0.20
+    completeness * 0.20 + specificity * 0.15 + bloomsAlignment * 0.30 + uniqueness * 0.15 + depth * 0.20
   );
 
-  return { completeness, specificity, bloomsAlignment, uniqueness, overall };
+  return { completeness, specificity, bloomsAlignment, uniqueness, depth, overall };
 }
 
 function scoreSection(sec: GeneratedSection, existingTitles: string[]): QualityScore {
-  // Completeness (25%): all fields present, topicFocus meaningful
+  // Completeness (20%): all fields present, topicFocus meaningful
   let completeness = 100;
   if (!sec.title || sec.title.length < 5) completeness -= 30;
   if (!sec.topicFocus || sec.topicFocus.length < 5) completeness -= 30;
@@ -997,17 +1118,44 @@ function scoreSection(sec: GeneratedSection, existingTitles: string[]): QualityS
   if (!sec.estimatedDuration) completeness -= 10;
   completeness = Math.max(0, completeness);
 
-  // Specificity (25%): title not generic, differs from chapter title
+  // Specificity (20%): title not generic, differs from chapter title
   let specificity = 100;
   if (sec.title.length < 15) specificity -= 25;
   if (/^(Section \d+|Key Concepts|Overview|Fundamentals|Core Concepts|Key Principles)$/i.test(sec.title)) specificity -= 40;
   if (sec.title === sec.parentChapterContext.title) specificity -= 30;
   specificity = Math.max(0, specificity);
 
-  // Bloom's Alignment (25%): section's implied level matches parent chapter
-  const bloomsAlignment = 100; // Sections inherit from chapter; verified at prompt level
+  // Bloom's Alignment (20%): section content reflects parent chapter's Bloom's level
+  let bloomsAlignment = 100;
+  const parentBloomsLevel = sec.parentChapterContext.bloomsLevel;
+  const bloomsInfo = BLOOMS_TAXONOMY[parentBloomsLevel];
+  if (bloomsInfo) {
+    // Check if topicFocus or title uses cognitive verbs appropriate for the Bloom's level
+    const combinedText = `${sec.title} ${sec.topicFocus}`.toLowerCase();
+    const hasRelevantVerb = bloomsInfo.verbs.some(verb => combinedText.includes(verb.toLowerCase()));
+    // Also check the level below (adjacent levels are acceptable)
+    const levelIndex = BLOOMS_LEVELS.indexOf(parentBloomsLevel);
+    const adjacentVerbs = levelIndex > 0
+      ? BLOOMS_TAXONOMY[BLOOMS_LEVELS[levelIndex - 1]].verbs
+      : [];
+    const hasAdjacentVerb = adjacentVerbs.some(verb => combinedText.includes(verb.toLowerCase()));
 
-  // Uniqueness (25%): Jaccard similarity < 0.5 to all existing titles
+    if (!hasRelevantVerb && !hasAdjacentVerb) {
+      // No verb match — check if relevant objectives reference appropriate verbs
+      const objText = sec.parentChapterContext.relevantObjectives.join(' ').toLowerCase();
+      const objHasVerb = bloomsInfo.verbs.some(verb => objText.includes(verb.toLowerCase()));
+      if (!objHasVerb) {
+        bloomsAlignment -= 30;
+      }
+    }
+    // Check if section references parent chapter objectives
+    if (sec.parentChapterContext.relevantObjectives.length === 0) {
+      bloomsAlignment -= 20;
+    }
+  }
+  bloomsAlignment = Math.max(0, bloomsAlignment);
+
+  // Uniqueness (20%): Jaccard similarity < 0.5 to all existing titles
   let uniqueness = 100;
   for (const existing of existingTitles) {
     const sim = jaccardSimilarity(sec.title, existing);
@@ -1020,11 +1168,29 @@ function scoreSection(sec: GeneratedSection, existingTitles: string[]): QualityS
   }
   uniqueness = Math.max(0, uniqueness);
 
+  // Depth (20%): topic specificity, concepts introduced, content richness indicators
+  let depth = 100;
+  // Topic focus should be specific (more than 2 words)
+  const topicWords = sec.topicFocus.split(/\s+/).length;
+  if (topicWords < 2) depth -= 20;
+  if (topicWords < 3) depth -= 10;
+  // Should introduce new concepts
+  const newConcepts = sec.conceptsIntroduced?.length ?? 0;
+  if (newConcepts === 0) depth -= 25;
+  else if (newConcepts < 2) depth -= 10;
+  // Should reference prior concepts (building on knowledge)
+  const referencedConcepts = sec.conceptsReferenced?.length ?? 0;
+  if (referencedConcepts === 0 && sec.position > 1) depth -= 15;
+  // Title should be descriptive (not just the chapter title repeated)
+  const titleWords = sec.title.split(/\s+/).length;
+  if (titleWords < 3) depth -= 15;
+  depth = Math.max(0, depth);
+
   const overall = Math.round(
-    completeness * 0.25 + specificity * 0.25 + bloomsAlignment * 0.25 + uniqueness * 0.25
+    completeness * 0.20 + specificity * 0.20 + bloomsAlignment * 0.20 + uniqueness * 0.20 + depth * 0.20
   );
 
-  return { completeness, specificity, bloomsAlignment, uniqueness, overall };
+  return { completeness, specificity, bloomsAlignment, uniqueness, depth, overall };
 }
 
 function scoreDetails(
@@ -1032,7 +1198,7 @@ function scoreDetails(
   sec: GeneratedSection,
   bloomsLevel: BloomsLevel
 ): QualityScore {
-  // Completeness (30%): description >= 50 chars, objectives >= 2, concepts >= 2, activity present
+  // Completeness (25%): description >= 50 chars, objectives >= 2, concepts >= 2, activity present
   let completeness = 100;
   if (det.description.length < 50) completeness -= 25;
   if (det.learningObjectives.length < 2) completeness -= 25;
@@ -1040,7 +1206,7 @@ function scoreDetails(
   if (!det.practicalActivity || det.practicalActivity.length < 20) completeness -= 15;
   completeness = Math.max(0, completeness);
 
-  // Specificity (20%): description mentions topicFocus, activity matches contentType
+  // Specificity (15%): description mentions topicFocus, activity matches contentType
   let specificity = 100;
   if (!det.description.toLowerCase().includes(sec.topicFocus.toLowerCase().split(' ')[0])) {
     specificity -= 30;
@@ -1060,7 +1226,7 @@ function scoreDetails(
   }
   specificity = Math.max(0, specificity);
 
-  // Bloom's Alignment (35%): validate each objective against bloomsLevel
+  // Bloom's Alignment (25%): validate each objective against bloomsLevel
   let bloomsAlignment = 100;
   if (det.learningObjectives.length > 0) {
     const objectiveScores = det.learningObjectives.map(obj =>
@@ -1075,11 +1241,67 @@ function scoreDetails(
   if (allSame && det.keyConceptsCovered.length > 1) uniqueness -= 40;
   uniqueness = Math.max(0, uniqueness);
 
+  // Depth (20%): description richness, objective complexity, practical activity detail, concept coverage
+  let depth = 100;
+  // Description should be substantive (>= 150 chars for high depth)
+  if (det.description.length < 150) depth -= 15;
+  if (det.description.length < 80) depth -= 15;
+  // Objectives should be detailed (average >= 8 words)
+  const avgObjWords = det.learningObjectives.reduce((sum, o) => sum + o.split(/\s+/).length, 0) / Math.max(det.learningObjectives.length, 1);
+  if (avgObjWords < 8) depth -= 20;
+  // Practical activity should be descriptive (>= 50 chars)
+  if (det.practicalActivity.length < 50) depth -= 15;
+  if (det.practicalActivity.length < 100) depth -= 10;
+  // Key concepts should go beyond surface (>= 3 distinct concepts)
+  if (det.keyConceptsCovered.length < 3) depth -= 15;
+  // Resources add depth
+  if (!det.resources || det.resources.length === 0) depth -= 5;
+  depth = Math.max(0, depth);
+
   const overall = Math.round(
-    completeness * 0.30 + specificity * 0.20 + bloomsAlignment * 0.35 + uniqueness * 0.15
+    completeness * 0.25 + specificity * 0.15 + bloomsAlignment * 0.25 + uniqueness * 0.15 + depth * 0.20
   );
 
-  return { completeness, specificity, bloomsAlignment, uniqueness, overall };
+  return { completeness, specificity, bloomsAlignment, uniqueness, depth, overall };
+}
+
+/**
+ * Validates that a chapter's key topics are covered by its generated sections.
+ * Checks topicFocus and title of each section against the chapter's keyTopics and topicsToExpand.
+ */
+function validateChapterSectionCoverage(
+  chapter: { position: number; title: string; keyTopics: string[]; topicsToExpand: string[] },
+  sections: GeneratedSection[]
+): { coveragePercent: number; coveredTopics: string[]; uncoveredTopics: string[] } {
+  const allTopics = [...new Set([...chapter.keyTopics, ...chapter.topicsToExpand])];
+  const coveredTopics: string[] = [];
+  const uncoveredTopics: string[] = [];
+
+  for (const topic of allTopics) {
+    const topicLower = topic.toLowerCase();
+    const topicWords = topicLower.split(/\s+/);
+
+    // Check if any section covers this topic (via title, topicFocus, or introduced concepts)
+    const isCovered = sections.some(sec => {
+      const sectionText = `${sec.title} ${sec.topicFocus} ${(sec.conceptsIntroduced ?? []).join(' ')}`.toLowerCase();
+      // Match if topic appears as substring, or if most words from the topic appear in section text
+      if (sectionText.includes(topicLower)) return true;
+      const matchingWords = topicWords.filter(w => w.length > 3 && sectionText.includes(w));
+      return matchingWords.length >= Math.ceil(topicWords.length * 0.6);
+    });
+
+    if (isCovered) {
+      coveredTopics.push(topic);
+    } else {
+      uncoveredTopics.push(topic);
+    }
+  }
+
+  const coveragePercent = allTopics.length > 0
+    ? Math.round((coveredTopics.length / allTopics.length) * 100)
+    : 100;
+
+  return { coveragePercent, coveredTopics, uncoveredTopics };
 }
 
 function jaccardSimilarity(a: string, b: string): number {

@@ -313,7 +313,7 @@ export const MyCoursesDashboardEnterprise = ({
                   Explore Courses
                 </Button>
               </Link>
-              <Link href="/teacher/courses/create" className="w-full sm:w-auto">
+              <Link href="/teacher/create" className="w-full sm:w-auto">
                 <Button className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white font-semibold backdrop-blur-sm border border-white/30 shadow-lg hover:shadow-xl transition-all h-9 sm:h-10 text-sm sm:text-base">
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
                   Create Course
@@ -665,7 +665,7 @@ export const MyCoursesDashboardEnterprise = ({
                       View Analytics
                     </Button>
                   </Link>
-                  <Link href="/teacher/courses/create" className="w-full sm:w-auto">
+                  <Link href="/teacher/create" className="w-full sm:w-auto">
                     <Button className="w-full sm:w-auto bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg transition-all h-9 sm:h-10 text-sm sm:text-base">
                       <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
                       Create New Course
@@ -679,7 +679,7 @@ export const MyCoursesDashboardEnterprise = ({
                   title="You haven't created any courses yet"
                   description="Share your knowledge with the world by creating your first course"
                   icon={<GraduationCap className="w-12 h-12 text-slate-400" />}
-                  actionLink="/teacher/courses/create"
+                  actionLink="/teacher/create"
                   actionText="Create Course"
                 />
               ) : (

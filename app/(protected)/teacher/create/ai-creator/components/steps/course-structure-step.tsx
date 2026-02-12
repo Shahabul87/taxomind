@@ -113,7 +113,7 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
         </div>
         <div className="flex items-center gap-2">
           <div className="flex -space-x-1">
-            {[goalsIsValid, bloomsIsValid].map((isValid, i) => (
+            {[bloomsIsValid, goalsIsValid].map((isValid, i) => (
               <div
                 key={i}
                 className={cn(
@@ -346,11 +346,56 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
         </div>
       </div>
 
-      {/* Learning Objectives Section */}
+      {/* Bloom's Taxonomy Focus Section — select cognitive levels BEFORE generating objectives */}
+      <FormFieldWrapper
+        label="Bloom&apos;s Taxonomy focus"
+        required
+        tooltip="Select cognitive levels to target. Higher levels (Analyze, Evaluate, Create) lead to deeper learning but require more foundational knowledge first. Select these BEFORE generating learning objectives so the AI uses them as context."
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
+          {BLOOMS_LEVELS.map((level) => {
+            const isSelected = formData.bloomsFocus.includes(level.value);
+            return (
+              <button
+                key={level.value}
+                type="button"
+                onClick={() => toggleBloomsLevel(level.value)}
+                className={cn(
+                  "group relative p-4 rounded-xl border-2 text-left transition-all duration-300",
+                  "hover:shadow-md hover:-translate-y-0.5",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500",
+                  isSelected
+                    ? "bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/50 dark:to-green-950/30 border-emerald-400 dark:border-emerald-600 shadow-sm"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                )}
+              >
+                {isSelected && (
+                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                    <CheckCircle2 className="h-3 w-3 text-white" />
+                  </div>
+                )}
+                <div className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-1.5 pr-6">
+                  {level.label}
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {level.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+        {!bloomsIsValid && formData.bloomsFocus.length > 0 && (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+            Select at least 2 cognitive levels for a balanced learning experience
+          </p>
+        )}
+      </FormFieldWrapper>
+
+      {/* Learning Objectives Section — generated AFTER Bloom's levels are selected */}
       <FormFieldWrapper
         label="Learning objectives"
         required
-        tooltip="What will students be able to do after completing this course? Use action verbs like 'Build', 'Create', 'Analyze', 'Design'."
+        tooltip="What will students be able to do after completing this course? Use action verbs like 'Build', 'Create', 'Analyze', 'Design'. The AI generator uses your Bloom&apos;s Taxonomy selection above for better-aligned objectives."
       >
         <div className="space-y-3">
           <div className="flex gap-2">
@@ -405,6 +450,7 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
               difficulty={formData.difficulty}
               bloomsFocus={formData.bloomsFocus}
               existingObjectives={formData.courseGoals || []}
+              targetObjectiveCount={formData.learningObjectivesPerChapter || 5}
               onAddObjectives={addMultipleGoals}
               disabled={!formData.courseTitle || formData.courseTitle.length < 5}
             />
@@ -454,51 +500,6 @@ export function CourseStructureStep({ formData, setFormData, validationErrors }:
             </div>
           )}
         </div>
-      </FormFieldWrapper>
-
-      {/* Bloom's Taxonomy Focus Section */}
-      <FormFieldWrapper
-        label="Bloom&apos;s Taxonomy focus"
-        required
-        tooltip="Select cognitive levels to target. Higher levels (Analyze, Evaluate, Create) lead to deeper learning but require more foundational knowledge first."
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
-          {BLOOMS_LEVELS.map((level) => {
-            const isSelected = formData.bloomsFocus.includes(level.value);
-            return (
-              <button
-                key={level.value}
-                type="button"
-                onClick={() => toggleBloomsLevel(level.value)}
-                className={cn(
-                  "group relative p-4 rounded-xl border-2 text-left transition-all duration-300",
-                  "hover:shadow-md hover:-translate-y-0.5",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-500",
-                  isSelected
-                    ? "bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/50 dark:to-green-950/30 border-emerald-400 dark:border-emerald-600 shadow-sm"
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                )}
-              >
-                {isSelected && (
-                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                    <CheckCircle2 className="h-3 w-3 text-white" />
-                  </div>
-                )}
-                <div className="font-semibold text-sm text-slate-800 dark:text-slate-100 mb-1.5 pr-6">
-                  {level.label}
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  {level.description}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-        {!bloomsIsValid && formData.bloomsFocus.length > 0 && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-            Select at least 2 cognitive levels for a balanced learning experience
-          </p>
-        )}
       </FormFieldWrapper>
 
       {/* Content Types */}

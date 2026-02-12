@@ -220,6 +220,8 @@ export interface CreationProgress {
     chapters: { position: number; title: string; id?: string; qualityScore?: number }[];
     sections: { chapterPosition: number; position: number; title: string; id?: string; qualityScore?: number }[];
   };
+  /** SAM Goal ID for this creation session */
+  goalId?: string;
 }
 
 // ============================================================================
@@ -262,6 +264,7 @@ export interface QualityScore {
   specificity: number;     // 0-100: How specific (not generic)
   bloomsAlignment: number; // 0-100: Proper verb usage
   completeness: number;    // 0-100: Has all required fields
+  depth: number;           // 0-100: Content depth beyond surface level
   overall: number;         // Weighted average
 }
 
@@ -365,6 +368,10 @@ export interface SequentialCreationResult {
     averageQualityScore: number;
   };
   error?: string;
+  /** SAM Goal ID for this creation session (Phase 3: goal tracking) */
+  goalId?: string;
+  /** SAM ExecutionPlan ID for this creation session (Phase 3: goal tracking) */
+  planId?: string;
 }
 
 // ============================================================================
@@ -384,6 +391,22 @@ export interface ConceptTracker {
   concepts: Map<string, ConceptEntry>;
   vocabulary: string[];
   skillsBuilt: string[];
+}
+
+// ============================================================================
+// Depth-First Pipeline: Completed Chapter/Section Types
+// ============================================================================
+
+/** A section with its Stage 3 details filled in */
+export interface CompletedSection extends GeneratedSection {
+  id: string;
+  details?: SectionDetails;
+}
+
+/** A fully completed chapter — all sections generated and detailed */
+export interface CompletedChapter extends GeneratedChapter {
+  id: string;
+  sections: CompletedSection[];
 }
 
 /** Rich context passed to Stage 2 and 3 prompt builders */

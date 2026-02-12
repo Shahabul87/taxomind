@@ -9,7 +9,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@/lib/auth';
-import { runSAMChatWithPreference, handleAIAccessError } from '@/lib/sam/ai-provider';
+import { handleAIAccessError } from '@/lib/sam/ai-provider';
+import { createUserScopedAdapter } from '@/lib/ai/user-scoped-adapter';
 import { logger } from '@/lib/logger';
 import { buildStage3Prompt } from '@/lib/sam/course-creation/prompts';
 import { withSubscriptionGate } from '@/lib/sam/ai-provider';
@@ -69,15 +70,19 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage3Res
       chapterSections
     );
 
-    // Call SAM AI with user's preferred provider
+    // Create a user-scoped CoreAIAdapter for this request
+    const aiAdapter = await createUserScopedAdapter(user.id, 'course');
+
+    // Call AI via CoreAIAdapter
     const responseText = await withRetryableTimeout(
-      () => runSAMChatWithPreference({
-        userId: user.id,
-        capability: 'course',
-        maxTokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-        extended: true,
-      }),
+      async () => {
+        const aiResponse = await aiAdapter.chat({
+          messages: [{ role: 'user', content: prompt }],
+          maxTokens: 1500,
+          temperature: 0.7,
+        });
+        return aiResponse.content;
+      },
       TIMEOUT_DEFAULTS.AI_GENERATION,
       'stage3-section-detail-generation'
     );

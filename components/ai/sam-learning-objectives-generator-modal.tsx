@@ -35,6 +35,8 @@ import {
   RefreshCw,
   Lightbulb,
   CheckCircle2,
+  Minus,
+  Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -55,6 +57,8 @@ interface SAMLearningObjectivesGeneratorModalProps {
   difficulty?: string;
   bloomsFocus?: string[];
   existingObjectives?: string[];
+  /** How many objectives the user configured per chapter (from the slider) */
+  targetObjectiveCount?: number;
   onAddObjectives: (objectives: string[]) => void;
   disabled?: boolean;
   className?: string;
@@ -79,6 +83,7 @@ export function SAMLearningObjectivesGeneratorModal({
   difficulty,
   bloomsFocus = [],
   existingObjectives = [],
+  targetObjectiveCount = 6,
   onAddObjectives,
   disabled = false,
   className,
@@ -87,6 +92,7 @@ export function SAMLearningObjectivesGeneratorModal({
   const [suggestions, setSuggestions] = useState<ObjectiveSuggestion[]>([]);
   const [selectedObjectives, setSelectedObjectives] = useState<Set<number>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateCount, setGenerateCount] = useState(targetObjectiveCount);
 
   // Analysis of current state
   const objectivesAnalysis = useMemo(() => {
@@ -136,7 +142,7 @@ export function SAMLearningObjectivesGeneratorModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: `As an expert instructional designer, generate 6 specific, measurable learning objectives for the course: "${courseTitle}"
+          message: `As an expert instructional designer, generate ${generateCount} specific, measurable learning objectives for the course: "${courseTitle}"
 
 COURSE CONTEXT:
 - Title: "${courseTitle}"
@@ -158,7 +164,7 @@ ${bloomsFocus.length > 0 ? `4. Prioritize objectives at these Bloom's levels: ${
 6. Focus on what students will be able to DO after completing the course
 7. Align objectives with the course overview and target audience
 
-Return a JSON array with exactly 6 objectives in this format:
+Return a JSON array with exactly ${generateCount} objectives in this format:
 [
   {
     "objective": "Full learning objective statement starting with action verb",
@@ -262,7 +268,7 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
     } finally {
       setIsGenerating(false);
     }
-  }, [courseTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, bloomsFocus, existingObjectives, isGenerating]);
+  }, [courseTitle, courseOverview, courseCategory, courseSubcategory, courseIntent, targetAudience, difficulty, bloomsFocus, existingObjectives, generateCount, isGenerating]);
 
   const toggleObjective = (index: number) => {
     setSelectedObjectives(prev => {
@@ -348,10 +354,27 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
                   {courseTitle || "No title entered"}
                 </p>
               </div>
-              <Badge variant="outline" className="flex-shrink-0 text-xs">
-                {existingObjectives.length} objective(s)
-              </Badge>
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <Badge variant="outline" className="text-xs">
+                  {existingObjectives.length} / {targetObjectiveCount} objective(s)
+                </Badge>
+              </div>
             </div>
+
+            {/* Context Summary: Bloom's levels + target count */}
+            {bloomsFocus.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {bloomsFocus.map((level) => (
+                  <Badge
+                    key={level}
+                    variant="outline"
+                    className={cn("text-[10px] font-medium", BLOOMS_COLORS[level])}
+                  >
+                    {level}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
             {/* Analysis Feedback */}
             <div className={cn(
@@ -365,9 +388,42 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
             </div>
           </div>
 
-          {/* Generate Button */}
+          {/* Objective Count Stepper + Generate Button */}
           {suggestions.length === 0 && (
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-4">
+              {/* Count control */}
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Generate
+                </span>
+                <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setGenerateCount(prev => Math.max(2, prev - 1))}
+                    disabled={generateCount <= 2}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Decrease count"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold text-slate-800 dark:text-slate-100 tabular-nums">
+                    {generateCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setGenerateCount(prev => Math.min(12, prev + 1))}
+                    disabled={generateCount >= 12}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Increase count"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  objectives
+                </span>
+              </div>
+
               <Button
                 onClick={generateObjectives}
                 disabled={isGenerating || !courseTitle || courseTitle.length < 5}
@@ -383,12 +439,12 @@ Return ONLY valid JSON array, no markdown fences, no other text.`,
                 {isGenerating ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating Objectives...
+                    Generating {generateCount} Objectives...
                   </>
                 ) : (
                   <>
                     <Wand2 className="h-4 w-4 mr-2" />
-                    Generate AI Objectives
+                    Generate {generateCount} AI Objectives
                   </>
                 )}
               </Button>

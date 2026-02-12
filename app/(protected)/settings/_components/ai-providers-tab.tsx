@@ -54,6 +54,12 @@ interface AIPreferences {
   openaiModel: string | null;
   geminiModel: string | null;
   mistralModel: string | null;
+  // Per-capability model overrides
+  chatModel: string | null;
+  courseModel: string | null;
+  analysisModel: string | null;
+  codeModel: string | null;
+  skillRoadmapModel: string | null;
 }
 
 const PROVIDER_ICONS: Record<AIProviderType, string> = {
@@ -103,6 +109,12 @@ export function AIProvidersTab() {
     openaiModel: null,
     geminiModel: null,
     mistralModel: null,
+    // Per-capability model overrides
+    chatModel: null,
+    courseModel: null,
+    analysisModel: null,
+    codeModel: null,
+    skillRoadmapModel: null,
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -137,6 +149,12 @@ export function AIProvidersTab() {
             openaiModel: data.openaiModel || "gpt-4o",
             geminiModel: data.geminiModel || "gemini-pro",
             mistralModel: data.mistralModel || "mistral-large",
+            // Per-capability model overrides
+            chatModel: data.chatModel || null,
+            courseModel: data.courseModel || null,
+            analysisModel: data.analysisModel || null,
+            codeModel: data.codeModel || null,
+            skillRoadmapModel: data.skillRoadmapModel || null,
           });
         }
       } catch (error) {
@@ -516,58 +534,98 @@ export function AIProvidersTab() {
         <div className="space-y-6">
           {(
             [
-              { key: "preferredChatProvider", capability: "chat" },
-              { key: "preferredCourseProvider", capability: "course-creation" },
-              { key: "preferredAnalysisProvider", capability: "analysis" },
-              { key: "preferredCodeProvider", capability: "code" },
-              { key: "preferredSkillRoadmapProvider", capability: "skill-roadmap" },
+              { key: "preferredChatProvider", capability: "chat", modelKey: "chatModel" },
+              { key: "preferredCourseProvider", capability: "course-creation", modelKey: "courseModel" },
+              { key: "preferredAnalysisProvider", capability: "analysis", modelKey: "analysisModel" },
+              { key: "preferredCodeProvider", capability: "code", modelKey: "codeModel" },
+              { key: "preferredSkillRoadmapProvider", capability: "skill-roadmap", modelKey: "skillRoadmapModel" },
             ] as const
-          ).map(({ key, capability }) => {
+          ).map(({ key, capability, modelKey }) => {
             const Icon = CAPABILITY_ICONS[capability];
+            const selectedProvider = (preferences[key] || "anthropic") as AIProviderType;
+            const providerInfo = providers.find((p) => p.id === selectedProvider);
+            const availableModels = providerInfo?.models ?? [];
+            const currentCapabilityModel = preferences[modelKey];
             return (
               <div
                 key={key}
-                className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50"
+                className="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 space-y-3"
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
-                    <Icon className="h-5 w-5 text-white" />
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                      <Icon className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900 dark:text-white">
+                        {CAPABILITY_LABELS[capability]}
+                      </p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                        {CAPABILITY_DESCRIPTIONS[capability]}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {CAPABILITY_LABELS[capability]}
-                    </p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                      {CAPABILITY_DESCRIPTIONS[capability]}
-                    </p>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Select
+                      value={preferences[key] || "anthropic"}
+                      onValueChange={(value) => {
+                        handleProviderChange(key, value as AIProviderType);
+                        // Reset per-capability model when provider changes
+                        setPreferences((prev) => ({
+                          ...prev,
+                          [modelKey]: null,
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="w-full sm:w-[180px] bg-white dark:bg-slate-800">
+                        <SelectValue placeholder="Select provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {configuredProviders.map((provider) => (
+                          <SelectItem key={provider.id} value={provider.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{PROVIDER_ICONS[provider.id]}</span>
+                              <span>{provider.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                        {configuredProviders.length === 0 && (
+                          <SelectItem value="anthropic" disabled>
+                            No providers configured
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+
+                    {availableModels.length > 0 && (
+                      <Select
+                        value={currentCapabilityModel || "__default__"}
+                        onValueChange={(value) => {
+                          setPreferences((prev) => ({
+                            ...prev,
+                            [modelKey]: value === "__default__" ? null : value,
+                          }));
+                          setHasChanges(true);
+                        }}
+                      >
+                        <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-slate-800">
+                          <SelectValue placeholder="Model (default)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__default__">
+                            <span className="text-slate-500">Default model</span>
+                          </SelectItem>
+                          {availableModels.map((model) => (
+                            <SelectItem key={model} value={model}>
+                              {model}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
-
-                <Select
-                  value={preferences[key] || "anthropic"}
-                  onValueChange={(value) =>
-                    handleProviderChange(key, value as AIProviderType)
-                  }
-                >
-                  <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-slate-800">
-                    <SelectValue placeholder="Select provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {configuredProviders.map((provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
-                        <div className="flex items-center gap-2">
-                          <span>{PROVIDER_ICONS[provider.id]}</span>
-                          <span>{provider.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                    {configuredProviders.length === 0 && (
-                      <SelectItem value="anthropic" disabled>
-                        No providers configured
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
               </div>
             );
           })}
