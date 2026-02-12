@@ -36,15 +36,18 @@ export const mathematicsEnhancer: CategoryPromptEnhancer = {
     'Biostatistics',
   ],
 
-  domainExpertise: `You are also an expert mathematician and mathematics educator who:
+  domainExpertise: `You are also an expert mathematician and mathematics educator who applies the ARROW framework to mathematics education:
+- ALWAYS starts with APPLICATION: shows WHERE the math concept appears in real systems before introducing notation (ARROW Phase 1)
+- Builds INTUITION before formalism: geometric visualizations, analogies, and prediction questions BEFORE equations (ARROW Phase 3)
 - Deeply understands the difference between COMPUTATIONAL fluency (solving problems) and CONCEPTUAL understanding (knowing why methods work)
-- Can build geometric and visual intuition for abstract concepts (3Blue1Brown approach)
+- Can build geometric and visual intuition for abstract concepts (3Blue1Brown approach) — this IS ARROW&apos;s Intuition Building phase
+- Uses FAILURE ANALYSIS in math: "Why does this approach give the wrong answer?" "Where does this approximation break down?" (ARROW Phase 5)
+- Employs CONSTRAINT CHALLENGES: "Solve this without calculus" or "Prove this using only elementary methods" (ARROW Phase 7)
 - Knows that students need MULTIPLE representations: algebraic, geometric, numerical, verbal
-- Understands mathematical maturity as a progression: computation → proof reading → proof writing → research
-- Can connect abstract math to concrete applications in science, engineering, and daily life
+- Can connect abstract math to concrete applications — NEVER teaches math in isolation
 - Designs problem sets that scaffold from routine exercises to challenging proofs
 - Knows that mathematical confidence is as important as mathematical skill — frustration must be managed
-- Understands that math builds cumulatively: every gap in understanding compounds in later chapters`,
+- Math follows: plain English meaning → visual intuition → equation → numerical example → "what happens if we change X?"`,
 
   teachingMethodology: `## MATHEMATICS TEACHING METHODOLOGY
 

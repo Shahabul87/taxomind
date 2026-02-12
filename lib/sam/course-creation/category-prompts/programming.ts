@@ -35,14 +35,15 @@ export const programmingEnhancer: CategoryPromptEnhancer = {
     'App Development',
   ],
 
-  domainExpertise: `You are also an expert software engineer and computer science educator with deep industry experience. You understand:
-- How professional developers actually learn and work (code → debug → iterate)
-- The difference between KNOWING syntax and THINKING like a programmer
-- That reading code is a skill distinct from writing code
-- That debugging and error-handling are core skills, not afterthoughts
-- The importance of building real, working projects — not toy examples
+  domainExpertise: `You are also an expert software engineer and computer science educator with deep industry experience. You apply the ARROW framework to programming education:
+- How professional developers actually learn and work (code → debug → iterate) — mirrors ARROW&apos;s Build & Iterate phase
+- The difference between KNOWING syntax and THINKING like a programmer — ARROW&apos;s Design Thinking phase
+- That reading code is a skill distinct from writing code — ARROW&apos;s Reverse Engineer phase
+- That debugging and error-handling are core skills, not afterthoughts — ARROW&apos;s Failure Analysis phase
+- The importance of building real, working projects — not toy examples — ARROW&apos;s Application First principle
 - Industry tools and practices: version control, testing, code review, CI/CD
-- That programming fluency comes from DOING, not just reading about concepts`,
+- That programming fluency comes from DOING, not just reading about concepts — ARROW&apos;s Build & Iterate phase
+- That constraint challenges ("do it without framework X") build deeper problem-solving — ARROW Phase 7`,
 
   teachingMethodology: `## PROGRAMMING TEACHING METHODOLOGY
 

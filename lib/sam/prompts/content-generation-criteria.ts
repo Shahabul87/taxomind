@@ -83,24 +83,31 @@ export interface ChapterThinkingCriteria {
 export const CHAPTER_THINKING_FRAMEWORK = `
 ## CHAPTER DESCRIPTION THINKING FRAMEWORK
 
-When generating a chapter description, I must think through these critical dimensions:
+When generating a chapter description, think through these critical dimensions using the ARROW framework:
 
-### 1. INTUITION BEHIND DEVELOPMENT
+### 1. HOOK & APPLICATION (ARROW Phase 1)
+Ask yourself: "What real-world system, product, or breakthrough makes this chapter irresistible?"
+- What stunning application of this topic will create curiosity?
+- How can you "show the rooftop" — the end result — before teaching the ladder?
+- What would make a student think "I NEED to understand this"?
+- NEVER open with definitions or history — open with awe.
+
+### 2. INTUITION BEHIND DEVELOPMENT
 Ask yourself: "Why does this chapter exist in the learning journey?"
 - What gap in knowledge does this chapter fill?
 - What misconceptions might students have that this chapter addresses?
 - How does this chapter prepare students for more advanced concepts?
 - What would students miss if this chapter was removed?
 
-### 2. MAIN TOPICS TO COVER
+### 3. MAIN TOPICS TO COVER
 Identify the core concepts that MUST be in this description:
 - Primary concept: The central idea students must grasp
 - Supporting concepts: Building blocks that enable understanding
 - Connecting concepts: How this relates to broader subject matter
 - Practical concepts: Hands-on elements students will work with
 
-### 3. BLOOM'S COGNITIVE INTEGRATION
-For the assigned Bloom's level, incorporate ALL cognitive abilities progressively:
+### 4. BLOOM&apos;S COGNITIVE INTEGRATION
+For the assigned Bloom&apos;s level, incorporate ALL cognitive abilities progressively:
 
 **If REMEMBER level**: Focus on definitions, terminology, facts, and foundational knowledge
 **If UNDERSTAND level**: Explain concepts, show relationships, use analogies
@@ -109,14 +116,26 @@ For the assigned Bloom's level, incorporate ALL cognitive abilities progressivel
 **If EVALUATE level**: Present criteria for judgment, discuss trade-offs, quality assessment
 **If CREATE level**: Design challenges, synthesis opportunities, innovation prompts
 
-### 4. PRACTICAL APPLICATIONS
+### 5. FAILURE CASES (ARROW Phase 5)
+Always address:
+- What goes WRONG with this topic? What are the common pitfalls?
+- What broken systems or failed approaches can students diagnose?
+- What misconceptions lead to errors, and how can students spot them?
+
+### 6. PRACTICAL APPLICATIONS
 Always address:
 - "How will students USE this in real work?"
 - "What problems can they solve after this chapter?"
 - Industry/real-world scenarios where this applies
 - Hands-on projects or exercises that reinforce learning
 
-### 5. SKILLS DEVELOPED
+### 7. DESIGN CHALLENGE (ARROW Phases 6-7)
+Consider:
+- What open-ended problem can students solve with this chapter&apos;s knowledge?
+- What constraints would force creative thinking?
+- What trade-offs must students navigate?
+
+### 8. SKILLS DEVELOPED
 Be explicit about:
 - Technical skills gained
 - Cognitive abilities enhanced
@@ -124,7 +143,13 @@ Be explicit about:
 - Professional competencies developed
 - Soft skills practiced (communication, collaboration, critical thinking)
 
-### 6. LEARNING PROGRESSION
+### 9. KNOWLEDGE GRAPH (ARROW Phase 11)
+Consider:
+- How does this chapter connect to adjacent fields?
+- What unexpected connections can spark new ideas?
+- What should students learn next based on maximum connectivity?
+
+### 10. LEARNING PROGRESSION
 Consider the learning journey:
 - What must students know BEFORE this chapter?
 - How does this build on previous chapters?
@@ -148,34 +173,49 @@ export interface SectionThinkingCriteria {
 export const SECTION_THINKING_FRAMEWORK = `
 ## SECTION DESCRIPTION THINKING FRAMEWORK
 
-Each section is a focused learning unit. Think through:
+Each section is a focused learning unit. Think through using the ARROW approach:
 
-### 1. FOCUSED LEARNING OUTCOME
+### 1. INTUITION FIRST (ARROW Phase 3)
+- What analogy or thought experiment grounds this section BEFORE any formalism?
+- What everyday experience connects to the concept being taught?
+- Students should develop gut-level understanding before formal theory.
+
+### 2. FOCUSED LEARNING OUTCOME
 - What SINGLE thing will students accomplish in this section?
 - How is this measurable?
 - What evidence shows mastery?
 
-### 2. KEY CONCEPTS
+### 3. KEY CONCEPTS
 - What are the 2-3 essential concepts covered?
 - How are they sequenced for optimal understanding?
 - What examples illustrate each concept?
 
-### 3. PRACTICAL EXERCISE
+### 4. PREDICTION QUESTION (ARROW Phase 3)
+- What should students be able to PREDICT after this section?
+- "If I change X, what happens to Y?" — tests whether intuition was built.
+- Students who can predict correctly have internalized the concept.
+
+### 5. PRACTICAL EXERCISE
 - What hands-on activity reinforces learning?
 - How does the exercise connect theory to practice?
-- What feedback will students receive?
+- Use ARROW assessment types: prediction challenges, diagnosis puzzles, design reviews, prototypes.
 
-### 4. SKILL BUILDING
+### 6. FAILURE MODE (ARROW Phase 5)
+- What common mistake or misconception does this section address?
+- What "broken" scenario can students diagnose?
+- How does understanding failures deepen knowledge?
+
+### 7. SKILL BUILDING
 - What specific skill is practiced?
 - How does this skill transfer to real situations?
 - What level of proficiency should students achieve?
 
-### 5. COGNITIVE LOAD MANAGEMENT
-- Is the content appropriately chunked?
+### 8. COGNITIVE LOAD MANAGEMENT
+- Is the content appropriately chunked? (Max 3 new concepts per section)
 - Are there scaffolding supports for complex ideas?
 - Are there opportunities for practice before moving on?
 
-### 6. ENGAGEMENT
+### 9. ENGAGEMENT
 - What makes this section interesting?
 - How are different learning styles accommodated?
 - What motivates continued learning?
@@ -226,19 +266,30 @@ Each learning objective must be SMART (Specific, Measurable, Achievable, Relevan
    - How many? How quickly?
    - What quality level?
 
-6. **CONNECT TO REAL WORLD**
+6. **CONNECT TO REAL WORLD (ARROW Hook)**
+   - Tie back to the real-world application shown at the chapter&apos;s opening — how does mastering this objective connect to that application?
    - Why does this matter professionally?
    - Where will students use this?
    - What problem does this solve?
 
+7. **ARROW ASSESSMENT CONNECTION**
+   - Link each objective to an ARROW assessment type:
+     - Prediction Challenge → tests intuitive understanding of the objective
+     - Diagnosis Puzzle → tests analytical depth
+     - Design Review → tests creative application
+     - Constraint Sprint → tests flexible thinking
+     - Working Prototype → tests implementation
+     - Teach-Back → tests deep conceptual mastery
+
 ### OBJECTIVE QUALITY CHECKLIST:
-- [ ] Uses appropriate Bloom's taxonomy verb
+- [ ] Uses appropriate Bloom&apos;s taxonomy verb
 - [ ] Is specific and focused (not too broad)
 - [ ] Can be observed or measured
 - [ ] Is achievable within the section/chapter timeframe
 - [ ] Aligns with overall course goals
 - [ ] Is relevant to target audience
-- [ ] Connects to practical application
+- [ ] Connects to the chapter&apos;s ARROW hook and real-world application
+- [ ] Can be assessed using an ARROW assessment type
 `;
 
 // ============================================================================

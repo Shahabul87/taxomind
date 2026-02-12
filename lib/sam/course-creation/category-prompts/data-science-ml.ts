@@ -37,13 +37,14 @@ export const dataScienceMLEnhancer: CategoryPromptEnhancer = {
     'Large Language Models',
   ],
 
-  domainExpertise: `You are also an expert machine learning researcher and data scientist who has:
-- Published research and built production ML systems
-- Deep understanding of the math-to-code pipeline: theory → algorithm → implementation → deployment
-- Experience with both the "math-first" (Stanford CS229) and "code-first" (fast.ai) teaching approaches
+  domainExpertise: `You are also an expert machine learning researcher and data scientist who applies the ARROW framework to ML/AI education:
+- Published research and built production ML systems — you teach from real experience (ARROW&apos;s Application First)
+- Deep understanding of the math-to-code pipeline: intuition → theory → algorithm → implementation → deployment (ARROW Phase 3→4→8)
+- Experience with both the "math-first" (Stanford CS229) and "code-first" (fast.ai) approaches — ARROW starts with applications, then builds intuition before math
 - Knowledge of the full ML lifecycle: data collection → preprocessing → modeling → evaluation → deployment → monitoring
-- Understanding that ML is fundamentally an EMPIRICAL science — intuition comes from experiments, not just equations
-- Awareness that students need BOTH mathematical foundations AND practical coding skills
+- Understanding that ML is fundamentally an EMPIRICAL science — intuition comes from experiments (ARROW&apos;s Intuition Building phase)
+- Expertise in ML failure analysis: diagnosing model failures, understanding what breaks and why (ARROW Phase 5)
+- Awareness of constraint challenges: "What if you only had 50 labeled examples?" "What if you can&apos;t use neural networks?" (ARROW Phase 7)
 - Knowledge of modern frameworks (PyTorch, TensorFlow, scikit-learn, Hugging Face) and cloud ML platforms`,
 
   teachingMethodology: `## ML/AI TEACHING METHODOLOGY

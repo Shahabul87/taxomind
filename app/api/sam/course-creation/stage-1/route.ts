@@ -68,7 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage1Res
     });
 
     // Build the prompt with full context
-    const prompt = buildStage1Prompt(
+    const { systemPrompt, userPrompt } = buildStage1Prompt(
       courseContext,
       currentChapterNumber,
       previousChapters
@@ -81,8 +81,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Stage1Res
     const responseText = await withRetryableTimeout(
       async () => {
         const aiResponse = await aiAdapter.chat({
-          messages: [{ role: 'user', content: prompt }],
-          maxTokens: 2000,
+          messages: [{ role: 'user', content: userPrompt }],
+          systemPrompt,
+          maxTokens: 4000,
           temperature: 0.7,
         });
         return aiResponse.content;

@@ -73,9 +73,9 @@ function stripId<T extends { id: string }>(obj: T): Omit<T, 'id'> {
   return result as Omit<T, 'id'>;
 }
 
-const AI_MAX_TOKENS_CHAPTER = 2000;
-const AI_MAX_TOKENS_SECTION = 1500;
-const AI_MAX_TOKENS_DETAILS = 1500;
+const AI_MAX_TOKENS_CHAPTER = 4000;
+const AI_MAX_TOKENS_SECTION = 3000;
+const AI_MAX_TOKENS_DETAILS = 3000;
 
 // Quality gate thresholds
 const QUALITY_RETRY_THRESHOLD = 60; // Retry if score < 60
@@ -294,12 +294,13 @@ export async function orchestrateCourseCreation(
       let bestResult = { chapter: buildFallbackChapter(chNum, courseContext), thinking: '', qualityScore: buildDefaultQualityScore(50) };
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         // Pass completedChapters for rich section-level context from prior chapters
-        const prompt = buildStage1Prompt(
+        const { systemPrompt: s1System, userPrompt: s1User } = buildStage1Prompt(
           courseContext, chNum, previousPlain, conceptTracker,
           composedCategoryPrompt, completedChapters
         );
         const aiResponse = await aiAdapter.chat({
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{ role: 'user', content: s1User }],
+          systemPrompt: s1System,
           maxTokens: AI_MAX_TOKENS_CHAPTER,
           temperature: 0.7,
         });
@@ -450,9 +451,10 @@ export async function orchestrateCourseCreation(
         // Quality gate: retry up to MAX_RETRIES if score is below threshold
         let bestSec = { section: buildFallbackSection(secNum, chapterPlain, allSectionTitles), thinking: '', qualityScore: buildDefaultQualityScore(50) };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const prompt = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt);
+          const { systemPrompt: s2System, userPrompt: s2User } = buildStage2Prompt(courseContext, chapterPlain, secNum, previousPlainSections, allSectionTitles, enrichedContext, composedCategoryPrompt);
           const aiResponse = await aiAdapter.chat({
-            messages: [{ role: 'user', content: prompt }],
+            messages: [{ role: 'user', content: s2User }],
+            systemPrompt: s2System,
             maxTokens: AI_MAX_TOKENS_SECTION,
             temperature: 0.7,
           });
@@ -611,9 +613,10 @@ export async function orchestrateCourseCreation(
           qualityScore: buildDefaultQualityScore(50),
         };
         for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-          const prompt = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt);
+          const { systemPrompt: s3System, userPrompt: s3User } = buildStage3Prompt(courseContext, chapterPlain, sectionPlain, allChapterSectionsPlain, enrichedContext, composedCategoryPrompt);
           const aiResponse = await aiAdapter.chat({
-            messages: [{ role: 'user', content: prompt }],
+            messages: [{ role: 'user', content: s3User }],
+            systemPrompt: s3System,
             maxTokens: AI_MAX_TOKENS_DETAILS,
             temperature: 0.7,
           });

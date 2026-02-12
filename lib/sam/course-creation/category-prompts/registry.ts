@@ -11,6 +11,13 @@ import { programmingEnhancer } from './programming';
 import { dataScienceMLEnhancer } from './data-science-ml';
 import { dataStructuresAlgorithmsEnhancer } from './data-structures-algorithms';
 import { mathematicsEnhancer } from './mathematics';
+import { engineeringEnhancer } from './engineering';
+import { financeAccountingEnhancer } from './finance-accounting';
+import { businessManagementEnhancer } from './business-management';
+import { designCreativeEnhancer } from './design-creative';
+import { healthScienceEnhancer } from './health-science';
+import { languageCommunicationEnhancer } from './language-communication';
+import { artsHumanitiesEnhancer } from './arts-humanities';
 import { generalEnhancer } from './general';
 
 // All registered enhancers (order matters — first match wins)
@@ -20,6 +27,14 @@ const ENHANCERS: CategoryPromptEnhancer[] = [
   dataScienceMLEnhancer,
   programmingEnhancer,
   mathematicsEnhancer,
+  // ARROW-based domain enhancers (more specific before more general)
+  engineeringEnhancer,
+  financeAccountingEnhancer,
+  businessManagementEnhancer,
+  designCreativeEnhancer,
+  healthScienceEnhancer,
+  languageCommunicationEnhancer,
+  artsHumanitiesEnhancer, // Broadest catch-all last
   // General is never matched by category — only used as explicit fallback
 ];
 

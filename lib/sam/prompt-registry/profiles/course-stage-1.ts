@@ -58,20 +58,20 @@ const courseStage1Profile: PromptProfile<CourseStage1Input, Stage1Output> = {
     temperature: 0.7,
   },
 
-  // The system prompt is embedded in buildStage1Prompt (it produces a combined prompt).
-  // We use a minimal system prompt here; the real content comes from buildUserPrompt.
+  // System prompt is dynamically built by buildStage1Prompt; override at runtime.
   systemPrompt:
     'You are SAM, an expert educational course designer. Return ONLY valid JSON, no markdown formatting.',
 
   knowledgeModules: [],
 
   buildUserPrompt: (input: CourseStage1Input): string => {
-    return buildStage1Prompt(
+    const { userPrompt } = buildStage1Prompt(
       input.courseContext,
       input.currentChapterNumber,
       input.previousChapters,
       input.conceptTracker,
     );
+    return userPrompt;
   },
 
   outputSchema: Stage1OutputSchema,

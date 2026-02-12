@@ -68,7 +68,7 @@ const courseStage2Profile: PromptProfile<CourseStage2Input, Stage2Output> = {
   knowledgeModules: [],
 
   buildUserPrompt: (input: CourseStage2Input): string => {
-    return buildStage2Prompt(
+    const { userPrompt } = buildStage2Prompt(
       input.courseContext,
       input.chapter,
       input.currentSectionNumber,
@@ -76,6 +76,7 @@ const courseStage2Profile: PromptProfile<CourseStage2Input, Stage2Output> = {
       input.allExistingSectionTitles,
       input.enrichedContext,
     );
+    return userPrompt;
   },
 
   outputSchema: Stage2OutputSchema,

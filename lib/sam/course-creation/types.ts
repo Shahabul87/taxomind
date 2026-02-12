@@ -416,6 +416,12 @@ export interface EnrichedChapterContext {
   bloomsProgression: Array<{ chapter: number; level: BloomsLevel; topics: string[] }>;
 }
 
+/** Return type for prompt builders — splits system identity from user instructions */
+export interface StagePrompt {
+  systemPrompt: string;
+  userPrompt: string;
+}
+
 /** Input for content-aware Bloom's level assignment */
 export interface ContentAwareBloomsInput {
   chapterNumber: number;
