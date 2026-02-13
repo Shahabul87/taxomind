@@ -12,7 +12,7 @@ import {
   ensureDefaultToolPermissions,
   mapUserToToolRole,
 } from '@/lib/sam/agentic-tooling';
-import { resolveModeToolAllowlist, getModeById } from '@/lib/sam/modes';
+import { resolveModeToolAllowlist } from '@/lib/sam/modes';
 import type { PipelineContext } from '@/lib/sam/pipeline/types';
 import type { ToolDefinition } from '@sam-ai/agentic';
 
@@ -27,17 +27,29 @@ interface AutoInvokeConfig {
 }
 
 const MODE_AUTO_INVOKE: Record<string, AutoInvokeConfig> = {
+  // skill-navigator BEFORE skill-roadmap-builder so the enhanced NAVIGATOR
+  // tool takes priority during cross-mode intent scanning (general-assistant).
+  'skill-navigator': {
+    toolId: 'sam-skill-navigator',
+    intentPatterns: [
+      /\b(build|create|plan|design)\b.*\b(roadmap|learning path|skill plan|career path)\b/i,
+      /\b(want to learn|need to learn|how to learn|start learning)\b/i,
+      /\b(career switch|change career|new career|job transition)\b/i,
+      /\b(skill)\b.*\b(build|develop|improve|grow|navigator|roadmap)\b/i,
+      /\b(from|go from)\b.*\b(beginner|novice)\b.*\b(to|toward)\b.*\b(expert|advanced|proficient)\b/i,
+      /\bhelp me learn\b/i,
+      /\bteach me\b/i,
+      /\bget started with\b/i,
+      /\bhow (do i|can i|to) learn\b/i,
+    ],
+    defaultInput: { action: 'start' },
+  },
   'skill-roadmap-builder': {
     toolId: 'sam-skill-roadmap-generator',
     intentPatterns: [
       /\b(learn|master|improve|develop|build|acquire|study|get better at|become|grow)\b.*\b(skill|programming|language|framework|technology|tool|react|python|javascript|typescript|java|coding|development)\b/i,
       /\b(create|build|make|generate|want|need)\b.*\b(roadmap|learning path|study plan|curriculum|plan)\b/i,
       /\b(skill|learning)\b.*\b(roadmap|path|plan|journey)\b/i,
-      /\bwant to learn\b/i,
-      /\bhelp me learn\b/i,
-      /\bteach me\b/i,
-      /\bget started with\b/i,
-      /\bhow (do i|can i|to) learn\b/i,
     ],
     defaultInput: { action: 'start' },
   },
@@ -113,69 +125,87 @@ export async function checkConversationalToolInvoke(
     availableModeConfigs: Object.keys(MODE_AUTO_INVOKE),
   });
 
-  // Check if mode has auto-invoke configuration
-  const config = MODE_AUTO_INVOKE[modeId];
-  if (!config) {
-    logger.debug('[ConversationalTool] No auto-invoke config for mode', { modeId });
-    return { shouldInvoke: false };
-  }
+  // PRIORITY 1: Check if this is a continuation of an existing tool conversation.
+  // This MUST happen before intent pattern matching because continuation messages
+  // (e.g. "career_switch", "10") won't match any intent patterns.
+  if (ctx.toolConversation?.toolId) {
+    const convToolId = ctx.toolConversation.toolId;
+    const continuationConfig = Object.values(MODE_AUTO_INVOKE).find(
+      (c) => c.toolId === convToolId
+    );
 
-  // DEBUG: Log the comparison being made
-  logger.info('[ConversationalTool] Checking continuation condition', {
-    hasToolConversation: !!ctx.toolConversation,
-    toolConversationToolId: ctx.toolConversation?.toolId,
-    configToolId: config.toolId,
-    match: ctx.toolConversation?.toolId === config.toolId,
-  });
-
-  // PRIORITY 1: Check if this is a continuation of an existing tool conversation
-  if (ctx.toolConversation?.toolId === config.toolId) {
-    logger.info('[ConversationalTool] Continuing existing conversation', {
-      modeId,
-      toolId: config.toolId,
-      conversationId: ctx.toolConversation.conversationId,
-    });
-
-    // Find and return the tool for continuation
-    try {
-      const tooling = await ensureToolingInitialized(ctx.user.id);
-      const role = mapUserToToolRole(ctx.user as { role?: string; isTeacher?: boolean });
-      await ensureDefaultToolPermissions(ctx.user.id, role, ctx.user.id);
-
-      const availableTools = await tooling.toolRegistry.listTools({
-        enabled: true,
-        deprecated: false,
+    if (continuationConfig) {
+      logger.info('[ConversationalTool] Continuing existing conversation', {
+        modeId,
+        toolId: continuationConfig.toolId,
+        conversationId: ctx.toolConversation.conversationId,
       });
 
-      const modeFilteredTools = resolveModeToolAllowlist(modeId, availableTools);
-      const tool = modeFilteredTools.find((t) => t.id === config.toolId);
+      try {
+        const tooling = await ensureToolingInitialized(ctx.user.id);
+        const role = mapUserToToolRole(ctx.user as { role?: string; isTeacher?: boolean });
+        await ensureDefaultToolPermissions(ctx.user.id, role, ctx.user.id);
 
-      if (tool && tool.enabled) {
-        // Include stateless continuation data for serverless environments
-        const toolConv = ctx.toolConversation as ToolConversationState | undefined;
-        return {
-          shouldInvoke: true,
-          toolId: tool.id,
-          input: {
-            action: 'continue',
-            conversationId: toolConv?.conversationId,
-            userResponse: message, // User's message is the response to the tool's question
-            // Stateless continuation data (serverless-friendly)
-            currentStep: toolConv?.currentStep,
-            collected: toolConv?.collected,
-          },
-          tool,
-        };
+        const availableTools = await tooling.toolRegistry.listTools({
+          enabled: true,
+          deprecated: false,
+        });
+
+        // For cross-mode continuations, search all tools (not just mode-filtered)
+        const modeFilteredTools = resolveModeToolAllowlist(modeId, availableTools);
+        const tool = modeFilteredTools.find((t) => t.id === continuationConfig.toolId)
+          ?? availableTools.find((t) => t.id === continuationConfig.toolId);
+
+        if (tool && tool.enabled) {
+          const toolConv = ctx.toolConversation as ToolConversationState | undefined;
+          return {
+            shouldInvoke: true,
+            toolId: tool.id,
+            input: {
+              action: 'continue',
+              conversationId: toolConv?.conversationId,
+              userResponse: message,
+              currentStep: toolConv?.currentStep,
+              collected: toolConv?.collected,
+            },
+            tool,
+          };
+        }
+      } catch (error) {
+        logger.error('[ConversationalTool] Error checking tool for continuation', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
-    } catch (error) {
-      logger.error('[ConversationalTool] Error checking tool for continuation', {
-        error: error instanceof Error ? error.message : String(error),
-      });
+      return { shouldInvoke: false };
     }
-    return { shouldInvoke: false };
   }
 
-  // PRIORITY 2: Check if message matches intent pattern for new conversation
+  // PRIORITY 2: Check if mode has auto-invoke configuration for new conversations.
+  // If the current mode has a dedicated config, use it.
+  // Otherwise (e.g. general-assistant), scan ALL configs for intent matches.
+  let config = MODE_AUTO_INVOKE[modeId] ?? null;
+  if (!config) {
+    // Cross-mode intent scan: find the first config whose patterns match
+    for (const [, candidateConfig] of Object.entries(MODE_AUTO_INVOKE)) {
+      for (const pattern of candidateConfig.intentPatterns) {
+        if (pattern.test(message)) {
+          config = candidateConfig;
+          logger.info('[ConversationalTool] Cross-mode intent match found', {
+            modeId,
+            matchedToolId: candidateConfig.toolId,
+          });
+          break;
+        }
+      }
+      if (config) break;
+    }
+    if (!config) {
+      logger.debug('[ConversationalTool] No auto-invoke config for mode', { modeId });
+      return { shouldInvoke: false };
+    }
+  }
+
+  // PRIORITY 3: Check if message matches intent pattern for new conversation
   const normalizedMessage = message.toLowerCase();
   let matched = false;
   for (const pattern of config.intentPatterns) {
@@ -206,11 +236,12 @@ export async function checkConversationalToolInvoke(
       deprecated: false,
     });
 
-    // Filter by mode
+    // Filter by mode, but also fall back to all tools for cross-mode invocations
     const modeFilteredTools = resolveModeToolAllowlist(modeId, availableTools);
 
-    // Find the target tool
-    const tool = modeFilteredTools.find((t) => t.id === config.toolId);
+    // Find the target tool (try mode-filtered first, then all available)
+    const tool = modeFilteredTools.find((t) => t.id === config.toolId)
+      ?? availableTools.find((t) => t.id === config.toolId);
     if (!tool) {
       logger.warn('[ConversationalTool] Tool not found in mode allowlist', {
         toolId: config.toolId,
@@ -258,6 +289,25 @@ export async function checkConversationalToolInvoke(
           const courseName = match[1].trim().replace(/\s+/g, ' ');
           if (courseName.length >= 2 && courseName.length <= 100) {
             input = { ...input, courseName };
+            break;
+          }
+        }
+      }
+    }
+
+    if (config.toolId === 'sam-skill-navigator') {
+      const skillPatterns = [
+        /(?:learn|master|improve|study|get better at)\s+([a-z][a-z0-9\s.#+\-]*?)(?:\s+for\b|$)/i,
+        /(?:roadmap|path|plan)\s+for\s+([a-z][a-z0-9\s.#+\-]*)/i,
+        /(?:career switch|career change)\s+(?:to|into)\s+([a-z][a-z0-9\s.#+\-]*)/i,
+      ];
+
+      for (const skillPattern of skillPatterns) {
+        const match = message.match(skillPattern);
+        if (match && match[1]) {
+          const skillName = match[1].trim().replace(/\s+/g, ' ');
+          if (skillName.length >= 2 && skillName.length <= 50) {
+            input = { ...input, skillName };
             break;
           }
         }

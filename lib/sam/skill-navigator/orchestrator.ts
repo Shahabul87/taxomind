@@ -149,7 +149,7 @@ export async function runNavigatorPipeline(
           maxTokens: 3000,
           temperature: 0.4,
         }),
-      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      TIMEOUT_DEFAULTS.AI_GENERATION,
       'navigator-stage2',
     );
 
@@ -194,7 +194,7 @@ export async function runNavigatorPipeline(
           maxTokens: 4000,
           temperature: 0.4,
         }),
-      TIMEOUT_DEFAULTS.AI_ANALYSIS,
+      TIMEOUT_DEFAULTS.AI_GENERATION,
       'navigator-stage3',
     );
 
@@ -237,7 +237,7 @@ export async function runNavigatorPipeline(
           capability: 'analysis',
           systemPrompt: STAGE_4_SYSTEM_PROMPT,
           messages: [{ role: 'user', content: stage4Prompt }],
-          maxTokens: 5000,
+          maxTokens: 4000,
           temperature: 0.4,
         }),
       TIMEOUT_DEFAULTS.AI_GENERATION,
@@ -283,7 +283,7 @@ export async function runNavigatorPipeline(
           capability: 'analysis',
           systemPrompt: STAGE_5_SYSTEM_PROMPT,
           messages: [{ role: 'user', content: stage5Prompt }],
-          maxTokens: 5000,
+          maxTokens: 4000,
           temperature: 0.4,
         }),
       TIMEOUT_DEFAULTS.AI_GENERATION,

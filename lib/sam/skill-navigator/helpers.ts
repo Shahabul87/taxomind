@@ -210,62 +210,65 @@ async function collectGroupB(
     take: 20,
     orderBy: { createdAt: 'desc' },
     include: {
-      course: { select: { id: true, title: true } },
+      Course: { select: { id: true, title: true } },
     },
   });
 
   for (const record of records) {
     enrollments.push({
-      courseId: record.course.id,
-      courseTitle: record.course.title ?? 'Untitled Course',
-      progress: record.progress ?? 0,
-      isCompleted: record.isCompleted,
-      completedAt: record.completedAt?.toISOString() ?? null,
+      courseId: record.Course.id,
+      courseTitle: record.Course.title ?? 'Untitled Course',
+      status: record.status ?? 'ACTIVE',
+      enrolledAt: record.createdAt.toISOString(),
     });
   }
 
   return { enrollments };
 }
 
-// Group C: Diagnostic insights (DIAGNOSE evaluations)
+// Group C: Diagnostic insights (CognitiveSkillProgress — Bloom's mastery per concept)
 async function collectGroupC(
   userId: string,
 ): Promise<{ diagnostics: DiagnosticInsight[] }> {
   const diagnostics: DiagnosticInsight[] = [];
 
-  const evaluations = await db.aIEvaluationRecord.findMany({
+  const skillProgress = await db.cognitiveSkillProgress.findMany({
     where: { userId },
-    take: 10,
-    orderBy: { evaluatedAt: 'desc' },
+    take: 20,
+    orderBy: { overallMastery: 'desc' },
     select: {
       id: true,
-      overallScore: true,
-      bloomsBreakdown: true,
-      strengthAreas: true,
-      weaknessAreas: true,
-      evaluatedAt: true,
-      examAttempt: {
-        select: {
-          exam: {
-            select: {
-              course: { select: { title: true } },
-            },
-          },
-        },
-      },
+      conceptId: true,
+      rememberMastery: true,
+      understandMastery: true,
+      applyMastery: true,
+      analyzeMastery: true,
+      evaluateMastery: true,
+      createMastery: true,
+      overallMastery: true,
+      currentBloomsLevel: true,
+      totalAttempts: true,
+      lastAttemptDate: true,
+      trend: true,
     },
   });
 
-  for (const evaluation of evaluations) {
-    const bloomsBreakdown = (evaluation.bloomsBreakdown as Record<string, number>) ?? {};
+  for (const sp of skillProgress) {
     diagnostics.push({
-      evaluationId: evaluation.id,
-      courseTitle: evaluation.examAttempt?.exam?.course?.title ?? 'Unknown Course',
-      overallScore: evaluation.overallScore ?? 0,
-      bloomsBreakdown,
-      weaknesses: (evaluation.weaknessAreas as string[]) ?? [],
-      strengths: (evaluation.strengthAreas as string[]) ?? [],
-      evaluatedAt: evaluation.evaluatedAt.toISOString(),
+      conceptId: sp.conceptId,
+      overallMastery: sp.overallMastery,
+      currentBloomsLevel: sp.currentBloomsLevel,
+      bloomsBreakdown: {
+        remember: sp.rememberMastery,
+        understand: sp.understandMastery,
+        apply: sp.applyMastery,
+        analyze: sp.analyzeMastery,
+        evaluate: sp.evaluateMastery,
+        create: sp.createMastery,
+      },
+      trend: sp.trend ?? 'stable',
+      totalAttempts: sp.totalAttempts,
+      lastAttemptDate: sp.lastAttemptDate?.toISOString() ?? null,
     });
   }
 
@@ -446,18 +449,20 @@ export function serializeDataSnapshot(snapshot: NavigatorDataSnapshot): string {
   if (snapshot.enrollmentHistory.length > 0) {
     lines.push(`\nENROLLMENT HISTORY (${snapshot.enrollmentHistory.length} courses):`);
     for (const e of snapshot.enrollmentHistory.slice(0, 10)) {
-      const status = e.isCompleted ? 'COMPLETED' : `${Math.round(e.progress * 100)}% progress`;
-      lines.push(`  ${e.courseTitle}: ${status}`);
+      lines.push(`  ${e.courseTitle}: ${e.status} (enrolled: ${e.enrolledAt})`);
     }
   }
 
-  // Diagnostic insights
+  // Diagnostic insights (Bloom's mastery per concept)
   if (snapshot.diagnosticInsights.length > 0) {
-    lines.push(`\nDIAGNOSTIC INSIGHTS (${snapshot.diagnosticInsights.length} evaluations):`);
-    for (const d of snapshot.diagnosticInsights.slice(0, 5)) {
-      lines.push(`  ${d.courseTitle}: Score ${d.overallScore}%`);
-      if (d.strengths.length > 0) lines.push(`    Strengths: ${d.strengths.join(', ')}`);
-      if (d.weaknesses.length > 0) lines.push(`    Weaknesses: ${d.weaknesses.join(', ')}`);
+    lines.push(`\nCOGNITIVE SKILL PROGRESS (${snapshot.diagnosticInsights.length} concepts):`);
+    for (const d of snapshot.diagnosticInsights.slice(0, 10)) {
+      lines.push(`  Concept ${d.conceptId}: ${d.currentBloomsLevel} (mastery: ${Math.round(d.overallMastery)}%, trend: ${d.trend})`);
+      const levels = Object.entries(d.bloomsBreakdown)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${k}: ${Math.round(v)}%`)
+        .join(', ');
+      if (levels) lines.push(`    Bloom's: ${levels}`);
     }
   }
 

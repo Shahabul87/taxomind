@@ -97,19 +97,18 @@ export interface RelatedSkillLevel {
 export interface EnrollmentRecord {
   courseId: string;
   courseTitle: string;
-  progress: number;
-  isCompleted: boolean;
-  completedAt: string | null;
+  status: string;
+  enrolledAt: string;
 }
 
 export interface DiagnosticInsight {
-  evaluationId: string;
-  courseTitle: string;
-  overallScore: number;
+  conceptId: string;
+  overallMastery: number;
+  currentBloomsLevel: string;
   bloomsBreakdown: Record<string, number>;
-  weaknesses: string[];
-  strengths: string[];
-  evaluatedAt: string;
+  trend: string;
+  totalAttempts: number;
+  lastAttemptDate: string | null;
 }
 
 export interface PracticeRecord {

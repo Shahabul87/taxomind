@@ -221,7 +221,7 @@ Return JSON with this EXACT structure:
   "gapAnalysis": {
     "gapTable": [
       {
-        "skillDimension": "Dimension from skill graph",
+        "skillDimension": "Dimension name",
         "currentLevel": "Current level",
         "targetLevel": "Target level",
         "gap": "Brief gap description",
@@ -238,55 +238,39 @@ Return JSON with this EXACT structure:
       {
         "phaseNumber": 1,
         "title": "Phase title",
-        "description": "2-3 sentences: what and why",
+        "description": "2-3 sentences",
         "bloomsLevel": "REMEMBER|UNDERSTAND|APPLY|ANALYZE|EVALUATE|CREATE",
         "difficulty": "BEGINNER|INTERMEDIATE|ADVANCED",
         "estimatedHours": <number>,
         "durationWeeks": <number>,
         "skills": ["skill node names covered"],
-        "weeklyRhythm": [
-          {
-            "weekNumber": 1,
-            "theme": "Week theme",
-            "activities": {
-              "learn": ["Learning activities"],
-              "build": ["Build activities"],
-              "review": ["Review activities"]
-            },
-            "hoursPlanned": <number>
-          }
-        ],
-        "exitRamp": "What usable skill the student has if they stop after this phase"
+        "weeklyRhythm": [],
+        "exitRamp": "Usable skill if student stops here"
       }
     ],
     "contingencyPlans": [
       {
-        "scenario": "1 week behind",
-        "trigger": "What triggers this plan",
+        "scenario": "Falling behind schedule",
+        "trigger": "Trigger condition",
         "action": "What to do",
-        "adjustments": ["Specific adjustments"]
+        "adjustments": ["Adjustments"]
       }
     ],
     "totalWeeks": <number>,
     "totalHours": <number>,
-    "timeSplit": {
-      "learn": 60,
-      "build": 20,
-      "review": 20
-    }
+    "timeSplit": { "learn": 60, "build": 20, "review": 20 }
   }
 }
 
 RULES:
-- Apply 7 architecture principles: Blockers First, Accelerators Early, Spiral, Theory-Practice Interleave, Strategic Depth, Buffer+Review, Exit Ramps
-- Each phase should have 2-4 weeks of weekly rhythm
-- Every 4th week should be review/consolidation
-- Time split approximately 60% learn, 20% build, 20% review
-- Bloom's levels must progress (never decrease across phases)
+- Blockers First, Accelerators Early, Exit Ramps at every phase
+- Bloom's levels must progress across phases (never decrease)
 - Difficulty must progress (never decrease)
-- Create 2-3 contingency plans for falling behind
-- Each phase exit ramp must describe a USABLE skill, not just knowledge
-- Create 3-6 phases depending on the gap size`;
+- Create 1-2 contingency plans
+- Each phase exit ramp = a USABLE skill, not just knowledge
+- Create 3-5 phases depending on the gap size
+- Keep weeklyRhythm as empty array [] (generated separately)
+- Be concise in descriptions`;
 }
 
 // =============================================================================
@@ -321,13 +305,13 @@ Return JSON with this EXACT structure:
     "resources": [
       {
         "phaseNumber": 1,
-        "courseTitle": "Course: Specific Topic - Learning Outcome",
-        "courseDescription": "60-100 words describing what the student will learn, key topics, and practical application",
+        "courseTitle": "Topic: Focus Area - Outcome",
+        "courseDescription": "30-50 word description of what student learns",
         "difficulty": "BEGINNER|INTERMEDIATE|ADVANCED",
         "estimatedHours": <number>,
-        "learningOutcomes": ["Outcome 1", "Outcome 2", "Outcome 3"],
+        "learningOutcomes": ["Outcome 1", "Outcome 2"],
         "keyTopics": ["Topic 1", "Topic 2", "Topic 3"],
-        "reason": "Why this course at this point in the journey"
+        "reason": "Why this course here"
       }
     ],
     "totalSuggestedCourses": <number>
@@ -338,31 +322,29 @@ Return JSON with this EXACT structure:
         "milestoneId": "ms_1",
         "milestoneTitle": "Milestone title",
         "checkpoint": {
-          "knowledgeCheck": "Question or task to verify knowledge retention",
-          "buildCheck": "Small project or exercise to verify practical skills",
-          "explainCheck": "Prompt to explain a concept in own words",
-          "transferCheck": "Task requiring applying knowledge to a new context"
+          "knowledgeCheck": "Question to verify knowledge",
+          "buildCheck": "Practical exercise to verify skills",
+          "explainCheck": "Explain a concept in own words",
+          "transferCheck": "Apply knowledge to new context"
         },
-        "exitRampDescription": "Detailed description of what usable skill the student has if they stop here"
+        "exitRampDescription": "Usable skill if student stops here"
       }
     ],
     "motivationArchitecture": {
-      "firstWeekWin": "Specific achievable win in week 1 that demonstrates value",
-      "biWeeklyWows": ["Wow moment at week 2", "Wow moment at week 4"],
-      "postHardTopicWins": ["Easy win after a difficult section"]
+      "firstWeekWin": "Achievable win in week 1",
+      "biWeeklyWows": ["Wow moment 1", "Wow moment 2"],
+      "postHardTopicWins": ["Easy win after hard section"]
     }
   }
 }
 
 RULES:
-- Generate 2-3 courses per phase (${phases.length} phases)
-- Course titles MUST follow format: "[Topic]: [Specific Focus] - [Learning Outcome]"
-- Course descriptions must be 60-100 words with specific outcomes
-- Difficulty should match the phase difficulty
-- Each milestone gets exactly 1 checkpoint with all 4 verification types
-- First week win must be achievable within 5-10 hours
-- Bi-weekly wows should celebrate concrete achievements
-- Post-hard-topic wins provide psychological relief`;
+- Generate 1-2 courses per phase (${phases.length} phases)
+- Course titles: "[Topic]: [Focus] - [Outcome]"
+- Course descriptions: 30-50 words max
+- Each milestone gets 1 checkpoint
+- Keep all text fields concise (1 sentence each)
+- Be brief and direct`;
 }
 
 // =============================================================================

@@ -88,6 +88,13 @@ export function NavigatorGenerationProgress({
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Store params in ref so generateRoadmap callback stays stable across re-renders
+  const paramsRef = useRef(params);
+  paramsRef.current = params;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   const generateRoadmap = useCallback(async () => {
     if (abortControllerRef.current) {
@@ -106,7 +113,7 @@ export function NavigatorGenerationProgress({
       const response = await fetch('/api/sam/skill-navigator/orchestrate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
+        body: JSON.stringify(paramsRef.current),
         signal: controller.signal,
       });
 
@@ -189,13 +196,13 @@ export function NavigatorGenerationProgress({
 
                   case 'complete': {
                     const roadmap = data.roadmap as NavigatorRoadmapResult;
-                    onComplete(roadmap);
+                    onCompleteRef.current(roadmap);
                     break;
                   }
 
                   case 'error':
                     setError((data.message as string) ?? 'Generation failed');
-                    onError((data.message as string) ?? 'Generation failed');
+                    onErrorRef.current((data.message as string) ?? 'Generation failed');
                     break;
 
                   // Info events — update message for context
@@ -224,15 +231,15 @@ export function NavigatorGenerationProgress({
       if (err instanceof Error) {
         if (err.name === 'AbortError') return;
         setError(err.message);
-        onError(err.message);
+        onErrorRef.current(err.message);
       } else {
         setError('An unexpected error occurred');
-        onError('An unexpected error occurred');
+        onErrorRef.current('An unexpected error occurred');
       }
     } finally {
       setIsRetrying(false);
     }
-  }, [params, onComplete, onError]);
+  }, []);
 
   useEffect(() => {
     generateRoadmap();

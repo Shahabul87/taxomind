@@ -877,6 +877,43 @@ function ChatWindowInner({
         clearActiveToolConversation();
       }
     }
+
+    // Check if this is a skill navigator tool result
+    if (apiToolExecution.toolId === 'sam-skill-navigator') {
+      const toolResult = apiToolExecution.result as { output?: {
+        type?: string;
+        conversationId?: string;
+        step?: string;
+        collected?: Record<string, unknown>;
+      }} | undefined;
+      const output = toolResult?.output;
+
+      console.log('[ChatWindow] Skill navigator tool result:', {
+        hasOutput: !!output,
+        type: output?.type,
+        conversationId: output?.conversationId,
+        step: output?.step,
+        collected: output?.collected,
+      });
+
+      if (output?.type === 'conversation' && output.conversationId) {
+        console.log('[ChatWindow] Setting active tool conversation (navigator):', {
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          currentStep: output.step,
+          collected: output.collected,
+        });
+        setActiveToolConversation({
+          conversationId: output.conversationId,
+          toolId: apiToolExecution.toolId,
+          currentStep: output.step,
+          collected: output.collected,
+        });
+      } else if (output?.type === 'generate_roadmap') {
+        // Conversation completed - clear tracking
+        clearActiveToolConversation();
+      }
+    }
   }, [apiToolExecution]);
 
   // Enrich messages with tool result data, engine insights, and merge local mode greeting messages
